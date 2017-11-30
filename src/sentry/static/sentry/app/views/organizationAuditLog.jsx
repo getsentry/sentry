@@ -1,4 +1,5 @@
 import React from 'react';
+import createReactClass from 'create-react-class';
 import DocumentTitle from 'react-document-title';
 import {browserHistory} from 'react-router';
 
@@ -47,7 +48,8 @@ const EVENT_TYPES = [
   'api-key.remove',
 ].sort();
 
-const OrganizationAuditLog = React.createClass({
+const OrganizationAuditLog = createReactClass({
+  displayName: 'OrganizationAuditLog',
   mixins: [ApiMixin, OrganizationState],
 
   getInitialState() {
@@ -116,7 +118,10 @@ const OrganizationAuditLog = React.createClass({
     let queryParams = {
       event: value,
     };
-    browserHistory.pushState(null, this.props.location.pathname, queryParams);
+    browserHistory.push({
+      pathname: this.props.location.pathname,
+      query: queryParams
+    });
   },
 
   renderResults() {

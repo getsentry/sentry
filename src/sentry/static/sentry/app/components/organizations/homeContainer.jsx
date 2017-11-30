@@ -1,5 +1,7 @@
 import React from 'react';
 
+import createReactClass from 'create-react-class';
+
 import OrganizationHomeSidebar from './homeSidebar';
 import OrganizationState from '../../mixins/organizationState';
 import ProjectSelector from '../projectHeader/projectSelector';
@@ -8,7 +10,9 @@ import {t} from '../../locale';
 
 import Button from '../../components/buttons/button';
 
-const HomeContainer = React.createClass({
+const HomeContainer = createReactClass({
+  displayName: 'HomeContainer',
+
   mixins: [
     OrganizationState,
     TooltipMixin({

@@ -1,5 +1,6 @@
 import PropTypes from 'prop-types';
 import React from 'react';
+import createReactClass from 'create-react-class';
 import Link from '../link';
 import SidebarPanel from '../sidebarPanel';
 import LetterAvatar from '../letterAvatar';
@@ -10,7 +11,9 @@ import ConfigStore from '../../stores/configStore';
 
 import {t} from '../../locale';
 
-const OrganizationSelector = React.createClass({
+const OrganizationSelector = createReactClass({
+  displayName: 'OrganizationSelector',
+
   propTypes: {
     organization: PropTypes.object,
     showPanel: PropTypes.bool,

@@ -6,30 +6,26 @@ import ConfigStore from '../stores/configStore';
 
 import {t, tct} from '../locale';
 
-const U2fInterface = React.createClass({
-  propTypes: {
+class U2fInterface extends React.Component {
+  static propTypes = {
     challengeData: PropTypes.object.isRequired,
     flowMode: PropTypes.string.isRequired,
     onTap: PropTypes.func,
     silentIfUnsupported: PropTypes.bool,
-  },
+  };
 
-  getDefaultProps() {
-    return {
-      silentIfUnsupported: false,
-    };
-  },
+  static defaultProps = {
+    silentIfUnsupported: false,
+  };
 
-  getInitialState() {
-    return {
-      isSupported: null,
-      formElement: null,
-      challengeElement: null,
-      hasBeenTapped: false,
-      deviceFailure: null,
-      responseElement: null,
-    };
-  },
+  state = {
+    isSupported: null,
+    formElement: null,
+    challengeElement: null,
+    hasBeenTapped: false,
+    deviceFailure: null,
+    responseElement: null,
+  };
 
   componentDidMount() {
     u2f.isSupported().then(supported => {
@@ -41,9 +37,9 @@ const U2fInterface = React.createClass({
       }
       this.invokeU2fFlow();
     });
-  },
+  }
 
-  onTryAgain() {
+  onTryAgain = () => {
     this.setState(
       {
         hasBeenTapped: false,
@@ -53,9 +49,9 @@ const U2fInterface = React.createClass({
         this.invokeU2fFlow();
       }
     );
-  },
+  };
 
-  invokeU2fFlow() {
+  invokeU2fFlow = () => {
     let promise;
     if (this.props.flowMode === 'sign') {
       promise = u2f.sign(this.props.challengeData.authenticateRequests);
@@ -103,23 +99,23 @@ const U2fInterface = React.createClass({
           hasBeenTapped: false,
         });
       });
-  },
+  };
 
-  bindChallengeElement(ref) {
+  bindChallengeElement = (ref) => {
     this.setState({
       challengeElement: ref,
       formElement: ref.form,
     });
     ref.value = JSON.stringify(this.props.challengeData);
-  },
+  };
 
-  bindResponseElement(ref) {
+  bindResponseElement = (ref) => {
     this.setState({
       responseElement: ref,
     });
-  },
+  };
 
-  renderUnsupported() {
+  renderUnsupported = () => {
     if (this.props.silentIfUnsupported) {
       return null;
     }
@@ -138,13 +134,13 @@ const U2fInterface = React.createClass({
         </div>
       </div>
     );
-  },
+  };
 
-  canTryAgain() {
+  canTryAgain = () => {
     return this.state.deviceFailure !== 'BAD_APPID';
-  },
+  };
 
-  renderFailure() {
+  renderFailure = () => {
     let {deviceFailure} = this.state;
     let supportMail = ConfigStore.get('supportEmail');
     let support = supportMail ? (
@@ -185,17 +181,17 @@ const U2fInterface = React.createClass({
         )}
       </div>
     );
-  },
+  };
 
-  renderBody() {
+  renderBody = () => {
     if (this.state.deviceFailure) {
       return this.renderFailure();
     } else {
       return this.props.children;
     }
-  },
+  };
 
-  renderPrompt() {
+  renderPrompt = () => {
     return (
       <div
         className={
@@ -218,7 +214,7 @@ const U2fInterface = React.createClass({
         <div className="inner">{this.renderBody()}</div>
       </div>
     );
-  },
+  };
 
   render() {
     let {isSupported} = this.state;
@@ -231,7 +227,7 @@ const U2fInterface = React.createClass({
     } else {
       return this.renderPrompt();
     }
-  },
-});
+  }
+}
 
 export default U2fInterface;

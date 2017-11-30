@@ -5,12 +5,12 @@ import Checkbox from '../../components/checkbox';
 
 import {t} from '../../locale';
 
-const TeamSelect = React.createClass({
-  propTypes: {
+class TeamSelect extends React.Component {
+  static propTypes = {
     selectedTeams: PropTypes.instanceOf(Set),
     teams: PropTypes.array,
     toggleTeam: PropTypes.func,
-  },
+  };
 
   render() {
     let {teams, selectedTeams, toggleTeam} = this.props;
@@ -40,7 +40,7 @@ const TeamSelect = React.createClass({
         </div>
       </div>
     );
-  },
-});
+  }
+}
 
 export default TeamSelect;

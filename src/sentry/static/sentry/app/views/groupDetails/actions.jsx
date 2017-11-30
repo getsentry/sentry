@@ -2,6 +2,8 @@ import {browserHistory} from 'react-router';
 import PropTypes from 'prop-types';
 import React from 'react';
 
+import createReactClass from 'create-react-class';
+
 import {getShortVersion} from '../../utils';
 import {t} from '../../locale';
 import ApiMixin from '../../mixins/apiMixin';
@@ -19,23 +21,21 @@ import MenuItem from '../../components/menuItem';
 import ShareIssue from '../../components/shareIssue';
 import TooltipMixin from '../../mixins/tooltip';
 
-const ResolveActions = React.createClass({
-  propTypes: {
+class ResolveActions extends React.Component {
+  static propTypes = {
     group: PropTypes.object.isRequired,
     hasRelease: PropTypes.bool.isRequired,
     latestRelease: PropTypes.object,
     onUpdate: PropTypes.func.isRequired,
     orgId: PropTypes.string.isRequired,
     projectId: PropTypes.string.isRequired,
-  },
+  };
 
-  getInitialState() {
-    return {
-      modal: false,
-    };
-  },
+  state = {
+    modal: false,
+  };
 
-  onCustomResolution(statusDetails) {
+  onCustomResolution = (statusDetails) => {
     this.setState({
       modal: false,
     });
@@ -43,7 +43,7 @@ const ResolveActions = React.createClass({
       status: 'resolved',
       statusDetails,
     });
-  },
+  };
 
   render() {
     let {group, hasRelease, latestRelease, onUpdate} = this.props;
@@ -159,46 +159,44 @@ const ResolveActions = React.createClass({
         </div>
       </div>
     );
-  },
-});
+  }
+}
 
-const IgnoreActions = React.createClass({
-  propTypes: {
+class IgnoreActions extends React.Component {
+  static propTypes = {
     group: PropTypes.object.isRequired,
     onUpdate: PropTypes.func.isRequired,
-  },
+  };
 
-  getInitialState() {
-    return {
-      modal: false,
-    };
-  },
+  state = {
+    modal: false,
+  };
 
-  getIgnoreDurations() {
+  getIgnoreDurations = () => {
     return [30, 120, 360, 60 * 24, 60 * 24 * 7];
-  },
+  };
 
-  getIgnoreCounts() {
+  getIgnoreCounts = () => {
     return [100, 1000, 10000, 100000];
-  },
+  };
 
-  getIgnoreWindows() {
+  getIgnoreWindows = () => {
     return [[1, 'per hour'], [24, 'per day'], [24 * 7, 'per week']];
-  },
+  };
 
-  onCustomIgnore(statusDetails) {
+  onCustomIgnore = (statusDetails) => {
     this.setState({
       modal: false,
     });
     this.onIgnore(statusDetails);
-  },
+  };
 
-  onIgnore(statusDetails) {
+  onIgnore = (statusDetails) => {
     return this.props.onUpdate({
       status: 'ignored',
       statusDetails: statusDetails || {},
     });
-  },
+  };
 
   render() {
     let {group, onUpdate} = this.props;
@@ -382,15 +380,15 @@ const IgnoreActions = React.createClass({
         </div>
       </div>
     );
-  },
-});
+  }
+}
 
-const DeleteActions = React.createClass({
-  propTypes: {
+class DeleteActions extends React.Component {
+  static propTypes = {
     project: PropTypes.object.isRequired,
     onDelete: PropTypes.func.isRequired,
     onDiscard: PropTypes.func.isRequired,
-  },
+  };
 
   render() {
     let features = new Set(this.props.project.features);
@@ -430,10 +428,12 @@ const DeleteActions = React.createClass({
         )}
       </div>
     );
-  },
-});
+  }
+}
 
-const GroupDetailsActions = React.createClass({
+const GroupDetailsActions = createReactClass({
+  displayName: 'GroupDetailsActions',
+
   mixins: [
     ApiMixin,
     GroupState,
@@ -474,7 +474,7 @@ const GroupDetailsActions = React.createClass({
         complete: () => {
           IndicatorStore.remove(loadingIndicator);
 
-          browserHistory.pushState(null, `/${org.slug}/${project.slug}/`);
+          browserHistory.push(`/${org.slug}/${project.slug}/`);
         },
       }
     );
@@ -551,7 +551,7 @@ const GroupDetailsActions = React.createClass({
       data: {discard: true},
       success: response => {
         GroupActions.discardSuccess(id, group.id, response);
-        browserHistory.pushState(null, `/${org.slug}/${project.slug}/`);
+        browserHistory.push(`/${org.slug}/${project.slug}/`);
       },
       error: error => {
         GroupActions.discardError(id, group.id, error);

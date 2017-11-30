@@ -1,5 +1,6 @@
 import PropTypes from 'prop-types';
 import React from 'react';
+import createReactClass from 'create-react-class';
 import PureRenderMixin from 'react-addons-pure-render-mixin';
 import Reflux from 'reflux';
 
@@ -62,46 +63,44 @@ ExtraDescription.propTypes = {
   query: PropTypes.string,
 };
 
-const IgnoreActions = React.createClass({
-  propTypes: {
+class IgnoreActions extends React.Component {
+  static propTypes = {
     anySelected: PropTypes.bool.isRequired,
     allInQuerySelected: PropTypes.bool.isRequired,
     pageSelected: PropTypes.bool.isRequired,
     onUpdate: PropTypes.func.isRequired,
     query: PropTypes.string,
-  },
+  };
 
-  getInitialState() {
-    return {
-      modal: false,
-    };
-  },
+  state = {
+    modal: false,
+  };
 
-  getIgnoreDurations() {
+  getIgnoreDurations = () => {
     return [30, 120, 360, 60 * 24, 60 * 24 * 7];
-  },
+  };
 
-  getIgnoreCounts() {
+  getIgnoreCounts = () => {
     return [100, 1000, 10000, 100000];
-  },
+  };
 
-  getIgnoreWindows() {
+  getIgnoreWindows = () => {
     return [[1, 'per hour'], [24, 'per day'], [24 * 7, 'per week']];
-  },
+  };
 
-  onCustomIgnore(statusDetails) {
+  onCustomIgnore = (statusDetails) => {
     this.setState({
       modal: false,
     });
     this.onIgnore(statusDetails);
-  },
+  };
 
-  onIgnore(statusDetails) {
+  onIgnore = (statusDetails) => {
     return this.props.onUpdate({
       status: 'ignored',
       statusDetails: statusDetails || {},
     });
-  },
+  };
 
   render() {
     let {allInQuerySelected, query, anySelected, pageSelected, onUpdate} = this.props;
@@ -297,11 +296,11 @@ const IgnoreActions = React.createClass({
         </div>
       </div>
     );
-  },
-});
+  }
+}
 
-const ResolveActions = React.createClass({
-  propTypes: {
+class ResolveActions extends React.Component {
+  static propTypes = {
     orgId: PropTypes.string.isRequired,
     projectId: PropTypes.string.isRequired,
     hasRelease: PropTypes.bool.isRequired,
@@ -311,15 +310,13 @@ const ResolveActions = React.createClass({
     pageSelected: PropTypes.bool.isRequired,
     onUpdate: PropTypes.func.isRequired,
     query: PropTypes.string,
-  },
+  };
 
-  getInitialState() {
-    return {
-      modal: false,
-    };
-  },
+  state = {
+    modal: false,
+  };
 
-  onCustomResolution(statusDetails) {
+  onCustomResolution = (statusDetails) => {
     this.setState({
       modal: false,
     });
@@ -327,7 +324,7 @@ const ResolveActions = React.createClass({
       status: 'resolved',
       statusDetails,
     });
-  },
+  };
 
   render() {
     let {
@@ -417,10 +414,12 @@ const ResolveActions = React.createClass({
         </div>
       </div>
     );
-  },
-});
+  }
+}
 
-const StreamActions = React.createClass({
+const StreamActions = createReactClass({
+  displayName: 'StreamActions',
+
   propTypes: {
     allResultsVisible: PropTypes.bool,
     orgId: PropTypes.string.isRequired,

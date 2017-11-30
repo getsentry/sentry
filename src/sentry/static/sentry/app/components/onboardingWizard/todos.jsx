@@ -1,12 +1,15 @@
 import React from 'react';
+import createReactClass from 'create-react-class';
 import {t} from '../../locale';
 
 import ApiMixin from '../../mixins/apiMixin';
 import OrganizationState from '../../mixins/organizationState';
 import TodoItem from './toDoItem';
 
-const TodoList = React.createClass({
+const TodoList = createReactClass({
+  displayName: 'TodoList',
   mixins: [ApiMixin, OrganizationState],
+
   statics: {
     TASKS: [
       {

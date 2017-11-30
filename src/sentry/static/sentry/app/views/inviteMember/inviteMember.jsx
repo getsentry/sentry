@@ -1,4 +1,5 @@
 import React from 'react';
+import createReactClass from 'create-react-class';
 import classNames from 'classnames';
 
 import OrganizationState from '../../mixins/organizationState';
@@ -15,7 +16,8 @@ import TeamSelect from './teamSelect';
 import ConfigStore from '../../stores/configStore';
 import {t} from '../../locale';
 
-const InviteMember = React.createClass({
+const InviteMember = createReactClass({
+  displayName: 'InviteMember',
   mixins: [ApiMixin, OrganizationState],
 
   getInitialState() {

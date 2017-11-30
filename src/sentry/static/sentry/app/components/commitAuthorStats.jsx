@@ -1,6 +1,8 @@
 import PropTypes from 'prop-types';
 import React from 'react';
 
+import createReactClass from 'create-react-class';
+
 import LoadingIndicator from '../components/loadingIndicator';
 import LoadingError from '../components/loadingError';
 import Avatar from '../components/avatar';
@@ -10,21 +12,23 @@ import ApiMixin from '../mixins/apiMixin';
 
 import {t} from '../locale';
 
-const CommitBar = React.createClass({
-  propTypes: {
+class CommitBar extends React.Component {
+  static propTypes = {
     totalCommits: PropTypes.number.isRequired,
     authorCommits: PropTypes.number.isRequired,
-  },
+  };
 
   render() {
     let barStyle = {};
     barStyle.width = this.props.authorCommits / this.props.totalCommits * 100 + '%';
 
     return <div className="commit-bar" style={barStyle} />;
-  },
-});
+  }
+}
 
-const CommitAuthorStats = React.createClass({
+const CommitAuthorStats = createReactClass({
+  displayName: 'CommitAuthorStats',
+
   propTypes: {
     orgId: PropTypes.string.isRequired,
     projectId: PropTypes.string.isRequired,

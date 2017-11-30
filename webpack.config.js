@@ -37,9 +37,9 @@ if (process.env.SENTRY_EXTRACT_TRANSLATIONS === '1') {
         gettextComponentTemplate: ['msgid'],
         t: ['msgid'],
         tn: ['msgid', 'msgid_plural', 'count'],
-        tct: ['msgid']
-      }
-    }
+        tct: ['msgid'],
+      },
+    },
   ]);
 }
 
@@ -53,6 +53,7 @@ var appEntry = {
     'bootstrap/js/tab',
     'bootstrap/js/tooltip',
     'bootstrap/js/alert',
+    'create-react-class',
     'crypto-js/md5',
     'jed',
     'jquery',
@@ -70,8 +71,8 @@ var appEntry = {
     'reflux',
     'select2',
     'vendor/simple-slider/simple-slider',
-    'ios-device-list'
-  ]
+    'ios-device-list',
+  ],
 };
 
 // dynamically iterate over locale files and add to `entry` appConfig
@@ -86,7 +87,7 @@ localeCatalog.supported_locales.forEach(function(locale) {
   var normalizedLocale = locale.toLowerCase().replace('_', '-');
   appEntry['locale/' + normalizedLocale] = [
     'moment/locale/' + normalizedLocale,
-    'sentry-locale/' + locale + '/LC_MESSAGES/django.po' // relative to static/sentry
+    'sentry-locale/' + locale + '/LC_MESSAGES/django.po', // relative to static/sentry
   ];
   localeEntries.push('locale/' + normalizedLocale);
 });
@@ -104,65 +105,65 @@ var appConfig = {
         loader: 'babel-loader',
         include: path.join(__dirname, staticPrefix),
         exclude: /(vendor|node_modules|dist)/,
-        query: babelConfig
+        query: babelConfig,
       },
       {
         test: /\.po$/,
         loader: 'po-catalog-loader',
         query: {
           referenceExtensions: ['.js', '.jsx'],
-          domain: 'sentry'
-        }
+          domain: 'sentry',
+        },
       },
       {
         test: /\.json$/,
-        loader: 'json-loader'
+        loader: 'json-loader',
       },
       // loader for dynamic styles imported into components (embedded as js)
       {
         test: /\.less$/,
         use: [
           {
-            loader: 'style-loader'
+            loader: 'style-loader',
           },
           {
             loader: 'css-loader',
             options: {
-              minimize: IS_PRODUCTION
-            }
+              minimize: IS_PRODUCTION,
+            },
           },
           {
-            loader: 'less-loader'
-          }
-        ]
+            loader: 'less-loader',
+          },
+        ],
       },
       {
         test: /\.(woff|woff2|ttf|eot|svg|png|gif|ico|jpg)($|\?)/,
-        loader: 'file-loader?name=' + '[name].[ext]'
-      }
+        loader: 'file-loader?name=' + '[name].[ext]',
+      },
     ],
     noParse: [
       // don't parse known, pre-built javascript files (improves webpack perf)
       /dist\/jquery\.js/,
       /jed\/jed\.js/,
-      /marked\/lib\/marked\.js/
-    ]
+      /marked\/lib\/marked\.js/,
+    ],
   },
   plugins: [
     new LodashModuleReplacementPlugin({
       collections: true,
       currying: true, // these are enabled to support lodash/fp/ features
-      flattening: true // used by a dependency of react-mentions
+      flattening: true, // used by a dependency of react-mentions
     }),
     new webpack.optimize.CommonsChunkPlugin({
-      names: localeEntries.concat(['vendor']) // 'vendor' must be last entry
+      names: localeEntries.concat(['vendor']), // 'vendor' must be last entry
     }),
     new webpack.ProvidePlugin({
       $: 'jquery',
       jQuery: 'jquery',
       'window.jQuery': 'jquery',
       'root.jQuery': 'jquery',
-      Raven: 'raven-js'
+      Raven: 'raven-js',
     }),
     new ExtractTextPlugin('[name].css'),
     new webpack.IgnorePlugin(/^\.\/locale$/, /moment$/), // ignore moment.js locale files
@@ -171,8 +172,8 @@ var appConfig = {
         NODE_ENV: JSON.stringify(process.env.NODE_ENV),
         IS_PERCY: JSON.stringify(
           process.env.CI && !!process.env.PERCY_TOKEN && !!process.env.TRAVIS
-        )
-      }
+        ),
+      },
     }),
     // restrict translation files pulled into dist/app.js to only those specified
     // in locale/catalogs.json
@@ -180,27 +181,27 @@ var appConfig = {
       /locale$/,
       path.join(__dirname, 'src', 'sentry', 'locale', path.sep),
       true,
-      new RegExp('(' + localeCatalog.supported_locales.join('|') + ')\/.*\\.po$')
-    )
+      new RegExp('(' + localeCatalog.supported_locales.join('|') + ')/.*\\.po$')
+    ),
   ],
   resolve: {
     alias: {
       'sentry-locale': path.join(__dirname, 'src', 'sentry', 'locale'),
       'integration-docs-platforms': IS_TEST
         ? path.join(__dirname, 'tests/fixtures/_platforms.json')
-        : path.join(__dirname, 'src/sentry/integration-docs/_platforms.json')
+        : path.join(__dirname, 'src/sentry/integration-docs/_platforms.json'),
     },
     modules: [path.join(__dirname, staticPrefix), 'node_modules'],
-    extensions: ['.less', '.jsx', '.js', '.json']
+    extensions: ['.less', '.jsx', '.js', '.json'],
   },
   output: {
     path: distPath,
     filename: '[name].js',
     libraryTarget: 'var',
     library: 'exports',
-    sourceMapFilename: '[name].js.map'
+    sourceMapFilename: '[name].js.map',
   },
-  devtool: IS_PRODUCTION ? '#source-map' : '#cheap-source-map'
+  devtool: IS_PRODUCTION ? '#source-map' : '#cheap-source-map',
 };
 
 /**
@@ -208,23 +209,23 @@ var appConfig = {
  */
 var pwConfig = {
   entry: {
-    pwstrength: './index'
+    pwstrength: './index',
   },
   context: path.resolve(path.join(__dirname, staticPrefix), 'js', 'pwstrength'),
   module: {},
   plugins: [],
   resolve: {
     modules: [path.join(__dirname, staticPrefix), 'node_modules'],
-    extensions: ['.js']
+    extensions: ['.js'],
   },
   output: {
     path: distPath,
     filename: '[name].js',
     libraryTarget: 'window',
     library: 'sentrypw',
-    sourceMapFilename: '[name].js.map'
+    sourceMapFilename: '[name].js.map',
   },
-  devtool: IS_PRODUCTION ? '#source-map' : '#cheap-source-map'
+  devtool: IS_PRODUCTION ? '#source-map' : '#cheap-source-map',
 };
 
 /**
@@ -234,17 +235,17 @@ var pwConfig = {
  */
 var legacyCssConfig = {
   entry: {
-    sentry: 'less/sentry.less'
+    sentry: 'less/sentry.less',
   },
   context: path.join(__dirname, staticPrefix),
   output: {
     path: distPath,
-    filename: '[name].css'
+    filename: '[name].css',
   },
   plugins: [new ExtractTextPlugin('[name].css')],
   resolve: {
     extensions: ['.less', '.js'],
-    modules: [path.join(__dirname, staticPrefix), 'node_modules']
+    modules: [path.join(__dirname, staticPrefix), 'node_modules'],
   },
   module: {
     rules: [
@@ -258,25 +259,25 @@ var legacyCssConfig = {
               loader: 'css-loader',
               options: {
                 sourceMap: WITH_CSS_SOURCEMAPS,
-                minimize: IS_PRODUCTION
-              }
+                minimize: IS_PRODUCTION,
+              },
             },
             {
               loader: 'less-loader',
               options: {
-                sourceMap: WITH_CSS_SOURCEMAPS
-              }
+                sourceMap: WITH_CSS_SOURCEMAPS,
+              },
             },
-          ]
-        })
+          ],
+        }),
       },
       {
         test: /\.(woff|woff2|ttf|eot|svg|png|gif|ico|jpg)($|\?)/,
-        loader: 'file-loader?name=' + '[name].[ext]'
-      }
-    ]
+        loader: 'file-loader?name=' + '[name].[ext]',
+      },
+    ],
   },
-  devtool: WITH_CSS_SOURCEMAPS ? '#source-map' : undefined
+  devtool: WITH_CSS_SOURCEMAPS ? '#source-map' : undefined,
 };
 
 // Dev only! Hot module reloading
@@ -289,7 +290,7 @@ if (USE_HOT_MODULE_RELOAD) {
   appConfig.devServer = {
     headers: {
       'Access-Control-Allow-Origin': '*',
-      'Access-Control-Allow-Credentials': 'true'
+      'Access-Control-Allow-Credentials': 'true',
     },
     // Required for getsentry
     disableHostCheck: true,
@@ -297,7 +298,7 @@ if (USE_HOT_MODULE_RELOAD) {
     hot: true,
     // If below is false, will reload on errors
     hotOnly: true,
-    port: WEBPACK_DEV_PORT
+    port: WEBPACK_DEV_PORT,
   };
 
   // Required, without this we get this on updates:
@@ -313,20 +314,21 @@ var minificationPlugins = [
     algorithm: function(buffer, options, callback) {
       require('zlib').gzip(buffer, callback);
     },
-    regExp: /\.(js|map|css|svg|html|txt|ico|eot|ttf)$/
+    regExp: /\.(js|map|css|svg|html|txt|ico|eot|ttf)$/,
   }),
 
   // Disable annoying UglifyJS warnings that pollute Travis log output
   // NOTE: This breaks -p in webpack 2. Must call webpack w/ NODE_ENV=production for minification.
   new webpack.optimize.UglifyJsPlugin({
     compress: {
-      warnings: false
+      warnings: false,
     },
     // https://github.com/webpack/webpack/blob/951a7603d279c93c936e4b8b801a355dc3e26292/bin/convert-argv.js#L442
-    sourceMap: appConfig.devtool &&
+    sourceMap:
+      appConfig.devtool &&
       (appConfig.devtool.indexOf('sourcemap') >= 0 ||
-        appConfig.devtool.indexOf('source-map') >= 0)
-  })
+        appConfig.devtool.indexOf('source-map') >= 0),
+  }),
 ];
 
 if (IS_PRODUCTION) {

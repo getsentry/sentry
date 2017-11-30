@@ -1,12 +1,16 @@
 import PropTypes from 'prop-types';
 import React from 'react';
 
+import createReactClass from 'create-react-class';
+
 import ApiMixin from '../../mixins/apiMixin';
 import StackedBarChart from '../../components/stackedBarChart';
 import LoadingError from '../../components/loadingError';
 import LoadingIndicator from '../../components/loadingIndicator';
 
-export default React.createClass({
+export default createReactClass({
+  displayName: 'apiChart',
+
   propTypes: {
     since: PropTypes.number.isRequired,
     resolution: PropTypes.string.isRequired,

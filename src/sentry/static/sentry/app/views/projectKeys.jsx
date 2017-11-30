@@ -1,5 +1,6 @@
 import PropTypes from 'prop-types';
 import React from 'react';
+import createReactClass from 'create-react-class';
 import DocumentTitle from 'react-document-title';
 import {Link} from 'react-router';
 
@@ -15,7 +16,9 @@ import OrganizationState from '../mixins/organizationState';
 import ProjectState from '../mixins/projectState';
 import Pagination from '../components/pagination';
 
-const KeyRow = React.createClass({
+const KeyRow = createReactClass({
+  displayName: 'KeyRow',
+
   propTypes: {
     orgId: PropTypes.string.isRequired,
     projectId: PropTypes.string.isRequired,
@@ -208,7 +211,8 @@ const KeyRow = React.createClass({
   },
 });
 
-export default React.createClass({
+export default createReactClass({
+  displayName: 'projectKeys',
   mixins: [ApiMixin, OrganizationState],
 
   getInitialState() {

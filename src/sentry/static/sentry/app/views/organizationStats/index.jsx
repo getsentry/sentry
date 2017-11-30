@@ -1,5 +1,6 @@
 import $ from 'jquery';
 import React from 'react';
+import createReactClass from 'create-react-class';
 import ApiMixin from '../../mixins/apiMixin';
 import LoadingError from '../../components/loadingError';
 import LoadingIndicator from '../../components/loadingIndicator';
@@ -12,7 +13,8 @@ import ProjectTable from './projectTable';
 import {t} from '../../locale';
 import {intcomma} from '../../utils';
 
-const OrganizationStats = React.createClass({
+const OrganizationStats = createReactClass({
+  displayName: 'OrganizationStats',
   mixins: [ApiMixin, OrganizationState],
 
   getInitialState() {

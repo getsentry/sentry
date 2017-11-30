@@ -1,5 +1,6 @@
 import PropTypes from 'prop-types';
 import React from 'react';
+import createReactClass from 'create-react-class';
 import DocumentTitle from 'react-document-title';
 import {isEqual} from 'lodash';
 import {browserHistory} from 'react-router';
@@ -32,7 +33,8 @@ export const getRateLimitError = (obj, key) => {
   return !!obj.rateLimit.find(errorObj => errorObj[key] && errorObj[key].length);
 };
 
-const KeyStats = React.createClass({
+const KeyStats = createReactClass({
+  displayName: 'KeyStats',
   mixins: [ApiMixin],
 
   getInitialState() {
@@ -141,7 +143,9 @@ const KeyStats = React.createClass({
   },
 });
 
-const KeySettings = React.createClass({
+const KeySettings = createReactClass({
+  displayName: 'KeySettings',
+
   propTypes: {
     organization: PropTypes.object.isRequired,
     project: PropTypes.object.isRequired,
@@ -513,7 +517,8 @@ const KeySettings = React.createClass({
   },
 });
 
-export default React.createClass({
+export default createReactClass({
+  displayName: 'projectKeyDetails',
   mixins: [ApiMixin, ProjectState],
 
   getInitialState() {
@@ -549,7 +554,7 @@ export default React.createClass({
 
   handleRemove(data) {
     let {orgId, projectId} = this.props.params;
-    browserHistory.pushState(null, `/${orgId}/${projectId}/settings/keys/`);
+    browserHistory.push(`/${orgId}/${projectId}/settings/keys/`);
   },
 
   handleSave(data) {

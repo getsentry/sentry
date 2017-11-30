@@ -1,4 +1,5 @@
 import React from 'react';
+import createReactClass from 'create-react-class';
 import update from 'react-addons-update';
 import {browserHistory} from 'react-router';
 
@@ -47,7 +48,8 @@ function getProjectInfoForReview(org) {
   };
 }
 
-const SetCallsignsAction = React.createClass({
+const SetCallsignsAction = createReactClass({
+  displayName: 'SetCallsignsAction',
   mixins: [ApiMixin, OrganizationState],
 
   getInitialState() {
@@ -72,7 +74,10 @@ const SetCallsignsAction = React.createClass({
       method: 'PUT',
       data: {slugs: this.state.slugs},
       success: data => {
-        browserHistory.pushState('refresh', `/${orgId}/`);
+        browserHistory.push({
+          pathname: `/${orgId}/`,
+          state: 'refresh'
+        });
       },
       error: error => {
         /*eslint no-console:0*/

@@ -1,5 +1,6 @@
 import $ from 'jquery';
 import React from 'react';
+import createReactClass from 'create-react-class';
 import {Link} from 'react-router';
 import ApiMixin from '../mixins/apiMixin';
 import Avatar from '../components/avatar';
@@ -10,7 +11,8 @@ import TimeSince from '../components/timeSince';
 import utils from '../utils';
 import {t} from '../locale';
 
-const GroupUserReports = React.createClass({
+const GroupUserReports = createReactClass({
+  displayName: 'GroupUserReports',
   mixins: [ApiMixin, GroupState],
 
   getInitialState() {

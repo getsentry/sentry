@@ -5,14 +5,14 @@ import {defined} from '../../../utils';
 import StacktraceContent from './stacktraceContent';
 import ExceptionMechanism from './exceptionMechanism';
 
-const ExceptionContent = React.createClass({
-  propTypes: {
+class ExceptionContent extends React.Component {
+  static propTypes = {
     type: PropTypes.oneOf(['original', 'minified']),
     values: PropTypes.array.isRequired,
     view: PropTypes.string.isRequired,
     platform: PropTypes.string,
     newestFirst: PropTypes.bool,
-  },
+  };
 
   render() {
     let stackView = this.props.view;
@@ -53,7 +53,7 @@ const ExceptionContent = React.createClass({
 
     // TODO(dcramer): implement exceptions omitted
     return <div>{children}</div>;
-  },
-});
+  }
+}
 
 export default ExceptionContent;

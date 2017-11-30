@@ -16,11 +16,11 @@ export default class ApiNewToken extends AsyncView {
   }
 
   onCancel() {
-    browserHistory.pushState(null, '/api/');
+    browserHistory.push('/api/');
   }
 
   onSubmitSuccess() {
-    browserHistory.pushState(null, '/api/');
+    browserHistory.push('/api/');
   }
 
   renderBody() {

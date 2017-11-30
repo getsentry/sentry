@@ -3,12 +3,12 @@ import PropTypes from 'prop-types';
 import Raven from 'raven-js';
 import React from 'react';
 
-const RouteError = React.createClass({
-  propTypes: {
+class RouteError extends React.Component {
+  static propTypes = {
     error: PropTypes.object.isRequired,
     // not used yet, but future proofing
     onRetry: PropTypes.func,
-  },
+  };
 
   componentWillMount() {
     // TODO(dcramer): show something in addition to embed (that contains it?)
@@ -22,14 +22,14 @@ const RouteError = React.createClass({
         Raven.showReportDialog();
       }.bind(this)
     );
-  },
+  }
 
   componentWillUnmount() {
     if (this._timeout) {
       window.clearTimeout(this._timeout);
     }
     $('.sentry-error-embed-wrapper').remove();
-  },
+  }
 
   render() {
     // TODO(dcramer): show additional resource links
@@ -70,7 +70,7 @@ const RouteError = React.createClass({
         </ul>
       </div>
     );
-  },
-});
+  }
+}
 
 export default RouteError;

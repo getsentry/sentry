@@ -1,12 +1,15 @@
 import PropTypes from 'prop-types';
 import React from 'react';
+import createReactClass from 'create-react-class';
 import rawStacktraceContent from './rawStacktraceContent';
 import ApiMixin from '../../../mixins/apiMixin';
 import LoadingIndicator from '../../loadingIndicator';
 import LoadingError from '../../loadingError';
 import ClippedBox from '../../clippedBox';
 
-const RawExceptionContent = React.createClass({
+const RawExceptionContent = createReactClass({
+  displayName: 'RawExceptionContent',
+
   propTypes: {
     type: PropTypes.oneOf(['original', 'minified']),
     platform: PropTypes.string,

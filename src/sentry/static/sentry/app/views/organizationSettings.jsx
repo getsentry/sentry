@@ -1,6 +1,8 @@
 import PropTypes from 'prop-types';
 import React from 'react';
 
+import createReactClass from 'create-react-class';
+
 import ApiMixin from '../mixins/apiMixin';
 import {
   BooleanField,
@@ -15,7 +17,9 @@ import OrganizationStore from '../stores/organizationStore';
 import {t} from '../locale';
 import {extractMultilineFields} from '../utils';
 
-const OrganizationSettingsForm = React.createClass({
+const OrganizationSettingsForm = createReactClass({
+  displayName: 'OrganizationSettingsForm',
+
   propTypes: {
     orgId: PropTypes.string.isRequired,
     access: PropTypes.object.isRequired,
@@ -313,7 +317,8 @@ const OrganizationSettingsForm = React.createClass({
   },
 });
 
-const OrganizationSettings = React.createClass({
+const OrganizationSettings = createReactClass({
+  displayName: 'OrganizationSettings',
   mixins: [ApiMixin],
 
   getInitialState() {

@@ -1,5 +1,6 @@
 import PropTypes from 'prop-types';
 import React from 'react';
+import createReactClass from 'create-react-class';
 import DocumentTitle from 'react-document-title';
 import {Link} from 'react-router';
 
@@ -11,7 +12,9 @@ import LoadingError from '../components/loadingError';
 import LoadingIndicator from '../components/loadingIndicator';
 import {t, tct} from '../locale';
 
-const ApiTokenRow = React.createClass({
+const ApiTokenRow = createReactClass({
+  displayName: 'ApiTokenRow',
+
   propTypes: {
     token: PropTypes.object.isRequired,
     onRemove: PropTypes.func.isRequired,
@@ -89,7 +92,8 @@ const ApiTokenRow = React.createClass({
   },
 });
 
-const ApiTokens = React.createClass({
+const ApiTokens = createReactClass({
+  displayName: 'ApiTokens',
   mixins: [ApiMixin],
 
   getInitialState() {

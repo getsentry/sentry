@@ -1,12 +1,15 @@
 import PropTypes from 'prop-types';
 import React from 'react';
+import createReactClass from 'create-react-class';
 import PureRenderMixin from 'react-addons-pure-render-mixin';
 
 import Avatar from './avatar';
 import Version from './version';
 import {t, tct} from '../locale';
 
-export default React.createClass({
+export default createReactClass({
+  displayName: 'resolutionBox',
+
   propTypes: {
     statusDetails: PropTypes.object.isRequired,
   },

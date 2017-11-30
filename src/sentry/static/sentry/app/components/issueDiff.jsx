@@ -1,4 +1,6 @@
-import React, {PropTypes} from 'react';
+import PropTypes from 'prop-types';
+import React from 'react';
+import createReactClass from 'create-react-class';
 import classNames from 'classnames';
 
 import ApiMixin from '../mixins/apiMixin';
@@ -7,7 +9,9 @@ import rawStacktraceContent from './events/interfaces/rawStacktraceContent';
 
 import '../../less/components/issueDiff.less';
 
-const IssueDiff = React.createClass({
+const IssueDiff = createReactClass({
+  displayName: 'IssueDiff',
+
   propTypes: {
     baseIssueId: PropTypes.string.isRequired,
     targetIssueId: PropTypes.string.isRequired,

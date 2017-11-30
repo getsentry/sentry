@@ -1,4 +1,5 @@
 import React from 'react';
+import createReactClass from 'create-react-class';
 import {browserHistory} from 'react-router';
 
 import ApiMixin from '../mixins/apiMixin';
@@ -10,7 +11,8 @@ import SearchBar from '../components/searchBar';
 import EventsTable from '../components/eventsTable/eventsTable';
 import {t} from '../locale';
 
-const GroupEvents = React.createClass({
+const GroupEvents = createReactClass({
+  displayName: 'GroupEvents',
   mixins: [ApiMixin, GroupState],
 
   getInitialState() {
@@ -48,11 +50,10 @@ const GroupEvents = React.createClass({
     if (query !== '') targetQueryParams.query = query;
 
     let {groupId, orgId, projectId} = this.props.params;
-    browserHistory.pushState(
-      null,
-      `/${orgId}/${projectId}/issues/${groupId}/events/`,
-      targetQueryParams
-    );
+    browserHistory.push({
+      pathname: `/${orgId}/${projectId}/issues/${groupId}/events/`,
+      query: targetQueryParams
+    });
   },
 
   getEndpoint() {

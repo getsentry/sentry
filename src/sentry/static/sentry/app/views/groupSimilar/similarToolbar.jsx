@@ -1,5 +1,6 @@
 import PropTypes from 'prop-types';
 import React from 'react';
+import createReactClass from 'create-react-class';
 import Reflux from 'reflux';
 
 import {t} from '../../locale';
@@ -11,7 +12,9 @@ import LinkWithConfirmation from '../../components/linkWithConfirmation';
 import Toolbar from '../../components/toolbar';
 import ToolbarHeader from '../../components/toolbarHeader';
 
-const SimilarToolbar = React.createClass({
+const SimilarToolbar = createReactClass({
+  displayName: 'SimilarToolbar',
+
   propTypes: {
     onMerge: PropTypes.func.isRequired,
   },

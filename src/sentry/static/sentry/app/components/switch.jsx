@@ -1,14 +1,14 @@
 import PropTypes from 'prop-types';
 import React from 'react';
 
-const Switch = React.createClass({
-  propTypes: {
+class Switch extends React.Component {
+  static propTypes = {
     size: PropTypes.string,
     isActive: PropTypes.bool,
     isLoading: PropTypes.bool,
     isDisabled: PropTypes.bool,
     toggle: PropTypes.func.isRequired,
-  },
+  };
 
   render() {
     let switchClasses = 'switch';
@@ -39,7 +39,7 @@ const Switch = React.createClass({
         <span className="switch-toggle" />
       </div>
     );
-  },
-});
+  }
+}
 
 export default Switch;

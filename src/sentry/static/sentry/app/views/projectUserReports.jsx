@@ -1,6 +1,7 @@
 import jQuery from 'jquery';
 import PropTypes from 'prop-types';
 import React from 'react';
+import createReactClass from 'create-react-class';
 import {browserHistory, Link} from 'react-router';
 import ApiMixin from '../mixins/apiMixin';
 import Avatar from '../components/avatar';
@@ -13,7 +14,9 @@ import TimeSince from '../components/timeSince';
 import utils from '../utils';
 import {t} from '../locale';
 
-const ProjectUserReports = React.createClass({
+const ProjectUserReports = createReactClass({
+  displayName: 'ProjectUserReports',
+
   propTypes: {
     defaultQuery: PropTypes.string,
     defaultStatus: PropTypes.string,
@@ -54,12 +57,8 @@ const ProjectUserReports = React.createClass({
 
   getQueryStringState(props) {
     let location = props.location;
-    let status = location.query.hasOwnProperty('status')
-      ? location.query.status
-      : this.props.defaultStatus;
-    let query = location.query.hasOwnProperty('query')
-      ? location.query.query
-      : this.props.defaultQuery;
+    let status = (location.query && location.query.status) || this.props.defaultStatus;
+    let query = (location.query && location.query.query) || this.props.defaultQuery;
     return {
       query,
       status,
@@ -73,11 +72,10 @@ const ProjectUserReports = React.createClass({
       targetQueryParams.status = this.state.status;
 
     let {orgId, projectId} = this.props.params;
-    browserHistory.pushState(
-      null,
-      `/${orgId}/${projectId}/user-feedback/`,
-      targetQueryParams
-    );
+    browserHistory.push({
+      pathname: `/${orgId}/${projectId}/user-feedback/`,
+      query: targetQueryParams,
+    });
   },
 
   fetchData() {
