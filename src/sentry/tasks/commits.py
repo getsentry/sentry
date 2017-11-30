@@ -183,7 +183,7 @@ def fetch_pr_commits(change_id, user_id, **kwargs):
 
     try:
         repo = Repository.objects.get(
-            organization_id=changerequest.repository_id,
+            id=changerequest.repository_id,
         )
     except Repository.DoesNotExist:
         logger.info(
@@ -199,7 +199,7 @@ def fetch_pr_commits(change_id, user_id, **kwargs):
     provider_cls = bindings.get('repository.provider').get(repo.provider)
 
     provider = provider_cls(id=repo.provider)
-
+    change_request_commits = []
     try:
         change_request_commits = provider.get_pr_commits(repo, changerequest.key, actor=user)
     except NotImplementedError:
@@ -221,13 +221,13 @@ def fetch_pr_commits(change_id, user_id, **kwargs):
         # elif isinstance(exc, (PluginError, InvalidIdentity)):
 
     logger.info(
-        'fetch_commits.complete',
+        'fetch_pr_commits.complete',
         extra={
             'organization_id': repo.organization_id,
             'user_id': user_id,
             'repository': repo.name,
             'num': changerequest.key,
-            'num_commits': len(change_request_commits or []),
+            'num_commits': len(change_request_commits),
         }
     )
 

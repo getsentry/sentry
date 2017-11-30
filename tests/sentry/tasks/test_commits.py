@@ -5,8 +5,8 @@ from mock import patch
 from social_auth.models import UserSocialAuth
 
 from sentry.exceptions import InvalidIdentity, PluginError
-from sentry.models import Commit, Deploy, Release, ReleaseHeadCommit, Repository
-from sentry.tasks.commits import fetch_commits, handle_invalid_identity
+from sentry.models import ChangeRequest, Commit, Deploy, Release, ReleaseHeadCommit, Repository
+from sentry.tasks.commits import fetch_commits, fetch_pr_commits, handle_invalid_identity
 from sentry.testutils import TestCase
 
 
@@ -288,3 +288,35 @@ class HandleInvalidIdentityTest(TestCase):
         msg = mail.outbox[-1]
         assert msg.subject == 'Unable to Fetch Commits'
         assert msg.to == [self.user.email]
+
+
+class FetchPRCommitsTest(TestCase):
+    def test_simple(self):
+        self.login_as(user=self.user)
+        org = self.create_organization(owner=self.user, name='baz')
+
+        repo = Repository.objects.create(
+            name='example',
+            provider='dummy',
+            organization_id=org.id,
+        )
+
+        changerequest = ChangeRequest.objects.create(
+            organization_id=org.id,
+            repository_id=repo.id,
+            key="1",
+            title="cool pr",
+            message="it does stuff",
+        )
+
+        with self.tasks():
+            fetch_pr_commits(
+                change_id=changerequest.id,
+                user_id=self.user.id,
+            )
+
+        changerequest.save()
+        commits = changerequest.commits.all()
+
+        assert len(commits) == 0
+        # TODO(maxbittker) flesh out this test with mock api responses
