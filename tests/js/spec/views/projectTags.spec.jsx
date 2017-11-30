@@ -1,6 +1,8 @@
 import React from 'react';
-import {mount} from 'enzyme';
 
+import $ from 'jquery';
+
+import {mount} from 'enzyme';
 import ProjectTags from 'app/views/projectTags';
 
 describe('ProjectTags', function() {
@@ -37,6 +39,12 @@ describe('ProjectTags', function() {
       .find('tbody a.btn')
       .first()
       .simulate('click');
+
+    // Press confirm in modal
+    $(document.body)
+      .find('.modal button:contains("Confirm")')
+      .click();
+
     expect(wrapper.find('tbody tr').length).toBe(1);
   });
 });

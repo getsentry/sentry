@@ -2,6 +2,7 @@ import React from 'react';
 import AsyncView from './asyncView';
 import {t} from '../locale';
 import ExternalLink from '../components/externalLink';
+import LinkWithConfirmation from '../components/linkWithConfirmation';
 
 export default class ProjectTags extends AsyncView {
   getEndpoints() {
@@ -61,12 +62,14 @@ export default class ProjectTags extends AsyncView {
                       </h5>
                     </td>
                     <td>
-                      <a
+                      <LinkWithConfirmation
                         className="btn btn-sm btn-default"
-                        onClick={() => this.onDelete(key, idx)}
+                        title={'Remove tag?'}
+                        message={'Are you sure you want to remove this tag?'}
+                        onConfirm={() => this.onDelete(key, idx)}
                       >
                         <span className="icon icon-trash" />
-                      </a>
+                      </LinkWithConfirmation>
                     </td>
                   </tr>
                 );
