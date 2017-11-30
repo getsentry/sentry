@@ -379,10 +379,9 @@ class EventManager(object):
                 errors.append({'type': EventError.INVALID_DATA, 'name': k, 'value': value})
 
         level = data.get('level') or DEFAULT_LOG_LEVEL
-        if isinstance(level, six.string_types) and not level.isdigit():
-            data['level'] = LOG_LEVELS_MAP.get(level, LOG_LEVELS_MAP[DEFAULT_LOG_LEVEL])
-        # TODO (alex) handle integer string case
-        # TODO (alex) strip whitespace from tags after they have been validated?
+        if isinstance(level, int) or (isinstance(level, six.string_types) and level.isdigit()):
+            level = LOG_LEVELS.get(int(level), DEFAULT_LOG_LEVEL)
+        data['level'] = LOG_LEVELS_MAP.get(level, LOG_LEVELS_MAP[DEFAULT_LOG_LEVEL])
 
         if data.get('dist') and not data.get('release'):
             data['dist'] = None

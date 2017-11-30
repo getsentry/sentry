@@ -296,6 +296,11 @@ class Frame(Interface):
                 else:
                     filename = abs_path
 
+        if not (filename or function or module or package):
+            raise InterfaceValidationError(
+                "No 'filename' or 'function' or 'module' or 'package'"
+            )
+
         platform = data.get('platform')
 
         context_locals = data.get('vars') or {}
