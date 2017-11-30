@@ -3828,15 +3828,6 @@ history@1.13.0:
     qs "^4.0.0"
     warning "^2.0.0"
 
-history@^1.14.0:
-  version "1.17.0"
-  resolved "https://registry.yarnpkg.com/history/-/history-1.17.0.tgz#c5483caa5a1d1fea00a1a7d8d19b874016711d29"
-  dependencies:
-    deep-equal "^1.0.0"
-    invariant "^2.0.0"
-    query-string "^3.0.0"
-    warning "^2.0.0"
-
 history@^3.0.0:
   version "3.3.0"
   resolved "https://registry.yarnpkg.com/history/-/history-3.3.0.tgz#fcedcce8f12975371545d735461033579a6dae9c"
@@ -6330,12 +6321,6 @@ query-string@2.4.2:
   dependencies:
     strict-uri-encode "^1.0.0"
 
-query-string@^3.0.0:
-  version "3.0.3"
-  resolved "https://registry.yarnpkg.com/query-string/-/query-string-3.0.3.tgz#ae2e14b4d05071d4e9b9eb4873c35b0dcd42e638"
-  dependencies:
-    strict-uri-encode "^1.0.0"
-
 query-string@^4.1.0, query-string@^4.2.2:
   version "4.3.4"
   resolved "https://registry.yarnpkg.com/query-string/-/query-string-4.3.4.tgz#bbb693b9ca915c232515b228b1a02b609043dbeb"
@@ -6358,12 +6343,6 @@ querystringify@0.0.x:
 querystringify@~1.0.0:
   version "1.0.0"
   resolved "https://registry.yarnpkg.com/querystringify/-/querystringify-1.0.0.tgz#6286242112c5b712fa654e526652bf6a13ff05cb"
-
-rackt-codemod@^0.1.2:
-  version "0.1.2"
-  resolved "https://registry.yarnpkg.com/rackt-codemod/-/rackt-codemod-0.1.2.tgz#6b9f8880e274ee7316422d2ceddcf6d0fe400d7e"
-  dependencies:
-    history "^1.14.0"
 
 radium@^0.19.0:
   version "0.19.4"
