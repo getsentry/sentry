@@ -70,17 +70,20 @@ const Content = styled(Box)`flex: 1;`;
 class SettingsLayout extends React.Component {
   static propTypes = {
     renderNavigation: PropTypes.func,
+    route: PropTypes.object,
+    routes: PropTypes.array,
   };
+
   render() {
-    let {params, renderNavigation, children} = this.props;
+    let {params, routes, route, renderNavigation, children} = this.props;
     // We want child's view's props
     let childProps = (children && children.props) || this.props;
-    let childRoutes = childProps.routes || [];
-    let childRoute = childProps.route || {};
+    let childRoutes = childProps.routes || routes || [];
+    let childRoute = childProps.route || route || {};
     return (
       <div>
         <SettingsHeader>
-          <BackButton to={replaceRouterParams('/:orgId', params)} />
+          <BackButton to={replaceRouterParams('/:orgId', params).replace(':orgId', '')} />
           <Box flex="1">
             <SettingsBreadcrumb params={params} routes={childRoutes} route={childRoute} />
           </Box>
