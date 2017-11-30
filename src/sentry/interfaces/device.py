@@ -3,8 +3,7 @@ from __future__ import absolute_import
 __all__ = ('Device', )
 
 from sentry.interfaces.base import Interface, InterfaceValidationError
-from sentry.interfaces.schemas import \
-    INTERFACE_SCHEMAS, validate_and_default_from_schema
+from sentry.interfaces.schemas import validate_and_default_interface
 from sentry.utils.safe import trim, trim_dict
 
 
@@ -23,7 +22,7 @@ class Device(Interface):
 
     @classmethod
     def to_python(cls, data):
-        is_valid, errors = validate_and_default_from_schema(data, INTERFACE_SCHEMAS[cls.path])
+        is_valid, errors = validate_and_default_interface(data, cls.path)
         if not is_valid:
             raise InterfaceValidationError("Invalid device")
 

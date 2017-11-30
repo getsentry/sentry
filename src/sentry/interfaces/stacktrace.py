@@ -20,8 +20,7 @@ from six.moves.urllib.parse import urlparse
 
 from sentry.app import env
 from sentry.interfaces.base import Interface, InterfaceValidationError
-from sentry.interfaces.schemas import \
-    INTERFACE_SCHEMAS, validate_and_default_from_schema
+from sentry.interfaces.schemas import validate_and_default_interface
 from sentry.models import UserOption
 from sentry.utils.safe import trim, trim_dict
 from sentry.web.helpers import render_to_string
@@ -259,7 +258,7 @@ class Frame(Interface):
 
     @classmethod
     def to_python(cls, data, raw=False):
-        is_valid, errors = validate_and_default_from_schema(data, INTERFACE_SCHEMAS[cls.path])
+        is_valid, errors = validate_and_default_interface(data, cls.path)
         if not is_valid:
             raise InterfaceValidationError("Invalid stack frame data.")
 
@@ -652,7 +651,7 @@ class Stacktrace(Interface):
 
     @classmethod
     def to_python(cls, data, slim_frames=True, raw=False):
-        is_valid, errors = validate_and_default_from_schema(data, INTERFACE_SCHEMAS[cls.path])
+        is_valid, errors = validate_and_default_interface(data, cls.path)
         if not is_valid:
             raise InterfaceValidationError("Invalid stack frame data.")
 

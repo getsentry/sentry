@@ -18,8 +18,7 @@ from django.utils.translation import ugettext as _
 from six.moves.urllib.parse import parse_qsl, urlencode, urlsplit, urlunsplit
 
 from sentry.interfaces.base import Interface, InterfaceValidationError
-from sentry.interfaces.schemas import \
-    INTERFACE_SCHEMAS, validate_and_default_from_schema
+from sentry.interfaces.schemas import validate_and_default_interface
 from sentry.utils.safe import trim, trim_dict, trim_pairs
 from sentry.utils.http import heuristic_decode
 from sentry.web.helpers import render_to_string
@@ -124,7 +123,7 @@ class Http(Interface):
 
     @classmethod
     def to_python(cls, data):
-        is_valid, errors = validate_and_default_from_schema(data, INTERFACE_SCHEMAS[cls.path])
+        is_valid, errors = validate_and_default_interface(data, cls.path)
         if not is_valid:
             raise InterfaceValidationError("Invalid interface data")
 

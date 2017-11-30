@@ -8,6 +8,7 @@ sentry.interfaces.schemas
 
 from __future__ import absolute_import
 
+from functools32 import lru_cache
 from itertools import groupby
 import jsonschema
 import six
@@ -398,7 +399,6 @@ This is to validate input data at the very first stage of ingestion. It can
 then be transformed into the requisite interface.
 """
 INPUT_SCHEMAS = {
-    'event': EVENT_SCHEMA,  # Not an interface per se, but the main store API input.
 }
 
 """
@@ -421,38 +421,29 @@ INTERFACE_SCHEMAS = {
     'template': TEMPLATE_INTERFACE_SCHEMA,
     'sentry.interfaces.Template': TEMPLATE_INTERFACE_SCHEMA,
     'device': DEVICE_INTERFACE_SCHEMA,
+
+    # Not interfaces per se, but looked up as if they were.
+    'event': EVENT_SCHEMA,
+    'tags': TAGS_TUPLES_SCHEMA,
 }
 
 
-def is_valid_input(data, interface):
-    if interface not in INPUT_SCHEMAS:
-        return True
-    return jsonschema.Draft4Validator(
-        INPUT_SCHEMAS[interface],
-        types={'array': (list, tuple)},
-        format_checker=jsonschema.FormatChecker(),
-    ).is_valid(data)
+@lru_cache(maxsize=100)
+def validator_for_interface(name):
+    if name not in INTERFACE_SCHEMAS:
+        return None
+    return jsonschema.Draft4Validator(INTERFACE_SCHEMAS[name], types={'array': (list, tuple)})
 
 
-def is_valid_interface(data, interface):
-    if interface not in INTERFACE_SCHEMAS:
-        return True
-    return jsonschema.Draft4Validator(
-        INTERFACE_SCHEMAS[interface],
-        types={'array': (list, tuple)},  # treat python tuples as arrays
-        format_checker=jsonschema.FormatChecker(),
-    ).is_valid(data)
-
-
-def validate_and_default_from_schema(
-        data, schema, name=None, strip_nones=True, raise_on_invalid=False):
+def validate_and_default_interface(data, interface, name=None,
+                                   strip_nones=True, raise_on_invalid=False):
     """
-    Modify data to conform to schema.
+    Modify data to conform to named interface's schema.
 
-    Takes the object in `data` and checks it against `schema`,
-    removing or defaulting any keys that do not pass validation
-    and adding defaults for any keys that are required by (and
-    have a default value in) the schema.
+    Takes the object in `data` and checks it against the schema for
+    `interface`, removing or defaulting any keys that do not pass validation
+    and adding defaults for any keys that are required by (and have a default
+    value in) the schema.
 
     Returns whether the resulting modified data is valid against the schema and
     a list of any validation errors encountered in processing.
@@ -460,6 +451,11 @@ def validate_and_default_from_schema(
     is_valid = True
     needs_revalidation = False
     errors = []
+
+    validator = validator_for_interface(interface)
+    if validator is None:
+        return (True, [])
+    schema = validator.schema
 
     # Strip Nones so we don't have to take null into account for all schemas.
     if strip_nones and isinstance(data, dict):
@@ -478,7 +474,6 @@ def validate_and_default_from_schema(
                     # TODO raise as shortcut?
                     errors.append({'type': EventError.MISSING_ATTRIBUTE, 'name': p})
 
-    validator = jsonschema.Draft4Validator(schema, types={'array': (list, tuple)})
     validator_errors = list(validator.iter_errors(data))
     keyed_errors = [e for e in reversed(validator_errors) if len(e.path)]
     if len(validator_errors) > len(keyed_errors):

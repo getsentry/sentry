@@ -28,8 +28,7 @@ from sentry.constants import (
     DEFAULT_LOGGER_NAME, MAX_CULPRIT_LENGTH, VALID_PLATFORMS
 )
 from sentry.interfaces.base import get_interface, InterfaceValidationError
-from sentry.interfaces.schemas import \
-    EVENT_SCHEMA, TAGS_TUPLES_SCHEMA, validate_and_default_from_schema
+from sentry.interfaces.schemas import validate_and_default_interface
 from sentry.models import (
     Activity, Environment, Event, EventError, EventMapping, EventUser, Group,
     GroupHash, GroupRelease, GroupResolution, GroupStatus, Project, Release,
@@ -328,7 +327,7 @@ class EventManager(object):
             if c in data:
                 try:
                     data[c] = casts[c](data[c])
-                except Exception:
+                except Exception as e:
                     errors.append({'type': EventError.INVALID_DATA, 'name': c, 'value': data[c]})
                     del data[c]
 
@@ -343,12 +342,11 @@ class EventManager(object):
                 msg_if.setdefault('formatted', msg_str)
 
         # Validate main event body and tags against schema
-        is_valid, main_errors = validate_and_default_from_schema(data, EVENT_SCHEMA)
-        errors.extend(main_errors)
+        is_valid, event_errors = validate_and_default_interface(data, 'event')
+        errors.extend(event_errors)
 
         if 'tags' in data:
-            is_valid, tag_errors = validate_and_default_from_schema(
-                data['tags'], TAGS_TUPLES_SCHEMA, name='tags')
+            is_valid, tag_errors = validate_and_default_interface(data['tags'], 'tags', name='tags')
             errors.extend(tag_errors)
 
         # Validate interfaces
