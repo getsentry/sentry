@@ -1,12 +1,11 @@
 from __future__ import absolute_import
 
 from django.contrib.auth.models import AnonymousUser
-from django.core.urlresolvers import reverse
 
 from sentry.models import (
-    ApiKey, AuditLogEntryEvent,
+    ApiKey,
     DeletedOrganization, DeletedProject, DeletedTeam,
-    Organization, User, Project, Team,
+    Organization, Project, Team,
     OrganizationStatus, ProjectStatus, TeamStatus,
 
 )
@@ -48,47 +47,9 @@ class CreateAuditEntryTest(APITestCase):
 
 class DeletedEntryTest(APITestCase):
 
-    def test_audit_entry_delete_organization(self):
-        user = self.create_user()
-        organization = self.create_organization(slug='slug123456789', owner=user)
-        user.save()
-        organization.save()
-
-        assert User.objects.get(id=user.id) is not None
-        assert Organization.objects.get(id=organization.id) is not None
-        assert not DeletedOrganization.objects.filter(slug=organization.slug).exists()
-
-        req = FakeHttpRequest(user)
-        req.method = 'POST'
-        req.path = '/organizations/%s/remove/' % (organization.slug)
-
-        create_audit_entry(
-            request=req,
-            organization_id=organization.id,
-            target_object=organization.id,
-            event=AuditLogEntryEvent.ORG_REMOVE
-        )
-
-        deleted_org = DeletedOrganization.objects.get(slug=organization.slug)
-
-        assert deleted_org is not None
-        assert deleted_org.ip_address == req.META['REMOTE_ADDR']
-
-        # Truncating datetime for mysql compatibility
-        assert deleted_org.date_created.replace(
-            microsecond=0) == organization.date_added.replace(
-            microsecond=0)
-
-        assert organization.name == deleted_org.name
-
     def test_deleted_organization(self):
         user = self.create_user()
         organization = self.create_organization(slug='slug123456789', owner=user)
-        user.save()
-        organization.save()
-
-        assert User.objects.filter(id=user.id).exists()
-        assert Organization.objects.filter(id=organization.id).exists()
 
         path = '/organizations/%s/remove/' % (organization.slug)
 
@@ -107,14 +68,6 @@ class DeletedEntryTest(APITestCase):
         team = self.create_team(organization=organization)
         project = self.create_project(team=team)
 
-        user.save()
-        organization.save()
-        team.save()
-        project.save()
-
-        assert User.objects.filter(id=user.id).exists()
-        assert Project.objects.filter(id=project.id).exists()
-
         path = '/api/0/projects/%s/%s/' % (organization.slug, project.slug)
 
         self.login_as(user)
@@ -130,13 +83,6 @@ class DeletedEntryTest(APITestCase):
         organization = self.create_organization(slug='slug123456789', owner=user)
         team = self.create_team(organization=organization)
 
-        user.save()
-        organization.save()
-        team.save()
-
-        assert User.objects.filter(id=user.id).exists()
-        assert Team.objects.filter(id=team.id).exists()
-
         path = '/api/0/teams/%s/%s/' % (organization.slug, team.slug)
 
         self.login_as(user)
@@ -147,26 +93,12 @@ class DeletedEntryTest(APITestCase):
         assert Team.objects.get(id=team.id).status == TeamStatus.PENDING_DELETION
         DeletedEntryTest.check_deleted_log(deleted_team, team)
 
-    def test_deleted_user(self):
-        user = self.create_user()
-        user.save()
-
-        assert User.objects.get(id=user.id).is_active
-
-        self.login_as(user)
-        self.client.post(reverse('sentry-remove-account'))
-
-        assert not User.objects.get(id=user.id).is_active
-        # deleted_user = DeletedUser.objects.get(email=user.email)
-        # DeletedEntryTest.check_deleted_log(deleted_user, user)
-
     @staticmethod
     def check_deleted_log(deleted_log, original_object):
         assert deleted_log is not None
+        assert original_object.name == deleted_log.name
 
         # Truncating datetime for mysql compatibility
         assert deleted_log.date_created.replace(
             microsecond=0) == original_object.date_added.replace(microsecond=0)
         assert deleted_log.date_deleted >= deleted_log.date_created
-
-        assert original_object.name == deleted_log.name
