@@ -1,6 +1,11 @@
 import Reflux from 'reflux';
 
 const OrganizationStore = Reflux.createStore({
+  // So we can use Reflux.connect in a component mixin
+  getInitialState() {
+    return this.items;
+  },
+
   init() {
     this.items = [];
   },

@@ -1,13 +1,104 @@
 import PropTypes from 'prop-types';
 import React from 'react';
+import Reflux from 'reflux';
 import styled from 'react-emotion';
 import {withTheme} from 'emotion-theming';
 
+import OrganizationStore from '../../../stores/organizationStore';
 import Link from '../../../components/link';
 import SentryTypes from '../../../proptypes';
 import recreateRoute from '../../../utils/recreateRoute';
 
 import IconChevronRight from '../../../icons/icon-chevron-right';
+
+const withOrganizations = WrappedComponent =>
+  React.createClass({
+    mixins: [Reflux.connect(OrganizationStore, 'organizations')],
+    render() {
+      return (
+        <WrappedComponent organizations={this.state.organizations} {...this.props} />
+      );
+    },
+  });
+
+const ProjectCrumb = ({team, organization, params, routes, route, isLast}) => {
+  if (!organization) return null;
+
+  let {teams} = organization;
+  let {projects} = teams.find(({slug}) => slug === team.slug) || {};
+  let hasMenu = projects && projects.length > 1;
+
+  return (
+    <Crumb hasMenu={hasMenu}>
+      <div style={{display: 'inline'}}>{route.name} </div>
+      {!isLast && (
+        <Divider hasMenu={hasMenu}>
+          <IconChevronRight size="15" />
+        </Divider>
+      )}
+      <Menu className="menu">
+        {projects.map(project => (
+          <MenuItem
+            to={recreateRoute(route, {
+              routes,
+              params: {...params, projectId: project.slug},
+            })}
+            key={project.slug}
+          >
+            {project.name}
+          </MenuItem>
+        ))}
+      </Menu>
+    </Crumb>
+  );
+};
+ProjectCrumb.displayName = 'ProjectCrumb';
+ProjectCrumb.propTypes = {
+  team: SentryTypes.Team,
+  organization: SentryTypes.Organization,
+  routes: PropTypes.array,
+  route: PropTypes.object,
+  isLast: PropTypes.bool,
+};
+
+const MENUS = {
+  Organization: withOrganizations(({organizations, params, routes, route, isLast}) => {
+    let hasMenu = organizations.length > 1;
+
+    return (
+      <Crumb hasMenu={hasMenu}>
+        <div style={{display: 'inline'}}>{route.name} </div>
+        {!isLast && (
+          <Divider hasMenu={hasMenu}>
+            <IconChevronRight size="15" />
+          </Divider>
+        )}
+        <Menu className="menu">
+          {organizations.map(organization => (
+            <MenuItem
+              to={recreateRoute(route, {
+                routes,
+                params: {...params, orgId: organization.slug},
+              })}
+              key={organization.slug}
+            >
+              {organization.name}
+            </MenuItem>
+          ))}
+        </Menu>
+      </Crumb>
+    );
+  }),
+
+  Project: ProjectCrumb,
+};
+
+const StyledLink = styled(Link)`
+  color: ${p => p.theme.gray3};
+  &:hover {
+    color: ${p => p.theme.gray5};
+  }
+`;
 
 class SettingsBreadcrumb extends React.Component {
   static propTypes = {
@@ -16,6 +107,7 @@ class SettingsBreadcrumb extends React.Component {
 
   static contextTypes = {
     organization: SentryTypes.Organization,
+    team: SentryTypes.Team,
   };
 
   render() {
@@ -26,22 +118,34 @@ class SettingsBreadcrumb extends React.Component {
       <Breadcrumbs>
         {routesWithNames.map((route, i) => {
           let isLast = i === lastRouteIndex;
+          let createMenu = MENUS[route.name];
+          let Menu = typeof createMenu === 'function' && createMenu;
+          let hasMenu = !!Menu;
+          let CrumbPicker = hasMenu
+            ? Menu
+            : () => (
+                <Crumb route={route} isLast={isLast}>
+                  <StyledLink to={recreateRoute(route, {routes, params})}>
+                    {route.name}{' '}
+                  </StyledLink>
+                  {!isLast && (
+                    <Divider>
+                      <IconChevronRight size="15" />
+                    </Divider>
+                  )}
+                </Crumb>
+              );
 
           return (
-            <span key={`${route.name}:${route.path}`}>
-              <Crumb to={recreateRoute(route, {routes, params})}>
-                {route.name}{' '}
-                {!isLast && (
-                  <Divider>
-                    <IconChevronRight size="15" />
-                  </Divider>
-                )}
-                <Menu className="menu">
-                  <MenuItem>Error, Inc.</MenuItem>
-                  <MenuItem>RIP Industries</MenuItem>
-                </Menu>
-              </Crumb>
-            </span>
+            <CrumbPicker
+              key={`${route.name}:${route.path}`}
+              organization={this.context.organization}
+              team={this.context.team}
+              routes={routes}
+              params={params}
+              route={route}
+              isLast={isLast}
+            />
           );
         })}
       </Breadcrumbs>
@@ -56,7 +160,7 @@ const Breadcrumbs = withTheme(
   `
 );
 
-const Crumb = styled(Link)`
+const Crumb = styled('div')`
   display: block;
   position: relative;
   font-size: 18px;
@@ -69,12 +173,13 @@ const Crumb = styled(Link)`
 
   &:hover {
     color: ${p => p.theme.gray5};
-    > span {
+    ${p =>
+      p.hasMenu
+        ? `> span {
       transform: rotate(90deg);
       top: 0;
-    }
-
-    > .menu {
+    }`
+        : ''} > .menu {
       opacity: 1;
       visibility: visible;
     }
