@@ -95,24 +95,20 @@ export default class ResolveActions extends React.Component {
 
     let buttonClass = this.getButtonClass();
 
-    if (disabled) {
-      buttonClass += ' disabled';
-    }
-
     if (isResolved) {
       return this.renderResolved();
     }
 
-    let actionClassName = `tip ${!hasRelease ? 'disabled' : ''}`;
+    let actionClassName = 'tip';
     let actionTitle = !hasRelease
       ? t('Set up release tracking in order to use this feature.')
       : '';
 
     let actionLinkProps = {
       shouldConfirm,
-      title: actionTitle,
       message: confirmMessage,
       confirmLabel,
+      disabled,
     };
 
     return (
@@ -127,6 +123,7 @@ export default class ResolveActions extends React.Component {
         <div className="btn-group">
           <ActionLink
             {...actionLinkProps}
+            title={'Resolve'}
             className={buttonClass}
             onAction={() => onUpdate({status: 'resolved'})}
           >
@@ -140,11 +137,13 @@ export default class ResolveActions extends React.Component {
             className={buttonClass}
             title=""
             alwaysRenderMenu
+            disabled={disabled}
           >
             <MenuItem header={true}>{t('Resolved In')}</MenuItem>
             <MenuItem noAnchor={true}>
               <ActionLink
                 {...actionLinkProps}
+                title={actionTitle}
                 className={actionClassName}
                 onAction={() => {
                   return (
@@ -162,6 +161,7 @@ export default class ResolveActions extends React.Component {
               </ActionLink>
               <ActionLink
                 {...actionLinkProps}
+                title={actionTitle}
                 onAction={() => {
                   return (
                     hasRelease &&
@@ -182,6 +182,7 @@ export default class ResolveActions extends React.Component {
 
               <ActionLink
                 {...actionLinkProps}
+                title={actionTitle}
                 onAction={() => hasRelease && this.setState({modal: true})}
                 className={actionClassName}
                 shouldConfirm={false}

@@ -6,7 +6,6 @@ import {capitalize} from 'lodash';
 
 import ApiMixin from '../../mixins/apiMixin';
 import TooltipMixin from '../../mixins/tooltip';
-import ActionLink from './actionLink';
 import DropdownLink from '../../components/dropdownLink';
 import IndicatorStore from '../../stores/indicatorStore';
 import MenuItem from '../../components/menuItem';
@@ -18,6 +17,7 @@ import Toolbar from '../../components/toolbar';
 import ToolbarHeader from '../../components/toolbarHeader';
 import ResolveActions from '../../components/actions/resolve';
 import IgnoreActions from '../../components/actions/ignore';
+import ActionLink from '../../components/actions/actionLink';
 
 const BULK_LIMIT_STR = '1,000';
 
@@ -32,12 +32,12 @@ const getBulkConfirmMessage = action => {
 };
 
 const getConfirm = (numIssues, allInQuerySelected, query) => {
-  return function(action) {
+  return function(action, append = '') {
     let question = allInQuerySelected
-      ? getBulkConfirmMessage(action)
+      ? getBulkConfirmMessage(`${action}${append}`)
       : tn(
-          `Are you sure you want to ${action} this %d issue?`,
-          `Are you sure you want to ${action} these %d issues`,
+          `Are you sure you want to ${action} this %d issue${append}?`,
+          `Are you sure you want to ${action} these %d issues${append}?`,
           numIssues
         );
 
@@ -53,15 +53,17 @@ const getConfirm = (numIssues, allInQuerySelected, query) => {
 };
 
 const getLabel = (numIssues, allInQuerySelected) => {
-  return function(action) {
+  return function(action, append = '') {
     let capitalized = capitalize(action);
-    return allInQuerySelected
+    let text = allInQuerySelected
       ? t(`Bulk ${action} issues`)
       : tn(
           `${capitalized} %d selected issue`,
           `${capitalized} %d selected issues`,
           numIssues
         );
+
+    return text + append;
   };
 };
 
@@ -261,11 +263,16 @@ const StreamActions = React.createClass({
     let selectedItems = SelectedGroupStore.getSelectedIds();
     switch (action) {
       case 'resolve':
+      case 'unresolve':
       case 'ignore':
+      case 'unbookmark':
         return this.state.pageSelected && selectedItems.size > 1;
+      case 'bookmark':
+        return selectedItems.size > 1;
+      case 'merge':
+      case 'delete':
       default:
-        // By default, should confirm ...
-        return true;
+        return true; // By default, should confirm ...
     }
   },
 
@@ -273,11 +280,8 @@ const StreamActions = React.createClass({
     // TODO(mitsuhiko): very unclear how to translate this
     let issues = SelectedGroupStore.getSelectedIds();
     let numIssues = issues.size;
-    let {allInQuerySelected} = this.state;
-    let extraDescription = (
-      <ExtraDescription all={this.state.allInQuerySelected} query={this.props.query} />
-    );
-
+    let {allInQuerySelected, anySelected} = this.state;
+    let disabled = !anySelected;
     let confirm = getConfirm(numIssues, allInQuerySelected, this.props.query);
     let label = getLabel(numIssues, allInQuerySelected);
 
@@ -301,45 +305,24 @@ const StreamActions = React.createClass({
               shouldConfirm={this.shouldConfirm('resolve')}
               confirmMessage={confirm('resolve')}
               confirmLabel={label('resolve')}
-              disabled={!this.state.anySelected}
+              disabled={disabled}
             />
             <IgnoreActions
               onUpdate={this.onUpdate}
               shouldConfirm={this.shouldConfirm('ignore')}
               confirmMessage={confirm('ignore')}
               confirmLabel={label('ignore')}
-              disabled={!this.state.anySelected}
+              disabled={disabled}
             />
             <div className="btn-group">
               <ActionLink
-                className="btn btn-default btn-sm action-bookmark"
-                disabled={!this.state.anySelected}
-                onAction={this.onUpdate.bind(this, {isBookmarked: true})}
-                buttonTitle={t('Bookmark')}
-                extraDescription={extraDescription}
-                confirmationQuestion={
-                  this.state.allInQuerySelected
-                    ? getBulkConfirmMessage('bookmark')
-                    : count =>
-                        tn(
-                          'Are you sure you want to bookmark this %d issue?',
-                          'Are you sure you want to bookmark these %d issues?',
-                          count
-                        )
-                }
-                confirmLabel={
-                  this.state.allInQuerySelected
-                    ? t('Bulk bookmark issues')
-                    : count =>
-                        tn(
-                          'Bookmark %d selected issue',
-                          'Bookmark %d selected issues',
-                          count
-                        )
-                }
-                tooltip={t('Add to Bookmarks')}
-                onlyIfBulk={true}
-                selectAllActive={this.state.pageSelected}
+                className={'btn btn-default btn-sm action-bookmark'}
+                onAction={() => this.onUpdate({isBookmarked: true})}
+                shouldConfirm={this.shouldConfirm('bookmark')}
+                message={confirm('bookmark')}
+                confirmLabel={label('bookmark')}
+                title={t('Add to Bookmarks')}
+                disabled={disabled}
               >
                 <i aria-hidden="true" className="icon-star-solid" />
               </ActionLink>
@@ -355,30 +338,11 @@ const StreamActions = React.createClass({
                 <MenuItem noAnchor={true}>
                   <ActionLink
                     className="action-merge"
-                    disabled={!this.state.anySelected}
+                    disabled={disabled}
                     onAction={this.onMerge}
-                    extraDescription={extraDescription}
-                    confirmationQuestion={
-                      this.state.allInQuerySelected
-                        ? getBulkConfirmMessage('merge')
-                        : count =>
-                            tn(
-                              'Are you sure you want to merge %d issue?',
-                              'Are you sure you want to merge %d issues?',
-                              count
-                            )
-                    }
-                    confirmLabel={
-                      this.state.allInQuerySelected
-                        ? t('Bulk merge issues')
-                        : count =>
-                            tn(
-                              'Merge %d selected issue',
-                              'Merge %d selected issues',
-                              count
-                            )
-                    }
-                    selectAllActive={this.state.pageSelected}
+                    shouldConfirm={this.shouldConfirm('merge')}
+                    message={confirm('merge')}
+                    confirmLabel={label('merge')}
                   >
                     {t('Merge Issues')}
                   </ActionLink>
@@ -386,33 +350,11 @@ const StreamActions = React.createClass({
                 <MenuItem noAnchor={true}>
                   <ActionLink
                     className="action-remove-bookmark"
-                    disabled={!this.state.anySelected}
-                    onAction={this.onUpdate.bind(this, {isBookmarked: false})}
-                    extraDescription={extraDescription}
-                    confirmationQuestion={
-                      this.state.allInQuerySelected
-                        ? getBulkConfirmMessage('remove', {
-                            append: ' from your bookmarks',
-                          })
-                        : count =>
-                            tn(
-                              'Are you sure you want to remove this %d issue from your bookmarks?',
-                              'Are you sure you want to remove these %d issues from your bookmarks?',
-                              count
-                            )
-                    }
-                    confirmLabel={
-                      this.state.allInQuerySelected
-                        ? t('Bulk remove issues from bookmarks')
-                        : count =>
-                            tn(
-                              'Remove %d selected issue from bookmarks',
-                              'Remove %d selected issues from bookmarks',
-                              count
-                            )
-                    }
-                    onlyIfBulk={true}
-                    selectAllActive={this.state.pageSelected}
+                    disabled={disabled}
+                    onAction={() => this.onUpdate({isBookmarked: false})}
+                    shouldConfirm={this.shouldConfirm('unbookmark')}
+                    message={confirm('remove', ' from your bookmarks')}
+                    confirmLabel={label('remove', ' from your bookmarks')}
                   >
                     {t('Remove from Bookmarks')}
                   </ActionLink>
@@ -421,32 +363,11 @@ const StreamActions = React.createClass({
                 <MenuItem noAnchor={true}>
                   <ActionLink
                     className="action-unresolve"
-                    disabled={!this.state.anySelected}
-                    onAction={this.onUpdate.bind(this, {status: 'unresolved'})}
-                    extraDescription={extraDescription}
-                    confirmationQuestion={
-                      this.state.allInQuerySelected
-                        ? getBulkConfirmMessage('unresolve')
-                        : count =>
-                            tn(
-                              'Are you sure you want to unresolve this %d issue?',
-                              'Are you sure you want to unresolve these %d issues?',
-                              count
-                            )
-                    }
-                    confirmLabel={
-                      this.state.allInQuerySelected
-                        ? t('Bulk unresolve issues')
-                        : count =>
-                            tn(
-                              'Unresolve %d selected issue',
-                              'Unresolve %d selected issues',
-                              count
-                            )
-                    }
-                    onlyIfBulk={true}
-                    selectAllActive={this.state.pageSelected}
-                    groupIds={this.props.groupIds}
+                    disabled={disabled}
+                    onAction={() => this.onUpdate({status: 'unresolved'})}
+                    shouldConfirm={this.shouldConfirm('unresolve')}
+                    message={confirm('unresolve')}
+                    confirmLabel={label('unresolve')}
                   >
                     {t('Set status to: Unresolved')}
                   </ActionLink>
@@ -455,17 +376,11 @@ const StreamActions = React.createClass({
                 <MenuItem noAnchor={true}>
                   <ActionLink
                     className="action-delete"
-                    disabled={!this.state.anySelected || this.state.allInQuerySelected}
+                    disabled={disabled || this.state.allInQuerySelected}
                     onAction={this.onDelete}
-                    extraDescription={extraDescription}
-                    confirmationQuestion={count =>
-                      tn(
-                        'Are you sure you want to delete %d issue?',
-                        'Are you sure you want to delete %d issues?',
-                        count
-                      )}
-                    confirmLabel={count =>
-                      tn('Delete %d selected issue', 'Delete %d selected issues', count)}
+                    shouldConfirm={this.shouldConfirm('delete')}
+                    message={confirm('delete')}
+                    confirmLabel={label('delete')}
                     selectAllActive={this.state.pageSelected}
                   >
                     {t('Delete Issues')}

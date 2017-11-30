@@ -64,15 +64,12 @@ export default class IgnoreActions extends React.Component {
     } = this.props;
     let linkClassName = 'btn btn-default btn-sm';
 
-    if (disabled) {
-      linkClassName += ' disabled';
-    }
-
     let actionLinkProps = {
       shouldConfirm,
       title: 'Ignore',
       message: confirmMessage,
       confirmLabel,
+      disabled,
     };
 
     if (isIgnored) {
@@ -127,7 +124,13 @@ export default class IgnoreActions extends React.Component {
             {t('Ignore')}
           </ActionLink>
 
-          <DropdownLink caret={true} className={linkClassName} title="" alwaysRenderMenu>
+          <DropdownLink
+            caret={true}
+            className={linkClassName}
+            title=""
+            alwaysRenderMenu
+            disabled={disabled}
+          >
             <MenuItem header={true}>Ignore Until</MenuItem>
             <li className="dropdown-submenu">
               <DropdownLink

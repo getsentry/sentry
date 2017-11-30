@@ -10,11 +10,13 @@ export default class ActionLink extends React.Component {
     className: PropTypes.any,
     onAction: PropTypes.func.isRequired,
     title: PropTypes.string,
-    confirmLabel: PropTypes.string.isRequired,
+    confirmLabel: PropTypes.string,
+    disabled: PropTypes.bool,
   };
 
   static defaultProps = {
     shouldConfirm: false,
+    isDisabled: false,
   };
 
   render() {
@@ -25,6 +27,7 @@ export default class ActionLink extends React.Component {
       title,
       onAction,
       confirmLabel,
+      disabled,
       children,
     } = this.props;
 
@@ -34,6 +37,10 @@ export default class ActionLink extends React.Component {
         <p>{t('This action cannot be undone.')}</p>
       </div>
     );
+
+    if (disabled) {
+      className += ' disabled';
+    }
 
     if (shouldConfirm) {
       return (
@@ -46,7 +53,7 @@ export default class ActionLink extends React.Component {
       );
     } else {
       return (
-        <a className={className} onClick={onAction}>
+        <a className={className} onClick={!disabled && onAction}>
           {children}
         </a>
       );
