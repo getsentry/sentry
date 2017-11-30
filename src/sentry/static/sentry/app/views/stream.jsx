@@ -268,7 +268,7 @@ const Stream = createReactClass({
     this.setState({
       savedSearchList,
     });
-    browserHistory.pushState(null, `/${orgId}/${projectId}/searches/${data.id}/`);
+    browserHistory.push(`/${orgId}/${projectId}/searches/${data.id}/`);
   },
 
   getQueryState(props) {
@@ -371,14 +371,12 @@ const Stream = createReactClass({
         // different projects.
         if (jqXHR.getResponseHeader('X-Sentry-Direct-Hit') === '1') {
           if (data[0].matchingEventId) {
-            return void browserHistory.pushState(
-              null,
+            return void browserHistory.push(
               `/${this.props.params.orgId}/${data[0].project.slug}/issues/${data[0]
                 .id}/events/${data[0].matchingEventId}/`
             );
           }
-          return void browserHistory.pushState(
-            null,
+          return void browserHistory.push(
             `/${this.props.params.orgId}/${data[0].project.slug}/issues/${data[0].id}/`
           );
         }
@@ -543,7 +541,10 @@ const Stream = createReactClass({
       ? `/${params.orgId}/${params.projectId}/searches/${this.state.searchId}/`
       : `/${params.orgId}/${params.projectId}/`;
 
-    browserHistory.pushState(null, path, queryParams);
+    browserHistory.push({
+      pathname: path,
+      query: queryParams,
+    });
   },
 
   createSampleEvent() {
@@ -552,8 +553,7 @@ const Stream = createReactClass({
     this.api.request(url, {
       method: 'POST',
       success: data => {
-        browserHistory.pushState(
-          null,
+        browserHistory.push(
           `/${params.orgId}/${params.projectId}/issues/${data.groupID}/`
         );
       },

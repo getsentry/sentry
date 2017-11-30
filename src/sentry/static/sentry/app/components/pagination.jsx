@@ -18,9 +18,13 @@ export default class extends React.Component {
 
   static defaultProps = {
     onCursor: (cursor, path, query) => {
-      browserHistory.pushState(null, path, {
-        ...query,
-        cursor,
+      browserHistory.push({
+        pathname: path,
+
+        query: {
+          ...query,
+          cursor,
+        }
       });
     },
   };

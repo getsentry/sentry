@@ -474,7 +474,7 @@ const GroupDetailsActions = createReactClass({
         complete: () => {
           IndicatorStore.remove(loadingIndicator);
 
-          browserHistory.pushState(null, `/${org.slug}/${project.slug}/`);
+          browserHistory.push(`/${org.slug}/${project.slug}/`);
         },
       }
     );
@@ -551,7 +551,7 @@ const GroupDetailsActions = createReactClass({
       data: {discard: true},
       success: response => {
         GroupActions.discardSuccess(id, group.id, response);
-        browserHistory.pushState(null, `/${org.slug}/${project.slug}/`);
+        browserHistory.push(`/${org.slug}/${project.slug}/`);
       },
       error: error => {
         GroupActions.discardError(id, group.id, error);

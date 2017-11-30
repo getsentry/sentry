@@ -118,7 +118,10 @@ const OrganizationAuditLog = createReactClass({
     let queryParams = {
       event: value,
     };
-    browserHistory.pushState(null, this.props.location.pathname, queryParams);
+    browserHistory.push({
+      pathname: this.props.location.pathname,
+      query: queryParams
+    });
   },
 
   renderResults() {
