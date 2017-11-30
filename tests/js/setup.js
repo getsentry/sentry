@@ -3,6 +3,11 @@ import sinon from 'sinon';
 import ConfigStore from 'app/stores/configStore';
 import MockDate from 'mockdate';
 
+import {configure} from 'enzyme';
+import Adapter from 'enzyme-adapter-react-16';
+
+configure({adapter: new Adapter()});
+
 jest.mock('app/translations');
 jest.mock('app/api');
 
