@@ -345,6 +345,7 @@ urlpatterns += patterns(
         name='sentry-accept-project-transfer'),
 
     url(r'^settings/$', react_page_view),
+    url(r'^settings/personal/$', react_page_view),
 
     # Organizations
     url(r'^(?P<organization_slug>[\w_-]+)/$',

@@ -55,6 +55,7 @@ import OrganizationGeneralSettingsView from './views/settings/organization/gener
 import OrganizationSettingsLayout from './views/settings/organization/organizationSettingsLayout';
 import OrganizationStats from './views/organizationStats';
 import OrganizationTeams from './views/organizationTeams';
+import PersonalSettingsLayout from './views/settings/personal/personalSettingsLayout';
 import ProjectAlertRules from './views/projectAlertRules';
 import ProjectAlertSettings from './views/projectAlertSettings';
 import ProjectTags from './views/projectTags';
@@ -342,6 +343,11 @@ function routes() {
         component={errorHandler(SettingsWrapper)}
       >
         <IndexRoute component={errorHandler(SettingsIndex)} />
+        <Route
+          name="Personal"
+          path="personal/"
+          component={errorHandler(PersonalSettingsLayout)}
+         />
         <Route path="organization/">
           <IndexRoute component={errorHandler(OrganizationPicker)} />
 
