@@ -21,6 +21,7 @@ class ChangeRequest(Model):
     title = models.TextField(null=True)
     message = models.TextField(null=True)
     author = FlexibleForeignKey('sentry.CommitAuthor', null=True)
+    synced_commits = models.BooleanField(default=False)
 
     class Meta:
         app_label = 'sentry'
@@ -33,3 +34,43 @@ class ChangeRequest(Model):
     def find_referenced_groups(self):
         text = u'{} {}'.format(self.message, self.title)
         return find_referenced_groups(text, self.organization_id)
+
+    def set_commits(self, commit_list):
+        """
+        Bind a list of commits to this PR.
+
+        This will clear any existing commit log and replace it with the given
+        commits.
+        """
+        from sentry.models import Commit
+        from sentry.plugins.providers.repository import RepositoryProvider
+
+        commit_list = [
+            c for c in commit_list
+            if not RepositoryProvider.should_ignore_commit(c.get('message', ''))
+        ]
+
+        self.save()
+        self.commits.clear()
+
+        commits = Commit.objects.filter(
+            key__in=[c['sha'] for c in commit_list]
+        )
+
+        self.commits.add(*commits)
+
+    def fetch_commits(self, user):
+        from sentry.tasks.commits import fetch_pr_commits
+
+        if not self.synced_commits:
+
+            fetch_pr_commits.apply_async(
+                kwargs={
+                    'user_id': user.id,
+                    'change_id': self.change_id,
+                }
+            )
+
+            self.update(
+                synced_commits=True
+            )

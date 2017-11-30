@@ -5,7 +5,7 @@ import logging
 from django.core.urlresolvers import reverse
 
 from sentry.exceptions import InvalidIdentity, PluginError
-from sentry.models import Deploy, Release, ReleaseHeadCommit, Repository, User
+from sentry.models import Deploy, Release, ReleaseHeadCommit, Repository, User, ChangeRequest
 from sentry.plugins import bindings
 from sentry.tasks.base import instrumented_task, retry
 from sentry.utils.email import MessageBuilder
@@ -167,3 +167,69 @@ def fetch_commits(release_id, user_id, refs, prev_release_id=None, **kwargs):
         )
         for d_id in deploys:
             Deploy.notify_if_ready(d_id, fetch_complete=True)
+
+
+@instrumented_task(
+    name='sentry.tasks.commits.fetch_pr_commits',
+    queue='commits',
+    default_retry_delay=60 * 5,
+    max_retries=5
+)
+@retry(exclude=(User.DoesNotExist, ))
+def fetch_pr_commits(change_id, user_id, **kwargs):
+
+    changerequest = ChangeRequest.objects.get(id=change_id)
+    user = User.objects.get(id=user_id)
+
+    try:
+        repo = Repository.objects.get(
+            organization_id=changerequest.repository_id,
+        )
+    except Repository.DoesNotExist:
+        logger.info(
+            'repository.missing',
+            extra={
+                'organization_id': changerequest.organization_id,
+                'repository_id': changerequest.repository_id,
+                'user_id': user_id,
+            }
+        )
+        raise
+
+    provider_cls = bindings.get('repository.provider').get(repo.provider)
+
+    provider = provider_cls(id=repo.provider)
+
+    try:
+        change_request_commits = provider.get_pr_commits(repo, changerequest.key, actor=user)
+    except NotImplementedError:
+        pass
+    except Exception as exc:
+        logger.exception(
+            'fetch_pr_commits.error',
+            exc_info=True,
+            extra={
+                'organization_id': changerequest.organization_id,
+                'repository_id': changerequest.repository_id,
+                'user_id': user_id,
+                'num': changerequest.key,
+            }
+        )
+        if isinstance(exc, InvalidIdentity) and getattr(exc, 'identity', None):
+            handle_invalid_identity(identity=exc.identity, commit_failure=True)
+        # TODO(maxbittker): Send a failure email
+        # elif isinstance(exc, (PluginError, InvalidIdentity)):
+
+    logger.info(
+        'fetch_commits.complete',
+        extra={
+            'organization_id': repo.organization_id,
+            'user_id': user_id,
+            'repository': repo.name,
+            'num': changerequest.key,
+            'num_commits': len(change_request_commits or []),
+        }
+    )
+
+    if change_request_commits:
+        changerequest.set_commits(change_request_commits)
