@@ -20,6 +20,9 @@ let NewSettingsWarning = ({location = {}}) => {
   let oldLocation = location.pathname
     ? location.pathname.replace(/^\/settings\/organization\//, '/organizations/')
     : '';
+
+  if (oldLocation === location.pathname) return null;
+
   // members or auth should not be react routes
   let isRouter = !/\/(members|auth)\//.test(location.pathname);
   let linkProps = {

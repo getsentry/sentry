@@ -22,7 +22,8 @@ const Menu = styled.div`
 
   ${p =>
     p.isOpen
-      ? `opacity: 1;
+      ? `
+  opacity: 1;
   visibility: visible;`
       : ''};
 `;
