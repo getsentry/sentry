@@ -201,11 +201,8 @@ class TagStorage(TagStorage):
         except TagKey.DoesNotExist:
             raise TagKeyNotFound
 
-    def get_tag_keys(self, project_ids, environment_id, keys=None, status=TagKeyStatus.VISIBLE):
-        if isinstance(project_ids, six.integer_types):
-            qs = TagKey.objects.filter(project_id=project_ids)
-        else:
-            qs = TagKey.objects.filter(project_id__in=project_ids)
+    def get_tag_keys(self, project_id, environment_id, status=TagKeyStatus.VISIBLE):
+        qs = TagKey.objects.filter(project_id=project_id)
 
         if environment_id is None:
             qs = qs.filter(environment_id__isnull=True)
@@ -214,12 +211,6 @@ class TagStorage(TagStorage):
 
         if status is not None:
             qs = qs.filter(status=status)
-
-        if keys is not None:
-            if isinstance(keys, six.string_types):
-                qs = qs.filter(key=keys)
-            else:
-                qs = qs.filter(key__in=keys)
 
         return list(qs)
 
@@ -248,20 +239,25 @@ class TagStorage(TagStorage):
         except TagValue.DoesNotExist:
             raise TagValueNotFound
 
-    def get_tag_values(self, project_ids, environment_id, key, values=None):
-        tag_key_ids = [tk.id for tk in self.get_tag_keys(project_ids, environment_id, key)]
+    def get_tag_values(self, project_id, environment_id, key):
+        tagkey_qs = TagKey.objects.filter(
+            project_id=project_id,
+            key=key,
+        )
+
+        if environment_id is None:
+            tagkey_qs = tagkey_qs.filter(environment_id__isnull=True)
+        else:
+            tagkey_qs = tagkey_qs.filter(environment_id=environment_id)
 
         qs = TagValue.objects.filter(
-            key_id__in=tag_key_ids,
+            key_id__in=list([tk.id for tk in tagkey_qs]),
         )
 
         if environment_id is None:
             qs = qs.filter(environment_id__isnull=True)
         else:
             qs = qs.filter(environment_id=environment_id)
-
-        if values is not None:
-            qs = qs.filter(value__in=values)
 
         return list(qs)
 
@@ -289,7 +285,7 @@ class TagStorage(TagStorage):
         except GroupTagKey.DoesNotExist:
             raise GroupTagKeyNotFound
 
-    def get_group_tag_keys(self, project_id, group_ids, environment_id, keys=None, limit=None):
+    def get_group_tag_keys(self, project_id, group_ids, environment_id, limit=None):
         if isinstance(group_ids, six.integer_types):
             qs = GroupTagKey.objects.filter(group_id=group_ids)
         else:
@@ -299,10 +295,6 @@ class TagStorage(TagStorage):
             qs = qs.filter(environment_id__isnull=True)
         else:
             qs = qs.filter(environment_id=environment_id)
-
-        if keys is not None:
-            tag_key_ids = [tk.id for tk in self.get_tag_keys(project_id, environment_id, keys)]
-            qs = qs.filter(key_id__in=tag_key_ids)
 
         if limit is not None:
             qs = qs[:limit]
@@ -340,26 +332,25 @@ class TagStorage(TagStorage):
         except GroupTagValue.DoesNotExist:
             raise GroupTagValueNotFound
 
-    def get_group_tag_values(self, project_id, group_ids, environment_id, key=None):
+    def get_group_tag_values(self, project_id, group_ids, environment_id, key):
         from sentry.tagstore.exceptions import TagKeyNotFound
 
+        try:
+            key_id = self.get_tag_key(project_id, environment_id, key).id
+        except TagKeyNotFound:
+            return []
+
+        qs = GroupTagValue.objects.filter(key_id=key_id)
+
         if isinstance(group_ids, six.integer_types):
-            qs = GroupTagValue.objects.filter(group_id=group_ids)
+            qs = qs.filter(group_id=group_ids)
         else:
-            qs = GroupTagValue.objects.filter(group_id__in=group_ids)
+            qs = qs.filter(group_id__in=group_ids)
 
         if environment_id is None:
             qs = qs.filter(environment_id__isnull=True)
         else:
             qs = qs.filter(environment_id=environment_id)
-
-        if key is not None:
-            try:
-                key_id = self.get_tag_key(project_id, environment_id, key).id
-            except TagKeyNotFound:
-                return []
-
-            qs = qs.filter(key_id=key_id)
 
         return list(qs)
 

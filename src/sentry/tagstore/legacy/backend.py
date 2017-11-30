@@ -127,20 +127,11 @@ class LegacyTagStorage(TagStorage):
         except TagKey.DoesNotExist:
             raise TagKeyNotFound
 
-    def get_tag_keys(self, project_ids, environment_id, keys=None, status=TagKeyStatus.VISIBLE):
-        if isinstance(project_ids, six.integer_types):
-            qs = TagKey.objects.filter(project_id=project_ids)
-        else:
-            qs = TagKey.objects.filter(project_id__in=project_ids)
+    def get_tag_keys(self, project_id, environment_id, status=TagKeyStatus.VISIBLE):
+        qs = TagKey.objects.filter(project_id=project_id)
 
         if status is not None:
             qs = qs.filter(status=status)
-
-        if keys is not None:
-            if isinstance(keys, six.string_types):
-                qs = qs.filter(key=keys)
-            else:
-                qs = qs.filter(key__in=keys)
 
         return list(qs)
 
@@ -156,16 +147,11 @@ class LegacyTagStorage(TagStorage):
         except TagValue.DoesNotExist:
             raise TagValueNotFound
 
-    def get_tag_values(self, project_ids, environment_id, key, values=None):
-        qs = TagValue.objects.filter(key=key)
-
-        if isinstance(project_ids, six.integer_types):
-            qs = qs.filter(project_id=project_ids)
-        else:
-            qs = qs.filter(project_id__in=project_ids)
-
-        if values is not None:
-            qs = qs.filter(value__in=values)
+    def get_tag_values(self, project_id, environment_id, key):
+        qs = TagValue.objects.filter(
+            project_id=project_id,
+            key=key,
+        )
 
         return list(qs)
 
@@ -180,17 +166,11 @@ class LegacyTagStorage(TagStorage):
         except GroupTagKey.DoesNotExist:
             raise GroupTagKeyNotFound
 
-    def get_group_tag_keys(self, project_id, group_ids, environment_id, keys=None, limit=None):
+    def get_group_tag_keys(self, project_id, group_ids, environment_id, limit=None):
         if isinstance(group_ids, six.integer_types):
             qs = GroupTagKey.objects.filter(group_id=group_ids)
         else:
             qs = GroupTagKey.objects.filter(group_id__in=group_ids)
-
-        if keys is not None:
-            if isinstance(keys, six.string_types):
-                qs = qs.filter(key=keys)
-            else:
-                qs = qs.filter(key__in=keys)
 
         if limit is not None:
             qs = qs[:limit]
@@ -209,14 +189,13 @@ class LegacyTagStorage(TagStorage):
         except GroupTagValue.DoesNotExist:
             raise GroupTagValueNotFound
 
-    def get_group_tag_values(self, project_id, group_ids, environment_id, key=None):
+    def get_group_tag_values(self, project_id, group_ids, environment_id, key):
         if isinstance(group_ids, six.integer_types):
             qs = GroupTagValue.objects.filter(group_id=group_ids)
         else:
             qs = GroupTagValue.objects.filter(group_id__in=group_ids)
 
-        if key is not None:
-            qs = qs.filter(key=key)
+        qs = qs.filter(key=key)
 
         return list(qs)
 
@@ -444,6 +423,13 @@ class LegacyTagStorage(TagStorage):
             return None
 
         return last_release.value
+
+    def get_release_tags(self, project_ids, environment_id, versions):
+        return list(TagValue.objects.filter(
+            project_id__in=project_ids,
+            key='sentry:release',
+            value__in=versions,
+        ))
 
     def get_group_ids_for_users(self, project_ids, event_users, limit=100):
         return list(GroupTagValue.objects.filter(

@@ -68,6 +68,7 @@ class TagStorage(Service):
         'get_top_group_tag_values',
         'get_first_release',
         'get_last_release',
+        'get_release_tags',
         'incr_tag_key_values_seen',
         'incr_tag_value_times_seen',
         'incr_group_tag_key_values_seen',
@@ -260,10 +261,9 @@ class TagStorage(Service):
         """
         raise NotImplementedError
 
-    def get_tag_keys(self, project_ids, environment_id, keys=None, status=TagKeyStatus.VISIBLE):
+    def get_tag_keys(self, project_id, environment_id, status=TagKeyStatus.VISIBLE):
         """
-        >>> get_tag_key([1, 2], 3, ["key1", "key2"])
-        >>> get_tag_key(1, 2, ["key1", "key2"])
+        >>> get_tag_key(1, 2)
         """
         raise NotImplementedError
 
@@ -273,10 +273,9 @@ class TagStorage(Service):
         """
         raise NotImplementedError
 
-    def get_tag_values(self, project_ids, environment_id, key, values=None):
+    def get_tag_values(self, project_id, environment_id, key):
         """
-        >>> get_tag_values([1, 2], "key1", ["value1, "value2"])
-        >>> get_tag_values(1, "key1", ["value1, "value2"])
+        >>> get_tag_values(1, 2, "key1")
         """
         raise NotImplementedError
 
@@ -286,10 +285,10 @@ class TagStorage(Service):
         """
         raise NotImplementedError
 
-    def get_group_tag_keys(self, project_id, group_ids, environment_id, keys=None, limit=None):
+    def get_group_tag_keys(self, project_id, group_ids, environment_id, limit=None):
         """
-        >>> get_group_tag_keys(1, [2, 3], 4, ["key1", "key2"])
-        >>> get_group_tag_keys(1, 2, 3, ["key1", "key2"])
+        >>> get_group_tag_keys(1, [2, 3], 4)
+        >>> get_group_tag_keys(1, 2, 3)
         """
         raise NotImplementedError
 
@@ -299,7 +298,7 @@ class TagStorage(Service):
         """
         raise NotImplementedError
 
-    def get_group_tag_values(self, project_id, group_ids, environment_id, key=None):
+    def get_group_tag_values(self, project_id, group_ids, environment_id, key):
         """
         >>> get_group_tag_values(1, [2, 3], 4, "key1")
         >>> get_group_tag_values(1, 2, 3, "key1")
@@ -395,6 +394,12 @@ class TagStorage(Service):
     def get_last_release(self, group_id):
         """
         >>> get_last_release(1)
+        """
+        raise NotImplementedError
+
+    def get_release_tags(self, project_ids, environment_id, versions):
+        """
+        >>> get_release_tags([1, 2], 3, ["1", "2"])
         """
         raise NotImplementedError
 

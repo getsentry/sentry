@@ -4,6 +4,7 @@ from collections import defaultdict
 from mock import patch
 
 from sentry import tagstore
+from sentry.tagstore.models import GroupTagValue
 from sentry.tasks.merge import merge_group, rehash_group_events
 from sentry.models import Event, Group, GroupMeta, GroupRedirect, UserReport
 from sentry.similarity import _make_index_backend
@@ -128,10 +129,10 @@ class MergeGroupTest(TestCase):
                 other.id,
                 environment_id=None)) == 0
         assert len(
-            tagstore.get_group_tag_values(
-                other.project_id,
-                other.id,
-                environment_id=None)) == 0
+            GroupTagValue.objects.filter(
+                project_id=other.project_id,
+                group_id=other.id,
+            )) == 0
 
         for key, values_seen in output_group_tag_keys.items():
             assert tagstore.get_group_tag_key(
