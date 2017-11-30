@@ -1,7 +1,9 @@
 from __future__ import absolute_import
 
+import functools
 from rest_framework.response import Response
 
+from sentry.api.base import EnvironmentMixin
 from sentry.api.serializers import serialize, StreamGroupSerializer
 from sentry.api.paginator import OffsetPaginator
 from sentry.models import (Group, GroupStatus, OrganizationMemberTeam, Project, ProjectStatus)
@@ -11,7 +13,7 @@ from .organizationmember import OrganizationMemberEndpoint
 ERR_INVALID_STATS_PERIOD = "Invalid stats_period. Valid choices are '', '24h', and '14d'"
 
 
-class OrganizationIssuesEndpoint(OrganizationMemberEndpoint):
+class OrganizationIssuesEndpoint(OrganizationMemberEndpoint, EnvironmentMixin):
     def get_queryset(self, request, organization, member, project_list):
         # Must return a 'sorty_by' selector for pagination that is a datetime
         return Group.objects.none()
@@ -55,6 +57,11 @@ class OrganizationIssuesEndpoint(OrganizationMemberEndpoint):
             results = serialize(
                 results, request.user, StreamGroupSerializer(
                     stats_period=stats_period,
+                    get_environment_id=functools.partial(
+                        self._get_environment_id_from_request,
+                        request,
+                        organization.id,
+                    ),
                 )
             )
 

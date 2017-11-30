@@ -1,6 +1,7 @@
 from __future__ import absolute_import, division, print_function
 
 from datetime import timedelta
+import functools
 import logging
 from uuid import uuid4
 
@@ -306,7 +307,12 @@ class ProjectGroupIndexEndpoint(ProjectEndpoint, EnvironmentMixin):
                         StreamGroupSerializer(
                             stats_period=stats_period,
                             matching_event_id=getattr(
-                                matching_event, 'id', None)
+                                matching_event, 'id', None),
+                            get_environment_id=functools.partial(
+                                self._get_environment_id_from_request,
+                                request,
+                                project.organization_id,
+                            ),
                         )
                     )
                 )
