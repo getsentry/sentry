@@ -299,22 +299,22 @@ class EventManager(object):
         # Before validating with a schema, attempt to cast values to their desired types
         # so that the schema doesn't have to take every type variation into account.
         text = six.text_type
-        fingerprint_types = six.string_types + six.integer_types + (float, )
+        fp_types = six.string_types + six.integer_types + (float, )
 
         def to_values(v):
             return {'values': v} if v and isinstance(v, (tuple, list)) else v
 
         casts = {
             'environment': lambda v: text(v) if v is not None else v,
-            'fingerprint': lambda v: map(text, v) if isinstance(v, list) and all(isinstance(f, fingerprint_types) for f in v) else v,
+            'fingerprint': lambda v: list(map(text, v)) if isinstance(v, list) and all(isinstance(f, fp_types) for f in v) else v,
             'release': lambda v: text(v) if v is not None else v,
             'dist': lambda v: text(v).strip() if v is not None else v,
             'time_spent': lambda v: int(v) if v is not None else v,
-            'tags': lambda v: [(text(v_k.replace(' ', '-')).strip(), text(v_v).strip()) for (v_k, v_v) in dict(v).items()],
+            'tags': lambda v: [(text(v_k).replace(' ', '-').strip(), text(v_v).strip()) for (v_k, v_v) in dict(v).items()],
             'timestamp': lambda v: process_timestamp(v),
             'platform': lambda v: v if v in VALID_PLATFORMS else 'other',
 
-            # These can be sent as lists and need to be converted to {'values': list}
+            # These can be sent as lists and need to be converted to {'values': [...]}
             'exception': to_values,
             'sentry.interfaces.Exception': to_values,
             'breadcrumbs': to_values,
