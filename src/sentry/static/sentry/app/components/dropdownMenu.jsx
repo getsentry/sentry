@@ -105,7 +105,7 @@ class DropdownMenu extends React.Component {
 
   // Decide whether dropdown should be closed when mouse leaves element
   handleMouseLeave = e => {
-    const toElement = e.toElement || e.relatedTarget;
+    let toElement = e.toElement || e.relatedTarget;
 
     try {
       if (this.dropdownMenu && !this.dropdownMenu.contains(toElement)) {
@@ -138,6 +138,7 @@ class DropdownMenu extends React.Component {
   // bind a click handler to `document` to listen for clicks outside of
   // this component and close menu if so
   handleMenuMount = ref => {
+    if (ref && !(ref instanceof HTMLElement)) return;
     this.dropdownMenu = ref;
 
     if (this.dropdownMenu) {
@@ -146,6 +147,11 @@ class DropdownMenu extends React.Component {
     } else {
       document.removeEventListener('click', this.checkClickOutside, true);
     }
+  };
+
+  handleActorMount = ref => {
+    if (ref && !(ref instanceof HTMLElement)) return;
+    this.dropdownActor = ref;
   };
 
   handleToggle = e => {
@@ -165,17 +171,26 @@ class DropdownMenu extends React.Component {
 
   getRootProps = props => props;
 
-  getActorProps = ({onClick, ...props} = {}) => {
+  getActorProps = ({onClick, onMouseEnter, onMouseLeave, isStyled, ...props} = {}) => {
     let {isNestedDropdown} = this.props;
     return {
       ...props,
-      ref: ref => (this.dropdownActor = ref),
+      ...((isStyled && {innerRef: this.handleActorMount}) || {}),
+      ref: !isStyled ? this.handleActorMount : undefined,
       onMouseEnter: (...args) => {
+        if (typeof onMouseEnter === 'function') {
+          onMouseEnter(...args);
+        }
+
         if (!isNestedDropdown) return;
         this.handleOpen(...args);
       },
 
       onMouseLeave: (...args) => {
+        if (typeof onMouseLeave === 'function') {
+          onMouseLeave(...args);
+        }
+
         if (!isNestedDropdown) return;
         this.handleMouseLeave(...args);
       },
@@ -191,12 +206,17 @@ class DropdownMenu extends React.Component {
     };
   };
 
-  getMenuProps = ({onClick, ...props} = {}) => {
+  getMenuProps = ({onClick, onMouseLeave, isStyled, ...props} = {}) => {
     let {isNestedDropdown} = this.props;
     return {
       ...props,
-      ref: this.handleMenuMount,
+      ...((isStyled && {innerRef: this.handleMenuMount}) || {}),
+      ref: !isStyled ? this.handleMenuMount : undefined,
       onMouseLeave: (...args) => {
+        if (typeof onMouseLeave === 'function') {
+          onMouseLeave(...args);
+        }
+
         if (!isNestedDropdown) return;
         this.handleMouseLeave(...args);
       },
