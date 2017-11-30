@@ -5,14 +5,17 @@ import {Client} from 'app/api';
 import OrganizationTeams from 'app/views/organizationTeams';
 
 describe('OrganizationTeams', function() {
-  beforeEach(function() {
-    this.sandbox = sinon.sandbox.create();
+  let sandbox;
+  let stubbedApiRequest;
 
-    this.stubbedApiRequest = this.sandbox.stub(Client.prototype, 'request');
+  beforeEach(function() {
+    sandbox = sinon.sandbox.create();
+
+    stubbedApiRequest = sandbox.stub(Client.prototype, 'request');
   });
 
   afterEach(function() {
-    this.sandbox.restore();
+    sandbox.restore();
   });
 
   describe('fetchStats()', function() {
@@ -23,14 +26,12 @@ describe('OrganizationTeams', function() {
 
       // NOTE: creation of OrganizationTeams causes a bunch of API requests to fire ...
       //       reset the request stub so that we can get an accurate count
-      this.stubbedApiRequest.reset();
+      stubbedApiRequest.reset();
 
       organizationTeams.fetchStats();
 
-      expect(this.stubbedApiRequest.callCount).toEqual(1);
-      expect(this.stubbedApiRequest.getCall(0).args[0]).toEqual(
-        '/organizations/123/stats/'
-      );
+      expect(stubbedApiRequest.callCount).toEqual(1);
+      expect(stubbedApiRequest.getCall(0).args[0]).toEqual('/organizations/123/stats/');
     });
   });
 });

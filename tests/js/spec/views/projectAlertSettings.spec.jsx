@@ -1,20 +1,24 @@
 import React from 'react';
 import {shallow} from 'enzyme';
 
+import {Client} from 'app/api';
 import ProjectAlertSettings from 'app/views/projectAlertSettings';
 
 describe('ProjectAlertSettings', function() {
-  beforeEach(function() {
-    this.org = TestStubs.Organization();
-    this.project = TestStubs.Project();
+  let org;
+  let project;
 
-    MockApiClient.addMockResponse({
-      url: `/projects/${this.org.slug}/${this.project.slug}/`,
+  beforeEach(function() {
+    org = TestStubs.Organization();
+    project = TestStubs.Project();
+
+    Client.addMockResponse({
+      url: `/projects/${org.slug}/${project.slug}/`,
       method: 'GET',
-      body: this.project,
+      body: project,
     });
-    MockApiClient.addMockResponse({
-      url: `/projects/${this.org.slug}/${this.project.slug}/plugins/`,
+    Client.addMockResponse({
+      url: `/projects/${org.slug}/${project.slug}/plugins/`,
       method: 'GET',
       body: [],
     });
@@ -24,8 +28,8 @@ describe('ProjectAlertSettings', function() {
     it('renders', function() {
       let wrapper = shallow(
         <ProjectAlertSettings
-          params={{orgId: this.org.slug, projectId: this.project.slug}}
-          organization={this.org}
+          params={{orgId: org.slug, projectId: project.slug}}
+          organization={org}
         />,
         {
           context: {

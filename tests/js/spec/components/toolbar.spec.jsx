@@ -3,12 +3,14 @@ import {shallow} from 'enzyme';
 import Toolbar from 'app/components/toolbar';
 
 describe('Toolbar', function() {
+  let sandbox;
+
   beforeEach(function() {
-    this.sandbox = sinon.sandbox.create();
+    sandbox = sinon.sandbox.create();
   });
 
   afterEach(function() {
-    this.sandbox.restore();
+    sandbox.restore();
   });
 
   it('renders', function() {

@@ -1,6 +1,16 @@
 export class Request {}
 
-export class Client {
+const respond = (isAsync, fn, ...args) => {
+  if (fn) {
+    if (isAsync) {
+      setTimeout(() => fn(...args), 1);
+    } else {
+      fn(...args);
+    }
+  }
+};
+
+class Client {
   static mockResponses = [];
 
   static clearMockResponses() {
@@ -29,6 +39,8 @@ export class Client {
 
   clear() {}
 
+  static mockAsync = false;
+
   merge(params, options) {
     let path = '/projects/' + params.orgId + '/' + params.projectId + '/issues/';
     return this.request(path, {
@@ -47,25 +59,32 @@ export class Client {
         url,
         options.method || 'GET'
       );
-      options.error &&
-        options.error({
-          status: 404,
-          responseText: 'HTTP 404',
-          responseJSON: null,
-        });
+      let resp = {
+        status: 404,
+        responseText: 'HTTP 404',
+        responseJSON: null,
+      };
+      respond(Client.mockAsync, options.error, resp);
     } else if (response.statusCode !== 200) {
       response.callCount++;
-      options.error &&
-        options.error({
-          status: response.statusCode,
-          responseText: JSON.stringify(response.body),
-          responseJSON: response.body,
-        });
+      let resp = {
+        status: response.statusCode,
+        responseText: JSON.stringify(response.body),
+        responseJSON: response.body,
+      };
+      respond(Client.mockAsync, options.error, resp);
     } else {
       response.callCount++;
-      options.success &&
-        options.success(response.body, {}, {getResponseHeader: () => {}});
+      respond(
+        Client.mockAsync,
+        options.success,
+        response.body,
+        {},
+        {getResponseHeader: () => {}}
+      );
     }
-    options.complete && options.complete();
+    respond(Client.mockAsync, options.complete);
   }
 }
+
+export {Client};

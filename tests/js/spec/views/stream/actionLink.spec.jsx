@@ -5,14 +5,16 @@ import {Client} from 'app/api';
 import ActionLink from 'app/views/stream/actionLink';
 
 describe('ActionLink', function() {
-  beforeEach(function() {
-    this.sandbox = sinon.sandbox.create();
+  let sandbox;
 
-    this.stubbedApiRequest = this.sandbox.stub(Client.prototype, 'request');
+  beforeEach(function() {
+    sandbox = sinon.sandbox.create();
+
+    this.stubbedApiRequest = sandbox.stub(Client.prototype, 'request');
   });
 
   afterEach(function() {
-    this.sandbox.restore();
+    sandbox.restore();
   });
 
   describe('shouldConfirm()', function() {

@@ -7,12 +7,14 @@ import entries from '../../mocks/entries';
 jest.mock('app/api');
 
 describe('IssueDiff', function() {
+  let sandbox;
+
   beforeEach(function() {
-    this.sandbox = sinon.sandbox.create();
+    sandbox = sinon.sandbox.create();
   });
 
   afterEach(function() {
-    this.sandbox.restore();
+    sandbox.restore();
   });
 
   it('is loading when initially rendering', function() {

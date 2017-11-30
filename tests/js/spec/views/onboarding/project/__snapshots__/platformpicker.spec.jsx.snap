@@ -312,7 +312,7 @@ exports[`PlatformPicker render() should render renderPlatformList with community
   </ul>
   <p>
     Not finding your platform? There's a rich ecosystem of community supported SDKs as well (including Perl, CFML, Clojure, and ActionScript).
-     Try searching for Sentry clients or contacting support.
+ Try searching for Sentry clients or contacting support.
   </p>
 </div>
 `;

@@ -4,8 +4,10 @@ import {shallow} from 'enzyme';
 import RuleNodeList from 'app/views/ruleEditor/ruleNodeList';
 
 describe('RuleNodeList', function() {
+  let sampleNodes;
+
   beforeEach(function() {
-    this.sampleNodes = [
+    sampleNodes = [
       {
         id: 'sentry.rules.conditions.every_event.EveryEventCondition',
         label: 'An event is seen',
@@ -35,7 +37,7 @@ describe('RuleNodeList', function() {
       ];
 
       let wrapper = shallow(
-        <RuleNodeList nodes={this.sampleNodes} initialItems={initialItems} />
+        <RuleNodeList nodes={sampleNodes} initialItems={initialItems} />
       );
 
       expect(wrapper.state('items')[0]).toHaveProperty('key_attr', 0);
@@ -46,7 +48,7 @@ describe('RuleNodeList', function() {
 
   describe('onAddRow()', function() {
     it('should add a new item with key_attr value equal to state.counter, and increment state.counter', function() {
-      let wrapper = shallow(<RuleNodeList nodes={this.sampleNodes} />);
+      let wrapper = shallow(<RuleNodeList nodes={sampleNodes} />);
 
       wrapper.setState({
         counter: 5,

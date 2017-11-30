@@ -3,12 +3,14 @@ import {shallow} from 'enzyme';
 import DiffModal from 'app/components/modals/diffModal';
 
 describe('DiffModal', function() {
+  let sandbox;
+
   beforeEach(function() {
-    this.sandbox = sinon.sandbox.create();
+    sandbox = sinon.sandbox.create();
   });
 
   afterEach(function() {
-    this.sandbox.restore();
+    sandbox.restore();
   });
 
   it('renders', function() {

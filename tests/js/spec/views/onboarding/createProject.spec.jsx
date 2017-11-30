@@ -5,13 +5,15 @@ import {Client} from 'app/api';
 import CreateProject from 'app/views/onboarding/createProject';
 
 describe('CreateProject', function() {
+  let sandbox;
+
   beforeEach(function() {
-    this.sandbox = sinon.sandbox.create();
-    this.stubbedApiRequest = this.sandbox.stub(Client.prototype, 'request');
+    sandbox = sinon.sandbox.create();
+    this.stubbedApiRequest = sandbox.stub(Client.prototype, 'request');
   });
 
   afterEach(function() {
-    this.sandbox.restore();
+    sandbox.restore();
   });
 
   describe('render()', function() {

@@ -5,14 +5,16 @@ import GroupActions from 'app/views/groupDetails/actions';
 import ConfigStore from 'app/stores/configStore';
 
 describe('GroupActions', function() {
-  beforeEach(function() {
-    this.sandbox = sinon.sandbox.create();
+  let sandbox;
 
-    this.sandbox.stub(ConfigStore, 'get').returns([]);
+  beforeEach(function() {
+    sandbox = sinon.sandbox.create();
+
+    sandbox.stub(ConfigStore, 'get').returns([]);
   });
 
   afterEach(function() {
-    this.sandbox.restore();
+    sandbox.restore();
   });
 
   describe('render()', function() {
