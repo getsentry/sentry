@@ -63,7 +63,7 @@ const OrganizationSelector = React.createClass({
     let hasNewSettings = new Set(activeOrg.features).has('new-settings');
     let settingsPrefix = `${hasNewSettings
       ? '/settings/organization'
-      : '/organizations'}/${activeOrg.slug}`;
+      : '/organizations'}`;
 
     let classNames = 'org-selector divider-bottom';
     if (this.props.currentPanel == 'org-selector') {
@@ -95,13 +95,13 @@ const OrganizationSelector = React.createClass({
                       <p>
                         <RouterOrBrowserLink
                           isRouter={hasNewSettings}
-                          path={`${settingsPrefix}/settings/`}
+                          path={`${settingsPrefix}/${org.slug}/settings/`}
                         >
                           <span className="icon-settings" /> {t('Settings')}
                         </RouterOrBrowserLink>
                         <RouterOrBrowserLink
                           isRouter={hasNewSettings}
-                          path={`${settingsPrefix}/members/`}
+                          path={`${settingsPrefix}/${org.slug}/members/`}
                         >
                           <span className="icon-users" /> {t('Members')}
                         </RouterOrBrowserLink>
