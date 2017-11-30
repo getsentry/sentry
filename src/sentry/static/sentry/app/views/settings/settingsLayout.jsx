@@ -11,7 +11,9 @@ import SettingsHeader from './components/settingsHeader';
 import SettingsSearch from './components/settingsSearch';
 import replaceRouterParams from '../../utils/replaceRouterParams';
 
-let StyledWarning = styled.div`margin-bottom: 30px;`;
+let StyledWarning = styled.div`
+  margin-bottom: 30px;
+`;
 // TODO(billy): Temp
 let NewSettingsWarning = ({location = {}}) => {
   // TODO(billy): Remove this warning when ready
@@ -65,7 +67,9 @@ BackButton.propTypes = {
   to: PropTypes.string,
 };
 
-const Content = styled(Box)`flex: 1;`;
+const Content = styled(Box)`
+  flex: 1;
+`;
 
 class SettingsLayout extends React.Component {
   static propTypes = {
