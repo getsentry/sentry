@@ -5,26 +5,26 @@
        <img src="https://sentry-brand.storage.googleapis.com/sentry-logo-black.png" alt="Sentry" height="72"
      </p>
      <p align="center">
-       Sentry is a modern error logging and aggregation platform.
+       Users and logs provide clues. Sentry provides answers.
      </p>
    </p>
 
-Sentry is a Server
-------------------
+What's Sentry?
+--------------
 
-The Sentry package fundamentally is just a simple server and web UI. It will
-handle authenticating SDKs (such as `Raven <https://github.com/getsentry/raven-python>`_),
-all of the logic behind storage and aggregation, and alerting team members.
+Sentry fundamentally is a simple server that helps you monitor and fix crashes in real time.
+In addition to alerting on new errors, Sentry collects and surfaces the context needed to triage
+and resolve the underlying issue: the problematic line of code, users affected, events leading
+up to error, and the commit and author likely responsible.
 
-That said, Sentry is not limited to Python. The server is in Python, but it contains
-a full API for sending events from any language, in any application.
+While Sentry is written in Python, it works with any language, framework, or library.
 
 .. raw:: html
 
    <p align="center">
-     <img src="https://github.com/getsentry/sentry/raw/pretty-readme/src/sentry/static/sentry/images/sentry-product-issue-screenshot.png" width="288">
-     <img src="https://github.com/getsentry/sentry/raw/pretty-readme/src/sentry/static/sentry/images/sentry-product-project-screenshot.png" width="288">
-     <img src="https://github.com/getsentry/sentry/raw/pretty-readme/src/sentry/static/sentry/images/sentry-product-releases-screenshot.png" width="288">
+     <img src="https://github.com/getsentry/sentry/raw/pretty-readme/src/sentry/static/sentry/images/sentry-product-issue-screenshot.png" height="180">
+     <img src="https://github.com/getsentry/sentry/raw/pretty-readme/src/sentry/static/sentry/images/sentry-product-project-screenshot.png" height="180">
+     <img src="https://github.com/getsentry/sentry/raw/pretty-readme/src/sentry/static/sentry/images/sentry-product-releases-screenshot.png" height="180">
    </p>
 
 
@@ -42,12 +42,14 @@ Official Sentry SDKs
 * `C# <https://github.com/getsentry/raven-csharp>`_
 * `Perl <https://github.com/getsentry/perl-raven>`_
 * `Elixir <https://github.com/getsentry/sentry-elixir>`_
+* `Laravel <https://github.com/getsentry/sentry-laravel>`_
 
 Resources
 ---------
 
 * `Documentation <https://docs.sentry.io/>`_
 * `Community <https://forum.sentry.io/>`_ (Bugs, feature requests, general questions)
+* `Contributing <https://docs.sentry.io/internal/contributing/>`_
 * `Bug Tracker <https://github.com/getsentry/sentry/issues>`_
 * `Code <https://github.com/getsentry/sentry>`_
 * `IRC <irc://irc.freenode.net/sentry>`_  (irc.freenode.net, #sentry)
