@@ -41,8 +41,11 @@ class FindReferencedGroupsTest(TestCase):
         )
 
         pr.save()
-        pr.commits.add(commit)
+        pr.set_commits([{'sha': commit.key}])
 
         groups = pr.find_referenced_groups()
         assert len(groups) == 1
         assert group2 in groups
+
+        commits = pr.commits.all()
+        assert len(commits) == 1
