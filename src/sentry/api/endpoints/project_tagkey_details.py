@@ -43,7 +43,7 @@ class ProjectTagKeyDetailsEndpoint(ProjectEndpoint, EnvironmentMixin):
             raise ResourceDoesNotExist
 
         try:
-            deleted = tagstore.delete_tag_keys(
+            deleted = tagstore.delete_tag_key(
                 project.id, lookup_key, environment_id=environment_id)
         except tagstore.TagKeyNotFound:
             raise ResourceDoesNotExist

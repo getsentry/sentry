@@ -229,12 +229,16 @@ class LegacyTagStorage(TagStorage):
 
         return list(qs)
 
-    def delete_tag_keys(self, project_id, keys, environment_id=None):
+    def delete_tag_key(self, project_id, key, environment_id=None):
         from sentry.tagstore.tasks import delete_tag_key as delete_tag_key_task
 
-        deleted = []
+        tagkeys_qs = TagKey.objects.filter(
+            project_id=project_id,
+            key=key,
+        )
 
-        for tagkey in self.get_tag_keys(project_id, environment_id, keys, status=None):
+        deleted = []
+        for tagkey in tagkeys_qs:
             updated = TagKey.objects.filter(
                 id=tagkey.id,
                 status=TagKeyStatus.VISIBLE,

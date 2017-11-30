@@ -48,7 +48,7 @@ class TagStorage(TagStorage):
             grouptagvalue_model=GroupTagValue,
         )
 
-        # TODO
+        # TODO: remove this?
         self.setup_receivers(
             tagvalue_model=TagValue,
             grouptagvalue_model=GroupTagValue,
@@ -58,9 +58,9 @@ class TagStorage(TagStorage):
             tagkey_model=TagKey,
         )
 
-        # TODO also need to handle deletes of non-aggregate decr-ing aggregate
+        # TODO: also need to handle deletes of non-aggregate decr-ing aggregate
 
-        # v2-specific receivers for keeping environment aggregates up to date
+        # TODO: v2-specific receivers for keeping environment aggregates up to date
         @buffer_incr_complete.connect(sender=GroupTagKey, weak=False)
         def todo(filters, created, extra, **kwargs):
             pass
@@ -324,13 +324,19 @@ class TagStorage(TagStorage):
 
         return list(qs)
 
-    def delete_tag_keys(self, project_id, keys, environment_id=None):
+    def delete_tag_key(self, project_id, key, environment_id=None):
         from sentry.tagstore.tasks import delete_tag_key as delete_tag_key_task
 
-        deleted = []
+        tagkeys_qs = TagKey.objects.filter(
+            project_id=project_id,
+            key=key,
+        )
 
-        # TODO env=none should mean all tag keys?
-        for tagkey in self.get_tag_keys(project_id, environment_id, keys, status=None):
+        if environment_id is not None:
+            tagkeys_qs = tagkeys_qs.filter(environment_id=environment_id)
+
+        deleted = []
+        for tagkey in tagkeys_qs:
             updated = TagKey.objects.filter(
                 id=tagkey.id,
                 status=TagKeyStatus.VISIBLE,
