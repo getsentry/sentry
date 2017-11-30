@@ -29,7 +29,6 @@ class TagValue(Model):
     environment_id = BoundedPositiveIntegerField(null=True)
     key_id = BoundedPositiveIntegerField()
     value = models.CharField(max_length=MAX_TAG_VALUE_LENGTH)
-    # TODO: do we even use this anymore?
     data = GzippedDictField(blank=True, null=True)
     # times_seen will live in Redis
     last_seen = models.DateTimeField(

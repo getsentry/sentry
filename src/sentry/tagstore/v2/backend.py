@@ -48,6 +48,7 @@ class TagStorage(TagStorage):
             grouptagvalue_model=GroupTagValue,
         )
 
+        # TODO
         self.setup_receivers(
             tagvalue_model=TagValue,
             grouptagvalue_model=GroupTagValue,
@@ -56,6 +57,8 @@ class TagStorage(TagStorage):
         self.setup_tasks(
             tagkey_model=TagKey,
         )
+
+        # TODO also need to handle deletes of non-aggregate decr-ing aggregate
 
         # v2-specific receivers for keeping environment aggregates up to date
         @buffer_incr_complete.connect(sender=GroupTagKey, weak=False)
@@ -164,7 +167,9 @@ class TagStorage(TagStorage):
             key=key,
         )
 
-        if environment_id is not None:
+        if environment_id is None:
+            qs = qs.filter(environment_id__isnull=True)
+        else:
             qs = qs.filter(environment_id=environment_id)
 
         if status is not None:
@@ -175,13 +180,16 @@ class TagStorage(TagStorage):
         except TagKey.DoesNotExist:
             raise TagKeyNotFound
 
+    # TODO do we want None env to mean 'aggregate row' or 'all'?
     def get_tag_keys(self, project_ids, environment_id, keys=None, status=TagKeyStatus.VISIBLE):
         if isinstance(project_ids, six.integer_types):
             qs = TagKey.objects.filter(project_id=project_ids)
         else:
             qs = TagKey.objects.filter(project_id__in=project_ids)
 
-        if environment_id is not None:
+        if environment_id is None:
+            qs = qs.filter(environment_id__isnull=True)
+        else:
             qs = qs.filter(environment_id=environment_id)
 
         if status is not None:
@@ -198,12 +206,19 @@ class TagStorage(TagStorage):
     def get_tag_value(self, project_id, environment_id, key, value):
         from sentry.tagstore.exceptions import TagValueNotFound
 
+        qs = TagValue.objects.filter(
+            project_id=project_id,
+            key=key,
+            value=value,
+        )
+
+        if environment_id is None:
+            qs = qs.filter(environment_id__isnull=True)
+        else:
+            qs = qs.filter(environment_id=environment_id)
+
         try:
-            return TagValue.objects.get(
-                project_id=project_id,
-                key=key,
-                value=value
-            )
+            return qs.get()
         except TagValue.DoesNotExist:
             raise TagValueNotFound
 
@@ -215,10 +230,10 @@ class TagStorage(TagStorage):
         else:
             qs = qs.filter(project_id__in=project_ids)
 
-        qs = TagValue.objects.filter(
-            project_id__in=project_ids,
-            key=key
-        )
+        if environment_id is None:
+            qs = qs.filter(environment_id__isnull=True)
+        else:
+            qs = qs.filter(environment_id=environment_id)
 
         if values is not None:
             qs = qs.filter(value__in=values)
@@ -228,11 +243,18 @@ class TagStorage(TagStorage):
     def get_group_tag_key(self, group_id, environment_id, key):
         from sentry.tagstore.exceptions import GroupTagKeyNotFound
 
+        qs = GroupTagKey.objects.filter(
+            group_id=group_id,
+            key=key,
+        )
+
+        if environment_id is None:
+            qs = qs.filter(environment_id__isnull=True)
+        else:
+            qs = qs.filter(environment_id=environment_id)
+
         try:
-            return GroupTagKey.objects.get(
-                group_id=group_id,
-                key=key,
-            )
+            return qs.get()
         except GroupTagKey.DoesNotExist:
             raise GroupTagKeyNotFound
 
@@ -241,6 +263,11 @@ class TagStorage(TagStorage):
             qs = GroupTagKey.objects.filter(group_id=group_ids)
         else:
             qs = GroupTagKey.objects.filter(group_id__in=group_ids)
+
+        if environment_id is None:
+            qs = qs.filter(environment_id__isnull=True)
+        else:
+            qs = qs.filter(environment_id=environment_id)
 
         if keys is not None:
             if isinstance(keys, six.string_types):
@@ -256,12 +283,19 @@ class TagStorage(TagStorage):
     def get_group_tag_value(self, group_id, environment_id, key, value):
         from sentry.tagstore.exceptions import GroupTagValueNotFound
 
+        qs = GroupTagValue.objects.get(
+            group_id=group_id,
+            key=key,
+            value=value,
+        )
+
+        if environment_id is None:
+            qs = qs.filter(environment_id__isnull=True)
+        else:
+            qs = qs.filter(environment_id=environment_id)
+
         try:
-            return GroupTagValue.objects.get(
-                group_id=group_id,
-                key=key,
-                value=value,
-            )
+            return qs.get()
         except GroupTagValue.DoesNotExist:
             raise GroupTagValueNotFound
 
@@ -270,6 +304,11 @@ class TagStorage(TagStorage):
             qs = GroupTagValue.objects.filter(group_id=group_ids)
         else:
             qs = GroupTagValue.objects.filter(group_id__in=group_ids)
+
+        if environment_id is None:
+            qs = qs.filter(environment_id__isnull=True)
+        else:
+            qs = qs.filter(environment_id=environment_id)
 
         if keys is not None:
             if isinstance(keys, six.string_types):
@@ -284,3 +323,80 @@ class TagStorage(TagStorage):
                 qs = qs.filter(value__in=values)
 
         return list(qs)
+
+    def delete_tag_keys(self, project_id, keys, environment_id=None):
+        from sentry.tagstore.tasks import delete_tag_key as delete_tag_key_task
+
+        deleted = []
+
+        # TODO env=none should mean all tag keys?
+        for tagkey in self.get_tag_keys(project_id, environment_id, keys, status=None):
+            updated = TagKey.objects.filter(
+                id=tagkey.id,
+                status=TagKeyStatus.VISIBLE,
+            ).update(status=TagKeyStatus.PENDING_DELETION)
+
+            if updated:
+                delete_tag_key_task.delay(object_id=tagkey.id)
+                deleted.append(tagkey)
+
+        return deleted
+
+    def delete_all_group_tag_keys(self, group_id):
+        GroupTagKey.objects.filter(
+            group_id=group_id,
+        ).delete()
+
+    def delete_all_group_tag_values(self, group_id):
+        GroupTagValue.objects.filter(
+            group_id=group_id,
+        ).delete()
+
+    # TODO below
+
+    def incr_tag_key_values_seen(self, project_id, environment_id, key, count=1):
+        buffer.incr(TagKey,
+                    columns={
+                        'values_seen': count,
+                    },
+                    filters={
+                        'project_id': project_id,
+                        'key': key,
+                    })
+
+    def incr_tag_value_times_seen(self, project_id, environment_id,
+                                  key, value, extra=None, count=1):
+        buffer.incr(TagValue,
+                    columns={
+                        'times_seen': count,
+                    },
+                    filters={
+                        'project_id': project_id,
+                        'key': key,
+                        'value': value,
+                    },
+                    extra=extra)
+
+    def incr_group_tag_key_values_seen(self, project_id, group_id, environment_id, key, count=1):
+        buffer.incr(GroupTagKey,
+                    columns={
+                        'values_seen': count,
+                    },
+                    filters={
+                        'project_id': project_id,
+                        'group_id': group_id,
+                        'key': key,
+                    })
+
+    def incr_group_tag_value_times_seen(self, project_id, group_id, environment_id,
+                                        key, value, extra=None, count=1):
+        buffer.incr(GroupTagValue,
+                    columns={
+                        'times_seen': count,
+                    },
+                    filters={
+                        'group_id': group_id,
+                        'key': key,
+                        'value': value,
+                    },
+                    extra=extra)

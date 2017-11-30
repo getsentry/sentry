@@ -164,11 +164,6 @@ class LegacyTagStorage(TagStorage):
         else:
             qs = qs.filter(project_id__in=project_ids)
 
-        qs = TagValue.objects.filter(
-            project_id__in=project_ids,
-            key=key
-        )
-
         if values is not None:
             qs = qs.filter(value__in=values)
 

@@ -102,8 +102,6 @@ class TagStorage(Service):
                 return relations
 
             def mark_deletion_in_progress(self, instance_list):
-                from sentry.tagstore import TagKeyStatus
-
                 for instance in instance_list:
                     if instance.status != TagKeyStatus.DELETION_IN_PROGRESS:
                         instance.update(status=TagKeyStatus.DELETION_IN_PROGRESS)
