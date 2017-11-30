@@ -43,7 +43,7 @@
     "lodash-webpack-plugin": "^0.11.4",
     "marked": "0.3.5",
     "mockdate": "2.0.2",
-    "moment": "2.10.6",
+    "moment": "2.19.3",
     "moment-timezone": "0.4.1",
     "node-libs-browser": "0.5.3",
     "platformicons": "0.1.1",
