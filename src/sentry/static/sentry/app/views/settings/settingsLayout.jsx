@@ -90,11 +90,11 @@ class SettingsLayout extends React.Component {
           <SettingsSearch params={params} />
         </SettingsHeader>
         <Flex>
-          <Box flex="0 0 210px">
-            <StickySidebar>
-              {typeof renderNavigation === 'function' && renderNavigation()}
-            </StickySidebar>
-          </Box>
+          {typeof renderNavigation === 'function' && (
+            <Box flex="0 0 210px">
+              <StickySidebar>{renderNavigation()}</StickySidebar>
+            </Box>
+          )}
           <Content>
             <NewSettingsWarning location={this.props.location} />
 
