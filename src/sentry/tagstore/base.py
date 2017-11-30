@@ -280,29 +280,29 @@ class TagStorage(Service):
         """
         raise NotImplementedError
 
-    def get_group_tag_key(self, group_id, environment_id, key):
+    def get_group_tag_key(self, project_id, group_id, environment_id, key):
         """
-        >>> get_group_tag_key(1, 2, "key1")
-        """
-        raise NotImplementedError
-
-    def get_group_tag_keys(self, group_ids, environment_id, keys=None, limit=None):
-        """
-        >>> get_group_tag_keys([1, 2], 3, ["key1", "key2"])
-        >>> get_group_tag_keys(1, 3, ["key1", "key2"])
+        >>> get_group_tag_key(1, 2, 3, "key1")
         """
         raise NotImplementedError
 
-    def get_group_tag_value(self, group_id, environment_id, key, value):
+    def get_group_tag_keys(self, project_id, group_ids, environment_id, keys=None, limit=None):
         """
-        >>> get_group_tag_value(1, 2, "key1", "value1")
+        >>> get_group_tag_keys(1, [2, 3], 4, ["key1", "key2"])
+        >>> get_group_tag_keys(1, 2, 3, ["key1", "key2"])
         """
         raise NotImplementedError
 
-    def get_group_tag_values(self, group_ids, environment_id, keys=None, values=None):
+    def get_group_tag_value(self, project_id, group_id, environment_id, key, value):
         """
-        >>> get_group_tag_values([1, 2], 3, ["key1", "key2"], ["value1", "value2"])
-        >>> get_group_tag_values(1, 3, ["key1", "key2"], ["value1", "value2"])
+        >>> get_group_tag_value(1, 2, 3, "key1", "value1")
+        """
+        raise NotImplementedError
+
+    def get_group_tag_values(self, project_id, group_ids, environment_id, keys=None, values=None):
+        """
+        >>> get_group_tag_values(1, [2, 3], 4, ["key1", "key2"], ["value1", "value2"])
+        >>> get_group_tag_values(1, 2, 3, ["key1", "key2"], ["value1", "value2"])
         """
         raise NotImplementedError
 
@@ -422,8 +422,8 @@ class TagStorage(Service):
         """
         raise NotImplementedError
 
-    def update_group_tag_key_values_seen(self, group_ids):
+    def update_group_tag_key_values_seen(self, project_id, group_ids):
         """
-        >>> update_group_tag_key_values_seen([1, 2])
+        >>> update_group_tag_key_values_seen(1, [2, 3])
         """
         raise NotImplementedError

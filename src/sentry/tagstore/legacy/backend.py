@@ -169,7 +169,7 @@ class LegacyTagStorage(TagStorage):
 
         return list(qs)
 
-    def get_group_tag_key(self, group_id, environment_id, key):
+    def get_group_tag_key(self, project_id, group_id, environment_id, key):
         from sentry.tagstore.exceptions import GroupTagKeyNotFound
 
         try:
@@ -180,7 +180,7 @@ class LegacyTagStorage(TagStorage):
         except GroupTagKey.DoesNotExist:
             raise GroupTagKeyNotFound
 
-    def get_group_tag_keys(self, group_ids, environment_id, keys=None, limit=None):
+    def get_group_tag_keys(self, project_id, group_ids, environment_id, keys=None, limit=None):
         if isinstance(group_ids, six.integer_types):
             qs = GroupTagKey.objects.filter(group_id=group_ids)
         else:
@@ -197,7 +197,7 @@ class LegacyTagStorage(TagStorage):
 
         return list(qs)
 
-    def get_group_tag_value(self, group_id, environment_id, key, value):
+    def get_group_tag_value(self, project_id, group_id, environment_id, key, value):
         from sentry.tagstore.exceptions import GroupTagValueNotFound
 
         try:
@@ -209,7 +209,7 @@ class LegacyTagStorage(TagStorage):
         except GroupTagValue.DoesNotExist:
             raise GroupTagValueNotFound
 
-    def get_group_tag_values(self, group_ids, environment_id, keys=None, values=None):
+    def get_group_tag_values(self, project_id, group_ids, environment_id, keys=None, values=None):
         if isinstance(group_ids, six.integer_types):
             qs = GroupTagValue.objects.filter(group_id=group_ids)
         else:
@@ -512,8 +512,8 @@ class LegacyTagStorage(TagStorage):
 
         return matches
 
-    def update_group_tag_key_values_seen(self, group_ids):
-        instances = self.get_group_tag_keys(group_ids, environment_id=None)
+    def update_group_tag_key_values_seen(self, project_id, group_ids):
+        instances = self.get_group_tag_keys(project_id, group_ids, environment_id=None)
         for instance in instances:
             instance.update(
                 values_seen=GroupTagValue.objects.filter(

@@ -25,6 +25,7 @@ class SentryManagerTest(TestCase):
 
         results = sorted(
             tagstore.get_group_tag_values(
+                group.project_id,
                 group.id,
                 environment_id=None,
                 keys=['foo']),
@@ -39,6 +40,7 @@ class SentryManagerTest(TestCase):
 
         results = sorted(
             tagstore.get_group_tag_values(
+                group.project_id,
                 group.id,
                 environment_id=None,
                 keys=['biz']),

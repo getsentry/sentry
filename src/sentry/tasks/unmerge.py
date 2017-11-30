@@ -547,7 +547,7 @@ def unmerge(
 
     # If there are no more events to process, we're done with the migration.
     if not events:
-        tagstore.update_group_tag_key_values_seen([source_id, destination_id])
+        tagstore.update_group_tag_key_values_seen(project_id, [source_id, destination_id])
         unlock_hashes(project_id, fingerprints)
         return destination_id
 

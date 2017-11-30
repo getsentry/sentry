@@ -82,59 +82,73 @@ class TagStorage(TagStorage):
         )
 
     def create_tag_value(self, project_id, environment_id, key, value, **kwargs):
+        tag_key = self.get_or_create_tag_key(project_id, environment_id, key, **kwargs)
+
         return TagValue.objects.create(
             project_id=project_id,
             environment_id=environment_id,
-            key=key,
+            key_id=tag_key.id,
             value=value,
             **kwargs
         )
 
     def get_or_create_tag_value(self, project_id, environment_id, key, value, **kwargs):
+        tag_key = self.get_or_create_tag_key(project_id, environment_id, key, **kwargs)
+
         return TagValue.objects.get_or_create(
             project_id=project_id,
             environment_id=environment_id,
-            key=key,
+            key_id=tag_key.id,
             value=value,
             **kwargs
         )
 
     def create_group_tag_key(self, project_id, group_id, environment_id, key, **kwargs):
+        tag_key = self.get_or_create_tag_key(project_id, environment_id, key, **kwargs)
+
         return GroupTagKey.objects.create(
             project_id=project_id,
             group_id=group_id,
             environment_id=environment_id,
-            key=key,
+            key_id=tag_key.id,
             **kwargs
         )
 
     def get_or_create_group_tag_key(self, project_id, group_id, environment_id, key, **kwargs):
+        tag_key = self.get_or_create_tag_key(project_id, environment_id, key, **kwargs)
+
         return GroupTagKey.objects.get_or_create(
             project_id=project_id,
             group_id=group_id,
             environment_id=environment_id,
-            key=key,
+            key_id=tag_key.id,
             **kwargs
         )
 
     def create_group_tag_value(self, project_id, group_id, environment_id, key, value, **kwargs):
+        tag_key = self.get_or_create_tag_key(project_id, environment_id, key, **kwargs)
+        tag_value = self.get_or_create_tag_value(project_id, environment_id, key, value, **kwargs)
+
         return GroupTagValue.objects.create(
             project_id=project_id,
             group_id=group_id,
             environment_id=environment_id,
-            key=key,
-            value=value,
+            key_id=tag_key.id,
+            value_id=tag_value.id,
             **kwargs
         )
 
     def get_or_create_group_tag_value(self, project_id, group_id,
                                       environment_id, key, value, **kwargs):
+        tag_key = self.get_or_create_tag_key(project_id, environment_id, key, **kwargs)
+        tag_value = self.get_or_create_tag_value(project_id, environment_id, key, value, **kwargs)
+
         return GroupTagValue.objects.get_or_create(
             project_id=project_id,
             group_id=group_id,
             environment_id=environment_id,
-            key=key,
-            value=value,
+            key_id=tag_key,
+            value_id=tag_value,
             **kwargs
         )
 
@@ -180,7 +194,6 @@ class TagStorage(TagStorage):
         except TagKey.DoesNotExist:
             raise TagKeyNotFound
 
-    # TODO do we want None env to mean 'aggregate row' or 'all'?
     def get_tag_keys(self, project_ids, environment_id, keys=None, status=TagKeyStatus.VISIBLE):
         if isinstance(project_ids, six.integer_types):
             qs = TagKey.objects.filter(project_id=project_ids)
@@ -204,11 +217,17 @@ class TagStorage(TagStorage):
         return list(qs)
 
     def get_tag_value(self, project_id, environment_id, key, value):
-        from sentry.tagstore.exceptions import TagValueNotFound
+        from sentry.tagstore.exceptions import TagKeyNotFound, TagValueNotFound
+
+        try:
+            tag_key = self.get_tag_key(project_id, environment_id, key)
+        except TagKeyNotFound:
+            # TagValue can't exist, so let's raise a sensible exception
+            raise TagValueNotFound
 
         qs = TagValue.objects.filter(
             project_id=project_id,
-            key=key,
+            key_id=tag_key.id,
             value=value,
         )
 
@@ -223,12 +242,11 @@ class TagStorage(TagStorage):
             raise TagValueNotFound
 
     def get_tag_values(self, project_ids, environment_id, key, values=None):
-        qs = TagValue.objects.filter(key=key)
+        tag_keys = self.get_tag_keys(project_ids, environment_id, key)
 
-        if isinstance(project_ids, six.integer_types):
-            qs = qs.filter(project_id=project_ids)
-        else:
-            qs = qs.filter(project_id__in=project_ids)
+        qs = TagValue.objects.filter(
+            key_id__in=set([tk.id for tk in tag_keys]),
+        )
 
         if environment_id is None:
             qs = qs.filter(environment_id__isnull=True)
@@ -240,12 +258,18 @@ class TagStorage(TagStorage):
 
         return list(qs)
 
-    def get_group_tag_key(self, group_id, environment_id, key):
-        from sentry.tagstore.exceptions import GroupTagKeyNotFound
+    def get_group_tag_key(self, project_id, group_id, environment_id, key):
+        from sentry.tagstore.exceptions import TagKeyNotFound, GroupTagKeyNotFound
+
+        try:
+            tag_key = self.get_tag_key(project_id, environment_id, key)
+        except TagKeyNotFound:
+            # GroupTagKey can't exist, so let's raise a sensible exception
+            raise GroupTagKeyNotFound
 
         qs = GroupTagKey.objects.filter(
             group_id=group_id,
-            key=key,
+            key_id=tag_key.id,
         )
 
         if environment_id is None:
@@ -258,7 +282,7 @@ class TagStorage(TagStorage):
         except GroupTagKey.DoesNotExist:
             raise GroupTagKeyNotFound
 
-    def get_group_tag_keys(self, group_ids, environment_id, keys=None, limit=None):
+    def get_group_tag_keys(self, project_id, group_ids, environment_id, keys=None, limit=None):
         if isinstance(group_ids, six.integer_types):
             qs = GroupTagKey.objects.filter(group_id=group_ids)
         else:
@@ -280,7 +304,7 @@ class TagStorage(TagStorage):
 
         return list(qs)
 
-    def get_group_tag_value(self, group_id, environment_id, key, value):
+    def get_group_tag_value(self, project_id, group_id, environment_id, key, value):
         from sentry.tagstore.exceptions import GroupTagValueNotFound
 
         qs = GroupTagValue.objects.get(
@@ -299,7 +323,7 @@ class TagStorage(TagStorage):
         except GroupTagValue.DoesNotExist:
             raise GroupTagValueNotFound
 
-    def get_group_tag_values(self, group_ids, environment_id, keys=None, values=None):
+    def get_group_tag_values(self, project_id, group_ids, environment_id, keys=None, values=None):
         if isinstance(group_ids, six.integer_types):
             qs = GroupTagValue.objects.filter(group_id=group_ids)
         else:

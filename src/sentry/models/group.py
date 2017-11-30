@@ -355,7 +355,7 @@ class Group(Model):
     def get_tags(self):
         if not hasattr(self, '_tag_cache'):
             group_tags = set(
-                [gtk.key for gtk in tagstore.get_group_tag_keys(self.id, environment_id=None)])
+                [gtk.key for gtk in tagstore.get_group_tag_keys(self.project_id, self.id, environment_id=None)])
 
             results = []
             for key in group_tags:
