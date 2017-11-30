@@ -362,6 +362,7 @@ class StreamGroupSerializer(GroupSerializer):
             except Environment.DoesNotExist:
                 stats = {
                     key: tsdb.make_series(
+                        0,
                         start=now - ((segments - 1) * interval),
                         end=now,
                         rollup=int(interval.total_seconds()),

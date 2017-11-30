@@ -340,7 +340,13 @@ class ProjectGroupIndexEndpoint(ProjectEndpoint, EnvironmentMixin):
 
         context = serialize(
             results, request.user, StreamGroupSerializer(
-                stats_period=stats_period))
+                stats_period=stats_period,
+                get_environment_id=functools.partial(
+                    self._get_environment_id_from_request,
+                    request,
+                    project.organization_id,
+                ),
+            ))
 
         # HACK: remove auto resolved entries
         if query_kwargs.get('status') == GroupStatus.UNRESOLVED:
