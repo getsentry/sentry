@@ -52,13 +52,13 @@ class LegacyTagStorage(TagStorage):
             grouptagvalue_model=GroupTagValue,
         )
 
+        self.setup_tasks(
+            tagkey_model=TagKey,
+        )
+
         self.setup_receivers(
             tagvalue_model=TagValue,
             grouptagvalue_model=GroupTagValue,
-        )
-
-        self.setup_tasks(
-            tagkey_model=TagKey,
         )
 
     def create_tag_key(self, project_id, environment_id, key, **kwargs):
@@ -209,23 +209,14 @@ class LegacyTagStorage(TagStorage):
         except GroupTagValue.DoesNotExist:
             raise GroupTagValueNotFound
 
-    def get_group_tag_values(self, project_id, group_ids, environment_id, keys=None, values=None):
+    def get_group_tag_values(self, project_id, group_ids, environment_id, key=None):
         if isinstance(group_ids, six.integer_types):
             qs = GroupTagValue.objects.filter(group_id=group_ids)
         else:
             qs = GroupTagValue.objects.filter(group_id__in=group_ids)
 
-        if keys is not None:
-            if isinstance(keys, six.string_types):
-                qs = qs.filter(key=keys)
-            else:
-                qs = qs.filter(key__in=keys)
-
-        if values is not None:
-            if isinstance(values, six.string_types):
-                qs = qs.filter(value=values)
-            else:
-                qs = qs.filter(value__in=values)
+        if key is not None:
+            qs = qs.filter(key=key)
 
         return list(qs)
 

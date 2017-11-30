@@ -146,15 +146,15 @@ class TagStorage(Service):
             grouptagkey_model,
         ]
 
-    def setup_receivers(self, tagvalue_model, grouptagvalue_model):
-        from .receivers import setup_receivers
-
-        setup_receivers(tagvalue_model=tagvalue_model, grouptagvalue_model=grouptagvalue_model)
-
     def setup_tasks(self, tagkey_model):
         from .tasks import setup_tasks
 
         setup_tasks(tagkey_model=tagkey_model)
+
+    def setup_receivers(self, tagvalue_model, grouptagvalue_model):
+        from .receivers import setup_receivers
+
+        setup_receivers(tagvalue_model=tagvalue_model, grouptagvalue_model=grouptagvalue_model)
 
     def is_valid_key(self, key):
         return bool(TAG_KEY_RE.match(key))
@@ -263,7 +263,7 @@ class TagStorage(Service):
     def get_tag_keys(self, project_ids, environment_id, keys=None, status=TagKeyStatus.VISIBLE):
         """
         >>> get_tag_key([1, 2], 3, ["key1", "key2"])
-        >>> get_tag_key(1, 3, ["key1", "key2"])
+        >>> get_tag_key(1, 2, ["key1", "key2"])
         """
         raise NotImplementedError
 
@@ -299,10 +299,10 @@ class TagStorage(Service):
         """
         raise NotImplementedError
 
-    def get_group_tag_values(self, project_id, group_ids, environment_id, keys=None, values=None):
+    def get_group_tag_values(self, project_id, group_ids, environment_id, key=None):
         """
-        >>> get_group_tag_values(1, [2, 3], 4, ["key1", "key2"], ["value1", "value2"])
-        >>> get_group_tag_values(1, 2, 3, ["key1", "key2"], ["value1", "value2"])
+        >>> get_group_tag_values(1, [2, 3], 4, "key1")
+        >>> get_group_tag_values(1, 2, 3, "key1")
         """
         raise NotImplementedError
 
