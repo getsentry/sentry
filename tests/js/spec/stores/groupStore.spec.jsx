@@ -1,13 +1,15 @@
 import GroupStore from 'app/stores/groupStore';
 
 describe('GroupStore', function() {
+  let sandbox;
+
   beforeEach(function() {
     GroupStore.reset();
-    this.sandbox = sinon.sandbox.create();
+    sandbox = sinon.sandbox.create();
   });
 
   afterEach(function() {
-    this.sandbox.restore();
+    sandbox.restore();
   });
 
   describe('add()', function() {
@@ -52,7 +54,7 @@ describe('GroupStore', function() {
 
     describe('onUpdate()', function() {
       it("should treat undefined itemIds argument as 'all'", function() {
-        this.sandbox.stub(GroupStore, 'trigger');
+        sandbox.stub(GroupStore, 'trigger');
         GroupStore.onUpdate(1337, undefined, 'somedata');
 
         expect(GroupStore.trigger.calledOnce).toBeTruthy();
@@ -62,7 +64,7 @@ describe('GroupStore', function() {
 
     describe('onUpdateSuccess()', function() {
       it("should treat undefined itemIds argument as 'all'", function() {
-        this.sandbox.stub(GroupStore, 'trigger');
+        sandbox.stub(GroupStore, 'trigger');
         GroupStore.onUpdateSuccess(1337, undefined, 'somedata');
 
         expect(GroupStore.trigger.calledOnce).toBeTruthy();
@@ -72,7 +74,7 @@ describe('GroupStore', function() {
 
     describe('onUpdateError()', function() {
       it("should treat undefined itemIds argument as 'all'", function() {
-        this.sandbox.stub(GroupStore, 'trigger');
+        sandbox.stub(GroupStore, 'trigger');
         GroupStore.onUpdateError(1337, undefined, 'something failed', false);
 
         expect(GroupStore.trigger.calledOnce).toBeTruthy();

@@ -2,18 +2,20 @@ import StreamTagStore from 'app/stores/streamTagStore';
 import MemberListStore from 'app/stores/memberListStore';
 
 describe('StreamTagStore', function() {
+  let sandbox;
+
   beforeEach(() => {
     StreamTagStore.reset();
-    this.sandbox = sinon.sandbox.create();
+    sandbox = sinon.sandbox.create();
   });
 
   afterEach(() => {
-    this.sandbox.restore();
+    sandbox.restore();
   });
 
   describe('onMemberListStoreChange()', () => {
     it('should map each user\'s username to the "assigned" value array', () => {
-      this.sandbox.stub(MemberListStore, 'getAll').returns([
+      sandbox.stub(MemberListStore, 'getAll').returns([
         {
           username: 'janesmith',
           email: 'janesmith@example.org',
@@ -24,7 +26,7 @@ describe('StreamTagStore', function() {
     });
 
     it("should fall back to email when username isn't available", () => {
-      this.sandbox.stub(MemberListStore, 'getAll').returns([
+      sandbox.stub(MemberListStore, 'getAll').returns([
         {
           email: 'janesmith@example.org',
         },
@@ -39,7 +41,7 @@ describe('StreamTagStore', function() {
 
   describe('onLoadTagsSuccess()', () => {
     it('should add a new tag with empty values and trigger the new addition', () => {
-      this.sandbox.stub(StreamTagStore, 'trigger');
+      sandbox.stub(StreamTagStore, 'trigger');
 
       StreamTagStore.onLoadTagsSuccess([
         {

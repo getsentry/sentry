@@ -12,157 +12,157 @@ exports[`IssueDiff can dynamically import SplitDiff 1`] = `
   >
     <SplitDiff
       base="TypeError: Cannot read property 'id' of undefined
-      at StreamGroupHeader.render(./app/components/stream/StreamGroupHeader.jsx:54:0)
-      at ? (~/react/lib/ReactCompositeComponent.js:793:0)
-      at measureLifeCyclePerf(~/react/lib/ReactCompositeComponent.js:74:0)
-      at ReactCompositeComponentWrapper._renderValidatedComponentWithoutOwnerOrContext(~/react/lib/ReactCompositeComponent.js:792:0)
-      at ReactCompositeComponentWrapper._renderValidatedComponent(~/react/lib/ReactCompositeComponent.js:819:0)
-      at ReactCompositeComponentWrapper.performInitialMount(~/react/lib/ReactCompositeComponent.js:361:0)
-      at ReactCompositeComponentWrapper.mountComponent(~/react/lib/ReactCompositeComponent.js:257:0)
-      at Object.mountComponent(~/react/lib/ReactReconciler.js:47:0)
-      at ReactDOMComponent.mountChildren(~/react/lib/ReactMultiChild.js:240:0)
-      at ReactDOMComponent._createInitialChildren(~/react/lib/ReactDOMComponent.js:699:0)
-      at ReactDOMComponent.mountComponent(~/react/lib/ReactDOMComponent.js:524:0)
-      at Object.mountComponent(~/react/lib/ReactReconciler.js:47:0)
-      at ReactDOMComponent.mountChildren(~/react/lib/ReactMultiChild.js:240:0)
-      at ReactDOMComponent._createInitialChildren(~/react/lib/ReactDOMComponent.js:699:0)
-      at ReactDOMComponent.mountComponent(~/react/lib/ReactDOMComponent.js:524:0)
-      at Object.mountComponent(~/react/lib/ReactReconciler.js:47:0)
-      at ReactCompositeComponentWrapper.performInitialMount(~/react/lib/ReactCompositeComponent.js:370:0)
-      at ReactCompositeComponentWrapper.mountComponent(~/react/lib/ReactCompositeComponent.js:257:0)
-      at Object.mountComponent(~/react/lib/ReactReconciler.js:47:0)
-      at ReactDOMComponent.mountChildren(~/react/lib/ReactMultiChild.js:240:0)
-      at ReactDOMComponent._createInitialChildren(~/react/lib/ReactDOMComponent.js:699:0)
-      at ReactDOMComponent.mountComponent(~/react/lib/ReactDOMComponent.js:524:0)
-      at Object.mountComponent(~/react/lib/ReactReconciler.js:47:0)
-      at Object.updateChildren(~/react/lib/ReactChildReconciler.js:122:0)
-      at ReactDOMComponent._reconcilerUpdateChildren(~/react/lib/ReactMultiChild.js:210:0)
-      at ReactDOMComponent._updateChildren(~/react/lib/ReactMultiChild.js:314:0)
-      at ReactDOMComponent.updateChildren(~/react/lib/ReactMultiChild.js:301:0)
-      at ReactDOMComponent._updateDOMChildren(~/react/lib/ReactDOMComponent.js:942:0)
-      at ReactDOMComponent.updateComponent(~/react/lib/ReactDOMComponent.js:760:0)
-      at ReactDOMComponent.receiveComponent(~/react/lib/ReactDOMComponent.js:718:0)
-      at Object.receiveComponent(~/react/lib/ReactReconciler.js:126:0)
-      at Object.updateChildren(~/react/lib/ReactChildReconciler.js:110:0)
-      at ReactDOMComponent._reconcilerUpdateChildren(~/react/lib/ReactMultiChild.js:210:0)
-      at ReactDOMComponent._updateChildren(~/react/lib/ReactMultiChild.js:314:0)
-      at ReactDOMComponent.updateChildren(~/react/lib/ReactMultiChild.js:301:0)
-      at ReactDOMComponent._updateDOMChildren(~/react/lib/ReactDOMComponent.js:942:0)
-      at ReactDOMComponent.updateComponent(~/react/lib/ReactDOMComponent.js:760:0)
-      at ReactDOMComponent.receiveComponent(~/react/lib/ReactDOMComponent.js:718:0)
-      at Object.receiveComponent(~/react/lib/ReactReconciler.js:126:0)
-      at Object.updateChildren(~/react/lib/ReactChildReconciler.js:110:0)
-      at ReactDOMComponent._reconcilerUpdateChildren(~/react/lib/ReactMultiChild.js:210:0)
-      at ReactDOMComponent._updateChildren(~/react/lib/ReactMultiChild.js:314:0)
-      at ReactDOMComponent.updateChildren(~/react/lib/ReactMultiChild.js:301:0)
-      at ReactDOMComponent._updateDOMChildren(~/react/lib/ReactDOMComponent.js:942:0)
-      at ReactDOMComponent.updateComponent(~/react/lib/ReactDOMComponent.js:760:0)
-      at ReactDOMComponent.receiveComponent(~/react/lib/ReactDOMComponent.js:718:0)
-      at Object.receiveComponent(~/react/lib/ReactReconciler.js:126:0)
-      at ReactCompositeComponentWrapper._updateRenderedComponent(~/react/lib/ReactCompositeComponent.js:751:0)
-      at ReactCompositeComponentWrapper._performComponentUpdate(~/react/lib/ReactCompositeComponent.js:721:0)
-      at ReactCompositeComponentWrapper.updateComponent(~/react/lib/ReactCompositeComponent.js:642:0)"
+  at StreamGroupHeader.render(./app/components/stream/StreamGroupHeader.jsx:54:0)
+  at ? (~/react/lib/ReactCompositeComponent.js:793:0)
+  at measureLifeCyclePerf(~/react/lib/ReactCompositeComponent.js:74:0)
+  at ReactCompositeComponentWrapper._renderValidatedComponentWithoutOwnerOrContext(~/react/lib/ReactCompositeComponent.js:792:0)
+  at ReactCompositeComponentWrapper._renderValidatedComponent(~/react/lib/ReactCompositeComponent.js:819:0)
+  at ReactCompositeComponentWrapper.performInitialMount(~/react/lib/ReactCompositeComponent.js:361:0)
+  at ReactCompositeComponentWrapper.mountComponent(~/react/lib/ReactCompositeComponent.js:257:0)
+  at Object.mountComponent(~/react/lib/ReactReconciler.js:47:0)
+  at ReactDOMComponent.mountChildren(~/react/lib/ReactMultiChild.js:240:0)
+  at ReactDOMComponent._createInitialChildren(~/react/lib/ReactDOMComponent.js:699:0)
+  at ReactDOMComponent.mountComponent(~/react/lib/ReactDOMComponent.js:524:0)
+  at Object.mountComponent(~/react/lib/ReactReconciler.js:47:0)
+  at ReactDOMComponent.mountChildren(~/react/lib/ReactMultiChild.js:240:0)
+  at ReactDOMComponent._createInitialChildren(~/react/lib/ReactDOMComponent.js:699:0)
+  at ReactDOMComponent.mountComponent(~/react/lib/ReactDOMComponent.js:524:0)
+  at Object.mountComponent(~/react/lib/ReactReconciler.js:47:0)
+  at ReactCompositeComponentWrapper.performInitialMount(~/react/lib/ReactCompositeComponent.js:370:0)
+  at ReactCompositeComponentWrapper.mountComponent(~/react/lib/ReactCompositeComponent.js:257:0)
+  at Object.mountComponent(~/react/lib/ReactReconciler.js:47:0)
+  at ReactDOMComponent.mountChildren(~/react/lib/ReactMultiChild.js:240:0)
+  at ReactDOMComponent._createInitialChildren(~/react/lib/ReactDOMComponent.js:699:0)
+  at ReactDOMComponent.mountComponent(~/react/lib/ReactDOMComponent.js:524:0)
+  at Object.mountComponent(~/react/lib/ReactReconciler.js:47:0)
+  at Object.updateChildren(~/react/lib/ReactChildReconciler.js:122:0)
+  at ReactDOMComponent._reconcilerUpdateChildren(~/react/lib/ReactMultiChild.js:210:0)
+  at ReactDOMComponent._updateChildren(~/react/lib/ReactMultiChild.js:314:0)
+  at ReactDOMComponent.updateChildren(~/react/lib/ReactMultiChild.js:301:0)
+  at ReactDOMComponent._updateDOMChildren(~/react/lib/ReactDOMComponent.js:942:0)
+  at ReactDOMComponent.updateComponent(~/react/lib/ReactDOMComponent.js:760:0)
+  at ReactDOMComponent.receiveComponent(~/react/lib/ReactDOMComponent.js:718:0)
+  at Object.receiveComponent(~/react/lib/ReactReconciler.js:126:0)
+  at Object.updateChildren(~/react/lib/ReactChildReconciler.js:110:0)
+  at ReactDOMComponent._reconcilerUpdateChildren(~/react/lib/ReactMultiChild.js:210:0)
+  at ReactDOMComponent._updateChildren(~/react/lib/ReactMultiChild.js:314:0)
+  at ReactDOMComponent.updateChildren(~/react/lib/ReactMultiChild.js:301:0)
+  at ReactDOMComponent._updateDOMChildren(~/react/lib/ReactDOMComponent.js:942:0)
+  at ReactDOMComponent.updateComponent(~/react/lib/ReactDOMComponent.js:760:0)
+  at ReactDOMComponent.receiveComponent(~/react/lib/ReactDOMComponent.js:718:0)
+  at Object.receiveComponent(~/react/lib/ReactReconciler.js:126:0)
+  at Object.updateChildren(~/react/lib/ReactChildReconciler.js:110:0)
+  at ReactDOMComponent._reconcilerUpdateChildren(~/react/lib/ReactMultiChild.js:210:0)
+  at ReactDOMComponent._updateChildren(~/react/lib/ReactMultiChild.js:314:0)
+  at ReactDOMComponent.updateChildren(~/react/lib/ReactMultiChild.js:301:0)
+  at ReactDOMComponent._updateDOMChildren(~/react/lib/ReactDOMComponent.js:942:0)
+  at ReactDOMComponent.updateComponent(~/react/lib/ReactDOMComponent.js:760:0)
+  at ReactDOMComponent.receiveComponent(~/react/lib/ReactDOMComponent.js:718:0)
+  at Object.receiveComponent(~/react/lib/ReactReconciler.js:126:0)
+  at ReactCompositeComponentWrapper._updateRenderedComponent(~/react/lib/ReactCompositeComponent.js:751:0)
+  at ReactCompositeComponentWrapper._performComponentUpdate(~/react/lib/ReactCompositeComponent.js:721:0)
+  at ReactCompositeComponentWrapper.updateComponent(~/react/lib/ReactCompositeComponent.js:642:0)"
       target="RangeError: Invalid array length
-      File \\"./app/components/scoreBar.jsx\\", line 73, col 0, in Constructor.render
-        return React.createElement('div', {
-      File \\"~/react/lib/ReactCompositeComponent.js\\", line 793, col 0
-        return inst.render();
-      File \\"~/react/lib/ReactCompositeComponent.js\\", line 74, col 0, in measureLifeCyclePerf
-        return fn();
-      File \\"~/react/lib/ReactCompositeComponent.js\\", line 792, col 0, in ReactCompositeComponentWrapper._renderValidatedComponentWithoutOwnerOrContext
-        renderedComponent = measureLifeCyclePerf(function () {
-      File \\"~/react/lib/ReactCompositeComponent.js\\", line 819, col 0, in ReactCompositeComponentWrapper._renderValidatedComponent
-        renderedComponent = this._renderValidatedComponentWithoutOwnerOrContext();
-      File \\"~/react/lib/ReactCompositeComponent.js\\", line 361, col 0, in ReactCompositeComponentWrapper.performInitialMount
-        renderedElement = this._renderValidatedComponent();
-      File \\"~/react/lib/ReactCompositeComponent.js\\", line 257, col 0, in ReactCompositeComponentWrapper.mountComponent
-        markup = this.performInitialMount(renderedElement, hostParent, hostContainerInfo, transaction, context);
-      File \\"~/react/lib/ReactReconciler.js\\", line 47, col 0, in Object.mountComponent
-        var markup = internalInstance.mountComponent(transaction, hostParent, hostContainerInfo, context, parentDebugID);
-      File \\"~/react/lib/ReactMultiChild.js\\", line 240, col 0, in ReactDOMComponent.mountChildren
-        var mountImage = ReactReconciler.mountComponent(child, transaction, this, this._hostContainerInfo, context, selfDebugID);
-      File \\"~/react/lib/ReactDOMComponent.js\\", line 699, col 0, in ReactDOMComponent._createInitialChildren
-        var mountImages = this.mountChildren(childrenToUse, transaction, context);
-      File \\"~/react/lib/ReactDOMComponent.js\\", line 524, col 0, in ReactDOMComponent.mountComponent
-        this._createInitialChildren(transaction, props, context, lazyTree);
-      File \\"~/react/lib/ReactReconciler.js\\", line 47, col 0, in Object.mountComponent
-        var markup = internalInstance.mountComponent(transaction, hostParent, hostContainerInfo, context, parentDebugID);
-      File \\"~/react/lib/ReactCompositeComponent.js\\", line 370, col 0, in ReactCompositeComponentWrapper.performInitialMount
-        var markup = ReactReconciler.mountComponent(child, transaction, hostParent, hostContainerInfo, this._processChildContext(context), debugID);
-      File \\"~/react/lib/ReactCompositeComponent.js\\", line 257, col 0, in ReactCompositeComponentWrapper.mountComponent
-        markup = this.performInitialMount(renderedElement, hostParent, hostContainerInfo, transaction, context);
-      File \\"~/react/lib/ReactReconciler.js\\", line 47, col 0, in Object.mountComponent
-        var markup = internalInstance.mountComponent(transaction, hostParent, hostContainerInfo, context, parentDebugID);
-      File \\"~/react/lib/ReactMultiChild.js\\", line 240, col 0, in ReactDOMComponent.mountChildren
-        var mountImage = ReactReconciler.mountComponent(child, transaction, this, this._hostContainerInfo, context, selfDebugID);
-      File \\"~/react/lib/ReactDOMComponent.js\\", line 699, col 0, in ReactDOMComponent._createInitialChildren
-        var mountImages = this.mountChildren(childrenToUse, transaction, context);
-      File \\"~/react/lib/ReactDOMComponent.js\\", line 524, col 0, in ReactDOMComponent.mountComponent
-        this._createInitialChildren(transaction, props, context, lazyTree);
-      File \\"~/react/lib/ReactReconciler.js\\", line 47, col 0, in Object.mountComponent
-        var markup = internalInstance.mountComponent(transaction, hostParent, hostContainerInfo, context, parentDebugID);
-      File \\"~/react/lib/ReactMultiChild.js\\", line 240, col 0, in ReactDOMComponent.mountChildren
-        var mountImage = ReactReconciler.mountComponent(child, transaction, this, this._hostContainerInfo, context, selfDebugID);
-      File \\"~/react/lib/ReactDOMComponent.js\\", line 699, col 0, in ReactDOMComponent._createInitialChildren
-        var mountImages = this.mountChildren(childrenToUse, transaction, context);
-      File \\"~/react/lib/ReactDOMComponent.js\\", line 524, col 0, in ReactDOMComponent.mountComponent
-        this._createInitialChildren(transaction, props, context, lazyTree);
-      File \\"~/react/lib/ReactReconciler.js\\", line 47, col 0, in Object.mountComponent
-        var markup = internalInstance.mountComponent(transaction, hostParent, hostContainerInfo, context, parentDebugID);
-      File \\"~/react/lib/ReactMultiChild.js\\", line 240, col 0, in ReactDOMComponent.mountChildren
-        var mountImage = ReactReconciler.mountComponent(child, transaction, this, this._hostContainerInfo, context, selfDebugID);
-      File \\"~/react/lib/ReactDOMComponent.js\\", line 699, col 0, in ReactDOMComponent._createInitialChildren
-        var mountImages = this.mountChildren(childrenToUse, transaction, context);
-      File \\"~/react/lib/ReactDOMComponent.js\\", line 524, col 0, in ReactDOMComponent.mountComponent
-        this._createInitialChildren(transaction, props, context, lazyTree);
-      File \\"~/react/lib/ReactReconciler.js\\", line 47, col 0, in Object.mountComponent
-        var markup = internalInstance.mountComponent(transaction, hostParent, hostContainerInfo, context, parentDebugID);
-      File \\"~/react/lib/ReactCompositeComponent.js\\", line 370, col 0, in ReactCompositeComponentWrapper.performInitialMount
-        var markup = ReactReconciler.mountComponent(child, transaction, hostParent, hostContainerInfo, this._processChildContext(context), debugID);
-      File \\"~/react/lib/ReactCompositeComponent.js\\", line 257, col 0, in ReactCompositeComponentWrapper.mountComponent
-        markup = this.performInitialMount(renderedElement, hostParent, hostContainerInfo, transaction, context);
-      File \\"~/react/lib/ReactReconciler.js\\", line 47, col 0, in Object.mountComponent
-        var markup = internalInstance.mountComponent(transaction, hostParent, hostContainerInfo, context, parentDebugID);
-      File \\"~/react/lib/ReactCompositeComponent.js\\", line 370, col 0, in ReactCompositeComponentWrapper.performInitialMount
-        var markup = ReactReconciler.mountComponent(child, transaction, hostParent, hostContainerInfo, this._processChildContext(context), debugID);
-      File \\"~/react/lib/ReactCompositeComponent.js\\", line 257, col 0, in ReactCompositeComponentWrapper.mountComponent
-        markup = this.performInitialMount(renderedElement, hostParent, hostContainerInfo, transaction, context);
-      File \\"~/react/lib/ReactReconciler.js\\", line 47, col 0, in Object.mountComponent
-        var markup = internalInstance.mountComponent(transaction, hostParent, hostContainerInfo, context, parentDebugID);
-      File \\"~/react/lib/ReactChildReconciler.js\\", line 122, col 0, in Object.updateChildren
-        var nextChildMountImage = ReactReconciler.mountComponent(nextChildInstance, transaction, hostParent, hostContainerInfo, context, selfDebugID);
-      File \\"~/react/lib/ReactMultiChild.js\\", line 210, col 0, in ReactDOMComponent._reconcilerUpdateChildren
-        ReactChildReconciler.updateChildren(prevChildren, nextChildren, mountImages, removedNodes, transaction, this, this._hostContainerI {snip}
-      File \\"~/react/lib/ReactMultiChild.js\\", line 314, col 0, in ReactDOMComponent._updateChildren
-        var nextChildren = this._reconcilerUpdateChildren(prevChildren, nextNestedChildrenElements, mountImages, removedNodes, transaction, context);
-      File \\"~/react/lib/ReactMultiChild.js\\", line 301, col 0, in ReactDOMComponent.updateChildren
-        this._updateChildren(nextNestedChildrenElements, transaction, context);
-      File \\"~/react/lib/ReactDOMComponent.js\\", line 942, col 0, in ReactDOMComponent._updateDOMChildren
-        this.updateChildren(nextChildren, transaction, context);
-      File \\"~/react/lib/ReactDOMComponent.js\\", line 760, col 0, in ReactDOMComponent.updateComponent
-        this._updateDOMChildren(lastProps, nextProps, transaction, context);
-      File \\"~/react/lib/ReactDOMComponent.js\\", line 718, col 0, in ReactDOMComponent.receiveComponent
-        this.updateComponent(transaction, prevElement, nextElement, context);
-      File \\"~/react/lib/ReactReconciler.js\\", line 126, col 0, in Object.receiveComponent
-        internalInstance.receiveComponent(nextElement, transaction, context);
-      File \\"~/react/lib/ReactChildReconciler.js\\", line 110, col 0, in Object.updateChildren
-        ReactReconciler.receiveComponent(prevChild, nextElement, transaction, context);
-      File \\"~/react/lib/ReactMultiChild.js\\", line 210, col 0, in ReactDOMComponent._reconcilerUpdateChildren
-        ReactChildReconciler.updateChildren(prevChildren, nextChildren, mountImages, removedNodes, transaction, this, this._hostContainerI {snip}
-      File \\"~/react/lib/ReactMultiChild.js\\", line 314, col 0, in ReactDOMComponent._updateChildren
-        var nextChildren = this._reconcilerUpdateChildren(prevChildren, nextNestedChildrenElements, mountImages, removedNodes, transaction, context);
-      File \\"~/react/lib/ReactMultiChild.js\\", line 301, col 0, in ReactDOMComponent.updateChildren
-        this._updateChildren(nextNestedChildrenElements, transaction, context);
-      File \\"~/react/lib/ReactDOMComponent.js\\", line 942, col 0, in ReactDOMComponent._updateDOMChildren
-        this.updateChildren(nextChildren, transaction, context);
-      File \\"~/react/lib/ReactDOMComponent.js\\", line 760, col 0, in ReactDOMComponent.updateComponent
-        this._updateDOMChildren(lastProps, nextProps, transaction, context);
-      File \\"~/react/lib/ReactDOMComponent.js\\", line 718, col 0, in ReactDOMComponent.receiveComponent
-        this.updateComponent(transaction, prevElement, nextElement, context);
-      File \\"~/react/lib/ReactReconciler.js\\", line 126, col 0, in Object.receiveComponent
-        internalInstance.receiveComponent(nextElement, transaction, context);
-      File \\"~/react/lib/ReactCompositeComponent.js\\", line 751, col 0, in ReactCompositeComponentWrapper._updateRenderedComponent
-        ReactReconciler.receiveComponent(prevComponentInstance, nextRenderedElement, transaction, this._processChildContext(context));"
+  File \\"./app/components/scoreBar.jsx\\", line 73, col 0, in Constructor.render
+    return React.createElement('div', {
+  File \\"~/react/lib/ReactCompositeComponent.js\\", line 793, col 0
+    return inst.render();
+  File \\"~/react/lib/ReactCompositeComponent.js\\", line 74, col 0, in measureLifeCyclePerf
+    return fn();
+  File \\"~/react/lib/ReactCompositeComponent.js\\", line 792, col 0, in ReactCompositeComponentWrapper._renderValidatedComponentWithoutOwnerOrContext
+    renderedComponent = measureLifeCyclePerf(function () {
+  File \\"~/react/lib/ReactCompositeComponent.js\\", line 819, col 0, in ReactCompositeComponentWrapper._renderValidatedComponent
+    renderedComponent = this._renderValidatedComponentWithoutOwnerOrContext();
+  File \\"~/react/lib/ReactCompositeComponent.js\\", line 361, col 0, in ReactCompositeComponentWrapper.performInitialMount
+    renderedElement = this._renderValidatedComponent();
+  File \\"~/react/lib/ReactCompositeComponent.js\\", line 257, col 0, in ReactCompositeComponentWrapper.mountComponent
+    markup = this.performInitialMount(renderedElement, hostParent, hostContainerInfo, transaction, context);
+  File \\"~/react/lib/ReactReconciler.js\\", line 47, col 0, in Object.mountComponent
+    var markup = internalInstance.mountComponent(transaction, hostParent, hostContainerInfo, context, parentDebugID);
+  File \\"~/react/lib/ReactMultiChild.js\\", line 240, col 0, in ReactDOMComponent.mountChildren
+    var mountImage = ReactReconciler.mountComponent(child, transaction, this, this._hostContainerInfo, context, selfDebugID);
+  File \\"~/react/lib/ReactDOMComponent.js\\", line 699, col 0, in ReactDOMComponent._createInitialChildren
+    var mountImages = this.mountChildren(childrenToUse, transaction, context);
+  File \\"~/react/lib/ReactDOMComponent.js\\", line 524, col 0, in ReactDOMComponent.mountComponent
+    this._createInitialChildren(transaction, props, context, lazyTree);
+  File \\"~/react/lib/ReactReconciler.js\\", line 47, col 0, in Object.mountComponent
+    var markup = internalInstance.mountComponent(transaction, hostParent, hostContainerInfo, context, parentDebugID);
+  File \\"~/react/lib/ReactCompositeComponent.js\\", line 370, col 0, in ReactCompositeComponentWrapper.performInitialMount
+    var markup = ReactReconciler.mountComponent(child, transaction, hostParent, hostContainerInfo, this._processChildContext(context), debugID);
+  File \\"~/react/lib/ReactCompositeComponent.js\\", line 257, col 0, in ReactCompositeComponentWrapper.mountComponent
+    markup = this.performInitialMount(renderedElement, hostParent, hostContainerInfo, transaction, context);
+  File \\"~/react/lib/ReactReconciler.js\\", line 47, col 0, in Object.mountComponent
+    var markup = internalInstance.mountComponent(transaction, hostParent, hostContainerInfo, context, parentDebugID);
+  File \\"~/react/lib/ReactMultiChild.js\\", line 240, col 0, in ReactDOMComponent.mountChildren
+    var mountImage = ReactReconciler.mountComponent(child, transaction, this, this._hostContainerInfo, context, selfDebugID);
+  File \\"~/react/lib/ReactDOMComponent.js\\", line 699, col 0, in ReactDOMComponent._createInitialChildren
+    var mountImages = this.mountChildren(childrenToUse, transaction, context);
+  File \\"~/react/lib/ReactDOMComponent.js\\", line 524, col 0, in ReactDOMComponent.mountComponent
+    this._createInitialChildren(transaction, props, context, lazyTree);
+  File \\"~/react/lib/ReactReconciler.js\\", line 47, col 0, in Object.mountComponent
+    var markup = internalInstance.mountComponent(transaction, hostParent, hostContainerInfo, context, parentDebugID);
+  File \\"~/react/lib/ReactMultiChild.js\\", line 240, col 0, in ReactDOMComponent.mountChildren
+    var mountImage = ReactReconciler.mountComponent(child, transaction, this, this._hostContainerInfo, context, selfDebugID);
+  File \\"~/react/lib/ReactDOMComponent.js\\", line 699, col 0, in ReactDOMComponent._createInitialChildren
+    var mountImages = this.mountChildren(childrenToUse, transaction, context);
+  File \\"~/react/lib/ReactDOMComponent.js\\", line 524, col 0, in ReactDOMComponent.mountComponent
+    this._createInitialChildren(transaction, props, context, lazyTree);
+  File \\"~/react/lib/ReactReconciler.js\\", line 47, col 0, in Object.mountComponent
+    var markup = internalInstance.mountComponent(transaction, hostParent, hostContainerInfo, context, parentDebugID);
+  File \\"~/react/lib/ReactMultiChild.js\\", line 240, col 0, in ReactDOMComponent.mountChildren
+    var mountImage = ReactReconciler.mountComponent(child, transaction, this, this._hostContainerInfo, context, selfDebugID);
+  File \\"~/react/lib/ReactDOMComponent.js\\", line 699, col 0, in ReactDOMComponent._createInitialChildren
+    var mountImages = this.mountChildren(childrenToUse, transaction, context);
+  File \\"~/react/lib/ReactDOMComponent.js\\", line 524, col 0, in ReactDOMComponent.mountComponent
+    this._createInitialChildren(transaction, props, context, lazyTree);
+  File \\"~/react/lib/ReactReconciler.js\\", line 47, col 0, in Object.mountComponent
+    var markup = internalInstance.mountComponent(transaction, hostParent, hostContainerInfo, context, parentDebugID);
+  File \\"~/react/lib/ReactCompositeComponent.js\\", line 370, col 0, in ReactCompositeComponentWrapper.performInitialMount
+    var markup = ReactReconciler.mountComponent(child, transaction, hostParent, hostContainerInfo, this._processChildContext(context), debugID);
+  File \\"~/react/lib/ReactCompositeComponent.js\\", line 257, col 0, in ReactCompositeComponentWrapper.mountComponent
+    markup = this.performInitialMount(renderedElement, hostParent, hostContainerInfo, transaction, context);
+  File \\"~/react/lib/ReactReconciler.js\\", line 47, col 0, in Object.mountComponent
+    var markup = internalInstance.mountComponent(transaction, hostParent, hostContainerInfo, context, parentDebugID);
+  File \\"~/react/lib/ReactCompositeComponent.js\\", line 370, col 0, in ReactCompositeComponentWrapper.performInitialMount
+    var markup = ReactReconciler.mountComponent(child, transaction, hostParent, hostContainerInfo, this._processChildContext(context), debugID);
+  File \\"~/react/lib/ReactCompositeComponent.js\\", line 257, col 0, in ReactCompositeComponentWrapper.mountComponent
+    markup = this.performInitialMount(renderedElement, hostParent, hostContainerInfo, transaction, context);
+  File \\"~/react/lib/ReactReconciler.js\\", line 47, col 0, in Object.mountComponent
+    var markup = internalInstance.mountComponent(transaction, hostParent, hostContainerInfo, context, parentDebugID);
+  File \\"~/react/lib/ReactChildReconciler.js\\", line 122, col 0, in Object.updateChildren
+    var nextChildMountImage = ReactReconciler.mountComponent(nextChildInstance, transaction, hostParent, hostContainerInfo, context, selfDebugID);
+  File \\"~/react/lib/ReactMultiChild.js\\", line 210, col 0, in ReactDOMComponent._reconcilerUpdateChildren
+    ReactChildReconciler.updateChildren(prevChildren, nextChildren, mountImages, removedNodes, transaction, this, this._hostContainerI {snip}
+  File \\"~/react/lib/ReactMultiChild.js\\", line 314, col 0, in ReactDOMComponent._updateChildren
+    var nextChildren = this._reconcilerUpdateChildren(prevChildren, nextNestedChildrenElements, mountImages, removedNodes, transaction, context);
+  File \\"~/react/lib/ReactMultiChild.js\\", line 301, col 0, in ReactDOMComponent.updateChildren
+    this._updateChildren(nextNestedChildrenElements, transaction, context);
+  File \\"~/react/lib/ReactDOMComponent.js\\", line 942, col 0, in ReactDOMComponent._updateDOMChildren
+    this.updateChildren(nextChildren, transaction, context);
+  File \\"~/react/lib/ReactDOMComponent.js\\", line 760, col 0, in ReactDOMComponent.updateComponent
+    this._updateDOMChildren(lastProps, nextProps, transaction, context);
+  File \\"~/react/lib/ReactDOMComponent.js\\", line 718, col 0, in ReactDOMComponent.receiveComponent
+    this.updateComponent(transaction, prevElement, nextElement, context);
+  File \\"~/react/lib/ReactReconciler.js\\", line 126, col 0, in Object.receiveComponent
+    internalInstance.receiveComponent(nextElement, transaction, context);
+  File \\"~/react/lib/ReactChildReconciler.js\\", line 110, col 0, in Object.updateChildren
+    ReactReconciler.receiveComponent(prevChild, nextElement, transaction, context);
+  File \\"~/react/lib/ReactMultiChild.js\\", line 210, col 0, in ReactDOMComponent._reconcilerUpdateChildren
+    ReactChildReconciler.updateChildren(prevChildren, nextChildren, mountImages, removedNodes, transaction, this, this._hostContainerI {snip}
+  File \\"~/react/lib/ReactMultiChild.js\\", line 314, col 0, in ReactDOMComponent._updateChildren
+    var nextChildren = this._reconcilerUpdateChildren(prevChildren, nextNestedChildrenElements, mountImages, removedNodes, transaction, context);
+  File \\"~/react/lib/ReactMultiChild.js\\", line 301, col 0, in ReactDOMComponent.updateChildren
+    this._updateChildren(nextNestedChildrenElements, transaction, context);
+  File \\"~/react/lib/ReactDOMComponent.js\\", line 942, col 0, in ReactDOMComponent._updateDOMChildren
+    this.updateChildren(nextChildren, transaction, context);
+  File \\"~/react/lib/ReactDOMComponent.js\\", line 760, col 0, in ReactDOMComponent.updateComponent
+    this._updateDOMChildren(lastProps, nextProps, transaction, context);
+  File \\"~/react/lib/ReactDOMComponent.js\\", line 718, col 0, in ReactDOMComponent.receiveComponent
+    this.updateComponent(transaction, prevElement, nextElement, context);
+  File \\"~/react/lib/ReactReconciler.js\\", line 126, col 0, in Object.receiveComponent
+    internalInstance.receiveComponent(nextElement, transaction, context);
+  File \\"~/react/lib/ReactCompositeComponent.js\\", line 751, col 0, in ReactCompositeComponentWrapper._updateRenderedComponent
+    ReactReconciler.receiveComponent(prevComponentInstance, nextRenderedElement, transaction, this._processChildContext(context));"
       type="words"
     >
       <table

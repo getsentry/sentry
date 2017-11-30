@@ -11,6 +11,10 @@ import ConfigStore from 'app/stores/configStore';
 import stubReactComponents from '../../helpers/stubReactComponent';
 
 describe('AssigneeSelector', function() {
+  let sandbox;
+  let assigneeSelector;
+  let assignTo;
+
   const USER_1 = {
     id: 1,
     name: 'Jane Doe',
@@ -28,18 +32,18 @@ describe('AssigneeSelector', function() {
   };
 
   beforeEach(function() {
-    this.sandbox = sinon.sandbox.create();
-    stubReactComponents(this.sandbox, [LoadingIndicator]);
+    sandbox = sinon.sandbox.create();
+    stubReactComponents(sandbox, [LoadingIndicator]);
 
-    this.sandbox.stub(MemberListStore, 'getAll').returns([USER_1, USER_2]);
-    this.sandbox.stub(GroupStore, 'get').returns({
+    sandbox.stub(MemberListStore, 'getAll').returns([USER_1, USER_2]);
+    sandbox.stub(GroupStore, 'get').returns({
       id: 1337,
       assignedTo: null,
     });
   });
 
   afterEach(function() {
-    this.sandbox.restore();
+    sandbox.restore();
   });
 
   describe('statics', function() {
@@ -72,26 +76,20 @@ describe('AssigneeSelector', function() {
 
     describe('putSessionUserFirst()', function() {
       it('should place the session user at the top of the member list if present', function() {
-        this.sandbox
-          .stub(ConfigStore, 'get')
-          .withArgs('user')
-          .returns({
-            id: 2,
-            name: 'John Smith',
-            email: 'johnsmith@example.com',
-          });
+        sandbox.stub(ConfigStore, 'get').withArgs('user').returns({
+          id: 2,
+          name: 'John Smith',
+          email: 'johnsmith@example.com',
+        });
         expect(putSessionUserFirst([USER_1, USER_2])).toEqual([USER_2, USER_1]);
       });
 
       it("should return the same member list if the session user isn't present", function() {
-        this.sandbox
-          .stub(ConfigStore, 'get')
-          .withArgs('user')
-          .returns({
-            id: 555,
-            name: 'Here Comes a New Challenger',
-            email: 'guile@mail.us.af.mil',
-          });
+        sandbox.stub(ConfigStore, 'get').withArgs('user').returns({
+          id: 555,
+          name: 'Here Comes a New Challenger',
+          email: 'guile@mail.us.af.mil',
+        });
 
         expect(putSessionUserFirst([USER_1, USER_2])).toEqual([USER_1, USER_2]);
       });
@@ -99,14 +97,13 @@ describe('AssigneeSelector', function() {
   });
 
   describe('loading', function() {
-    let assigneeSelector;
     let openMenu;
 
     beforeEach(function() {
       // Reset sandbox because we don't want <LoadingIndicator /> stubbed
-      this.sandbox.restore();
-      this.sandbox = sinon.sandbox.create();
-      this.sandbox.stub(GroupStore, 'get').returns({
+      sandbox.restore();
+      sandbox = sinon.sandbox.create();
+      sandbox.stub(GroupStore, 'get').returns({
         id: 1337,
         assignedTo: null,
       });
@@ -144,20 +141,16 @@ describe('AssigneeSelector', function() {
   });
 
   describe('onFilterKeyDown()', function() {
-    let assigneeSelector;
-    let assignTo;
-
     beforeEach(function() {
       MemberListStore.loaded = true;
       if (assigneeSelector) {
         assigneeSelector.unmount();
       }
-
       assigneeSelector = mount(<AssigneeSelector id="1337" />);
       // open menu
       assigneeSelector.find('a').simulate('click');
 
-      assignTo = this.sandbox.stub(assigneeSelector.instance(), 'assignTo');
+      assignTo = sandbox.stub(assigneeSelector.instance(), 'assignTo');
     });
 
     afterEach(function() {
@@ -193,7 +186,6 @@ describe('AssigneeSelector', function() {
   });
 
   describe('onFilterKeyUp()', function() {
-    let assigneeSelector;
     beforeEach(function() {
       MemberListStore.loaded = true;
       if (assigneeSelector) {
@@ -226,15 +218,15 @@ describe('AssigneeSelector', function() {
 
   describe('componentDidUpdate()', function() {
     beforeEach(function() {
-      this.assigneeSelector = mount(<AssigneeSelector id="1337" />);
+      assigneeSelector = mount(<AssigneeSelector id="1337" />);
     });
 
     it('should destroy old assignee tooltip and create a new assignee tooltip', function() {
-      let instance = this.assigneeSelector.instance();
-      this.sandbox.spy(instance, 'attachTooltips');
-      this.sandbox.spy(instance, 'removeTooltips');
+      let instance = assigneeSelector.instance();
+      sandbox.spy(instance, 'attachTooltips');
+      sandbox.spy(instance, 'removeTooltips');
 
-      this.assigneeSelector.setState({assignedTo: USER_1});
+      assigneeSelector.setState({assignedTo: USER_1});
 
       expect(instance.attachTooltips.calledOnce).toBeTruthy();
       expect(instance.removeTooltips.calledOnce).toBeTruthy();

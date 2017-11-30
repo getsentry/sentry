@@ -6,16 +6,18 @@ import SearchBar from 'app/views/stream/searchBar';
 import StreamTagStore from 'app/stores/streamTagStore';
 
 describe('SearchBar', function() {
+  let sandbox;
+
   beforeEach(function() {
     StreamTagStore.reset();
 
-    this.sandbox = sinon.sandbox.create();
+    sandbox = sinon.sandbox.create();
 
-    this.sandbox.stub(Client.prototype, 'request');
+    sandbox.stub(Client.prototype, 'request');
   });
 
   afterEach(function() {
-    this.sandbox.restore();
+    sandbox.restore();
   });
 
   describe('getQueryTerms()', function() {
@@ -70,7 +72,7 @@ describe('SearchBar', function() {
         projectId: '456',
         query: 'is:unresolved ruby',
         defaultQuery: 'is:unresolved',
-        onSearch: this.sandbox.spy(),
+        onSearch: sandbox.spy(),
       };
       let searchBar = shallow(<SearchBar {...props} />).instance();
 
@@ -99,7 +101,7 @@ describe('SearchBar', function() {
       let searchBar = shallow(<SearchBar orgId="123" projectId="456" />).instance();
       searchBar.state.dropdownVisible = true;
 
-      let clock = this.sandbox.useFakeTimers();
+      let clock = sandbox.useFakeTimers();
       searchBar.onQueryBlur();
       clock.tick(201); // doesn't close until 200ms
 
@@ -114,7 +116,7 @@ describe('SearchBar', function() {
         wrapper.setState({dropdownVisible: true});
 
         let instance = wrapper.instance();
-        this.sandbox.stub(instance, 'blur');
+        sandbox.stub(instance, 'blur');
 
         wrapper.find('input').simulate('keyup', {key: 'Escape', keyCode: '27'});
 
@@ -125,7 +127,7 @@ describe('SearchBar', function() {
 
   describe('render()', function() {
     it('invokes onSearch() when submitting the form', function() {
-      let stubbedOnSearch = this.sandbox.spy();
+      let stubbedOnSearch = sandbox.spy();
       let wrapper = mount(
         <SearchBar onSearch={stubbedOnSearch} orgId="123" projectId="456" />
       );
@@ -142,7 +144,7 @@ describe('SearchBar', function() {
         orgId: '123',
         projectId: '456',
         query: 'is:unresolved',
-        onSearch: this.sandbox.spy(),
+        onSearch: sandbox.spy(),
       };
       let wrapper = mount(<SearchBar {...props} />);
 

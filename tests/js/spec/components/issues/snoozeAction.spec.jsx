@@ -3,12 +3,14 @@ import {shallow} from 'enzyme';
 import SnoozeAction from 'app/components/issues/snoozeAction';
 
 describe('SnoozeAction', function() {
+  let sandbox;
+
   beforeEach(function() {
-    this.sandbox = sinon.sandbox.create();
+    sandbox = sinon.sandbox.create();
   });
 
   afterEach(function() {
-    this.sandbox.restore();
+    sandbox.restore();
   });
 
   describe('render()', function() {
