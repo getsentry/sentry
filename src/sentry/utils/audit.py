@@ -5,9 +5,6 @@ from sentry.models import (
 
 
 def create_audit_entry(request, transaction_id=None, logger=None, **kwargs):
-    """ Creates an audit entry if the given request includes an event
-    """
-
     user = request.user if request.user.is_authenticated() else None
     api_key = request.auth if hasattr(request, 'auth') \
         and isinstance(request.auth, ApiKey) else None
@@ -51,7 +48,6 @@ def create_audit_entry(request, transaction_id=None, logger=None, **kwargs):
 
 
 def create_org_delete_log(entry):
-    """ Creates a log of deleted organization """
     delete_log = DeletedOrganization()
     organization = Organization.objects.get(id=entry.target_object)
 
@@ -63,7 +59,6 @@ def create_org_delete_log(entry):
 
 
 def create_project_delete_log(entry):
-    """ Creates a log of deleted project """
     delete_log = DeletedProject()
 
     project = Project.objects.select_related('team').get(id=entry.target_object)
@@ -84,7 +79,6 @@ def create_project_delete_log(entry):
 
 
 def create_team_delete_log(entry):
-    """ Creates a log of the deleted team """
     delete_log = DeletedTeam()
 
     team = Team.objects.get(id=entry.target_object)
@@ -100,8 +94,9 @@ def create_team_delete_log(entry):
 
 
 def complete_delete_log(delete_log, entry):
-    """ Adds common information on a delete log from an audit entry
-        and saves that delete log.
+    """
+    Adds common information on a delete log from an audit entry and
+    saves that delete log.
     """
     delete_log.actor_label = entry.actor_label
     delete_log.actor_id = entry.actor_id
