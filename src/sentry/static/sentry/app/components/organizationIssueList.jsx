@@ -32,9 +32,7 @@ class OrganizationIssueList extends React.Component {
 
   getQueryStringState = props => {
     let location = props.location;
-    let status = location.query.hasOwnProperty('status')
-      ? location.query.status
-      : 'unresolved';
+    let status = (location.query && location.query.status) || 'unresolved';
     return {
       status,
     };
