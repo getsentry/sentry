@@ -9,7 +9,6 @@ import pytest
 from datetime import timedelta
 from django.conf import settings
 from django.utils import timezone
-from mock import patch
 from time import time
 
 from sentry.app import tsdb
@@ -71,7 +70,7 @@ class EventManagerTest(TransactionTestCase):
         assert event1.transaction == 'bar'
         assert event1.culprit == 'bar'
 
-    @patch('sentry.signals.regression_signal.send')
+    @mock.patch('sentry.signals.regression_signal.send')
     def test_broken_regression_signal(self, send):
         send.side_effect = Exception()
 
@@ -81,7 +80,7 @@ class EventManagerTest(TransactionTestCase):
         assert event.message == 'foo'
         assert event.project_id == 1
 
-    @patch('sentry.event_manager.should_sample')
+    @mock.patch('sentry.event_manager.should_sample')
     def test_saves_event_mapping_when_sampled(self, should_sample):
         should_sample.return_value = True
         event_id = 'a' * 32
@@ -118,7 +117,7 @@ class EventManagerTest(TransactionTestCase):
             event_id=event_id,
         ).exists()
 
-    @patch('sentry.event_manager.should_sample')
+    @mock.patch('sentry.event_manager.should_sample')
     def test_sample_feature_flag(self, should_sample):
         should_sample.return_value = True
 
@@ -351,7 +350,7 @@ class EventManagerTest(TransactionTestCase):
         group = Group.objects.get(id=group.id)
         assert not group.is_resolved()
 
-    @patch('sentry.event_manager.plugin_is_regression')
+    @mock.patch('sentry.event_manager.plugin_is_regression')
     def test_does_not_unresolve_group(self, plugin_is_regression):
         # N.B. EventManager won't unresolve the group unless the event2 has a
         # later timestamp than event1. MySQL doesn't support microseconds.
@@ -385,8 +384,8 @@ class EventManagerTest(TransactionTestCase):
         group = Group.objects.get(id=group.id)
         assert group.is_resolved()
 
-    @patch('sentry.tasks.activity.send_activity_notifications.delay')
-    @patch('sentry.event_manager.plugin_is_regression')
+    @mock.patch('sentry.tasks.activity.send_activity_notifications.delay')
+    @mock.patch('sentry.event_manager.plugin_is_regression')
     def test_marks_as_unresolved_with_new_release(
         self, plugin_is_regression, mock_send_activity_notifications_delay
     ):
@@ -470,7 +469,7 @@ class EventManagerTest(TransactionTestCase):
 
         mock_send_activity_notifications_delay.assert_called_once_with(activity.id)
 
-    @patch('sentry.models.Group.is_resolved')
+    @mock.patch('sentry.models.Group.is_resolved')
     def test_unresolves_group_with_auto_resolve(self, mock_is_resolved):
         mock_is_resolved.return_value = False
         manager = EventManager(
@@ -998,8 +997,8 @@ class EventManagerTest(TransactionTestCase):
 
 
 class GetHashesFromEventTest(TestCase):
-    @patch('sentry.interfaces.stacktrace.Stacktrace.compute_hashes')
-    @patch('sentry.interfaces.http.Http.compute_hashes')
+    @mock.patch('sentry.interfaces.stacktrace.Stacktrace.compute_hashes')
+    @mock.patch('sentry.interfaces.http.Http.compute_hashes')
     def test_stacktrace_wins_over_http(self, http_comp_hash, stack_comp_hash):
         # this was a regression, and a very important one
         http_comp_hash.return_value = [['baz']]
