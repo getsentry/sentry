@@ -3,6 +3,7 @@ from __future__ import absolute_import
 import pytest
 
 from sentry.testutils import TestCase
+from sentry.tagstore import TagKeyStatus
 from sentry.tagstore.v2.backend import TagStorage
 from sentry.tagstore.v2.models import TagKey, TagValue, GroupTagKey, GroupTagValue, EventTag
 from sentry.tagstore.exceptions import TagKeyNotFound, TagValueNotFound, GroupTagKeyNotFound, GroupTagValueNotFound
@@ -15,6 +16,7 @@ class V2TagStorage(TestCase):
         self.proj1 = self.create_project()
         self.proj1group1 = self.create_group(self.proj1)
         self.proj1env1 = self.create_environment(project=self.proj1)
+        self.proj1env2 = self.create_environment(project=self.proj1)
         self.proj1group1event1 = self.create_event(project=self.proj1, group=self.proj1group1)
 
         self.proj2 = self.create_project()
@@ -331,10 +333,61 @@ class V2TagStorage(TestCase):
             ) is not None
 
     def test_delete_tag_key(self):
-        pass
+        tk1 = self.ts.create_tag_key(
+            project_id=self.proj1.id,
+            environment_id=self.proj1env1.id,
+            key=self.key1,
+        )
+
+        tk2 = self.ts.create_tag_key(
+            project_id=self.proj1.id,
+            environment_id=self.proj1env2.id,
+            key=self.key1,
+        )
+
+        assert TagKey.objects.filter(
+            project_id=self.proj1.id,
+            status=TagKeyStatus.VISIBLE,
+        ).count() == 2
+
+        deleted = self.ts.delete_tag_key(self.proj1.id, self.key1)
+        assert tk1 in deleted
+        assert tk2 in deleted
+
+        assert TagKey.objects.filter(
+            project_id=self.proj1.id,
+            status=TagKeyStatus.VISIBLE,
+        ).count() == 0
 
     def test_delete_all_group_tag_keys(self):
-        pass
+        assert GroupTagKey.objects.count() == 0
+
+        self.ts.create_group_tag_key(
+            project_id=self.proj1.id,
+            group_id=self.proj1group1.id,
+            environment_id=self.proj1env1.id,
+            key=self.key1,
+        )
+
+        assert GroupTagKey.objects.count() == 1
+
+        self.ts.delete_all_group_tag_keys(self.proj1group1.id)
+
+        assert GroupTagKey.objects.count() == 0
 
     def test_delete_all_group_tag_values(self):
-        pass
+        assert GroupTagValue.objects.count() == 0
+
+        self.ts.create_group_tag_value(
+            project_id=self.proj1.id,
+            group_id=self.proj1group1.id,
+            environment_id=self.proj1env1.id,
+            key=self.key1,
+            value=self.value1,
+        )
+
+        assert GroupTagValue.objects.count() == 1
+
+        self.ts.delete_all_group_tag_values(self.proj1group1.id)
+
+        assert GroupTagValue.objects.count() == 0
