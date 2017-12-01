@@ -273,9 +273,12 @@ class AuditLogEntry(Model):
         elif self.event == AuditLogEntryEvent.RULE_REMOVE:
             return 'removed rule "%s"' % (self.data['label'], )
 
-<<<<<<< HEAD
         elif self.event == AuditLogEntryEvent.SET_ONDEMAND:
             return 'changed on-demand max spend to $%d' % (self.data['ondemand'] / 100, )
+        elif self.event == AuditLogEntryEvent.TRIAL_STARTED:
+            return 'started trial'
+        elif self.event == AuditLogEntryEvent.PLAN_CHANGED:
+            return 'changed plan to %s' % (self.data['plan_name'], )
 
         elif self.event == AuditLogEntryEvent.SERVICEHOOK_ADD:
             return 'added a service hook for "%s"' % (truncatechars(self.data['url'], 64), )
@@ -297,11 +300,5 @@ class AuditLogEntry(Model):
         elif self.event == AuditLogEntryEvent.INTEGRATION_REMOVE:
             return 'disabled integration %s from project %s' % (
                 self.data['integration'], self.data['project'])
-=======
-        elif self.event == AuditLogEntryEvent.TRIAL_STARTED:
-            return 'started trial'
-        elif self.event == AuditLogEntryEvent.PLAN_CHANGED:
-            return 'changed plan to %s' % (self.data['plan_name'], )
->>>>>>> feat(auditlog): Add Trial and Plan Events to Audit Log
 
         return ''
