@@ -407,6 +407,15 @@ class ClientApiHelper(object):
         if error_message and not is_valid_error_message(project, error_message):
             return (True, FilterStatKeys.ERROR_MESSAGE)
 
+        for exception_interface in data.get('sentry.interfaces.Exception', {}).get('values', []):
+            message_bits = filter(None, map(exception_interface.get, ['type', 'value']))
+            if len(message_bits) == 2:
+                if not is_valid_error_message(project, u'{}: {}'.format(*message_bits)):
+                    return (True, FilterStatKeys.ERROR_MESSAGE)
+            elif len(message_bits) == 1:
+                if not is_valid_error_message(project, message_bits[0]):
+                    return (True, FilterStatKeys.ERROR_MESSAGE)
+
         for filter_cls in filters.all():
             filter_obj = filter_cls(project)
             if filter_obj.is_enabled() and filter_obj.test(data):
