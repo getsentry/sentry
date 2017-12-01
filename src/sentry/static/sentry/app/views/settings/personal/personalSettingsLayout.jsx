@@ -1,10 +1,16 @@
 import React from 'react';
 
+import SettingsLayout from '../settingsLayout';
+
 class PersonalSettingsLayout extends React.Component {
   render() {
 
     return (
-      <h1>Hello World!</h1>
+      <SettingsLayout
+        {...this.props}
+      >
+        {this.props.children}
+      </SettingsLayout>
     );
   }
 }
