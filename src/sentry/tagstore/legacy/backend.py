@@ -62,6 +62,35 @@ class LegacyTagStorage(TagStorage):
             grouptagvalue_model=GroupTagValue,
         )
 
+        # Legacy tag write flow:
+        #
+        # event_manager synchronously calls index_event_tags:
+        #   for tag in event:
+        #       get_or_create_tag_key
+        #       get_or_create_tag_value
+        #   create_event_tags
+        #
+        # event_manager synchronously calls Group.objects.add_tags:
+        #   for tag in event:
+        #       incr_tag_value_times_seen:
+        #           (async) buffer.incr(TagValue):
+        #                create_or_update(TagValue)
+        #                buffer_incr_complete.send_robust(TagValue):
+        #                   record_project_tag_count(TagValue)
+        #                   if created(TagValue):
+        #                       incr_tag_key_values_seen:
+        #                           (async) buffer.incr(TagKey)
+        #                           create_or_update(TagKey)
+        #       incr_group_tag_value_times_seen:
+        #           (async) buffer.incr(GroupTagValue):
+        #                create_or_update(GroupTagValue)
+        #                buffer_incr_complete.send_robust(GroupTagValue)
+        #                   record_project_tag_count(GroupTagValue)
+        #                   if created(GroupTagValue):
+        #                       incr_group_tag_key_values_seen:
+        #                           (async) buffer.incr(GroupTagKey)
+        #                           create_or_update(GroupTagKey)
+
         @buffer_incr_complete.connect(sender=TagValue, weak=False)
         def record_project_tag_count(filters, created, **kwargs):
             from sentry import tagstore
@@ -72,8 +101,6 @@ class LegacyTagStorage(TagStorage):
             project_id = filters['project_id']
             environment_id = filters.get('environment_id')
 
-            # a TagValue was created for this environment,
-            # so we incr the values_seen for the TagKey in that environment
             tagstore.incr_tag_key_values_seen(project_id, environment_id, filters['key'])
 
         @buffer_incr_complete.connect(sender=GroupTagValue, weak=False)
@@ -87,8 +114,6 @@ class LegacyTagStorage(TagStorage):
             group_id = filters['group_id']
             environment_id = filters.get('environment_id')
 
-            # a GroupTagValue was created for this environment,
-            # so we incr the values_seen for the GroupTagKey in that environment
             tagstore.incr_group_tag_key_values_seen(
                 project_id, group_id, environment_id, filters['key'])
 
