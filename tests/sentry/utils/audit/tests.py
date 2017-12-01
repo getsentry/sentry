@@ -22,6 +22,11 @@ class CreateAuditEntryTest(TestCase):
         self.team = self.create_team(organization=self.org)
         self.project = self.create_project(team=self.team)
 
+    def assert_no_delete_log_created(self):
+        assert not DeletedOrganization.objects.filter(slug=self.org.slug).exists()
+        assert not DeletedTeam.objects.filter(slug=self.team.slug).exists()
+        assert not DeletedProject.objects.filter(slug=self.project.slug).exists()
+
     def test_audit_entry_api(self):
         org = self.create_organization()
         apikey = ApiKey.objects.create(
@@ -36,7 +41,8 @@ class CreateAuditEntryTest(TestCase):
         assert entry.actor_key == apikey
         assert entry.actor is None
         assert entry.ip_address == req.META['REMOTE_ADDR']
-        # assert no deletedlog was created?
+
+        self.assert_no_delete_log_created()
 
     def test_audit_entry_frontend(self):
         req = FakeHttpRequest(self.create_user())
@@ -45,6 +51,8 @@ class CreateAuditEntryTest(TestCase):
         assert entry.actor == req.user
         assert entry.actor_key is None
         assert entry.ip_address == req.META['REMOTE_ADDR']
+
+        self.assert_no_delete_log_created()
 
     def test_audit_entry_org_delete_log(self):
         entry = create_audit_entry(
