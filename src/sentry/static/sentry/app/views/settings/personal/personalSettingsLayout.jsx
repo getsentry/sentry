@@ -2,6 +2,7 @@ import React from 'react';
 
 import SettingsLayout from '../settingsLayout';
 import SettingsPageHeader from '../components/settingsPageHeader';
+import PersonalSettingsForm from './personalSettingsForm';
 
 class PersonalSettingsLayout extends React.Component {
   render() {
@@ -11,6 +12,7 @@ class PersonalSettingsLayout extends React.Component {
         {this.props.children}
         <div>
           <SettingsPageHeader label="Notifications" />
+          <PersonalSettingsForm {...this.props}/>
         </div>
 
       </SettingsLayout>
