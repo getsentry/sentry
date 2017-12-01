@@ -18,7 +18,7 @@ class ListAsTextareaField extends TextareaField {
   }
 
   coerceValue(value) {
-    return value.split('\n');
+    return value ? value.split('\n') : [];
   }
 }
 
@@ -35,7 +35,7 @@ export default class ProjectGeneralSettings extends AsyncView {
   getTeamChoices() {
     return this.context.organization.teams
       .filter(o => o.isMember)
-      .map(o => [o.id, o.slug]);
+      .map(o => [o.slug, o.slug]);
   }
 
   getResolveAgeAllowedValues() {
@@ -74,6 +74,7 @@ export default class ProjectGeneralSettings extends AsyncView {
     let initialData = {
       name: project.name,
       slug: project.slug,
+      team: project.team && project.team.slug,
       allowedDomains: project.allowedDomains,
       resolveAge: project.resolveAge,
       dataScrubber: project.dataScrubber,
@@ -82,7 +83,7 @@ export default class ProjectGeneralSettings extends AsyncView {
       safeFields: project.safeFields,
       defaultEnvironment: project.defaultEnvironment,
       subjectPrefix: project.subjectPrefix,
-      scrubIpAddress: project.scrubIPAddresses,
+      scrubIpAddresses: project.scrubIpAddresses,
       securityToken: project.securityToken,
       securityHeader: project.securityHeader,
       securityTokenHeader: project.securityTokenHeader,
@@ -120,6 +121,7 @@ export default class ProjectGeneralSettings extends AsyncView {
               {teamChoices.length > 1 ? (
                 <Select2Field
                   name="team"
+                  className="control-group"
                   label={t('Team')}
                   required={true}
                   choices={this.getTeamChoices()}
@@ -208,7 +210,7 @@ export default class ProjectGeneralSettings extends AsyncView {
                 placeholder={t('e.g. email')}
               />
               <BooleanField
-                name="scrubIPAddresses"
+                name="scrubIpAddresses"
                 label={t("Don't store IP Addresses")}
                 help={t('Prevent IP addresses from being stored for new events.')}
               />
@@ -238,7 +240,7 @@ export default class ProjectGeneralSettings extends AsyncView {
               <ListAsTextareaField
                 name="allowedDomains"
                 label={t('Allowed domains')}
-                help={t('Separate multiple entries with a newline.')}
+                help={t('Separate multiple entries with a newline. Cannot be empty.')}
                 placeholder={t('e.g. https://example.com or example.com')}
               />
               <BooleanField
