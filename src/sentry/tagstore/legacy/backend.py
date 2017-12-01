@@ -19,6 +19,7 @@ from operator import or_
 from six.moves import reduce
 
 from sentry import buffer
+from sentry.signals import buffer_incr_complete
 from sentry.tagstore import TagKeyStatus
 from sentry.tagstore.base import TagStorage
 from sentry.utils import db
@@ -60,6 +61,36 @@ class LegacyTagStorage(TagStorage):
             tagvalue_model=TagValue,
             grouptagvalue_model=GroupTagValue,
         )
+
+        @buffer_incr_complete.connect(sender=TagValue, weak=False)
+        def record_project_tag_count(filters, created, **kwargs):
+            from sentry import tagstore
+
+            if not created:
+                return
+
+            project_id = filters['project_id']
+            environment_id = filters.get('environment_id')
+
+            # a TagValue was created for this environment,
+            # so we incr the values_seen for the TagKey in that environment
+            tagstore.incr_tag_key_values_seen(project_id, environment_id, filters['key'])
+
+        @buffer_incr_complete.connect(sender=GroupTagValue, weak=False)
+        def record_group_tag_count(filters, created, extra, **kwargs):
+            from sentry import tagstore
+
+            if not created:
+                return
+
+            project_id = extra['project_id']
+            group_id = filters['group_id']
+            environment_id = filters.get('environment_id')
+
+            # a GroupTagValue was created for this environment,
+            # so we incr the values_seen for the GroupTagKey in that environment
+            tagstore.incr_group_tag_key_values_seen(
+                project_id, group_id, environment_id, filters['key'])
 
     def create_tag_key(self, project_id, environment_id, key, **kwargs):
         return TagKey.objects.create(project_id=project_id, key=key, **kwargs)
