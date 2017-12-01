@@ -8,8 +8,6 @@ sentry.tagstore.v2.backend
 
 from __future__ import absolute_import
 
-import six
-
 from django.db import IntegrityError, transaction
 
 from sentry.tagstore import TagKeyStatus
@@ -281,11 +279,8 @@ class TagStorage(TagStorage):
         except GroupTagKey.DoesNotExist:
             raise GroupTagKeyNotFound
 
-    def get_group_tag_keys(self, project_id, group_ids, environment_id, limit=None):
-        if isinstance(group_ids, six.integer_types):
-            qs = GroupTagKey.objects.filter(group_id=group_ids)
-        else:
-            qs = GroupTagKey.objects.filter(group_id__in=group_ids)
+    def get_group_tag_keys(self, project_id, group_id, environment_id, limit=None):
+        qs = GroupTagKey.objects.filter(group_id=group_id)
 
         if environment_id is None:
             qs = qs.filter(environment_id__isnull=True)
@@ -312,7 +307,7 @@ class TagStorage(TagStorage):
             # GroupTagValue can't exist, so let's raise a sensible exception
             raise GroupTagValueNotFound
 
-        qs = GroupTagValue.objects.get(
+        qs = GroupTagValue.objects.filter(
             group_id=group_id,
             key_id=key_id,
             value_id=value_id,
@@ -328,7 +323,7 @@ class TagStorage(TagStorage):
         except GroupTagValue.DoesNotExist:
             raise GroupTagValueNotFound
 
-    def get_group_tag_values(self, project_id, group_ids, environment_id, key):
+    def get_group_tag_values(self, project_id, group_id, environment_id, key):
         from sentry.tagstore.exceptions import TagKeyNotFound
 
         try:
@@ -336,12 +331,10 @@ class TagStorage(TagStorage):
         except TagKeyNotFound:
             return []
 
-        qs = GroupTagValue.objects.filter(key_id=key_id)
-
-        if isinstance(group_ids, six.integer_types):
-            qs = qs.filter(group_id=group_ids)
-        else:
-            qs = qs.filter(group_id__in=group_ids)
+        qs = GroupTagValue.objects.filter(
+            group_id=group_id,
+            key_id=key_id,
+        )
 
         if environment_id is None:
             qs = qs.filter(environment_id__isnull=True)

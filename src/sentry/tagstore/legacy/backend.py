@@ -222,11 +222,8 @@ class LegacyTagStorage(TagStorage):
         except GroupTagKey.DoesNotExist:
             raise GroupTagKeyNotFound
 
-    def get_group_tag_keys(self, project_id, group_ids, environment_id, limit=None):
-        if isinstance(group_ids, six.integer_types):
-            qs = GroupTagKey.objects.filter(group_id=group_ids)
-        else:
-            qs = GroupTagKey.objects.filter(group_id__in=group_ids)
+    def get_group_tag_keys(self, project_id, group_id, environment_id, limit=None):
+        qs = GroupTagKey.objects.filter(group_id=group_id)
 
         if limit is not None:
             qs = qs[:limit]
@@ -245,13 +242,11 @@ class LegacyTagStorage(TagStorage):
         except GroupTagValue.DoesNotExist:
             raise GroupTagValueNotFound
 
-    def get_group_tag_values(self, project_id, group_ids, environment_id, key):
-        if isinstance(group_ids, six.integer_types):
-            qs = GroupTagValue.objects.filter(group_id=group_ids)
-        else:
-            qs = GroupTagValue.objects.filter(group_id__in=group_ids)
-
-        qs = qs.filter(key=key)
+    def get_group_tag_values(self, project_id, group_id, environment_id, key):
+        qs = GroupTagValue.objects.filter(
+            group_id=group_id,
+            key=key,
+        )
 
         return list(qs)
 
@@ -546,8 +541,12 @@ class LegacyTagStorage(TagStorage):
         return matches
 
     def update_group_tag_key_values_seen(self, project_id, group_ids):
-        instances = self.get_group_tag_keys(project_id, group_ids, environment_id=None)
-        for instance in instances:
+        gtk_qs = GroupTagKey.objects.filter(
+            project_id=project_id,
+            group_id__in=group_ids
+        )
+
+        for instance in gtk_qs:
             instance.update(
                 values_seen=GroupTagValue.objects.filter(
                     project_id=instance.project_id,

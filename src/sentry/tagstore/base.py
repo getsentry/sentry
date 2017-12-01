@@ -285,10 +285,9 @@ class TagStorage(Service):
         """
         raise NotImplementedError
 
-    def get_group_tag_keys(self, project_id, group_ids, environment_id, limit=None):
+    def get_group_tag_keys(self, project_id, group_id, environment_id, limit=None):
         """
-        >>> get_group_tag_keys(1, [2, 3], 4)
-        >>> get_group_tag_keys(1, 2, 3)
+        >>> get_group_tag_key(1, 2, 3)
         """
         raise NotImplementedError
 
@@ -298,9 +297,8 @@ class TagStorage(Service):
         """
         raise NotImplementedError
 
-    def get_group_tag_values(self, project_id, group_ids, environment_id, key):
+    def get_group_tag_values(self, project_id, group_id, environment_id, key):
         """
-        >>> get_group_tag_values(1, [2, 3], 4, "key1")
         >>> get_group_tag_values(1, 2, 3, "key1")
         """
         raise NotImplementedError
