@@ -206,8 +206,8 @@
     <li{% if page == 'alerts' %} class="active"{% endif %}>
         <a href="{% absolute_uri '/{}/{}/settings/alerts/' project.organization.slug project.slug %}">{% trans "Alerts" %}</a>
     </li>
-    <li{% if page == 'tags' %} class="active"{% endif %}>
-        <a href="{% url 'sentry-manage-project-tags' project.organization.slug project.slug %}">{% trans "Tags" %}</a>
+    <li>
+        <a href="{% absolute_uri '/{}/{}/settings/tags/' project.organization.slug project.slug %}">{% trans "Tags" %}</a>
     </li>
     <li{% if page == 'issue-tracking' %} class="active"{% endif %}>
         <a href="{% url 'sentry-project-issue-tracking' project.organization.slug project.slug %}">{% trans "Issue Tracking" %}</a>

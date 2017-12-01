@@ -60,15 +60,15 @@ window.TestStubs = {
       roleName: '',
       pending: false,
       flags: {
-        'sso:linked': false
+        'sso:linked': false,
       },
       user: {
         id: '1',
         has2fa: false,
         name: 'Sentry 1 Name',
         email: 'sentry1@test.com',
-        username: 'Sentry 1 Username'
-      }
+        username: 'Sentry 1 Username',
+      },
     },
     {
       id: '2',
@@ -77,15 +77,15 @@ window.TestStubs = {
       roleName: '',
       pending: false,
       flags: {
-        'sso:linked': false
+        'sso:linked': false,
       },
       user: {
         id: '2',
         has2fa: true,
         name: 'Sentry 2 Name',
         email: 'sentry2@test.com',
-        username: 'Sentry 2 Username'
-      }
+        username: 'Sentry 2 Username',
+      },
     },
     {
       id: '3',
@@ -94,21 +94,21 @@ window.TestStubs = {
       roleName: '',
       pending: false,
       flags: {
-        'sso:linked': true
+        'sso:linked': true,
       },
       user: {
         id: '3',
         has2fa: true,
         name: 'Sentry 3 Name',
         email: 'sentry3@test.com',
-        username: 'Sentry 3 Username'
-      }
+        username: 'Sentry 3 Username',
+      },
     },
-    ...params
+    ...params,
   ],
 
   AuthProvider: (...params) => ({
-    require_link: false
+    require_link: false,
   }),
 
   Project: (...params) => {
@@ -190,6 +190,9 @@ window.TestStubs = {
       setupUri: '/github-integration-setup-uri/',
       ...params,
     };
+  },
+  Tags: (...params) => {
+    return [{key: 'browser', name: 'Browser'}, {key: 'device', name: 'Device'}];
   },
 };
 
