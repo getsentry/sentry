@@ -1,6 +1,10 @@
 import Reflux from 'reflux';
 
+import OrganizationsActions from '../actions/organizationsActions';
+
 const OrganizationStore = Reflux.createStore({
+  listenables: [OrganizationsActions],
+
   // So we can use Reflux.connect in a component mixin
   getInitialState() {
     return this.items;
@@ -10,12 +14,21 @@ const OrganizationStore = Reflux.createStore({
     this.items = [];
   },
 
+  onRemoveSuccess(slug) {
+    this.remove(slug);
+  },
+
   get(slug) {
     return this.items.find(item => item.slug === slug);
   },
 
   getAll() {
     return this.items;
+  },
+
+  remove(slug) {
+    this.items = this.items.filter(item => slug !== item.slug);
+    this.trigger(this.items);
   },
 
   add(item) {
@@ -30,7 +43,7 @@ const OrganizationStore = Reflux.createStore({
     if (!match) {
       this.items.push(item);
     }
-    this.trigger([item]);
+    this.trigger(this.items);
   },
 
   load(items) {

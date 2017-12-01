@@ -1,11 +1,14 @@
 import PropTypes from 'prop-types';
 import React from 'react';
+import Reflux from 'reflux';
 
-import {t} from '../../../../locale';
+import {removeAndRedirectToRemainingOrganization} from '../../../../actionCreators/organizations';
+import {t, tct} from '../../../../locale';
 import ApiMixin from '../../../../mixins/apiMixin';
-import SettingsPageHeader from '../../components/settingsPageHeader';
+import LinkWithConfirmation from '../../../../components/linkWithConfirmation';
 import LoadingIndicator from '../../../../components/loadingIndicator';
 import OrganizationStore from '../../../../stores/organizationStore';
+import SettingsPageHeader from '../../components/settingsPageHeader';
 import getSettingsComponent from '../../../../utils/getSettingsComponent';
 
 const OrganizationGeneralSettingsView = React.createClass({
@@ -13,7 +16,7 @@ const OrganizationGeneralSettingsView = React.createClass({
     routes: PropTypes.arrayOf(PropTypes.object),
   },
 
-  mixins: [ApiMixin],
+  mixins: [ApiMixin, Reflux.connect(OrganizationStore, 'organizations')],
 
   getInitialState() {
     return {
@@ -56,16 +59,36 @@ const OrganizationGeneralSettingsView = React.createClass({
     });
   },
 
-  onSave(data) {
+  handleRemoveOrganization() {
+    let {data} = this.state || {};
+    if (!data) return;
+
+    // Can't remove if this is only org
+    let allOrgs = OrganizationStore.getAll();
+    if (allOrgs && allOrgs.length < 2) return;
+
+    removeAndRedirectToRemainingOrganization(this.api, {
+      orgId: this.props.params.orgId,
+      successMessage: `${data.name} is queued for deletion.`,
+      errorMessage: `Error removing the ${data && data.name} organization`,
+    });
+  },
+
+  handleSave(data) {
     // TODO(dcramer): this should propagate
     this.setState({data});
+
+    // Ugh `data` here is different than data in OrganizationStore
     OrganizationStore.add(data);
   },
 
   render() {
-    let data = this.state.data;
+    let {data, organizations} = this.state;
     let orgId = this.props.params.orgId;
     let access = data && new Set(data.access);
+
+    let hasTeams = data && data.teams && !!data.teams.length;
+    let hasMultipleOrgs = data && organizations.length > 1;
 
     return (
       <div>
@@ -80,11 +103,12 @@ const OrganizationGeneralSettingsView = React.createClass({
                 initialData={data}
                 orgId={orgId}
                 access={access}
-                onSave={this.onSave}
+                onSave={this.handleSave}
               />
 
               {access.has('org:admin') &&
-                !data.isDefault && (
+                !data.isDefault &&
+                hasMultipleOrgs && (
                   <div className="box">
                     <div className="box-header">
                       <h3>{t('Remove Organization')}</h3>
@@ -97,12 +121,41 @@ const OrganizationGeneralSettingsView = React.createClass({
                       </p>
 
                       <fieldset className="form-actions">
-                        <a
-                          href={`/organizations/${orgId}/remove/`}
+                        <LinkWithConfirmation
                           className="btn btn-danger"
+                          priority="danger"
+                          title={tct('Remove [name] organization', {
+                            name: data && data.name,
+                          })}
+                          message={
+                            <div>
+                              <p>
+                                {tct(
+                                  'Removing the [name] organization is permanent and cannot be undone!',
+                                  {name: data && data.name}
+                                )}
+                              </p>
+
+                              {hasTeams && (
+                                <div>
+                                  <p>
+                                    {t(
+                                      'This will also remove the following teams and all associated projects:'
+                                    )}
+                                  </p>
+                                  <ul>
+                                    {data.teams.map(team => (
+                                      <li key={team.slug}>{team.name}</li>
+                                    ))}
+                                  </ul>
+                                </div>
+                              )}
+                            </div>
+                          }
+                          onConfirm={this.handleRemoveOrganization}
                         >
                           {t('Remove Organization')}
-                        </a>
+                        </LinkWithConfirmation>
                       </fieldset>
                     </div>
                   </div>
