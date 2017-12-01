@@ -12,7 +12,6 @@ import six
 
 from django.db import IntegrityError, transaction
 
-from sentry.signals import buffer_incr_complete
 from sentry.tagstore import TagKeyStatus
 from sentry.tagstore.base import TagStorage
 
@@ -58,31 +57,6 @@ class TagStorage(TagStorage):
         )
 
         # TODO(brett): v2-specific receivers for keeping environment aggregates up to date
-        @buffer_incr_complete.connect(sender=TagValue, weak=False)
-        def record_project_tag_count(filters, created, **kwargs):
-            from sentry import tagstore
-
-            if not created:
-                return
-
-            project_id = filters['project_id']
-            environment_id = filters.get('environment_id')
-
-            tagstore.incr_tag_key_values_seen(project_id, environment_id, filters['key'])
-
-        @buffer_incr_complete.connect(sender=GroupTagValue, weak=False)
-        def record_group_tag_count(filters, created, extra, **kwargs):
-            from sentry import tagstore
-
-            if not created:
-                return
-
-            project_id = extra['project_id']
-            group_id = filters['group_id']
-            environment_id = filters.get('environment_id')
-
-            tagstore.incr_group_tag_key_values_seen(
-                project_id, group_id, environment_id, filters['key'])
 
     def create_tag_key(self, project_id, environment_id, key, **kwargs):
         return TagKey.objects.create(
@@ -101,83 +75,83 @@ class TagStorage(TagStorage):
         )
 
     def create_tag_value(self, project_id, environment_id, key, value, **kwargs):
-        key_id = self.get_or_create_tag_key(
-            project_id, environment_id, key, **kwargs).id
+        tag_key, _ = self.get_or_create_tag_key(
+            project_id, environment_id, key, **kwargs)
 
         return TagValue.objects.create(
             project_id=project_id,
             environment_id=environment_id,
-            key_id=key_id,
+            key_id=tag_key.id,
             value=value,
             **kwargs
         )
 
     def get_or_create_tag_value(self, project_id, environment_id, key, value, **kwargs):
-        key_id = self.get_or_create_tag_key(
-            project_id, environment_id, key, **kwargs).id
+        tag_key, _ = self.get_or_create_tag_key(
+            project_id, environment_id, key, **kwargs)
 
         return TagValue.objects.get_or_create(
             project_id=project_id,
             environment_id=environment_id,
-            key_id=key_id,
+            key_id=tag_key.id,
             value=value,
             **kwargs
         )
 
     def create_group_tag_key(self, project_id, group_id, environment_id, key, **kwargs):
-        key_id = self.get_or_create_tag_key(
-            project_id, environment_id, key, **kwargs).id
+        tag_key, _ = self.get_or_create_tag_key(
+            project_id, environment_id, key, **kwargs)
 
         return GroupTagKey.objects.create(
             project_id=project_id,
             group_id=group_id,
             environment_id=environment_id,
-            key_id=key_id,
+            key_id=tag_key.id,
             **kwargs
         )
 
     def get_or_create_group_tag_key(self, project_id, group_id, environment_id, key, **kwargs):
-        key_id = self.get_or_create_tag_key(
-            project_id, environment_id, key, **kwargs).id
+        tag_key, _ = self.get_or_create_tag_key(
+            project_id, environment_id, key, **kwargs)
 
         return GroupTagKey.objects.get_or_create(
             project_id=project_id,
             group_id=group_id,
             environment_id=environment_id,
-            key_id=key_id,
+            key_id=tag_key.id,
             **kwargs
         )
 
     def create_group_tag_value(self, project_id, group_id, environment_id, key, value, **kwargs):
-        key_id = self.get_or_create_tag_key(
-            project_id, environment_id, key, **kwargs).id
+        tag_key, _ = self.get_or_create_tag_key(
+            project_id, environment_id, key, **kwargs)
 
-        value_id = self.get_or_create_tag_value(
-            project_id, environment_id, key, value, **kwargs).id
+        tag_value, _ = self.get_or_create_tag_value(
+            project_id, environment_id, key, value, **kwargs)
 
         return GroupTagValue.objects.create(
             project_id=project_id,
             group_id=group_id,
             environment_id=environment_id,
-            key_id=key_id,
-            value_id=value_id,
+            key_id=tag_key.id,
+            value_id=tag_value.id,
             **kwargs
         )
 
     def get_or_create_group_tag_value(self, project_id, group_id,
                                       environment_id, key, value, **kwargs):
-        key_id = self.get_or_create_tag_key(
-            project_id, environment_id, key, **kwargs).id
+        tag_key, _ = self.get_or_create_tag_key(
+            project_id, environment_id, key, **kwargs)
 
-        value_id = self.get_or_create_tag_value(
-            project_id, environment_id, key, value, **kwargs).id
+        tag_value, _ = self.get_or_create_tag_value(
+            project_id, environment_id, key, value, **kwargs)
 
         return GroupTagValue.objects.get_or_create(
             project_id=project_id,
             group_id=group_id,
             environment_id=environment_id,
-            key_id=key_id,
-            value_id=value_id,
+            key_id=tag_key.id,
+            value_id=tag_value.id,
             **kwargs
         )
 

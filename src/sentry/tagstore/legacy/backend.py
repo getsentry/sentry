@@ -64,13 +64,13 @@ class LegacyTagStorage(TagStorage):
 
         # Legacy tag write flow:
         #
-        # event_manager synchronously calls index_event_tags:
+        # event_manager calls index_event_tags:
         #   for tag in event:
         #       get_or_create_tag_key
         #       get_or_create_tag_value
         #   create_event_tags
         #
-        # event_manager synchronously calls Group.objects.add_tags:
+        # event_manager calls Group.objects.add_tags:
         #   for tag in event:
         #       incr_tag_value_times_seen:
         #           (async) buffer.incr(TagValue):
@@ -79,8 +79,8 @@ class LegacyTagStorage(TagStorage):
         #                   record_project_tag_count(TagValue)
         #                   if created(TagValue):
         #                       incr_tag_key_values_seen:
-        #                           (async) buffer.incr(TagKey)
-        #                           create_or_update(TagKey)
+        #                           (async) buffer.incr(TagKey):
+        #                               create_or_update(TagKey)
         #       incr_group_tag_value_times_seen:
         #           (async) buffer.incr(GroupTagValue):
         #                create_or_update(GroupTagValue)
@@ -88,8 +88,8 @@ class LegacyTagStorage(TagStorage):
         #                   record_project_tag_count(GroupTagValue)
         #                   if created(GroupTagValue):
         #                       incr_group_tag_key_values_seen:
-        #                           (async) buffer.incr(GroupTagKey)
-        #                           create_or_update(GroupTagKey)
+        #                           (async) buffer.incr(GroupTagKey):
+        #                               create_or_update(GroupTagKey)
 
         @buffer_incr_complete.connect(sender=TagValue, weak=False)
         def record_project_tag_count(filters, created, **kwargs):
