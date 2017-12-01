@@ -104,6 +104,14 @@ class ProjectAdminSerializer(ProjectMemberSerializer):
             )
         return attrs
 
+    def validate_allowedDomains(self, attrs, source):
+        allowed_domains = attrs[source]
+        if len(allowed_domains) == 0:
+            raise serializers.ValidationError(
+                'Empty value will block all requests, use * to accept from all domains'
+            )
+        return attrs
+
     def validate_slug(self, attrs, source):
         slug = attrs[source]
         project = self.context['project']
@@ -308,7 +316,7 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
             project.update_option('sentry:resolve_age', result['resolveAge'])
         if result.get('scrapeJavaScript') is not None:
             project.update_option('sentry:scrape_javascript', result['scrapeJavaScript'])
-        if result.get('allowedDomains') is not None:
+        if result.get('allowedDomains'):
             project.update_option('sentry:origins', result['allowedDomains'])
 
         if result.get('isSubscribed'):
