@@ -115,3 +115,5 @@ def test_truncatechars():
     assert truncatechars("12345", 2, ellipsis=u"\u2026") == u"1\u2026"
     assert truncatechars("12345", 1, ellipsis=u"\u2026") == u"\u2026"
     assert truncatechars("12345", 0, ellipsis=u"\u2026") == u"\u2026"
+
+    assert truncatechars(None, 1) is None
