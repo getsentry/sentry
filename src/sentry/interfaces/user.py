@@ -12,23 +12,9 @@ __all__ = ('User', )
 import six
 
 from sentry.interfaces.base import Interface, InterfaceValidationError
+from sentry.interfaces.schemas import validate_and_default_interface
 from sentry.utils.safe import trim, trim_dict
 from sentry.web.helpers import render_to_string
-from sentry.utils.validators import validate_ip
-from sentry.constants import MAX_EMAIL_FIELD_LENGTH
-
-
-def validate_email(value, required=True):
-    if not required and not value:
-        return
-
-    if not isinstance(value, six.string_types):
-        raise ValueError('object of type %r is not an email address' % type(value).__name__)
-
-    # safe to assume an email address at least has a @ in it.
-    if '@' not in value:
-        raise ValueError('malformed email address')
-    return value
 
 
 class User(Interface):
@@ -48,63 +34,36 @@ class User(Interface):
     >>>     "optional": "value"
     >>> }
     """
+    path = 'sentry.interfaces.User'
 
     @classmethod
     def to_python(cls, data):
         data = data.copy()
+        # pre-validation casting
+        for k in {'id', 'email', 'username', 'ip_address', 'name'}:
+            if k in data and data[k]:
+                data[k] = six.text_type(data[k])
 
-        extra_data = data.pop('data', data)
-        if not isinstance(extra_data, dict):
-            extra_data = {}
+        orig = data.copy()
+        is_valid, errors = validate_and_default_interface(data, cls.path)
+        if not is_valid:
+            raise InterfaceValidationError("Invalid user")
 
-        ident = data.pop('id', None)
-        if ident:
-            ident = trim(six.text_type(ident), 128)
-        try:
-            email = trim(validate_email(data.pop('email', None), False), MAX_EMAIL_FIELD_LENGTH)
-        except ValueError:
-            raise InterfaceValidationError("Invalid value for 'email'")
+        if 'data' in data:
+            body_data = data['data']
+        else:
+            # Any keys that were in the original but were removed by
+            # the schema get put into 'data' (for backwards compatibility).
+            body_data = {k: v for k, v in six.iteritems(orig) if k not in data and v}
+        data['data'] = trim_dict(body_data) if isinstance(body_data, dict) else {}
 
-        username = trim(data.pop('username', None), 128)
-        if username:
-            username = six.text_type(username)
+        trim_keys = {'id', 'email', 'username', 'name', 'ip_address'}
+        data.update({k: trim(data.get(k, None), 128) for k in trim_keys})
 
-        name = trim(data.pop('name', None), 128)
-        if name:
-            name = six.text_type(name)
-
-        try:
-            ip_address = validate_ip(data.pop('ip_address', None), False)
-        except ValueError:
-            raise InterfaceValidationError("Invalid value for 'ip_address'")
-
-        # TODO(dcramer): patch in fix to deal w/ old data but not allow new
-        # if not (ident or email or username or ip_address):
-        #     raise ValueError('No identifying value')
-
-        kwargs = {
-            'id': ident,
-            'email': email,
-            'username': username,
-            'ip_address': ip_address,
-            'name': name,
-        }
-
-        kwargs['data'] = trim_dict(extra_data)
-        return cls(**kwargs)
-
-    def get_api_context(self, is_public=False):
-        return {
-            'id': self.id,
-            'email': self.email,
-            'username': self.username,
-            'ipAddress': self.ip_address,
-            'name': self.name,
-            'data': self.data,
-        }
+        return cls(**data)
 
     def get_path(self):
-        return 'sentry.interfaces.User'
+        return self.path
 
     def get_hash(self):
         return []
