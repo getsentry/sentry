@@ -295,7 +295,14 @@ class TransactionTestCase(BaseTestCase, TransactionTestCase):
 
 
 class APITestCase(BaseTestCase, BaseAPITestCase):
-    pass
+    def assert_valid_deleted_log(self, deleted_log, original_object):
+        assert deleted_log is not None
+        assert original_object.name == deleted_log.name
+
+        # Truncating datetime for mysql compatibility
+        assert deleted_log.date_created.replace(
+            microsecond=0) == original_object.date_added.replace(microsecond=0)
+        assert deleted_log.date_deleted >= deleted_log.date_created
 
 
 class AuthProviderTestCase(TestCase):

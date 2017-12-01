@@ -5,7 +5,7 @@ from mock import patch
 from django.core.urlresolvers import reverse
 from django.core import mail
 
-from sentry.models import Organization, OrganizationStatus
+from sentry.models import Organization, OrganizationStatus, DeletedOrganization
 from sentry.testutils import TestCase, PermissionTestCase
 
 
@@ -64,6 +64,8 @@ class RemoveOrganizationTest(TestCase):
         org = Organization.objects.get(id=self.organization.id)
 
         assert org.status == OrganizationStatus.PENDING_DELETION
+        deleted_org = DeletedOrganization.objects.get(slug=org.slug)
+        self.assert_valid_deleted_log(deleted_org, org)
 
         mock_delete_organization.apply_async.assert_called_once_with(
             kwargs={
