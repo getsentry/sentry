@@ -7,6 +7,10 @@ Schema Changes
 - Drop index on ``EventTag(project_id, key_id, value_id)``
 - Increased length of ``Release.ref`` and ``Release.version`` to 250
 
+API Changes
+~~~~~~~~~~~
+- Project plugins endpoint returns every configurable plugin, and includes additional information about each one
+
 Version 8.22
 ------------
 
