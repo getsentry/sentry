@@ -38,6 +38,8 @@ def truncatechars(value, arg, ellipsis='...'):
 
     Argument: Number of chars to truncate after.
     """
+    if value is None:
+        return value
     try:
         length = int(arg)
     except ValueError:  # Invalid literal for int().
