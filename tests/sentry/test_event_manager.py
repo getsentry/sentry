@@ -22,7 +22,7 @@ from sentry.models import (
     Activity, Environment, Event, Group, GroupHash, GroupRelease, GroupResolution, GroupStatus, GroupTombstone,
     EventMapping, Release
 )
-from sentry.signals import event_discarded
+from sentry.signals import event_discarded, event_saved
 from sentry.testutils import assert_mock_called_once_with_partial, TestCase, TransactionTestCase
 
 
@@ -966,16 +966,34 @@ class EventManagerTest(TransactionTestCase):
 
         mock_event_discarded = mock.Mock()
         event_discarded.connect(mock_event_discarded)
+        mock_event_saved = mock.Mock()
+        event_saved.connect(mock_event_saved)
 
         with self.tasks():
             with self.assertRaises(HashDiscarded):
                 event = manager.save(1)
 
+        assert not mock_event_saved.called
         assert_mock_called_once_with_partial(
             mock_event_discarded,
             project=group.project,
             sender=EventManager,
             signal=event_discarded,
+        )
+
+    def test_event_saved_signal(self):
+        mock_event_saved = mock.Mock()
+        event_saved.connect(mock_event_saved)
+
+        manager = EventManager(self.make_event(message='foo'))
+        manager.normalize()
+        event = manager.save(1)
+
+        assert_mock_called_once_with_partial(
+            mock_event_saved,
+            project=event.group.project,
+            sender=EventManager,
+            signal=event_saved,
         )
 
 

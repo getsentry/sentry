@@ -33,7 +33,7 @@ from sentry.models import (
     UserReport
 )
 from sentry.plugins import plugins
-from sentry.signals import first_event_received, regression_signal, event_discarded
+from sentry.signals import event_discarded, event_saved, first_event_received, regression_signal
 from sentry.tasks.merge import merge_group
 from sentry.tasks.post_process import post_process_group
 from sentry.utils import metrics
@@ -610,6 +610,11 @@ class EventManager(object):
                 sender=EventManager,
             )
             raise
+        else:
+            event_saved.send_robust(
+                project=project,
+                sender=EventManager,
+            )
 
         event.group = group
         # store a reference to the group id to guarantee validation of isolation
