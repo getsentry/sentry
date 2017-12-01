@@ -272,6 +272,14 @@ class ProjectUpdateTest(APITestCase):
         assert self.project.get_security_token() == 'fizzbuzz'
         assert resp.data['securityToken'] == 'fizzbuzz'
 
+        # can delete
+        resp = self.client.put(self.path, data={
+            'securityToken': '',
+        })
+        assert resp.status_code == 200, resp.content
+        assert self.project.get_security_token() == ''
+        assert resp.data['securityToken'] == ''
+
     def test_security_token_header(self):
         resp = self.client.put(self.path, data={
             'securityTokenHeader': 'X-Hello-World',
@@ -279,6 +287,14 @@ class ProjectUpdateTest(APITestCase):
         assert resp.status_code == 200, resp.content
         assert self.project.get_option('sentry:token_header') == 'X-Hello-World'
         assert resp.data['securityTokenHeader'] == 'X-Hello-World'
+
+        # can delete
+        resp = self.client.put(self.path, data={
+            'securityTokenHeader': '',
+        })
+        assert resp.status_code == 200, resp.content
+        assert self.project.get_option('sentry:token_header') == ''
+        assert resp.data['securityTokenHeader'] == ''
 
     def test_verify_ssl(self):
         resp = self.client.put(self.path, data={
@@ -290,11 +306,18 @@ class ProjectUpdateTest(APITestCase):
 
     def test_scrub_ip_address(self):
         resp = self.client.put(self.path, data={
-            'scrubIPAddresses': True,
+            'scrubIpAddresses': True,
         })
         assert resp.status_code == 200, resp.content
         assert self.project.get_option('sentry:scrub_ip_address') is True
-        assert resp.data['scrubIPAddresses'] is True
+        assert resp.data['scrubIpAddresses'] is True
+
+        resp = self.client.put(self.path, data={
+            'scrubIpAddresses': False,
+        })
+        assert resp.status_code == 200, resp.content
+        assert self.project.get_option('sentry:scrub_ip_address') is False
+        assert resp.data['scrubIpAddresses'] is False
 
     def test_scrape_javascript(self):
         resp = self.client.put(self.path, data={
@@ -312,6 +335,13 @@ class ProjectUpdateTest(APITestCase):
         assert self.project.get_option('sentry:default_environment') == 'dev'
         assert resp.data['defaultEnvironment'] == 'dev'
 
+        resp = self.client.put(self.path, data={
+            'defaultEnvironment': '',
+        })
+        assert resp.status_code == 200, resp.content
+        assert self.project.get_option('sentry:default_environment') == ''
+        assert resp.data['defaultEnvironment'] == ''
+
     def test_resolve_age(self):
         resp = self.client.put(self.path, data={
             'resolveAge': 5,
@@ -320,9 +350,25 @@ class ProjectUpdateTest(APITestCase):
         assert self.project.get_option('sentry:resolve_age') == 5
         assert resp.data['resolveAge'] == 5
 
+        # can set to 0 or delete
+        resp = self.client.put(self.path, data={
+            'resolveAge': '',
+        })
+        assert resp.status_code == 200, resp.content
+        assert self.project.get_option('sentry:resolve_age') == 0
+        assert resp.data['resolveAge'] == 0
+
     def test_allowed_domains(self):
         resp = self.client.put(self.path, data={
             'allowedDomains': ['foobar.com', 'https://example.com'],
+        })
+        assert resp.status_code == 200, resp.content
+        assert self.project.get_option('sentry:origins') == ['foobar.com', 'https://example.com']
+        assert resp.data['allowedDomains'] == ['foobar.com', 'https://example.com']
+
+        # cannot be empty
+        resp = self.client.put(self.path, data={
+            'allowedDomains': '',
         })
         assert resp.status_code == 200, resp.content
         assert self.project.get_option('sentry:origins') == ['foobar.com', 'https://example.com']

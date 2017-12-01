@@ -91,7 +91,7 @@ class ProjectAdminSerializer(ProjectMemberSerializer):
     dataScrubberDefaults = serializers.BooleanField(required=False)
     sensitiveFields = ListField(child=serializers.CharField(), required=False)
     safeFields = ListField(child=serializers.CharField(), required=False)
-    scrubIPAddresses = serializers.BooleanField(required=False)
+    scrubIpAddresses = serializers.BooleanField(required=False)
     scrapeJavaScript = serializers.BooleanField(required=False)
     allowedDomains = ListField(child=OriginField(), required=False)
     resolveAge = serializers.IntegerField(required=False)
@@ -288,19 +288,19 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
         if result.get('digestsMaxDelay'):
             project.update_option(
                 'digests:mail:maximum_delay', result['digestsMaxDelay'])
-        if result.get('subjectPrefix'):
+        if result.get('subjectPrefix') is not None:
             project.update_option('mail:subject_prefix',
                                   result['subjectPrefix'])
         if result.get('subjectTemplate'):
             project.update_option('mail:subject_template',
                                   result['subjectTemplate'])
-        if result.get('defaultEnvironment'):
+        if result.get('defaultEnvironment') is not None:
             project.update_option('sentry:default_environment', result['defaultEnvironment'])
-        if result.get('scrubIPAddresses') is not None:
-            project.update_option('sentry:scrub_ip_address', result['scrubIPAddresses'])
-        if result.get('securityToken'):
+        if result.get('scrubIpAddresses') is not None:
+            project.update_option('sentry:scrub_ip_address', result['scrubIpAddresses'])
+        if result.get('securityToken') is not None:
             project.update_option('sentry:token', result['securityToken'])
-        if result.get('securityTokenHeader'):
+        if result.get('securityTokenHeader') is not None:
             project.update_option('sentry:token_header', result['securityTokenHeader'])
         if result.get('verifySSL') is not None:
             project.update_option('sentry:verify_ssl', result['verifySSL'])
@@ -312,8 +312,12 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
             project.update_option('sentry:sensitive_fields', result['sensitiveFields'])
         if result.get('safeFields') is not None:
             project.update_option('sentry:safe_fields', result['safeFields'])
-        if result.get('resolveAge'):
-            project.update_option('sentry:resolve_age', result['resolveAge'])
+        # resolveAge can be None
+        if 'resolveAge' in result:
+            project.update_option(
+                'sentry:resolve_age',
+                0 if result.get('resolveAge') is None else int(
+                    result['resolveAge']))
         if result.get('scrapeJavaScript') is not None:
             project.update_option('sentry:scrape_javascript', result['scrapeJavaScript'])
         if result.get('allowedDomains'):

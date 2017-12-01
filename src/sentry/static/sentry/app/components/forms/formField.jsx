@@ -67,7 +67,7 @@ export default class FormField extends React.PureComponent {
       return props.value;
     }
     if (form && form.data.hasOwnProperty(props.name)) {
-      return form.data[props.name];
+      return form.data[props.name] || '';
     }
     return props.defaultValue || '';
   }

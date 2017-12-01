@@ -336,9 +336,9 @@ class DetailedProjectSerializer(ProjectWithTeamSerializer):
                 attrs['options'].get(
                     'mail:subject_template') or DEFAULT_SUBJECT_TEMPLATE.template,
                 'securityToken': attrs['options'].get('sentry:token') or obj.get_security_token(),
-                'securityTokenHeader': attrs['options'].get('sentry:token_header') or 'X-Sentry-Token',
+                'securityTokenHeader': attrs['options'].get('sentry:token_header'),
                 'verifySSL': bool(attrs['options'].get('sentry:verify_ssl', False)),
-                'scrubIPAddresses': bool(attrs['options'].get('sentry:scrub_ip_address', False)),
+                'scrubIpAddresses': bool(attrs['options'].get('sentry:scrub_ip_address', False)),
                 'scrapeJavaScript': bool(attrs['options'].get('sentry:scrape_javascript', True)),
                 'organization':
                 attrs['org'],
