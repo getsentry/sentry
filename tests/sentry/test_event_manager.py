@@ -3,6 +3,7 @@
 from __future__ import absolute_import, print_function
 
 import logging
+import mock
 import pytest
 
 from datetime import timedelta
@@ -21,7 +22,8 @@ from sentry.models import (
     Activity, Environment, Event, Group, GroupHash, GroupRelease, GroupResolution, GroupStatus, GroupTombstone,
     EventMapping, Release
 )
-from sentry.testutils import TestCase, TransactionTestCase
+from sentry.signals import event_discarded
+from sentry.testutils import assert_mock_called_once_with_partial, TestCase, TransactionTestCase
 
 
 class EventManagerTest(TransactionTestCase):
@@ -927,7 +929,7 @@ class EventManagerTest(TransactionTestCase):
             'formatted': 'world hello',
         }
 
-    def test_trows_when_matches_discarded_hash(self):
+    def test_throws_when_matches_discarded_hash(self):
         manager = EventManager(
             self.make_event(
                 message='foo',
@@ -962,9 +964,19 @@ class EventManagerTest(TransactionTestCase):
             )
         )
 
+        mock_event_discarded = mock.Mock()
+        event_discarded.connect(mock_event_discarded)
+
         with self.tasks():
             with self.assertRaises(HashDiscarded):
                 event = manager.save(1)
+
+        assert_mock_called_once_with_partial(
+            mock_event_discarded,
+            project=group.project,
+            sender=EventManager,
+            signal=event_discarded,
+        )
 
 
 class GetHashesFromEventTest(TestCase):
