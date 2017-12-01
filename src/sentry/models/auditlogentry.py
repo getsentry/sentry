@@ -64,6 +64,8 @@ class AuditLogEntryEvent(object):
     RULE_REMOVE = 82
 
     SET_ONDEMAND = 90
+    TRIAL_STARTED = 91
+    PLAN_CHANGED = 92
 
     SERVICEHOOK_ADD = 100
     SERVICEHOOK_EDIT = 101
@@ -130,6 +132,7 @@ class AuditLogEntry(Model):
             (AuditLogEntryEvent.RULE_ADD, 'rule.create'),
             (AuditLogEntryEvent.RULE_EDIT, 'rule.edit'),
             (AuditLogEntryEvent.RULE_REMOVE, 'rule.remove'),
+<<<<<<< HEAD
             (AuditLogEntryEvent.SET_ONDEMAND, 'ondemand.edit'),
             (AuditLogEntryEvent.SERVICEHOOK_ADD, 'serivcehook.create'),
             (AuditLogEntryEvent.SERVICEHOOK_EDIT, 'serivcehook.edit'),
@@ -139,6 +142,10 @@ class AuditLogEntry(Model):
             (AuditLogEntryEvent.INTEGRATION_ADD, 'integration.add'),
             (AuditLogEntryEvent.INTEGRATION_EDIT, 'integration.edit'),
             (AuditLogEntryEvent.INTEGRATION_REMOVE, 'integration.remove')
+=======
+            (AuditLogEntryEvent.TRIAL_STARTED, 'trial.started'),
+            (AuditLogEntryEvent.PLAN_CHANGED, 'plan.changed'),
+>>>>>>> feat(auditlog): Add Trial and Plan Events to Audit Log
         )
     )
     ip_address = models.GenericIPAddressField(null=True, unpack_ipv4=True)
@@ -266,6 +273,7 @@ class AuditLogEntry(Model):
         elif self.event == AuditLogEntryEvent.RULE_REMOVE:
             return 'removed rule "%s"' % (self.data['label'], )
 
+<<<<<<< HEAD
         elif self.event == AuditLogEntryEvent.SET_ONDEMAND:
             return 'changed on-demand max spend to $%d' % (self.data['ondemand'] / 100, )
 
@@ -289,5 +297,11 @@ class AuditLogEntry(Model):
         elif self.event == AuditLogEntryEvent.INTEGRATION_REMOVE:
             return 'disabled integration %s from project %s' % (
                 self.data['integration'], self.data['project'])
+=======
+        elif self.event == AuditLogEntryEvent.TRIAL_STARTED:
+            return 'started trial'
+        elif self.event == AuditLogEntryEvent.PLAN_CHANGED:
+            return 'changed plan to %s' % (self.data['plan_name'], )
+>>>>>>> feat(auditlog): Add Trial and Plan Events to Audit Log
 
         return ''
