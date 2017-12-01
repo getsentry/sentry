@@ -33,7 +33,7 @@ from sentry.models import (
     UserReport
 )
 from sentry.plugins import plugins
-from sentry.signals import first_event_received, regression_signal
+from sentry.signals import first_event_received, regression_signal, event_discarded
 from sentry.tasks.merge import merge_group
 from sentry.tasks.post_process import post_process_group
 from sentry.utils import metrics
@@ -600,9 +600,16 @@ class EventManager(object):
         if release:
             group_kwargs['first_release'] = release
 
-        group, is_new, is_regression, is_sample = self._save_aggregate(
-            event=event, hashes=hashes, release=release, **group_kwargs
-        )
+        try:
+            group, is_new, is_regression, is_sample = self._save_aggregate(
+                event=event, hashes=hashes, release=release, **group_kwargs
+            )
+        except HashDiscarded:
+            event_discarded.send_robust(
+                project=project,
+                sender=EventManager,
+            )
+            raise
 
         event.group = group
         # store a reference to the group id to guarantee validation of isolation
