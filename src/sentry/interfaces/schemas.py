@@ -17,6 +17,7 @@ import uuid
 from sentry.db.models import BoundedIntegerField
 from sentry.constants import (
     LOG_LEVELS_MAP,
+    MAX_EMAIL_FIELD_LENGTH,
     MAX_TAG_KEY_LENGTH,
     MAX_TAG_VALUE_LENGTH,
     VALID_PLATFORMS,
@@ -61,7 +62,20 @@ HTTP_INTERFACE_SCHEMA = {
                 PAIRS,  # or a list of 2-tuples
             ]
         },
-        'env': {'type': 'object'},
+        'env': {
+            'type': 'object',
+            'properties': {
+                'REMOTE_ADDR': {
+                    'type': 'string',
+                    'oneOf': [
+                        {'format': 'ipv4'},
+                        {'format': 'ipv6'},
+                        {'enum': ['{{auto}}']},
+                    ],
+                },
+            },
+            'additionalProperties': True,
+        },
         'headers': {
             'anyOf': [
                 {'type': 'object'},  # either an object
@@ -211,7 +225,48 @@ DEVICE_INTERFACE_SCHEMA = {
     'required': ['name', 'version'],
 }
 
-TEMPLATE_INTERFACE_SCHEMA = {'type': 'object'}  # TODO fill this out
+USER_INTERFACE_SCHEMA = {
+    'type': 'object',
+    'properties': {
+        'id': {},
+        'ip_address': {
+            'type': 'string',
+            'oneOf': [
+                {'format': 'ipv4'},
+                {'format': 'ipv6'},
+                {'enum': ['{{auto}}']},
+            ],
+            'default': iverror,
+        },
+        'email': {
+            'type': 'string',
+            'format': 'email',
+            'maxLength': MAX_EMAIL_FIELD_LENGTH,
+            'default': iverror,
+        },
+        'username': {
+            'type': 'string',
+            'minLength': 1,
+        },
+        'name': {
+            'type': 'string',
+            'minLength': 1,
+        },
+        'data': {
+            'type': 'object',
+        },
+    },
+    'anyOf': [
+        {'required': ['id']},
+        {'required': ['ip_address']},
+        {'required': ['username']},
+        {'required': ['email']},
+    ],
+    'additionalProperties': {'not': {}},
+}
+
+
+TEMPLATE_INTERFACE_SCHEMA = {'type': 'object'}
 MESSAGE_INTERFACE_SCHEMA = {'type': 'object'}
 
 TAGS_DICT_SCHEMA = {
@@ -393,6 +448,7 @@ EVENT_SCHEMA = {
     'required': ['platform', 'event_id'],
     'additionalProperties': True,
 }
+
 """
 Schemas for raw request data.
 
@@ -422,6 +478,8 @@ INTERFACE_SCHEMAS = {
     'template': TEMPLATE_INTERFACE_SCHEMA,
     'sentry.interfaces.Template': TEMPLATE_INTERFACE_SCHEMA,
     'device': DEVICE_INTERFACE_SCHEMA,
+    'user': USER_INTERFACE_SCHEMA,
+    'sentry.interfaces.User': USER_INTERFACE_SCHEMA,
 
     # Not interfaces per se, but looked up as if they were.
     'event': EVENT_SCHEMA,
@@ -433,7 +491,11 @@ INTERFACE_SCHEMAS = {
 def validator_for_interface(name):
     if name not in INTERFACE_SCHEMAS:
         return None
-    return jsonschema.Draft4Validator(INTERFACE_SCHEMAS[name], types={'array': (list, tuple)})
+    return jsonschema.Draft4Validator(
+        INTERFACE_SCHEMAS[name],
+        types={'array': (list, tuple)},
+        format_checker=jsonschema.FormatChecker()
+    )
 
 
 def validate_and_default_interface(data, interface, name=None,
