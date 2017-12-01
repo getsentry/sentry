@@ -77,9 +77,9 @@ class Confirm extends React.PureComponent {
     const ConfirmModal = (
       <Modal show={this.state.isModalOpen} animation={false} onHide={this.handleToggle}>
         <div className="modal-body">
-          <p>
+          <div>
             <strong>{message}</strong>
-          </p>
+          </div>
         </div>
         <div className="modal-footer">
           <Button style={{marginRight: 10}} onClick={this.handleToggle}>
