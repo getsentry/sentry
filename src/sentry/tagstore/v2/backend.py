@@ -354,16 +354,13 @@ class TagStorage(TagStorage):
 
         return list(qs)
 
-    def delete_tag_key(self, project_id, key, environment_id=None):
+    def delete_tag_key(self, project_id, key):
         from sentry.tagstore.tasks import delete_tag_key as delete_tag_key_task
 
         tagkeys_qs = TagKey.objects.filter(
             project_id=project_id,
             key=key,
         )
-
-        if environment_id is not None:
-            tagkeys_qs = tagkeys_qs.filter(environment_id=environment_id)
 
         deleted = []
         for tagkey in tagkeys_qs:

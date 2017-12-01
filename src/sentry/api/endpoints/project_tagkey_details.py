@@ -37,14 +37,7 @@ class ProjectTagKeyDetailsEndpoint(ProjectEndpoint, EnvironmentMixin):
         lookup_key = tagstore.prefix_reserved_key(key)
 
         try:
-            environment_id = self._get_environment_id_from_request(request, project.organization_id)
-        except Environment.DoesNotExist:
-            # if the environment doesn't exist then the tag can't possibly exist
-            raise ResourceDoesNotExist
-
-        try:
-            deleted = tagstore.delete_tag_key(
-                project.id, lookup_key, environment_id=environment_id)
+            deleted = tagstore.delete_tag_key(project.id, lookup_key)
         except tagstore.TagKeyNotFound:
             raise ResourceDoesNotExist
 
