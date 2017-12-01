@@ -2,7 +2,6 @@ import PropTypes from 'prop-types';
 import React from 'react';
 import Reflux from 'reflux';
 import styled from 'react-emotion';
-import {withTheme} from 'emotion-theming';
 
 import OrganizationStore from '../../../stores/organizationStore';
 import Link from '../../../components/link';
@@ -13,12 +12,10 @@ import Crumb from './crumb.styled';
 import SettingsBreadcrumbDropdown from './settingsBreadcrumbDropdown';
 import SettingsBreadcrumbDivider from './settingsBreadcrumbDivider';
 
-const Breadcrumbs = withTheme(
-  styled.div`
-    display: flex;
-    align-items: center;
-  `
-);
+const Breadcrumbs = styled.div`
+  display: flex;
+  align-items: center;
+`;
 
 const MenuItem = styled(Link)`
   display: block;
