@@ -102,9 +102,7 @@ const ProjectSettings = React.createClass({
                 <a href={`${settingsUrlRoot}/quotas/`}>{t('Rate Limits')}</a>
               </li>
             )}
-            <li>
-              <a href={`${settingsUrlRoot}/tags/`}>{t('Tags')}</a>
-            </li>
+            <ListLink to={`/${orgId}/${projectId}/settings/tags/`}>{t('Tags')}</ListLink>
             <li>
               <a href={`${settingsUrlRoot}/issue-tracking/`}>{t('Issue Tracking')}</a>
             </li>
