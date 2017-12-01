@@ -62,7 +62,7 @@ class AuditLogEntryEvent(object):
     RULE_EDIT = 81
     RULE_REMOVE = 82
 
-    SET_ONDEMAND = 83
+    SET_ONDEMAND = 90
 
 
 class AuditLogEntry(Model):
