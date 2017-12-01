@@ -12,9 +12,10 @@ from django.utils.safestring import mark_safe
 from django.utils.translation import ugettext_lazy as _
 from django.views.decorators.csrf import csrf_exempt
 
-from sentry.models import (EventMapping, Group, ProjectKey, ProjectOption, UserReport)
+from sentry.models import (Group, ProjectKey, ProjectOption, UserReport)
 from sentry.web.helpers import render_to_response
 from sentry.signals import user_feedback_received
+from sentry.tasks.user_reports import backfill_group
 from sentry.utils import json
 from sentry.utils.http import is_valid_origin, origin_from_request
 from sentry.utils.validators import is_event_id
@@ -116,16 +117,11 @@ class ErrorPageEmbedView(View):
             report = form.save(commit=False)
             report.project = key.project
             report.event_id = event_id
+
             try:
-                mapping = EventMapping.objects.get(
-                    event_id=report.event_id,
-                    project_id=key.project_id,
-                )
-            except EventMapping.DoesNotExist:
-                # XXX(dcramer): the system should fill this in later
+                report.group = Group.objects.from_event_id(report.project, report.event_id)
+            except Group.DoesNotExist:
                 pass
-            else:
-                report.group = Group.objects.get(id=mapping.group_id)
 
             try:
                 with transaction.atomic():
@@ -145,6 +141,14 @@ class ErrorPageEmbedView(View):
                     email=report.email,
                     comments=report.comments,
                     date_added=timezone.now(),
+                )
+
+            if report.group_id is None:
+                backfill_group.apply_async(
+                    kwargs={
+                        'report_id': report.id,
+                    },
+                    countdown=30,
                 )
 
             user_feedback_received.send(project=report.project, group=report.group, sender=self)
