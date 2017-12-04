@@ -24,9 +24,3 @@ class ProjectPluginsView(ProjectView):
             )
 
             return self.redirect(request.path)
-
-        context = {
-            'page': 'plugins',
-        }
-
-        return self.respond('sentry/projects/plugins/list.html', context)

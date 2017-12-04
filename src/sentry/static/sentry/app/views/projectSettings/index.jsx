@@ -162,9 +162,9 @@ const ProjectSettings = React.createClass({
           </ul>
           <h6 className="nav-header">{t('Integrations')}</h6>
           <ul className="nav nav-stacked">
-            <li>
-              <a href={`${settingsUrlRoot}/plugins/`}>{t('All Integrations')}</a>
-            </li>
+            <ListLink to={`/${orgId}/${projectId}/settings/plugins/`}>
+              {t('All Integrations')}
+            </ListLink>
             {project.plugins.filter(p => p.enabled).map(plugin => {
               return (
                 <li key={plugin.id}>
