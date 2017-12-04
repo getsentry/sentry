@@ -14,7 +14,7 @@ class IntegrationSerializer(Serializer):
             'id': six.text_type(obj.id),
             'name': obj.name,
             'provider': {
-                'id': provider.id,
+                'key': provider.key,
                 'name': provider.name,
             }
         }

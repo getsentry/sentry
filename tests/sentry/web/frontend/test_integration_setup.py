@@ -17,7 +17,7 @@ class ExampleIntegrationTest(IntegrationTestCase):
         assert resp.status_code == 200
         self.assertDialogSuccess(resp)
 
-        integration = Integration.objects.get(provider=self.provider.id)
+        integration = Integration.objects.get(provider=self.provider.key)
         assert integration.external_id == 'test'
         assert integration.name == 'test'
         assert integration.metadata == {}

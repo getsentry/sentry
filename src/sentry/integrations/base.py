@@ -19,7 +19,7 @@ class Integration(object):
     """
 
     # a unique identifier (e.g. 'slack')
-    id = None
+    key = None
 
     # a human readable name (e.g. 'Slack')
     name = None
@@ -31,7 +31,7 @@ class Integration(object):
     }
 
     def get_logger(self):
-        return logging.getLogger('sentry.integration.%s' % (self.get_id(), ))
+        return logging.getLogger('sentry.integration.%s' % (self.key, ))
 
     def get_pipeline(self):
         """
@@ -97,5 +97,5 @@ class Integration(object):
         Executed once Sentry has been initialized at runtime.
 
         >>> def setup(self):
-        >>>     bindings.add('repository.provider', GitHubRepositoryProvider, id='github')
+        >>>     bindings.add('repository.provider', GitHubRepositoryProvider, key='github')
         """

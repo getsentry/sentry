@@ -27,7 +27,6 @@ class OrganizationIntegrationSetupView(OrganizationView):
         helper = PipelineHelper.initialize(
             request=request,
             organization=organization,
-            provider_id=provider_id,
-            dialog=True,
+            provider_key=provider_id,
         )
         return self.redirect(helper.get_redirect_url())

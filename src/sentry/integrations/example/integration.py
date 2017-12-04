@@ -26,7 +26,7 @@ class ExampleIntegration(Integration):
     """
     An example integration, generally used for testing.
     """
-    id = 'example'
+    key = 'example'
 
     name = 'Example'
 
@@ -53,5 +53,5 @@ class ExampleIntegration(Integration):
         Executed once Sentry has been initialized at runtime.
 
         >>> def setup(self):
-        >>>     bindings.add('repository.provider', GitHubRepositoryProvider, id='github')
+        >>>     bindings.add('repository.provider', GitHubRepositoryProvider, key='github')
         """
