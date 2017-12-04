@@ -189,6 +189,8 @@ def is_prettier_valid(project_root, prettier_path):
             err=True)
         return False
 
+    return True
+
 
 def js_format(file_list=None):
     """
