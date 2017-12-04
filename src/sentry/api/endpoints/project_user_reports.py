@@ -12,7 +12,6 @@ from sentry.api.serializers import serialize, ProjectUserReportSerializer
 from sentry.api.paginator import DateTimePaginator
 from sentry.models import (Event, EventUser, Group, GroupStatus, UserReport)
 from sentry.signals import user_feedback_received
-from sentry.tasks.user_reports import backfill_group
 from sentry.utils.apidocs import scenario, attach_scenarios
 
 
@@ -131,14 +130,6 @@ class ProjectUserReportsEndpoint(ProjectEndpoint):
                 event_user_id=euser.id if euser else None,
             )
             report = existing_report
-
-        if report.group_id is None:
-            backfill_group.apply_async(
-                kwargs={
-                    'report_id': report.id,
-                },
-                countdown=30,
-            )
 
         user_feedback_received.send(project=report.project, group=report.group, sender=self)
 
