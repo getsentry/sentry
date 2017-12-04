@@ -21,6 +21,7 @@ class dontexplodedict(object):
 class EventError(object):
     INVALID_DATA = 'invalid_data'
     INVALID_ATTRIBUTE = 'invalid_attribute'
+    MISSING_ATTRIBUTE = 'missing_attribute'
     VALUE_TOO_LONG = 'value_too_long'
     UNKNOWN_ERROR = 'unknown_error'
     SECURITY_VIOLATION = 'security_violation'
@@ -57,6 +58,7 @@ class EventError(object):
     _messages = {
         INVALID_DATA: u'Discarded invalid value for parameter \'{name}\'',
         INVALID_ATTRIBUTE: u'Discarded invalid parameter \'{name}\'',
+        MISSING_ATTRIBUTE: u'Missing value for required parameter \'{name}\'',
         VALUE_TOO_LONG: u'Discarded value for \'{name}\' due to exceeding maximum length',
         UNKNOWN_ERROR: u'Unknown error',
         SECURITY_VIOLATION: u'Cannot fetch resource due to security violation on {url}',

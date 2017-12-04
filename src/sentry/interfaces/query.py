@@ -26,6 +26,8 @@ class Query(Interface):
 
     @classmethod
     def to_python(cls, data):
+        if not isinstance(data, dict):
+            raise InterfaceValidationError("Invalid interface data")
         if not data.get('query'):
             raise InterfaceValidationError("No 'query' value")
 

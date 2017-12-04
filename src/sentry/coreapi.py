@@ -13,31 +13,18 @@ from __future__ import absolute_import, print_function
 import base64
 import logging
 import six
-import uuid
 import zlib
 import re
 
 from collections import MutableMapping
-from datetime import datetime, timedelta
 from django.core.exceptions import SuspiciousOperation
 from django.utils.crypto import constant_time_compare
 from gzip import GzipFile
 from six import BytesIO
 from time import time
 
-from sentry import filters, tagstore
+from sentry import filters
 from sentry.cache import default_cache
-from sentry.constants import (
-    CLIENT_RESERVED_ATTRS,
-    DEFAULT_LOG_LEVEL,
-    LOG_LEVELS_MAP,
-    MAX_TAG_VALUE_LENGTH,
-    MAX_TAG_KEY_LENGTH,
-    VALID_PLATFORMS,
-    VERSION_LENGTH,
-)
-from sentry.db.models import BoundedIntegerField
-from sentry.interfaces.base import get_interface, InterfaceValidationError
 from sentry.interfaces.csp import Csp
 from sentry.event_manager import EventManager
 from sentry.models import EventError, ProjectKey, upload_minidump, merge_minidump_event
@@ -50,7 +37,6 @@ from sentry.utils.http import origin_from_request
 from sentry.utils.data_filters import is_valid_ip, \
     is_valid_release, is_valid_error_message, FilterStatKeys
 from sentry.utils.strings import decompress
-from sentry.utils.validators import is_float, is_event_id
 
 try:
     # Attempt to load ujson if it's installed.
@@ -96,14 +82,6 @@ class APIRateLimited(APIError):
 
     def __init__(self, retry_after=None):
         self.retry_after = retry_after
-
-
-class InvalidTimestamp(Exception):
-    pass
-
-
-class InvalidFingerprint(Exception):
-    pass
 
 
 class Auth(object):
@@ -317,61 +295,6 @@ class ClientApiHelper(object):
                            (type(e).__name__, e))
         return obj
 
-    def _process_data_timestamp(self, data, current_datetime=None):
-        value = data['timestamp']
-        if not value:
-            del data['timestamp']
-            return data
-        elif is_float(value):
-            try:
-                value = datetime.fromtimestamp(float(value))
-            except Exception:
-                raise InvalidTimestamp(
-                    'Invalid value for timestamp: %r' % data['timestamp'])
-        elif not isinstance(value, datetime):
-            # all timestamps are in UTC, but the marker is optional
-            if value.endswith('Z'):
-                value = value[:-1]
-            if '.' in value:
-                # Python doesn't support long microsecond values
-                # https://github.com/getsentry/sentry/issues/1610
-                ts_bits = value.split('.', 1)
-                value = '%s.%s' % (ts_bits[0], ts_bits[1][:2])
-                fmt = '%Y-%m-%dT%H:%M:%S.%f'
-            else:
-                fmt = '%Y-%m-%dT%H:%M:%S'
-            try:
-                value = datetime.strptime(value, fmt)
-            except Exception:
-                raise InvalidTimestamp(
-                    'Invalid value for timestamp: %r' % data['timestamp'])
-
-        if current_datetime is None:
-            current_datetime = datetime.now()
-
-        if value > current_datetime + timedelta(minutes=1):
-            raise InvalidTimestamp(
-                'Invalid value for timestamp (in future): %r' % value)
-
-        if value < current_datetime - timedelta(days=30):
-            raise InvalidTimestamp(
-                'Invalid value for timestamp (too old): %r' % value)
-
-        data['timestamp'] = float(value.strftime('%s'))
-
-        return data
-
-    def _process_fingerprint(self, data):
-        if not isinstance(data['fingerprint'], (list, tuple)):
-            raise InvalidFingerprint
-
-        result = []
-        for bit in data['fingerprint']:
-            if not isinstance(bit, six.string_types + six.integer_types + (float, )):
-                raise InvalidFingerprint
-            result.append(six.text_type(bit))
-        return result
-
     def parse_client_as_sdk(self, value):
         if not value:
             return
@@ -415,398 +338,6 @@ class ClientApiHelper(object):
         return (False, None)
 
     def validate_data(self, data):
-        data['errors'] = []
-
-        if data.get('culprit'):
-            if not isinstance(data['culprit'], six.string_types):
-                raise APIForbidden('Invalid value for culprit')
-
-        if not data.get('event_id'):
-            data['event_id'] = uuid.uuid4().hex
-        elif not isinstance(data['event_id'], six.string_types):
-            raise APIForbidden('Invalid value for event_id')
-
-        if len(data['event_id']) > 32:
-            self.log.debug(
-                'Discarded value for event_id due to length (%d chars)', len(
-                    data['event_id'])
-            )
-            data['errors'].append(
-                {
-                    'type': EventError.VALUE_TOO_LONG,
-                    'name': 'event_id',
-                    'value': data['event_id'],
-                }
-            )
-            data['event_id'] = uuid.uuid4().hex
-        elif not is_event_id(data['event_id']):
-            self.log.debug(
-                'Discarded invalid value for event_id: %r', data['event_id'], exc_info=True
-            )
-            data['errors'].append(
-                {
-                    'type': EventError.INVALID_DATA,
-                    'name': 'event_id',
-                    'value': data['event_id'],
-                }
-            )
-            data['event_id'] = uuid.uuid4().hex
-
-        if 'timestamp' in data:
-            try:
-                self._process_data_timestamp(data)
-            except InvalidTimestamp as e:
-                self.log.debug(
-                    'Discarded invalid value for timestamp: %r', data['timestamp'], exc_info=True
-                )
-                data['errors'].append(
-                    {
-                        'type': EventError.INVALID_DATA,
-                        'name': 'timestamp',
-                        'value': data['timestamp'],
-                    }
-                )
-                del data['timestamp']
-
-        if 'fingerprint' in data:
-            try:
-                data['fingerprint'] = self._process_fingerprint(data)
-            except InvalidFingerprint as e:
-                self.log.debug(
-                    'Discarded invalid value for fingerprint: %r',
-                    data['fingerprint'],
-                    exc_info=True
-                )
-                data['errors'].append(
-                    {
-                        'type': EventError.INVALID_DATA,
-                        'name': 'fingerprint',
-                        'value': data['fingerprint'],
-                    }
-                )
-                del data['fingerprint']
-
-        if 'platform' not in data or data['platform'] not in VALID_PLATFORMS:
-            data['platform'] = 'other'
-
-        if data.get('modules') and type(data['modules']) != dict:
-            self.log.debug(
-                'Discarded invalid type for modules: %s', type(data['modules']))
-            data['errors'].append(
-                {
-                    'type': EventError.INVALID_DATA,
-                    'name': 'modules',
-                    'value': data['modules'],
-                }
-            )
-            del data['modules']
-
-        if data.get('extra') is not None and type(data['extra']) != dict:
-            self.log.debug('Discarded invalid type for extra: %s',
-                           type(data['extra']))
-            data['errors'].append(
-                {
-                    'type': EventError.INVALID_DATA,
-                    'name': 'extra',
-                    'value': data['extra'],
-                }
-            )
-            del data['extra']
-
-        if data.get('tags') is not None:
-            if type(data['tags']) == dict:
-                data['tags'] = list(data['tags'].items())
-            elif not isinstance(data['tags'], (list, tuple)):
-                self.log.debug(
-                    'Discarded invalid type for tags: %s', type(data['tags']))
-                data['errors'].append(
-                    {
-                        'type': EventError.INVALID_DATA,
-                        'name': 'tags',
-                        'value': data['tags'],
-                    }
-                )
-                del data['tags']
-
-        if data.get('tags'):
-            # remove any values which are over 32 characters
-            tags = []
-            for pair in data['tags']:
-                try:
-                    k, v = pair
-                except ValueError:
-                    self.log.debug('Discarded invalid tag value: %r', pair)
-                    data['errors'].append(
-                        {
-                            'type': EventError.INVALID_DATA,
-                            'name': 'tags',
-                            'value': pair,
-                        }
-                    )
-                    continue
-
-                if not isinstance(k, six.string_types):
-                    try:
-                        k = six.text_type(k)
-                    except Exception:
-                        self.log.debug(
-                            'Discarded invalid tag key: %r', type(k))
-                        data['errors'].append(
-                            {
-                                'type': EventError.INVALID_DATA,
-                                'name': 'tags',
-                                'value': pair,
-                            }
-                        )
-                        continue
-
-                if not isinstance(v, six.string_types):
-                    try:
-                        v = six.text_type(v)
-                    except Exception:
-                        self.log.debug(
-                            'Discarded invalid tag value: %s=%r', k, type(v))
-                        data['errors'].append(
-                            {
-                                'type': EventError.INVALID_DATA,
-                                'name': 'tags',
-                                'value': pair,
-                            }
-                        )
-                        continue
-
-                if len(k) > MAX_TAG_KEY_LENGTH or len(v) > MAX_TAG_VALUE_LENGTH:
-                    self.log.debug('Discarded invalid tag: %s=%s', k, v)
-                    data['errors'].append(
-                        {
-                            'type': EventError.INVALID_DATA,
-                            'name': 'tags',
-                            'value': pair,
-                        }
-                    )
-                    continue
-
-                # support tags with spaces by converting them
-                k = k.replace(' ', '-')
-
-                if tagstore.is_reserved_key(k):
-                    self.log.debug('Discarding reserved tag key: %s', k)
-                    data['errors'].append(
-                        {
-                            'type': EventError.INVALID_DATA,
-                            'name': 'tags',
-                            'value': pair,
-                        }
-                    )
-                    continue
-
-                if not tagstore.is_valid_key(k):
-                    self.log.debug('Discarded invalid tag key: %s', k)
-                    data['errors'].append(
-                        {
-                            'type': EventError.INVALID_DATA,
-                            'name': 'tags',
-                            'value': pair,
-                        }
-                    )
-                    continue
-
-                if not tagstore.is_valid_value(v):
-                    self.log.debug('Discard invalid tag value: %s', v)
-                    data['errors'].append(
-                        {
-                            'type': EventError.INVALID_DATA,
-                            'name': 'tags',
-                            'value': pair,
-                        }
-                    )
-                    continue
-
-                tags.append((k, v))
-            data['tags'] = tags
-
-        for k in list(iter(data)):
-            if k in CLIENT_RESERVED_ATTRS:
-                continue
-
-            value = data.pop(k)
-
-            if not value:
-                self.log.debug('Ignored empty interface value: %s', k)
-                continue
-
-            try:
-                interface = get_interface(k)
-            except ValueError:
-                self.log.debug('Ignored unknown attribute: %s', k)
-                data['errors'].append({
-                    'type': EventError.INVALID_ATTRIBUTE,
-                    'name': k,
-                })
-                continue
-
-            if type(value) != dict:
-                # HACK(dcramer): the exception/breadcrumbs interface supports a
-                # list as the value. We should change this in a new protocol
-                # version.
-                if type(value) in (list, tuple):
-                    value = {'values': value}
-                else:
-                    self.log.debug(
-                        'Invalid parameter for value: %s (%r)', k, type(value))
-                    data['errors'].append(
-                        {
-                            'type': EventError.INVALID_DATA,
-                            'name': k,
-                            'value': value,
-                        }
-                    )
-                    continue
-
-            try:
-                inst = interface.to_python(value)
-                data[inst.get_path()] = inst.to_json()
-            except Exception as e:
-                if isinstance(e, InterfaceValidationError):
-                    log = self.log.debug
-                else:
-                    log = self.log.error
-                log('Discarded invalid value for interface: %s (%r)',
-                    k, value, exc_info=True)
-                data['errors'].append(
-                    {
-                        'type': EventError.INVALID_DATA,
-                        'name': k,
-                        'value': value,
-                    }
-                )
-
-        # TODO(dcramer): ideally this logic would happen in normalize, but today
-        # we don't do "validation" there (create errors)
-
-        # message is coerced to an interface, as its used for pure
-        # index of searchable strings
-        # See GH-3248
-        message = data.pop('message', None)
-        if message:
-            if 'sentry.interfaces.Message' not in data:
-                value = {
-                    'message': message,
-                }
-            elif not data['sentry.interfaces.Message'].get('formatted'):
-                value = data['sentry.interfaces.Message']
-                value['formatted'] = message
-            else:
-                value = None
-
-            if value is not None:
-                k = 'sentry.interfaces.Message'
-                interface = get_interface(k)
-                try:
-                    inst = interface.to_python(value)
-                    data[inst.get_path()] = inst.to_json()
-                except Exception as e:
-                    if isinstance(e, InterfaceValidationError):
-                        log = self.log.debug
-                    else:
-                        log = self.log.error
-                    log('Discarded invalid value for interface: %s (%r)',
-                        k, value, exc_info=True)
-                    data['errors'].append(
-                        {
-                            'type': EventError.INVALID_DATA,
-                            'name': k,
-                            'value': value,
-                        }
-                    )
-
-        level = data.get('level') or DEFAULT_LOG_LEVEL
-        if isinstance(level, six.string_types) and not level.isdigit():
-            # assume it's something like 'warning'
-            try:
-                data['level'] = LOG_LEVELS_MAP[level]
-            except KeyError as e:
-                self.log.debug('Discarded invalid logger value: %s', level)
-                data['errors'].append(
-                    {
-                        'type': EventError.INVALID_DATA,
-                        'name': 'level',
-                        'value': level,
-                    }
-                )
-                data['level'] = LOG_LEVELS_MAP.get(
-                    DEFAULT_LOG_LEVEL, DEFAULT_LOG_LEVEL)
-
-        if data.get('release'):
-            data['release'] = six.text_type(data['release'])
-            if len(data['release']) > VERSION_LENGTH:
-                data['errors'].append(
-                    {
-                        'type': EventError.VALUE_TOO_LONG,
-                        'name': 'release',
-                        'value': data['release'],
-                    }
-                )
-                del data['release']
-
-        if data.get('dist'):
-            data['dist'] = six.text_type(data['dist']).strip()
-            if not data.get('release'):
-                data['dist'] = None
-            elif len(data['dist']) > 64:
-                data['errors'].append(
-                    {
-                        'type': EventError.VALUE_TOO_LONG,
-                        'name': 'dist',
-                        'value': data['dist'],
-                    }
-                )
-                del data['dist']
-            elif _dist_re.match(data['dist']) is None:
-                data['errors'].append(
-                    {
-                        'type': EventError.INVALID_DATA,
-                        'name': 'dist',
-                        'value': data['dist'],
-                    }
-                )
-                del data['dist']
-
-        if data.get('environment'):
-            data['environment'] = six.text_type(data['environment'])
-            if len(data['environment']) > 64:
-                data['errors'].append(
-                    {
-                        'type': EventError.VALUE_TOO_LONG,
-                        'name': 'environment',
-                        'value': data['environment'],
-                    }
-                )
-                del data['environment']
-
-        if data.get('time_spent'):
-            try:
-                data['time_spent'] = int(data['time_spent'])
-            except (ValueError, TypeError):
-                data['errors'].append(
-                    {
-                        'type': EventError.INVALID_DATA,
-                        'name': 'time_spent',
-                        'value': data['time_spent'],
-                    }
-                )
-                del data['time_spent']
-            else:
-                if data['time_spent'] > BoundedIntegerField.MAX_VALUE:
-                    data['errors'].append(
-                        {
-                            'type': EventError.VALUE_TOO_LONG,
-                            'name': 'time_spent',
-                            'value': data['time_spent'],
-                        }
-                    )
-                    del data['time_spent']
-
         return data
 
     def ensure_does_not_have_ip(self, data):
@@ -973,6 +504,7 @@ class CspApiHelper(ClientApiHelper):
             'message': inst.get_message(),
             'culprit': inst.get_culprit(),
             'release': meta.get('release'),
+            'tags': inst.get_tags(),
             inst.get_path(): inst.to_json(),
             # This is a bit weird, since we don't have nearly enough
             # information to create an Http interface, but
@@ -985,50 +517,7 @@ class CspApiHelper(ClientApiHelper):
             'sentry.interfaces.User': {
                 'ip_address': self.context.ip_address,
             },
-            'errors': [],
         }
-
-        # Copy/pasted from above in ClientApiHelper.validate_data
-        if data.get('release'):
-            data['release'] = six.text_type(data['release'])
-            if len(data['release']) > VERSION_LENGTH:
-                data['errors'].append(
-                    {
-                        'type': EventError.VALUE_TOO_LONG,
-                        'name': 'release',
-                        'value': data['release'],
-                    }
-                )
-                del data['release']
-
-        tags = []
-        for k, v in inst.get_tags():
-            if not v:
-                continue
-            if len(v) > MAX_TAG_VALUE_LENGTH:
-                self.log.debug('Discarded invalid tag: %s=%s', k, v)
-                data['errors'].append(
-                    {
-                        'type': EventError.INVALID_DATA,
-                        'name': 'tags',
-                        'value': (k, v),
-                    }
-                )
-                continue
-            if not tagstore.is_valid_value(v):
-                self.log.debug('Discard invalid tag value: %s', v)
-                data['errors'].append(
-                    {
-                        'type': EventError.INVALID_DATA,
-                        'name': 'tags',
-                        'value': (k, v),
-                    }
-                )
-                continue
-            tags.append((k, v))
-
-        if tags:
-            data['tags'] = tags
 
         return data
 
