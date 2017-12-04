@@ -117,6 +117,7 @@ from .endpoints.dsym_files import DSymFilesEndpoint, \
 from .endpoints.shared_group_details import SharedGroupDetailsEndpoint
 from .endpoints.system_health import SystemHealthEndpoint
 from .endpoints.system_options import SystemOptionsEndpoint
+from .endpoints.sudo import SudoEndpoint
 from .endpoints.team_details import TeamDetailsEndpoint
 from .endpoints.team_groups_new import TeamGroupsNewEndpoint
 from .endpoints.team_groups_trending import TeamGroupsTrendingEndpoint
@@ -157,6 +158,9 @@ urlpatterns = patterns(
 
     # Auth
     url(r'^auth/$', AuthIndexEndpoint.as_view(), name='sentry-api-0-auth'),
+
+    # Sudo
+    url(r'^sudo/$', SudoEndpoint.as_view(), name='sentry-api-0-sudo'),
 
     # Broadcasts
     url(r'^broadcasts/$', BroadcastIndexEndpoint.as_view(),
