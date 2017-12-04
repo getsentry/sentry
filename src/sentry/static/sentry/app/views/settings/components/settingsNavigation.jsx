@@ -7,7 +7,7 @@ import SentryTypes from '../../../proptypes';
 
 class SettingsNavigation extends React.Component {
   static propTypes = {
-    hooks: PropTypes.array.isRequired,
+    hooks: PropTypes.array,
     navigationObjects: PropTypes.arrayOf(SentryTypes.NavigationObject).isRequired,
   };
 
