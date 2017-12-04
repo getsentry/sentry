@@ -27,7 +27,8 @@ def sudo_required(func):
                 "sudoRequired": True,
                 "username": request.user.username,
             }
-            return HttpResponse(json.dumps(data), status=401)
+            return HttpResponse(content=json.dumps(
+                data), content_type="application/json", status=403)
         return func(self, request, *args, **kwargs)
 
     return wrapped
