@@ -15,7 +15,6 @@ from django.views.decorators.csrf import csrf_exempt
 from sentry.models import (Group, ProjectKey, ProjectOption, UserReport)
 from sentry.web.helpers import render_to_response
 from sentry.signals import user_feedback_received
-from sentry.tasks.user_reports import backfill_group
 from sentry.utils import json
 from sentry.utils.http import is_valid_origin, origin_from_request
 from sentry.utils.validators import is_event_id
@@ -141,14 +140,6 @@ class ErrorPageEmbedView(View):
                     email=report.email,
                     comments=report.comments,
                     date_added=timezone.now(),
-                )
-
-            if report.group_id is None:
-                backfill_group.apply_async(
-                    kwargs={
-                        'report_id': report.id,
-                    },
-                    countdown=30,
                 )
 
             user_feedback_received.send(project=report.project, group=report.group, sender=self)
