@@ -40,6 +40,7 @@ class GroupEventsEndpoint(GroupEndpoint, EnvironmentMixin):
         )
 
         query = request.GET.get('query')
+
         if query:
             try:
                 query_kwargs = parse_query(group.project, query, request.user)
@@ -49,6 +50,8 @@ class GroupEventsEndpoint(GroupEndpoint, EnvironmentMixin):
             if query_kwargs['query']:
                 events = events.filter(
                     message__icontains=query_kwargs['query'],
+                ) | events.filter(
+                    event_id__iexact=query_kwargs['query'],
                 )
 
             if query_kwargs['tags']:
