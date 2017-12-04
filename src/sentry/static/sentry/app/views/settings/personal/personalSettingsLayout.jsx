@@ -14,7 +14,7 @@ class PersonalSettingsLayout extends React.Component {
         {this.props.children}
       </SettingsLayout>
     );
-  };
-};
+  }
+}
 
 export default PersonalSettingsLayout;
