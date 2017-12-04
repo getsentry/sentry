@@ -18,6 +18,7 @@ from django.utils.translation import ugettext as _
 from six.moves.urllib.parse import parse_qsl, urlencode, urlsplit, urlunsplit
 
 from sentry.interfaces.base import Interface, InterfaceValidationError
+from sentry.interfaces.schemas import validate_and_default_interface
 from sentry.utils.safe import trim, trim_dict, trim_pairs
 from sentry.utils.http import heuristic_decode
 from sentry.web.helpers import render_to_string
@@ -116,13 +117,15 @@ class Http(Interface):
     """
     display_score = 1000
     score = 800
+    path = 'sentry.interfaces.Http'
 
     FORM_TYPE = 'application/x-www-form-urlencoded'
 
     @classmethod
     def to_python(cls, data):
-        if not data.get('url'):
-            raise InterfaceValidationError("No value for 'url'")
+        is_valid, errors = validate_and_default_interface(data, cls.path)
+        if not is_valid:
+            raise InterfaceValidationError("Invalid interface data")
 
         kwargs = {}
 
@@ -146,7 +149,6 @@ class Http(Interface):
                     [(to_bytes(k), to_bytes(v)) for k, v in query_string.items()]
                 )
             else:
-                query_string = query_string
                 if query_string[0] == '?':
                     # remove '?' prefix
                     query_string = query_string[1:]
@@ -200,7 +202,7 @@ class Http(Interface):
         return cls(**kwargs)
 
     def get_path(self):
-        return 'sentry.interfaces.Http'
+        return self.path
 
     @property
     def full_url(self):

@@ -3,6 +3,7 @@ from __future__ import absolute_import
 __all__ = ('Device', )
 
 from sentry.interfaces.base import Interface, InterfaceValidationError
+from sentry.interfaces.schemas import validate_and_default_interface
 from sentry.utils.safe import trim, trim_dict
 
 
@@ -17,25 +18,19 @@ class Device(Interface):
     >>>     "arbitrary": "data"
     >>> }
     """
+    path = 'device'
 
     @classmethod
     def to_python(cls, data):
+        is_valid, errors = validate_and_default_interface(data, cls.path)
+        if not is_valid:
+            raise InterfaceValidationError("Invalid device")
+
         data = data.copy()
 
         extra_data = data.pop('data', data)
-        if not isinstance(extra_data, dict):
-            extra_data = {}
-
-        try:
-            name = trim(data.pop('name'), 64)
-        except KeyError:
-            raise InterfaceValidationError("Missing or invalid value for 'name'")
-
-        try:
-            version = trim(data.pop('version'), 64)
-        except KeyError:
-            raise InterfaceValidationError("Missing or invalid value for 'version'")
-
+        name = trim(data.pop('name'), 64)
+        version = trim(data.pop('version'), 64)
         build = trim(data.pop('build', None), 64)
 
         kwargs = {
