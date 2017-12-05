@@ -1,9 +1,10 @@
 from __future__ import absolute_import
-from sentry.models import ApiKey, AuditLogEntry
+from sentry.models import (
+    ApiKey, AuditLogEntry, AuditLogEntryEvent, DeletedOrganization, DeletedProject, DeletedTeam, Organization, Project, Team
+)
 
 
 def create_audit_entry(request, transaction_id=None, logger=None, **kwargs):
-
     user = request.user if request.user.is_authenticated() else None
     api_key = request.auth if hasattr(request, 'auth') \
         and isinstance(request.auth, ApiKey) else None
@@ -16,6 +17,15 @@ def create_audit_entry(request, transaction_id=None, logger=None, **kwargs):
     # otherwise, we want to still log to our actual logging
     if entry.event is not None:
         entry.save()
+
+    if entry.event == AuditLogEntryEvent.ORG_REMOVE:
+        create_org_delete_log(entry)
+
+    elif entry.event == AuditLogEntryEvent.PROJECT_REMOVE:
+        create_project_delete_log(entry)
+
+    elif entry.event == AuditLogEntryEvent.TEAM_REMOVE:
+        create_team_delete_log(entry)
 
     extra = {
         'ip_address': entry.ip_address,
@@ -35,3 +45,61 @@ def create_audit_entry(request, transaction_id=None, logger=None, **kwargs):
         logger.info(entry.get_event_display(), extra=extra)
 
     return entry
+
+
+def create_org_delete_log(entry):
+    delete_log = DeletedOrganization()
+    organization = Organization.objects.get(id=entry.target_object)
+
+    delete_log.name = organization.name
+    delete_log.slug = organization.slug
+    delete_log.date_created = organization.date_added
+
+    complete_delete_log(delete_log, entry)
+
+
+def create_project_delete_log(entry):
+    delete_log = DeletedProject()
+
+    project = Project.objects.select_related('team').get(id=entry.target_object)
+    delete_log.name = project.name
+    delete_log.slug = project.slug
+    delete_log.date_created = project.date_added
+
+    delete_log.organization_id = entry.organization.id
+    delete_log.organization_name = entry.organization.name
+    delete_log.organization_slug = entry.organization.slug
+
+    team = project.team
+    delete_log.team_id = team.id
+    delete_log.team_name = team.name
+    delete_log.team_slug = team.slug
+
+    complete_delete_log(delete_log, entry)
+
+
+def create_team_delete_log(entry):
+    delete_log = DeletedTeam()
+
+    team = Team.objects.get(id=entry.target_object)
+    delete_log.name = team.name
+    delete_log.slug = team.slug
+    delete_log.date_created = team.date_added
+
+    delete_log.organization_id = entry.organization.id
+    delete_log.organization_name = entry.organization.name
+    delete_log.organization_slug = entry.organization.slug
+
+    complete_delete_log(delete_log, entry)
+
+
+def complete_delete_log(delete_log, entry):
+    """
+    Adds common information on a delete log from an audit entry and
+    saves that delete log.
+    """
+    delete_log.actor_label = entry.actor_label
+    delete_log.actor_id = entry.actor_id
+    delete_log.actor_key = entry.actor_key
+    delete_log.ip_address = entry.ip_address
+    delete_log.save()
