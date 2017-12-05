@@ -180,12 +180,8 @@ class TagStorage(TagStorage):
         qs = TagKey.objects.filter(
             project_id=project_id,
             key=key,
+            **self._get_environment_filter(environment_id)
         )
-
-        if environment_id is None:
-            qs = qs.filter(environment_id__isnull=True)
-        else:
-            qs = qs.filter(environment_id=environment_id)
 
         if status is not None:
             qs = qs.filter(status=status)
@@ -196,12 +192,10 @@ class TagStorage(TagStorage):
             raise TagKeyNotFound
 
     def get_tag_keys(self, project_id, environment_id, status=TagKeyStatus.VISIBLE):
-        qs = TagKey.objects.filter(project_id=project_id)
-
-        if environment_id is None:
-            qs = qs.filter(environment_id__isnull=True)
-        else:
-            qs = qs.filter(environment_id=environment_id)
+        qs = TagKey.objects.filter(
+            project_id=project_id,
+            **self._get_environment_filter(environment_id)
+        )
 
         if status is not None:
             qs = qs.filter(status=status)
@@ -221,12 +215,8 @@ class TagStorage(TagStorage):
             project_id=project_id,
             key_id=key_id,
             value=value,
+            **self._get_environment_filter(environment_id)
         )
-
-        if environment_id is None:
-            qs = qs.filter(environment_id__isnull=True)
-        else:
-            qs = qs.filter(environment_id=environment_id)
 
         try:
             return qs.get()
@@ -237,21 +227,13 @@ class TagStorage(TagStorage):
         tagkey_qs = TagKey.objects.filter(
             project_id=project_id,
             key=key,
+            **self._get_environment_filter(environment_id)
         )
-
-        if environment_id is None:
-            tagkey_qs = tagkey_qs.filter(environment_id__isnull=True)
-        else:
-            tagkey_qs = tagkey_qs.filter(environment_id=environment_id)
 
         qs = TagValue.objects.filter(
             key_id__in=list([tk.id for tk in tagkey_qs]),
+            **self._get_environment_filter(environment_id)
         )
-
-        if environment_id is None:
-            qs = qs.filter(environment_id__isnull=True)
-        else:
-            qs = qs.filter(environment_id=environment_id)
 
         return list(qs)
 
@@ -267,12 +249,8 @@ class TagStorage(TagStorage):
         qs = GroupTagKey.objects.filter(
             group_id=group_id,
             key_id=key_id,
+            **self._get_environment_filter(environment_id)
         )
-
-        if environment_id is None:
-            qs = qs.filter(environment_id__isnull=True)
-        else:
-            qs = qs.filter(environment_id=environment_id)
 
         try:
             return qs.get()
@@ -280,12 +258,10 @@ class TagStorage(TagStorage):
             raise GroupTagKeyNotFound
 
     def get_group_tag_keys(self, project_id, group_id, environment_id, limit=None):
-        qs = GroupTagKey.objects.filter(group_id=group_id)
-
-        if environment_id is None:
-            qs = qs.filter(environment_id__isnull=True)
-        else:
-            qs = qs.filter(environment_id=environment_id)
+        qs = GroupTagKey.objects.filter(
+            group_id=group_id,
+            **self._get_environment_filter(environment_id)
+        )
 
         if limit is not None:
             qs = qs[:limit]
@@ -311,12 +287,8 @@ class TagStorage(TagStorage):
             group_id=group_id,
             key_id=key_id,
             value_id=value_id,
+            **self._get_environment_filter(environment_id)
         )
-
-        if environment_id is None:
-            qs = qs.filter(environment_id__isnull=True)
-        else:
-            qs = qs.filter(environment_id=environment_id)
 
         try:
             return qs.get()
@@ -334,12 +306,8 @@ class TagStorage(TagStorage):
         qs = GroupTagValue.objects.filter(
             group_id=group_id,
             key_id=key_id,
+            **self._get_environment_filter(environment_id)
         )
-
-        if environment_id is None:
-            qs = qs.filter(environment_id__isnull=True)
-        else:
-            qs = qs.filter(environment_id=environment_id)
 
         return list(qs)
 
@@ -373,3 +341,9 @@ class TagStorage(TagStorage):
         GroupTagValue.objects.filter(
             group_id=group_id,
         ).delete()
+
+    def _get_environment_filter(self, environment_id):
+        if environment_id is None:
+            return {'environment_id__isnull': True}
+        else:
+            return {'environment_id': environment_id}
