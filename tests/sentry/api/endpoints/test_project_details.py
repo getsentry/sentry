@@ -5,7 +5,7 @@ import six
 
 from django.core.urlresolvers import reverse
 
-from sentry.models import Project, ProjectBookmark, ProjectStatus, UserOption
+from sentry.models import Project, ProjectBookmark, ProjectStatus, UserOption, DeletedProject
 from sentry.testutils import APITestCase
 
 
@@ -332,6 +332,8 @@ class ProjectDeleteTest(APITestCase):
         )
 
         assert Project.objects.get(id=project.id).status == ProjectStatus.PENDING_DELETION
+        deleted_project = DeletedProject.objects.get(slug=project.slug)
+        self.assert_valid_deleted_log(deleted_project, project)
 
     @mock.patch('sentry.api.endpoints.project_details.delete_project')
     def test_internal_project(self, mock_delete_project):

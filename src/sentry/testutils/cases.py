@@ -46,7 +46,7 @@ from sentry.auth.superuser import (
     Superuser, COOKIE_SALT as SU_COOKIE_SALT, COOKIE_NAME as SU_COOKIE_NAME
 )
 from sentry.constants import MODULE_ROOT
-from sentry.models import GroupMeta, ProjectOption
+from sentry.models import GroupMeta, ProjectOption, DeletedOrganization
 from sentry.plugins import plugins
 from sentry.rules import EventState
 from sentry.utils import json
@@ -284,6 +284,23 @@ class BaseTestCase(Fixtures, Exam):
 
     _postWithSignature = _postWithHeader
     _postWithNewSignature = _postWithHeader
+
+    def assert_valid_deleted_log(self, deleted_log, original_object):
+        assert deleted_log is not None
+        assert original_object.name == deleted_log.name
+
+        assert deleted_log.name == original_object.name
+        assert deleted_log.slug == original_object.slug
+
+        if not isinstance(deleted_log, DeletedOrganization):
+            assert deleted_log.organization_id == original_object.organization.id
+            assert deleted_log.organization_name == original_object.organization.name
+            assert deleted_log.organization_slug == original_object.organization.slug
+
+        # Truncating datetime for mysql compatibility
+        assert deleted_log.date_created.replace(
+            microsecond=0) == original_object.date_added.replace(microsecond=0)
+        assert deleted_log.date_deleted >= deleted_log.date_created
 
 
 class TestCase(BaseTestCase, TestCase):
