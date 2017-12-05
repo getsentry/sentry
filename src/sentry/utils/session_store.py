@@ -15,6 +15,13 @@ class RedisSessionStore(object):
     the request session. Useful for storing data too large to be stored into
     the session cookie.
 
+    NOTE: Assigning attributes immediately saves their value back into the
+          redis key assigned for this store. Be aware of the multiple
+          round-trips implication of this.
+
+    NOTE: This object is subject to race conditions on updating valeus as the
+          entire object value is stored in one redis key.
+
     >>> store = RedisSessionStore(request, 'store-name')
     >>> store.regenerate()
     >>> store.some_value = 'my value'
