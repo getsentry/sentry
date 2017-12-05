@@ -118,7 +118,9 @@ export default React.createClass({
         this.setState({
           error: false,
           loading: false,
-          pluginList: data.filter(p => p.type === 'data-forwarding'),
+          pluginList: data.filter(
+            p => p.type === 'data-forwarding' && p.hasConfiguration
+          ),
         });
       },
       error: () => {

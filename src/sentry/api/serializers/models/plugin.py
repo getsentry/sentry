@@ -6,6 +6,7 @@ from sentry.api.serializers import Serializer
 from sentry.utils.assets import get_asset_url
 from sentry.utils.http import absolute_uri
 from sentry.models import ProjectOption
+from django.utils.text import slugify
 
 
 class PluginSerializer(Serializer):
@@ -32,10 +33,12 @@ class PluginSerializer(Serializer):
         d = {
             'id': obj.slug,
             'name': six.text_type(obj.get_title()),
+            'slug': slugify(six.text_type(obj.get_title())),
             'shortName': six.text_type(obj.get_short_title()),
             'type': obj.get_plugin_type(),
             'canDisable': obj.can_disable,
             'isTestable': hasattr(obj, 'is_testable') and obj.is_testable(),
+            'hasConfiguration': obj.has_project_conf(),
             'metadata': obj.get_metadata(),
             'contexts': contexts,
             'status': obj.get_status(),
@@ -48,6 +51,16 @@ class PluginSerializer(Serializer):
         }
         if self.project:
             d['enabled'] = obj.is_enabled(self.project)
+
+        if obj.version:
+            d['version'] = six.text_type(obj.version)
+
+        if obj.author:
+            d['author'] = {
+                'name': six.text_type(obj.author),
+                'url': six.text_type(obj.author_url)
+            }
+
         return d
 
 
