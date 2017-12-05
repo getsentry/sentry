@@ -58,7 +58,9 @@ const ProjectReleaseTracking = React.createClass({
     this.api.request(`/projects/${orgId}/${projectId}/plugins/`, {
       success: data => {
         this.setState({
-          pluginList: data.filter(p => p.type === 'release-tracking'),
+          pluginList: data.filter(
+            p => p.type === 'release-tracking' && p.hasConfiguration
+          ),
         });
       },
       error: () => {

@@ -239,7 +239,9 @@ export default class ProjectAlertSettings extends AsyncView {
         <PluginList
           organization={organization}
           project={this.state.project}
-          pluginList={this.state.pluginList.filter(p => p.type === 'notification')}
+          pluginList={this.state.pluginList.filter(
+            p => p.type === 'notification' && p.hasConfiguration
+          )}
           onEnablePlugin={this.onEnablePlugin}
           onDisablePlugin={this.onDisablePlugin}
         />
