@@ -13,3 +13,7 @@ get = default_manager.get
 exists = default_manager.exists
 register = default_manager.register
 unregister = default_manager.unregister
+
+# TODO(epurkhiser): Should this be moved into it's own plugin, it should be
+# initialized there.
+register(SlackIdentityProvider)  # NOQA
