@@ -1,6 +1,7 @@
 import React from 'react';
 import AsyncView from './asyncView';
 import {t} from '../locale';
+import Link from '../components/link';
 import ExternalLink from '../components/externalLink';
 import Checkbox from '../components/checkbox';
 import IndicatorStore from '../stores/indicatorStore';
@@ -75,9 +76,9 @@ export default class ProjectPlugins extends AsyncView {
                             <span>
                               {' '}
                               &middot;{' '}
-                              <a href={`/${orgId}/${projectId}/settings/plugins/${id}`}>
-                                {t('Configure plugin')}
-                              </a>
+                              <Link to={`/${orgId}/${projectId}/settings/plugins/${id}`}>
+                                Configure plugin
+                              </Link>
                             </span>
                           )}
                         </p>

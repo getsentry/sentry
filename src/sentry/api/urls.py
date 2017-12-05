@@ -88,6 +88,7 @@ from .endpoints.project_key_stats import ProjectKeyStatsEndpoint
 from .endpoints.project_member_index import ProjectMemberIndexEndpoint
 from .endpoints.project_plugins import ProjectPluginsEndpoint
 from .endpoints.project_plugin_details import ProjectPluginDetailsEndpoint
+from .endpoints.project_plugin_reset import ProjectPluginResetEndpoint
 from .endpoints.project_releases import ProjectReleasesEndpoint
 from .endpoints.project_releases_token import ProjectReleasesTokenEndpoint
 from .endpoints.project_rules import ProjectRulesEndpoint
@@ -659,6 +660,11 @@ urlpatterns = patterns(
     url(
         r'^projects/(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/plugins?/',
         include('sentry.plugins.base.project_api_urls')
+    ),
+    url(
+        r'^projects/(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/plugins/(?P<plugin_id>[^\/]+)/reset/$',
+        ProjectPluginResetEndpoint.as_view(),
+        name="sentry-api-0-project-plugin-details-reset"
     ),
 
     # Groups
