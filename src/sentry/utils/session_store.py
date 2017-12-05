@@ -50,7 +50,10 @@ class RedisSessionStore(object):
     def redis_key(self):
         return self.request.session.get(self.session_key)
 
-    def regenerate(self, initial_state={}):
+    def regenerate(self, initial_state=None):
+        if initial_state is None:
+            initial_state = {}
+
         redis_key = u'session-cache:{}:{}'.format(self.prefix, uuid4().hex)
 
         self.request.session[self.session_key] = redis_key
