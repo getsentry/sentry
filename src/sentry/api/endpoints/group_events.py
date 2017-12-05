@@ -12,6 +12,7 @@ from sentry.search.utils import parse_query
 from sentry.utils.apidocs import scenario, attach_scenarios
 from rest_framework.response import Response
 from sentry.search.utils import InvalidQuery
+from django.db.models import Q
 
 
 @scenario('ListAvailableSamples')
@@ -49,9 +50,8 @@ class GroupEventsEndpoint(GroupEndpoint, EnvironmentMixin):
 
             if query_kwargs['query']:
                 events = events.filter(
-                    message__icontains=query_kwargs['query'],
-                ) | events.filter(
-                    event_id__iexact=query_kwargs['query'],
+                    Q(message__icontains=query_kwargs['query']) | Q(
+                        event_id__iexact=query_kwargs['query'])
                 )
 
             if query_kwargs['tags']:
