@@ -12,7 +12,7 @@ from sentry.utils.pipeline import (
 
 class PipelineStep(PipelineView):
     def dispatch(self, request, pipeline):
-        pipeline.called += 1
+        pipeline.dispatch_count += 1
         pipeline.bind_state('some_state', 'value')
 
 
@@ -47,22 +47,27 @@ class PipelineTestCase(TestCase):
         pipeline = DummpyPipeline(request, org, 'dummy', {'some_config': True})
         pipeline.initialize()
 
+        assert pipeline.is_valid()
+
         assert 'some_config' in pipeline.provider.config
 
-        pipeline.called = 0
+        pipeline.finished = 0
+        pipeline.dispatch_count = 0
 
-        # Piepline has two steps, ensure both steps compete
+        # Piepline has two steps, ensure both steps compete.
+        # Usually the dispatch itself would be the one calling the current_step
+        # and next_step methods after it determins if it can move forward a
+        # step.
         pipeline.current_step()
-        assert pipeline.called == 1
+        assert pipeline.dispatch_count == 1
         assert pipeline.fetch_state('some_state') == 'value'
 
         pipeline.next_step()
-        assert pipeline.called == 2
+        assert pipeline.dispatch_count == 2
 
         pipeline.next_step()
-        assert pipeline.called == 2
+        assert pipeline.dispatch_count == 2
         assert pipeline.finished == 1
-        assert pipeline.is_valid()
 
         pipeline.clear_session()
         assert not pipeline.state.is_valid()
