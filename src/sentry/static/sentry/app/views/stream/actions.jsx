@@ -32,7 +32,7 @@ const getBulkConfirmMessage = action => {
 };
 
 const getConfirm = (numIssues, allInQuerySelected, query) => {
-  return function(action, append = '') {
+  return function(action, canBeUndone, append = '') {
     let question = allInQuerySelected
       ? getBulkConfirmMessage(`${action}${append}`)
       : tn(
@@ -47,6 +47,7 @@ const getConfirm = (numIssues, allInQuerySelected, query) => {
           <strong>{question}</strong>
         </p>
         <ExtraDescription all={allInQuerySelected} query={query} />
+        {!canBeUndone && <p>{t('This action cannot be undone.')}</p>}
       </div>
     );
   };
@@ -303,14 +304,14 @@ const StreamActions = React.createClass({
               projectId={this.props.projectId}
               onUpdate={this.onUpdate}
               shouldConfirm={this.shouldConfirm('resolve')}
-              confirmMessage={confirm('resolve')}
+              confirmMessage={confirm('resolve', true)}
               confirmLabel={label('resolve')}
               disabled={disabled}
             />
             <IgnoreActions
               onUpdate={this.onUpdate}
               shouldConfirm={this.shouldConfirm('ignore')}
-              confirmMessage={confirm('ignore')}
+              confirmMessage={confirm('ignore', true)}
               confirmLabel={label('ignore')}
               disabled={disabled}
             />
@@ -319,7 +320,7 @@ const StreamActions = React.createClass({
                 className={'btn btn-default btn-sm action-bookmark'}
                 onAction={() => this.onUpdate({isBookmarked: true})}
                 shouldConfirm={this.shouldConfirm('bookmark')}
-                message={confirm('bookmark')}
+                message={confirm('bookmark', false)}
                 confirmLabel={label('bookmark')}
                 title={t('Add to Bookmarks')}
                 disabled={disabled}
@@ -341,7 +342,7 @@ const StreamActions = React.createClass({
                     disabled={disabled}
                     onAction={this.onMerge}
                     shouldConfirm={this.shouldConfirm('merge')}
-                    message={confirm('merge')}
+                    message={confirm('merge', false)}
                     confirmLabel={label('merge')}
                   >
                     {t('Merge Issues')}
@@ -353,7 +354,7 @@ const StreamActions = React.createClass({
                     disabled={disabled}
                     onAction={() => this.onUpdate({isBookmarked: false})}
                     shouldConfirm={this.shouldConfirm('unbookmark')}
-                    message={confirm('remove', ' from your bookmarks')}
+                    message={confirm('remove', false, ' from your bookmarks')}
                     confirmLabel={label('remove', ' from your bookmarks')}
                   >
                     {t('Remove from Bookmarks')}
@@ -366,7 +367,7 @@ const StreamActions = React.createClass({
                     disabled={disabled}
                     onAction={() => this.onUpdate({status: 'unresolved'})}
                     shouldConfirm={this.shouldConfirm('unresolve')}
-                    message={confirm('unresolve')}
+                    message={confirm('unresolve', true)}
                     confirmLabel={label('unresolve')}
                   >
                     {t('Set status to: Unresolved')}
@@ -379,7 +380,7 @@ const StreamActions = React.createClass({
                     disabled={disabled || this.state.allInQuerySelected}
                     onAction={this.onDelete}
                     shouldConfirm={this.shouldConfirm('delete')}
-                    message={confirm('delete')}
+                    message={confirm('delete', false)}
                     confirmLabel={label('delete')}
                     selectAllActive={this.state.pageSelected}
                   >
