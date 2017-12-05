@@ -1,5 +1,7 @@
 import React from 'react';
 import PropTypes from 'prop-types';
+import classNames from 'classnames';
+
 import Confirm from '../confirm';
 import {t} from '../../locale';
 
@@ -38,14 +40,14 @@ export default class ActionLink extends React.Component {
       </div>
     );
 
-    if (disabled) {
-      className += ' disabled';
-    }
+    let cx = classNames(className, {
+      disabled,
+    });
 
     if (shouldConfirm) {
       return (
         <Confirm message={confirmMessage} confirmText={confirmLabel} onConfirm={onAction}>
-          <a className={className} title={title}>
+          <a className={cx} title={title}>
             {' '}
             {children}
           </a>
@@ -53,7 +55,7 @@ export default class ActionLink extends React.Component {
       );
     } else {
       return (
-        <a className={className} onClick={!disabled && onAction}>
+        <a className={cx} onClick={!disabled && onAction}>
           {children}
         </a>
       );

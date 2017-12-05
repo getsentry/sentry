@@ -1,5 +1,7 @@
 import React from 'react';
 import PropTypes from 'prop-types';
+import classNames from 'classnames';
+
 import {t} from '../../locale';
 import MenuItem from '../menuItem';
 import DropdownLink from '../dropdownLink';
@@ -62,7 +64,10 @@ export default class IgnoreActions extends React.Component {
       confirmMessage,
       confirmLabel,
     } = this.props;
-    let linkClassName = 'btn btn-default btn-sm';
+
+    let linkClassName = classNames('btn btn-default btn-sm', {
+      active: isIgnored,
+    });
 
     let actionLinkProps = {
       shouldConfirm,
@@ -73,7 +78,6 @@ export default class IgnoreActions extends React.Component {
     };
 
     if (isIgnored) {
-      linkClassName += ' active';
       return (
         <div className="btn-group">
           <a

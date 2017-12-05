@@ -1,5 +1,6 @@
 import React from 'react';
 import PropTypes from 'prop-types';
+import classNames from 'classnames';
 import {getShortVersion} from '../../utils';
 import {t} from '../../locale';
 import CustomResolutionModal from '../customResolutionModal';
@@ -43,19 +44,18 @@ export default class ResolveActions extends React.Component {
     });
   }
 
-  getButtonClass() {
-    return 'btn btn-default btn-sm';
+  getButtonClass(otherClasses) {
+    return classNames('btn btn-default btn-sm', otherClasses);
   }
 
   renderResolved() {
     let {isAutoResolved, onUpdate} = this.props;
-    let buttonClass = `${this.getButtonClass()} active`;
 
     if (isAutoResolved) {
       return (
         <div className="btn-group">
           <a
-            className={buttonClass + ' tip'}
+            className={this.getButtonClass('active tip')}
             title={t(
               'This event is resolved due to the Auto Resolve configuration for this project'
             )}
@@ -68,7 +68,7 @@ export default class ResolveActions extends React.Component {
       return (
         <div className="btn-group">
           <a
-            className={buttonClass}
+            className={this.getButtonClass('active')}
             title={t('Unresolve')}
             onClick={() => onUpdate({status: 'unresolved'})}
           >
