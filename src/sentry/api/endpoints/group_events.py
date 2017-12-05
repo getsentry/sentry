@@ -49,10 +49,12 @@ class GroupEventsEndpoint(GroupEndpoint, EnvironmentMixin):
                 return Response({'detail': six.text_type(exc)}, status=400)
 
             if query_kwargs['query']:
-                events = events.filter(
-                    Q(message__icontains=query_kwargs['query']) | Q(
-                        event_id__iexact=query_kwargs['query'])
-                )
+                q = Q(message__icontains=query_kwargs['query'])
+
+                if len(query) == 32:
+                    q |= Q(event_id__exact=query_kwargs['query'])
+
+                events = events.filter(q)
 
             if query_kwargs['tags']:
                 try:
