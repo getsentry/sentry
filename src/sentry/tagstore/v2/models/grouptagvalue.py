@@ -14,7 +14,8 @@ from django.utils import timezone
 
 from sentry.api.serializers import Serializer, register
 from sentry.db.models import (
-    Model, BoundedPositiveIntegerField, BaseManager, sane_repr)
+    Model, BoundedPositiveIntegerField, BaseManager, FlexibleForeignKey, sane_repr
+)
 
 
 class GroupTagValue(Model):
@@ -28,8 +29,8 @@ class GroupTagValue(Model):
     group_id = BoundedPositiveIntegerField(db_index=True)
     environment_id = BoundedPositiveIntegerField(null=True)
     # times_seen will live in Redis
-    key_id = BoundedPositiveIntegerField()
-    value_id = BoundedPositiveIntegerField()
+    key = FlexibleForeignKey('tagstore.TagKey')
+    value = FlexibleForeignKey('tagstore.TagValue')
     last_seen = models.DateTimeField(
         default=timezone.now, db_index=True, null=True)
     first_seen = models.DateTimeField(
@@ -39,11 +40,11 @@ class GroupTagValue(Model):
 
     class Meta:
         app_label = 'tagstore'
-        unique_together = (('project_id', 'group_id', 'environment_id', 'key_id', 'value_id'), )
+        unique_together = (('project_id', 'group_id', 'environment_id', 'key', 'value'), )
         # TODO: environment index(es)
-        index_together = (('project_id', 'key_id', 'value_id', 'last_seen'), )
+        index_together = (('project_id', 'key', 'value', 'last_seen'), )
 
-    __repr__ = sane_repr('project_id', 'group_id', 'key_id', 'value_id')
+    __repr__ = sane_repr('project_id', 'group_id', 'key', 'value')
 
     # TODO: key property to fetch actual key string?
     # TODO: value property to fetch actual value string?

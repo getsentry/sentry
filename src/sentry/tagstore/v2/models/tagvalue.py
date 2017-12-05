@@ -15,7 +15,7 @@ from django.utils import timezone
 from sentry.api.serializers import Serializer, register
 from sentry.constants import MAX_TAG_VALUE_LENGTH
 from sentry.db.models import (
-    Model, BoundedPositiveIntegerField, GzippedDictField, BaseManager, sane_repr
+    Model, BoundedPositiveIntegerField, GzippedDictField, BaseManager, FlexibleForeignKey, sane_repr
 )
 
 
@@ -27,7 +27,7 @@ class TagValue(Model):
 
     project_id = BoundedPositiveIntegerField(db_index=True)
     environment_id = BoundedPositiveIntegerField(null=True)
-    key_id = BoundedPositiveIntegerField()
+    key = FlexibleForeignKey('tagstore.TagKey')
     value = models.CharField(max_length=MAX_TAG_VALUE_LENGTH)
     data = GzippedDictField(blank=True, null=True)
     # times_seen will live in Redis
@@ -40,11 +40,11 @@ class TagValue(Model):
 
     class Meta:
         app_label = 'tagstore'
-        unique_together = (('project_id', 'environment_id', 'key_id', 'value'), )
+        unique_together = (('project_id', 'environment_id', 'key', 'value'), )
         # TODO: environment index(es)
-        index_together = (('project_id', 'key_id', 'last_seen'), )
+        index_together = (('project_id', 'key', 'last_seen'), )
 
-    __repr__ = sane_repr('project_id', 'environment_id', 'key_id', 'value')
+    __repr__ = sane_repr('project_id', 'environment_id', 'key', 'value')
 
     # TODO: key property to fetch actual key string?
 
