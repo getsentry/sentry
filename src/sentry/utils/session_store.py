@@ -83,7 +83,11 @@ class RedisSessionStore(object):
 
     def __getattr__(self, key):
         state = self.get_state()
-        return state[key] if state else None
+
+        try:
+            return state[key] if state else None
+        except KeyError as e:
+            raise AttributeError(e)
 
     def __setattr__(self, key, value):
         state = self.get_state()

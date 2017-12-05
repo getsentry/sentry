@@ -22,6 +22,9 @@ class RedisSessionStoreTestCase(TestCase):
         assert store2.is_valid()
         assert store2.some_value == 'test_value'
 
+        with self.assertRaises(AttributeError):
+            store.missing_key
+
         store.clear()
 
     def test_store_complex_object(self):
