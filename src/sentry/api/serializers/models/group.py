@@ -350,24 +350,20 @@ class StreamGroupSerializer(GroupSerializer):
 
             segments, interval = self.STATS_PERIOD_CHOICES[self.stats_period]
             now = timezone.now()
+            query_params = {
+                'start': now - ((segments - 1) * interval),
+                'end': now,
+                'rollup': int(interval.total_seconds()),
+            }
             try:
                 stats = tsdb.get_range(
                     model=tsdb.models.group,
                     keys=group_ids,
-                    end=now,
-                    start=now - ((segments - 1) * interval),
-                    rollup=int(interval.total_seconds()),
                     environment_id=self.get_environment_id(),
+                    **query_params
                 )
             except Environment.DoesNotExist:
-                stats = {
-                    key: tsdb.make_series(
-                        0,
-                        start=now - ((segments - 1) * interval),
-                        end=now,
-                        rollup=int(interval.total_seconds()),
-                    ) for key in group_ids
-                }
+                stats = {key: tsdb.make_series(0, **query_params) for key in group_ids}
 
             for item in item_list:
                 attrs[item].update({
