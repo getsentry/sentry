@@ -300,19 +300,21 @@ class ProjectGroupIndexEndpoint(ProjectEndpoint, EnvironmentMixin):
                 except Group.DoesNotExist:
                     matching_group = None
 
+            serializer = functools.partial(
+                StreamGroupSerializer,
+                stats_period=stats_period,
+                get_environment_id=functools.partial(
+                    self._get_environment_id_from_request,
+                    request,
+                    project.organization_id,
+                ),
+            )
+
             if matching_group is not None:
                 response = Response(
                     serialize(
-                        [matching_group], request.user,
-                        StreamGroupSerializer(
-                            stats_period=stats_period,
-                            matching_event_id=getattr(
-                                matching_event, 'id', None),
-                            get_environment_id=functools.partial(
-                                self._get_environment_id_from_request,
-                                request,
-                                project.organization_id,
-                            ),
+                        [matching_group], request.user, serializer(
+                            matching_event_id=getattr(matching_event, 'id', None),
                         )
                     )
                 )
@@ -338,15 +340,7 @@ class ProjectGroupIndexEndpoint(ProjectEndpoint, EnvironmentMixin):
 
         results = list(cursor_result)
 
-        context = serialize(
-            results, request.user, StreamGroupSerializer(
-                stats_period=stats_period,
-                get_environment_id=functools.partial(
-                    self._get_environment_id_from_request,
-                    request,
-                    project.organization_id,
-                ),
-            ))
+        context = serialize(results, request.user, serializer())
 
         # HACK: remove auto resolved entries
         if query_kwargs.get('status') == GroupStatus.UNRESOLVED:
