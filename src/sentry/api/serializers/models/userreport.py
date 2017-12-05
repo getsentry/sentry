@@ -28,7 +28,9 @@ class UserReportSerializer(Serializer):
         for item in item_list:
             attrs[item] = {
                 'event_user': event_users.get(item.event_user_id),
-                'event_id': events_dict.get(item.event_id)
+                'event': {
+                    'id': events_dict.get(item.event_id)
+                }
             }
 
         return attrs
@@ -49,7 +51,7 @@ class UserReportSerializer(Serializer):
             'dateCreated': obj.date_added,
             'user': attrs['event_user'],
             'event': {
-                'id': six.text_type(attrs['event_id']) if attrs['event_id'] else None,
+                'id': six.text_type(attrs['event']['id']) if attrs['event']['id'] else None,
                 'eventID': obj.event_id
             }
 
