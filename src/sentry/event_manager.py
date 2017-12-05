@@ -43,7 +43,7 @@ from sentry.utils.cache import default_cache
 from sentry.utils.db import get_db_engine
 from sentry.utils.safe import safe_execute, trim, trim_dict
 from sentry.utils.strings import truncatechars
-from sentry.utils.validators import is_float, validate_ip
+from sentry.utils.validators import is_float
 from sentry.stacktraces import normalize_in_app
 
 
@@ -292,7 +292,8 @@ class EventManager(object):
         self.data = data
         self.version = version
 
-    def normalize(self):
+    def normalize(self, request_env=None):
+        request_env = request_env or {}
         data = self.data
         errors = data.get('errors', [])
 
@@ -342,10 +343,19 @@ class EventManager(object):
             if msg_if.get('message') != msg_str:
                 msg_if.setdefault('formatted', msg_str)
 
+        # Fill in ip addresses marked as {{auto}}
+        client_ip = request_env.get('client_ip')
+        if client_ip:
+            if data.get('sentry.interfaces.Http', {}).get(
+                    'env', {}).get('REMOTE_ADDR') == '{{auto}}':
+                data['sentry.interfaces.Http']['env']['REMOTE_ADDR'] = client_ip
+
+            if data.get('sentry.interfaces.User', {}).get('ip_address') == '{{auto}}':
+                data['sentry.interfaces.User']['ip_address'] = client_ip
+
         # Validate main event body and tags against schema
         is_valid, event_errors = validate_and_default_interface(data, 'event')
         errors.extend(event_errors)
-
         if 'tags' in data:
             is_valid, tag_errors = validate_and_default_interface(data['tags'], 'tags', name='tags')
             errors.extend(tag_errors)
@@ -377,6 +387,7 @@ class EventManager(object):
                 log('Discarded invalid value for interface: %s (%r)', k, value, exc_info=True)
                 errors.append({'type': EventError.INVALID_DATA, 'name': k, 'value': value})
 
+        # Additional data coercion and defaulting
         level = data.get('level') or DEFAULT_LOG_LEVEL
         if isinstance(level, int) or (isinstance(level, six.string_types) and level.isdigit()):
             level = LOG_LEVELS.get(int(level), DEFAULT_LOG_LEVEL)
@@ -439,20 +450,14 @@ class EventManager(object):
             exception['values'][0]['stacktrace'] = stacktrace
             del data['sentry.interfaces.Stacktrace']
 
-        if 'sentry.interfaces.Http' in data:
-            try:
-                ip_address = validate_ip(
-                    data['sentry.interfaces.Http'].get('env', {}).get('REMOTE_ADDR'),
-                    required=False,
-                )
-                if ip_address:
-                    data.setdefault(
-                        'sentry.interfaces.User',
-                        {}).setdefault(
-                        'ip_address',
-                        ip_address)
-            except ValueError:
-                pass
+        auth = request_env.get('auth')
+        is_public = auth and auth.is_public
+
+        http_ip = data.get('sentry.interfaces.Http', {}).get('env', {}).get('REMOTE_ADDR')
+        if http_ip:
+            data.setdefault('sentry.interfaces.User', {}).setdefault('ip_address', http_ip)
+        elif is_public or data.get('platform') in ('javascript', 'cocoa', 'objc'):
+            data.setdefault('sentry.interfaces.User', {}).setdefault('ip_address', client_ip)
 
         # Trim values
         logger = data.get('logger', DEFAULT_LOGGER_NAME)
