@@ -34,7 +34,7 @@ export default class IgnoreActions extends React.Component {
   }
 
   getIgnoreCounts() {
-    return [100, 1000, 10000, 100000];
+    return [10, 100, 1000, 10000, 100000];
   }
 
   getIgnoreWindows() {
