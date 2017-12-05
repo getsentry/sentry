@@ -55,8 +55,6 @@ class JsonForm extends React.Component {
   render() {
     let {forms, ...otherProps} = this.props;
 
-    
-
     return (
       <Box>
         {forms.map(({title, fields}) => {
