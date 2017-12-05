@@ -38,6 +38,7 @@ class UserReportSerializer(Serializer):
         # context == user / http / extra interfaces
         return {
             'id': six.text_type(obj.id),
+            # TODO(lyn): Verify this isn't being used and eventually remove this from API
             'eventID': obj.event_id,
             'name': (
                 obj.name or obj.email or
@@ -48,7 +49,8 @@ class UserReportSerializer(Serializer):
             'dateCreated': obj.date_added,
             'user': attrs['event_user'],
             'event': {
-                'id': six.text_type(attrs['event_id']) if attrs['event_id'] else None
+                'id': six.text_type(attrs['event_id']) if attrs['event_id'] else None,
+                'eventID': obj.event_id
             }
 
         }
