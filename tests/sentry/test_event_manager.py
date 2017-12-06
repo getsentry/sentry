@@ -912,6 +912,9 @@ class EventManagerTest(TransactionTestCase):
         }
 
     def test_message_attribute_goes_to_formatted(self):
+        # The combining of 'message' and 'sentry.interfaces.Message' is a bit
+        # of a compatibility hack, and ideally we would just enforce a stricter
+        # schema instead of combining them like this.
         manager = EventManager(
             self.make_event(
                 **{
@@ -927,6 +930,22 @@ class EventManagerTest(TransactionTestCase):
         assert event.data['sentry.interfaces.Message'] == {
             'message': 'hello world',
             'formatted': 'world hello',
+        }
+
+    def test_message_attribute_interface_both_strings(self):
+        manager = EventManager(
+            self.make_event(
+                **{
+                    'sentry.interfaces.Message': 'a plain string',
+                    'message': 'another string',
+                }
+            )
+        )
+        manager.normalize()
+        event = manager.save(self.project.id)
+        assert event.data['sentry.interfaces.Message'] == {
+            'message': 'a plain string',
+            'formatted': 'another string',
         }
 
     def test_throws_when_matches_discarded_hash(self):
