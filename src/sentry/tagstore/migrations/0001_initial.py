@@ -19,23 +19,25 @@ class Migration(SchemaMigration):
             ('environment_id', self.gf('sentry.db.models.fields.bounded.BoundedPositiveIntegerField')()),
             ('group_id', self.gf('sentry.db.models.fields.bounded.BoundedPositiveIntegerField')()),
             ('event_id', self.gf('sentry.db.models.fields.bounded.BoundedPositiveIntegerField')()),
-            ('key_id', self.gf('sentry.db.models.fields.bounded.BoundedPositiveIntegerField')()),
-            ('value_id', self.gf('sentry.db.models.fields.bounded.BoundedPositiveIntegerField')()),
+            ('key', self.gf('sentry.db.models.fields.foreignkey.FlexibleForeignKey')(
+                to=orm['tagstore.TagKey'])),
+            ('value', self.gf('sentry.db.models.fields.foreignkey.FlexibleForeignKey')(
+                to=orm['tagstore.TagValue'])),
             ('date_added', self.gf('django.db.models.fields.DateTimeField')(
                 default=datetime.datetime.now, db_index=True)),
         ))
         db.send_create_signal('tagstore', ['EventTag'])
 
-        # Adding unique constraint on 'EventTag', fields ['event_id', 'key_id', 'value_id']
+        # Adding unique constraint on 'EventTag', fields ['event_id', 'key', 'value']
         db.create_unique(u'tagstore_eventtag', ['event_id', 'key_id', 'value_id'])
 
-        # Adding index on 'EventTag', fields ['project_id', 'key_id', 'value_id']
+        # Adding index on 'EventTag', fields ['project_id', 'key', 'value']
         db.create_index(u'tagstore_eventtag', ['project_id', 'key_id', 'value_id'])
 
-        # Adding index on 'EventTag', fields ['group_id', 'key_id', 'value_id']
+        # Adding index on 'EventTag', fields ['group_id', 'key', 'value']
         db.create_index(u'tagstore_eventtag', ['group_id', 'key_id', 'value_id'])
 
-        # Adding index on 'EventTag', fields ['environment_id', 'key_id', 'value_id']
+        # Adding index on 'EventTag', fields ['environment_id', 'key', 'value']
         db.create_index(u'tagstore_eventtag', ['environment_id', 'key_id', 'value_id'])
 
         # Adding model 'GroupTagKey'
@@ -147,16 +149,16 @@ class Migration(SchemaMigration):
             u'tagstore_grouptagkey', [
                 'project_id', 'group_id', 'environment_id', 'key_id'])
 
-        # Removing index on 'EventTag', fields ['environment_id', 'key_id', 'value_id']
+        # Removing index on 'EventTag', fields ['environment_id', 'key', 'value']
         db.delete_index(u'tagstore_eventtag', ['environment_id', 'key_id', 'value_id'])
 
-        # Removing index on 'EventTag', fields ['group_id', 'key_id', 'value_id']
+        # Removing index on 'EventTag', fields ['group_id', 'key', 'value']
         db.delete_index(u'tagstore_eventtag', ['group_id', 'key_id', 'value_id'])
 
-        # Removing index on 'EventTag', fields ['project_id', 'key_id', 'value_id']
+        # Removing index on 'EventTag', fields ['project_id', 'key', 'value']
         db.delete_index(u'tagstore_eventtag', ['project_id', 'key_id', 'value_id'])
 
-        # Removing unique constraint on 'EventTag', fields ['event_id', 'key_id', 'value_id']
+        # Removing unique constraint on 'EventTag', fields ['event_id', 'key', 'value']
         db.delete_unique(u'tagstore_eventtag', ['event_id', 'key_id', 'value_id'])
 
         # Deleting model 'EventTag'
@@ -176,15 +178,15 @@ class Migration(SchemaMigration):
 
     models = {
         'tagstore.eventtag': {
-            'Meta': {'unique_together': "(('event_id', 'key_id', 'value_id'),)", 'object_name': 'EventTag', 'index_together': "(('project_id', 'key_id', 'value_id'), ('group_id', 'key_id', 'value_id'), ('environment_id', 'key_id', 'value_id'))"},
+            'Meta': {'unique_together': "(('event_id', 'key', 'value'),)", 'object_name': 'EventTag', 'index_together': "(('project_id', 'key', 'value'), ('group_id', 'key', 'value'), ('environment_id', 'key', 'value'))"},
             'date_added': ('django.db.models.fields.DateTimeField', [], {'default': 'datetime.datetime.now', 'db_index': 'True'}),
             'environment_id': ('sentry.db.models.fields.bounded.BoundedPositiveIntegerField', [], {}),
             'event_id': ('sentry.db.models.fields.bounded.BoundedPositiveIntegerField', [], {}),
             'group_id': ('sentry.db.models.fields.bounded.BoundedPositiveIntegerField', [], {}),
             'id': ('sentry.db.models.fields.bounded.BoundedBigAutoField', [], {'primary_key': 'True'}),
-            'key_id': ('sentry.db.models.fields.bounded.BoundedPositiveIntegerField', [], {}),
+            'key': ('sentry.db.models.fields.foreignkey.FlexibleForeignKey', [], {'to': "orm['tagstore.TagKey']"}),
             'project_id': ('sentry.db.models.fields.bounded.BoundedPositiveIntegerField', [], {}),
-            'value_id': ('sentry.db.models.fields.bounded.BoundedPositiveIntegerField', [], {})
+            'value': ('sentry.db.models.fields.foreignkey.FlexibleForeignKey', [], {'to': "orm['tagstore.TagValue']"})
         },
         'tagstore.grouptagkey': {
             'Meta': {'unique_together': "(('project_id', 'group_id', 'environment_id', 'key'),)", 'object_name': 'GroupTagKey'},
