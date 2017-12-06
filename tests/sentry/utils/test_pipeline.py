@@ -37,7 +37,7 @@ class PipelineTestCase(TestCase):
         request.session = {}
         request.user = self.user
 
-        pipeline = DummpyPipeline(request, org, 'dummy', {'some_config': True})
+        pipeline = DummpyPipeline(request, org, 'dummy', config={'some_config': True})
         pipeline.initialize()
 
         assert pipeline.is_valid()
