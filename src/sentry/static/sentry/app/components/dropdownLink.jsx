@@ -28,6 +28,7 @@ class DropdownLink extends React.Component {
   };
 
   static defaultProps = {
+    alwaysRenderMenu: true,
     disabled: false,
     anchorRight: false,
     caret: true,
@@ -48,7 +49,7 @@ class DropdownLink extends React.Component {
       className,
       alwaysRenderMenu,
       topLevelClasses,
-      ...otherProps,
+      ...otherProps
     } = this.props;
 
     // Default anchor = left

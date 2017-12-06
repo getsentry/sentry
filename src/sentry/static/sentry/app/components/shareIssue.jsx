@@ -213,7 +213,6 @@ class ShareIssue extends React.Component {
         title={title}
         onOpen={this.handleOpen}
         keepMenuOpen
-        alwaysRenderMenu
       >
         <li
           style={{

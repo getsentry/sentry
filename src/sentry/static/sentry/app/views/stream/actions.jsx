@@ -659,7 +659,6 @@ const StreamActions = React.createClass({
                 caret={false}
                 className="btn btn-sm btn-default hidden-xs action-more"
                 title={<span className="icon-ellipsis" />}
-                alwaysRenderMenu
               >
                 <MenuItem noAnchor={true}>
                   <ActionLink

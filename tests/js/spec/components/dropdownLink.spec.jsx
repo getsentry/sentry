@@ -45,7 +45,7 @@ describe('DropdownLink', function() {
       }
 
       wrapper = mount(
-        <DropdownLink title="test">
+        <DropdownLink alwaysRenderMenu={false} title="test">
           <li>hi</li>
         </DropdownLink>
       );
@@ -85,7 +85,7 @@ describe('DropdownLink', function() {
 
       it('does not close when menu is clicked and `keepMenuOpen` is on', function() {
         wrapper = mount(
-          <DropdownLink title="test" keepMenuOpen>
+          <DropdownLink title="test" alwaysRenderMenu={false} keepMenuOpen>
             <li>hi</li>
           </DropdownLink>
         );
@@ -108,7 +108,7 @@ describe('DropdownLink', function() {
     describe('Opened', function() {
       beforeEach(function() {
         wrapper = mount(
-          <DropdownLink isOpen={true} title="test">
+          <DropdownLink isOpen={true} alwaysRenderMenu={false} title="test">
             <li>hi</li>
           </DropdownLink>
         );
@@ -136,7 +136,7 @@ describe('DropdownLink', function() {
     describe('Closed', function() {
       beforeEach(function() {
         wrapper = mount(
-          <DropdownLink isOpen={false} title="test">
+          <DropdownLink isOpen={false} alwaysRenderMenu={false} title="test">
             <li>hi</li>
           </DropdownLink>
         );
@@ -159,12 +159,18 @@ describe('DropdownLink', function() {
       }
 
       wrapper = mount(
-        <DropdownLink title="parent">
+        <DropdownLink title="parent" alwaysRenderMenu={false}>
           <li id="nested-actor">
-            <DropdownLink className="nested-menu" title="nested" isNestedDropdown={true}>
+            <DropdownLink
+              className="nested-menu"
+              alwaysRenderMenu={false}
+              title="nested"
+              isNestedDropdown={true}
+            >
               <li id="nested-actor-2">
                 <DropdownLink
                   className="nested-menu-2"
+                  alwaysRenderMenu={false}
                   title="nested #2"
                   isNestedDropdown={true}
                 >
