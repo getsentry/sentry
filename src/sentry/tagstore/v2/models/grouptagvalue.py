@@ -28,9 +28,9 @@ class GroupTagValue(Model):
     project_id = BoundedPositiveIntegerField(db_index=True)
     group_id = BoundedPositiveIntegerField(db_index=True)
     environment_id = BoundedPositiveIntegerField(null=True)
-    # times_seen will live in Redis
-    key = FlexibleForeignKey('tagstore.TagKey')
-    value = FlexibleForeignKey('tagstore.TagValue')
+    times_seen = BoundedPositiveIntegerField(default=0)
+    _key = FlexibleForeignKey('tagstore.TagKey', db_column='key')
+    _value = FlexibleForeignKey('tagstore.TagValue', db_column='value')
     last_seen = models.DateTimeField(
         default=timezone.now, db_index=True, null=True)
     first_seen = models.DateTimeField(
@@ -40,14 +40,19 @@ class GroupTagValue(Model):
 
     class Meta:
         app_label = 'tagstore'
-        unique_together = (('project_id', 'group_id', 'environment_id', 'key', 'value'), )
+        unique_together = (('project_id', 'group_id', 'environment_id', '_key', '_value'), )
         # TODO: environment index(es)
-        index_together = (('project_id', 'key', 'value', 'last_seen'), )
+        index_together = (('project_id', '_key', '_value', 'last_seen'), )
 
-    __repr__ = sane_repr('project_id', 'group_id', 'key', 'value')
+    __repr__ = sane_repr('project_id', 'group_id', '_key', '_value')
 
-    # TODO: key property to fetch actual key string?
-    # TODO: value property to fetch actual value string?
+    @property
+    def key(self):
+        return self._key.key
+
+    @property
+    def value(self):
+        return self._value.value
 
     def save(self, *args, **kwargs):
         if not self.first_seen:
@@ -55,7 +60,6 @@ class GroupTagValue(Model):
         super(GroupTagValue, self).save(*args, **kwargs)
 
     # TODO: this will have to iterate all of the possible environments a group has?
-    # TODO: times_seen will live in Redis
     def merge_counts(self, new_group):
         try:
             with transaction.atomic(using=router.db_for_write(GroupTagValue)):

@@ -144,7 +144,7 @@ class V2TagStorage(TestCase):
         assert TagValue.objects.filter(
             project_id=self.proj1.id,
             environment_id=self.proj1env1.id,
-            key_id=tk.id,
+            _key_id=tk.id,
             value=self.value1,
         ).count() == 1
         assert TagValue.objects.all().count() == 1
@@ -220,7 +220,7 @@ class V2TagStorage(TestCase):
             project_id=self.proj1.id,
             group_id=self.proj1group1.id,
             environment_id=self.proj1env1.id,
-            key_id=tk.id,
+            _key_id=tk.id,
         ).count() == 1
         assert GroupTagKey.objects.all().count() == 1
 
@@ -297,7 +297,7 @@ class V2TagStorage(TestCase):
         tv = TagValue.objects.get(
             project_id=self.proj1.id,
             environment_id=self.proj1env1.id,
-            key_id=tk.id,
+            _key_id=tk.id,
             value=self.value1,
         )
         assert TagValue.objects.all().count() == 1
@@ -306,13 +306,17 @@ class V2TagStorage(TestCase):
             project_id=self.proj1.id,
             group_id=self.proj1group1.id,
             environment_id=self.proj1env1.id,
-            key_id=tk.id,
-            value_id=tv.id,
+            _key_id=tk.id,
+            _value_id=tv.id,
         ).count() == 1
         assert GroupTagValue.objects.all().count() == 1
 
     def test_create_event_tags(self):
-        tags = [(1, 1), (2, 2), (3, 3)]
+        v1, _ = self.ts.get_or_create_tag_value(self.proj1.id, self.proj1env1.id, 'k1', 'v1')
+        v2, _ = self.ts.get_or_create_tag_value(self.proj1.id, self.proj1env1.id, 'k2', 'v2')
+        v3, _ = self.ts.get_or_create_tag_value(self.proj1.id, self.proj1env1.id, 'k3', 'v3')
+
+        tags = [(v1._key.id, v1.id), (v2._key.id, v2.id), (v3._key.id, v3.id)]
         self.ts.create_event_tags(
             project_id=self.proj1.id,
             group_id=self.proj1group1.id,
@@ -328,8 +332,8 @@ class V2TagStorage(TestCase):
                 group_id=self.proj1group1.id,
                 environment_id=self.proj1env1.id,
                 event_id=self.proj1group1event1.id,
-                key_id=key_id,
-                value_id=value_id,
+                _key_id=key_id,
+                _value_id=value_id,
             ) is not None
 
     def test_delete_tag_key(self):

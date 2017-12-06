@@ -79,7 +79,7 @@ class TagStorage(TagStorage):
         return TagValue.objects.create(
             project_id=project_id,
             environment_id=environment_id,
-            key_id=tag_key.id,
+            _key_id=tag_key.id,
             value=value,
             **kwargs
         )
@@ -91,7 +91,7 @@ class TagStorage(TagStorage):
         return TagValue.objects.get_or_create(
             project_id=project_id,
             environment_id=environment_id,
-            key_id=tag_key.id,
+            _key_id=tag_key.id,
             value=value,
             **kwargs
         )
@@ -104,7 +104,7 @@ class TagStorage(TagStorage):
             project_id=project_id,
             group_id=group_id,
             environment_id=environment_id,
-            key_id=tag_key.id,
+            _key_id=tag_key.id,
             **kwargs
         )
 
@@ -116,7 +116,7 @@ class TagStorage(TagStorage):
             project_id=project_id,
             group_id=group_id,
             environment_id=environment_id,
-            key_id=tag_key.id,
+            _key_id=tag_key.id,
             **kwargs
         )
 
@@ -131,8 +131,8 @@ class TagStorage(TagStorage):
             project_id=project_id,
             group_id=group_id,
             environment_id=environment_id,
-            key_id=tag_key.id,
-            value_id=tag_value.id,
+            _key_id=tag_key.id,
+            _value_id=tag_value.id,
             **kwargs
         )
 
@@ -148,8 +148,8 @@ class TagStorage(TagStorage):
             project_id=project_id,
             group_id=group_id,
             environment_id=environment_id,
-            key_id=tag_key.id,
-            value_id=tag_value.id,
+            _key_id=tag_key.id,
+            _value_id=tag_value.id,
             **kwargs
         )
 
@@ -166,8 +166,8 @@ class TagStorage(TagStorage):
                         environment_id=environment_id,
                         group_id=group_id,
                         event_id=event_id,
-                        key_id=key_id,
-                        value_id=value_id,
+                        _key_id=key_id,
+                        _value_id=value_id,
                     )
                     for key_id, value_id in tags
                 ])
@@ -207,7 +207,7 @@ class TagStorage(TagStorage):
 
         qs = TagValue.objects.filter(
             project_id=project_id,
-            key__key=key,
+            _key__key=key,
             value=value,
             **self._get_environment_filter(environment_id)
         )
@@ -220,7 +220,7 @@ class TagStorage(TagStorage):
     def get_tag_values(self, project_id, environment_id, key):
         qs = TagValue.objects.filter(
             project_id=project_id,
-            key__key=key,
+            _key__key=key,
             **self._get_environment_filter(environment_id)
         )
 
@@ -232,7 +232,7 @@ class TagStorage(TagStorage):
         qs = GroupTagKey.objects.filter(
             project_id=project_id,
             group_id=group_id,
-            key__key=key,
+            _key__key=key,
             **self._get_environment_filter(environment_id)
         )
 
@@ -258,8 +258,8 @@ class TagStorage(TagStorage):
         qs = GroupTagValue.objects.filter(
             project_id=project_id,
             group_id=group_id,
-            key__key=key,
-            value__value=value,
+            _key__key=key,
+            _value__value=value,
             **self._get_environment_filter(environment_id)
         )
 
@@ -271,7 +271,7 @@ class TagStorage(TagStorage):
     def get_group_tag_values(self, project_id, group_id, environment_id, key):
         qs = GroupTagValue.objects.filter(
             group_id=group_id,
-            key__key=key,
+            _key__key=key,
             **self._get_environment_filter(environment_id)
         )
 

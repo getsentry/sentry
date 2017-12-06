@@ -27,10 +27,10 @@ class TagValue(Model):
 
     project_id = BoundedPositiveIntegerField(db_index=True)
     environment_id = BoundedPositiveIntegerField(null=True)
-    key = FlexibleForeignKey('tagstore.TagKey')
+    _key = FlexibleForeignKey('tagstore.TagKey', db_column='key')
     value = models.CharField(max_length=MAX_TAG_VALUE_LENGTH)
     data = GzippedDictField(blank=True, null=True)
-    # times_seen will live in Redis
+    times_seen = BoundedPositiveIntegerField(default=0)
     last_seen = models.DateTimeField(
         default=timezone.now, db_index=True, null=True)
     first_seen = models.DateTimeField(
@@ -40,13 +40,15 @@ class TagValue(Model):
 
     class Meta:
         app_label = 'tagstore'
-        unique_together = (('project_id', 'environment_id', 'key', 'value'), )
+        unique_together = (('project_id', 'environment_id', '_key', 'value'), )
         # TODO: environment index(es)
-        index_together = (('project_id', 'key', 'last_seen'), )
+        index_together = (('project_id', '_key', 'last_seen'), )
 
-    __repr__ = sane_repr('project_id', 'environment_id', 'key', 'value')
+    __repr__ = sane_repr('project_id', 'environment_id', '_key', 'value')
 
-    # TODO: key property to fetch actual key string?
+    @property
+    def key(self):
+        return self._key.key
 
     def get_label(self):
         from sentry import tagstore

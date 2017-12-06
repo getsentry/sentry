@@ -20,17 +20,25 @@ class EventTag(Model):
     environment_id = BoundedPositiveIntegerField()
     group_id = BoundedPositiveIntegerField()
     event_id = BoundedPositiveIntegerField()
-    key = FlexibleForeignKey('tagstore.TagKey')
-    value = FlexibleForeignKey('tagstore.TagValue')
+    _key = FlexibleForeignKey('tagstore.TagKey', db_column='key')
+    _value = FlexibleForeignKey('tagstore.TagValue', db_column='value')
     date_added = models.DateTimeField(default=timezone.now, db_index=True)
 
     class Meta:
         app_label = 'tagstore'
-        unique_together = (('event_id', 'key', 'value'), )
+        unique_together = (('event_id', '_key', '_value'), )
         index_together = (
-            ('project_id', 'key', 'value'),
-            ('group_id', 'key', 'value'),
-            ('environment_id', 'key', 'value'),
+            ('project_id', '_key', '_value'),
+            ('group_id', '_key', '_value'),
+            ('environment_id', '_key', '_value'),
         )
 
-    __repr__ = sane_repr('event_id', 'key', 'value')
+    __repr__ = sane_repr('event_id', '_key', '_value')
+
+    @property
+    def key(self):
+        return self._key.key
+
+    @property
+    def value(self):
+        return self._value.value
