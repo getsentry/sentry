@@ -95,18 +95,16 @@ const GroupTombstones = React.createClass({
         );
       },
       error: () => {
-        IndicatorStore.add(
-          t('We were unable to undiscard this group'),
-          'error',
-          {duration: 4000}
-        );
+        IndicatorStore.add(t('We were unable to undiscard this group'), 'error', {
+          duration: 4000,
+        });
       },
     });
     this.props.fetchData();
   },
 
   renderEmpty() {
-    return <div className="box empty">{t('None')}</div>;
+    return <div className="box empty">{t('You have no discarded groups')}</div>;
   },
 
   render() {
@@ -117,7 +115,6 @@ const GroupTombstones = React.createClass({
       <div>
         <div className="row" style={{paddingTop: 10}}>
           <div className="col-md-12 discarded-groups">
-            <h5>{t('Discarded Groups')}</h5>
             {tombstones.length ? (
               <ul className="group-list">
                 {tombstones.map(data => {
