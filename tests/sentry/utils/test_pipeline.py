@@ -50,10 +50,9 @@ class PipelineTestCase(TestCase):
         pipeline.finished = 0
         pipeline.dispatch_count = 0
 
-        # Piepline has two steps, ensure both steps compete.
-        # Usually the dispatch itself would be the one calling the current_step
-        # and next_step methods after it determins if it can move forward a
-        # step.
+        # Pipeline has two steps, ensure both steps compete. Usually the
+        # dispatch itself would be the one calling the current_step and
+        # next_step methods after it determines if it can move forward a step.
         pipeline.current_step()
         assert pipeline.dispatch_count == 1
         assert pipeline.fetch_state('some_state') == 'value'
