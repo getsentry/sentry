@@ -1,4 +1,4 @@
-import _ from 'lodash';
+import {createSearchMap} from './util';
 
 const forms = [
   {
@@ -26,32 +26,6 @@ const forms = [
     ],
   },
 ];
-
-// Create a simple search index for a field
-const createSearchIndex = field => {
-  let fields = [field.name, field.label, field.help];
-
-  return fields
-    .join('')
-    .toLowerCase()
-    .replace(' ', '');
-};
-
-const createSearchMap = ({route, formGroups, ...other}) => {
-  return _.fromPairs(
-    _.flatMap(formGroups, ({title, fields}) =>
-      fields.map(field => [
-        createSearchIndex(field),
-        {
-          ...other,
-          route,
-          groupTitle: title,
-          field,
-        },
-      ])
-    )
-  );
-};
 
 export default forms;
 
