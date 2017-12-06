@@ -309,7 +309,6 @@ class OrganizationRepositories extends OrganizationSettingsView {
         <div className="pull-right">
           <DropdownLink
             anchorRight
-            alwaysRenderMenu
             className="btn btn-primary btn-sm"
             title={t('Add Repository')}
           >

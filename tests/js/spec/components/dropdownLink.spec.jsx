@@ -1,5 +1,5 @@
 import React from 'react';
-import {shallow, mount} from 'enzyme';
+import {mount} from 'enzyme';
 import DropdownLink from 'app/components/dropdownLink';
 
 describe('DropdownLink', function() {
@@ -8,12 +8,13 @@ describe('DropdownLink', function() {
     onOpen: () => {},
     onClose: () => {},
     topLevelClasses: 'top-level-class',
+    alwaysRenderMenu: true,
     menuClasses: '',
   };
 
   describe('renders', function() {
     it('and anchors to left by default', function() {
-      let component = shallow(
+      let component = mount(
         <DropdownLink {...INPUT_1}>
           <div>1</div>
           <div>2</div>
@@ -24,7 +25,7 @@ describe('DropdownLink', function() {
     });
 
     it('and anchors to right', function() {
-      let component = shallow(
+      let component = mount(
         <DropdownLink {...INPUT_1} anchorRight>
           <div>1</div>
           <div>2</div>
@@ -44,7 +45,7 @@ describe('DropdownLink', function() {
       }
 
       wrapper = mount(
-        <DropdownLink title="test">
+        <DropdownLink alwaysRenderMenu={false} title="test">
           <li>hi</li>
         </DropdownLink>
       );
@@ -52,12 +53,10 @@ describe('DropdownLink', function() {
 
     describe('While Closed', function() {
       it('displays dropdown menu when dropdown actor button clicked', function() {
-        expect(wrapper.find('li').length).toBe(0);
-        expect(wrapper.state('isOpen')).toBe(false);
+        expect(wrapper.find('li')).toHaveLength(0);
 
         // open
         wrapper.find('a').simulate('click');
-        expect(wrapper.state('isOpen')).toBe(true);
         expect(wrapper.find('li').length).toBe(1);
       });
     });
@@ -67,31 +66,32 @@ describe('DropdownLink', function() {
         wrapper.find('a').simulate('click');
       });
 
-      it.skip('closes when clicked outside', function() {
-        jQuery(document).click();
-        expect(wrapper.state('isOpen')).toBe(false);
-        expect(wrapper.instance().checkClickOutside).toHaveBeenCalled();
+      it('closes when clicked outside', function() {
+        const evt = document.createEvent('HTMLEvents');
+        evt.initEvent('click', false, true);
+        document.body.dispatchEvent(evt);
+        expect(wrapper.find('li').length).toBe(0);
       });
 
       it('closes when dropdown actor button is clicked', function() {
         wrapper.find('a').simulate('click');
-        expect(wrapper.state('isOpen')).toBe(false);
+        expect(wrapper.find('li').length).toBe(0);
       });
 
       it('closes when dropdown menu item is clicked', function() {
         wrapper.find('li').simulate('click');
-        expect(wrapper.state('isOpen')).toBe(false);
+        expect(wrapper.find('li').length).toBe(0);
       });
 
       it('does not close when menu is clicked and `keepMenuOpen` is on', function() {
         wrapper = mount(
-          <DropdownLink title="test" keepMenuOpen>
+          <DropdownLink title="test" alwaysRenderMenu={false} keepMenuOpen>
             <li>hi</li>
           </DropdownLink>
         );
         wrapper.find('a').simulate('click');
         wrapper.find('li').simulate('click');
-        expect(wrapper.state('isOpen')).toBe(true);
+        expect(wrapper.find('li').length).toBe(1);
         wrapper.unmount();
       });
     });
@@ -108,7 +108,7 @@ describe('DropdownLink', function() {
     describe('Opened', function() {
       beforeEach(function() {
         wrapper = mount(
-          <DropdownLink isOpen={true} title="test">
+          <DropdownLink isOpen={true} alwaysRenderMenu={false} title="test">
             <li>hi</li>
           </DropdownLink>
         );
@@ -118,28 +118,25 @@ describe('DropdownLink', function() {
         // open
         wrapper.find('li').simulate('click');
         // State does not change
-        expect(wrapper.state('isOpen')).toBe(false);
         expect(wrapper.find('.dropdown-menu').length).toBe(1);
       });
 
       it('does not close when document is clicked', function() {
         jQuery(document).click();
         // State does not change
-        expect(wrapper.state('isOpen')).toBe(false);
         expect(wrapper.find('.dropdown-menu').length).toBe(1);
       });
 
       it('does not close when dropdown actor is clicked', function() {
         wrapper.find('a').simulate('click');
         // State does not change
-        expect(wrapper.state('isOpen')).toBe(false);
         expect(wrapper.find('.dropdown-menu').length).toBe(1);
       });
     });
     describe('Closed', function() {
       beforeEach(function() {
         wrapper = mount(
-          <DropdownLink isOpen={false} title="test">
+          <DropdownLink isOpen={false} alwaysRenderMenu={false} title="test">
             <li>hi</li>
           </DropdownLink>
         );
@@ -148,7 +145,6 @@ describe('DropdownLink', function() {
       it('does not open when dropdown actor is clicked', function() {
         wrapper.find('a').simulate('click');
         // State does not change
-        expect(wrapper.state('isOpen')).toBe(false);
         expect(wrapper.find('.dropdown-menu').length).toBe(0);
       });
     });
@@ -163,22 +159,67 @@ describe('DropdownLink', function() {
       }
 
       wrapper = mount(
-        <DropdownLink title="parent">
-          <DropdownLink title="nested" isNestedDropdown={true}>
-            Test
-          </DropdownLink>
+        <DropdownLink title="parent" alwaysRenderMenu={false}>
+          <li id="nested-actor">
+            <DropdownLink
+              className="nested-menu"
+              alwaysRenderMenu={false}
+              title="nested"
+              isNestedDropdown={true}
+            >
+              <li id="nested-actor-2">
+                <DropdownLink
+                  className="nested-menu-2"
+                  alwaysRenderMenu={false}
+                  title="nested #2"
+                  isNestedDropdown={true}
+                >
+                  <li id="nested-actor-3">Hello</li>
+                </DropdownLink>
+              </li>
+            </DropdownLink>
+          </li>
+          <li id="no-nest">Item 2</li>
         </DropdownLink>
       );
+
+      // Start when menu open
+      wrapper.find('a').simulate('click');
+    });
+
+    it('closes when top-level actor is clicked', function() {
+      wrapper
+        .find('a')
+        .first()
+        .simulate('click');
+      expect(wrapper.find('.dropdown-menu')).toHaveLength(0);
     });
 
     it('Opens / closes on mouse enter and leave', function() {
-      wrapper.find('a').simulate('click');
       wrapper.find('.dropdown-menu a').simulate('mouseEnter');
       expect(wrapper.find('.dropdown-menu').length).toBe(2);
 
-      wrapper.find('.dropdown-menu a').simulate('mouseLeave');
+      wrapper.find('.nested-menu').simulate('mouseLeave');
 
       expect(wrapper.find('.dropdown-menu').length).toBe(1);
+    });
+
+    it('closes when first level nested actor is clicked', function() {
+      wrapper.find('#nested-actor').simulate('click');
+      expect(wrapper.find('.dropdown-menu')).toHaveLength(0);
+    });
+
+    it('closes when second level nested actor is clicked', function() {
+      wrapper.find('.nested-menu').simulate('mouseEnter');
+      wrapper.find('.nested-menu-2 span').simulate('click');
+      expect(wrapper.find('.dropdown-menu')).toHaveLength(0);
+    });
+
+    it('closes when third level nested actor is clicked', function() {
+      wrapper.find('.nested-menu').simulate('mouseEnter');
+      wrapper.find('.nested-menu-2').simulate('mouseEnter');
+      wrapper.find('#nested-actor-3').simulate('click');
+      expect(wrapper.find('.dropdown-menu')).toHaveLength(0);
     });
   });
 });

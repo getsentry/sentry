@@ -322,7 +322,7 @@ const ProjectSelector = React.createClass({
     });
 
     return (
-      <div className="project-select" ref="container">
+      <div className="project-select">
         <h3>
           <Link to={`/${org.slug}/`} className="home-crumb">
             <span className="icon-home" />
@@ -331,12 +331,12 @@ const ProjectSelector = React.createClass({
             ? this.getLinkNode(this.state.activeTeam, this.state.activeProject)
             : t('Select a project')}
           <DropdownLink
-            ref="dropdownLink"
             title=""
             topLevelClasses={dropdownClassNames}
             isOpen={this.state.isOpen}
             onOpen={this.onOpen}
             onClose={this.onClose}
+            alwaysRenderMenu={false}
           >
             {(hasFilter || hasProjects) && (
               <li className="project-filter" key="_filter">

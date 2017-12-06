@@ -21,93 +21,75 @@ exports[`OrganizationRepositories render() with a provider renders 1`] = `
           caret={true}
           className="btn btn-primary btn-sm"
           disabled={false}
-          keepMenuOpen={false}
           title="Add Repository"
         >
-          <span
-            className="dropdown pull-right anchor-right open"
+          <DropdownMenu
+            keepMenuOpen={false}
           >
-            <a
-              className="dropdown-actor btn btn-primary btn-sm dropdown-menu-right dropdown-toggle hover"
-              onClick={[Function]}
+            <span
+              className="dropdown pull-right anchor-right open"
             >
-              <span
-                className="dropdown-actor-title"
+              <a
+                className="dropdown-actor btn btn-primary btn-sm dropdown-menu-right dropdown-toggle hover"
+                onClick={[Function]}
+                onMouseEnter={[Function]}
+                onMouseLeave={[Function]}
               >
-                <span>
-                  Add Repository
-                </span>
-                <i
-                  className="icon-arrow-down"
-                />
-              </span>
-            </a>
-            <ul
-              className="dropdown-menu"
-              onClick={[Function]}
-            >
-              <MenuItem
-                noAnchor={true}
-              >
-                <li
-                  className=""
-                  href={null}
-                  role="presentation"
-                  title={null}
+                <div
+                  className="dropdown-actor-title"
                 >
-                  <AddRepositoryLink
-                    onSuccess={[Function]}
-                    orgId="org-slug"
-                    provider={
-                      Object {
-                        "config": Array [
-                          Object {
-                            "help": "Enter your repository name, including the owner.",
-                            "label": "Repository Name",
-                            "name": "name",
-                            "placeholder": "e.g. getsentry/sentry",
-                            "required": true,
-                            "type": "text",
-                          },
-                        ],
-                        "id": "github",
-                        "name": "GitHub",
-                      }
-                    }
+                  <span>
+                    Add Repository
+                  </span>
+                  <i
+                    className="icon-arrow-down"
+                  />
+                </div>
+              </a>
+              <ul
+                className="dropdown-menu"
+                onClick={[Function]}
+                onMouseLeave={[Function]}
+              >
+                <MenuItem
+                  noAnchor={true}
+                >
+                  <li
+                    className=""
+                    href={null}
+                    role="presentation"
+                    title={null}
                   >
-                    <a
-                      onClick={[Function]}
-                    >
-                      GitHub
-                      <Modal
-                        animation={false}
-                        autoFocus={true}
-                        backdrop={true}
-                        bsClass="modal"
-                        dialogComponentClass={[Function]}
-                        enforceFocus={true}
-                        keyboard={true}
-                        manager={
-                          ModalManager {
-                            "containers": Array [],
-                            "data": Array [],
-                            "handleContainerOverflow": true,
-                            "hideSiblingNodes": true,
-                            "modals": Array [],
-                          }
+                    <AddRepositoryLink
+                      onSuccess={[Function]}
+                      orgId="org-slug"
+                      provider={
+                        Object {
+                          "config": Array [
+                            Object {
+                              "help": "Enter your repository name, including the owner.",
+                              "label": "Repository Name",
+                              "name": "name",
+                              "placeholder": "e.g. getsentry/sentry",
+                              "required": true,
+                              "type": "text",
+                            },
+                          ],
+                          "id": "github",
+                          "name": "GitHub",
                         }
-                        onHide={[Function]}
-                        renderBackdrop={[Function]}
-                        restoreFocus={true}
-                        show={false}
+                      }
+                    >
+                      <a
+                        onClick={[Function]}
                       >
+                        GitHub
                         <Modal
+                          animation={false}
                           autoFocus={true}
                           backdrop={true}
-                          backdropClassName="modal-backdrop"
-                          backdropTransitionTimeout={150}
-                          containerClassName="modal-open"
-                          dialogTransitionTimeout={300}
+                          bsClass="modal"
+                          dialogComponentClass={[Function]}
                           enforceFocus={true}
                           keyboard={true}
                           manager={
@@ -119,20 +101,44 @@ exports[`OrganizationRepositories render() with a provider renders 1`] = `
                               "modals": Array [],
                             }
                           }
-                          onEntering={[Function]}
-                          onExited={[Function]}
                           onHide={[Function]}
                           renderBackdrop={[Function]}
                           restoreFocus={true}
                           show={false}
-                        />
-                      </Modal>
-                    </a>
-                  </AddRepositoryLink>
-                </li>
-              </MenuItem>
-            </ul>
-          </span>
+                        >
+                          <Modal
+                            autoFocus={true}
+                            backdrop={true}
+                            backdropClassName="modal-backdrop"
+                            backdropTransitionTimeout={150}
+                            containerClassName="modal-open"
+                            dialogTransitionTimeout={300}
+                            enforceFocus={true}
+                            keyboard={true}
+                            manager={
+                              ModalManager {
+                                "containers": Array [],
+                                "data": Array [],
+                                "handleContainerOverflow": true,
+                                "hideSiblingNodes": true,
+                                "modals": Array [],
+                              }
+                            }
+                            onEntering={[Function]}
+                            onExited={[Function]}
+                            onHide={[Function]}
+                            renderBackdrop={[Function]}
+                            restoreFocus={true}
+                            show={false}
+                          />
+                        </Modal>
+                      </a>
+                    </AddRepositoryLink>
+                  </li>
+                </MenuItem>
+              </ul>
+            </span>
+          </DropdownMenu>
         </DropdownLink>
       </div>
       <h3
@@ -189,93 +195,75 @@ exports[`OrganizationRepositories render() with a provider renders with a reposi
           caret={true}
           className="btn btn-primary btn-sm"
           disabled={false}
-          keepMenuOpen={false}
           title="Add Repository"
         >
-          <span
-            className="dropdown pull-right anchor-right open"
+          <DropdownMenu
+            keepMenuOpen={false}
           >
-            <a
-              className="dropdown-actor btn btn-primary btn-sm dropdown-menu-right dropdown-toggle hover"
-              onClick={[Function]}
+            <span
+              className="dropdown pull-right anchor-right open"
             >
-              <span
-                className="dropdown-actor-title"
+              <a
+                className="dropdown-actor btn btn-primary btn-sm dropdown-menu-right dropdown-toggle hover"
+                onClick={[Function]}
+                onMouseEnter={[Function]}
+                onMouseLeave={[Function]}
               >
-                <span>
-                  Add Repository
-                </span>
-                <i
-                  className="icon-arrow-down"
-                />
-              </span>
-            </a>
-            <ul
-              className="dropdown-menu"
-              onClick={[Function]}
-            >
-              <MenuItem
-                noAnchor={true}
-              >
-                <li
-                  className=""
-                  href={null}
-                  role="presentation"
-                  title={null}
+                <div
+                  className="dropdown-actor-title"
                 >
-                  <AddRepositoryLink
-                    onSuccess={[Function]}
-                    orgId="org-slug"
-                    provider={
-                      Object {
-                        "config": Array [
-                          Object {
-                            "help": "Enter your repository name, including the owner.",
-                            "label": "Repository Name",
-                            "name": "name",
-                            "placeholder": "e.g. getsentry/sentry",
-                            "required": true,
-                            "type": "text",
-                          },
-                        ],
-                        "id": "github",
-                        "name": "GitHub",
-                      }
-                    }
+                  <span>
+                    Add Repository
+                  </span>
+                  <i
+                    className="icon-arrow-down"
+                  />
+                </div>
+              </a>
+              <ul
+                className="dropdown-menu"
+                onClick={[Function]}
+                onMouseLeave={[Function]}
+              >
+                <MenuItem
+                  noAnchor={true}
+                >
+                  <li
+                    className=""
+                    href={null}
+                    role="presentation"
+                    title={null}
                   >
-                    <a
-                      onClick={[Function]}
-                    >
-                      GitHub
-                      <Modal
-                        animation={false}
-                        autoFocus={true}
-                        backdrop={true}
-                        bsClass="modal"
-                        dialogComponentClass={[Function]}
-                        enforceFocus={true}
-                        keyboard={true}
-                        manager={
-                          ModalManager {
-                            "containers": Array [],
-                            "data": Array [],
-                            "handleContainerOverflow": true,
-                            "hideSiblingNodes": true,
-                            "modals": Array [],
-                          }
+                    <AddRepositoryLink
+                      onSuccess={[Function]}
+                      orgId="org-slug"
+                      provider={
+                        Object {
+                          "config": Array [
+                            Object {
+                              "help": "Enter your repository name, including the owner.",
+                              "label": "Repository Name",
+                              "name": "name",
+                              "placeholder": "e.g. getsentry/sentry",
+                              "required": true,
+                              "type": "text",
+                            },
+                          ],
+                          "id": "github",
+                          "name": "GitHub",
                         }
-                        onHide={[Function]}
-                        renderBackdrop={[Function]}
-                        restoreFocus={true}
-                        show={false}
+                      }
+                    >
+                      <a
+                        onClick={[Function]}
                       >
+                        GitHub
                         <Modal
+                          animation={false}
                           autoFocus={true}
                           backdrop={true}
-                          backdropClassName="modal-backdrop"
-                          backdropTransitionTimeout={150}
-                          containerClassName="modal-open"
-                          dialogTransitionTimeout={300}
+                          bsClass="modal"
+                          dialogComponentClass={[Function]}
                           enforceFocus={true}
                           keyboard={true}
                           manager={
@@ -287,20 +275,44 @@ exports[`OrganizationRepositories render() with a provider renders with a reposi
                               "modals": Array [],
                             }
                           }
-                          onEntering={[Function]}
-                          onExited={[Function]}
                           onHide={[Function]}
                           renderBackdrop={[Function]}
                           restoreFocus={true}
                           show={false}
-                        />
-                      </Modal>
-                    </a>
-                  </AddRepositoryLink>
-                </li>
-              </MenuItem>
-            </ul>
-          </span>
+                        >
+                          <Modal
+                            autoFocus={true}
+                            backdrop={true}
+                            backdropClassName="modal-backdrop"
+                            backdropTransitionTimeout={150}
+                            containerClassName="modal-open"
+                            dialogTransitionTimeout={300}
+                            enforceFocus={true}
+                            keyboard={true}
+                            manager={
+                              ModalManager {
+                                "containers": Array [],
+                                "data": Array [],
+                                "handleContainerOverflow": true,
+                                "hideSiblingNodes": true,
+                                "modals": Array [],
+                              }
+                            }
+                            onEntering={[Function]}
+                            onExited={[Function]}
+                            onHide={[Function]}
+                            renderBackdrop={[Function]}
+                            restoreFocus={true}
+                            show={false}
+                          />
+                        </Modal>
+                      </a>
+                    </AddRepositoryLink>
+                  </li>
+                </MenuItem>
+              </ul>
+            </span>
+          </DropdownMenu>
         </DropdownLink>
       </div>
       <h3
@@ -471,7 +483,6 @@ exports[`OrganizationRepositories render() without any providers is loading when
         caret={true}
         className="btn btn-primary btn-sm"
         disabled={false}
-        keepMenuOpen={false}
         title="Add Repository"
       />
     </div>
@@ -528,32 +539,38 @@ exports[`OrganizationRepositories render() without any providers renders 1`] = `
           caret={true}
           className="btn btn-primary btn-sm"
           disabled={false}
-          keepMenuOpen={false}
           title="Add Repository"
         >
-          <span
-            className="dropdown pull-right anchor-right open"
+          <DropdownMenu
+            keepMenuOpen={false}
           >
-            <a
-              className="dropdown-actor btn btn-primary btn-sm dropdown-menu-right dropdown-toggle hover"
-              onClick={[Function]}
+            <span
+              className="dropdown pull-right anchor-right open"
             >
-              <span
-                className="dropdown-actor-title"
+              <a
+                className="dropdown-actor btn btn-primary btn-sm dropdown-menu-right dropdown-toggle hover"
+                onClick={[Function]}
+                onMouseEnter={[Function]}
+                onMouseLeave={[Function]}
               >
-                <span>
-                  Add Repository
-                </span>
-                <i
-                  className="icon-arrow-down"
-                />
-              </span>
-            </a>
-            <ul
-              className="dropdown-menu"
-              onClick={[Function]}
-            />
-          </span>
+                <div
+                  className="dropdown-actor-title"
+                >
+                  <span>
+                    Add Repository
+                  </span>
+                  <i
+                    className="icon-arrow-down"
+                  />
+                </div>
+              </a>
+              <ul
+                className="dropdown-menu"
+                onClick={[Function]}
+                onMouseLeave={[Function]}
+              />
+            </span>
+          </DropdownMenu>
         </DropdownLink>
       </div>
       <h3

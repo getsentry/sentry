@@ -1,0 +1,46 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`DropdownMenu render prop getters all extend props and call original onClick handlers 1`] = `
+<DropdownMenu
+  keepMenuOpen={true}
+>
+  <span
+    className="root"
+    onClick={[Function]}
+  >
+    <button
+      className="actor"
+      onClick={[Function]}
+      onMouseEnter={[Function]}
+      onMouseLeave={[Function]}
+    >
+      Open Dropdown
+    </button>
+    <ul
+      className="menu"
+      onClick={[Function]}
+      onMouseLeave={[Function]}
+    >
+      <li>
+        Dropdown Menu Item 1
+      </li>
+    </ul>
+  </span>
+</DropdownMenu>
+`;
+
+exports[`DropdownMenu renders 1`] = `
+<DropdownMenu
+  keepMenuOpen={false}
+>
+  <span>
+    <button
+      onClick={[Function]}
+      onMouseEnter={[Function]}
+      onMouseLeave={[Function]}
+    >
+      Open Dropdown
+    </button>
+  </span>
+</DropdownMenu>
+`;

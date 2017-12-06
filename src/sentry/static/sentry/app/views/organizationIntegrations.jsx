@@ -136,7 +136,6 @@ export default class OrganizationIntegrations extends AsyncView {
         <div className="pull-right">
           <DropdownLink
             anchorRight
-            alwaysRenderMenu
             className="btn btn-primary btn-sm"
             title={t('Add Integration')}
           >
