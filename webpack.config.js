@@ -118,6 +118,10 @@ var appConfig = {
         test: /\.json$/,
         loader: 'json-loader',
       },
+      {
+        test: /app\/icons\/.*\.svg$/,
+        loader: 'svg-sprite-loader',
+      },
       // loader for dynamic styles imported into components (embedded as js)
       {
         test: /\.less$/,
@@ -138,6 +142,7 @@ var appConfig = {
       },
       {
         test: /\.(woff|woff2|ttf|eot|svg|png|gif|ico|jpg)($|\?)/,
+        exclude: /app\/icons\/.*\.svg$/,
         loader: 'file-loader?name=' + '[name].[ext]',
       },
     ],
