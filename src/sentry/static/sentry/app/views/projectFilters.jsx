@@ -42,6 +42,7 @@ const FilterRow = React.createClass({
     projectId: PropTypes.string.isRequired,
     data: PropTypes.object.isRequired,
     onToggle: PropTypes.func.isRequired,
+    idx: PropTypes.number.isRequired,
   },
 
   getInitialState() {
@@ -59,7 +60,13 @@ const FilterRow = React.createClass({
     let data = this.props.data;
 
     return (
-      <div style={{borderTop: '1px solid #f2f3f4', padding: '20px 0 0'}}>
+      <div
+        style={
+          this.props.idx === 0
+            ? {}
+            : {borderTop: '1px solid #f2f3f4', padding: '20px 0 0'}
+        }
+      >
         <div className="row">
           <div className="col-md-9">
             <h5 style={{marginBottom: 10}}>{data.name}</h5>
@@ -122,6 +129,7 @@ const LegacyBrowserFilterRow = React.createClass({
     projectId: PropTypes.string.isRequired,
     data: PropTypes.object.isRequired,
     onToggle: PropTypes.func.isRequired,
+    idx: PropTypes.number.isRequired,
   },
 
   getInitialState() {
@@ -196,7 +204,13 @@ const LegacyBrowserFilterRow = React.createClass({
     let data = this.props.data;
 
     return (
-      <div style={{borderTop: '1px solid #f2f3f4', padding: '20px 0 0'}}>
+      <div
+        style={
+          this.props.idx === 0
+            ? {}
+            : {borderTop: '1px solid #f2f3f4', padding: '20px 0 0'}
+        }
+      >
         <div className="row">
           <div className="col-md-9">
             <h5 style={{marginBottom: 10}}>{data.name}</h5>
@@ -430,7 +444,7 @@ const ProjectFilters = React.createClass({
       'web-crawlers': 'Web Crawler',
       'invalid-csp': 'Invalid CSP',
       cors: 'CORS',
-      'discarded-hash': 'Discarded Group'
+      'discarded-hash': 'Discarded Group',
     };
   },
 
@@ -617,13 +631,14 @@ const ProjectFilters = React.createClass({
     if (activeSection == 'data-filters') {
       return (
         <div>
-          {this.state.filterList.map(filter => {
+          {this.state.filterList.map((filter, idx) => {
             let props = {
               key: filter.id,
               data: filter,
               orgId,
               projectId,
               onToggle: this.onToggleFilter,
+              idx: idx,
             };
             return filter.id === 'legacy-browsers' ? (
               <LegacyBrowserFilterRow {...props} />
@@ -729,28 +744,21 @@ const ProjectFilters = React.createClass({
           )}
         </div>
         {features.has('discard-groups') && (
-          <div className="sub-header flex flex-container flex-vertically-centered">
-            <div className="p-t-1">
-              <ul className="nav nav-tabs">
-                <li
-                  className={`col-xs-5  ${navSection == 'data-filters' ? 'active ' : ''}`}
-                >
-                  <a onClick={() => this.setProjectNavSection('data-filters')}>
-                    {t('Data Filters')}
-                  </a>
-                </li>
-                <li
-                  className={`col-xs-5 align-right ${navSection == 'discarded-groups'
-                    ? 'active '
-                    : ''}`}
-                >
-                  <a onClick={() => this.setProjectNavSection('discarded-groups')}>
-                    {t('Discarded Groups')}
-                  </a>
-                </li>
-              </ul>
-            </div>
-          </div>
+          <ul
+            className="nav nav-tabs"
+            style={{borderBottom: '1px solid #ddd', paddingTop: '30px'}}
+          >
+            <li className={navSection === 'data-filters' ? 'active' : ''}>
+              <a onClick={() => this.setProjectNavSection('data-filters')}>
+                {t('Data Filters')}
+              </a>
+            </li>
+            <li className={navSection === 'discarded-groups' ? 'active' : ''}>
+              <a onClick={() => this.setProjectNavSection('discarded-groups')}>
+                {t('Discarded Groups')}
+              </a>
+            </li>
+          </ul>
         )}
         {this.renderSection()}
       </div>
