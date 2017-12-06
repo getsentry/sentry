@@ -396,7 +396,7 @@ const DeleteActions = React.createClass({
 
   getInitialState() {
     return {
-      hooksDisabled: HookStore.get('project:discard-groups:disabled')
+      hooksDisabled: HookStore.get('project:discard-groups:disabled'),
     };
   },
 
@@ -407,11 +407,7 @@ const DeleteActions = React.createClass({
 
   renderDiscard() {
     return (
-        <DropdownLink
-          caret={true}
-          className="group-delete btn btn-default btn-sm"
-          alwaysRenderMenu
-        >
+      <DropdownLink caret={true} className="group-delete btn btn-default btn-sm">
         <li>
           <LinkWithConfirmation
             title={t('Discard')}

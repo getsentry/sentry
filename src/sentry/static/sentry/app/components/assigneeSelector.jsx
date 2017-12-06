@@ -243,6 +243,7 @@ const AssigneeSelector = React.createClass({
               onOpen={this.onDropdownOpen}
               onClose={this.onDropdownClose}
               isOpen={this.state.isOpen}
+              alwaysRenderMenu={false}
               title={
                 assignedTo ? (
                   <Avatar user={assignedTo} className="avatar" size={48} />
