@@ -1,17 +1,19 @@
 from __future__ import absolute_import
 
+from rest_framework import serializers, status
 from rest_framework.response import Response
 from sentry.api.bases.project import ProjectEndpoint
-from sentry.api.serializers import serialize, register, Serializer
+from sentry.api.serializers import serialize
 from sentry.models import ProjectPlatform
 
 
-@register(ProjectPlatform)
-class ProjectPlatformSerializer(Serializer):
-    def serialize(self, obj, attrs, user):
-        return {'platform': obj.platform, 'dateCreated': obj.date_added}
-
 ERR_FIELD_REQUIRED = 'This field is required.'
+
+
+class ProjectPlatformSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = ProjectPlatform
+        fields = ('platform',)
 
 
 class ProjectPlatformsEndpoint(ProjectEndpoint):
@@ -20,13 +22,13 @@ class ProjectPlatformsEndpoint(ProjectEndpoint):
         return Response(serialize(list(queryset), request.user))
 
     def put(self, request, project):
-        platform_name = request.DATA.get('platform')
+        serializer = ProjectPlatformSerializer(data=request.DATA)
 
-        if platform_name is None:
-            return Response({
-                'errors': {'platform': ERR_FIELD_REQUIRED},
-            }, status=400
-            )
+        if not serializer.is_valid():
+            return Response(serializer.errors, status.HTTP_400_BAD_REQUEST)
 
-        platform = ProjectPlatform.objects.create(project_id=project.id, platform=platform_name)
-        return Response(serialize(platform, request.user))
+        platform = serializer.object
+        platform.project_id = project.id
+        platform.save()
+
+        return Response(serialize(platform, request.user), status=status.HTTP_202_ACCEPTED)

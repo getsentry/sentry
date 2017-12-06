@@ -3,6 +3,7 @@ from __future__ import absolute_import
 from sentry.models import ProjectPlatform
 from sentry.testutils import APITestCase
 from django.core.urlresolvers import reverse
+from rest_framework import status
 
 
 class ProjectPlatformsTest(APITestCase):
@@ -19,7 +20,7 @@ class ProjectPlatformsTest(APITestCase):
         project = self.create_project()
         self.login_as(user=self.user)
 
-        platform_name = "specialpython"
+        platform_name = "python"
         url = reverse(
             'sentry-api-0-project-platform-details',
             kwargs={
@@ -34,7 +35,7 @@ class ProjectPlatformsTest(APITestCase):
             },
             format='json'
         )
-        assert response.status_code == 200, response.content
+        assert response.status_code == status.HTTP_202_ACCEPTED, response.content
         assert response.data['platform'] == platform_name
         assert ProjectPlatform.objects.get(project_id=project.id).platform == platform_name
 
