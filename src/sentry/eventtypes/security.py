@@ -26,24 +26,6 @@ class CspEvent(BaseEvent):
         return metadata['message']
 
 
-class HpkpEvent(BaseEvent):
-    key = 'hpkp'
-
-    def has_metadata(self):
-        return 'hpkp' in self.data
-
-    def get_metadata(self):
-        from sentry.interfaces.security import Hpkp
-        hpkp = Hpkp.to_python(self.data['hpkp'])
-        return {
-            'origin': hpkp.get_origin(),
-            'message': hpkp.get_message(),
-        }
-
-    def to_string(self, metadata):
-        return metadata['message']
-
-
 class ExpectCTEvent(BaseEvent):
     key = 'expectct'
 

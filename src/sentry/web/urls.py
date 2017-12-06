@@ -109,12 +109,6 @@ urlpatterns += patterns(
         name='sentry-api-csp-report'
     ),
     url(
-        r'^api/(?P<project_id>\d+)/hpkp-report/$',
-        api.SecurityReportView.as_view(),
-        kwargs={'report_type': 'hpkp'},
-        name='sentry-api-hpkp-report'
-    ),
-    url(
         r'^api/(?P<project_id>\d+)/expectct-report/$',
         api.SecurityReportView.as_view(),
         kwargs={'report_type': 'expectct'},

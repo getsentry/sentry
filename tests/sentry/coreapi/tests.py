@@ -16,7 +16,6 @@ from sentry.coreapi import (
     Auth,
     ClientApiHelper,
     SecurityApiHelper,
-    APIForbidden,
 )
 from sentry.event_manager import EventManager
 from sentry.interfaces.base import get_interface
@@ -713,46 +712,3 @@ class SecurityApiHelperTest(BaseAPITest):
             ('blocked-uri', 'http://google.com'),
         ]
         assert len(result['errors']) == 0
-
-    def test_hpkp_validate_basic(self):
-        report = {
-            "release": "abc123",
-            "interface": 'hpkp',
-            "report": {
-                "date-time": "2014-04-06T13:00:50Z",
-                "hostname": "www.example.com",
-                "port": 443,
-                "effective-expiration-date": "2014-05-01T12:40:50Z",
-                "include-subdomains": False,
-                "served-certificate-chain": ["-----BEGIN CERTIFICATE-----\n-----END CERTIFICATE-----"],
-                "validated-certificate-chain": ["-----BEGIN CERTIFICATE-----\n-----END CERTIFICATE-----"],
-                "known-pins": ["pin-sha256=\"E9CZ9INDbd+2eRQozYqqbQ2yXLVKB9+xcprMF+44U1g=\""],
-            }
-        }
-        result = self.validate_and_normalize(report)
-        assert result['project'] == self.project.id
-        assert result['release'] == 'abc123'
-        assert result['errors'] == []
-        assert 'message' in result
-        assert 'culprit' in result
-        assert result['tags'] == [
-            ('port', '443'),
-            ('include-subdomains', 'false'),
-            ('hostname', 'www.example.com'),
-        ]
-        assert result['sentry.interfaces.User'] == {'ip_address': '198.51.100.0'}
-        assert result['sentry.interfaces.Http'] == {
-            'url': 'www.example.com',
-            'headers': {
-                'User-Agent': 'Awesome Browser',
-            }
-        }
-
-    def test_hpkp_validate_failure(self):
-        report = {
-            "release": "abc123",
-            "interface": 'hpkp',
-            "report": {}
-        }
-        with self.assertRaises(APIError):
-            self.helper.validate_data(self.project, report)

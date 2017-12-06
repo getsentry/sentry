@@ -11,7 +11,7 @@ from __future__ import absolute_import
 import jsonschema
 import six
 
-__all__ = ('Csp', 'Hpkp', 'ExpectCT', 'ExpectStaple')
+__all__ = ('Csp', 'ExpectCT', 'ExpectStaple')
 
 from six.moves.urllib.parse import urlsplit, urlunsplit
 
@@ -128,66 +128,6 @@ class SecurityReport(Interface):
         The referrer of the page that generated this report.
         """
         raise NotImplementedError
-
-
-class Hpkp(SecurityReport):
-    """
-    A HTTP Public Key Pinning pin validation failure report.
-
-    See also: https://tools.ietf.org/html/rfc7469#section-3
-    >>> {
-    >>>     "date-time": "2014-04-06T13:00:50Z",
-    >>>     "hostname": "www.example.com",
-    >>>     "port": 443,
-    >>>     "effective-expiration-date": "2014-05-01T12:40:50Z",
-    >>>     "include-subdomains": False,
-    >>>     "served-certificate-chain": [],
-    >>>     "validated-certificate-chain": [],
-    >>>     "known-pins": [],
-    >>> }
-    """
-
-    score = 1300
-    display_score = 1300
-
-    path = 'hpkp'
-    title = 'HPKP Report'
-
-    @classmethod
-    def from_raw(cls, raw):
-        # Validate the raw data against the input schema (raises on failure)
-        schema = INPUT_SCHEMAS[cls.path]
-        jsonschema.validate(raw, schema)
-
-        # Trim values and convert keys to use underscores
-        kwargs = {k.replace('-', '_'): trim(v, 1024) for k, v in six.iteritems(raw)}
-
-        return cls.to_python(kwargs)
-
-    def get_culprit(self):
-        return None
-
-    def get_hash(self, is_processed_data=True):
-        return [self.hostname]
-
-    def get_message(self):
-        return "Public key pinning validation failed for '{self.hostname}'".format(self=self)
-
-    def get_tags(self):
-        return [
-            ('port', six.text_type(self.port)),
-            ('include-subdomains', json.dumps(self.include_subdomains)),
-            ('hostname', self.hostname),
-        ]
-
-    def get_origin(self):
-        return self.hostname  # not quite origin, but the domain that failed pinning
-
-    def get_referrer(self):
-        return None
-
-    def should_filter(self, project=None):
-        return False
 
 
 class ExpectStaple(SecurityReport):
