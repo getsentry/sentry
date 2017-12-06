@@ -1,19 +1,20 @@
+import {Link} from 'react-router';
+import DocumentTitle from 'react-document-title';
 import PropTypes from 'prop-types';
 import React from 'react';
-import DocumentTitle from 'react-document-title';
-import {Link} from 'react-router';
 
+import {t, tct} from '../locale';
 import ApiMixin from '../mixins/apiMixin';
 import AutoSelectText from '../components/autoSelectText';
 import ClippedBox from '../components/clippedBox';
 import Confirm from '../components/confirm';
+import DynamicWrapper from '../components/dynamicWrapper';
 import IndicatorStore from '../stores/indicatorStore';
 import LoadingError from '../components/loadingError';
 import LoadingIndicator from '../components/loadingIndicator';
-import {t, tct} from '../locale';
 import OrganizationState from '../mixins/organizationState';
-import ProjectState from '../mixins/projectState';
 import Pagination from '../components/pagination';
+import ProjectState from '../mixins/projectState';
 
 const KeyRow = React.createClass({
   propTypes: {
@@ -156,14 +157,20 @@ const KeyRow = React.createClass({
           <div className="form-group">
             <label>{t('DSN')}</label>
             <AutoSelectText className="form-control disabled">
-              {data.dsn.secret}
+              <DynamicWrapper
+                value={data.dsn.secret}
+                fixed={data.dsn.secret.replace(data.projectId, '<<projectId>>')}
+              />
             </AutoSelectText>
           </div>
 
           <div className="form-group">
             <label>{t('DSN (Public)')}</label>
             <AutoSelectText className="form-control disabled">
-              {data.dsn.public}
+              <DynamicWrapper
+                value={data.dsn.public}
+                fixed={data.dsn.public.replace(data.projectId, '<<projectId>>')}
+              />
             </AutoSelectText>
             <div className="help-block">
               {tct('Use your public DSN with browser-based SDKs such as [raven-js].', {
