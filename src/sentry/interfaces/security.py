@@ -11,12 +11,12 @@ from __future__ import absolute_import
 import jsonschema
 import six
 
-__all__ = ('Csp', 'Hpkp')
+__all__ = ('Csp', 'Hpkp', 'ExpectCT', 'ExpectStaple')
 
 from six.moves.urllib.parse import urlsplit, urlunsplit
 
-from sentry.interfaces.base import Interface
-from sentry.interfaces import schemas
+from sentry.interfaces.base import Interface, InterfaceValidationError
+from sentry.interfaces.schemas import validate_and_default_interface, INPUT_SCHEMAS
 from sentry.utils import json
 from sentry.utils.cache import memoize
 from sentry.utils.http import is_valid_origin
@@ -93,14 +93,11 @@ class SecurityReport(Interface):
 
     @classmethod
     def to_python(cls, data):
-        schema_props = schemas.INTERFACE_SCHEMAS[cls.path]['properties']
-        keys = schema_props.keys()
+        is_valid, errors = validate_and_default_interface(data, cls.path)
+        if not is_valid:
+            raise InterfaceValidationError("Invalid interface data")
 
-        # get defaults from schema
-        kwargs = {k: v['default'] for k, v in six.iteritems(schema_props) if 'default' in v}
-        kwargs.update({k: v for k, v in six.iteritems(data) if k in keys})
-
-        return cls(**kwargs)
+        return cls(**data)
 
     def get_culprit(self):
         raise NotImplementedError
@@ -159,7 +156,7 @@ class Hpkp(SecurityReport):
     @classmethod
     def from_raw(cls, raw):
         # Validate the raw data against the input schema (raises on failure)
-        schema = schemas.INPUT_SCHEMAS[cls.path]
+        schema = INPUT_SCHEMAS[cls.path]
         jsonschema.validate(raw, schema)
 
         # Trim values and convert keys to use underscores
@@ -220,10 +217,11 @@ class ExpectStaple(SecurityReport):
     @classmethod
     def from_raw(cls, raw):
         # Validate the raw data against the input schema (raises on failure)
-        schema = schemas.INPUT_SCHEMAS[cls.path]
+        schema = INPUT_SCHEMAS[cls.path]
         jsonschema.validate(raw, schema)
 
-        # For Expect-Staple, the values we want are nested under # the 'expect-staple-report' key.
+        # For Expect-Staple, the values we want are nested under the
+        # 'expect-staple-report' key.
         raw = raw['expect-staple-report']
         # Trim values and convert keys to use underscores
         kwargs = {k.replace('-', '_'): trim(v, 1024) for k, v in six.iteritems(raw)}
@@ -282,7 +280,7 @@ class ExpectCT(SecurityReport):
     @classmethod
     def from_raw(cls, raw):
         # Validate the raw data against the input schema (raises on failure)
-        schema = schemas.INPUT_SCHEMAS[cls.path]
+        schema = INPUT_SCHEMAS[cls.path]
         jsonschema.validate(raw, schema)
 
         # For Expect-CT, the values we want are nested under the 'expect-ct-report' key.
@@ -341,7 +339,7 @@ class Csp(SecurityReport):
     @classmethod
     def from_raw(cls, raw):
         # Validate the raw data against the input schema (raises on failure)
-        schema = schemas.INPUT_SCHEMAS[cls.path]
+        schema = INPUT_SCHEMAS[cls.path]
         jsonschema.validate(raw, schema)
 
         # For CSP, the values we want are nested under the 'csp-report' key.
@@ -414,12 +412,6 @@ class Csp(SecurityReport):
         )
 
     def should_filter(self, project=None):
-        schema = schemas.INTERFACE_SCHEMAS[self.path]
-        try:
-            jsonschema.validate(self._data, schema)
-        except jsonschema.ValidationError:
-            return True
-
         disallowed = ()
         paths = ['blocked_uri', 'source_file']
         uris = [getattr(self, path) for path in paths if hasattr(self, path)]

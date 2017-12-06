@@ -385,7 +385,7 @@ class MinidumpApiHelper(ClientApiHelper):
 
 class SecurityApiHelper(ClientApiHelper):
 
-    report_interfaces = ('sentry.interfaces.Csp', 'hpkp')
+    report_interfaces = ('sentry.interfaces.Csp', 'hpkp', 'expectct', 'expectstaple')
 
     def origin_from_request(self, request):
         # In the case of security reports, the origin is not available at the
