@@ -25,7 +25,7 @@ class DummyProvider(PipelineableProvider):
 
 
 class DummyProviderManager(object):
-    def get(self, provider):
+    def get(self, provider_key):
         return DummyProvider()
 
 
