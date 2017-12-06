@@ -20,14 +20,11 @@ class DummyProvider(PipelineProvider):
         return self.pipeline
 
 
-class DummyProviderManager(object):
-    def get(self, provider_key):
-        return DummyProvider()
-
-
 class DummpyPipeline(Pipeline):
     pipeline_name = 'test_pipeline'
-    provider_manager = DummyProviderManager()
+
+    # Simplify tests, the manager can just be a dict.
+    provider_manager = {'dummy': DummyProvider()}
 
     def finish_pipeline(self):
         self.finished = True
