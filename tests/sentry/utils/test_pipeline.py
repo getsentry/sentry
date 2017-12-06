@@ -20,7 +20,7 @@ class DummyProvider(PipelineProvider):
         return self.pipeline
 
 
-class DummpyPipeline(Pipeline):
+class DummyPipeline(Pipeline):
     pipeline_name = 'test_pipeline'
 
     # Simplify tests, the manager can just be a dict.
@@ -37,7 +37,7 @@ class PipelineTestCase(TestCase):
         request.session = {}
         request.user = self.user
 
-        pipeline = DummpyPipeline(request, org, 'dummy', config={'some_config': True})
+        pipeline = DummyPipeline(request, org, 'dummy', config={'some_config': True})
         pipeline.initialize()
 
         assert pipeline.is_valid()
@@ -71,7 +71,7 @@ class PipelineTestCase(TestCase):
         request.session = {}
         request.user = self.user
 
-        pipeline = DummpyPipeline(request, org, 'dummy')
+        pipeline = DummyPipeline(request, org, 'dummy')
         pipeline.initialize()
 
         assert pipeline.is_valid()
