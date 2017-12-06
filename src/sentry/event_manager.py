@@ -417,17 +417,18 @@ class EventManager(object):
         data['timestamp'] = timestamp
         data['received'] = float(timezone.now().strftime('%s'))
 
-        data.setdefault('culprit', None)
-        data.setdefault('transaction', None)
-        data.setdefault('server_name', None)
-        data.setdefault('site', None)
         data.setdefault('checksum', None)
-        data.setdefault('fingerprint', None)
-        data.setdefault('platform', None)
+        data.setdefault('culprit', None)
         data.setdefault('dist', None)
         data.setdefault('environment', None)
         data.setdefault('extra', {})
+        data.setdefault('fingerprint', None)
+        data.setdefault('logger', DEFAULT_LOGGER_NAME)
+        data.setdefault('platform', None)
+        data.setdefault('server_name', None)
+        data.setdefault('site', None)
         data.setdefault('tags', [])
+        data.setdefault('transaction', None)
 
         # Fix case where legacy apps pass 'environment' as a tag
         # instead of a top level key.
@@ -450,19 +451,20 @@ class EventManager(object):
             exception['values'][0]['stacktrace'] = stacktrace
             del data['sentry.interfaces.Stacktrace']
 
+        # If there is no User ip_addres, update it either from the Http interface
+        # or the client_ip of the request.
         auth = request_env.get('auth')
         is_public = auth and auth.is_public
+        add_ip_platforms = ('javascript', 'cocoa', 'objc')
 
         http_ip = data.get('sentry.interfaces.Http', {}).get('env', {}).get('REMOTE_ADDR')
         if http_ip:
             data.setdefault('sentry.interfaces.User', {}).setdefault('ip_address', http_ip)
-        elif is_public or data.get('platform') in ('javascript', 'cocoa', 'objc'):
+        elif client_ip and (is_public or data.get('platform') in add_ip_platforms):
             data.setdefault('sentry.interfaces.User', {}).setdefault('ip_address', client_ip)
 
         # Trim values
-        logger = data.get('logger', DEFAULT_LOGGER_NAME)
-        data['logger'] = trim(logger.strip(), 64)
-
+        data['logger'] = trim(data['logger'].strip(), 64)
         trim_dict(data['extra'], max_size=settings.SENTRY_MAX_EXTRA_VARIABLE_SIZE)
 
         if data['culprit']:
