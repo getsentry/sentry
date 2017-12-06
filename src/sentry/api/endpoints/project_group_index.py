@@ -95,11 +95,11 @@ class StatusDetailsValidator(serializers.Serializer):
     inRelease = serializers.CharField()
     ignoreDuration = serializers.IntegerField()
     ignoreCount = serializers.IntegerField()
-    # in hours, max of one week
-    ignoreWindow = serializers.IntegerField(max_value=7 * 24)
+    # in minutes, max of one week
+    ignoreWindow = serializers.IntegerField(max_value=7 * 24 * 60)
     ignoreUserCount = serializers.IntegerField()
-    # in hours, max of one week
-    ignoreUserWindow = serializers.IntegerField(max_value=7 * 24)
+    # in minutes, max of one week
+    ignoreUserWindow = serializers.IntegerField(max_value=7 * 24 * 60)
 
     def validate_inRelease(self, attrs, source):
         value = attrs[source]
@@ -151,11 +151,11 @@ class GroupValidator(serializers.Serializer):
     discard = serializers.BooleanField()
     ignoreDuration = serializers.IntegerField()
     ignoreCount = serializers.IntegerField()
-    # in hours, max of one week
-    ignoreWindow = serializers.IntegerField(max_value=7 * 24)
+    # in minutes, max of one week
+    ignoreWindow = serializers.IntegerField(max_value=7 * 24 * 60)
     ignoreUserCount = serializers.IntegerField()
-    # in hours, max of one week
-    ignoreUserWindow = serializers.IntegerField(max_value=7 * 24)
+    # in minutes, max of one week
+    ignoreUserWindow = serializers.IntegerField(max_value=7 * 24 * 60)
     assignedTo = UserField()
 
     # TODO(dcramer): remove in 9.0

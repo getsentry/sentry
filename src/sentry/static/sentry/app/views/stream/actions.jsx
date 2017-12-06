@@ -86,7 +86,7 @@ const IgnoreActions = React.createClass({
   },
 
   getIgnoreWindows() {
-    return [[1, 'per hour'], [24, 'per day'], [24 * 7, 'per week']];
+    return [[60, 'per hour'], [24 * 60, 'per day'], [24 * 7 * 60, 'per week']];
   },
 
   onCustomIgnore(statusDetails) {

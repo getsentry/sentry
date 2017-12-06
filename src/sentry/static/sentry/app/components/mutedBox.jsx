@@ -27,7 +27,7 @@ export default React.createClass({
         'This issue has been ignored until it occurs %s time(s) in %s',
         <strong>{details.ignoreCount.toLocaleString()}</strong>,
         <strong>
-          <Duration seconds={details.ignoreWindow * 3600} />
+          <Duration seconds={details.ignoreWindow * 60} />
         </strong>
       );
     } else if (details.ignoreCount) {
@@ -40,7 +40,7 @@ export default React.createClass({
         'This issue has been ignored until it affects %s user(s) in %s',
         <strong>{details.ignoreUserCount.toLocaleString()}</strong>,
         <strong>
-          <Duration seconds={details.ignoreUserWindow * 3600} />
+          <Duration seconds={details.ignoreUserWindow * 60} />
         </strong>
       );
     } else if (details.ignoreUserCount) {
