@@ -3,11 +3,7 @@ from __future__ import absolute_import
 from django.http import HttpRequest
 
 from sentry.testutils import TestCase
-from sentry.utils.pipeline import (
-    PipelineableProvider,
-    PipelineView,
-    ProviderPipeline,
-)
+from sentry.utils.pipeline import PipelineProvider, PipelineView, ProviderPipeline
 
 
 class PipelineStep(PipelineView):
@@ -16,7 +12,7 @@ class PipelineStep(PipelineView):
         pipeline.bind_state('some_state', 'value')
 
 
-class DummyProvider(PipelineableProvider):
+class DummyProvider(PipelineProvider):
     key = 'dummy'
     pipeline = [PipelineStep(), PipelineStep()]
 

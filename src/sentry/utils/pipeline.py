@@ -6,10 +6,10 @@ from sentry.utils.session_store import RedisSessionStore
 from sentry.utils.hashlib import md5_text
 
 
-class PipelineableProvider(object):
+class PipelineProvider(object):
     """
-    A class implementing the PipelineableProvider interface provides the
-    pipeline views that the ProviderPipeline will traverse through.
+    A class implementing the PipelineProvider interface provides the pipeline
+    views that the Pipeline will traverse through.
     """
 
     def get_pipeline(self):
@@ -85,13 +85,13 @@ class NestedPipelineView(PipelineView):
         return nested_pipeline.current_step()
 
 
-class ProviderPipeline(object):
+class Pipeline(object):
     """
-    ProviderPipeline provides a mechanism to guide the user through a request
+    Pipeline provides a mechanism to guide the user through a request
     'pipeline', where each view may be completed by calling the ``next_step``
     pipeline method to traverse through the pipe.
 
-    The provider pipeline works with a Provider object which provides the
+    The pipeline works with a PipelineProvider object which provides the
     pipeline views and is made available to the views through the passed in
     pipeline.
 
@@ -101,7 +101,7 @@ class ProviderPipeline(object):
 
     :provider_model_cls:
     The Provider model object represents the instance of an object implementing
-    the PipelineableProvider interface. This is used to look up the instance
+    the PipelineProvider interface. This is used to look up the instance
     when constructing an in progress pipleine (get_for_request).
 
     :config:
