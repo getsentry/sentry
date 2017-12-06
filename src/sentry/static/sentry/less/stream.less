@@ -802,14 +802,14 @@
         color: @gray;
         margin-right: 10px;
       }
-    }
 
-    a {
-      color: @gray;
-      font-weight: bold;
+      a {
+        color: @gray;
+        font-weight: bold;
 
-      &:hover {
-        color: darken(@gray, 20);
+        &:hover {
+          color: darken(@gray, 20);
+        }
       }
     }
 
@@ -932,6 +932,16 @@
 
     &:last-child {
       border-bottom: 0;
+    }
+  }
+
+  .user-report {
+    .activity-container {
+      margin: 10px 0 5px;
+    }
+
+    .activity-note {
+      padding-bottom: 0;
     }
   }
 }
