@@ -35,5 +35,6 @@ class DashboardTest(AcceptanceTestCase):
         # so we bank on the core container and the activity container being
         # enough of a check
         self.browser.wait_until('.organization-home')
+        self.browser.wait_until('.dashboard-barchart')
         self.browser.wait_until_not('.loading-indicator')
         self.browser.snapshot('organization dashboard')
