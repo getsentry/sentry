@@ -50,7 +50,7 @@ class NestedPipelineView(PipelineView):
     will NOT be called, instead it's data will be bound into the parent
     pipeline and the parents pipeline moved to the next step.
 
-    Useful for embeding an identity authentication pipeline.
+    Useful for embedding an identity authentication pipeline.
     """
 
     def __init__(self, bind_key, pipeline_cls, provider_key, config={}):
@@ -88,7 +88,7 @@ class NestedPipelineView(PipelineView):
 class ProviderPipeline(object):
     """
     ProviderPipeline provides a mechanism to guide the user through a request
-    'pipeline', where each view may be copleted by calling the ``next_step``
+    'pipeline', where each view may be completed by calling the ``next_step``
     pipeline method to traverse through the pipe.
 
     The provider pipeline works with a Provider object which provides the
@@ -97,12 +97,12 @@ class ProviderPipeline(object):
 
     :provider_manager:
     A class property that must be specified to allow for lookup of a provider
-    implmentation object given it's key.
+    implementation object given it's key.
 
     :provider_model_cls:
     The Provider model object represents the instance of an object implementing
     the PipelineableProvider interface. This is used to look up the instance
-    when cosntructing an in progress pipleine (get_for_request).
+    when constructing an in progress pipleine (get_for_request).
 
     :config:
     A object that specifies additional pipeline and provider runtime
@@ -197,7 +197,7 @@ class ProviderPipeline(object):
 
     def finish_pipeline(self):
         """
-        Called when the pipeline complets the final step.
+        Called when the pipeline completes the final step.
         """
         raise NotImplementedError
 
