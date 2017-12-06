@@ -30,7 +30,7 @@ class DummpyPipeline(ProviderPipeline):
     provider_manager = DummyProviderManager()
 
     def finish_pipeline(self):
-        self.finished = 1
+        self.finished = True
 
 
 class PipelineTestCase(TestCase):
@@ -47,7 +47,8 @@ class PipelineTestCase(TestCase):
 
         assert 'some_config' in pipeline.provider.config
 
-        pipeline.finished = 0
+        # Test state
+        pipeline.finished = False
         pipeline.dispatch_count = 0
 
         # Pipeline has two steps, ensure both steps compete. Usually the
@@ -62,7 +63,7 @@ class PipelineTestCase(TestCase):
 
         pipeline.next_step()
         assert pipeline.dispatch_count == 2
-        assert pipeline.finished == 1
+        assert pipeline.finished
 
         pipeline.clear_session()
         assert not pipeline.state.is_valid()
