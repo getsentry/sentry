@@ -1,3 +1,4 @@
+import {DEFAULT_TOAST_DURATION} from '../constants';
 import SettingsIndicatorActions from '../actions/settingsIndicatorActions';
 
 let clearId;
@@ -12,6 +13,9 @@ export function undo() {
 
 export function addMessage(msg, type, options = {}) {
   let {duration} = options;
+
+  // use default only if undefined, as 0 is a valid duration
+  duration = typeof duration === 'undefined' ? DEFAULT_TOAST_DURATION : duration;
 
   SettingsIndicatorActions.add(msg, type, options);
 
