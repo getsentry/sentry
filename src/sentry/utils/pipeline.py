@@ -134,7 +134,10 @@ class Pipeline(object):
 
         return cls(request, organization, provider_key, provider_model, config)
 
-    def __init__(self, request, organization, provider_key, provider_model=None, config={}):
+    def __init__(self, request, organization, provider_key, provider_model=None, config=None):
+        if config is None:
+            config = {}
+
         self.request = request
         self.organization = organization
         self.state = RedisSessionStore(request, self.pipeline_name)
