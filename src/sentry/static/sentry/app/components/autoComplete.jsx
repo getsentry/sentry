@@ -150,10 +150,7 @@ class AutoComplete extends React.Component {
     let newIndex = this.state.highlightedIndex + step;
 
     // Make sure new index is within bounds
-    newIndex =
-      step < 0
-        ? newIndex < 0 ? 0 : newIndex
-        : newIndex > listSize ? listSize : newIndex;
+    newIndex = Math.max(0, Math.min(newIndex, listSize));
 
     this.setState({
       highlightedIndex: newIndex,

@@ -22,6 +22,7 @@ class AsyncComponent extends React.Component {
   }
 
   componentWillReceiveProps(nextProps) {
+    // re-fetch data when router params change
     if (
       !isEqual(this.props.params, nextProps.params) ||
       this.props.location.search !== nextProps.location.search

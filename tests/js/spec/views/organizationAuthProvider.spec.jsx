@@ -2,8 +2,7 @@ import React from 'react';
 import {shallow, mount} from 'enzyme';
 
 import {Client} from 'app/api';
-import OrganizationAuthProvider
-  from 'app/views/settings/organization/auth/organizationAuthProvider';
+import OrganizationAuthProvider from 'app/views/settings/organization/auth/organizationAuthProvider';
 
 jest.mock('jquery');
 
@@ -13,12 +12,12 @@ describe('OrganizationAuthProvider', function() {
     Client.addMockResponse({
       url: '/organizations/org-slug/auth-provider/',
       method: 'GET',
-      body: TestStubs.AuthProvider()
+      body: TestStubs.AuthProvider(),
     });
     Client.addMockResponse({
       url: '/organizations/org-slug/auth-providers/',
       method: 'GET',
-      body: [TestStubs.AuthProvider()]
+      body: [TestStubs.AuthProvider()],
     });
   });
 
@@ -53,7 +52,7 @@ describe('OrganizationAuthProvider', function() {
         onSendReminders={() => {}}
         provider={{
           ...TestStubs.AuthProvider(),
-          pending_links_count: 4
+          pending_links_count: 4,
         }}
       />
     );
@@ -68,7 +67,7 @@ describe('OrganizationAuthProvider', function() {
         onSendReminders={() => {}}
         provider={{
           ...TestStubs.AuthProvider(),
-          content: '<strong>Test</strong>'
+          content: '<strong>Test</strong>',
         }}
       />
     );
@@ -84,13 +83,23 @@ describe('OrganizationAuthProvider', function() {
         provider={{
           ...TestStubs.AuthProvider(),
           require_link: true,
-          default_role: 'admin'
+          default_role: 'admin',
         }}
       />
     );
 
-    expect(wrapper.find('BooleanField').find('input').prop('defaultChecked')).toBe(true);
-    expect(wrapper.find('Select2Field').find('select').prop('value')).toBe('admin');
+    expect(
+      wrapper
+        .find('BooleanField')
+        .find('input')
+        .prop('checked')
+    ).toBe(true);
+    expect(
+      wrapper
+        .find('Select2Field')
+        .find('select')
+        .prop('value')
+    ).toBe('admin');
   });
 
   it('can disable provider', function() {

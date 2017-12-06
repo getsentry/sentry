@@ -1,7 +1,7 @@
 // Jest Snapshot v1, https://goo.gl/fbAQLP
 
 exports[`OrganizationApiKeysList renders 1`] = `
-.glamor-3 {
+.glamor-6 {
   display: -webkit-box;
   display: -webkit-flex;
   display: -ms-flexbox;
@@ -11,7 +11,7 @@ exports[`OrganizationApiKeysList renders 1`] = `
   margin-bottom: 30px;
 }
 
-.glamor-1 {
+.glamor-2 {
   display: -webkit-box;
   display: -webkit-flex;
   display: -ms-flexbox;
@@ -28,36 +28,39 @@ exports[`OrganizationApiKeysList renders 1`] = `
   border-bottom: 3px solid;
 }
 
-.glamor-2 {
+.glamor-4 {
   margin-right: 4px;
 }
 
-.glamor-4 {
+.glamor-8 {
   line-height: 1.8;
 }
 
-.glamor-28 {
+.glamor-38 {
   background: #fff;
   border: 1px solid;
   margin-bottom: 30px;
 }
 
-.glamor-16 {
+.glamor-22 {
   border-bottom: 1px solid;
   border-radius: 0 0;
   background: padding:15px 0;
+  text-transform: uppercase;
+  font-size: 13px;
 }
 
-.glamor-15 {
+.glamor-20 {
   font-size: 12px;
   font-weight: 600;
   text-transform: uppercase;
   margin-bottom: 20px;
-  font-size: 13px;
+  font-size: inherit;
+  text-transform: inherit;
   margin: 0;
 }
 
-.glamor-13 {
+.glamor-18 {
   box-sizing: border-box;
   display: -webkit-box;
   display: -webkit-flex;
@@ -69,7 +72,7 @@ exports[`OrganizationApiKeysList renders 1`] = `
   align-items: center;
 }
 
-.glamor-9 {
+.glamor-14 {
   box-sizing: border-box;
   -webkit-flex: 1;
   -ms-flex: 1;
@@ -84,7 +87,7 @@ exports[`OrganizationApiKeysList renders 1`] = `
   align-items: center;
 }
 
-.glamor-5 {
+.glamor-10 {
   box-sizing: border-box;
   padding-left: 16px;
   padding-right: 16px;
@@ -93,7 +96,7 @@ exports[`OrganizationApiKeysList renders 1`] = `
   flex: 1;
 }
 
-.glamor-7 {
+.glamor-12 {
   box-sizing: border-box;
   padding-left: 16px;
   padding-right: 16px;
@@ -102,14 +105,14 @@ exports[`OrganizationApiKeysList renders 1`] = `
   flex: 2;
 }
 
-.glamor-11 {
+.glamor-16 {
   box-sizing: border-box;
   width: 100px;
   padding-left: 16px;
   padding-right: 16px;
 }
 
-.glamor-25 {
+.glamor-32 {
   box-sizing: border-box;
   padding-top: 8px;
   padding-bottom: 8px;
@@ -124,7 +127,7 @@ exports[`OrganizationApiKeysList renders 1`] = `
   border-bottom: 1px solid;
 }
 
-.glamor-25:last-child {
+.glamor-32:last-child {
   border: 0;
 }
 
@@ -189,15 +192,15 @@ exports[`OrganizationApiKeysList renders 1`] = `
     >
       <Styled(div)>
         <div
-          className="glamor-3"
+          className="glamor-6 glamor-7"
         >
           <Styled(div)>
             <div
-              className="glamor-1"
+              className="glamor-2 glamor-3"
             >
               <Styled(div)>
                 <div
-                  className="glamor-0"
+                  className="glamor-0 glamor-1"
                 >
                   API Keys
                 </div>
@@ -228,7 +231,7 @@ exports[`OrganizationApiKeysList renders 1`] = `
                         className="icon-plus"
                       >
                         <span
-                          className="icon-plus glamor-2"
+                          className="icon-plus glamor-4 glamor-5"
                         />
                       </Styled(span)>
                        
@@ -244,7 +247,7 @@ exports[`OrganizationApiKeysList renders 1`] = `
     </SettingsPageHeading>
     <Styled(p)>
       <p
-        className="glamor-4"
+        className="glamor-8 glamor-9"
       >
         <span>
           <span>
@@ -267,8 +270,8 @@ exports[`OrganizationApiKeysList renders 1`] = `
           </ExternalLink>
           <span>
             .
-                      If you're looking to configure a Sentry client, you'll need a
-                      client key which is available in your project settings.
+          If you're looking to configure a Sentry client, you'll need a
+          client key which is available in your project settings.
           </span>
         </span>
       </p>
@@ -298,7 +301,7 @@ exports[`OrganizationApiKeysList renders 1`] = `
     </div>
     <Styled(div)>
       <div
-        className="glamor-28"
+        className="glamor-38 glamor-39"
       >
         <PanelHeader
           disablePadding={true}
@@ -307,21 +310,21 @@ exports[`OrganizationApiKeysList renders 1`] = `
             disablePadding={true}
           >
             <div
-              className="glamor-16"
+              className="glamor-22 glamor-23"
             >
               <Styled(div)>
                 <div
-                  className="glamor-15"
+                  className="glamor-20 glamor-21"
                 >
                   <Flex
                     align="center"
                   >
                     <Base
                       align="center"
-                      className="glamor-13"
+                      className="glamor-18"
                     >
                       <div
-                        className="glamor-13"
+                        className="glamor-18"
                         is={null}
                       >
                         <Flex
@@ -330,11 +333,11 @@ exports[`OrganizationApiKeysList renders 1`] = `
                         >
                           <Base
                             align="center"
-                            className="glamor-9"
+                            className="glamor-14"
                             flex="1"
                           >
                             <div
-                              className="glamor-9"
+                              className="glamor-14"
                               is={null}
                             >
                               <Box
@@ -342,12 +345,12 @@ exports[`OrganizationApiKeysList renders 1`] = `
                                 px={2}
                               >
                                 <Base
-                                  className="glamor-5"
+                                  className="glamor-10"
                                   flex="1"
                                   px={2}
                                 >
                                   <div
-                                    className="glamor-5"
+                                    className="glamor-10"
                                     is={null}
                                   >
                                     Name
@@ -359,12 +362,12 @@ exports[`OrganizationApiKeysList renders 1`] = `
                                 px={2}
                               >
                                 <Base
-                                  className="glamor-7"
+                                  className="glamor-12"
                                   flex="2"
                                   px={2}
                                 >
                                   <div
-                                    className="glamor-7"
+                                    className="glamor-12"
                                     is={null}
                                   >
                                     Key
@@ -379,12 +382,12 @@ exports[`OrganizationApiKeysList renders 1`] = `
                           w={100}
                         >
                           <Base
-                            className="glamor-11"
+                            className="glamor-16"
                             px={2}
                             w={100}
                           >
                             <div
-                              className="glamor-11"
+                              className="glamor-16"
                               is={null}
                             >
                               Actions
@@ -401,7 +404,7 @@ exports[`OrganizationApiKeysList renders 1`] = `
         </PanelHeader>
         <Styled(div)>
           <div
-            className="glamor-27"
+            className="glamor-36 glamor-37"
           >
             <Styled(Base)
               align="center"
@@ -409,11 +412,11 @@ exports[`OrganizationApiKeysList renders 1`] = `
             >
               <Base
                 align="center"
-                className="glamor-25"
+                className="glamor-32 glamor-33"
                 py={1}
               >
                 <div
-                  className="glamor-25"
+                  className="glamor-32 glamor-33"
                   is={null}
                 >
                   <Flex
@@ -422,11 +425,11 @@ exports[`OrganizationApiKeysList renders 1`] = `
                   >
                     <Base
                       align="center"
-                      className="glamor-9"
+                      className="glamor-14"
                       flex="1"
                     >
                       <div
-                        className="glamor-9"
+                        className="glamor-14"
                         is={null}
                       >
                         <Box
@@ -436,12 +439,12 @@ exports[`OrganizationApiKeysList renders 1`] = `
                         >
                           <Base
                             align="center"
-                            className="glamor-5"
+                            className="glamor-10"
                             flex="1"
                             px={2}
                           >
                             <div
-                              className="glamor-5"
+                              className="glamor-10"
                               is={null}
                             >
                               <Link
@@ -461,12 +464,12 @@ exports[`OrganizationApiKeysList renders 1`] = `
                           px={2}
                         >
                           <Base
-                            className="glamor-7"
+                            className="glamor-12"
                             flex="2"
                             px={2}
                           >
                             <div
-                              className="glamor-7"
+                              className="glamor-12"
                               is={null}
                             >
                               <div
@@ -485,12 +488,12 @@ exports[`OrganizationApiKeysList renders 1`] = `
                     w={100}
                   >
                     <Base
-                      className="glamor-11"
+                      className="glamor-16"
                       px={2}
                       w={100}
                     >
                       <div
-                        className="glamor-11"
+                        className="glamor-16"
                         is={null}
                       >
                         <LinkWithConfirmation

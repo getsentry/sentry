@@ -24,7 +24,7 @@ exports[`OrganizationAuthList renders 1`] = `
         <span>
           <span>
             Get started with Single Sign-on for your organization by selecting a
-                          provider. For more information on SSO please see our 
+              provider. For more information on SSO please see our 
           </span>
           <ExternalLink
             href="https://docs.sentry.io/learn/sso/"
@@ -76,7 +76,7 @@ exports[`OrganizationAuthList renders with no providers 1`] = `
         <span>
           <span>
             Get started with Single Sign-on for your organization by selecting a
-                          provider. For more information on SSO please see our 
+              provider. For more information on SSO please see our 
           </span>
           <ExternalLink
             href="https://docs.sentry.io/learn/sso/"

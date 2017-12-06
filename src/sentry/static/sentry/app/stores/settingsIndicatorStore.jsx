@@ -44,11 +44,10 @@ const SettingsIndicatorStore = Reflux.createStore({
 
     if (!didUndo) return;
 
-    // This is awkward
+    // billy: I don't like the store <-> model coupling
     let label = this.model.getDescriptor(this.id, 'label');
     if (!label) return;
 
-    // hmm...
     this.model.saveField(this.id, newValue).then(() => {
       this.add(`Restored ${label} from "${oldValue}" to "${newValue}"`, 'undo', 5000);
     });

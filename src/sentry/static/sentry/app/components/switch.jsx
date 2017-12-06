@@ -1,5 +1,6 @@
 import PropTypes from 'prop-types';
 import React from 'react';
+import classNames from 'classnames';
 
 const Switch = React.createClass({
   propTypes: {
@@ -12,24 +13,13 @@ const Switch = React.createClass({
   },
 
   render() {
-    let switchClasses = 'switch';
     let {size, isActive, isLoading, isDisabled, toggle, id} = this.props;
-
-    if (size) {
-      switchClasses += ' switch-' + size;
-    }
-
-    if (isActive) {
-      switchClasses += ' switch-on';
-    }
-
-    if (isLoading) {
-      switchClasses += ' switch-changing';
-    }
-
-    if (isDisabled) {
-      switchClasses += ' switch-disabled';
-    }
+    let switchClasses = classNames('switch', {
+      [`switch-${size}`]: size,
+      'switch-on': isActive,
+      'switch-changing': isLoading,
+      'switch-disabled': isDisabled,
+    });
 
     return (
       <div

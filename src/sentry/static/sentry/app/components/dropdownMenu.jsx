@@ -171,8 +171,13 @@ class DropdownMenu extends React.Component {
 
   getRootProps = props => props;
 
+  // Actor is the component that will open the dropdown menu
   getActorProps = ({onClick, onMouseEnter, onMouseLeave, isStyled, ...props} = {}) => {
     let {isNestedDropdown} = this.props;
+
+    // Props that the actor needs to have <DropdownMenu> work
+    //
+    // `isStyled`: with styled-components we need to pass `innerRef` to get DOM el's ref vs `ref` otherwise
     return {
       ...props,
       ...((isStyled && {innerRef: this.handleActorMount}) || {}),
@@ -206,8 +211,13 @@ class DropdownMenu extends React.Component {
     };
   };
 
+  // Menu is the menu component that <DropdownMenu> will control
   getMenuProps = ({onClick, onMouseLeave, isStyled, ...props} = {}) => {
     let {isNestedDropdown} = this.props;
+
+    // Props that the menu needs to have <DropdownMenu> work
+    //
+    // `isStyled`: with styled-components we need to pass `innerRef` to get DOM el's ref vs `ref` otherwise
     return {
       ...props,
       ...((isStyled && {innerRef: this.handleMenuMount}) || {}),
