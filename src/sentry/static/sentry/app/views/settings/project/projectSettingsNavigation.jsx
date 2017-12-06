@@ -3,7 +3,7 @@ import React from 'react';
 import HookStore from '../../../stores/hookStore';
 import ProjectState from '../../../mixins/projectState';
 import SettingsNavigation from '../components/settingsNavigation';
-import getConfiguration from './navgationConfiguration';
+import getConfiguration from './navigationConfiguration';
 
 const ProjectSettingsNavigation = React.createClass({
   mixins: [ProjectState],

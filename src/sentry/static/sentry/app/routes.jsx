@@ -55,6 +55,9 @@ import OrganizationGeneralSettingsView from './views/settings/organization/gener
 import OrganizationSettingsLayout from './views/settings/organization/organizationSettingsLayout';
 import OrganizationStats from './views/organizationStats';
 import OrganizationTeams from './views/organizationTeams';
+import PersonalSettingsLayout from './views/settings/personal/personalSettingsLayout';
+import PersonalNotifications from './views/settings/personal/personalNotifications';
+import PersonalEmails from './views/settings/personal/personalEmails';
 import ProjectAlertRules from './views/projectAlertRules';
 import ProjectAlertSettings from './views/projectAlertSettings';
 import ProjectTags from './views/projectTags';
@@ -222,6 +225,23 @@ const orgSettingsRoutes = [
   />,
 ];
 
+const personalSettingsRoutes = [
+  <IndexRedirect key="personal-settings-index" to="notifications/" />,
+
+  <Route
+    key="notifications/"
+    path="notifications/"
+    name="Notifications"
+    component={errorHandler(PersonalNotifications)}
+  />,
+  <Route
+    key="emails/"
+    path="emails/"
+    name="Emails"
+    component={errorHandler(PersonalEmails)}
+  />,
+];
+
 const projectSettingsRoutes = [
   <IndexRedirect key="projects-index" to="alerts/" />,
 
@@ -353,6 +373,9 @@ function routes() {
         component={errorHandler(SettingsWrapper)}
       >
         <IndexRoute component={errorHandler(SettingsIndex)} />
+        <Route path="personal/" name="Personal" component={PersonalSettingsLayout}>
+          {personalSettingsRoutes}
+        </Route>
         <Route path="organization/">
           <IndexRoute component={errorHandler(OrganizationPicker)} />
 
