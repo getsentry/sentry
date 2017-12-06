@@ -16,7 +16,7 @@ class DummyProvider(PipelineProvider):
     key = 'dummy'
     pipeline = [PipelineStep(), PipelineStep()]
 
-    def get_pipeline(self):
+    def get_pipeline_views(self):
         return self.pipeline
 
 

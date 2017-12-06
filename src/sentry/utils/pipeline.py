@@ -12,10 +12,10 @@ class PipelineProvider(object):
     views that the Pipeline will traverse through.
     """
 
-    def get_pipeline(self):
+    def get_pipeline_views(self):
         """
         Returns a list of instantiated views which implement the PipelineView
-        class. Each view will be dispatched in order.
+        interface. Each view will be dispatched in order.
         >>> return [OAuthInitView(), OAuthCallbackView()]
         """
         raise NotImplementedError
@@ -32,7 +32,7 @@ class PipelineProvider(object):
 class PipelineView(BaseView):
     """
     A class implementing the PipelineView may be used in a PipleineProviders
-    get_pipeline list.
+    get_pipeline_views list.
     """
 
     def dispatch(self, request, pipeline):
@@ -144,13 +144,23 @@ class Pipeline(object):
         self.config = config
         self.provider.set_config(config)
 
-        self.pipeline = self.provider.get_pipeline()
+        self.pipeline = self.get_pipeline_views()
 
         # we serialize the pipeline to be ['fqn.PipelineView', ...] which
         # allows us to determine if the pipeline has changed during the auth
         # flow or if the user is somehow circumventing a chunk of it
         pipe_ids = ['{}.{}'.format(type(v).__module__, type(v).__name__) for v in self.pipeline]
         self.signature = md5_text(*pipe_ids).hexdigest()
+
+    def get_pipeline_views(self):
+        """
+        Retrieve the pipeline views from the provider.
+
+        You may wish to override this method to provide views that all
+        providers should inherit, or customize the provider method called to
+        retrieve the views.
+        """
+        return self.provider.get_pipeline_views()
 
     def is_valid(self):
         return self.state.is_valid() and self.state.signature == self.signature
