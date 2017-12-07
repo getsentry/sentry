@@ -6,7 +6,7 @@ import {t} from '../../../../locale';
 import ApiMixin from '../../../../mixins/apiMixin';
 import OrganizationSettingsView from '../../../organizationSettingsView';
 import ProjectListItem from './components/projectListItem';
-import ProjectStore from '../../../../stores/projectStore';
+import ProjectsStore from '../../../../stores/projectsStore';
 import SentryTypes from '../../../../proptypes';
 import SpreadLayout from '../../../../components/spreadLayout';
 
@@ -49,11 +49,11 @@ class OrganizationProjectsView extends OrganizationSettingsView {
 
 // reflux :(
 const OrganizationProjectsViewContainer = React.createClass({
-  mixins: [ApiMixin, Reflux.listenTo(ProjectStore, 'onProjectUpdate')],
+  mixins: [ApiMixin, Reflux.listenTo(ProjectsStore, 'onProjectUpdate')],
 
   getInitialState() {
     return {
-      projects: Array.from(ProjectStore.getAll().values()),
+      projects: Array.from(ProjectsStore.getAll().values()),
     };
   },
 
@@ -71,7 +71,7 @@ const OrganizationProjectsViewContainer = React.createClass({
   onProjectUpdate(projects) {
     // loadInitialData returns a list of ids
     this.setState({
-      projects: Array.from(ProjectStore.getAll().values()),
+      projects: Array.from(ProjectsStore.getAll().values()),
     });
   },
 

@@ -1,6 +1,6 @@
 import Reflux from 'reflux';
 import TeamActions from '../actions/teamActions';
-import ProjectStore from './projectStore';
+import ProjectsStore from './projectsStore';
 
 const TeamStore = Reflux.createStore({
   init() {
@@ -8,7 +8,7 @@ const TeamStore = Reflux.createStore({
     this.reset();
 
     this.listenTo(TeamActions.updateSuccess, this.onUpdateSuccess);
-    this.listenTo(ProjectStore, this.onProject);
+    this.listenTo(ProjectsStore, this.onProject);
   },
 
   reset() {
@@ -48,7 +48,7 @@ const TeamStore = Reflux.createStore({
       let team = this.getById(teamId);
       // TODO: make copy of project? right now just assigning reference
       // to project form project store
-      let project = ProjectStore.getById(projectId);
+      let project = ProjectsStore.getById(projectId);
       team.project = project;
       teamsChanged.add(team.id);
     });

@@ -12,7 +12,7 @@ import MissingProjectMembership from '../../components/missingProjectMembership'
 import OrganizationState from '../../mixins/organizationState';
 import SentryTypes from '../../proptypes';
 import TeamStore from '../../stores/teamStore';
-import ProjectStore from '../../stores/projectStore';
+import ProjectsStore from '../../stores/projectsStore';
 import {t} from '../../locale';
 
 const ERROR_TYPES = {
@@ -43,7 +43,7 @@ const ProjectContext = React.createClass({
     ApiMixin,
     Reflux.connect(MemberListStore, 'memberList'),
     Reflux.listenTo(TeamStore, 'onTeamChange'),
-    Reflux.listenTo(ProjectStore, 'onProjectChange'),
+    Reflux.listenTo(ProjectsStore, 'onProjectChange'),
     OrganizationState,
   ],
 
@@ -122,7 +122,7 @@ const ProjectContext = React.createClass({
     if (!projectIds.has(this.state.project.id)) return;
 
     this.setState({
-      project: {...ProjectStore.getById(this.state.project.id)},
+      project: {...ProjectsStore.getById(this.state.project.id)},
     });
   },
 

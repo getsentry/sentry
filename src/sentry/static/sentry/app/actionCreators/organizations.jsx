@@ -1,12 +1,12 @@
 import {browserHistory} from 'react-router';
 
 import IndicatorStore from '../stores/indicatorStore';
-import OrganizationStore from '../stores/organizationStore';
+import OrganizationsStore from '../stores/organizationsStore';
 import OrganizationsActions from '../actions/organizationsActions';
 
 export function redirectToRemainingOrganization({orgId}) {
   // Remove queued, should redirect
-  let allOrgs = OrganizationStore.getAll().filter(org => org.slug !== orgId);
+  let allOrgs = OrganizationsStore.getAll().filter(org => org.slug !== orgId);
   if (!allOrgs.length) {
     // This is bad...
     return;

@@ -5,7 +5,7 @@ import SidebarPanel from '../sidebarPanel';
 import LetterAvatar from '../letterAvatar';
 
 import AppState from '../../mixins/appState';
-import OrganizationStore from '../../stores/organizationStore';
+import OrganizationsStore from '../../stores/organizationsStore';
 import ConfigStore from '../../stores/configStore';
 
 import {t} from '../../locale';
@@ -80,7 +80,7 @@ const OrganizationSelector = React.createClass({
           this.props.currentPanel == 'org-selector' && (
             <SidebarPanel title={t('Organizations')} hidePanel={this.props.hidePanel}>
               <ul className="org-list list-unstyled">
-                {OrganizationStore.getAll().map(org => {
+                {OrganizationsStore.getAll().map(org => {
                   return (
                     <li
                       className={activeOrg.id === org.id ? 'org active' : 'org'}

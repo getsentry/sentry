@@ -15,7 +15,7 @@ import Indicators from '../components/indicators';
 import InstallWizard from './installWizard';
 import LoadingIndicator from '../components/loadingIndicator';
 import OrganizationsLoader from '../components/organizations/organizationsLoader';
-import OrganizationStore from '../stores/organizationStore';
+import OrganizationsStore from '../stores/organizationsStore';
 
 import {t} from '../locale';
 
@@ -57,7 +57,7 @@ const App = React.createClass({
         member: '1',
       },
       success: data => {
-        OrganizationStore.load(data);
+        OrganizationsStore.load(data);
         this.setState({
           loading: false,
         });
@@ -107,7 +107,7 @@ const App = React.createClass({
   },
 
   componentWillUnmount() {
-    OrganizationStore.load([]);
+    OrganizationsStore.load([]);
   },
 
   onConfigured() {

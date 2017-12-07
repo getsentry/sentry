@@ -2,7 +2,7 @@ import Reflux from 'reflux';
 
 import OrganizationsActions from '../actions/organizationsActions';
 
-const OrganizationStore = Reflux.createStore({
+const OrganizationsStore = Reflux.createStore({
   listenables: [OrganizationsActions],
 
   // So we can use Reflux.connect in a component mixin
@@ -52,4 +52,4 @@ const OrganizationStore = Reflux.createStore({
   },
 });
 
-export default OrganizationStore;
+export default OrganizationsStore;

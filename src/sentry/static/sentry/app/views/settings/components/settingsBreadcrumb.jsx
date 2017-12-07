@@ -1,16 +1,14 @@
 import PropTypes from 'prop-types';
 import React from 'react';
-import Reflux from 'reflux';
 import styled from 'react-emotion';
 
-import OrganizationStore from '../../../stores/organizationStore';
+import Crumb from './crumb.styled';
 import Link from '../../../components/link';
 import SentryTypes from '../../../proptypes';
-import recreateRoute from '../../../utils/recreateRoute';
-
-import Crumb from './crumb.styled';
-import SettingsBreadcrumbDropdown from './settingsBreadcrumbDropdown';
 import SettingsBreadcrumbDivider from './settingsBreadcrumbDivider';
+import SettingsBreadcrumbDropdown from './settingsBreadcrumbDropdown';
+import recreateRoute from '../../../utils/recreateRoute';
+import withOrganizations from '../../../utils/withOrganizations';
 
 const Breadcrumbs = styled.div`
   display: flex;
@@ -45,16 +43,6 @@ const StyledLink = styled(Link)`
     color: ${p => p.theme.gray5};
   }
 `;
-
-const withOrganizations = WrappedComponent =>
-  React.createClass({
-    mixins: [Reflux.connect(OrganizationStore, 'organizations')],
-    render() {
-      return (
-        <WrappedComponent organizations={this.state.organizations} {...this.props} />
-      );
-    },
-  });
 
 const ProjectCrumb = ({team, organization, params, routes, route, ...props}) => {
   if (!organization) return null;

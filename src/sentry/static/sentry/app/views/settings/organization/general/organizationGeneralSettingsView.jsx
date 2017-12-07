@@ -7,7 +7,7 @@ import {t, tct} from '../../../../locale';
 import ApiMixin from '../../../../mixins/apiMixin';
 import LinkWithConfirmation from '../../../../components/linkWithConfirmation';
 import LoadingIndicator from '../../../../components/loadingIndicator';
-import OrganizationStore from '../../../../stores/organizationStore';
+import OrganizationsStore from '../../../../stores/organizationsStore';
 import SettingsPageHeader from '../../components/settingsPageHeader';
 import getSettingsComponent from '../../../../utils/getSettingsComponent';
 
@@ -16,7 +16,7 @@ const OrganizationGeneralSettingsView = React.createClass({
     routes: PropTypes.arrayOf(PropTypes.object),
   },
 
-  mixins: [ApiMixin, Reflux.connect(OrganizationStore, 'organizations')],
+  mixins: [ApiMixin, Reflux.connect(OrganizationsStore, 'organizations')],
 
   getInitialState() {
     return {
@@ -64,7 +64,7 @@ const OrganizationGeneralSettingsView = React.createClass({
     if (!data) return;
 
     // Can't remove if this is only org
-    let allOrgs = OrganizationStore.getAll();
+    let allOrgs = OrganizationsStore.getAll();
     if (allOrgs && allOrgs.length < 2) return;
 
     removeAndRedirectToRemainingOrganization(this.api, {
@@ -78,8 +78,8 @@ const OrganizationGeneralSettingsView = React.createClass({
     // TODO(dcramer): this should propagate
     this.setState({data});
 
-    // Ugh `data` here is different than data in OrganizationStore
-    OrganizationStore.add(data);
+    // Ugh `data` here is different than data in OrganizationsStore
+    OrganizationsStore.add(data);
   },
 
   render() {
