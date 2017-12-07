@@ -11,16 +11,8 @@ class ProjectPlatformSerializer(Serializer):
     def serialize(self, obj, attrs, user):
         return {'platform': obj.platform, 'dateCreated': obj.date_added}
 
-ERR_FIELD_REQUIRED = 'This field is required.'
-
 
 class ProjectPlatformsEndpoint(ProjectEndpoint):
-    """
-    Tracks usage of a platform for a given project.
-
-    Note: This endpoint is used solely for analytics.
-    """
-
     def get(self, request, project):
         queryset = ProjectPlatform.objects.filter(project_id=project.id)
         return Response(serialize(list(queryset), request.user))

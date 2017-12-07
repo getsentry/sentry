@@ -6,10 +6,8 @@ import os
 import sys
 import json
 import logging
-import pickle
 
 import sentry
-
 
 BASE_URL = 'https://docs.sentry.io/_platforms/{}'
 
@@ -87,7 +85,6 @@ def sync_docs():
     body = urlopen(BASE_URL.format('_index.json')).read().decode('utf-8')
     data = json.loads(body)
     platform_list = []
-    python_platforms = []
     for platform_id, integrations in iteritems(data['platforms']):
         platform_list.append(
             {
@@ -114,45 +111,6 @@ def sync_docs():
     for platform_id, platform_data in iteritems(data['platforms']):
         for integration_id, integration in iteritems(platform_data):
             sync_integration_docs(platform_id, integration_id, integration['details'])
-            python_platforms.append(get_integration_id(platform_id, integration_id))
-
-    # create python platform constants
-    __sync_platform_types(python_platforms)
-
-
-def __sync_platform_types(platforms):
-    """
-    Updating existing platform types whenever docs are synced
-    """
-    # Cannot use six here
-    valid_platforms = set(platform for platform in platforms)
-
-    echo("updatng platform constants")
-    with open('platform-constants.txt', 'w') as file:
-        pickle.dump(valid_platforms, file)
-
-
-def get_platform_types():
-    try:
-        with open('platform-constants.txt', 'r') as file:
-            return pickle.load(file)
-    except BaseException:
-        # Fall back onto a hardcoded version of the file.
-        # Alternatively the docs could be built instead
-        # Actually.... when are these docs typically built exactly? I'm calling
-        # sentry repair --with-docs
-        return set([
-            u'java-log4j2', u'node', u'go-http', u'php-symfony2', u'python-rq',
-            u'cocoa', u'objc', u'python-pyramid', u'java-logging', u'csharp',
-            u'go', u'java-logback', u'php-monolog', u'java', u'javascript-vue',
-            u'ruby', u'javascript-angular', u'java-android', u'python-flask',
-            u'python-pylons', u'python-bottle', u'python-tornado', u'javascript',
-            u'java-appengine', u'python-django', u'python', u'javascript-backbone',
-            u'javascript-ember', u'node-koa', u'javascript-electron', u'elixir',
-            u'java-log4j', u'php', u'swift', u'ruby-rails', u'ruby-rack', u'node-express',
-            u'php-laravel', u'node-connect', u'javascript-react', u'javascript-angularjs',
-            u'python-celery'
-        ])
 
 
 def sync_integration_docs(platform_id, integration_id, path):

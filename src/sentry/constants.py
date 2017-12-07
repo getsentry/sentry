@@ -19,7 +19,7 @@ from django.conf import settings
 from django.utils.translation import ugettext_lazy as _
 from operator import attrgetter
 
-from sentry.utils.integrationdocs import load_doc, get_platform_types
+from sentry.utils.integrationdocs import load_doc
 
 
 def get_all_languages():
@@ -164,8 +164,29 @@ NOT_SCRUBBED_VALUES = set([
     'undefined',
 ])
 
-VALID_PLATFORMS = get_platform_types()
-VALID_PLATFORMS.add(u'other')  # other is the default in the system
+VALID_PLATFORMS = set(
+    [
+        'as3',
+        'c',
+        'cfml',
+        'cocoa',
+        'csharp',
+        'go',
+        'java',
+        'javascript',
+        'node',
+        'objc',
+        'other',
+        'perl',
+        'php',
+        'python',
+        'ruby',
+        'elixir',
+        'haskell',
+        'groovy',
+        'native',
+    ]
+)
 
 OK_PLUGIN_ENABLED = _("The {name} integration has been enabled.")
 

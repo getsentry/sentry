@@ -22,9 +22,6 @@ from sentry.models import (
 )
 from sentry.tasks.deletion import delete_project
 from sentry.utils.apidocs import scenario, attach_scenarios
-from sentry.constants import VALID_PLATFORMS
-from sentry.app import raven
-
 
 delete_logger = logging.getLogger('sentry.deletions.api')
 
@@ -71,26 +68,13 @@ def clean_newline_inputs(value, case_insensitive=True):
     return result
 
 
-class AbstractProjectSerializer(serializers.Serializer):
-    platform = serializers.CharField(required=False)
-
-    def validate_platform(self, attrs, source):
-        platform_name = attrs[source]
-        try:
-            if platform_name not in VALID_PLATFORMS:
-                raise serializers.ValidationError("Platform name %s unreconized" % platform_name)
-        except serializers.ValidationError:
-            raven.captureException()
-
-        return attrs
-
-
-class ProjectMemberSerializer(AbstractProjectSerializer):
+class ProjectMemberSerializer(serializers.Serializer):
     isBookmarked = serializers.BooleanField()
     isSubscribed = serializers.BooleanField()
+    platform = serializers.CharField(required=False)
 
 
-class ProjectAdminSerializer(AbstractProjectSerializer):
+class ProjectAdminSerializer(serializers.Serializer):
     isBookmarked = serializers.BooleanField()
     isSubscribed = serializers.BooleanField()
     name = serializers.CharField(max_length=200)
@@ -100,6 +84,7 @@ class ProjectAdminSerializer(AbstractProjectSerializer):
     digestsMaxDelay = serializers.IntegerField(min_value=60, max_value=3600)
     subjectPrefix = serializers.CharField(max_length=200)
     subjectTemplate = serializers.CharField(max_length=200)
+    platform = serializers.CharField(required=False)
 
     def validate_digestsMaxDelay(self, attrs, source):
         if attrs[source] < attrs['digestsMinDelay']:
