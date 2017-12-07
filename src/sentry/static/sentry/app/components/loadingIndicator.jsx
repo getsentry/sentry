@@ -3,8 +3,10 @@ import React from 'react';
 import classNames from 'classnames';
 
 function LoadingIndicator(props) {
-  let {mini, triangle, children, finished, className, style} = props;
+  let {mini, triangle, overlay, dark, children, finished, className, style} = props;
   let cx = classNames(className, {
+    overlay,
+    dark,
     loading: true,
     mini,
     triangle,
@@ -27,6 +29,8 @@ function LoadingIndicator(props) {
 }
 
 LoadingIndicator.propTypes = {
+  overlay: PropTypes.bool,
+  dark: PropTypes.bool,
   mini: PropTypes.bool,
   triangle: PropTypes.bool,
   finished: PropTypes.bool,

@@ -90,7 +90,7 @@ class OrganizationRepositories extends React.Component {
           }
         />
 
-        {hasItemList && (
+        {!hasItemList && (
           <div className="m-b-2">
             <p>
               {t(
@@ -106,7 +106,7 @@ class OrganizationRepositories extends React.Component {
           </div>
         )}
 
-        {!hasItemList ? (
+        {hasItemList ? (
           <Panel>
             <PanelHeader disablePadding={true}>
               <Flex>

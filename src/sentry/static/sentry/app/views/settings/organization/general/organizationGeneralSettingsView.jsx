@@ -1,3 +1,4 @@
+import {browserHistory} from 'react-router';
 import PropTypes from 'prop-types';
 import React from 'react';
 import Reflux from 'reflux';
@@ -10,6 +11,7 @@ import LoadingIndicator from '../../../../components/loadingIndicator';
 import OrganizationsStore from '../../../../stores/organizationsStore';
 import SettingsPageHeader from '../../components/settingsPageHeader';
 import getSettingsComponent from '../../../../utils/getSettingsComponent';
+import recreateRoute from '../../../../utils/recreateRoute';
 
 const OrganizationGeneralSettingsView = React.createClass({
   propTypes: {
@@ -37,6 +39,22 @@ const OrganizationGeneralSettingsView = React.createClass({
     );
     Promise.all([this.fetchData(), fetchForm]).then(
       ([data, Form]) => {
+        // Redirect if can't write to org
+        if (
+          data &&
+          data.access.indexOf('org:admin') === -1 &&
+          data.access.indexOf('org:write') === -1
+        ) {
+          browserHistory.push(
+            recreateRoute('teams', {
+              params: this.props.params,
+              routes: this.props.routes,
+              stepBack: -1,
+            })
+          );
+          return;
+        }
+
         this.setState({data, loading: false, Form});
       },
       () => {

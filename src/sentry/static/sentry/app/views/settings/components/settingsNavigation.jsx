@@ -7,23 +7,26 @@ import SentryTypes from '../../../proptypes';
 
 class SettingsNavigation extends React.Component {
   static propTypes = {
-    hooks: PropTypes.array.isRequired,
+    hooks: PropTypes.array,
+    hookConfigs: PropTypes.array,
     navigationObjects: PropTypes.arrayOf(SentryTypes.NavigationObject).isRequired,
   };
 
   static defaultProps = {
     hooks: [],
+    hookConfigs: [],
   };
 
   render() {
-    let {navigationObjects, hooks, ...otherProps} = this.props;
-    let navWithHooks = navigationObjects.concat(hooks);
+    let {navigationObjects, hooks, hookConfigs, ...otherProps} = this.props;
+    let navWithHooks = navigationObjects.concat(hookConfigs);
 
     return (
       <Box>
         {navWithHooks.map(config => (
           <SettingsNavigationGroup key={config.name} {...otherProps} {...config} />
         ))}
+        {hooks.map((Hook, i) => Hook)}
       </Box>
     );
   }

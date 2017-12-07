@@ -54,6 +54,7 @@ exports[`OrganizationApiKeysList renders 1`] = `
   background: #fff;
   border: 1px solid;
   margin-bottom: 30px;
+  position: relative;
 }
 
 .glamor-24 {
