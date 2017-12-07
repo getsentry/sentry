@@ -343,16 +343,6 @@ class EventManager(object):
             if msg_if.get('message') != msg_str:
                 msg_if.setdefault('formatted', msg_str)
 
-        # Fill in ip addresses marked as {{auto}}
-        client_ip = request_env.get('client_ip')
-        if client_ip:
-            if (data.get('sentry.interfaces.Http') or {}).get(
-                    'env', {}).get('REMOTE_ADDR') == '{{auto}}':
-                data['sentry.interfaces.Http']['env']['REMOTE_ADDR'] = client_ip
-
-            if (data.get('sentry.interfaces.User') or {}).get('ip_address') == '{{auto}}':
-                data['sentry.interfaces.User']['ip_address'] = client_ip
-
         # Validate main event body and tags against schema
         is_valid, event_errors = validate_and_default_interface(data, 'event')
         errors.extend(event_errors)
@@ -451,7 +441,17 @@ class EventManager(object):
             exception['values'][0]['stacktrace'] = stacktrace
             del data['sentry.interfaces.Stacktrace']
 
-        # If there is no User ip_addres, update it either from the Http interface
+        # Fill in ip addresses marked as {{auto}}
+        client_ip = request_env.get('client_ip')
+        if client_ip:
+            if data.get('sentry.interfaces.Http', {}).get(
+                    'env', {}).get('REMOTE_ADDR') == '{{auto}}':
+                data['sentry.interfaces.Http']['env']['REMOTE_ADDR'] = client_ip
+
+            if data.get('sentry.interfaces.User', {}).get('ip_address') == '{{auto}}':
+                data['sentry.interfaces.User']['ip_address'] = client_ip
+
+        # If there is no User ip_address, update it either from the Http interface
         # or the client_ip of the request.
         auth = request_env.get('auth')
         is_public = auth and auth.is_public
