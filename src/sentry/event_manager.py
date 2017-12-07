@@ -350,7 +350,7 @@ class EventManager(object):
                     'env', {}).get('REMOTE_ADDR') == '{{auto}}':
                 data['sentry.interfaces.Http']['env']['REMOTE_ADDR'] = client_ip
 
-            if data.get('sentry.interfaces.User', {}).get('ip_address') == '{{auto}}':
+            if (data.get('sentry.interfaces.User') or {}).get('ip_address') == '{{auto}}':
                 data['sentry.interfaces.User']['ip_address'] = client_ip
 
         # Validate main event body and tags against schema
