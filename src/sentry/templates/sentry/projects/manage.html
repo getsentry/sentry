@@ -34,7 +34,7 @@
     <li{% if page == 'details' %} class="active"{% endif %}>
         <a href="{% url 'sentry-manage-project' project.organization.slug project.slug %}">{% trans "General" %}</a>
     </li>
-    <li{% if page == 'alerts' %} class="active"{% endif %}>
+    <li>
         <a href="{% absolute_uri '/{}/{}/settings/alerts/' project.organization.slug project.slug %}">{% trans "Alerts" %}</a>
     </li>
     <li>
@@ -43,7 +43,7 @@
     <li>
         <a href="{% absolute_uri '/{}/{}/settings/issue-tracking' project.organization.slug project.slug %}">{% trans "Issue Tracking" %}</a>
     </li>
-    <li{% if page == 'release-tracking' %} class="active"{% endif %}>
+    <li>
         <a href="{% absolute_uri '/{}/{}/settings/release-tracking/' project.organization.slug project.slug %}">{% trans "Release Tracking" %}</a>
     </li>
     <li>
@@ -97,8 +97,8 @@
         <a href="{% absolute_uri '/{}/{}/settings/plugins/' project.organization.slug project.slug %}">{% trans "All Integrations" %}</a>
       </li>
       {% for p in plugins %}
-        <li{% if page == 'plugin' and plugin.slug == p.slug %} class="active"{% endif %}>
-            <a href="{% absolute_uri '/{}/{}/settings/plugins/' project.organization.slug project.slug p.slug %}">{{ p.get_title }}</a>
+        <li>
+          <a href="{% absolute_uri '/{}/{}/settings/plugins/' project.organization.slug project.slug p.slug %}">{{ p.get_title }}</a>
         </li>
       {% endfor %}
     </ul>
