@@ -331,7 +331,7 @@ const ProjectFiltersSettingsForm = React.createClass({
     let errors = this.state.errors || {};
     return (
       <div>
-        <h5>{t('Filter errors from these releases:')}</h5>
+        <h5>{t('Filter events from these releases:')}</h5>
         <TextareaField
           key="release"
           name="release"
@@ -341,7 +341,7 @@ const ProjectFiltersSettingsForm = React.createClass({
           error={errors['filters:releases']}
           onChange={this.onFieldChange.bind(this, 'filters:releases')}
         />
-        <h5>{t('Filter errors by error message:')}</h5>
+        <h5>{t('Filter events by error message:')}</h5>
         <TextareaField
           key="errorMessage"
           name="errorMessage"
@@ -376,7 +376,7 @@ const ProjectFiltersSettingsForm = React.createClass({
           </div>
         )}
         <fieldset>
-          <h5>{t('Filter errors from these IP addresses:')}</h5>
+          <h5>{t('Filter events from these IP addresses:')}</h5>
           <TextareaField
             key="ip"
             name="ip"
@@ -444,7 +444,7 @@ const ProjectFilters = React.createClass({
       'web-crawlers': 'Web Crawler',
       'invalid-csp': 'Invalid CSP',
       cors: 'CORS',
-      'discarded-hash': 'Discarded Group',
+      'discarded-hash': 'Discarded Issue',
     };
   },
 
@@ -755,7 +755,7 @@ const ProjectFilters = React.createClass({
             </li>
             <li className={navSection === 'discarded-groups' ? 'active' : ''}>
               <a onClick={() => this.setProjectNavSection('discarded-groups')}>
-                {t('Discarded Groups')}
+                {t('Discarded Issues')}
               </a>
             </li>
           </ul>
