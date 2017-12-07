@@ -346,7 +346,7 @@ class EventManager(object):
         # Fill in ip addresses marked as {{auto}}
         client_ip = request_env.get('client_ip')
         if client_ip:
-            if data.get('sentry.interfaces.Http', {}).get(
+            if (data.get('sentry.interfaces.Http') or {}).get(
                     'env', {}).get('REMOTE_ADDR') == '{{auto}}':
                 data['sentry.interfaces.Http']['env']['REMOTE_ADDR'] = client_ip
 
