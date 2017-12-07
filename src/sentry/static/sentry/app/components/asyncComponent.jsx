@@ -74,7 +74,8 @@ class AsyncComponent extends React.Component {
       remainingRequests: endpoints.length,
     });
 
-    endpoints.forEach(([stateKey, endpoint, params]) => {
+    endpoints.forEach(([stateKey, endpoint, params, options]) => {
+      options = options || {};
       this.api.request(endpoint, {
         method: 'GET',
         ...params,
@@ -89,6 +90,11 @@ class AsyncComponent extends React.Component {
           });
         },
         error: error => {
+          // Allow endpoints to fail
+          if (options.allowError && options.allowError(error)) {
+            error = null;
+          }
+
           this.setState(prevState => {
             return {
               [stateKey]: null,
@@ -98,7 +104,7 @@ class AsyncComponent extends React.Component {
               },
               remainingRequests: prevState.remainingRequests - 1,
               loading: prevState.remainingRequests > 1,
-              error: true,
+              error: !!error,
             };
           });
         },
