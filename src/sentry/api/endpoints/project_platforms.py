@@ -1,19 +1,17 @@
 from __future__ import absolute_import
 
-from rest_framework import serializers
 from rest_framework.response import Response
 from sentry.api.bases.project import ProjectEndpoint
-from sentry.api.serializers import serialize
+from sentry.api.serializers import serialize, register, Serializer
 from sentry.models import ProjectPlatform
 
 
+@register(ProjectPlatform)
+class ProjectPlatformSerializer(Serializer):
+    def serialize(self, obj, attrs, user):
+        return {'platform': obj.platform, 'dateCreated': obj.date_added}
+
 ERR_FIELD_REQUIRED = 'This field is required.'
-
-
-class ProjectPlatformSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = ProjectPlatform
-        fields = ('platform',)
 
 
 class ProjectPlatformsEndpoint(ProjectEndpoint):
