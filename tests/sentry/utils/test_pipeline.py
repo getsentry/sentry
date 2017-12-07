@@ -81,7 +81,7 @@ class PipelineTestCase(TestCase):
         prev_pipeline = DummyProvider.pipeline
         DummyProvider.pipeline = [PipelineStep()]
 
-        pipeline = DummpyPipeline.get_for_request(request)
+        pipeline = DummyPipeline.get_for_request(request)
 
         assert not pipeline.is_valid()
 
