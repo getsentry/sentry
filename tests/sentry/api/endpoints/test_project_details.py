@@ -297,6 +297,33 @@ class ProjectUpdateTest(APITestCase):
             project=project,
         ).value == 0
 
+    def test_invalid_platform(self):
+        """
+        Ensure platform validation works
+        """
+        project = self.project  # force creation
+        self.login_as(user=self.user)
+        url = reverse(
+            'sentry-api-0-project-details',
+            kwargs={
+                'organization_slug': project.organization.slug,
+                'project_slug': project.slug,
+            }
+        )
+        platform_name = 'notvalid'
+        resp = self.client.put(
+            url, data={
+                'name': 'hello world',
+                'slug': 'foobar',
+                'platform': platform_name,
+            }
+        )
+        assert resp.status_code == 200, resp.content
+        project = Project.objects.get(id=project.id)
+        assert project.name == 'hello world'
+        assert project.slug == 'foobar'
+        assert project.platform == platform_name
+
 
 class ProjectDeleteTest(APITestCase):
     @mock.patch('sentry.api.endpoints.project_details.uuid4')
