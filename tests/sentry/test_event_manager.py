@@ -1015,6 +1015,18 @@ class EventManagerTest(TransactionTestCase):
             signal=event_saved,
         )
 
+    def test_bad_interfaces_no_exception(self):
+        manager = EventManager(
+            self.make_event(
+                **{
+                    'sentry.interfaces.User': None,
+                    'sentry.interfaces.Http': None,
+                    'sdk': 'A string for sdk is not valid'
+                }
+            )
+        )
+        manager.normalize({'client_ip': '1.2.3.4'})
+
 
 class ProcessDataTimestampTest(TestCase):
     def test_iso_timestamp(self):

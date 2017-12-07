@@ -346,11 +346,11 @@ class EventManager(object):
         # Fill in ip addresses marked as {{auto}}
         client_ip = request_env.get('client_ip')
         if client_ip:
-            if data.get('sentry.interfaces.Http', {}).get(
+            if (data.get('sentry.interfaces.Http') or {}).get(
                     'env', {}).get('REMOTE_ADDR') == '{{auto}}':
                 data['sentry.interfaces.Http']['env']['REMOTE_ADDR'] = client_ip
 
-            if data.get('sentry.interfaces.User', {}).get('ip_address') == '{{auto}}':
+            if (data.get('sentry.interfaces.User') or {}).get('ip_address') == '{{auto}}':
                 data['sentry.interfaces.User']['ip_address'] = client_ip
 
         # Validate main event body and tags against schema
@@ -462,6 +462,9 @@ class EventManager(object):
             data.setdefault('sentry.interfaces.User', {}).setdefault('ip_address', http_ip)
         elif client_ip and (is_public or data.get('platform') in add_ip_platforms):
             data.setdefault('sentry.interfaces.User', {}).setdefault('ip_address', client_ip)
+
+        if client_ip and data.get('sdk'):
+            data['sdk']['client_ip'] = client_ip
 
         # Trim values
         data['logger'] = trim(data['logger'].strip(), 64)

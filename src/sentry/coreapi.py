@@ -546,7 +546,6 @@ class LazyData(MutableMapping):
         data['project'] = self._project.id
         data['key_id'] = self._key.id
         data['sdk'] = data.get('sdk') or helper.parse_client_as_sdk(auth.client)
-        data['sdk']['client_ip'] = self._client_ip
 
         # mutates data
         manager = EventManager(data, version=auth.version)
