@@ -25,7 +25,7 @@ const NewOrganizationSettingsForm = React.createClass({
   mixins: [ApiMixin],
 
   render() {
-    let {initialData, orgId} = this.props;
+    let {initialData, orgId, onSave} = this.props;
 
     return (
       <Form
@@ -46,6 +46,10 @@ const NewOrganizationSettingsForm = React.createClass({
             TOAST_DURATION,
             {model, id}
           );
+
+          if (typeof onSave === 'function') {
+            onSave(model.initialData);
+          }
         }}
         onSubmitError={() => addErrorMessage('Unable to save change', TOAST_DURATION)}
       >
