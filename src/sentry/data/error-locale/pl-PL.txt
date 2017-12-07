@@ -1,0 +1,289 @@
+5,Nieprawidłowe wywołanie procedury lub nieprawidłowy argument
+6,Przepełnienie
+7,Za mało pamięci
+9,Indeks poza zakresem
+10,Ta tablica ma stały rozmiar lub jest chwilowo zablokowana.
+11,Dzielenie przez zero
+13,Niezgodność typów
+14,Za mało miejsca na ciąg znaków
+17,Nie można wykonać żądanej operacji.
+28,Za mało miejsca na stosie
+35,Niezdefiniowany podprogram lub funkcja
+48,Błąd podczas ładowania biblioteki DLL
+51,Błąd wewnętrzny
+52,Zła nazwa lub numer pliku
+53,Nie można odnaleźć pliku.
+54,Zły tryb pliku
+55,Plik jest już otwarty.
+57,Błąd We/Wy urządzenia
+58,Plik już istnieje.
+61,Dysk zapełniony
+62,Próba zapisu poza końcem pliku
+67,Za dużo plików
+68,Urządzenie niedostępne
+70,Brak uprawnień
+71,Dysk nie jest gotowy.
+74,Nie można zmienić nazwy używając innego dysku.
+75,Błąd dostępu do ścieżki/pliku
+76,Nie można odnaleźć ścieżki.
+91,Zmienna obiektowa lub zmienna bloku With nie jest ustawiona.
+92,Nie zainicjowana pętla For
+94,Nieprawidłowe użycie Null
+322,Nie można utworzyć niezbędnego pliku tymczasowego.
+424,Wymagany jest obiekt
+429,Serwer automatyzacji nie może utworzyć obiektu.
+430,Klasa nie obsługuje automatyzacji.
+432,Podczas operacji automatyzacji nie można odnaleźć nazwy pliku lub klasy.
+438,Obiekt nie obsługuje tej właściwości lub metody.
+440,Błąd automatyzacji
+445,Obiekt nie obsługuje tej operacji.
+446,Obiekt nie obsługuje argumentów nazwanych.
+447,Obiekt nie obsługuje bieżących ustawień regionalnych.
+448,Nie można odnaleźć nazwanego argumentu.
+449,Argument nie jest opcjonalny.
+450,Zła liczba argumentów lub nieprawidłowe przyporządkowanie właściwości
+451,Obiekt nie jest kolekcją.
+453,Nie można odnaleźć podanej funkcji DLL.
+458,Zmienna używa typu automatyzacji, który nie jest obsługiwany przez język JavaScript
+462,Serwer zdalny nie istnieje lub jest niedostępny
+501,Nie można wykonać przypisania do zmiennej
+502,Obiektu nie należy używać w skryptach.
+503,Obiektu nie należy inicjować.
+504,Nie można bezpiecznie utworzyć obiektu.
+507,Wystąpił wyjątek
+1001,Za mało pamięci
+1002,Błąd składni
+1003,Oczekiwano znaku ':'
+1004,Oczekiwano znaku ';'
+1005,Oczekiwano znaku '('
+1006,Oczekiwano znaku ')'
+1007,Oczekiwano znaku ']'
+1008,Oczekiwano znaku '{'
+1009,Oczekiwano znaku '}'
+1010,Oczekiwano identyfikatora
+1011,Oczekiwano znaku '='
+1012,Oczekiwano znaku '/'
+1013,Nieprawidłowa liczba
+1014,Nieprawidłowy znak
+1015,Brak zakończenia stałej znakowej
+1016,Brak zakończenia komentarza
+1018,Instrukcja 'return' jest poza funkcją.
+1019,Instrukcji 'break' nie można używać poza pętlą.
+1020,Instrukcji 'continue' nie można używać poza pętlą.
+1023,Oczekiwano liczby heksadecymalnej
+1024,Oczekiwano słowa kluczowego 'while'
+1025,Ponowna definicja etykiety
+1026,Nie można odnaleźć etykiety.
+1027,Słowo kluczowe 'default' w zakresie instrukcji 'switch' może wystąpić tylko raz
+1028,Oczekiwano identyfikatora, ciągu znaków lub liczby
+1029,Oczekiwano '@end'
+1030,Kompilacja warunkowa jest wyłączona
+1031,Oczekiwano stałej
+1032,Oczekiwano znaku '@'
+1033,Oczekiwano 'catch'
+1034,Oczekiwano 'var'
+1035,po instrukcji „throw” powinno występować wyrażenie w tym samym wierszu kodu
+1037,instrukcje „with” są niedozwolone w trybie standardów
+1038,Zduplikowane nazwy parametrów formalnych nie są dozwolone w trybie standardów
+1039,Stałe liczbowe zapisane ósemkowo i znaki ucieczki są niedozwolone w trybie standardów
+1041,Nieprawidłowe użycie wyrażenia „eval” w trybie standardów
+1042,Nieprawidłowe użycie wyrażenia „arguments” w trybie standardów
+1045,Wywołanie usunięcia w odniesieniu do wyrażenie jest niedozwolone w trybie standardów
+1046,Wiele definicji właściwości jest niedozwolone w trybie standardów
+1047,W trybie standardów deklaracje funkcji nie mogą być zagnieżdżone wewnątrz instrukcji lub bloku. Mogą występować tylko na najwyższym poziomie lub bezpośrednio wewnątrz treści funkcji.
+1048,Użycie identyfikatora w postaci słowa kluczowego jest nieprawidłowe
+1049,Użycie identyfikatora w postaci słowa zastrzeżonego dla przyszłego użycia jest nieprawidłowe
+1050,Użycie identyfikatora w postaci słowa zastrzeżonego dla przyszłego użycia jest nieprawidłowe. Ta nazwa identyfikatora jest zastrzeżona w trybie standardów.
+1051,Funkcje setter muszą mieć jeden argument
+4096,Błąd kompilacji kodu JavaScript
+4097,Błąd czasu wykonywania kodu JavaScript
+4098,Nieznany błąd czasu wykonywania.
+5000,Nie można wykonać przypisania do 'this'
+5001,Oczekiwano liczby.
+5002,Oczekiwano funkcji.
+5003,Nie można wykonać przypisania do wyniku funkcji.
+5004,Nie można indeksować obiektu.
+5005,Oczekiwano ciągu znaków.
+5006,Oczekiwano obiektu typu Date
+5007,Oczekiwano obiektu.
+5008,Nieprawidłowa lewa strona przypisania
+5009,Niezdefiniowany identyfikator.
+5010,Oczekiwano wartości typu Boolean.
+5011,Nie można wykonać kodu programu ze skryptu uwolnionego.
+5012,Oczekiwano składowej obiektu.
+5013,Oczekiwano obiektu typu VBArray
+5014,Oczekiwano obiektu JavaScript
+5015,Oczekiwano obiektu wyliczeniowego.
+5016,Oczekiwano obiektu wyrażenia zwykłego.
+5017,Błąd składniowy w wyrażeniu zwykłym.
+5018,Nieoczekiwany kwantyfikator.
+5019,Oczekiwano znaku  ']' w wyrażeniu zwykłym.
+5020,Oczekiwano znaku ')' w wyrażeniu zwykłym.
+5021,Nieprawidłowy zakres dla zbioru znaków.
+5022,Wyjątek przerzucony i nie wyłapany
+5023,Funkcja nie posiada właściwego obiektu prototypowego
+5024,Adres URL do dekodowania zawiera nieprawidłowy znak
+5025,Adres URL do dekodowania jest nieprawidłowo zakodowany
+5026,Liczba miejsc po przecinku jest poza zakresem
+5027,Dokładność jest poza zakresem
+5028,Oczekiwano obiektów tablicy lub argumentów
+5029,Długość tablicy musi być skończoną, dodatnią liczbą całkowitą
+5030,Długości tablicy musi być przypisana skończona liczba dodatnia
+5031,Oczekiwano obiektu tablicy
+5034,Odwołanie cykliczne w argumencie wartości nie jest obsługiwane
+5035,Nieprawidłowy argument zamiany
+5038,Lista argumentów za duża do zastosowania
+5039,Ponowna deklaracja właściwości const
+5041,Nie można skonfigurować obiektu członkowskiego
+5042,Zmienna niezdefiniowana w trybie standardów
+5043,Uzyskiwanie dostępu do właściwości „caller” obiektu funkcji lub argumentów jest niedozwolone w trybie standardów
+5044,Uzyskiwanie dostępu do właściwości „callee” obiektu argumentów jest niedozwolone w trybie standardów
+5045,Przypisanie właściwości tylko do odczytu jest niedozwolone w trybie standardów
+5046,Nie można utworzyć właściwości dla obiektu nierozszerzalnego
+5047,Oczekiwano obiektu.
+5048,Oczekiwano obiektu.
+5049,Oczekiwano obiektu.
+5050,Oczekiwano obiektu.
+5051,Oczekiwano funkcji.
+5052,Oczekiwano funkcji.
+5053,Właściwość nie może mieć jednocześnie metod dostępu i wartości
+5054,Obiekt „this” jest pusty lub niezdefiniowany
+5055,Oczekiwano obiektu.
+5056,Oczekiwano funkcji.
+5057,Oczekiwano ciągu znaków.
+5058,Oczekiwano wartości typu Boolean.
+5059,Oczekiwano daty
+5060,Oczekiwano liczby.
+5061,Oczekiwano obiektu typu VBArray
+5062,Oczekiwano obiektu JavaScript
+5063,Oczekiwano obiektu wyliczeniowego.
+5064,Oczekiwano obiektu RegExp
+5065,Nieprawidłowy argument funkcji
+5066,Oczekiwano obiektu.
+5067,Oczekiwano obiektu JavaScript
+5068,Oczekiwano funkcji.
+5069,Oczekiwano obiektu typu VBArray
+5070,Oczekiwano obiektu.
+5071,Oczekiwano obiektu.
+5072,Nieprawidłowa właściwość „length”
+5073,Oczekiwano obiektów tablicy lub argumentów
+5074,Nieprawidłowy argument operacji
+5075,Nieprawidłowy argument operacji
+5076,Nieprawidłowy deskryptor właściwości
+5077,Nie można zdefiniować właściwości: obiekt nie jest rozszerzalny
+5078,Nie można ponownie zdefiniować niekonfigurowalnej właściwości
+5079,Nie można zdefiniować niezapisywalnej właściwości
+5080,Nie można zmodyfikować właściwości: wartość „length” jest niezapisywalna
+5081,Nie można zdefiniować właściwości
+5082,Argument konstruktora tablicy z określonym typem jest nieprawidłowy
+5083,„this” nie jest obiektem tablicy z określonym typem
+5084,Nieprawidłowa wartość przesunięcia/długości podczas tworzenia tablicy z określonym typem
+5085,Nieprawidłowa wartość początkowa/końcowa w metodzie tablicy podrzędnej dla tablicy z określonym typem
+5086,Nieprawidłowe źródło w operacji ustawiania tablicy z określonym typem
+5087,„this” nie jest obiektem DataView
+5088,Nieprawidłowe argumenty w obiekcie DataView
+5089,Dostęp do lokalizacji spoza określonej długości bufora w operacji obiektu DataView
+5090,Nieprawidłowe argumenty w obiekcie DataView
+5091,nieprawidłowa sygnatura funkcji
+5092,nieprawidłowa sygnatura właściwości
+5093,nieprawidłowy typ parametru wejściowego
+5094,nieprawidłowy parametr wyjściowy
+5095,Dostęp do właściwości „arguments” funkcji jest niedozwolony w trybie standardów
+5096,Oczekiwano obiektu Inspectable
+5097,Nie można przekonwertować argumentu na typ „char”
+5098,Nie można przekonwertować argumentu na typ „GUID”
+5099,Oczekiwano obiektu IInspectable
+5100,Nie można przekonwertować obiektu na strukturę: w obiekcie brakuje oczekiwanej właściwości
+5101,Nieznany typ
+5102,Wywołano funkcję ze zbyt małą liczbą argumentów
+5103,Typ nie umożliwia konstrukcji
+5104,Nie można przekonwertować wartości na obiekt PropertyValue: typ nie jest obsługiwany przez obiekt PropertyValue
+5105,Nie można przekonwertować wartości na obiekt IInspectable: typ nie jest obsługiwany przez obiekt IInspectable
+5106,Nie można przekonwertować daty na obiekt Windows.Foundation.DateTime: wartość spoza prawidłowego zakresu
+5107,Nie można przekonwertować wartości na obiekt Windows.Foundation.TimeSpan: wartość spoza prawidłowego zakresu
+5108,Nieprawidłowy dostęp do obiektu Inspectable, który został już zwolniony
+5109,Nie można zwolnić obiektu Inspectable, który został już zwolniony
+5110,Typ obiektu „this” jest inny niż oczekiwany.
+5111,Dla tablicy określono niedozwolone długość i rozmiar
+5112,Wystąpił nieoczekiwany błąd podczas próby uzyskania informacji o metadanych
+5200,Stan ma wartość „error” (błąd), ale funkcja getResults nie zwróciła błędu.
+5201,Nieprawidłowy parametr stanu przekazany do dojścia ukończenia lub brak takiego parametru.
+5202,Nieprawidłowy parametr nadawcy przekazany do dojścia ukończenia lub brak takiego parametru.
+6000,Nieskończoność
+6001,-Nieskończoność
+10438,Obiekt nie obsługuje właściwości lub metody „%s”
+10449,Argument dla funkcji „%s” nie jest opcjonalny
+15001,„%s” nie jest liczbą
+15002,„%s” nie jest funkcją
+15004,Obiektu „%s” nie można indeksować
+15005,„%s” nie jest ciągiem znaków
+15006,„%s” nie jest obiektem typu date
+15007,„%s” jest pusty lub nie jest obiektem
+15008,Nie można wykonać przypisania do „%s”
+15009,Brak definicji „%s”
+15010,„%s” nie jest wartością typu Boolean
+15012,Nie można usunąć „%s”
+15013,„%s” nie jest obiektem typu VBArray
+15014,„%s” nie jest obiektem typu JavaScript
+15015,„%s” nie jest obiektem wyliczeniowym
+15016,Symbol „%s” nie jest obiektem wyrażenia regularnego
+15028,%s nie jest obiektem Array ani obiektem argumentów
+15031,%s nie jest obiektem Array
+15036,Atrybut „%s” dotyczący deskryptora właściwości nie może mieć wartości „true” dla tego obiektu
+15037,Atrybut „%s” dotyczący deskryptora właściwości nie może mieć wartości „false” dla tego obiektu
+15039,Ponowna deklaracja stałej „%s”
+15041,Wywołanie usunięcia w odniesieniu do „%s” jest niedozwolone w trybie standardów
+15047,Nie można ustawić właściwości „%s” dla niezdefiniowanego lub pustego odwołania
+15048,Nie można pobrać właściwości „%s” dla niezdefiniowanego lub pustego odwołania
+15049,Nie można usunąć właściwości „%s” dla niezdefiniowanego lub pustego odwołania
+15050,Nie można uzyskać dostępu do właściwości „%s”: typ „VarDate” nie obsługuje właściwości zdefiniowanych przez użytkownika
+15051,Wartość właściwości „%s” nie jest obiektem Function
+15052,Wartość właściwości „%s” jest pusta lub niezdefiniowana, nie jest obiektem Function
+15054,%s: obiekt „this” jest pusty lub niezdefiniowany
+15055,%s: obiekt „this” nie należy do klasy Object
+15056,%s: obiekt „this” nie jest obiektem Function
+15057,%s: obiekt „this” nie jest obiektem String
+15058,%s: obiekt „this” nie jest obiektem Boolean
+15059,%s: obiekt „this” nie jest obiektem Date
+15060,%s: obiekt „this” nie jest obiektem Number
+15061,%s: obiekt „this” nie jest obiektem VBArray
+15062,%s: obiekt „this” nie jest obiektem JavaScript
+15063,%s: obiekt „this” nie jest obiektem Enumerator
+15064,%s: obiekt „this” nie jest obiektem RegExp
+15065,%s: nieprawidłowy argument
+15066,%s: argument nie jest klasy Object
+15067,%s: argument nie jest obiektem JavaScript
+15068,%s: argument nie jest obiektem Function
+15069,%s: argument nie jest obiektem VBArray
+15070,%s: argument jest pusty lub niezdefiniowany
+15071,%s: argument nie jest klasy Object i nie jest pusty
+15072,%s: argument nie ma prawidłowej właściwości „length”
+15073,%s: oczekiwano obiektu tablicy lub argumentów
+15074,Nieprawidłowy argument operacji „%s”: oczekiwano obiektu
+15075,Nieprawidłowy argument operacji „%s”: oczekiwano funkcji
+15076,Nieprawidłowy deskryptor właściwości „%s”
+15077,Nie można zdefiniować właściwości „%s”: obiekt nie jest rozszerzalny
+15078,Nie można ponownie zdefiniować niekonfigurowalnej właściwości „%s”
+15079,Nie można zdefiniować niezapisywalnej właściwości „%s”
+15080,Nie można zmodyfikować właściwości „%s”: wartość „length” jest niezapisywalna
+15081,Nie można zdefiniować właściwości „%s”
+15088,Wymagany argument %s w metodzie obiektu DataView nie został określony
+15090,Argument konstruktora obiektu DataView %s jest nieprawidłowy
+15091,Funkcja „%s” ma nieprawidłową sygnaturę i nie można jej wywołać
+15092,Właściwość „%s” ma nieprawidłową sygnaturę i nie można uzyskać do niej dostępu
+15093,Obiekt z nazwą runtimeclass %s mający interfejs domyślny Windows.Foundation.IPropertyValue nie jest obsługiwany jako typ parametru wejściowego
+15094,Obiekt z interfejsem Windows.Foundation.IPropertyValue mający nazwę runtimeclass %s nie jest obsługiwany jako parametr wyjściowy
+15096,%s: „this” nie jest obiektem Inspectable
+15097,%s: nie można przekonwertować argumentu na typ „char”
+15098,%s: nie można przekonwertować argumentu na typ „GUID”
+15099,%s: nie można przekonwertować zwróconej wartości na obiekt IInspectable
+15100,Nie można przekonwertować obiektu na strukturę: w obiekcie brakuje oczekiwanej właściwości „%s”
+15101,Nie odnaleziono typu „%s”
+15102,%s: wywołano funkcję ze zbyt małą liczbą argumentów
+15103,%s: typ nie umożliwia konstrukcji
+15104,Nie można przekonwertować wartości na obiekt PropertyValue: wartość %s nie jest obsługiwana przez obiekt PropertyValue
+15105,Nie można przekonwertować wartości na obiekt IInspectable: wartość %s nie jest obsługiwana przez obiekt IInspectable
+15108,%s: obiekt Inspectable „this” został zwolniony i nie można uzyskać do niego dostępu
+15110,Typ obiektu „this” jest inny niż oczekiwany: %s
+15112,%s: wystąpił nieoczekiwany błąd podczas próby uzyskania informacji o metadanych
+32812,Podana data jest niedostępna w kalendarzu ustawionym według bieżących ustawień regionalnych

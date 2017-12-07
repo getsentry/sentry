@@ -1,0 +1,289 @@
+5,Chiamata di routine o argomento non validi
+6,Overflow
+7,Memoria esaurita
+9,Indice non incluso nell'intervallo
+10,Questa matrice è fissa o temporaneamente bloccata
+11,Divisione per zero
+13,Tipo non corrispondente
+14,Spazio stringa esaurito
+17,Impossibile eseguire l'operazione richiesta
+28,Spazio dello stack esaurito
+35,Sub o Function non definita
+48,Errore di caricamento DLL
+51,Errore interno
+52,Nome o numero di file non valido
+53,Impossibile trovare il file
+54,Modalità file non valida
+55,File già aperto
+57,Errore di I/O periferica
+58,File già esistente
+61,Disco pieno
+62,Input oltre la fine del file
+67,Troppi file
+68,Periferica non disponibile
+70,Autorizzazione negata
+71,Disco non pronto
+74,Impossibile rinominare con unità diversa
+75,Errore di accesso al percorso/file
+76,Impossibile trovare il percorso
+91,Variabile oggetto o variabile del blocco With non impostata
+92,Ciclo For non inizializzato
+94,Utilizzo non valido di Null
+322,Impossibile creare il file temporaneo necessario
+424,Necessario oggetto
+429,Il server di automazione non può creare l'oggetto
+430,La classe non supporta l'automazione
+432,Impossibile trovare nome di file o nome di classe durante un'operazione di automazione
+438,Proprietà o metodo non supportati dall'oggetto
+440,Errore di automazione
+445,Azione non valida per l'oggetto
+446,L'oggetto non supporta argomenti predefiniti
+447,L'oggetto non supporta le impostazioni internazionali correnti
+448,Impossibile trovare l'argomento predefinito
+449,Argomento non facoltativo
+450,Numero errato di argomenti o assegnazione di proprietà non valida
+451,L'oggetto non è un insieme
+453,Impossibile trovare nella DLL la funzione specificata
+458,La variabile utilizza un tipo di automazione non supportato in JavaScript
+462,Il computer server remoto non esiste o non è disponibile
+501,Impossibile assegnare alla variabile
+502,Oggetto non sicuro per la creazione di script
+503,Oggetto non sicuro per l'inizializzazione
+504,Oggetto non sicuro per la creazione
+507,Si è verificata un'eccezione
+1001,Memoria esaurita
+1002,Errore di sintassi
+1003,Previsto ':'
+1004,Previsto ';'
+1005,Previsto '('
+1006,Previsto ')'
+1007,Previsto ']'
+1008,Previsto '{'
+1009,Previsto '}'
+1010,Previsto identificatore
+1011,Previsto '='
+1012,Previsto '/'
+1013,Numero non valido
+1014,Carattere non valido
+1015,Costante String senza terminazione
+1016,Commento senza terminazione
+1018,Istruzione 'return' esterna alla funzione
+1019,Impossibile utilizzare 'break' all'esterno di un ciclo
+1020,Impossibile utilizzare 'continue' all'esterno di un ciclo
+1023,Prevista cifra esadecimale
+1024,Previsto 'while'
+1025,Etichetta ridefinita
+1026,Impossibile trovare l'etichetta
+1027,'default' può apparire una volta sola in una istruzione 'switch'
+1028,Previsto identificatore, stringa o numero
+1029,Previsto '@end'
+1030,Compilazione condizionale disattivata
+1031,Prevista costante
+1032,Previsto '@'
+1033,Previsto 'catch'
+1034,Previsto 'var'
+1035,la parola chiave 'throw' deve essere seguita da un'espressione nella stessa riga di codice sorgente
+1037,le istruzioni 'with' non sono consentite in modalità strict
+1038,Nomi parametri formali duplicati non consentiti in modalità strict
+1039,Letterali numerici ottali e caratteri escape non consentiti in modalità strict
+1041,Uso non valido di 'eval' in modalità strict
+1042,Uso non valido di 'arguments' in modalità strict
+1045,Uso funzionalità di eliminazione nell'espressione non consentito in modalità strict
+1046,Più definizioni di una proprietà non consentite in modalità strict
+1047,Nella modalità strict le dichiarazioni di funzioni non possono essere nidificate in un'istruzione o un blocco. Possono essere presenti solo nel livello superiore o direttamente nel corpo di una funzione.
+1048,Una parola chiave non può essere utilizzata come identificativo
+1049,Una parola riservata per il futuro non può essere utilizzata come identificativo
+1050,Una parola riservata per il futuro non può essere utilizzata come identificativo. Il nome dell'identificativo è riservato in modalità strict.
+1051,Le funzioni setter devono avere un solo argomento
+4096,Errore di compilazione di JavaScript
+4097,Errore di run-time di JavaScript
+4098,Errore di run-time sconosciuto
+5000,Impossibile assegnare a 'this'
+5001,Previsto numero
+5002,Prevista funzione
+5003,Impossibile assegnare al risultato di una funzione
+5004,Impossibile indicizzare l'oggetto
+5005,Prevista stringa
+5006,Previsto oggetto data
+5007,Previsto oggetto
+5008,Lato sinistro non valido nell'assegnazione
+5009,Identificatore non definito
+5010,Previsto valore Boolean
+5011,Impossibile eseguire il codice da uno script liberato
+5012,Previsto membro oggetto
+5013,Prevista VBArray
+5014,Previsto oggetto JavaScript
+5015,Previsto oggetto enumeratore
+5016,Previsto un oggetto espressione regolare
+5017,Errore di sintassi nell'espressione regolare
+5018,Quantificatore imprevisto
+5019,Prevista ']' nell'espressione regolare
+5020,Prevista ')' nell'espressione regolare
+5021,Intervallo non valido nel set di caratteri
+5022,Eccezione formulata con throw ma senza catch
+5023,Alla funzione non è associato nessun oggetto prototipo valido
+5024,L'URI da codificare contiene un carattere non valido
+5025,La codifica utilizzata per l'URI da decodificare non è corretta
+5026,Numero di cifre frazionarie non incluso nell'intervallo
+5027,Approssimazione non inclusa nell'intervallo
+5028,Previsto oggetto Array o arguments
+5029,La lunghezza della matrice deve essere un intero positivo finito
+5030,Alla lunghezza della matrice deve essere assegnato un numero positivo finito
+5031,Previsto oggetto Array
+5034,Riferimento circolare nell'argomento value non supportato
+5035,Argomento replacer non valido
+5038,Elenco argomenti troppo esteso per essere applicato
+5039,Ridichiarazione proprietà const
+5041,Membro oggetto non configurabile
+5042,Variabile non definita in modalità strict
+5043,Accesso proprietà 'caller' non consentito in modalità strict
+5044,Accesso proprietà 'callee' non consentito in modalità strict
+5045,Assegnazione a proprietà di sola lettura non consentita in modalità strict
+5046,Impossibile creare una proprietà per un oggetto non estensibile
+5047,Previsto oggetto
+5048,Previsto oggetto
+5049,Previsto oggetto
+5050,Previsto oggetto
+5051,Prevista funzione
+5052,Prevista funzione
+5053,La proprietà non può avere sia funzioni di accesso sia un valore
+5054,'this' è nullo o non definito
+5055,Previsto oggetto
+5056,Prevista funzione
+5057,Prevista stringa
+5058,Previsto valore booleano
+5059,Data prevista
+5060,Previsto numero
+5061,Previsto VBArray
+5062,Previsto oggetto JavaScript
+5063,Previsto oggetto enumeratore
+5064,Previsto oggetto RegExp
+5065,Argomento funzione non valido
+5066,Previsto oggetto
+5067,Previsto oggetto JavaScript
+5068,Prevista funzione
+5069,Previsto VBArray
+5070,Previsto oggetto
+5071,Previsto oggetto
+5072,Proprietà 'length' non valida
+5073,Previsto oggetto array o argomenti
+5074,Operando non valido
+5075,Operando non valido
+5076,Descrittore proprietà non valido
+5077,Impossibile definire la proprietà: l'oggetto non è estendibile
+5078,Impossibile ridefinire una proprietà non configurabile
+5079,Impossibile modificare una proprietà a cui non si può accedere in scrittura
+5080,Impossibile modificare la proprietà: 'length' non è accessibile in scrittura
+5081,Impossibile definire la proprietà
+5082,L'argomento del costruttore della matrice tipizzata non è valido
+5083,'this' non è un oggetto di matrice tipizzata
+5084,Offset/lunghezza non valida per la creazione di una matrice tipizzata
+5085,Valore inizio/fine non valido nel metodo della matrice secondaria della matrice tipizzata
+5086,Tipo di origine non valido nel set di matrici tipizzate
+5087,'this' non è un oggetto DataView
+5088,Argomenti non validi in DataView
+5089,L'accesso all'operazione DataView supera la lunghezza del buffer specificato
+5090,Argomenti non validi in DataView
+5091,firma di funzione non valida
+5092,firma di proprietà non valida
+5093,tipo di parametro di input non valido
+5094,parametro di input non valido
+5095,In modalità strict non è consentito accedere alla proprietà 'arguments' di una funzione
+5096,Previsto oggetto Inspectable
+5097,Impossibile convertire l'argomento nel tipo 'char'
+5098,Impossibile convertire l'argomento nel tipo 'GUID'
+5099,Previsto IInspectable
+5100,Impossibile convertire l'oggetto in struct: proprietà prevista dell'oggetto mancante
+5101,Tipo sconosciuto
+5102,Funzione chiamata con troppo pochi argomenti
+5103,Tipo non costruibile
+5104,Impossibile convertire il valore in PropertyValue. Tipo non supportato da PropertyValue
+5105,Impossibile convertire il valore in IInspectable. Tipo non supportato da IInspectable
+5106,Impossibile convertire la data in Windows.Foundation.DateTime. Valore non compreso nell'intervallo valido
+5107,Impossibile convertire il valore in Windows.Foundation.TimeSpan. Valore non compreso nell'intervallo valido
+5108,Accesso non valido all'oggetto Inspectable già rilasciato
+5109,Impossibile rilasciare l'oggetto Inspectable già rilasciato
+5110,'this' non è del tipo previsto
+5111,Specificate lunghezza e dimensioni non valide per l'array
+5112,Errore imprevisto durante il recupero di informazioni sui metadati
+5200,Lo stato è 'error', ma getResults non ha restituito alcun errore
+5201,Passato parametro status non valido o mancante al gestore completato
+5202,Passato parametro sender non valido o mancante al gestore completato
+6000,Infinity
+6001,-Infinity
+10438,L'oggetto non supporta la proprietà o il metodo '%s'
+10449,L'argomento per la funzione '%s' non è facoltativo
+15001,'%s' non è un numero
+15002,'%s' non è una funzione
+15004,'%s' non è un oggetto indicizzabile
+15005,'%s' non è una stringa
+15006,'%s' non è un oggetto data
+15007,'%s' è nullo o non è un oggetto
+15008,Impossibile assegnare a '%s'
+15009,'%s' non è definito
+15010,'%s' non è un valore booleano
+15012,Impossibile eliminare '%s'
+15013,'%s' non è una VBArray
+15014,'%s' non è un oggetto JavaScript
+15015,'%s' non è un oggetto enumeratore
+15016,'%s' non è un oggetto espressione regolare
+15028,%s non è un oggetto Array o arguments
+15031,%s non è un oggetto Array
+15036,Impossibile impostare l'attributo '%s' del descrittore di proprietà su 'true' per questo oggetto
+15037,Impossibile impostare l'attributo '%s' del descrittore di proprietà su 'false' per questo oggetto
+15039,Ridichiarazione costante '%s'
+15041,Uso funzionalità di eliminazione in '%s' non è consentito in modalità strict
+15047,Impossibile impostare la proprietà '%s' di un riferimento nullo o non definito
+15048,Impossibile recuperare la proprietà '%s' di un riferimento nullo o non definito
+15049,Impossibile eliminare la proprietà '%s' di un riferimento nullo o non definito
+15050,Impossibile accedere alla proprietà '%s': 'VarDate' non supporta le proprietà definite dall'utente
+15051,Il valore della proprietà '%s' non è un oggetto funzione
+15052,Il valore della proprietà '%s' è nullo o non definito, non è un oggetto funzione
+15054,%s: 'this' è nullo o non definito
+15055,%s: 'this' non è un oggetto
+15056,%s: 'this' non è un oggetto funzione
+15057,%s: 'this' non è un oggetto stringa
+15058,%s: 'this' non è un oggetto booleano
+15059,%s: 'this' non è un oggetto data
+15060,%s: 'this' non è un oggetto numero
+15061,%s: 'this' non è un oggetto VBArray
+15062,%s: 'this' non è un oggetto JavaScript
+15063,%s: 'this' non è un oggetto enumeratore
+15064,%s: 'this' non è un oggetto RegExp
+15065,%s: argomento non valido
+15066,%s: l'argomento non è un oggetto
+15067,%s: l'argomento non è un oggetto JavaScript
+15068,%s: l'argomento non è un oggetto funzione
+15069,%s: l'argomento non è un oggetto VBArray
+15070,%s: l'argomento è nullo o non definito
+15071,%s: l'argomento non è un oggetto e non è nullo
+15072,%s: l'argomento non ha una proprietà 'length' valida
+15073,%s: previsto oggetto Array o arguments
+15074,Operando non valido per '%s': previsto oggetto
+15075,Operando non valido per '%s': prevista funzione
+15076,Descrittore non valido per la proprietà '%s'
+15077,Impossibile definire la proprietà '%s': l'oggetto non è estendibile
+15078,Impossibile ridefinire la proprietà '%s' non configurabile
+15079,Impossibile modificare la proprietà '%s' a cui non si può accedere in scrittura
+15080,Impossibile modificare la proprietà '%s': 'length' non è accessibile in scrittura
+15081,Impossibile definire la proprietà '%s'
+15088,L'argomento obbligatorio %s nel metodo DataView non è specificato
+15090,L'argomento %s del costruttore di DataView non è valido
+15091,La funzione '%s' ha una firma non valida e non può essere chiamata
+15092,La proprietà '%s' ha una firma non valida ed è impossibile accedervi
+15093,Runtimeclass %s con l'interfaccia predefinita Windows.Foundation.IPropertyValue non è supportato come tipo di parametro di input
+15094,L'oggetto con interfaccia Windows.Foundation.IPropertyValue con nome runtimeclass %s non è supportato come parametro di output
+15096,%s: 'this' non è un oggetto Inspectable
+15097,%s: impossibile convertire l'argomento nel tipo 'char'
+15098,%s: impossibile convertire l'argomento nel tipo 'GUID'
+15099,%s: impossibile convertire il valore restituito in IInspectable
+15100,Impossibile convertire l'oggetto in struct: proprietà prevista dell'oggetto '%s' mancante
+15101,Tipo '%s' non trovato
+15102,%s: funzione chiamata con troppo pochi argomenti
+15103,%s: tipo non costruibile
+15104,Impossibile convertire il valore in PropertyValue. %s non supportato da PropertyValue
+15105,Impossibile convertire il valore in IInspectable. %s non supportato da IInspectable
+15108,%s: l'oggetto Inspectable 'this' è rilasciato e non è possibile accedervi
+15110,'this' non è del tipo previsto: %s
+15112,%s: errore imprevisto durante il recupero di informazioni sui metadati
+32812,La data specificata non è disponibile nel calendario delle impostazioni internazionali correnti

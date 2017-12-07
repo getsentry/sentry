@@ -1,0 +1,289 @@
+5,Invalid procedure call or argument
+6,Overflow
+7,Out of memory
+9,Subscript out of range
+10,This array is fixed or temporarily locked
+11,Division by zero
+13,Type mismatch
+14,Out of string space
+17,Can't perform requested operation
+28,Out of stack space
+35,Sub or Function not defined
+48,Error in loading DLL
+51,Internal error
+52,Bad file name or number
+53,File not found
+54,Bad file mode
+55,File already open
+57,Device I/O error
+58,File already exists
+61,Disk full
+62,Input past end of file
+67,Too many files
+68,Device unavailable
+70,Permission denied
+71,Disk not ready
+74,Can't rename with different drive
+75,Path/File access error
+76,Path not found
+91,Object variable or With block variable not set
+92,For loop not initialized
+94,Invalid use of Null
+322,Can't create necessary temporary file
+424,Object required
+429,Automation server can't create object
+430,Class doesn't support Automation
+432,File name or class name not found during Automation operation
+438,Object doesn't support this property or method
+440,Automation error
+445,Object doesn't support this action
+446,Object doesn't support named arguments
+447,Object doesn't support current locale setting
+448,Named argument not found
+449,Argument not optional
+450,Wrong number of arguments or invalid property assignment
+451,Object not a collection
+453,Specified DLL function not found
+458,Variable uses an Automation type not supported in JavaScript
+462,The remote server machine does not exist or is unavailable
+501,Cannot assign to variable
+502,Object not safe for scripting
+503,Object not safe for initializing
+504,Object not safe for creating
+507,An exception occurred
+1001,Out of memory
+1002,Syntax error
+1003,Expected ':'
+1004,Expected ';'
+1005,Expected '('
+1006,Expected ')'
+1007,Expected ']'
+1008,Expected '{'
+1009,Expected '}'
+1010,Expected identifier
+1011,Expected '='
+1012,Expected '/'
+1013,Invalid number
+1014,Invalid character
+1015,Unterminated string constant
+1016,Unterminated comment
+1018,'return' statement outside of function
+1019,Can't have 'break' outside of loop
+1020,Can't have 'continue' outside of loop
+1023,Expected hexadecimal digit
+1024,Expected 'while'
+1025,Label redefined
+1026,Label not found
+1027,'default' can only appear once in a 'switch' statement
+1028,Expected identifier, string or number
+1029,Expected '@end'
+1030,Conditional compilation is turned off
+1031,Expected constant
+1032,Expected '@'
+1033,Expected 'catch'
+1034,Expected 'var'
+1035,'throw' must be followed by an expression on the same source line
+1037,'with' statements are not allowed in strict mode
+1038,Duplicate formal parameter names not allowed in strict mode
+1039,Octal numeric literals and escape characters not allowed in strict mode
+1041,Invalid usage of 'eval' in strict mode
+1042,Invalid usage of 'arguments' in strict mode
+1045,Calling delete on expression not allowed in strict mode
+1046,Multiple definitions of a property not allowed in strict mode
+1047,In strict mode, function declarations cannot be nested inside a statement or block. They may only appear at the top level or directly inside a function body.
+1048,The use of a keyword for an identifier is invalid
+1049,The use of a future reserved word for an identifier is invalid
+1050,The use of a future reserved word for an identifier is invalid. The identifier name is reserved in strict mode.
+1051,Setter functions must have one argument
+4096,JavaScript compilation error
+4097,JavaScript runtime error
+4098,Unknown runtime error
+5000,Cannot assign to 'this'
+5001,Number expected
+5002,Function expected
+5003,Cannot assign to a function result
+5004,Cannot index object
+5005,String expected
+5006,Date object expected
+5007,Object expected
+5008,Invalid left-hand side in assignment
+5009,Undefined identifier
+5010,Boolean expected
+5011,Can't execute code from a freed script
+5012,Object member expected
+5013,VBArray expected
+5014,JavaScript object expected
+5015,Enumerator object expected
+5016,Regular Expression object expected
+5017,Syntax error in regular expression
+5018,Unexpected quantifier
+5019,Expected ']' in regular expression
+5020,Expected ')' in regular expression
+5021,Invalid range in character set
+5022,Exception thrown and not caught
+5023,Function does not have a valid prototype object
+5024,The URI to be encoded contains an invalid character
+5025,The URI to be decoded is not a valid encoding
+5026,The number of fractional digits is out of range
+5027,The precision is out of range
+5028,Array or arguments object expected
+5029,Array length must be a finite positive integer
+5030,Array length must be assigned a finite positive number
+5031,Array object expected
+5034,Circular reference in value argument not supported
+5035,Invalid replacer argument
+5038,Argument list too large to apply
+5039,Redeclaration of const property
+5041,Object member not configurable
+5042,Variable undefined in strict mode
+5043,Accessing the 'caller' property of a function or arguments object is not allowed in strict mode
+5044,Accessing the 'callee' property of an arguments object is not allowed in strict mode
+5045,Assignment to read-only properties is not allowed in strict mode
+5046,Cannot create property for a non-extensible object
+5047,Object expected
+5048,Object expected
+5049,Object expected
+5050,Object expected
+5051,Function expected
+5052,Function expected
+5053,Property cannot have both accessors and a value
+5054,'this' is null or undefined
+5055,Object expected
+5056,Function expected
+5057,String expected
+5058,Boolean expected
+5059,Date expected
+5060,Number expected
+5061,VBArray expected
+5062,JavaScript object expected
+5063,Enumerator object expected
+5064,RegExp object expected
+5065,Invalid function argument
+5066,Object expected
+5067,JavaScript object expected
+5068,Function expected
+5069,VBArray expected
+5070,Object expected
+5071,Object expected
+5072,Invalid 'length' property
+5073,Array or arguments object expected
+5074,Invalid Operand
+5075,Invalid Operand
+5076,Invalid property descriptor
+5077,Cannot define property: object is not extensible
+5078,Cannot redefine non-configurable property
+5079,Cannot modify non-writable property
+5080,Cannot modify property: 'length' is not writable
+5081,Cannot define property
+5082,Typed array constructor argument is invalid
+5083,'this' is not a typed array object
+5084,Invalid offset/length when creating typed array
+5085,Invalid begin/end value in typed array subarray method
+5086,Invalid source in typed array set
+5087,'this' is not a DataView object
+5088,Invalid arguments in DataView
+5089,DataView operation access beyond specified buffer length
+5090,Invalid arguments in DataView
+5091,invalid function signature
+5092,invalid property signature
+5093,invalid input parameter type
+5094,invalid ouput parameter
+5095,Accessing the 'arguments' property of a function is not allowed in strict mode
+5096,Inspectable Object expected
+5097,Could not convert argument to type 'char'
+5098,Could not convert argument to type 'GUID'
+5099,IInspectable expected
+5100,Could not convert object to struct: object missing expected property
+5101,Unknown type
+5102,Function called with too few arguments
+5103,Type is not constructible
+5104,Could not convert value to PropertyValue: Type not supported by PropertyValue
+5105,Could not convert value to IInspectable: Type not supported by IInspectable
+5106,Could not convert Date to Windows.Foundation.DateTime: value outside of valid range
+5107,Could not convert value to Windows.Foundation.TimeSpan: value outside of valid range
+5108,Invalid access to already released Inspectable Object
+5109,Cannot release already released Inspectable Object
+5110,'this' is not of the expected type
+5111,Illegal length and size specified for the array
+5112,An unexpected failure occurred while trying to obtain metadata information
+5200,Status is 'error', but getResults did not return an error
+5201,Missing or invalid status parameter passed to completed handler
+5202,Missing or invalid sender parameter passed to completed handler
+6000,Infinity
+6001,-Infinity
+10438,Object doesn't support property or method '%s'
+10449,Argument to the function '%s' is not optional
+15001,'%s' is not a number
+15002,'%s' is not a function
+15004,'%s' is not an indexable object
+15005,'%s' is not a string
+15006,'%s' is not a date object
+15007,'%s' is null or not an object
+15008,Cannot assign to '%s'
+15009,'%s' is undefined
+15010,'%s' is not a boolean
+15012,Cannot delete '%s'
+15013,'%s' is not a VBArray
+15014,'%s' is not a JavaScript object
+15015,'%s' is not an enumerator object
+15016,'%s' is not a regular expression object
+15028,%s is not an Array or arguments object
+15031,%s is not an Array object
+15036,'%s' attribute on the property descriptor cannot be set to 'true' on this object
+15037,'%s' attribute on the property descriptor cannot be set to 'false' on this object
+15039,Redeclaration of const '%s'
+15041,Calling delete on '%s' is not allowed in strict mode
+15047,Unable to set property '%s' of undefined or null reference
+15048,Unable to get property '%s' of undefined or null reference
+15049,Unable to delete property '%s' of undefined or null reference
+15050,Unable to access property '%s': type 'VarDate' does not support user-defined properties
+15051,The value of the property '%s' is not a Function object
+15052,The value of the property '%s' is null or undefined, not a Function object
+15054,%s: 'this' is null or undefined
+15055,%s: 'this' is not an Object
+15056,%s: 'this' is not a Function object
+15057,%s: 'this' is not a String object
+15058,%s: 'this' is not a Boolean object
+15059,%s: 'this' is not a Date object
+15060,%s: 'this' is not a Number object
+15061,%s: 'this' is not a VBArray object
+15062,%s: 'this' is not a JavaScript object
+15063,%s: 'this' is not an Enumerator object
+15064,%s: 'this' is not a RegExp object
+15065,%s: invalid argument
+15066,%s: argument is not an Object
+15067,%s: argument is not a JavaScript object
+15068,%s: argument is not a Function object
+15069,%s: argument is not a VBArray object
+15070,%s: argument is null or undefined
+15071,%s: argument is not an Object and is not null
+15072,%s: argument does not have a valid 'length' property
+15073,%s: Array or arguments object expected
+15074,Invalid operand to '%s': Object expected
+15075,Invalid operand to '%s': Function expected
+15076,Invalid descriptor for property '%s'
+15077,Cannot define property '%s': object is not extensible
+15078,Cannot redefine non-configurable property '%s'
+15079,Cannot modify non-writable property '%s'
+15080,Cannot modify property '%s': 'length' is not writable
+15081,Cannot define property '%s'
+15088,Required argument %s in DataView method is not specified
+15090,DataView constructor argument %s is invalid
+15091,The function '%s' has an invalid signature and cannot be called
+15092,The property '%s' has an invalid signature and cannot be accessed
+15093,The runtimeclass %s that has Windows.Foundation.IPropertyValue as default interface is not supported as input parameter type
+15094,The object with interface Windows.Foundation.IPropertyValue that has runtimeclass name %s is not supported as out parameter
+15096,%s: 'this' is not an Inspectable Object
+15097,%s: could not convert argument to type 'char'
+15098,%s: could not convert argument to type 'GUID'
+15099,%s: could not convert return value to IInspectable
+15100,Could not convert object to struct: object missing expected property '%s'
+15101,Type '%s' not found
+15102,%s: function called with too few arguments
+15103,%s: type is not constructible
+15104,Could not convert value to PropertyValue: %s not supported by PropertyValue
+15105,Could not convert value to IInspectable: %s not supported by IInspectable
+15108,%s: The Inspectable object 'this' is released and cannot be accessed
+15110,'this' is not of expected type: %s
+15112,%s: an unexpected failure occurred while trying to obtain metadata information
+32812,The specified date is not available in the current locale's calendar
