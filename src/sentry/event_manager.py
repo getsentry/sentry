@@ -463,6 +463,9 @@ class EventManager(object):
         elif client_ip and (is_public or data.get('platform') in add_ip_platforms):
             data.setdefault('sentry.interfaces.User', {}).setdefault('ip_address', client_ip)
 
+        if client_ip and data.get('sdk'):
+            data['sdk']['client_ip'] = client_ip
+
         # Trim values
         data['logger'] = trim(data['logger'].strip(), 64)
         trim_dict(data['extra'], max_size=settings.SENTRY_MAX_EXTRA_VARIABLE_SIZE)

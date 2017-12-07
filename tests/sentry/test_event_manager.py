@@ -1015,12 +1015,13 @@ class EventManagerTest(TransactionTestCase):
             signal=event_saved,
         )
 
-    def test_null_interfaces_no_exception(self):
+    def test_bad_interfaces_no_exception(self):
         manager = EventManager(
             self.make_event(
                 **{
                     'sentry.interfaces.User': None,
                     'sentry.interfaces.Http': None,
+                    'sdk': 'A string for sdk is not valid'
                 }
             )
         )
