@@ -44,7 +44,10 @@ class LegacyTagStorage(TagStorage):
         default_manager.register(EventTag, BulkModelDeletionTask)
 
         default_manager.add_dependencies(Group, [
-            lambda instance: ModelRelation(EventTag, {'group_id': instance.id}),
+            lambda instance: ModelRelation(EventTag, {
+                'group_id': instance.id,
+                'project_id': instance.project_id,
+            }),
             lambda instance: ModelRelation(GroupTagKey, {'group_id': instance.id}),
             lambda instance: ModelRelation(GroupTagValue, {'group_id': instance.id}),
         ])
@@ -56,7 +59,13 @@ class LegacyTagStorage(TagStorage):
         ])
         default_manager.add_bulk_dependencies(Event, [
             lambda instance_list: ModelRelation(EventTag,
-                                                {'event_id__in': [i.id for i in instance_list]},
+                                                {
+                                                    'event_id__in': [i.id for i in instance_list],
+                                                    'project_id__in': {
+                                                        instance.project_id
+                                                        for instance in instance_list
+                                                    },
+                                                },
                                                 ModelDeletionTask),
         ])
 
@@ -344,6 +353,7 @@ class LegacyTagStorage(TagStorage):
             EventTag.objects.filter(
                 key_id=k,
                 value_id=v,
+                project_id=project_id,
                 group_id=group_id,
             ).values_list('event_id', flat=True)[:1000]
         )
@@ -356,6 +366,7 @@ class LegacyTagStorage(TagStorage):
                     key_id=k,
                     value_id=v,
                     event_id__in=matches,
+                    project_id=project_id,
                     group_id=group_id,
                 ).values_list('event_id', flat=True)[:1000]
             )
