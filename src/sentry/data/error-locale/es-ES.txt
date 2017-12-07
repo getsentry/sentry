@@ -1,0 +1,289 @@
+5,Argumento o llamada a procedimiento no válidos
+6,Desbordamiento
+7,Memoria insuficiente
+9,El subíndice está fuera del intervalo
+10,La matriz está bloqueada de manera fija o temporal
+11,División por cero
+13,No coinciden los tipos
+14,No hay suficiente espacio de cadena
+17,No se puede realizar la operación solicitada
+28,No hay suficiente espacio de pila
+35,No se ha definido Sub o Function
+48,Error al cargar la biblioteca DLL
+51,Error interno
+52,Nombre o número de archivo incorrecto
+53,Archivo no encontrado
+54,Modo de archivo incorrecto
+55,El archivo ya está abierto
+57,Error de E/S de dispositivo
+58,El archivo ya existe
+61,Disco lleno
+62,Se sobrepasó el final del archivo
+67,Hay demasiados archivos
+68,El dispositivo no está disponible
+70,Permiso denegado
+71,Disco no preparado
+74,No se puede cambiar el nombre con una unidad de disco diferente
+75,Error de acceso a la ruta o al archivo
+76,Ruta de acceso no encontrada
+91,Variable de objeto o bloque With no establecido
+92,Bucle For no inicializado
+94,Uso no válido de Null
+322,No se puede crear un archivo temporal necesario
+424,Se requiere un objeto
+429,El servidor de Automatización no puede crear el objeto
+430,Esta clase no acepta Automatización
+432,No se encontró el nombre del archivo o de la clase durante la operación de Automatización
+438,El objeto no acepta esta propiedad o método
+440,Error de Automatización
+445,El objeto no acepta esta acción
+446,El objeto no acepta argumentos con nombre
+447,El objeto no acepta la configuración regional actual
+448,Argumento con nombre no encontrado
+449,Argumento no opcional
+450,Número de argumentos erróneo o asignación de propiedad no válida
+451,El objeto no es una colección
+453,No se encuentra la función de biblioteca DLL especificada
+458,La variable usa un tipo de Automatización no aceptado en JavaScript
+462,El servidor remoto no existe o no está disponible
+501,No se puede asignar a una variable
+502,Objeto no seguro para secuencias de comandos
+503,Objeto no seguro para inicialización
+504,Objeto no seguro para creación
+507,Error de excepción
+1001,Memoria insuficiente
+1002,Error de sintaxis
+1003,Se esperaba ':'
+1004,Se esperaba ';'
+1005,Se esperaba '('
+1006,Se esperaba ')'
+1007,Se esperaba ']'
+1008,Se esperaba '{'
+1009,Se esperaba '}'
+1010,Se esperaba un identificador
+1011,Se esperaba '='
+1012,Se esperaba '/'
+1013,Número no válido
+1014,Carácter no válido
+1015,Constante de cadena sin terminar
+1016,Comentario sin terminar
+1018,La instrucción 'return' está fuera de una función
+1019,No puede haber 'break' fuera de un bucle
+1020,No puede haber 'continue' fuera de un bucle
+1023,Se esperaba un dígito hexadecimal
+1024,Se esperaba 'while'
+1025,Ya se definió la etiqueta
+1026,Etiqueta no encontrada
+1027,'default' solo puede aparecer una vez en una instrucción 'switch'
+1028,Se esperaba un identificador, una cadena o un número
+1029,Se esperaba '@end'
+1030,La compilación condicional está desactivada
+1031,Se esperaba una constante
+1032,Se esperaba '@'
+1033,Se esperaba 'catch'
+1034,Se esperaba  'var'
+1035,'throw' debe seguir una expresión en la misma línea de origen
+1037,'with' instrucciones no permitidas en modo estricto
+1038,Nombres formales duplicados de parámetros no permitidos en modo estricto
+1039,Literales numéricos octales o carácter de escape no permitidos en modo estricto
+1041,Uso no válido de 'eval' en modo estricto
+1042,Uso no válido de 'argumentos' en modo estricto
+1045,Solicitar eliminación de expresiones no permitidas en modo estricto
+1046,Definiciones múltiples de una propiedad no permitida en modo estricto
+1047,En modo estricto, las declaraciones de función no se pueden anidar dentro de una instrucción o un bloque. Solo pueden aparecer en el nivel superior o directamente dentro del cuerpo de la función.
+1048,El uso de una palabra clave para un identificador no es válido
+1049,El uso de una palabra reservada futura para un identificador no es válido
+1050,El uso de una palabra reservada futura para un identificador no es válido. El nombre del identificador es reservado en modo estricto.
+1051,Las funciones de setter deben tener un argumento
+4096,Error de compilación de JavaScript
+4097,Error en tiempo de ejecución de JavaScript
+4098,Error desconocido en tiempo de ejecución
+5000,No se puede asignar a 'this'
+5001,Se esperaba un número
+5002,Se esperaba una función
+5003,No se puede asignar al resultado de una función
+5004,No se puede indizar el objeto
+5005,Se esperaba una cadena
+5006,Se esperaba un objeto de fecha
+5007,Se esperaba un objeto
+5008,Lado izquierdo no válido en asignación
+5009,Identificador no definido
+5010,Se esperaba un tipo booleano
+5011,No se puede ejecutar código de una secuencia de comandos liberada
+5012,Se esperaba un objeto miembro
+5013,Se esperaba VBArray
+5014,Se esperaba un objeto JScript
+5015,Intervalo no válido en el juego de caracteres
+5016,Se esperaba un objeto expresión regular
+5017,Error de sintaxis en expresión regular
+5018,Cuantificador inesperado
+5019,Se esperaba ']' en la expresión regular
+5020,Se esperaba ')' en la expresión regular
+5021,Intervalo no válido en el juego de caracteres
+5022,Excepción lanzada y no recogida
+5023,La función no tiene un objeto prototipo válido
+5024,El identificador URI para codificar contiene un carácter no válido
+5025,El identificador URI para descodificar no tiene una codificación válida
+5026,El número de dígitos fraccionarios está fuera del intervalo
+5027,La precisión está fuera del intervalo
+5028,Se esperaba un objeto array o arguments
+5029,La longitud de la matriz debe ser un valor entero finito positivo
+5030,La longitud de la matriz debe ser un número positivo finito
+5031,Se esperaba un objeto Array
+5034,Referencia circular en un argumento de valor no admitida
+5035,Argumento reemplazante no válido
+5038,La lista de argumentos es demasiado extensa para aplicarse
+5039,Nueva declaración de la propiedad const
+5041,Objeto miembro no configurable
+5042,Variable sin definir en modo estricto
+5043,El acceso a la propiedad 'autor de la llamada' de una función u objeto de argumentos no está permitido en modo estricto
+5044,El acceso a la propiedad 'destinatario de la llamada' de un objeto de argumentos no está permitido en modo estricto
+5045,La asignación a propiedades de solo lectura no está permitida en modo estricto
+5046,No se puede crear una propiedad para un objeto no extensible
+5047,Se esperaba un objeto
+5048,Se esperaba un objeto
+5049,Se esperaba un objeto
+5050,Se esperaba un objeto
+5051,Se esperaba una función
+5052,Se esperaba una función
+5053,La propiedad no puede tener descriptores de acceso y un valor
+5054,'this' es nulo o está sin definir
+5055,Se esperaba un objeto
+5056,Se esperaba una función
+5057,Se esperaba una cadena
+5058,Se esperaba un tipo booleano
+5059,Se esperaba una fecha
+5060,Se esperaba un número
+5061,Se esperaba VBArray
+5062,Se esperaba un objeto JScript
+5063,Intervalo no válido en el juego de caracteres
+5064,Se esperaba un objeto RegExp
+5065,Argumento de la función no válido
+5066,Se esperaba un objeto
+5067,Se esperaba un objeto JScript
+5068,Se esperaba una función
+5069,Se esperaba VBArray
+5070,Se esperaba un objeto
+5071,Se esperaba un objeto
+5072,Propiedad de 'longitud' no válida
+5073,Se esperaba un objeto matriz o argumentos
+5074,Operando no válido
+5075,Operando no válido
+5076,Descriptor de propiedad no válido
+5077,No se puede definir la propiedad: el objeto no es extensible
+5078,No se puede redefinir la propiedad no configurable
+5079,No se puede modificar la propiedad que no permite escritura
+5080,No se puede modificar la propiedad: 'longitud' no permite escritura
+5081,No se puede definir la propiedad
+5082,Argumento de constructor de matriz con tipo no válido
+5083,'esto' no es un objeto de matriz con tipo
+5084,Longitud o desplazamiento no válido al crear matriz con tipo
+5085,Valor inicial o final no válido en método de su matriz de matriz con tipo
+5086,Origen no válido en conjunto de matriz con tipo
+5087,'esto' no es un objeto DataView
+5088,Argumentos no válidos en DataView
+5089,Acceso a operación DataView más allá de la longitud de búfer especificada
+5090,Argumentos no válidos en DataView
+5091,firma de función no válida
+5092,firma de propiedad no válida
+5093,tipo de parámetro de entrada no válido
+5094,parámetro de entrada no válido
+5095,El acceso a la propiedad 'argumentos' de una función no está permitido en modo estricto
+5096,Se espera objeto inspeccionable
+5097,No pudo convertirse el argumento al tipo 'char'
+5098,No pudo convertirse el argumento al tipo 'GUID'
+5099,Se esperaba IInspectable
+5100,No pudo convertirse el objeto a struct: objeto sin la propiedad esperada
+5101,Tipo desconocido
+5102,Función llamada con muy pocos argumentos
+5103,El tipo no es construible
+5104,No pudo convertirse el valor a PropertyValue: Tipo no admitido por PropertyValue
+5105,No pudo convertirse el valor a IInspectable: Tipo no admitido por IInspectable
+5106,No pudo convertirse la fecha a Windows.Foundation.DateTime: valor fuera de rango válido
+5107,No pudo convertirse el valor a Windows.Foundation.TimeSpan: valor fuera de rango válido
+5108,Acceso no válido a objeto inspeccionable ya distribuido
+5109,No puede distribuirse un objeto inspeccionable ya distribuido
+5110,'esto' no es del tipo esperado
+5111,Longitud y tamaño no válidos especificados para la matriz
+5112,Error inesperado al intentar obtener información de metadatos
+5200,El estado es 'error', pero getResults no obtuvo ningún error
+5201,Se pasó un parámetro status que falta o no es válido al controlador completado
+5202,Se pasó un parámetro sender que falta o no es válido al controlador completado
+6000,Infinito
+6001,-Infinito
+10438,El objeto no acepta la propiedad o el método '%s'
+10449,El argumento de la función '%s' no es opcional
+15001,'%s'  no es un número
+15002,'%s' no es una función
+15004,'%s'  no es un objeto indizable
+15005,'%s' no es una cadena
+15006,'%s' no es un objeto de fecha
+15007,'%s' es nulo o no es un objeto
+15008,No se puede asignar a '%s'
+15009,'%s' no está definido
+15010,'%s' no es un tipo booleano
+15012,No se puede eliminar '%s'
+15013,'%s' no es de tipo VBArray
+15014,'%s' no es un objeto JavaScript
+15015,'%s' no es un objeto enumerador
+15016,'%s' no es un objeto expresión regular
+15028,%s no es un objeto Array o arguments
+15031,%s no es un objeto Array
+15036,El atributo '%s' del descriptor de propiedad no se puede establecer en 'true' en este objeto
+15037,El atributo '%s' del descriptor de propiedad no se puede establecer en 'false' en este objeto
+15039,Nueva declaración de const '%s'
+15041,Solicitar la eliminación de '%s' no está permitida en modo estricto
+15047,No se puede establecer la propiedad '%s' de referencia nula o sin definir
+15048,No se puede obtener la propiedad '%s' de referencia nula o sin definir
+15049,No se puede eliminar la propiedad '%s' de referencia nula o sin definir
+15050,No se puede obtener acceso a la propiedad '%s': tipo 'VarDate' no es compatible con las propiedades definidas por el usuario
+15051,El valor de la propiedad '%s' no es un objeto de función
+15052,El valor de la propiedad '%s' es nulo o no está definido, no es un objeto de función
+15054,%s: 'this' es nulo o está sin definir
+15055,%s: 'this' no es un objeto
+15056,%s: 'this' no es un objeto de función
+15057,%s: 'this' no es un objeto de cadena
+15058,%s: 'this' no es un objeto booleano
+15059,%s: 'this' no es un objeto de fecha
+15060,%s: 'this' no es un objeto de número
+15061,%s: 'this' no es un objeto VBArray
+15062,%s: 'this' no es un objeto JavaScript
+15063,%s: 'this' no es un objeto enumerador
+15064,%s: 'this' no es un objeto RegExp
+15065,%s: argumento no válido
+15066,%s: el argumento no es un objeto
+15067,%s: el argumento no es un objeto JavaScript
+15068,%s: el argumento no es un objeto de función
+15069,%s: el argumento no es un objeto VBArray
+15070,%s: el argumento es nulo o está sin definir
+15071,%s: el argumento no es un objeto y no es nulo
+15072,%s: el argumento no tiene una propiedad de 'longitud' válida
+15073,%s: se esperaba un objeto de matriz o argumentos
+15074,Operando no válido para '%s': se esperaba un objeto
+15075,Operando no válido para '%s': se esperaba una función
+15076,Descriptor no válido para la propiedad '%s'
+15077,No se puede definir la propiedad '%s': el objeto no es extensible
+15078,No se puede redefinir la propiedad no configurable '%s'
+15079,No se puede modificar la propiedad que no permite escritura '%s'
+15080,No se puede modificar la propiedad '%s': 'longitud' no permite escritura
+15081,No se puede definir la propiedad '%s'
+15088,El argumento necesario %s en el método DataView no se ha especificado
+15090,El argumento de constructor %s de DataView no es válido
+15091,La función '%s' tiene una firma no válida y no se puede llamar
+15092,La propiedad '%s' tiene una firma no válida y no se puede obtener acceso a ella
+15093,La runtimeclass %s con Windows.Foundation.IPropertyValue como interfaz predeterminada no es compatible como tipo de parámetro de entrada
+15094,El objeto con la interfaz Windows.Foundation.IPropertyValue y el nombre de runtimeclass %s no es compatible como parámetro de salida
+15096,%s: 'this' no es un objeto inspeccionable
+15097,%s: no pudo convertirse el argumento al tipo 'char'
+15098,%s: no pudo convertirse el argumento al tipo 'GUID'
+15099,%s: no pudo convertirse el valor devuelto a IInspectable
+15100,No pudo convertirse el objeto a struct: objeto sin la propiedad esperada '%s'
+15101,Tipo '%s' no encontrado
+15102,%s: función llamada con muy pocos argumentos
+15103,%s: tipo no construible
+15104,No pudo convertirse el valor a PropertyValue: PropertyValue no admite %s
+15105,No pudo convertirse el valor a IInspectable: IInspectable no admite %s
+15108,%s: el objeto inspeccionable 'this' ya se distribuyó y no puede obtenerse acceso a él
+15110,'esto' no es del tipo esperado: %s
+15112,%s: error inesperado al intentar obtener información de metadatos
+32812,La fecha especificada no está disponible en el calendario de la configuración regional actual
