@@ -4,9 +4,9 @@ import PropTypes from 'prop-types';
 import React from 'react';
 
 import {t, tct} from '../../../../locale';
+import Button from '../../../../components/buttons/button';
 import ConfigStore from '../../../../stores/configStore';
 import IndicatorStore from '../../../../stores/indicatorStore';
-import Link from '../../../../components/link';
 import OrganizationAccessRequests from './organizationAccessRequests';
 import OrganizationMemberRow from './organizationMemberRow';
 import OrganizationSettingsView from '../../../organizationSettingsView';
@@ -216,9 +216,8 @@ class OrganizationMembersView extends OrganizationSettingsView {
     let requireLink = !!this.state.authProvider && this.state.authProvider.require_link;
 
     let action = (
-      <Link
-        size="small"
-        className="pull-right"
+      <Button
+        priority="link"
         disabled={!canAddMembers}
         title={
           !canAddMembers
@@ -228,7 +227,7 @@ class OrganizationMembersView extends OrganizationSettingsView {
         to={recreateRoute('new', {routes, params})}
       >
         <span className="icon-plus" /> {t('Invite Member')}
-      </Link>
+      </Button>
     );
 
     return (

@@ -192,10 +192,9 @@ exports[`OrganizationMembersView No Require Link does not have 2fa warning if us
     <div>
       <SettingsPageHeading
         action={
-          <Link
-            className="pull-right"
+          <Button
             disabled={false}
-            size="small"
+            priority="link"
             title={undefined}
             to="new"
           >
@@ -204,7 +203,7 @@ exports[`OrganizationMembersView No Require Link does not have 2fa warning if us
             />
              
             Invite Member
-          </Link>
+          </Button>
         }
         label="Members"
       >
@@ -232,25 +231,47 @@ exports[`OrganizationMembersView No Require Link does not have 2fa warning if us
               </div>
             </Styled(div)>
             <div>
-              <Link
-                className="pull-right"
+              <Button
                 disabled={false}
-                size="small"
+                priority="link"
                 to="new"
               >
-                <a
-                  className="pull-right"
+                <Link
+                  className="button button-link"
                   disabled={false}
-                  href="new"
-                  size="small"
+                  onClick={[Function]}
+                  onlyActiveOnIndex={false}
+                  role="button"
+                  style={Object {}}
+                  to="new"
                 >
-                  <span
-                    className="icon-plus"
-                  />
-                   
-                  Invite Member
-                </a>
-              </Link>
+                  <a
+                    className="button button-link"
+                    disabled={false}
+                    onClick={[Function]}
+                    role="button"
+                    style={Object {}}
+                  >
+                    <FlowLayout
+                      truncate={false}
+                    >
+                      <div
+                        className="flow-layout"
+                      >
+                        <span
+                          className="button-label"
+                        >
+                          <span
+                            className="icon-plus"
+                          />
+                           
+                          Invite Member
+                        </span>
+                      </div>
+                    </FlowLayout>
+                  </a>
+                </Link>
+              </Button>
             </div>
           </div>
         </Styled(div)>
@@ -1330,10 +1351,9 @@ exports[`OrganizationMembersView Require Link does not have 2fa warning if user 
     <div>
       <SettingsPageHeading
         action={
-          <Link
-            className="pull-right"
+          <Button
             disabled={false}
-            size="small"
+            priority="link"
             title={undefined}
             to="new"
           >
@@ -1342,7 +1362,7 @@ exports[`OrganizationMembersView Require Link does not have 2fa warning if user 
             />
              
             Invite Member
-          </Link>
+          </Button>
         }
         label="Members"
       >
@@ -1370,25 +1390,47 @@ exports[`OrganizationMembersView Require Link does not have 2fa warning if user 
               </div>
             </Styled(div)>
             <div>
-              <Link
-                className="pull-right"
+              <Button
                 disabled={false}
-                size="small"
+                priority="link"
                 to="new"
               >
-                <a
-                  className="pull-right"
+                <Link
+                  className="button button-link"
                   disabled={false}
-                  href="new"
-                  size="small"
+                  onClick={[Function]}
+                  onlyActiveOnIndex={false}
+                  role="button"
+                  style={Object {}}
+                  to="new"
                 >
-                  <span
-                    className="icon-plus"
-                  />
-                   
-                  Invite Member
-                </a>
-              </Link>
+                  <a
+                    className="button button-link"
+                    disabled={false}
+                    onClick={[Function]}
+                    role="button"
+                    style={Object {}}
+                  >
+                    <FlowLayout
+                      truncate={false}
+                    >
+                      <div
+                        className="flow-layout"
+                      >
+                        <span
+                          className="button-label"
+                        >
+                          <span
+                            className="icon-plus"
+                          />
+                           
+                          Invite Member
+                        </span>
+                      </div>
+                    </FlowLayout>
+                  </a>
+                </Link>
+              </Button>
             </div>
           </div>
         </Styled(div)>

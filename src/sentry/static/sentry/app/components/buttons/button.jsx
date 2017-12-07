@@ -47,6 +47,12 @@ const Button = React.createClass({
     onClick(...args);
   },
 
+  getUrl() {
+    let {disabled, to, href} = this.props;
+    if (disabled) return null;
+    return to || href;
+  },
+
   render() {
     let {
       priority,
@@ -110,12 +116,12 @@ const Button = React.createClass({
 
     // Handle react-router Links
     if (to) {
-      return <Link to={to} {...componentProps} />;
+      return <Link to={this.getUrl()} {...componentProps} />;
     }
 
     // Handle traditional links
     if (href) {
-      return <a href={href} {...componentProps} />;
+      return <a href={this.getUrl()} {...componentProps} />;
     }
 
     // Otherwise, fall back to basic button element
