@@ -384,6 +384,7 @@ EVENT_SCHEMA = {
 
         # Other reserved keys. (some are added in processing)
         'project': {'type': ['number', 'string']},
+        'key_id': {},
         'errors': {'type': 'array'},
         'checksum': {},
         'site': {},
