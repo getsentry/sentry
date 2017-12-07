@@ -425,14 +425,7 @@ CSP_SCHEMA = {
                 },
                 'blocked-uri': {
                     'type': 'string',
-                    'default': 'self',  # TODO test that this works and does not interfere with required keys?
-                    'not': {
-                        'enum': [
-                            'about',  # Noise from Chrome about page.
-                            'ms-browser-extension',
-                        ],
-                        'description': "URIs that are pure noise and will never be actionable.",
-                    }
+                    'default': 'self',
                 },
                 'document-uri': {
                     'type': 'string',
@@ -447,15 +440,7 @@ CSP_SCHEMA = {
                 'column-number': {'type': 'number'},
                 'script-sample': {'type': 'number'},  # Firefox specific key.
             },
-            'allOf': [
-                {'required': ['effective-directive']},
-                {
-                    'anyOf': [  # Require at least one of these keys.
-                        {'required': ['blocked-uri']},
-                        {'required': ['source-file']},
-                    ]
-                }
-            ],
+            'required': ['effective-directive'],
             'additionalProperties': False,  # Don't allow any other keys.
         }
     },
@@ -466,16 +451,7 @@ CSP_SCHEMA = {
 CSP_INTERFACE_SCHEMA = {
     'type': 'object',
     'properties': {k.replace('-', '_'): v for k, v in six.iteritems(CSP_SCHEMA['properties']['csp-report']['properties'])},
-    'allOf': [
-        {'required': ['effective_directive']},
-        {
-            'anyOf': [
-                # At least one of these is required.
-                {'required': ['blocked_uri']},
-                {'required': ['source_file']},
-            ]
-        }
-    ],
+    'required': ['effective_directive', 'violated_directive', 'blocked_uri'],
     'additionalProperties': False,  # Don't allow any other keys.
 }
 

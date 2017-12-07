@@ -26,6 +26,8 @@ from sentry.web.helpers import render_to_string
 # Default block list sourced from personal experience as well as
 # reputable blogs from Twitter and Dropbox
 DEFAULT_DISALLOWED_SOURCES = (
+    'about',  # Noise from Chrome about page.
+    'ms-browser-extension',
     'chrome://*',
     'chrome-extension://*',
     'chromeinvokeimmediate://*'

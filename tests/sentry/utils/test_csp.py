@@ -2,6 +2,7 @@ from __future__ import absolute_import
 
 import pytest
 
+from sentry.interfaces.base import InterfaceValidationError
 from sentry.interfaces.security import Csp
 
 
@@ -9,7 +10,17 @@ from sentry.interfaces.security import Csp
     'report', (
         {}, {
             'effective_directive': 'lolnotreal'
-        }, {
+        },
+    )
+)
+def test_invalid_csp_report(report):
+    with pytest.raises(InterfaceValidationError):
+        Csp.to_python(report)
+
+
+@pytest.mark.parametrize(
+    'report', (
+        {
             'effective_directive': 'style-src',
             'blocked_uri': 'about'
         }, {

@@ -666,7 +666,7 @@ class SecurityApiHelperTest(BaseAPITest):
             self.validate_and_normalize(report)
 
         with self.assertRaises(APIError):
-            self.validate_and_normalize(report, {})
+            self.validate_and_normalize({})
 
     def test_csp_tags_out_of_bounds(self):
         report = {

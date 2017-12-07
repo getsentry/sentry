@@ -437,6 +437,7 @@ class SecurityApiHelper(ClientApiHelper):
             'message': instance.get_message(),
             'culprit': instance.get_culprit(),
             instance.get_path(): instance.to_json(),
+            'tags': instance.get_tags(),
             'errors': [],
 
             'sentry.interfaces.User': {
