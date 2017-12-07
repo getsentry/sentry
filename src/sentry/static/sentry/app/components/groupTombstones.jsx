@@ -104,7 +104,7 @@ const GroupTombstones = React.createClass({
   },
 
   renderEmpty() {
-    return <div className="box empty">{t('You have no discarded groups')}</div>;
+    return <div className="box empty">{t('You have no discarded issues')}</div>;
   },
 
   render() {
