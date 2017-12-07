@@ -166,8 +166,8 @@ class TagStorage(TagStorage):
                         environment_id=environment_id,
                         group_id=group_id,
                         event_id=event_id,
-                        _key_id=key_id,
-                        _value_id=value_id,
+                        key_id=key_id,
+                        value_id=value_id,
                     )
                     for key_id, value_id in tags
                 ])

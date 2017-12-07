@@ -332,8 +332,8 @@ class V2TagStorage(TestCase):
                 group_id=self.proj1group1.id,
                 environment_id=self.proj1env1.id,
                 event_id=self.proj1group1event1.id,
-                _key_id=key_id,
-                _value_id=value_id,
+                key_id=key_id,
+                value_id=value_id,
             ) is not None
 
     def test_delete_tag_key(self):
