@@ -13,6 +13,7 @@ import OrganizationState from '../../mixins/organizationState';
 import SentryTypes from '../../proptypes';
 import TeamStore from '../../stores/teamStore';
 import ProjectsStore from '../../stores/projectsStore';
+import {setActiveProject} from '../../actionCreators/projects';
 import {t} from '../../locale';
 
 const ERROR_TYPES = {
@@ -166,6 +167,8 @@ const ProjectContext = React.createClass({
             error: false,
             errorType: null,
           });
+          // assuming here that this means the project is considered the active project
+          setActiveProject(data);
         },
         error: error => {
           // TODO(dcramer): this should handle 404 (project not found)

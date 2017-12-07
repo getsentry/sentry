@@ -10,4 +10,5 @@ export default Reflux.createActions([
   'loadStatsSuccess',
   'openDiffModal',
   'closeDiffModal',
+  'setActive',
 ]);

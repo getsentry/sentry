@@ -5,11 +5,14 @@ import React from 'react';
 import styled from 'react-emotion';
 
 import IconChevronLeft from '../../icons/icon-chevron-left';
+import SentryTypes from '../../proptypes';
 import SettingsActivity from './components/settingsActivity';
 import SettingsBreadcrumb from './components/settingsBreadcrumb';
 import SettingsHeader from './components/settingsHeader';
 import SettingsSearch from './components/settingsSearch';
 import replaceRouterParams from '../../utils/replaceRouterParams';
+import withLatestContext from '../../utils/withLatestContext';
+import withOrganizations from '../../utils/withOrganizations';
 
 let StyledWarning = styled.div`
   margin-bottom: 30px;
@@ -56,19 +59,40 @@ const BackIcon = styled.span`
   margin-right: 8px;
 `;
 
-let BackButton = ({to}) => {
-  return (
-    <BackButtonWrapper to={to}>
-      <BackIcon>
-        <IconChevronLeft size="15" />
-      </BackIcon>Back
-    </BackButtonWrapper>
-  );
-};
+class BackButtonComponent extends React.Component {
+  static propTypes = {
+    organization: PropTypes.string,
+    organizations: PropTypes.arrayOf(SentryTypes.Organization),
+    project: PropTypes.string,
+  };
 
-BackButton.propTypes = {
-  to: PropTypes.string,
-};
+  render() {
+    let {params, organization, organizations, project} = this.props;
+
+    let projectId = params.projectId || project;
+    let orgId =
+      params.orgId ||
+      organization ||
+      // give up lets just pick an org
+      (organizations && organizations.length && organizations[0]);
+    let url = projectId ? '/:orgId/:projectId/' : '/:orgId/';
+
+    return (
+      <BackButtonWrapper
+        to={replaceRouterParams(url, {
+          orgId,
+          projectId,
+        })}
+      >
+        <BackIcon>
+          <IconChevronLeft size="15" />
+        </BackIcon>Back
+      </BackButtonWrapper>
+    );
+  }
+}
+
+const BackButton = withOrganizations(withLatestContext(BackButtonComponent));
 
 const Content = styled(Box)`
   flex: 1;
@@ -90,7 +114,7 @@ class SettingsLayout extends React.Component {
     return (
       <div>
         <SettingsHeader>
-          <BackButton to={replaceRouterParams('/:orgId', params).replace(':orgId', '')} />
+          <BackButton params={params} />
           <Box flex="1">
             <SettingsBreadcrumb params={params} routes={childRoutes} route={childRoute} />
           </Box>
@@ -117,4 +141,5 @@ const StickySidebar = styled.div`
   position: sticky;
   top: 105px;
 `;
+
 export default SettingsLayout;

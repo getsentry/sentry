@@ -30,3 +30,7 @@ export function loadStats(api, params) {
     },
   });
 }
+
+export function setActiveProject(project) {
+  ProjectActions.setActive(project);
+}

@@ -13,6 +13,7 @@ import TeamStore from '../stores/teamStore';
 import ProjectsStore from '../stores/projectsStore';
 import ProjectActions from '../actions/projectActions';
 import ConfigStore from '../stores/configStore';
+import {setActiveOrganization} from '../actionCreators/organizations';
 
 import {t} from '../locale';
 
@@ -93,6 +94,8 @@ const OrganizationContext = React.createClass({
           hooks,
           showBroadcast: this.shouldShowBroadcast(data),
         });
+
+        setActiveOrganization(data);
 
         TeamStore.loadInitialData(data.teams);
         ProjectsStore.loadInitialData(

@@ -42,3 +42,7 @@ export function remove(api, {successMessage, errorMessage, orgId} = {}) {
 export function removeAndRedirectToRemainingOrganization(api, params) {
   remove(api, params).then(() => redirectToRemainingOrganization(params));
 }
+
+export function setActiveOrganization(org) {
+  OrganizationsActions.setActive(org);
+}
