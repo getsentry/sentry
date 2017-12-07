@@ -165,6 +165,7 @@ NOT_SCRUBBED_VALUES = set([
 ])
 
 VALID_PLATFORMS = get_platform_types()
+VALID_PLATFORMS.add(u'other')  # other is the default in the system
 
 OK_PLUGIN_ENABLED = _("The {name} integration has been enabled.")
 
