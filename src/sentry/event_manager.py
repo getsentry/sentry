@@ -672,6 +672,12 @@ class EventManager(object):
                 project=project,
                 sender=EventManager,
             )
+
+            metrics.incr(
+                'event.discarded',
+                skip_internal=True,
+                tags={'organization_id': project.organization_id},
+            )
             raise
         else:
             event_saved.send_robust(
