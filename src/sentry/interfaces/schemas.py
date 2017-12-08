@@ -293,7 +293,7 @@ EVENT_SCHEMA = {
         },
         'logger': {
             'type': 'string',
-            'pattern': r'^[a-zA-Z0-9_\.:-\$]+$',
+            'pattern': r'^[a-zA-Z0-9$_\.:-]+$',
             'default': '',
         },
         'platform': {
