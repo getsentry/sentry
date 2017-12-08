@@ -62,6 +62,12 @@ class AuditLogEntryEvent(object):
     RULE_EDIT = 81
     RULE_REMOVE = 82
 
+    SERVICEHOOK_ADD = 90
+    SERVICEHOOK_EDIT = 91
+    SERVICEHOOK_REMOVE = 92
+    SERVICEHOOK_ENABLE = 93
+    SERVICEHOOK_DISABLE = 94
+
 
 class AuditLogEntry(Model):
     __core__ = False
