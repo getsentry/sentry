@@ -22,7 +22,11 @@ def get_transaction_id():
 
 
 class RepositorySerializer(serializers.Serializer):
-    status = serializers.ChoiceField(choices=(('visible', 'visible'), ))
+    status = serializers.ChoiceField(choices=(
+        # XXX(dcramer): these are aliased, and we prefer 'active' over 'visible'
+        ('visible', 'visible'),
+        ('active', 'active'),
+    ))
 
 
 class OrganizationRepositoryDetailsEndpoint(OrganizationEndpoint):
@@ -48,7 +52,7 @@ class OrganizationRepositoryDetailsEndpoint(OrganizationEndpoint):
         if serializer.is_valid():
             result = serializer.object
             if result.get('status'):
-                if result['status'] == 'visible':
+                if result['status'] in ('visible', 'active'):
                     repo.update(status=ObjectStatus.VISIBLE)
                 else:
                     raise NotImplementedError
