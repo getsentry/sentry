@@ -92,7 +92,7 @@ class GroupTagExportView(ProjectView, CsvMixin, EnvironmentMixin):
             callbacks = []
 
         queryset = RangeQuerySetWrapper(
-            tagstore.get_group_tag_value_qs(group.id, environment_id, lookup_key),
+            tagstore.get_group_tag_value_qs(group.project_id, group.id, environment_id, lookup_key),
             callbacks=callbacks,
         )
 

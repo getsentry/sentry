@@ -11,7 +11,7 @@ from rest_framework import serializers
 from rest_framework.response import Response
 
 from sentry import features, search
-from sentry.api.base import DocSection
+from sentry.api.base import DocSection, EnvironmentMixin
 from sentry.api.bases.project import ProjectEndpoint, ProjectEventPermission
 from sentry.api.fields import UserField
 from sentry.api.serializers import serialize
@@ -20,7 +20,7 @@ from sentry.api.serializers.models.group import (
 from sentry.constants import DEFAULT_SORT_OPTION
 from sentry.db.models.query import create_or_update
 from sentry.models import (
-    Activity, Group, GroupAssignee, GroupBookmark, GroupHash, GroupResolution,
+    Activity, Environment, Group, GroupAssignee, GroupBookmark, GroupHash, GroupResolution,
     GroupSeen, GroupShare, GroupSnooze, GroupStatus, GroupSubscription, GroupSubscriptionReason,
     GroupTombstone, Release, TOMBSTONE_FIELDS_FROM_GROUP, UserOption
 )
@@ -176,7 +176,7 @@ class GroupValidator(serializers.Serializer):
         return attrs
 
 
-class ProjectGroupIndexEndpoint(ProjectEndpoint):
+class ProjectGroupIndexEndpoint(ProjectEndpoint, EnvironmentMixin):
     doc_section = DocSection.EVENTS
 
     permission_classes = (ProjectEventPermission, )
@@ -319,7 +319,16 @@ class ProjectGroupIndexEndpoint(ProjectEndpoint):
         except ValidationError as exc:
             return Response({'detail': six.text_type(exc)}, status=400)
 
-        cursor_result = search.query(count_hits=True, **query_kwargs)
+        try:
+            environment_id = self._get_environment_id_from_request(
+                request, project.organization_id)
+        except Environment.DoesNotExist:
+            cursor_result = []
+        else:
+            cursor_result = search.query(
+                count_hits=True,
+                environment_id=environment_id,
+                **query_kwargs)
 
         results = list(cursor_result)
 

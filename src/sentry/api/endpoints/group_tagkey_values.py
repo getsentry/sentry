@@ -50,7 +50,8 @@ class GroupTagKeyValuesEndpoint(GroupEndpoint, EnvironmentMixin):
         except tagstore.TagKeyNotFound:
             raise ResourceDoesNotExist
 
-        queryset = tagstore.get_group_tag_value_qs(group.id, environment_id, lookup_key)
+        queryset = tagstore.get_group_tag_value_qs(
+            group.project_id, group.id, environment_id, lookup_key)
 
         sort = request.GET.get('sort')
         if sort == 'date':
