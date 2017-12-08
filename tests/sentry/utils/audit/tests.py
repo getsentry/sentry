@@ -21,6 +21,7 @@ class CreateAuditEntryTest(TestCase):
         self.org = self.create_organization(owner=self.user)
         self.team = self.create_team(organization=self.org)
         self.project = self.create_project(team=self.team)
+        self.project.update(platform='java')
 
     def assert_no_delete_log_created(self):
         assert not DeletedOrganization.objects.filter(slug=self.org.slug).exists()
@@ -101,3 +102,4 @@ class CreateAuditEntryTest(TestCase):
 
         deleted_project = DeletedProject.objects.get(slug=self.project.slug)
         self.assert_valid_deleted_log(deleted_project, self.project)
+        assert deleted_project.platform == self.project.platform
