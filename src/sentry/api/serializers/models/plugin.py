@@ -33,7 +33,7 @@ class PluginSerializer(Serializer):
         d = {
             'id': obj.slug,
             'name': six.text_type(obj.get_title()),
-            'slug': slugify(six.text_type(obj.get_title())),
+            'slug': obj.slug or slugify(six.text_type(obj.get_title())),
             'shortName': six.text_type(obj.get_short_title()),
             'type': obj.get_plugin_type(),
             'canDisable': obj.can_disable,
