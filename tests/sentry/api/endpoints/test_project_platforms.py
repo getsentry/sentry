@@ -12,4 +12,4 @@ class ProjectPlatformsTest(APITestCase):
         url = '/api/0/projects/{}/{}/platforms/'.format(project.organization.slug, project.slug)
         response = self.client.get(url, format='json')
         assert response.status_code == 200, response.content
-        assert response.data['platform'] == pp1.platform
+        assert response.data[0]['platform'] == pp1.platform
