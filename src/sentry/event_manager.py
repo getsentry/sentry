@@ -41,7 +41,7 @@ from sentry.tasks.post_process import post_process_group
 from sentry.utils import metrics
 from sentry.utils.cache import default_cache
 from sentry.utils.db import get_db_engine
-from sentry.utils.safe import safe_execute, trim, trim_dict
+from sentry.utils.safe import safe_execute, trim, trim_dict, get_path
 from sentry.utils.strings import truncatechars
 from sentry.utils.validators import is_float
 from sentry.stacktraces import normalize_in_app
@@ -346,11 +346,10 @@ class EventManager(object):
         # Fill in ip addresses marked as {{auto}}
         client_ip = request_env.get('client_ip')
         if client_ip:
-            if (data.get('sentry.interfaces.Http') or {}).get(
-                    'env', {}).get('REMOTE_ADDR') == '{{auto}}':
+            if get_path(data, ['sentry.interfaces.Http', 'env', 'REMOTE_ADDR']) == '{{auto}}':
                 data['sentry.interfaces.Http']['env']['REMOTE_ADDR'] = client_ip
 
-            if (data.get('sentry.interfaces.User') or {}).get('ip_address') == '{{auto}}':
+            if get_path(data, ['sentry.interfaces.User', 'ip_address']) == '{{auto}}':
                 data['sentry.interfaces.User']['ip_address'] = client_ip
 
         # Validate main event body and tags against schema
