@@ -1,3 +1,5 @@
+const RealClient = require.requireActual('app/api');
+
 export class Request {}
 
 const respond = (isAsync, fn, ...args) => {
@@ -50,6 +52,10 @@ class Client {
     });
   }
 
+  wrapCallback(id, error) {
+    return (...args) => respond(Client.mockAsync, error, ...args);
+  }
+
   requestPromise(url, options) {
     return new Promise((resolve, reject) =>
       this.request(url, {
@@ -82,7 +88,14 @@ class Client {
         responseText: JSON.stringify(response.body),
         responseJSON: response.body,
       };
-      respond(Client.mockAsync, options.error, resp);
+      this.handleRequestError(
+        {
+          path: url,
+          requestOptions: options,
+        },
+        resp
+      );
+      // respond(Client.mockAsync, options.error, resp);
     } else {
       response.callCount++;
       respond(
@@ -96,5 +109,7 @@ class Client {
     respond(Client.mockAsync, options.complete);
   }
 }
+
+Client.prototype.handleRequestError = RealClient.Client.prototype.handleRequestError;
 
 export {Client};
