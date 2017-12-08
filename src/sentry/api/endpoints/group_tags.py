@@ -20,7 +20,7 @@ class GroupTagsEndpoint(GroupEndpoint, EnvironmentMixin):
         except Environment.DoesNotExist:
             group_tag_keys = []
         else:
-            group_tag_keys = tagstore.get_group_tag_keys(group.id, environment_id)
+            group_tag_keys = tagstore.get_group_tag_keys(group.project_id, group.id, environment_id)
 
         # O(N) db access
         data = []

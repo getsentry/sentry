@@ -25,9 +25,10 @@ class SentryManagerTest(TestCase):
 
         results = sorted(
             tagstore.get_group_tag_values(
+                group.project_id,
                 group.id,
                 environment_id=None,
-                keys=['foo']),
+                key='foo'),
             key=lambda x: x.id)
         assert len(results) == 2
         res = results[0]
@@ -39,9 +40,10 @@ class SentryManagerTest(TestCase):
 
         results = sorted(
             tagstore.get_group_tag_values(
+                group.project_id,
                 group.id,
                 environment_id=None,
-                keys=['biz']),
+                key='biz'),
             key=lambda x: x.id)
         assert len(results) == 1
         res = results[0]

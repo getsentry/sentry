@@ -13,6 +13,7 @@ from django.utils import timezone
 from mock import patch
 
 from sentry import tagstore
+from sentry.tagstore.models import GroupTagValue
 from sentry.app import tsdb
 from sentry.event_manager import ScoreClause
 from sentry.models import (
@@ -298,7 +299,8 @@ class UnmergeTestCase(TestCase):
             )
 
         assert set(
-            [(gtk.key, gtk.values_seen) for gtk in tagstore.get_group_tag_keys(source.id, None)]
+            [(gtk.key, gtk.values_seen)
+             for gtk in tagstore.get_group_tag_keys(source.project_id, source.id, None)]
         ) == set([
             (u'color', 3),
             (u'environment', 1),
@@ -307,7 +309,11 @@ class UnmergeTestCase(TestCase):
 
         assert set(
             [(gtv.key, gtv.value, gtv.times_seen)
-             for gtv in tagstore.get_group_tag_values(source.id, environment_id=None)]
+             for gtv in
+             GroupTagValue.objects.filter(
+                 project_id=source.project_id,
+                 group_id=source.id,
+            )]
         ) == set([
             (u'color', u'red', 6),
             (u'color', u'green', 6),
@@ -408,7 +414,8 @@ class UnmergeTestCase(TestCase):
         ])
 
         assert set(
-            [(gtk.key, gtk.values_seen) for gtk in tagstore.get_group_tag_keys(source.id, None)]
+            [(gtk.key, gtk.values_seen)
+             for gtk in tagstore.get_group_tag_keys(source.project_id, source.id, None)]
         ) == set([
             (u'color', 3),
             (u'environment', 1),
@@ -418,7 +425,11 @@ class UnmergeTestCase(TestCase):
         assert set(
             [(gtv.key, gtv.value, gtv.times_seen,
               gtv.first_seen, gtv.last_seen)
-             for gtv in tagstore.get_group_tag_values(source.id, environment_id=None)]
+             for gtv in
+             GroupTagValue.objects.filter(
+                project_id=source.project_id,
+                group_id=source.id,
+            )]
         ) == set([
             (u'color', u'red', 4, now + shift(0), now + shift(9), ),
             (u'color', u'green', 3, now + shift(1), now + shift(7), ),
@@ -460,7 +471,7 @@ class UnmergeTestCase(TestCase):
             (u'production', now + shift(10), now + shift(16), ),
         ])
 
-        assert set([(gtk.key, gtk.values_seen) for gtk in tagstore.get_group_tag_keys(source.id, None)]
+        assert set([(gtk.key, gtk.values_seen) for gtk in tagstore.get_group_tag_keys(source.project_id, source.id, None)]
                    ) == set(
             [
                 (u'color', 3),
@@ -472,7 +483,11 @@ class UnmergeTestCase(TestCase):
         assert set(
             [(gtv.key, gtv.value, gtv.times_seen,
               gtv.first_seen, gtv.last_seen)
-             for gtv in tagstore.get_group_tag_values(destination.id, environment_id=None)]
+             for gtv in
+             GroupTagValue.objects.filter(
+                 project_id=destination.project_id,
+                 group_id=destination.id,
+            )]
         ) == set([
             (u'color', u'red', 2, now + shift(12), now + shift(15), ),
             (u'color', u'green', 3, now + shift(10), now + shift(16), ),

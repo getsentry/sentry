@@ -19,6 +19,7 @@ from operator import or_
 from six.moves import reduce
 
 from sentry import buffer
+from sentry.signals import buffer_incr_complete
 from sentry.tagstore import TagKeyStatus
 from sentry.tagstore.base import TagStorage
 from sentry.utils import db
@@ -27,49 +28,94 @@ from .models import EventTag, GroupTagKey, GroupTagValue, TagKey, TagValue
 
 
 class LegacyTagStorage(TagStorage):
+    """\
+    The legacy tagstore backend ignores the ``environment_id`` (because it doesn't store this information
+    in its models) and stores ``times_seen`` and ``values_seen`` in Postgres.
+    """
+
     def setup(self):
-        from sentry.deletions import default_manager
-        from sentry.deletions.defaults import BulkModelDeletionTask
-        from sentry.deletions.base import ModelRelation, ModelDeletionTask
-        from sentry.models import Group, Project, Event
-        from sentry.runner.commands import cleanup
-        from sentry.tasks import merge
+        self.setup_deletions(
+            tagkey_model=TagKey,
+            tagvalue_model=TagValue,
+            grouptagkey_model=GroupTagKey,
+            grouptagvalue_model=GroupTagValue,
+            eventtag_model=EventTag,
+        )
 
-        from .deletions import TagKeyDeletionTask
+        self.setup_cleanup(
+            tagvalue_model=TagValue,
+            grouptagvalue_model=GroupTagValue,
+            eventtag_model=EventTag,
+        )
 
-        default_manager.register(TagKey, TagKeyDeletionTask)
-        default_manager.register(TagValue, BulkModelDeletionTask)
-        default_manager.register(GroupTagKey, BulkModelDeletionTask)
-        default_manager.register(GroupTagValue, BulkModelDeletionTask)
-        default_manager.register(EventTag, BulkModelDeletionTask)
+        self.setup_merge(
+            grouptagkey_model=GroupTagKey,
+            grouptagvalue_model=GroupTagValue,
+        )
 
-        default_manager.add_dependencies(Group, [
-            lambda instance: ModelRelation(EventTag, {'group_id': instance.id}),
-            lambda instance: ModelRelation(GroupTagKey, {'group_id': instance.id}),
-            lambda instance: ModelRelation(GroupTagValue, {'group_id': instance.id}),
-        ])
-        default_manager.add_dependencies(Project, [
-            lambda instance: ModelRelation(TagKey, {'project_id': instance.id}),
-            lambda instance: ModelRelation(TagValue, {'project_id': instance.id}),
-            lambda instance: ModelRelation(GroupTagKey, {'project_id': instance.id}),
-            lambda instance: ModelRelation(GroupTagValue, {'project_id': instance.id}),
-        ])
-        default_manager.add_bulk_dependencies(Event, [
-            lambda instance_list: ModelRelation(EventTag,
-                                                {'event_id__in': [i.id for i in instance_list]},
-                                                ModelDeletionTask),
-        ])
+        self.setup_tasks(
+            tagkey_model=TagKey,
+        )
 
-        cleanup.EXTRA_BULK_QUERY_DELETES += [
-            (GroupTagValue, 'last_seen', None),
-            (TagValue, 'last_seen', None),
-            (EventTag, 'date_added', 'date_added'),
-        ]
+        self.setup_receivers(
+            tagvalue_model=TagValue,
+            grouptagvalue_model=GroupTagValue,
+        )
 
-        merge.EXTRA_MERGE_MODELS += [
-            GroupTagValue,
-            GroupTagKey,
-        ]
+        # Legacy tag write flow:
+        #
+        # event_manager calls index_event_tags:
+        #   for tag in event:
+        #       get_or_create_tag_key
+        #       get_or_create_tag_value
+        #   create_event_tags
+        #
+        # event_manager calls Group.objects.add_tags:
+        #   for tag in event:
+        #       incr_tag_value_times_seen:
+        #           (async) buffer.incr(TagValue):
+        #                create_or_update(TagValue)
+        #                buffer_incr_complete.send_robust(TagValue):
+        #                   record_project_tag_count(TagValue)
+        #                   if created(TagValue):
+        #                       incr_tag_key_values_seen:
+        #                           (async) buffer.incr(TagKey):
+        #                               create_or_update(TagKey)
+        #       incr_group_tag_value_times_seen:
+        #           (async) buffer.incr(GroupTagValue):
+        #                create_or_update(GroupTagValue)
+        #                buffer_incr_complete.send_robust(GroupTagValue)
+        #                   record_project_tag_count(GroupTagValue)
+        #                   if created(GroupTagValue):
+        #                       incr_group_tag_key_values_seen:
+        #                           (async) buffer.incr(GroupTagKey):
+        #                               create_or_update(GroupTagKey)
+
+        @buffer_incr_complete.connect(sender=TagValue, weak=False)
+        def record_project_tag_count(filters, created, **kwargs):
+            from sentry import tagstore
+
+            if not created:
+                return
+
+            project_id = filters['project_id']
+            environment_id = filters.get('environment_id')
+
+            tagstore.incr_tag_key_values_seen(project_id, environment_id, filters['key'])
+
+        @buffer_incr_complete.connect(sender=GroupTagValue, weak=False)
+        def record_group_tag_count(filters, created, extra, **kwargs):
+            from sentry import tagstore
+
+            if not created:
+                return
+
+            project_id = extra['project_id']
+            group_id = filters['group_id']
+            environment_id = filters.get('environment_id')
+
+            tagstore.incr_group_tag_key_values_seen(
+                project_id, group_id, environment_id, filters['key'])
 
     def create_tag_key(self, project_id, environment_id, key, **kwargs):
         return TagKey.objects.create(project_id=project_id, key=key, **kwargs)
@@ -137,20 +183,11 @@ class LegacyTagStorage(TagStorage):
         except TagKey.DoesNotExist:
             raise TagKeyNotFound
 
-    def get_tag_keys(self, project_ids, environment_id, keys=None, status=TagKeyStatus.VISIBLE):
-        if isinstance(project_ids, six.integer_types):
-            qs = TagKey.objects.filter(project_id=project_ids)
-        else:
-            qs = TagKey.objects.filter(project_id__in=project_ids)
+    def get_tag_keys(self, project_id, environment_id, status=TagKeyStatus.VISIBLE):
+        qs = TagKey.objects.filter(project_id=project_id)
 
         if status is not None:
             qs = qs.filter(status=status)
-
-        if keys is not None:
-            if isinstance(keys, six.string_types):
-                qs = qs.filter(key=keys)
-            else:
-                qs = qs.filter(key__in=keys)
 
         return list(qs)
 
@@ -166,25 +203,15 @@ class LegacyTagStorage(TagStorage):
         except TagValue.DoesNotExist:
             raise TagValueNotFound
 
-    def get_tag_values(self, project_ids, environment_id, key, values=None):
-        qs = TagValue.objects.filter(key=key)
-
-        if isinstance(project_ids, six.integer_types):
-            qs = qs.filter(project_id=project_ids)
-        else:
-            qs = qs.filter(project_id__in=project_ids)
-
+    def get_tag_values(self, project_id, environment_id, key):
         qs = TagValue.objects.filter(
-            project_id__in=project_ids,
-            key=key
+            project_id=project_id,
+            key=key,
         )
-
-        if values is not None:
-            qs = qs.filter(value__in=values)
 
         return list(qs)
 
-    def get_group_tag_key(self, group_id, environment_id, key):
+    def get_group_tag_key(self, project_id, group_id, environment_id, key):
         from sentry.tagstore.exceptions import GroupTagKeyNotFound
 
         try:
@@ -195,24 +222,15 @@ class LegacyTagStorage(TagStorage):
         except GroupTagKey.DoesNotExist:
             raise GroupTagKeyNotFound
 
-    def get_group_tag_keys(self, group_ids, environment_id, keys=None, limit=None):
-        if isinstance(group_ids, six.integer_types):
-            qs = GroupTagKey.objects.filter(group_id=group_ids)
-        else:
-            qs = GroupTagKey.objects.filter(group_id__in=group_ids)
-
-        if keys is not None:
-            if isinstance(keys, six.string_types):
-                qs = qs.filter(key=keys)
-            else:
-                qs = qs.filter(key__in=keys)
+    def get_group_tag_keys(self, project_id, group_id, environment_id, limit=None):
+        qs = GroupTagKey.objects.filter(group_id=group_id)
 
         if limit is not None:
             qs = qs[:limit]
 
         return list(qs)
 
-    def get_group_tag_value(self, group_id, environment_id, key, value):
+    def get_group_tag_value(self, project_id, group_id, environment_id, key, value):
         from sentry.tagstore.exceptions import GroupTagValueNotFound
 
         try:
@@ -224,32 +242,24 @@ class LegacyTagStorage(TagStorage):
         except GroupTagValue.DoesNotExist:
             raise GroupTagValueNotFound
 
-    def get_group_tag_values(self, group_ids, environment_id, keys=None, values=None):
-        if isinstance(group_ids, six.integer_types):
-            qs = GroupTagValue.objects.filter(group_id=group_ids)
-        else:
-            qs = GroupTagValue.objects.filter(group_id__in=group_ids)
-
-        if keys is not None:
-            if isinstance(keys, six.string_types):
-                qs = qs.filter(key=keys)
-            else:
-                qs = qs.filter(key__in=keys)
-
-        if values is not None:
-            if isinstance(values, six.string_types):
-                qs = qs.filter(value=values)
-            else:
-                qs = qs.filter(value__in=values)
+    def get_group_tag_values(self, project_id, group_id, environment_id, key):
+        qs = GroupTagValue.objects.filter(
+            group_id=group_id,
+            key=key,
+        )
 
         return list(qs)
 
-    def delete_tag_keys(self, project_id, keys, environment_id=None):
-        from .tasks import delete_tag_key as delete_tag_key_task
+    def delete_tag_key(self, project_id, key):
+        from sentry.tagstore.tasks import delete_tag_key as delete_tag_key_task
+
+        tagkeys_qs = TagKey.objects.filter(
+            project_id=project_id,
+            key=key,
+        )
 
         deleted = []
-
-        for tagkey in self.get_tag_keys(project_id, environment_id, keys, status=None):
+        for tagkey in tagkeys_qs:
             updated = TagKey.objects.filter(
                 id=tagkey.id,
                 status=TagKeyStatus.VISIBLE,
@@ -272,41 +282,51 @@ class LegacyTagStorage(TagStorage):
         ).delete()
 
     def incr_tag_key_values_seen(self, project_id, environment_id, key, count=1):
-        buffer.incr(TagKey, {
-            'values_seen': count,
-        }, {
-            'project_id': project_id,
-            'key': key,
-        })
+        buffer.incr(TagKey,
+                    columns={
+                        'values_seen': count,
+                    },
+                    filters={
+                        'project_id': project_id,
+                        'key': key,
+                    })
 
     def incr_tag_value_times_seen(self, project_id, environment_id,
                                   key, value, extra=None, count=1):
-        buffer.incr(TagValue, {
-            'times_seen': count,
-        }, {
-            'project_id': project_id,
-            'key': key,
-            'value': value,
-        }, extra)
+        buffer.incr(TagValue,
+                    columns={
+                        'times_seen': count,
+                    },
+                    filters={
+                        'project_id': project_id,
+                        'key': key,
+                        'value': value,
+                    },
+                    extra=extra)
 
     def incr_group_tag_key_values_seen(self, project_id, group_id, environment_id, key, count=1):
-        buffer.incr(GroupTagKey, {
-            'values_seen': count,
-        }, {
-            'project_id': project_id,
-            'group_id': group_id,
-            'key': key,
-        })
+        buffer.incr(GroupTagKey,
+                    columns={
+                        'values_seen': count,
+                    },
+                    filters={
+                        'project_id': project_id,
+                        'group_id': group_id,
+                        'key': key,
+                    })
 
-    def incr_group_tag_value_times_seen(
-            self, group_id, environment_id, key, value, extra=None, count=1):
-        buffer.incr(GroupTagValue, {
-            'times_seen': count,
-        }, {
-            'group_id': group_id,
-            'key': key,
-            'value': value,
-        }, extra)
+    def incr_group_tag_value_times_seen(self, project_id, group_id, environment_id,
+                                        key, value, extra=None, count=1):
+        buffer.incr(GroupTagValue,
+                    columns={
+                        'times_seen': count,
+                    },
+                    filters={
+                        'group_id': group_id,
+                        'key': key,
+                        'value': value,
+                    },
+                    extra=extra)
 
     def get_group_event_ids(self, project_id, group_id, environment_id, tags):
         tagkeys = dict(
@@ -455,6 +475,13 @@ class LegacyTagStorage(TagStorage):
 
         return last_release.value
 
+    def get_release_tags(self, project_ids, environment_id, versions):
+        return list(TagValue.objects.filter(
+            project_id__in=project_ids,
+            key='sentry:release',
+            value__in=versions,
+        ))
+
     def get_group_ids_for_users(self, project_ids, event_users, limit=100):
         return list(GroupTagValue.objects.filter(
             key='sentry:user',
@@ -513,9 +540,13 @@ class LegacyTagStorage(TagStorage):
 
         return matches
 
-    def update_group_tag_key_values_seen(self, group_ids):
-        instances = self.get_group_tag_keys(group_ids, environment_id=None)
-        for instance in instances:
+    def update_group_tag_key_values_seen(self, project_id, group_ids):
+        gtk_qs = GroupTagKey.objects.filter(
+            project_id=project_id,
+            group_id__in=group_ids
+        )
+
+        for instance in gtk_qs:
             instance.update(
                 values_seen=GroupTagValue.objects.filter(
                     project_id=instance.project_id,

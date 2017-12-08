@@ -13,7 +13,7 @@ from django.db import router, transaction, DataError
 
 from sentry.api.serializers import Serializer, register
 from sentry.db.models import (
-    Model, BoundedPositiveIntegerField, BaseManager, sane_repr
+    Model, BoundedPositiveIntegerField, BaseManager, FlexibleForeignKey, sane_repr
 )
 
 
@@ -27,23 +27,24 @@ class GroupTagKey(Model):
 
     project_id = BoundedPositiveIntegerField(db_index=True)
     group_id = BoundedPositiveIntegerField(db_index=True)
-    environment_id = BoundedPositiveIntegerField()
-    key_id = BoundedPositiveIntegerField()
-    # values_seen will be in Redis
+    environment_id = BoundedPositiveIntegerField(null=True)
+    _key = FlexibleForeignKey('tagstore.TagKey', db_column='key')
+    values_seen = BoundedPositiveIntegerField(default=0)
 
     objects = BaseManager()
 
     class Meta:
         app_label = 'tagstore'
-        unique_together = (('project_id', 'group_id', 'environment_id', 'key_id'), )
+        unique_together = (('project_id', 'group_id', 'environment_id', '_key'), )
         # TODO: environment index(es)
 
-    __repr__ = sane_repr('project_id', 'group_id', 'environment_id', 'key_id')
+    __repr__ = sane_repr('project_id', 'group_id', 'environment_id', '_key')
 
-    # TODO: key property to fetch actual key string?
+    @property
+    def key(self):
+        return self._key.key
 
     # TODO: this will have to iterate all of the possible environments a group has?
-    # TODO: values_seen will live in Redis
     def merge_counts(self, new_group):
         from sentry.tagstore.v2.models import GroupTagValue
 

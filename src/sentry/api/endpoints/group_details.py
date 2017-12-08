@@ -217,7 +217,8 @@ class GroupDetailsEndpoint(GroupEndpoint, EnvironmentMixin):
         except Environment.DoesNotExist:
             tags = []
         else:
-            tags = tagstore.get_group_tag_keys(group.id, environment_id, limit=100)
+            tags = tagstore.get_group_tag_keys(
+                group.project_id, group.id, environment_id, limit=100)
 
         participants = list(
             User.objects.filter(

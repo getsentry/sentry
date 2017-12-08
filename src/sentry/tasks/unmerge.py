@@ -4,7 +4,6 @@ import logging
 from collections import defaultdict
 
 from django.db import transaction
-from django.db.models import F
 
 from sentry import tagstore
 from sentry.app import tsdb
@@ -324,9 +323,14 @@ def repair_tag_data(caches, project, events):
                 )
 
                 if not created:
-                    instance.update(
-                        first_seen=first_seen,
-                        times_seen=F('times_seen') + times_seen,
+                    tagstore.incr_group_tag_value_times_seen(
+                        project_id=project.id,
+                        group_id=group_id,
+                        environment_id=environment.id,
+                        key=key,
+                        value=value,
+                        count=times_seen,
+                        extra={'first_seen': first_seen}
                     )
 
 
@@ -543,7 +547,7 @@ def unmerge(
 
     # If there are no more events to process, we're done with the migration.
     if not events:
-        tagstore.update_group_tag_key_values_seen([source_id, destination_id])
+        tagstore.update_group_tag_key_values_seen(project_id, [source_id, destination_id])
         unlock_hashes(project_id, fingerprints)
         return destination_id
 

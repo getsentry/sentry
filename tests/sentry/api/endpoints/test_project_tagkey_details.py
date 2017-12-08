@@ -39,7 +39,7 @@ class ProjectTagKeyDetailsTest(APITestCase):
 
 
 class ProjectTagKeyDeleteTest(APITestCase):
-    @mock.patch('sentry.tagstore.legacy.tasks.delete_tag_key')
+    @mock.patch('sentry.tagstore.tasks.delete_tag_key')
     def test_simple(self, mock_delete_tag_key):
         project = self.create_project()
         tagkey = tagstore.create_tag_key(
