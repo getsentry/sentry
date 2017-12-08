@@ -4,7 +4,7 @@ from collections import OrderedDict
 from functools import partial
 
 from sentry.testutils import TestCase
-from sentry.utils.safe import safe_execute, trim, trim_dict
+from sentry.utils.safe import safe_execute, trim, trim_dict, get_path
 
 a_very_long_string = 'a' * 1024
 
@@ -75,3 +75,14 @@ class SafeExecuteTest(TestCase):
                 raise Exception()
 
         assert safe_execute(Foo().simple, 1) is None
+
+
+class GetChainTest(TestCase):
+    def test_get_path(self):
+        assert get_path({}, ['a']) is None
+        assert get_path({}, ['a'], 1) == 1
+        assert get_path({'a': 2}, ['a']) == 2
+        assert get_path({'a': 2}, ['b']) is None
+        assert get_path({'a': 2}, ['b'], 1) == 1
+        assert get_path({'a': {'b': []}}, ['a', 'b']) == []
+        assert get_path({'a': []}, ['a', 'b']) is None

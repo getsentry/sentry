@@ -118,3 +118,18 @@ def trim_dict(value, max_items=settings.SENTRY_MAX_DICTIONARY_ITEMS, **kwargs):
         if idx > max_items:
             del value[key]
     return value
+
+
+def get_path(data, path, default=None):
+    """
+    Looks up a path of properties in a nested dictionary safely.
+    Returns the value at the final level, or the default value if
+    property lookup failed at any step in the path.
+    """
+    if not isinstance(path, (list, tuple)) or len(path) == 0:
+        raise ValueError
+    for p in path:
+        if not isinstance(data, dict) or p not in data:
+            return default
+        data = data[p]
+    return data
