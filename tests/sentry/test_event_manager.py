@@ -1027,6 +1027,16 @@ class EventManagerTest(TransactionTestCase):
         )
         manager.normalize({'client_ip': '1.2.3.4'})
 
+        manager = EventManager(
+            self.make_event(
+                **{
+                    'errors': {},
+                    'sentry.interfaces.Http': {},
+                }
+            )
+        )
+        manager.normalize()
+
 
 class ProcessDataTimestampTest(TestCase):
     def test_iso_timestamp(self):
