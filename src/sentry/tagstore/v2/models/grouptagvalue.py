@@ -29,8 +29,8 @@ class GroupTagValue(Model):
     group_id = BoundedPositiveIntegerField(db_index=True)
     environment_id = BoundedPositiveIntegerField(null=True)
     times_seen = BoundedPositiveIntegerField(default=0)
-    _key = FlexibleForeignKey('tagstore.TagKey', db_column='key_id')
-    _value = FlexibleForeignKey('tagstore.TagValue', db_column='value_id')
+    _key = FlexibleForeignKey('tagstore.TagKey', db_column='key')
+    _value = FlexibleForeignKey('tagstore.TagValue', db_column='value')
     last_seen = models.DateTimeField(
         default=timezone.now, db_index=True, null=True)
     first_seen = models.DateTimeField(

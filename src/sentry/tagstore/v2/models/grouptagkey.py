@@ -28,7 +28,7 @@ class GroupTagKey(Model):
     project_id = BoundedPositiveIntegerField(db_index=True)
     group_id = BoundedPositiveIntegerField(db_index=True)
     environment_id = BoundedPositiveIntegerField(null=True)
-    _key = FlexibleForeignKey('tagstore.TagKey', db_column='key_id')
+    _key = FlexibleForeignKey('tagstore.TagKey', db_column='key')
     values_seen = BoundedPositiveIntegerField(default=0)
 
     objects = BaseManager()
