@@ -7,6 +7,7 @@ from .endpoints.api_application_details import ApiApplicationDetailsEndpoint
 from .endpoints.api_authorizations import ApiAuthorizationsEndpoint
 from .endpoints.api_tokens import ApiTokensEndpoint
 from .endpoints.auth_index import AuthIndexEndpoint
+from .endpoints.authenticator_index import AuthenticatorIndexEndpoint
 from .endpoints.broadcast_index import BroadcastIndexEndpoint
 from .endpoints.catchall import CatchallEndpoint
 from .endpoints.event_details import EventDetailsEndpoint
@@ -158,6 +159,11 @@ urlpatterns = patterns(
 
     # Auth
     url(r'^auth/$', AuthIndexEndpoint.as_view(), name='sentry-api-0-auth'),
+
+    # List Authentiactors
+    url(r'^authenticators/$',
+        AuthenticatorIndexEndpoint.as_view(),
+        name='sentry-api-0-authenticator-index'),
 
     # Sudo
     url(r'^sudo/$', SudoEndpoint.as_view(), name='sentry-api-0-sudo'),
