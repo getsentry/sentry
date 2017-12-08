@@ -1,7 +1,9 @@
 from __future__ import absolute_import
 
+from django.db.models.signals import post_save
+
 from sentry.adoption import manager
-from sentry.models import FeatureAdoption
+from sentry.models import FeatureAdoption, GroupTombstone
 from sentry.plugins import IssueTrackingPlugin, IssueTrackingPlugin2
 from sentry.plugins.bases.notify import NotificationPlugin
 from sentry.receivers.rules import DEFAULT_RULE_LABEL, DEFAULT_RULE_DATA
@@ -180,3 +182,19 @@ def record_data_scrubber_enabled(organization, **kwargs):
     FeatureAdoption.objects.record(
         organization_id=organization.id, feature_slug="data_scrubbers", complete=True
     )
+
+
+def deleted_and_discarded_issue(instance, created, **kwargs):
+    if created:
+        FeatureAdoption.objects.record(
+            organization_id=instance.project.organization_id,
+            feature_slug="delete_and_discard"
+        )
+
+
+post_save.connect(
+    deleted_and_discarded_issue,
+    sender=GroupTombstone,
+    dispatch_uid='analytics.grouptombstone.created',
+    weak=False,
+)

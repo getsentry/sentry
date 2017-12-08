@@ -3,7 +3,7 @@ from __future__ import absolute_import
 import json
 from django.utils import timezone
 
-from sentry.models import FeatureAdoption, Rule
+from sentry.models import FeatureAdoption, GroupTombstone, Rule
 from sentry.plugins import IssueTrackingPlugin2, NotificationPlugin
 from sentry.signals import (
     alert_rule_created,
@@ -714,5 +714,15 @@ class FeatureAdoptionTest(TestCase):
         data_scrubber_enabled.send(organization=self.organization, sender=type(self.organization))
         feature_complete = FeatureAdoption.objects.get_by_slug(
             organization=self.organization, slug="data_scrubbers"
+        )
+        assert feature_complete
+
+    def test_delete_and_discard(self):
+        GroupTombstone.objects.create(
+            previous_group_id=self.group.id,
+            project=self.project,
+        )
+        feature_complete = FeatureAdoption.objects.get_by_slug(
+            organization=self.organization, slug="delete_and_discard"
         )
         assert feature_complete
