@@ -15,7 +15,7 @@ from django.utils import timezone
 from sentry.api.serializers import Serializer, register
 from sentry.constants import MAX_TAG_VALUE_LENGTH
 from sentry.db.models import (
-    Model, BoundedPositiveIntegerField, GzippedDictField, BaseManager, sane_repr
+    Model, BoundedPositiveIntegerField, GzippedDictField, BaseManager, FlexibleForeignKey, sane_repr
 )
 
 
@@ -26,12 +26,11 @@ class TagValue(Model):
     __core__ = False
 
     project_id = BoundedPositiveIntegerField(db_index=True)
-    environment_id = BoundedPositiveIntegerField()
-    key_id = BoundedPositiveIntegerField()
+    environment_id = BoundedPositiveIntegerField(null=True)
+    _key = FlexibleForeignKey('tagstore.TagKey', db_column='key')
     value = models.CharField(max_length=MAX_TAG_VALUE_LENGTH)
-    # TODO: do we even use this anymore?
     data = GzippedDictField(blank=True, null=True)
-    # times_seen will live in Redis
+    times_seen = BoundedPositiveIntegerField(default=0)
     last_seen = models.DateTimeField(
         default=timezone.now, db_index=True, null=True)
     first_seen = models.DateTimeField(
@@ -41,13 +40,15 @@ class TagValue(Model):
 
     class Meta:
         app_label = 'tagstore'
-        unique_together = (('project_id', 'environment_id', 'key_id', 'value'), )
+        unique_together = (('project_id', 'environment_id', '_key', 'value'), )
         # TODO: environment index(es)
-        index_together = (('project_id', 'key_id', 'last_seen'), )
+        index_together = (('project_id', '_key', 'last_seen'), )
 
-    __repr__ = sane_repr('project_id', 'environment_id', 'key_id', 'value')
+    __repr__ = sane_repr('project_id', 'environment_id', '_key', 'value')
 
-    # TODO: key property to fetch actual key string?
+    @property
+    def key(self):
+        return self._key.key
 
     def get_label(self):
         from sentry import tagstore

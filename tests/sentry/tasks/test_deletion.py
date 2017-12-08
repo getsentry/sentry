@@ -184,7 +184,7 @@ class DeleteProjectTest(TestCase):
 
 class DeleteTagKeyTest(TestCase):
     def test_simple(self):
-        from sentry.tagstore.legacy.tasks import delete_tag_key as delete_tag_key_task
+        from sentry.tagstore.tasks import delete_tag_key as delete_tag_key_task
 
         team = self.create_team(name='test', slug='test')
         project = self.create_project(team=team, name='test1', slug='test1')
@@ -245,12 +245,12 @@ class DeleteTagKeyTest(TestCase):
 
             assert tagstore.get_event_tag_qs(key_id=tk.id).exists()
             try:
-                tagstore.get_group_tag_value(group.id, None, key, value)
+                tagstore.get_group_tag_value(group.project_id, group.id, None, key, value)
                 assert False  # verify exception thrown
             except tagstore.GroupTagValueNotFound:
                 pass
             try:
-                tagstore.get_group_tag_key(group.id, None, key)
+                tagstore.get_group_tag_key(group.project_id, group.id, None, key)
                 assert False  # verify exception thrown
             except tagstore.GroupTagKeyNotFound:
                 pass
@@ -266,8 +266,9 @@ class DeleteTagKeyTest(TestCase):
                 pass
 
         assert tagstore.get_tag_key(project2.id, None, key) is not None
-        assert tagstore.get_group_tag_key(group2.id, None, key) is not None
-        assert tagstore.get_group_tag_value(group2.id, None, key, value) is not None
+        assert tagstore.get_group_tag_key(group2.project_id, group2.id, None, key) is not None
+        assert tagstore.get_group_tag_value(
+            group2.project_id, group2.id, None, key, value) is not None
         assert tagstore.get_event_tag_qs(key_id=tk2.id).exists()
 
 

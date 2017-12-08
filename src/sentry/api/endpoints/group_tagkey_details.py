@@ -53,7 +53,8 @@ class GroupTagKeyDetailsEndpoint(GroupEndpoint, EnvironmentMixin):
             raise ResourceDoesNotExist
 
         try:
-            group_tag_key = tagstore.get_group_tag_key(group.id, environment_id, lookup_key)
+            group_tag_key = tagstore.get_group_tag_key(
+                group.project_id, group.id, environment_id, lookup_key)
         except tagstore.GroupTagKeyNotFound:
             raise ResourceDoesNotExist
 

@@ -165,7 +165,7 @@ class GroupManager(BaseManager):
                 'data': data,
             })
 
-            tagstore.incr_group_tag_value_times_seen(group.id, environment.id, key, value, {
+            tagstore.incr_group_tag_value_times_seen(project_id, group.id, environment.id, key, value, {
                 'project_id': project_id,
                 'last_seen': date,
             })
@@ -355,7 +355,7 @@ class Group(Model):
     def get_tags(self):
         if not hasattr(self, '_tag_cache'):
             group_tags = set(
-                [gtk.key for gtk in tagstore.get_group_tag_keys(self.id, environment_id=None)])
+                [gtk.key for gtk in tagstore.get_group_tag_keys(self.project_id, self.id, environment_id=None)])
 
             results = []
             for key in group_tags:
