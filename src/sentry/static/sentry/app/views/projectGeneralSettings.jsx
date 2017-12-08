@@ -41,7 +41,7 @@ export default class ProjectGeneralSettings extends AsyncView {
   getResolveAgeAllowedValues() {
     let i = 0;
     let values = [];
-    while (i <= 168) {
+    while (i <= 720) {
       values.push(i);
       if (i < 12) {
         i += 1;
@@ -160,7 +160,7 @@ export default class ProjectGeneralSettings extends AsyncView {
                   "Automatically resolve an issue if it hasn't been seen for this amount of time."
                 )}
                 min={0}
-                max={168}
+                max={720}
                 step={1}
                 allowedValues={this.getResolveAgeAllowedValues()}
                 formatLabel={this.formatResolveAgeLabel}
