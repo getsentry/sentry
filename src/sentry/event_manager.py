@@ -470,7 +470,7 @@ class EventManager(object):
 
         return data
 
-    def save(self, project, raw=False):
+    def save(self, project, raw=False, is_processed=False):
         from sentry.tasks.post_process import index_event_tags
 
         project = Project.objects.get_from_cache(id=project)
@@ -674,9 +674,12 @@ class EventManager(object):
             )
 
             metrics.incr(
-                'event.discarded',
+                'events.discarded',
                 skip_internal=True,
-                tags={'organization_id': project.organization_id},
+                tags={
+                    'organization_id': project.organization_id,
+                    'is_processed': is_processed,
+                },
             )
             raise
         else:
