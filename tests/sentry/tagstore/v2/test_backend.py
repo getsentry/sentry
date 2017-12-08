@@ -469,10 +469,11 @@ class V2TagStorage(TestCase):
         k2.values_seen = 11
         k2.save()
 
-        assert dict(self.ts.get_groups_user_counts(
-            self.proj1.id,
-            [self.proj1group1.id, self.proj1group2.id],
-            self.proj1env1.id).items()) == {k1.id: 7, k2.id: 11}
+        assert dict(
+            self.ts.get_groups_user_counts(
+                self.proj1.id,
+                [self.proj1group1.id, self.proj1group2.id],
+                self.proj1env1.id).items()) == {self.proj1group1.id: 7, self.proj1group2.id: 11}
 
     def test_get_group_tag_value_count(self):
         v1, _ = self.ts.get_or_create_group_tag_value(
@@ -519,13 +520,11 @@ class V2TagStorage(TestCase):
         v2.times_seen = 11
         v2.save()
 
-        resp = list(
-            self.ts.get_top_group_tag_values(
-                self.proj1.id,
-                self.proj1group1.id,
-                self.proj1env1.id,
-                self.key1,
-            )
+        resp = self.ts.get_top_group_tag_values(
+            self.proj1.id,
+            self.proj1group1.id,
+            self.proj1env1.id,
+            self.key1,
         )
 
         assert resp[0].times_seen == 11
