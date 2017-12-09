@@ -459,7 +459,7 @@ class TagStorage(TagStorage):
                     SELECT times_seen as t
                     FROM tagstore_grouptagvalue
                     INNER JOIN tagstore_tagkey
-                    ON (tagstore_grouptagvalue.key = tagstore_tagkey.id)
+                    ON (tagstore_grouptagvalue.key_id = tagstore_tagkey.id)
                     WHERE tagstore_grouptagvalue.group_id = %s
                     AND tagstore_grouptagvalue.environment_id = %s
                     AND tagstore_tagkey.key = %s
