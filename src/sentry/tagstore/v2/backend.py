@@ -493,7 +493,7 @@ class TagStorage(TagStorage):
                            tagstore_grouptagvalue.environment_id,
                            tagstore_grouptagvalue.times_seen,
                            tagstore_grouptagvalue.key_id,
-                           tagstore_grouptagvalue.value,
+                           tagstore_grouptagvalue.value_id,
                            tagstore_grouptagvalue.last_seen,
                            tagstore_grouptagvalue.first_seen
                     FROM tagstore_grouptagvalue
