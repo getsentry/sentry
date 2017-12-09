@@ -128,6 +128,7 @@ class ProjectSerializer(Serializer):
             'features': feature_list,
             'status': status_label,
             'platform': obj.platform,
+            'isInternal': obj.is_internal_project()
         }
         if 'stats' in attrs:
             context['stats'] = attrs['stats']

@@ -10,6 +10,7 @@ import {
 } from '../components/forms';
 import {t, tct} from '../locale';
 import AsyncView from './asyncView';
+import {getOrganizationState} from '../mixins/organizationState';
 
 class ListAsTextareaField extends TextareaField {
   getValue(props, context) {
@@ -67,6 +68,80 @@ export default class ProjectGeneralSettings extends AsyncView {
       return val + ' day' + (val != 1 ? 's' : '');
     }
     return val + ' hour' + (val != 1 ? 's' : '');
+  }
+
+  renderRemoveProject() {
+    let {orgId, projectId} = this.props.params;
+
+    let project = this.state.data;
+    let isProjectAdmin = getOrganizationState(this.props.organization)
+      .getAccess()
+      .has('project:admin');
+
+    if (!isProjectAdmin) {
+      return (
+        <p>{t('You do not have the required permission to remove this project.')}</p>
+      );
+    } else if (project.isInternal) {
+      return (
+        <p>
+          {t(
+            'This project cannot be removed. It is used internally by the Sentry server.'
+          )}
+        </p>
+      );
+    } else {
+      return (
+        <p>
+          <a
+            href={`/${orgId}/${projectId}/settings/remove/`}
+            className="btn btn-danger pull-right"
+          >
+            {t('Remove Project')}
+          </a>
+          Remove the <strong>{project.slug}</strong> project and all related data.
+          <br />
+          Careful, this action cannot be undone.
+        </p>
+      );
+    }
+  }
+
+  renderTransferProject() {
+    let {orgId, projectId} = this.props.params;
+
+    let project = this.state.data;
+    let isProjectAdmin = getOrganizationState(this.props.organization)
+      .getAccess()
+      .has('project:admin');
+
+    if (!isProjectAdmin) {
+      return (
+        <p>{t('You do not have the required permission to transfer this project.')}</p>
+      );
+    } else if (project.isInternal) {
+      return (
+        <p>
+          {t(
+            'This project cannot be removed. It is used internally by the Sentry server.'
+          )}
+        </p>
+      );
+    } else {
+      return (
+        <p>
+          <a
+            href={`/${orgId}/${projectId}/settings/transfer/`}
+            className="btn btn-danger pull-right"
+          >
+            {t('Transfer Project')}
+          </a>
+          Transfer the <strong>{project.slug}</strong> project and all related data.
+          <br />
+          Careful, this action cannot be undone.
+        </p>
+      );
+    }
   }
 
   renderBody() {
@@ -273,6 +348,18 @@ export default class ProjectGeneralSettings extends AsyncView {
                 )}
               />
             </div>
+          </div>
+          <div className="box">
+            <div className="box-header">
+              <h3>{t('Remove Project')}</h3>
+            </div>
+            <div className="box-content with-padding">{this.renderRemoveProject()}</div>
+          </div>
+          <div className="box">
+            <div className="box-header">
+              <h3>{t('Transfer Project')}</h3>
+            </div>
+            <div className="box-content with-padding">{this.renderTransferProject()}</div>
           </div>
         </ApiForm>
       </div>
