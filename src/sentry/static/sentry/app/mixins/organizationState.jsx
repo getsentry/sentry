@@ -1,6 +1,6 @@
 import SentryTypes from '../proptypes';
 
-let OrganizationState = {
+let OrganizationStateMixin = {
   contextTypes: {
     organization: SentryTypes.Organization,
   },
@@ -22,4 +22,22 @@ let OrganizationState = {
   },
 };
 
-export default OrganizationState;
+export default OrganizationStateMixin;
+
+// Non-mixin version for use with es6 components
+export const getOrganizationState = function(org) {
+  return {
+    getOrganization: () => {
+      return org;
+    },
+    getAccess: () => {
+      return new Set(org.access);
+    },
+    getFeatures: () => {
+      return new Set(org.features);
+    },
+    getOnboardingTasks: () => {
+      return new Set(org.onboardingTasks);
+    },
+  };
+};
