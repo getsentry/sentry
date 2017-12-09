@@ -197,15 +197,6 @@ def plugin_is_regression(group, event):
     return True
 
 
-def process_data_timestamp(data, current_datetime=None):
-    value = data['timestamp']
-    if not value:
-        del data['timestamp']
-        return data
-    data['timestamp'] = process_timestamp(data['timestamp'], current_datetime)
-    return data
-
-
 def process_timestamp(value, current_datetime=None):
     if is_float(value):
         try:
