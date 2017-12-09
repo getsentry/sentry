@@ -14,7 +14,7 @@ class OriginField(serializers.CharField):
         if not rv:
             return
         if not self.is_valid_origin(rv):
-            raise serializers.ValidationError('%r is not an acceptable domain' % rv)
+            raise serializers.ValidationError('%s is not an acceptable domain' % rv)
         return rv
 
     def is_valid_origin(self, value):
