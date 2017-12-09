@@ -8,6 +8,8 @@ import {
   TextareaField,
   TextField,
 } from '../components/forms';
+import IndicatorStore from '../stores/indicatorStore';
+
 import {t, tct} from '../locale';
 import AsyncView from './asyncView';
 import {getOrganizationState} from '../mixins/organizationState';
@@ -175,6 +177,8 @@ export default class ProjectGeneralSettings extends AsyncView {
           initialData={initialData}
           apiMethod="PUT"
           apiEndpoint={this.getEndpoint()}
+          onSubmitSuccess={() =>
+            IndicatorStore.add(t('Your changes were saved'), 'success', {duration: 2000})}
         >
           <div className="box">
             <div className="box-header">
