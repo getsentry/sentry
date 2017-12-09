@@ -459,7 +459,7 @@ class TagStorage(TagStorage):
                     SELECT times_seen as t
                     FROM tagstore_grouptagvalue
                     INNER JOIN tagstore_tagkey
-                    ON (tagstore_grouptagvalue.key_id = tagstore_tagkey.id)
+                    ON (tagstore_grouptagvalue.key = tagstore_tagkey.id)
                     WHERE tagstore_grouptagvalue.group_id = %s
                     AND tagstore_grouptagvalue.environment_id = %s
                     AND tagstore_tagkey.key = %s
@@ -487,8 +487,10 @@ class TagStorage(TagStorage):
                     """
                 SELECT *
                 FROM (
-                    SELECT *
-                    FROM tagstore_grouptagvalue
+                    SELECT gtv.id, gtv.project_id, gtv.group_id,
+                           gtv.environment_id, gtv.times_seen,
+                           gtv.key, gtv.value, gtv.last_seen, gtv.first_seen
+                    FROM tagstore_grouptagvalue AS gtv
                     INNER JOIN tagstore_tagkey
                     ON (tagstore_grouptagvalue.key = tagstore_tagkey.id)
                     WHERE tagstore_grouptagvalue.group_id = %%s
