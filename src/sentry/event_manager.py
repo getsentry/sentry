@@ -674,9 +674,12 @@ class EventManager(object):
             )
 
             metrics.incr(
-                'event.discarded',
+                'events.discarded',
                 skip_internal=True,
-                tags={'organization_id': project.organization_id},
+                tags={
+                    'organization_id': project.organization_id,
+                    'platform': platform,
+                },
             )
             raise
         else:
