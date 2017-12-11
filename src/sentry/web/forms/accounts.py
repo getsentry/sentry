@@ -316,6 +316,12 @@ class AccountSettingsForm(forms.Form):
         required=False,
         # help_text=password_validation.password_validators_help_text_html(),
     )
+    verify_new_password = forms.CharField(
+        label=_('Verify new password'),
+        widget=forms.PasswordInput(),
+        required=False,
+        # help_text=password_validation.password_validators_help_text_html(),
+    )
     password = forms.CharField(
         label=_('Current password'),
         widget=forms.PasswordInput(),
@@ -340,6 +346,7 @@ class AccountSettingsForm(forms.Form):
                     needs_password = False
 
             del self.fields['new_password']
+            del self.fields['verify_new_password']
 
         # don't show username field if its the same as their email address
         if self.user.email == self.user.username:
@@ -347,6 +354,7 @@ class AccountSettingsForm(forms.Form):
 
         if not needs_password:
             del self.fields['password']
+            del self.fields['verify_new_password']
 
     def is_readonly(self):
         if self.user.is_managed:
