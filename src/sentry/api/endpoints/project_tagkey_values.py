@@ -43,7 +43,8 @@ class ProjectTagKeyValuesEndpoint(ProjectEndpoint, EnvironmentMixin):
             project.id,
             environment_id,
             tagkey.key,
-            query=request.GET.get('query'))
+            query=request.GET.get('query'),
+        )
 
         return self.paginate(
             request=request,

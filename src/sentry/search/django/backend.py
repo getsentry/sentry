@@ -56,7 +56,8 @@ class DjangoSearchBackend(SearchBackend):
         times_seen_upper=None,
         times_seen_upper_inclusive=True,
         cursor=None,
-        limit=None
+        limit=None,
+        environment_id=None,
     ):
         from sentry.models import Event, Group, GroupSubscription, GroupStatus
 
@@ -115,7 +116,7 @@ class DjangoSearchBackend(SearchBackend):
             )
 
         if tags:
-            matches = tagstore.get_tags_for_search_filter(project.id, tags)
+            matches = tagstore.get_group_ids_for_search_filter(project.id, environment_id, tags)
             if not matches:
                 return queryset.none()
             queryset = queryset.filter(

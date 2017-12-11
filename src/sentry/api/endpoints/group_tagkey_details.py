@@ -58,9 +58,10 @@ class GroupTagKeyDetailsEndpoint(GroupEndpoint, EnvironmentMixin):
         except tagstore.GroupTagKeyNotFound:
             raise ResourceDoesNotExist
 
-        total_values = tagstore.get_group_tag_value_count(group.id, environment_id, lookup_key)
+        total_values = tagstore.get_group_tag_value_count(
+            group.project_id, group.id, environment_id, lookup_key)
         top_values = tagstore.get_top_group_tag_values(
-            group.id, environment_id, lookup_key, limit=9)
+            group.project_id, group.id, environment_id, lookup_key, limit=9)
 
         data = {
             'id': six.text_type(tag_key.id),

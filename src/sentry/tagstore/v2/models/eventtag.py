@@ -20,8 +20,8 @@ class EventTag(Model):
     environment_id = BoundedPositiveIntegerField()
     group_id = BoundedPositiveIntegerField()
     event_id = BoundedPositiveIntegerField()
-    key = FlexibleForeignKey('tagstore.TagKey', db_column='key')
-    value = FlexibleForeignKey('tagstore.TagValue', db_column='value')
+    key = FlexibleForeignKey('tagstore.TagKey', db_column='key_id')
+    value = FlexibleForeignKey('tagstore.TagValue', db_column='value_id')
     date_added = models.DateTimeField(default=timezone.now, db_index=True)
 
     class Meta:

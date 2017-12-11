@@ -27,7 +27,7 @@ class TagValue(Model):
 
     project_id = BoundedPositiveIntegerField(db_index=True)
     environment_id = BoundedPositiveIntegerField(null=True)
-    _key = FlexibleForeignKey('tagstore.TagKey', db_column='key')
+    _key = FlexibleForeignKey('tagstore.TagKey', db_column='key_id')
     value = models.CharField(max_length=MAX_TAG_VALUE_LENGTH)
     data = GzippedDictField(blank=True, null=True)
     times_seen = BoundedPositiveIntegerField(default=0)

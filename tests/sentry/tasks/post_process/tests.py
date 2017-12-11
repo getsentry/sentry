@@ -7,6 +7,7 @@ from django.utils import timezone
 from mock import Mock, patch
 
 from sentry import tagstore
+from sentry.tagstore.models import EventTag
 from sentry.models import Group, GroupSnooze, GroupStatus
 from sentry.testutils import TestCase
 from sentry.tasks.merge import merge_group
@@ -125,7 +126,7 @@ class IndexEventTagsTest(TestCase):
                 tags=[('foo', 'bar'), ('biz', 'baz')],
             )
 
-        tags = list(tagstore.get_event_tag_qs(
+        tags = list(EventTag.objects.filter(
             event_id=event.id,
         ).values_list('key_id', 'value_id'))
         assert len(tags) == 2
@@ -167,7 +168,7 @@ class IndexEventTagsTest(TestCase):
                 tags=[('foo', 'bar'), ('biz', 'baz')],
             )
 
-        queryset = tagstore.get_event_tag_qs(
+        queryset = EventTag.objects.filter(
             event_id=event.id,
         )
         assert queryset.count() == 2

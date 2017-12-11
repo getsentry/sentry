@@ -1,6 +1,7 @@
 from __future__ import absolute_import
 
 from sentry import tagstore
+from sentry.tagstore.models import EventTag
 from sentry.models import ScheduledDeletion
 from sentry.tasks.deletion import run_deletion
 from sentry.testutils import TestCase
@@ -92,5 +93,5 @@ class DeleteTagKeyTest(TestCase):
         assert tagstore.get_group_tag_key(group2.project_id, group2.id, None, key) is not None
         assert tagstore.get_group_tag_value(
             group2.project_id, group2.id, None, key, value) is not None
-        assert tagstore.get_event_tag_qs(key_id=tk.id).exists()
-        assert tagstore.get_event_tag_qs(key_id=tk2.id).exists()
+        assert EventTag.objects.filter(key_id=tk.id).exists()
+        assert EventTag.objects.filter(key_id=tk2.id).exists()
