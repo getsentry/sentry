@@ -286,7 +286,7 @@ class EventManager(object):
     def normalize(self, request_env=None):
         request_env = request_env or {}
         data = self.data
-        errors = data.get('errors', [])
+        errors = data['errors'] = []
 
         # Before validating with a schema, attempt to cast values to their desired types
         # so that the schema doesn't have to take every type variation into account.
@@ -465,8 +465,6 @@ class EventManager(object):
 
         if data['transaction']:
             data['transaction'] = trim(data['transaction'], MAX_CULPRIT_LENGTH)
-
-        data['errors'] = errors
 
         return data
 
