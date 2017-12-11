@@ -76,20 +76,26 @@ describe('AssigneeSelector', function() {
 
     describe('putSessionUserFirst()', function() {
       it('should place the session user at the top of the member list if present', function() {
-        sandbox.stub(ConfigStore, 'get').withArgs('user').returns({
-          id: 2,
-          name: 'John Smith',
-          email: 'johnsmith@example.com',
-        });
+        sandbox
+          .stub(ConfigStore, 'get')
+          .withArgs('user')
+          .returns({
+            id: 2,
+            name: 'John Smith',
+            email: 'johnsmith@example.com',
+          });
         expect(putSessionUserFirst([USER_1, USER_2])).toEqual([USER_2, USER_1]);
       });
 
       it("should return the same member list if the session user isn't present", function() {
-        sandbox.stub(ConfigStore, 'get').withArgs('user').returns({
-          id: 555,
-          name: 'Here Comes a New Challenger',
-          email: 'guile@mail.us.af.mil',
-        });
+        sandbox
+          .stub(ConfigStore, 'get')
+          .withArgs('user')
+          .returns({
+            id: 555,
+            name: 'Here Comes a New Challenger',
+            email: 'guile@mail.us.af.mil',
+          });
 
         expect(putSessionUserFirst([USER_1, USER_2])).toEqual([USER_1, USER_2]);
       });
@@ -121,6 +127,7 @@ describe('AssigneeSelector', function() {
     it('does not have loading state and shows member list after calling MemberListStore.loadInitialData', function() {
       openMenu();
       MemberListStore.loadInitialData([USER_1, USER_2]);
+      assigneeSelector.update();
 
       expect(assigneeSelector.find('Avatar').length).toBe(2);
       expect(assigneeSelector.find('LoadingIndicator').exists()).toBe(false);
@@ -129,11 +136,13 @@ describe('AssigneeSelector', function() {
     it('does NOT update member list after initial load', function() {
       openMenu();
       MemberListStore.loadInitialData([USER_1, USER_2]);
+      assigneeSelector.update();
 
       expect(assigneeSelector.find('Avatar').length).toBe(2);
       expect(assigneeSelector.find('LoadingIndicator').exists()).toBe(false);
 
       MemberListStore.loadInitialData([USER_1, USER_2, USER_3]);
+      assigneeSelector.update();
 
       expect(assigneeSelector.find('Avatar').length).toBe(2);
       expect(assigneeSelector.find('LoadingIndicator').exists()).toBe(false);

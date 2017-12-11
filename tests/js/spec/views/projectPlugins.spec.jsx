@@ -41,7 +41,9 @@ describe('ProjectPlugins', function() {
 
     checkbox.simulate('change', {target: {checked: true}});
 
-    expect(checkbox.props().checked).toBe(true);
+    expect(
+      wrapper.state('plugins').find(plugin => plugin.id === 'amazon-sqs').enabled
+    ).toBe(true);
   });
 
   it('disables plugin', function() {
@@ -49,6 +51,8 @@ describe('ProjectPlugins', function() {
 
     checkbox.simulate('change', {target: {checked: false}});
 
-    expect(checkbox.props().checked).toBe(false);
+    expect(wrapper.state('plugins').find(plugin => plugin.id === 'github').enabled).toBe(
+      false
+    );
   });
 });

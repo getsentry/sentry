@@ -34,8 +34,12 @@ exports[`ResolutionBox render() handles inNextRelease with actor 1`] = `
     className="icon icon-checkmark"
   />
   <p>
-    <span>
-      <strong>
+    <span
+      key="3"
+    >
+      <strong
+        key="0"
+      >
         <Avatar
           className="avatar"
           gravatar={true}
@@ -57,7 +61,9 @@ exports[`ResolutionBox render() handles inNextRelease with actor 1`] = `
           David Cramer
         </span>
       </strong>
-      <span>
+      <span
+        key="1"
+      >
          marked this issue as resolved in the upcoming release.
       </span>
     </span>
@@ -73,17 +79,24 @@ exports[`ResolutionBox render() handles inRelease 1`] = `
     className="icon icon-checkmark"
   />
   <p>
-    <span>
-      <span>
+    <span
+      key="4"
+    >
+      <span
+        key="0"
+      >
         This issue has been marked as resolved in version 
       </span>
       <Version
         anchor={true}
+        key="1"
         orgId="org"
         projectId="project"
         version="1.0"
       />
-      <span>
+      <span
+        key="2"
+      >
         .
       </span>
     </span>
@@ -99,8 +112,12 @@ exports[`ResolutionBox render() handles inRelease with actor 1`] = `
     className="icon icon-checkmark"
   />
   <p>
-    <span>
-      <strong>
+    <span
+      key="5"
+    >
+      <strong
+        key="0"
+      >
         <Avatar
           className="avatar"
           gravatar={true}
@@ -122,16 +139,21 @@ exports[`ResolutionBox render() handles inRelease with actor 1`] = `
           David Cramer
         </span>
       </strong>
-      <span>
+      <span
+        key="1"
+      >
          marked this issue as resolved in version 
       </span>
       <Version
         anchor={true}
+        key="2"
         orgId="org"
         projectId="project"
         version="1.0"
       />
-      <span>
+      <span
+        key="3"
+      >
         .
       </span>
     </span>

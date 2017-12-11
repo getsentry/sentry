@@ -3,9 +3,15 @@
 exports[`OrganizationAuthView renders from api 1`] = `
 <div>
   <h3>
-    <span>
-      <span />
-      <span>
+    <span
+      key="4"
+    >
+      <span
+        key="1"
+      />
+      <span
+        key="2"
+      >
          Authentication
       </span>
     </span>
@@ -110,12 +116,20 @@ exports[`OrganizationAuthView renders from api 1`] = `
       className="box-header"
     >
       <h3>
-        <span>
-          <span>
+        <span
+          key="5"
+        >
+          <span
+            key="0"
+          >
             Disable 
           </span>
-          <span />
-          <span>
+          <span
+            key="2"
+          />
+          <span
+            key="3"
+          >
              Authentication
           </span>
         </span>
@@ -137,12 +151,20 @@ exports[`OrganizationAuthView renders from api 1`] = `
           onClick={[Function]}
           priority="danger"
         >
-          <span>
-            <span>
+          <span
+            key="5"
+          >
+            <span
+              key="0"
+            >
               Disable 
             </span>
-            <span />
-            <span>
+            <span
+              key="2"
+            />
+            <span
+              key="3"
+            >
                Auth
             </span>
           </span>

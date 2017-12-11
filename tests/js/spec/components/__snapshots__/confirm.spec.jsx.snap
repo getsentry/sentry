@@ -12,6 +12,7 @@ exports[`Confirm renders 1`] = `
     bsClass="modal"
     dialogComponentClass={[Function]}
     enforceFocus={true}
+    key="confirm"
     keyboard={true}
     manager={
       ModalManager {
