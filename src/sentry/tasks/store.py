@@ -71,11 +71,7 @@ def _do_preprocess_event(cache_key, data, start_time, event_id, process_event):
     if cache_key:
         data = None
     save_event.delay(
-        cache_key=cache_key,
-        data=data,
-        start_time=start_time,
-        event_id=event_id,
-        is_processed=False,
+        cache_key=cache_key, data=data, start_time=start_time, event_id=event_id,
     )
 
 
@@ -149,7 +145,7 @@ def _do_process_event(cache_key, start_time, event_id):
         default_cache.set(cache_key, data, 3600)
 
     save_event.delay(
-        cache_key=cache_key, data=None, start_time=start_time, event_id=event_id, is_processed=True,
+        cache_key=cache_key, data=None, start_time=start_time, event_id=event_id,
     )
 
 
@@ -259,12 +255,9 @@ def create_failed_event(cache_key, project_id, issues, event_id, start_time=None
 
 
 @instrumented_task(name='sentry.tasks.store.save_event', queue='events.save_event')
-def save_event(cache_key=None, data=None, start_time=None,
-               event_id=None, is_processed=False, **kwargs):
+def save_event(cache_key=None, data=None, start_time=None, event_id=None, **kwargs):
     """
     Saves an event to the database.
-
-    `is_processed` is used for metrics and refers to whether an event went through processing
     """
     from sentry.event_manager import HashDiscarded, EventManager
     from sentry import quotas, tsdb
@@ -290,7 +283,7 @@ def save_event(cache_key=None, data=None, start_time=None,
 
     try:
         manager = EventManager(data)
-        manager.save(project_id, is_processed=is_processed)
+        manager.save(project_id)
     except HashDiscarded:
         tsdb.incr(
             tsdb.models.project_total_received_discarded,
