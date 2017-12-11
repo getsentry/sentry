@@ -18,6 +18,7 @@ const LatestContextStore = Reflux.createStore({
     this.reset();
     this.listenTo(ProjectActions.setActive, this.onSetActiveProject);
     this.listenTo(OrganizationsActions.setActive, this.onSetActiveOrganization);
+    this.listenTo(OrganizationsActions.update, this.onUpdateOrganization);
   },
 
   reset() {
@@ -28,22 +29,33 @@ const LatestContextStore = Reflux.createStore({
     return this.state;
   },
 
-  onSetActiveOrganization(org) {
+  onUpdateOrganization(org) {
+    // Don't do anything if base/target orgs are falsey
+    if (!this.state.organization) return;
     if (!org) return;
+    // Check to make sure current active org is what has been updated
+    if (org.slug !== this.state.organization.slug) return;
 
-    // Update only if different
-    if (this.state.organization !== org.slug) {
-      this.state.organization = org.slug;
+    this.state.organization = {...org};
+    this.trigger(this.state);
+  },
+
+  onSetActiveOrganization(org) {
+    if (!org) {
+      this.state.organization = null;
+    } else if (!this.state.organization || this.state.organization.slug !== org.slug) {
+      // Update only if different
+      this.state.organization = {...org};
     }
 
     this.trigger(this.state);
   },
 
   onSetActiveProject(project) {
-    if (!project) return;
-
-    // Update only if different
-    if (this.state.project !== project.slug) {
+    if (!project) {
+      this.state.project = null;
+    } else if (!this.state.project || this.state.project.slug !== project.slug) {
+      // Update only if different
       this.state.project = {...project};
     }
 

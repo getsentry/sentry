@@ -34,6 +34,7 @@ class SettingsBreadcrumbDropdown extends React.Component {
     route: PropTypes.object,
     isLast: PropTypes.bool,
     enterDelay: PropTypes.number,
+    name: PropTypes.node,
   };
 
   static defaultProps = {
@@ -79,13 +80,18 @@ class SettingsBreadcrumbDropdown extends React.Component {
     this.leaving = setTimeout(() => this.setState({isOpen: false}), 200);
   };
 
+  // Close immediately when actor is clicked clicked
+  handleClickActor = e => {
+    this.setState({isOpen: false});
+  };
+
   // Close immediately when clicked outside
   handleClose = () => {
     this.setState({isOpen: false});
   };
 
   render() {
-    let {children, hasMenu, route, isLast} = this.props;
+    let {children, hasMenu, route, isLast, name} = this.props;
     return (
       <DropdownMenu isOpen={this.state.isOpen} onClickOutside={this.handleClose}>
         {({isOpen, getRootProps, getActorProps, getMenuProps}) => {
@@ -93,12 +99,13 @@ class SettingsBreadcrumbDropdown extends React.Component {
             <Crumb {...getRootProps({hasMenu})}>
               <div
                 {...getActorProps({
+                  onClick: this.handleClickActor,
                   onMouseEnter: this.handleMouseEnterActor,
                   onMouseLeave: this.handleMouseLeave,
                   style: {display: 'inline'},
                 })}
               >
-                {route.name}{' '}
+                {name || route.name}{' '}
               </div>
               <SettingsBreadcrumbDivider isHover={hasMenu && isOpen} isLast={isLast} />
               {hasMenu && (

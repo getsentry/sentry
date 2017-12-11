@@ -46,4 +46,10 @@ describe('recreateRoute', function() {
       '/settings/organization/org-slug/test/'
     );
   });
+
+  it('switches to new org but keeps current route', function() {
+    expect(recreateRoute(routes[5], {routes, params: {orgId: 'new-org'}})).toBe(
+      '/settings/organization/new-org/api-keys/'
+    );
+  });
 });

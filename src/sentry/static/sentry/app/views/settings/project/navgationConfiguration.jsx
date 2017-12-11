@@ -24,7 +24,7 @@ export default function getConfiguration({project}) {
         },
         {
           path: `${pathPrefix}/tags/`,
-          title: t('Tags (needs react)'),
+          title: t('Tags'),
         },
         {
           path: `${pathPrefix}/issue-tracking/`,

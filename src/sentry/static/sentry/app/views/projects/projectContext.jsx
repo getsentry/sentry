@@ -158,6 +158,7 @@ const ProjectContext = React.createClass({
     });
 
     if (activeProject && hasAccess) {
+      setActiveProject(null);
       this.api.request(`/projects/${orgId}/${projectId}/`, {
         success: data => {
           this.setState({

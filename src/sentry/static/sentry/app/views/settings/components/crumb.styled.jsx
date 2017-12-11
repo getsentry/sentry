@@ -1,7 +1,8 @@
 import styled from 'react-emotion';
 
 const Crumb = styled('div')`
-  display: block;
+  display: flex;
+  align-items: center;
   position: relative;
   font-size: 18px;
   color: ${p => p.theme.gray3};

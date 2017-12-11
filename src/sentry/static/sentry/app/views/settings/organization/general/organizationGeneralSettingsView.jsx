@@ -4,8 +4,9 @@ import React from 'react';
 import Reflux from 'reflux';
 
 import {
-  removeAndRedirectToRemainingOrganization,
   changeOrganizationSlug,
+  removeAndRedirectToRemainingOrganization,
+  updateOrganization,
 } from '../../../../actionCreators/organizations';
 import {t, tct} from '../../../../locale';
 import ApiMixin from '../../../../mixins/apiMixin';
@@ -103,7 +104,7 @@ const OrganizationGeneralSettingsView = React.createClass({
       // TODO(dcramer): this should propagate
       this.setState({data});
       // Ugh `data` here is different than data in OrganizationsStore
-      OrganizationsStore.add(data);
+      updateOrganization(data);
     }
   },
 

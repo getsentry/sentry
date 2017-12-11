@@ -50,3 +50,7 @@ export function setActiveOrganization(org) {
 export function changeOrganizationSlug(prev, next) {
   OrganizationsActions.changeSlug(prev, next);
 }
+
+export function updateOrganization(org) {
+  OrganizationsActions.update(org);
+}

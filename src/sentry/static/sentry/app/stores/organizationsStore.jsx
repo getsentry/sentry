@@ -14,6 +14,10 @@ const OrganizationsStore = Reflux.createStore({
     this.items = [];
   },
 
+  onUpdate(org) {
+    this.add(org);
+  },
+
   onChangeSlug(prev, next) {
     if (prev.slug === next.slug) return;
 

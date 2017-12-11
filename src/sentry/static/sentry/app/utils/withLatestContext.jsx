@@ -2,7 +2,6 @@ import React from 'react';
 import Reflux from 'reflux';
 
 import LatestContextStore from '../stores/latestContextStore';
-import OrganizationsStore from '../stores/organizationsStore';
 import withOrganizations from './withOrganizations';
 
 // HoC that returns most usable organization + project
@@ -14,13 +13,21 @@ const withLatestContext = WrappedComponent =>
       mixins: [Reflux.connect(LatestContextStore, 'latestContext')],
       render() {
         let {organizations} = this.props;
-        let organization =
-          (organizations && organizations.length && organizations[0]) ||
-          OrganizationsStore.get(this.state.latestContext.organization);
+        let {latestContext} = this.state;
+        let {organization, project} = latestContext || {};
+
+        // Even though org details exists in LatestContextStore,
+        // fetch organization from OrganizationsStore so that we can
+        // expect consistent data structure because OrganizationsStore has a list
+        // of orgs but not full org details
+        let latestOrganization =
+          organization || (organizations && organizations.length && organizations[0]);
+
         return (
           <WrappedComponent
-            organization={organization}
-            project={this.state.latestContext.project}
+            organizations={organizations}
+            organization={latestOrganization}
+            project={project}
             {...this.props}
           />
         );
