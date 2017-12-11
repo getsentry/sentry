@@ -126,7 +126,8 @@ class LegacyTagStorage(TagStorage):
     def create_tag_value(self, project_id, environment_id, key, value, **kwargs):
         return TagValue.objects.create(project_id=project_id, key=key, value=value, **kwargs)
 
-    def get_or_create_tag_value(self, project_id, environment_id, key, value, **kwargs):
+    def get_or_create_tag_value(self, project_id, environment_id,
+                                key, value, key_id=None, **kwargs):
         return TagValue.objects.get_or_create(
             project_id=project_id, key=key, value=value, **kwargs)
 
@@ -271,12 +272,12 @@ class LegacyTagStorage(TagStorage):
 
         return deleted
 
-    def delete_all_group_tag_keys(self, group_id):
+    def delete_all_group_tag_keys(self, project_id, group_id):
         GroupTagKey.objects.filter(
             group_id=group_id,
         ).delete()
 
-    def delete_all_group_tag_values(self, group_id):
+    def delete_all_group_tag_values(self, project_id, group_id):
         GroupTagValue.objects.filter(
             group_id=group_id,
         ).delete()
@@ -384,17 +385,16 @@ class LegacyTagStorage(TagStorage):
 
         return matches
 
-    def get_group_values_seen(self, group_ids, environment_id, key):
-        if isinstance(group_ids, six.integer_types):
-            qs = GroupTagKey.objects.filter(group_id=group_ids)
-        else:
-            qs = GroupTagKey.objects.filter(group_id__in=group_ids)
+    def get_groups_user_counts(self, project_id, group_ids, environment_id):
+        qs = GroupTagKey.objects.filter(
+            project_id=project_id,
+            group_id__in=group_ids,
+            key='sentry:user'
+        )
 
-        return defaultdict(int, qs.filter(
-            key=key,
-        ).values_list('group_id', 'values_seen'))
+        return defaultdict(int, qs.values_list('group_id', 'values_seen'))
 
-    def get_group_tag_value_count(self, group_id, environment_id, key):
+    def get_group_tag_value_count(self, project_id, group_id, environment_id, key):
         if db.is_postgres():
             # This doesnt guarantee percentage is accurate, but it does ensure
             # that the query has a maximum cost
@@ -422,7 +422,7 @@ class LegacyTagStorage(TagStorage):
             last_seen__gte=cutoff,
         ).aggregate(t=Sum('times_seen'))['t']
 
-    def get_top_group_tag_values(self, group_id, environment_id, key, limit=3):
+    def get_top_group_tag_values(self, project_id, group_id, environment_id, key, limit=3):
         if db.is_postgres():
             # This doesnt guarantee percentage is accurate, but it does ensure
             # that the query has a maximum cost
@@ -453,9 +453,10 @@ class LegacyTagStorage(TagStorage):
             ).order_by('-times_seen')[:limit]
         )
 
-    def get_first_release(self, group_id):
+    def get_first_release(self, project_id, group_id):
         try:
             first_release = GroupTagValue.objects.filter(
+                project_id=project_id,
                 group_id=group_id,
                 key__in=('sentry:release', 'release'),
             ).order_by('first_seen')[0]
@@ -464,9 +465,10 @@ class LegacyTagStorage(TagStorage):
         else:
             return first_release.value
 
-    def get_last_release(self, group_id):
+    def get_last_release(self, project_id, group_id):
         try:
             last_release = GroupTagValue.objects.filter(
+                project_id=project_id,
                 group_id=group_id,
                 key__in=('sentry:release', 'release'),
             ).order_by('-last_seen')[0]
@@ -496,7 +498,7 @@ class LegacyTagStorage(TagStorage):
             key='sentry:user',
         ).order_by('-last_seen')[:limit])
 
-    def get_tags_for_search_filter(self, project_id, tags):
+    def get_group_ids_for_search_filter(self, project_id, environment_id, tags):
         from sentry.search.base import ANY, EMPTY
         # Django doesnt support union, so we limit results and try to find
         # reasonable matches
@@ -566,11 +568,14 @@ class LegacyTagStorage(TagStorage):
 
         return queryset
 
-    def get_group_tag_value_qs(self, group_id, environment_id, key):
+    def get_group_tag_value_qs(self, project_id, group_id, environment_id, key):
         return GroupTagValue.objects.filter(
             group_id=group_id,
             key=key,
         )
 
-    def get_event_tag_qs(self, **kwargs):
-        return EventTag.objects.filter(**kwargs)
+    def update_group_for_events(self, project_id, event_ids, destination_id):
+        return EventTag.objects.filter(
+            project_id=project_id,
+            event_id__in=event_ids,
+        ).update(group_id=destination_id)

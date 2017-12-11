@@ -370,12 +370,12 @@ class Group(Model):
 
     def get_first_release(self):
         if self.first_release_id is None:
-            return tagstore.get_first_release(self.id)
+            return tagstore.get_first_release(self.project_id, self.id)
 
         return self.first_release.version
 
     def get_last_release(self):
-        return tagstore.get_last_release(self.id)
+        return tagstore.get_last_release(self.project_id, self.id)
 
     def get_event_type(self):
         """
@@ -437,5 +437,5 @@ class Group(Model):
         )
 
     def count_users_seen(self):
-        return tagstore.get_group_values_seen(
-            self.id, environment_id=None, key='sentry:user')[self.id]
+        return tagstore.get_groups_user_counts(
+            self.project_id, [self.id], environment_id=None)[self.id]

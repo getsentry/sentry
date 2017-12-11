@@ -7,6 +7,7 @@ from uuid import uuid4
 import pytest
 
 from sentry import tagstore
+from sentry.tagstore.models import EventTag
 from sentry.constants import ObjectStatus
 from sentry.exceptions import DeleteAborted
 from sentry.models import (
@@ -243,7 +244,7 @@ class DeleteTagKeyTest(TestCase):
         with self.tasks():
             delete_tag_key_task(object_id=tk.id)
 
-            assert tagstore.get_event_tag_qs(key_id=tk.id).exists()
+            assert EventTag.objects.filter(key_id=tk.id).exists()
             try:
                 tagstore.get_group_tag_value(group.project_id, group.id, None, key, value)
                 assert False  # verify exception thrown
@@ -269,7 +270,7 @@ class DeleteTagKeyTest(TestCase):
         assert tagstore.get_group_tag_key(group2.project_id, group2.id, None, key) is not None
         assert tagstore.get_group_tag_value(
             group2.project_id, group2.id, None, key, value) is not None
-        assert tagstore.get_event_tag_qs(key_id=tk2.id).exists()
+        assert EventTag.objects.filter(key_id=tk2.id).exists()
 
 
 class DeleteGroupTest(TestCase):
@@ -322,7 +323,7 @@ class DeleteGroupTest(TestCase):
             event_id='a' * 32,
             group_id=group.id,
         ).exists()
-        assert not tagstore.get_event_tag_qs(event_id=event.id).exists()
+        assert not EventTag.objects.filter(event_id=event.id).exists()
         assert not GroupRedirect.objects.filter(group_id=group.id).exists()
         assert not GroupHash.objects.filter(group_id=group.id).exists()
         assert not Group.objects.filter(id=group.id).exists()

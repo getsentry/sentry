@@ -136,9 +136,8 @@ def index_event_tags(organization_id, project_id, event_id, tags,
     tag_ids = []
     for key, value in tags:
         tagkey, _ = tagstore.get_or_create_tag_key(project_id, environment_id, key)
-        # TODO(brett): optimization to hand `get_or_create_tag_value` the key_id
-        # so it doesn't have to hit the database for something we just had on hand
-        tagvalue, _ = tagstore.get_or_create_tag_value(project_id, environment_id, key, value)
+        tagvalue, _ = tagstore.get_or_create_tag_value(
+            project_id, environment_id, key, value, key_id=tagkey.id)
         tag_ids.append((tagkey.id, tagvalue.id))
 
     tagstore.create_event_tags(
