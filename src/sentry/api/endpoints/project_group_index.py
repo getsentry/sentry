@@ -270,8 +270,17 @@ class ProjectGroupIndexEndpoint(ProjectEndpoint, EnvironmentMixin):
             # disable stats
             stats_period = None
 
-        query = request.GET.get('query', '').strip()
+        serializer = functools.partial(
+            StreamGroupSerializer,
+            environment_id_func=functools.partial(
+                self._get_environment_id_from_request,
+                request,
+                project.organization_id,
+            ),
+            stats_period=stats_period,
+        )
 
+        query = request.GET.get('query', '').strip()
         if query:
             matching_group = None
             matching_event = None
@@ -299,16 +308,6 @@ class ProjectGroupIndexEndpoint(ProjectEndpoint, EnvironmentMixin):
                     )
                 except Group.DoesNotExist:
                     matching_group = None
-
-            serializer = functools.partial(
-                StreamGroupSerializer,
-                environment_id_func=functools.partial(
-                    self._get_environment_id_from_request,
-                    request,
-                    project.organization_id,
-                ),
-                stats_period=stats_period,
-            )
 
             if matching_group is not None:
                 response = Response(
