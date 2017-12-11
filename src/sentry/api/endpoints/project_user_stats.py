@@ -24,15 +24,13 @@ class ProjectUserStatsEndpoint(EnvironmentMixin, ProjectEndpoint):
         now = timezone.now()
         then = now - timedelta(days=30)
 
-        # TODO(tkaemming): Rollup doesn't actually work correctly here
-        results = tsdb.rollup(
-            tsdb.get_distinct_counts_series(
-                tsdb.models.users_affected_by_project,
-                (project.id, ),
-                then,
-                now,
-                environment_id=environment_id,
-            ), 3600 * 24
+        results = tsdb.get_distinct_counts_series(
+            tsdb.models.users_affected_by_project,
+            (project.id, ),
+            then,
+            now,
+            rollup=3600 * 24,
+            environment_id=environment_id,
         )[project.id]
 
         return Response(results)
