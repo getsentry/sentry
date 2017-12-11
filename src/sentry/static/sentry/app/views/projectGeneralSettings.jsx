@@ -148,6 +148,7 @@ export default class ProjectGeneralSettings extends AsyncView {
 
   renderBody() {
     let project = this.state.data;
+    let {orgId, projectId} = this.props.params;
     let initialData = {
       name: project.name,
       slug: project.slug,
@@ -177,8 +178,13 @@ export default class ProjectGeneralSettings extends AsyncView {
           initialData={initialData}
           apiMethod="PUT"
           apiEndpoint={this.getEndpoint()}
-          onSubmitSuccess={() =>
-            IndicatorStore.add(t('Your changes were saved'), 'success', {duration: 2000})}
+          onSubmitSuccess={resp => {
+            IndicatorStore.add(t('Your changes were saved'), 'success', {duration: 2000});
+            // Reload if slug has changed
+            if (projectId !== resp.slug) {
+              window.location = `/${orgId}/${resp.slug}/settings/`;
+            }
+          }}
         >
           <div className="box">
             <div className="box-header">
