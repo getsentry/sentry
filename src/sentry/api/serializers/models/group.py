@@ -13,9 +13,9 @@ from sentry import tagstore, tsdb
 from sentry.api.serializers import Serializer, register, serialize
 from sentry.constants import LOG_LEVELS, StatsPeriod
 from sentry.models import (
-    Environment, Group, GroupAssignee, GroupBookmark, GroupMeta, GroupResolution,
-    GroupSeen, GroupSnooze, GroupShare, GroupStatus, GroupSubscription,
-    GroupSubscriptionReason, User, UserOption, UserOptionValue
+    Environment, Group, GroupAssignee, GroupBookmark, GroupMeta, GroupResolution, GroupSeen, GroupSnooze,
+    GroupShare, GroupStatus, GroupSubscription, GroupSubscriptionReason, User, UserOption,
+    UserOptionValue
 )
 from sentry.utils.db import attach_foreignkey
 from sentry.utils.http import absolute_uri
