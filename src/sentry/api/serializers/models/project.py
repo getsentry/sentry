@@ -344,7 +344,7 @@ class DetailedProjectSerializer(ProjectWithTeamSerializer):
                 'processingIssues':
                 attrs['processing_issues'],
                 'defaultEnvironment':
-                attrs['options'].get('default_environment'),
+                attrs['options'].get('sentry:default_environment'),
             }
         )
         return data
