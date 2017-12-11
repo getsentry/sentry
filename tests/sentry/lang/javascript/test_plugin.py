@@ -1148,7 +1148,7 @@ class JavascriptIntegrationTest(TestCase):
         args, kwargs = mock_fetch_file.call_args_list[2]
         assert args[0] == 'webpack:///./node_modules/file.js'
         args, kwargs = mock_fetch_file.call_args_list[3]
-        assert args[0] == 'webpack:///internal',
+        assert args[0] == 'webpack:///internal'
 
         event = Event.objects.get()
 
@@ -1163,7 +1163,7 @@ class JavascriptIntegrationTest(TestCase):
         assert frame_list[5].in_app
 
     @responses.activate
-    def test_bar(self):
+    def test_no_fetch_from_http(self):
         responses.add(
             responses.GET,
             'http://example.com/node_app.min.js',
@@ -1235,16 +1235,10 @@ class JavascriptIntegrationTest(TestCase):
         event = Event.objects.get()
         exception = event.interfaces['sentry.interfaces.Exception']
         frame_list = exception.values[0].stacktrace.frames
-        raw_frame_list = exception.values[0].raw_stacktrace.frames
 
-        assert not frame_list[0].in_app
-        assert not frame_list[1].in_app
-        assert not frame_list[2].in_app
-        assert not frame_list[3].in_app
-        assert not frame_list[4].in_app
-        assert frame_list[5].in_app
+        # This one should not process, so this one should be none.
+        assert exception.values[0].raw_stacktrace is None
 
-        # Since we couldn't expand source for the 1st and 2nd frame, both
-        # its raw and original form should be identical
-        assert raw_frame_list[0] == frame_list[0]
-        assert raw_frame_list[1] == frame_list[1]
+        # None of the in app should update
+        for x in range(6):
+            assert not frame_list[x].in_app
