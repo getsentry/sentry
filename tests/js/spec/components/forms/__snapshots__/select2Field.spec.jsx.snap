@@ -18,12 +18,15 @@ exports[`Select2Field render() renders with flat choices 1`] = `
       value="fieldValue"
     >
       <option
+        key="a"
         value="a"
       />
       <option
+        key="b"
         value="b"
       />
       <option
+        key="c"
         value="c"
       />
     </select>
@@ -70,16 +73,19 @@ exports[`Select2Field render() renders with paired choices 1`] = `
       value="fieldValue"
     >
       <option
+        key="a"
         value="a"
       >
         abc
       </option>
       <option
+        key="b"
         value="b"
       >
         bcd
       </option>
       <option
+        key="c"
         value="c"
       >
         cde

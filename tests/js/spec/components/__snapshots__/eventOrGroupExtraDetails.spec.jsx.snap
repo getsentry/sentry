@@ -73,6 +73,7 @@ exports[`EventOrGroupExtraDetails details when mentioned 1`] = `
           "__html": "annotation1",
         }
       }
+      key="0"
     />
     <li
       className="event-annotation"
@@ -81,6 +82,7 @@ exports[`EventOrGroupExtraDetails details when mentioned 1`] = `
           "__html": "annotation2",
         }
       }
+      key="1"
     />
   </ul>
 </div>
@@ -155,6 +157,7 @@ exports[`EventOrGroupExtraDetails renders all details 1`] = `
           "__html": "annotation1",
         }
       }
+      key="0"
     />
     <li
       className="event-annotation"
@@ -163,6 +166,7 @@ exports[`EventOrGroupExtraDetails renders all details 1`] = `
           "__html": "annotation2",
         }
       }
+      key="1"
     />
   </ul>
 </div>
@@ -237,6 +241,7 @@ exports[`EventOrGroupExtraDetails renders assignee and status 1`] = `
           "__html": "annotation1",
         }
       }
+      key="0"
     />
     <li
       className="event-annotation"
@@ -245,6 +250,7 @@ exports[`EventOrGroupExtraDetails renders assignee and status 1`] = `
           "__html": "annotation2",
         }
       }
+      key="1"
     />
     <li>
       Assigned to 

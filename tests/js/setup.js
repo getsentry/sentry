@@ -3,6 +3,9 @@ import sinon from 'sinon';
 import ConfigStore from 'app/stores/configStore';
 import MockDate from 'mockdate';
 
+import Enzyme from 'enzyme';
+import Adapter from 'enzyme-adapter-react-15';
+
 jest.mock('app/translations');
 jest.mock('app/api');
 
@@ -11,6 +14,9 @@ MockDate.set(constantDate);
 
 // We generally use actual jQuery, and jest mocks takes precedence over node_modules
 jest.unmock('jquery');
+
+Enzyme.configure({adapter: new Adapter()});
+Enzyme.configure({disableLifecycleMethods: true});
 
 window.$ = window.jQuery = jQuery;
 window.sinon = sinon;

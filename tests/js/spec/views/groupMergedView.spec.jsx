@@ -69,6 +69,7 @@ describe('Issues -> Merged View', function() {
 
     wrapper.instance().componentDidUpdate = jest.fn(() => {
       if (!wrapper.state('loading')) {
+        wrapper.update();
         expect(wrapper).toMatchSnapshot();
         done();
       }

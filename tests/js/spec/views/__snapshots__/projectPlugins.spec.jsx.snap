@@ -39,6 +39,7 @@ exports[`ProjectPlugins renders 1`] = `
           <tbody>
             <tr
               className="amazon-sqs"
+              key="amazon-sqs"
             >
               <td
                 colSpan={2}
@@ -88,6 +89,7 @@ exports[`ProjectPlugins renders 1`] = `
             </tr>
             <tr
               className="github"
+              key="github"
             >
               <td
                 colSpan={2}

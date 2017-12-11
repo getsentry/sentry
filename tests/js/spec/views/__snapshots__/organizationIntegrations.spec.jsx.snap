@@ -54,6 +54,7 @@ exports[`OrganizationIntegrations render() with a provider renders 1`] = `
                 onMouseLeave={[Function]}
               >
                 <MenuItem
+                  key="github"
                   noAnchor={true}
                 >
                   <li
@@ -161,6 +162,7 @@ exports[`OrganizationIntegrations render() with a provider renders with a reposi
                 onMouseLeave={[Function]}
               >
                 <MenuItem
+                  key="github"
                   noAnchor={true}
                 >
                   <li
@@ -193,7 +195,9 @@ exports[`OrganizationIntegrations render() with a provider renders with a reposi
           className="table"
         >
           <tbody>
-            <tr>
+            <tr
+              key="4"
+            >
               <td
                 style={
                   Object {
@@ -251,6 +255,7 @@ exports[`OrganizationIntegrations render() with a provider renders with a reposi
                       bsClass="modal"
                       dialogComponentClass={[Function]}
                       enforceFocus={true}
+                      key="confirm"
                       keyboard={true}
                       manager={
                         ModalManager {

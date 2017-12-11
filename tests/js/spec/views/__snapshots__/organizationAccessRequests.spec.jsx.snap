@@ -1,6 +1,6 @@
 // Jest Snapshot v1, https://goo.gl/fbAQLP
 
-exports[`OrganizationAccessRequests renders empty 1`] = `null`;
+exports[`OrganizationAccessRequests renders empty 1`] = `""`;
 
 exports[`OrganizationAccessRequests renders list 1`] = `
 <Styled(div)>
@@ -19,22 +19,33 @@ exports[`OrganizationAccessRequests renders list 1`] = `
   <Styled(div)>
     <Styled(Base)
       align="center"
+      key="id"
     >
       <Box
         flex="1"
         p={2}
       >
-        <span>
-          <strong>
+        <span
+          key="5"
+        >
+          <strong
+            key="0"
+          >
             sentry@test.com
           </strong>
-          <span>
+          <span
+            key="1"
+          >
              requests access to the 
           </span>
-          <strong>
+          <strong
+            key="2"
+          >
             Team Name
           </strong>
-          <span>
+          <span
+            key="3"
+          >
              team.
           </span>
         </span>

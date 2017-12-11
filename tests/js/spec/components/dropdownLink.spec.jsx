@@ -70,6 +70,7 @@ describe('DropdownLink', function() {
         const evt = document.createEvent('HTMLEvents');
         evt.initEvent('click', false, true);
         document.body.dispatchEvent(evt);
+        wrapper.update();
         expect(wrapper.find('li').length).toBe(0);
       });
 
@@ -199,7 +200,7 @@ describe('DropdownLink', function() {
       wrapper.find('.dropdown-menu a').simulate('mouseEnter');
       expect(wrapper.find('.dropdown-menu').length).toBe(2);
 
-      wrapper.find('.nested-menu').simulate('mouseLeave');
+      wrapper.find('a.nested-menu').simulate('mouseLeave');
 
       expect(wrapper.find('.dropdown-menu').length).toBe(1);
     });
@@ -210,14 +211,14 @@ describe('DropdownLink', function() {
     });
 
     it('closes when second level nested actor is clicked', function() {
-      wrapper.find('.nested-menu').simulate('mouseEnter');
-      wrapper.find('.nested-menu-2 span').simulate('click');
+      wrapper.find('a.nested-menu').simulate('mouseEnter');
+      wrapper.find('a.nested-menu-2 span').simulate('click');
       expect(wrapper.find('.dropdown-menu')).toHaveLength(0);
     });
 
     it('closes when third level nested actor is clicked', function() {
-      wrapper.find('.nested-menu').simulate('mouseEnter');
-      wrapper.find('.nested-menu-2').simulate('mouseEnter');
+      wrapper.find('a.nested-menu').simulate('mouseEnter');
+      wrapper.find('a.nested-menu-2').simulate('mouseEnter');
       wrapper.find('#nested-actor-3').simulate('click');
       expect(wrapper.find('.dropdown-menu')).toHaveLength(0);
     });

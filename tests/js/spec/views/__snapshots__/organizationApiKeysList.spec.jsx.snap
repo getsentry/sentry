@@ -270,12 +270,17 @@ exports[`OrganizationApiKeysList renders 1`] = `
       <p
         className="glamor-10 glamor-11"
       >
-        <span>
-          <span>
+        <span
+          key="5"
+        >
+          <span
+            key="0"
+          >
             API keys grant access to the 
           </span>
           <ExternalLink
             href="https://docs.sentry.io/hosted/api/"
+            key="2"
             rel="noreferrer noopener"
             target="_blank"
           >
@@ -284,12 +289,16 @@ exports[`OrganizationApiKeysList renders 1`] = `
               rel="noreferrer noopener"
               target="_blank"
             >
-              <span>
+              <span
+                key="1"
+              >
                 developer web API
               </span>
             </a>
           </ExternalLink>
-          <span>
+          <span
+            key="3"
+          >
             .
           If you're looking to configure a Sentry client, you'll need a
           client key which is available in your project settings.
@@ -300,22 +309,31 @@ exports[`OrganizationApiKeysList renders 1`] = `
     <div
       className="alert alert-block alert-info"
     >
-      <span>
-        <span>
+      <span
+        key="5"
+      >
+        <span
+          key="0"
+        >
           psst. Until Sentry supports OAuth, you might want to switch to using 
         </span>
         <Link
+          key="2"
           to="/api/"
         >
           <a
             href="/api/"
           >
-            <span>
+            <span
+              key="1"
+            >
               Auth Tokens
             </span>
           </a>
         </Link>
-        <span>
+        <span
+          key="3"
+        >
            instead.
         </span>
       </span>
@@ -429,6 +447,7 @@ exports[`OrganizationApiKeysList renders 1`] = `
           >
             <Styled(Base)
               align="center"
+              key="1"
               py={1}
             >
               <Base
@@ -545,6 +564,7 @@ exports[`OrganizationApiKeysList renders 1`] = `
                                 bsClass="modal"
                                 dialogComponentClass={[Function]}
                                 enforceFocus={true}
+                                key="confirm"
                                 keyboard={true}
                                 manager={
                                   ModalManager {

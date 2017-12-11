@@ -16,6 +16,7 @@ exports[`OrganizationRepositories renders with a repository 1`] = `
           noAnchor={true}
         >
           <AddRepositoryLink
+            onSuccess={undefined}
             orgId="org-slug"
             provider={
               Object {
@@ -53,7 +54,9 @@ exports[`OrganizationRepositories renders with a repository 1`] = `
     </PanelHeader>
     <Styled(div)>
       <Box>
-        <WithTheme(Styled(SpreadLayout))>
+        <WithTheme(Styled(SpreadLayout))
+          key="4"
+        >
           <Box
             flex="1"
             p={2}
@@ -126,6 +129,7 @@ exports[`OrganizationRepositories renders with github provider 1`] = `
           noAnchor={true}
         >
           <AddRepositoryLink
+            onSuccess={undefined}
             orgId="org-slug"
             provider={
               Object {
@@ -155,18 +159,27 @@ exports[`OrganizationRepositories renders with github provider 1`] = `
     <p>
       Connecting a repository allows Sentry to capture commit data via webhooks. This enables features like suggested assignees and resolving issues via commit message. Once you've connected a repository, you can associate commits with releases via the API.
        
-      <span>
-        <span>
+      <span
+        key="5"
+      >
+        <span
+          key="0"
+        >
           See our 
         </span>
         <a
           href="https://docs.sentry.io/learn/releases/"
+          key="2"
         >
-          <span>
+          <span
+            key="1"
+          >
             documentation
           </span>
         </a>
-        <span>
+        <span
+          key="3"
+        >
            for more details.
         </span>
       </span>
@@ -219,18 +232,27 @@ exports[`OrganizationRepositories renders without providers 1`] = `
     <p>
       Connecting a repository allows Sentry to capture commit data via webhooks. This enables features like suggested assignees and resolving issues via commit message. Once you've connected a repository, you can associate commits with releases via the API.
        
-      <span>
-        <span>
+      <span
+        key="5"
+      >
+        <span
+          key="0"
+        >
           See our 
         </span>
         <a
           href="https://docs.sentry.io/learn/releases/"
+          key="2"
         >
-          <span>
+          <span
+            key="1"
+          >
             documentation
           </span>
         </a>
-        <span>
+        <span
+          key="3"
+        >
            for more details.
         </span>
       </span>

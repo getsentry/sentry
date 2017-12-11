@@ -62,18 +62,27 @@ exports[`ProjectAlertSettings render() renders 1`] = `
     <div
       className="alert alert-block alert-info"
     >
-      <span>
-        <span>
+      <span
+        key="5"
+      >
+        <span
+          key="0"
+        >
           These settings cover rule-based alerts. If you're looking to change which notifications you receive you may do so from your 
         </span>
         <a
           href="/account/settings/notifications/"
+          key="2"
         >
-          <span>
+          <span
+            key="1"
+          >
             account settings
           </span>
         </a>
-        <span>
+        <span
+          key="3"
+        >
           .
         </span>
       </span>

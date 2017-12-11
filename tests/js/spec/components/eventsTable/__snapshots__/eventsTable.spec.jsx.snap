@@ -115,6 +115,7 @@ exports[`EventsTable renders 1`] = `
       }
       groupId="groupId"
       hasUser={true}
+      key="904"
       orgId="orgId"
       projectId="projectId"
       tagList={Array []}
@@ -220,6 +221,7 @@ exports[`EventsTable renders 1`] = `
       }
       groupId="groupId"
       hasUser={true}
+      key="904"
       orgId="orgId"
       projectId="projectId"
       tagList={Array []}

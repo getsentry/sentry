@@ -88,6 +88,7 @@ exports[`ProjectSelector render() can filter projects by project name 1`] = `
             >
               <li
                 className="project-filter"
+                key="_filter"
               >
                 <input
                   onBlur={[Function]}
@@ -103,6 +104,7 @@ exports[`ProjectSelector render() can filter projects by project name 1`] = `
               <MenuItem
                 className=""
                 href="/org/another-project/"
+                key="another-project"
                 linkClassName=""
               >
                 <li
@@ -225,6 +227,7 @@ exports[`ProjectSelector render() can filter projects by team name/project name 
             >
               <li
                 className="project-filter"
+                key="_filter"
               >
                 <input
                   onBlur={[Function]}
@@ -240,6 +243,7 @@ exports[`ProjectSelector render() can filter projects by team name/project name 
               <MenuItem
                 className=""
                 href="/org/another-project/"
+                key="another-project"
                 linkClassName=""
               >
                 <li
@@ -261,6 +265,7 @@ exports[`ProjectSelector render() can filter projects by team name/project name 
               <MenuItem
                 className=""
                 href="/org/test-project/"
+                key="test-project"
                 linkClassName=""
               >
                 <li
@@ -322,6 +327,7 @@ exports[`ProjectSelector render() lists projects and has filter 1`] = `
     >
       <li
         className="project-filter"
+        key="_filter"
       >
         <input
           onBlur={[Function]}
@@ -337,6 +343,7 @@ exports[`ProjectSelector render() lists projects and has filter 1`] = `
       <MenuItem
         className=""
         href="/org/another-project/"
+        key="another-project"
         linkClassName=""
       >
         <span>
@@ -346,6 +353,7 @@ exports[`ProjectSelector render() lists projects and has filter 1`] = `
       <MenuItem
         className=""
         href="/org/test-project/"
+        key="test-project"
         linkClassName=""
       >
         <span>
@@ -384,6 +392,7 @@ exports[`ProjectSelector render() should show empty message and create project b
     >
       <MenuItem
         className="empty-projects-item"
+        key="empty-message"
         noAnchor={true}
       >
         <div
@@ -394,9 +403,11 @@ exports[`ProjectSelector render() should show empty message and create project b
       </MenuItem>
       <MenuItem
         divider={true}
+        key="divider"
       />
       <MenuItem
         className="empty-projects-item"
+        key="create-project"
         noAnchor={true}
       >
         <a
@@ -438,6 +449,7 @@ exports[`ProjectSelector render() should show empty message with no projects but
     >
       <MenuItem
         className="empty-projects-item"
+        key="empty-message"
         noAnchor={true}
       >
         <div
@@ -539,6 +551,7 @@ exports[`ProjectSelector render() shows empty filter message when filtering has 
             >
               <li
                 className="project-filter"
+                key="_filter"
               >
                 <input
                   onBlur={[Function]}
@@ -553,6 +566,7 @@ exports[`ProjectSelector render() shows empty filter message when filtering has 
               </li>
               <MenuItem
                 className="empty-projects-item"
+                key="empty-message"
                 noAnchor={true}
               >
                 <li

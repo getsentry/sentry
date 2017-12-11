@@ -62,6 +62,7 @@ exports[`IssueDiff can dynamically import SplitDiff 1`] = `
   at ReactCompositeComponentWrapper._updateRenderedComponent(~/react/lib/ReactCompositeComponent.js:751:0)
   at ReactCompositeComponentWrapper._performComponentUpdate(~/react/lib/ReactCompositeComponent.js:721:0)
   at ReactCompositeComponentWrapper.updateComponent(~/react/lib/ReactCompositeComponent.js:642:0)"
+      key="0"
       target="RangeError: Invalid array length
   File \\"./app/components/scoreBar.jsx\\", line 73, col 0, in Constructor.render
     return React.createElement('div', {
@@ -169,7 +170,9 @@ exports[`IssueDiff can dynamically import SplitDiff 1`] = `
         className="split-diff"
       >
         <tbody>
-          <tr>
+          <tr
+            key="0"
+          >
             <td
               className="split-view-cell removed-row"
             >
@@ -178,36 +181,43 @@ exports[`IssueDiff can dynamically import SplitDiff 1`] = `
               >
                 <span
                   className="split-view-word removed"
+                  key="0"
                 >
                   TypeError
                 </span>
                 <span
                   className="split-view-word"
+                  key="1"
                 >
                   : 
                 </span>
                 <span
                   className="split-view-word removed"
+                  key="2"
                 >
                   Cannot
                 </span>
                 <span
                   className="split-view-word"
+                  key="3"
                 >
                    
                 </span>
                 <span
                   className="split-view-word removed"
+                  key="4"
                 >
                   read
                 </span>
                 <span
                   className="split-view-word"
+                  key="5"
                 >
                    
                 </span>
                 <span
                   className="split-view-word removed"
+                  key="6"
                 >
                   property 'id' of undefined
                 </span>
@@ -228,43 +238,52 @@ exports[`IssueDiff can dynamically import SplitDiff 1`] = `
               >
                 <span
                   className="split-view-word added"
+                  key="0"
                 >
                   RangeError
                 </span>
                 <span
                   className="split-view-word"
+                  key="1"
                 >
                   : 
                 </span>
                 <span
                   className="split-view-word added"
+                  key="2"
                 >
                   Invalid
                 </span>
                 <span
                   className="split-view-word"
+                  key="3"
                 >
                    
                 </span>
                 <span
                   className="split-view-word added"
+                  key="4"
                 >
                   array
                 </span>
                 <span
                   className="split-view-word"
+                  key="5"
                 >
                    
                 </span>
                 <span
                   className="split-view-word added"
+                  key="6"
                 >
                   length
                 </span>
               </div>
             </td>
           </tr>
-          <tr>
+          <tr
+            key="1"
+          >
             <td
               className="split-view-cell removed-row"
             >
@@ -273,51 +292,61 @@ exports[`IssueDiff can dynamically import SplitDiff 1`] = `
               >
                 <span
                   className="split-view-word"
+                  key="0"
                 >
                     
                 </span>
                 <span
                   className="split-view-word removed"
+                  key="1"
                 >
                   at
                 </span>
                 <span
                   className="split-view-word"
+                  key="2"
                 >
                    
                 </span>
                 <span
                   className="split-view-word removed"
+                  key="3"
                 >
                   StreamGroupHeader.render(./
                 </span>
                 <span
                   className="split-view-word"
+                  key="4"
                 >
                   app/components/
                 </span>
                 <span
                   className="split-view-word removed"
+                  key="5"
                 >
                   stream/StreamGroupHeader
                 </span>
                 <span
                   className="split-view-word"
+                  key="6"
                 >
                   .jsx
                 </span>
                 <span
                   className="split-view-word removed"
+                  key="7"
                 >
                   :54:
                 </span>
                 <span
                   className="split-view-word"
+                  key="8"
                 >
                   0
                 </span>
                 <span
                   className="split-view-word removed"
+                  key="9"
                 >
                   )
                 </span>
@@ -338,58 +367,70 @@ exports[`IssueDiff can dynamically import SplitDiff 1`] = `
               >
                 <span
                   className="split-view-word"
+                  key="0"
                 >
                     
                 </span>
                 <span
                   className="split-view-word added"
+                  key="1"
                 >
                   File
                 </span>
                 <span
                   className="split-view-word"
+                  key="2"
                 >
                    
                 </span>
                 <span
                   className="split-view-word added"
+                  key="3"
                 >
                   "./
                 </span>
                 <span
                   className="split-view-word"
+                  key="4"
                 >
                   app/components/
                 </span>
                 <span
                   className="split-view-word added"
+                  key="5"
                 >
                   scoreBar
                 </span>
                 <span
                   className="split-view-word"
+                  key="6"
                 >
                   .jsx
                 </span>
                 <span
                   className="split-view-word added"
+                  key="7"
                 >
                   ", line 73, col 
                 </span>
                 <span
                   className="split-view-word"
+                  key="8"
                 >
                   0
                 </span>
                 <span
                   className="split-view-word added"
+                  key="9"
                 >
                   , in Constructor.render
                 </span>
               </div>
             </td>
           </tr>
-          <tr>
+          <tr
+            key="2"
+          >
             <td
               className="split-view-cell removed-row"
             >
@@ -398,31 +439,37 @@ exports[`IssueDiff can dynamically import SplitDiff 1`] = `
               >
                 <span
                   className="split-view-word"
+                  key="0"
                 >
                       
                 </span>
                 <span
                   className="split-view-word removed"
+                  key="1"
                 >
                   at
                 </span>
                 <span
                   className="split-view-word"
+                  key="2"
                 >
                    
                 </span>
                 <span
                   className="split-view-word removed"
+                  key="3"
                 >
                   ?
                 </span>
                 <span
                   className="split-view-word"
+                  key="4"
                 >
                    
                 </span>
                 <span
                   className="split-view-word removed"
+                  key="5"
                 >
                   (~/react/lib/ReactCompositeComponent.js:793:0)
                 </span>
@@ -443,38 +490,46 @@ exports[`IssueDiff can dynamically import SplitDiff 1`] = `
               >
                 <span
                   className="split-view-word"
+                  key="0"
                 >
                       
                 </span>
                 <span
                   className="split-view-word added"
+                  key="1"
                 >
                   return
                 </span>
                 <span
                   className="split-view-word"
+                  key="2"
                 >
                    
                 </span>
                 <span
                   className="split-view-word added"
+                  key="3"
                 >
                   React.createElement('div',
                 </span>
                 <span
                   className="split-view-word"
+                  key="4"
                 >
                    
                 </span>
                 <span
                   className="split-view-word added"
+                  key="5"
                 >
                   {
                 </span>
               </div>
             </td>
           </tr>
-          <tr>
+          <tr
+            key="3"
+          >
             <td
               className="split-view-cell removed-row"
             >
@@ -483,41 +538,49 @@ exports[`IssueDiff can dynamically import SplitDiff 1`] = `
               >
                 <span
                   className="split-view-word"
+                  key="0"
                 >
                     
                 </span>
                 <span
                   className="split-view-word removed"
+                  key="1"
                 >
                   at
                 </span>
                 <span
                   className="split-view-word"
+                  key="2"
                 >
                    
                 </span>
                 <span
                   className="split-view-word removed"
+                  key="3"
                 >
                   measureLifeCyclePerf(~/
                 </span>
                 <span
                   className="split-view-word"
+                  key="4"
                 >
                   react/lib/ReactCompositeComponent.js
                 </span>
                 <span
                   className="split-view-word removed"
+                  key="5"
                 >
                   :74:
                 </span>
                 <span
                   className="split-view-word"
+                  key="6"
                 >
                   0
                 </span>
                 <span
                   className="split-view-word removed"
+                  key="7"
                 >
                   )
                 </span>
@@ -538,43 +601,52 @@ exports[`IssueDiff can dynamically import SplitDiff 1`] = `
               >
                 <span
                   className="split-view-word"
+                  key="0"
                 >
                     
                 </span>
                 <span
                   className="split-view-word added"
+                  key="1"
                 >
                   File
                 </span>
                 <span
                   className="split-view-word"
+                  key="2"
                 >
                    
                 </span>
                 <span
                   className="split-view-word added"
+                  key="3"
                 >
                   "~/
                 </span>
                 <span
                   className="split-view-word"
+                  key="4"
                 >
                   react/lib/ReactCompositeComponent.js
                 </span>
                 <span
                   className="split-view-word added"
+                  key="5"
                 >
                   ", line 793, col 
                 </span>
                 <span
                   className="split-view-word"
+                  key="6"
                 >
                   0
                 </span>
               </div>
             </td>
           </tr>
-          <tr>
+          <tr
+            key="4"
+          >
             <td
               className="split-view-cell removed-row"
             >
@@ -583,31 +655,37 @@ exports[`IssueDiff can dynamically import SplitDiff 1`] = `
               >
                 <span
                   className="split-view-word"
+                  key="0"
                 >
                       
                 </span>
                 <span
                   className="split-view-word removed"
+                  key="1"
                 >
                   at
                 </span>
                 <span
                   className="split-view-word"
+                  key="2"
                 >
                    
                 </span>
                 <span
                   className="split-view-word removed"
+                  key="3"
                 >
                   ReactCompositeComponentWrapper
                 </span>
                 <span
                   className="split-view-word"
+                  key="4"
                 >
                   .
                 </span>
                 <span
                   className="split-view-word removed"
+                  key="5"
                 >
                   _renderValidatedComponentWithoutOwnerOrContext(~/react/lib/ReactCompositeComponent.js:792:0)
                 </span>
@@ -628,38 +706,46 @@ exports[`IssueDiff can dynamically import SplitDiff 1`] = `
               >
                 <span
                   className="split-view-word"
+                  key="0"
                 >
                       
                 </span>
                 <span
                   className="split-view-word added"
+                  key="1"
                 >
                   return
                 </span>
                 <span
                   className="split-view-word"
+                  key="2"
                 >
                    
                 </span>
                 <span
                   className="split-view-word added"
+                  key="3"
                 >
                   inst
                 </span>
                 <span
                   className="split-view-word"
+                  key="4"
                 >
                   .
                 </span>
                 <span
                   className="split-view-word added"
+                  key="5"
                 >
                   render();
                 </span>
               </div>
             </td>
           </tr>
-          <tr>
+          <tr
+            key="5"
+          >
             <td
               className="split-view-cell removed-row"
             >
@@ -668,41 +754,49 @@ exports[`IssueDiff can dynamically import SplitDiff 1`] = `
               >
                 <span
                   className="split-view-word"
+                  key="0"
                 >
                     
                 </span>
                 <span
                   className="split-view-word removed"
+                  key="1"
                 >
                   at
                 </span>
                 <span
                   className="split-view-word"
+                  key="2"
                 >
                    
                 </span>
                 <span
                   className="split-view-word removed"
+                  key="3"
                 >
                   ReactCompositeComponentWrapper._renderValidatedComponent(~/
                 </span>
                 <span
                   className="split-view-word"
+                  key="4"
                 >
                   react/lib/ReactCompositeComponent.js
                 </span>
                 <span
                   className="split-view-word removed"
+                  key="5"
                 >
                   :819:
                 </span>
                 <span
                   className="split-view-word"
+                  key="6"
                 >
                   0
                 </span>
                 <span
                   className="split-view-word removed"
+                  key="7"
                 >
                   )
                 </span>
@@ -723,48 +817,58 @@ exports[`IssueDiff can dynamically import SplitDiff 1`] = `
               >
                 <span
                   className="split-view-word"
+                  key="0"
                 >
                     
                 </span>
                 <span
                   className="split-view-word added"
+                  key="1"
                 >
                   File
                 </span>
                 <span
                   className="split-view-word"
+                  key="2"
                 >
                    
                 </span>
                 <span
                   className="split-view-word added"
+                  key="3"
                 >
                   "~/
                 </span>
                 <span
                   className="split-view-word"
+                  key="4"
                 >
                   react/lib/ReactCompositeComponent.js
                 </span>
                 <span
                   className="split-view-word added"
+                  key="5"
                 >
                   ", line 74, col 
                 </span>
                 <span
                   className="split-view-word"
+                  key="6"
                 >
                   0
                 </span>
                 <span
                   className="split-view-word added"
+                  key="7"
                 >
                   , in measureLifeCyclePerf
                 </span>
               </div>
             </td>
           </tr>
-          <tr>
+          <tr
+            key="6"
+          >
             <td
               className="split-view-cell removed-row"
             >
@@ -773,21 +877,25 @@ exports[`IssueDiff can dynamically import SplitDiff 1`] = `
               >
                 <span
                   className="split-view-word"
+                  key="0"
                 >
                       
                 </span>
                 <span
                   className="split-view-word removed"
+                  key="1"
                 >
                   at
                 </span>
                 <span
                   className="split-view-word"
+                  key="2"
                 >
                    
                 </span>
                 <span
                   className="split-view-word removed"
+                  key="3"
                 >
                   ReactCompositeComponentWrapper.performInitialMount(~/react/lib/ReactCompositeComponent.js:361:0)
                 </span>
@@ -808,28 +916,34 @@ exports[`IssueDiff can dynamically import SplitDiff 1`] = `
               >
                 <span
                   className="split-view-word"
+                  key="0"
                 >
                       
                 </span>
                 <span
                   className="split-view-word added"
+                  key="1"
                 >
                   return
                 </span>
                 <span
                   className="split-view-word"
+                  key="2"
                 >
                    
                 </span>
                 <span
                   className="split-view-word added"
+                  key="3"
                 >
                   fn();
                 </span>
               </div>
             </td>
           </tr>
-          <tr>
+          <tr
+            key="7"
+          >
             <td
               className="split-view-cell removed-row"
             >
@@ -838,41 +952,49 @@ exports[`IssueDiff can dynamically import SplitDiff 1`] = `
               >
                 <span
                   className="split-view-word"
+                  key="0"
                 >
                     
                 </span>
                 <span
                   className="split-view-word removed"
+                  key="1"
                 >
                   at
                 </span>
                 <span
                   className="split-view-word"
+                  key="2"
                 >
                    
                 </span>
                 <span
                   className="split-view-word removed"
+                  key="3"
                 >
                   ReactCompositeComponentWrapper.mountComponent(~/
                 </span>
                 <span
                   className="split-view-word"
+                  key="4"
                 >
                   react/lib/ReactCompositeComponent.js
                 </span>
                 <span
                   className="split-view-word removed"
+                  key="5"
                 >
                   :257:
                 </span>
                 <span
                   className="split-view-word"
+                  key="6"
                 >
                   0
                 </span>
                 <span
                   className="split-view-word removed"
+                  key="7"
                 >
                   )
                 </span>
@@ -893,48 +1015,58 @@ exports[`IssueDiff can dynamically import SplitDiff 1`] = `
               >
                 <span
                   className="split-view-word"
+                  key="0"
                 >
                     
                 </span>
                 <span
                   className="split-view-word added"
+                  key="1"
                 >
                   File
                 </span>
                 <span
                   className="split-view-word"
+                  key="2"
                 >
                    
                 </span>
                 <span
                   className="split-view-word added"
+                  key="3"
                 >
                   "~/
                 </span>
                 <span
                   className="split-view-word"
+                  key="4"
                 >
                   react/lib/ReactCompositeComponent.js
                 </span>
                 <span
                   className="split-view-word added"
+                  key="5"
                 >
                   ", line 792, col 
                 </span>
                 <span
                   className="split-view-word"
+                  key="6"
                 >
                   0
                 </span>
                 <span
                   className="split-view-word added"
+                  key="7"
                 >
                   , in ReactCompositeComponentWrapper._renderValidatedComponentWithoutOwnerOrContext
                 </span>
               </div>
             </td>
           </tr>
-          <tr>
+          <tr
+            key="8"
+          >
             <td
               className="split-view-cell removed-row"
             >
@@ -943,21 +1075,25 @@ exports[`IssueDiff can dynamically import SplitDiff 1`] = `
               >
                 <span
                   className="split-view-word"
+                  key="0"
                 >
                       
                 </span>
                 <span
                   className="split-view-word removed"
+                  key="1"
                 >
                   at
                 </span>
                 <span
                   className="split-view-word"
+                  key="2"
                 >
                    
                 </span>
                 <span
                   className="split-view-word removed"
+                  key="3"
                 >
                   Object.mountComponent(~/react/lib/ReactReconciler.js:47:0)
                 </span>
@@ -978,28 +1114,34 @@ exports[`IssueDiff can dynamically import SplitDiff 1`] = `
               >
                 <span
                   className="split-view-word"
+                  key="0"
                 >
                       
                 </span>
                 <span
                   className="split-view-word added"
+                  key="1"
                 >
                   renderedComponent
                 </span>
                 <span
                   className="split-view-word"
+                  key="2"
                 >
                    
                 </span>
                 <span
                   className="split-view-word added"
+                  key="3"
                 >
                   = measureLifeCyclePerf(function () {
                 </span>
               </div>
             </td>
           </tr>
-          <tr>
+          <tr
+            key="9"
+          >
             <td
               className="split-view-cell removed-row"
             >
@@ -1008,51 +1150,61 @@ exports[`IssueDiff can dynamically import SplitDiff 1`] = `
               >
                 <span
                   className="split-view-word"
+                  key="0"
                 >
                     
                 </span>
                 <span
                   className="split-view-word removed"
+                  key="1"
                 >
                   at
                 </span>
                 <span
                   className="split-view-word"
+                  key="2"
                 >
                    
                 </span>
                 <span
                   className="split-view-word removed"
+                  key="3"
                 >
                   ReactDOMComponent.mountChildren(~/
                 </span>
                 <span
                   className="split-view-word"
+                  key="4"
                 >
                   react/lib/
                 </span>
                 <span
                   className="split-view-word removed"
+                  key="5"
                 >
                   ReactMultiChild
                 </span>
                 <span
                   className="split-view-word"
+                  key="6"
                 >
                   .js
                 </span>
                 <span
                   className="split-view-word removed"
+                  key="7"
                 >
                   :240:
                 </span>
                 <span
                   className="split-view-word"
+                  key="8"
                 >
                   0
                 </span>
                 <span
                   className="split-view-word removed"
+                  key="9"
                 >
                   )
                 </span>
@@ -1073,58 +1225,70 @@ exports[`IssueDiff can dynamically import SplitDiff 1`] = `
               >
                 <span
                   className="split-view-word"
+                  key="0"
                 >
                     
                 </span>
                 <span
                   className="split-view-word added"
+                  key="1"
                 >
                   File
                 </span>
                 <span
                   className="split-view-word"
+                  key="2"
                 >
                    
                 </span>
                 <span
                   className="split-view-word added"
+                  key="3"
                 >
                   "~/
                 </span>
                 <span
                   className="split-view-word"
+                  key="4"
                 >
                   react/lib/
                 </span>
                 <span
                   className="split-view-word added"
+                  key="5"
                 >
                   ReactCompositeComponent
                 </span>
                 <span
                   className="split-view-word"
+                  key="6"
                 >
                   .js
                 </span>
                 <span
                   className="split-view-word added"
+                  key="7"
                 >
                   ", line 819, col 
                 </span>
                 <span
                   className="split-view-word"
+                  key="8"
                 >
                   0
                 </span>
                 <span
                   className="split-view-word added"
+                  key="9"
                 >
                   , in ReactCompositeComponentWrapper._renderValidatedComponent
                 </span>
               </div>
             </td>
           </tr>
-          <tr>
+          <tr
+            key="10"
+          >
             <td
               className="split-view-cell removed-row"
             >
@@ -1133,31 +1297,37 @@ exports[`IssueDiff can dynamically import SplitDiff 1`] = `
               >
                 <span
                   className="split-view-word"
+                  key="0"
                 >
                       
                 </span>
                 <span
                   className="split-view-word removed"
+                  key="1"
                 >
                   at
                 </span>
                 <span
                   className="split-view-word"
+                  key="2"
                 >
                    
                 </span>
                 <span
                   className="split-view-word removed"
+                  key="3"
                 >
                   ReactDOMComponent
                 </span>
                 <span
                   className="split-view-word"
+                  key="4"
                 >
                   .
                 </span>
                 <span
                   className="split-view-word removed"
+                  key="5"
                 >
                   _createInitialChildren(~/react/lib/ReactDOMComponent.js:699:0)
                 </span>
@@ -1178,38 +1348,46 @@ exports[`IssueDiff can dynamically import SplitDiff 1`] = `
               >
                 <span
                   className="split-view-word"
+                  key="0"
                 >
                       
                 </span>
                 <span
                   className="split-view-word added"
+                  key="1"
                 >
                   renderedComponent
                 </span>
                 <span
                   className="split-view-word"
+                  key="2"
                 >
                    
                 </span>
                 <span
                   className="split-view-word added"
+                  key="3"
                 >
                   = this
                 </span>
                 <span
                   className="split-view-word"
+                  key="4"
                 >
                   .
                 </span>
                 <span
                   className="split-view-word added"
+                  key="5"
                 >
                   _renderValidatedComponentWithoutOwnerOrContext();
                 </span>
               </div>
             </td>
           </tr>
-          <tr>
+          <tr
+            key="11"
+          >
             <td
               className="split-view-cell removed-row"
             >
@@ -1218,51 +1396,61 @@ exports[`IssueDiff can dynamically import SplitDiff 1`] = `
               >
                 <span
                   className="split-view-word"
+                  key="0"
                 >
                     
                 </span>
                 <span
                   className="split-view-word removed"
+                  key="1"
                 >
                   at
                 </span>
                 <span
                   className="split-view-word"
+                  key="2"
                 >
                    
                 </span>
                 <span
                   className="split-view-word removed"
+                  key="3"
                 >
                   ReactDOMComponent.mountComponent(~/
                 </span>
                 <span
                   className="split-view-word"
+                  key="4"
                 >
                   react/lib/
                 </span>
                 <span
                   className="split-view-word removed"
+                  key="5"
                 >
                   ReactDOMComponent
                 </span>
                 <span
                   className="split-view-word"
+                  key="6"
                 >
                   .js
                 </span>
                 <span
                   className="split-view-word removed"
+                  key="7"
                 >
                   :524:
                 </span>
                 <span
                   className="split-view-word"
+                  key="8"
                 >
                   0
                 </span>
                 <span
                   className="split-view-word removed"
+                  key="9"
                 >
                   )
                 </span>
@@ -1283,58 +1471,70 @@ exports[`IssueDiff can dynamically import SplitDiff 1`] = `
               >
                 <span
                   className="split-view-word"
+                  key="0"
                 >
                     
                 </span>
                 <span
                   className="split-view-word added"
+                  key="1"
                 >
                   File
                 </span>
                 <span
                   className="split-view-word"
+                  key="2"
                 >
                    
                 </span>
                 <span
                   className="split-view-word added"
+                  key="3"
                 >
                   "~/
                 </span>
                 <span
                   className="split-view-word"
+                  key="4"
                 >
                   react/lib/
                 </span>
                 <span
                   className="split-view-word added"
+                  key="5"
                 >
                   ReactCompositeComponent
                 </span>
                 <span
                   className="split-view-word"
+                  key="6"
                 >
                   .js
                 </span>
                 <span
                   className="split-view-word added"
+                  key="7"
                 >
                   ", line 361, col 
                 </span>
                 <span
                   className="split-view-word"
+                  key="8"
                 >
                   0
                 </span>
                 <span
                   className="split-view-word added"
+                  key="9"
                 >
                   , in ReactCompositeComponentWrapper.performInitialMount
                 </span>
               </div>
             </td>
           </tr>
-          <tr>
+          <tr
+            key="12"
+          >
             <td
               className="split-view-cell removed-row"
             >
@@ -1343,31 +1543,37 @@ exports[`IssueDiff can dynamically import SplitDiff 1`] = `
               >
                 <span
                   className="split-view-word"
+                  key="0"
                 >
                       
                 </span>
                 <span
                   className="split-view-word removed"
+                  key="1"
                 >
                   at
                 </span>
                 <span
                   className="split-view-word"
+                  key="2"
                 >
                    
                 </span>
                 <span
                   className="split-view-word removed"
+                  key="3"
                 >
                   Object
                 </span>
                 <span
                   className="split-view-word"
+                  key="4"
                 >
                   .
                 </span>
                 <span
                   className="split-view-word removed"
+                  key="5"
                 >
                   mountComponent(~/react/lib/ReactReconciler.js:47:0)
                 </span>
@@ -1388,38 +1594,46 @@ exports[`IssueDiff can dynamically import SplitDiff 1`] = `
               >
                 <span
                   className="split-view-word"
+                  key="0"
                 >
                       
                 </span>
                 <span
                   className="split-view-word added"
+                  key="1"
                 >
                   renderedElement
                 </span>
                 <span
                   className="split-view-word"
+                  key="2"
                 >
                    
                 </span>
                 <span
                   className="split-view-word added"
+                  key="3"
                 >
                   = this
                 </span>
                 <span
                   className="split-view-word"
+                  key="4"
                 >
                   .
                 </span>
                 <span
                   className="split-view-word added"
+                  key="5"
                 >
                   _renderValidatedComponent();
                 </span>
               </div>
             </td>
           </tr>
-          <tr>
+          <tr
+            key="13"
+          >
             <td
               className="split-view-cell removed-row"
             >
@@ -1428,51 +1642,61 @@ exports[`IssueDiff can dynamically import SplitDiff 1`] = `
               >
                 <span
                   className="split-view-word"
+                  key="0"
                 >
                     
                 </span>
                 <span
                   className="split-view-word removed"
+                  key="1"
                 >
                   at
                 </span>
                 <span
                   className="split-view-word"
+                  key="2"
                 >
                    
                 </span>
                 <span
                   className="split-view-word removed"
+                  key="3"
                 >
                   ReactDOMComponent.mountChildren(~/
                 </span>
                 <span
                   className="split-view-word"
+                  key="4"
                 >
                   react/lib/
                 </span>
                 <span
                   className="split-view-word removed"
+                  key="5"
                 >
                   ReactMultiChild
                 </span>
                 <span
                   className="split-view-word"
+                  key="6"
                 >
                   .js
                 </span>
                 <span
                   className="split-view-word removed"
+                  key="7"
                 >
                   :240:
                 </span>
                 <span
                   className="split-view-word"
+                  key="8"
                 >
                   0
                 </span>
                 <span
                   className="split-view-word removed"
+                  key="9"
                 >
                   )
                 </span>
@@ -1493,58 +1717,70 @@ exports[`IssueDiff can dynamically import SplitDiff 1`] = `
               >
                 <span
                   className="split-view-word"
+                  key="0"
                 >
                     
                 </span>
                 <span
                   className="split-view-word added"
+                  key="1"
                 >
                   File
                 </span>
                 <span
                   className="split-view-word"
+                  key="2"
                 >
                    
                 </span>
                 <span
                   className="split-view-word added"
+                  key="3"
                 >
                   "~/
                 </span>
                 <span
                   className="split-view-word"
+                  key="4"
                 >
                   react/lib/
                 </span>
                 <span
                   className="split-view-word added"
+                  key="5"
                 >
                   ReactCompositeComponent
                 </span>
                 <span
                   className="split-view-word"
+                  key="6"
                 >
                   .js
                 </span>
                 <span
                   className="split-view-word added"
+                  key="7"
                 >
                   ", line 257, col 
                 </span>
                 <span
                   className="split-view-word"
+                  key="8"
                 >
                   0
                 </span>
                 <span
                   className="split-view-word added"
+                  key="9"
                 >
                   , in ReactCompositeComponentWrapper.mountComponent
                 </span>
               </div>
             </td>
           </tr>
-          <tr>
+          <tr
+            key="14"
+          >
             <td
               className="split-view-cell removed-row"
             >
@@ -1553,31 +1789,37 @@ exports[`IssueDiff can dynamically import SplitDiff 1`] = `
               >
                 <span
                   className="split-view-word"
+                  key="0"
                 >
                       
                 </span>
                 <span
                   className="split-view-word removed"
+                  key="1"
                 >
                   at
                 </span>
                 <span
                   className="split-view-word"
+                  key="2"
                 >
                    
                 </span>
                 <span
                   className="split-view-word removed"
+                  key="3"
                 >
                   ReactDOMComponent
                 </span>
                 <span
                   className="split-view-word"
+                  key="4"
                 >
                   .
                 </span>
                 <span
                   className="split-view-word removed"
+                  key="5"
                 >
                   _createInitialChildren(~/react/lib/ReactDOMComponent.js:699:0)
                 </span>
@@ -1598,38 +1840,46 @@ exports[`IssueDiff can dynamically import SplitDiff 1`] = `
               >
                 <span
                   className="split-view-word"
+                  key="0"
                 >
                       
                 </span>
                 <span
                   className="split-view-word added"
+                  key="1"
                 >
                   markup
                 </span>
                 <span
                   className="split-view-word"
+                  key="2"
                 >
                    
                 </span>
                 <span
                   className="split-view-word added"
+                  key="3"
                 >
                   = this
                 </span>
                 <span
                   className="split-view-word"
+                  key="4"
                 >
                   .
                 </span>
                 <span
                   className="split-view-word added"
+                  key="5"
                 >
                   performInitialMount(renderedElement, hostParent, hostContainerInfo, transaction, context);
                 </span>
               </div>
             </td>
           </tr>
-          <tr>
+          <tr
+            key="15"
+          >
             <td
               className="split-view-cell removed-row"
             >
@@ -1638,51 +1888,61 @@ exports[`IssueDiff can dynamically import SplitDiff 1`] = `
               >
                 <span
                   className="split-view-word"
+                  key="0"
                 >
                     
                 </span>
                 <span
                   className="split-view-word removed"
+                  key="1"
                 >
                   at
                 </span>
                 <span
                   className="split-view-word"
+                  key="2"
                 >
                    
                 </span>
                 <span
                   className="split-view-word removed"
+                  key="3"
                 >
                   ReactDOMComponent.mountComponent(~/
                 </span>
                 <span
                   className="split-view-word"
+                  key="4"
                 >
                   react/lib/
                 </span>
                 <span
                   className="split-view-word removed"
+                  key="5"
                 >
                   ReactDOMComponent
                 </span>
                 <span
                   className="split-view-word"
+                  key="6"
                 >
                   .js
                 </span>
                 <span
                   className="split-view-word removed"
+                  key="7"
                 >
                   :524:
                 </span>
                 <span
                   className="split-view-word"
+                  key="8"
                 >
                   0
                 </span>
                 <span
                   className="split-view-word removed"
+                  key="9"
                 >
                   )
                 </span>
@@ -1703,58 +1963,70 @@ exports[`IssueDiff can dynamically import SplitDiff 1`] = `
               >
                 <span
                   className="split-view-word"
+                  key="0"
                 >
                     
                 </span>
                 <span
                   className="split-view-word added"
+                  key="1"
                 >
                   File
                 </span>
                 <span
                   className="split-view-word"
+                  key="2"
                 >
                    
                 </span>
                 <span
                   className="split-view-word added"
+                  key="3"
                 >
                   "~/
                 </span>
                 <span
                   className="split-view-word"
+                  key="4"
                 >
                   react/lib/
                 </span>
                 <span
                   className="split-view-word added"
+                  key="5"
                 >
                   ReactReconciler
                 </span>
                 <span
                   className="split-view-word"
+                  key="6"
                 >
                   .js
                 </span>
                 <span
                   className="split-view-word added"
+                  key="7"
                 >
                   ", line 47, col 
                 </span>
                 <span
                   className="split-view-word"
+                  key="8"
                 >
                   0
                 </span>
                 <span
                   className="split-view-word added"
+                  key="9"
                 >
                   , in Object.mountComponent
                 </span>
               </div>
             </td>
           </tr>
-          <tr>
+          <tr
+            key="16"
+          >
             <td
               className="split-view-cell removed-row"
             >
@@ -1763,31 +2035,37 @@ exports[`IssueDiff can dynamically import SplitDiff 1`] = `
               >
                 <span
                   className="split-view-word"
+                  key="0"
                 >
                       
                 </span>
                 <span
                   className="split-view-word removed"
+                  key="1"
                 >
                   at
                 </span>
                 <span
                   className="split-view-word"
+                  key="2"
                 >
                    
                 </span>
                 <span
                   className="split-view-word removed"
+                  key="3"
                 >
                   Object
                 </span>
                 <span
                   className="split-view-word"
+                  key="4"
                 >
                   .mountComponent
                 </span>
                 <span
                   className="split-view-word removed"
+                  key="5"
                 >
                   (~/react/lib/ReactReconciler.js:47:0)
                 </span>
@@ -1808,38 +2086,46 @@ exports[`IssueDiff can dynamically import SplitDiff 1`] = `
               >
                 <span
                   className="split-view-word"
+                  key="0"
                 >
                       
                 </span>
                 <span
                   className="split-view-word added"
+                  key="1"
                 >
                   var
                 </span>
                 <span
                   className="split-view-word"
+                  key="2"
                 >
                    
                 </span>
                 <span
                   className="split-view-word added"
+                  key="3"
                 >
                   markup = internalInstance
                 </span>
                 <span
                   className="split-view-word"
+                  key="4"
                 >
                   .mountComponent
                 </span>
                 <span
                   className="split-view-word added"
+                  key="5"
                 >
                   (transaction, hostParent, hostContainerInfo, context, parentDebugID);
                 </span>
               </div>
             </td>
           </tr>
-          <tr>
+          <tr
+            key="17"
+          >
             <td
               className="split-view-cell removed-row"
             >
@@ -1848,51 +2134,61 @@ exports[`IssueDiff can dynamically import SplitDiff 1`] = `
               >
                 <span
                   className="split-view-word"
+                  key="0"
                 >
                     
                 </span>
                 <span
                   className="split-view-word removed"
+                  key="1"
                 >
                   at
                 </span>
                 <span
                   className="split-view-word"
+                  key="2"
                 >
                    
                 </span>
                 <span
                   className="split-view-word removed"
+                  key="3"
                 >
                   ReactCompositeComponentWrapper.performInitialMount(~/
                 </span>
                 <span
                   className="split-view-word"
+                  key="4"
                 >
                   react/lib/
                 </span>
                 <span
                   className="split-view-word removed"
+                  key="5"
                 >
                   ReactCompositeComponent
                 </span>
                 <span
                   className="split-view-word"
+                  key="6"
                 >
                   .js
                 </span>
                 <span
                   className="split-view-word removed"
+                  key="7"
                 >
                   :370:
                 </span>
                 <span
                   className="split-view-word"
+                  key="8"
                 >
                   0
                 </span>
                 <span
                   className="split-view-word removed"
+                  key="9"
                 >
                   )
                 </span>
@@ -1913,58 +2209,70 @@ exports[`IssueDiff can dynamically import SplitDiff 1`] = `
               >
                 <span
                   className="split-view-word"
+                  key="0"
                 >
                     
                 </span>
                 <span
                   className="split-view-word added"
+                  key="1"
                 >
                   File
                 </span>
                 <span
                   className="split-view-word"
+                  key="2"
                 >
                    
                 </span>
                 <span
                   className="split-view-word added"
+                  key="3"
                 >
                   "~/
                 </span>
                 <span
                   className="split-view-word"
+                  key="4"
                 >
                   react/lib/
                 </span>
                 <span
                   className="split-view-word added"
+                  key="5"
                 >
                   ReactMultiChild
                 </span>
                 <span
                   className="split-view-word"
+                  key="6"
                 >
                   .js
                 </span>
                 <span
                   className="split-view-word added"
+                  key="7"
                 >
                   ", line 240, col 
                 </span>
                 <span
                   className="split-view-word"
+                  key="8"
                 >
                   0
                 </span>
                 <span
                   className="split-view-word added"
+                  key="9"
                 >
                   , in ReactDOMComponent.mountChildren
                 </span>
               </div>
             </td>
           </tr>
-          <tr>
+          <tr
+            key="18"
+          >
             <td
               className="split-view-cell removed-row"
             >
@@ -1973,41 +2281,49 @@ exports[`IssueDiff can dynamically import SplitDiff 1`] = `
               >
                 <span
                   className="split-view-word"
+                  key="0"
                 >
                       
                 </span>
                 <span
                   className="split-view-word removed"
+                  key="1"
                 >
                   at
                 </span>
                 <span
                   className="split-view-word"
+                  key="2"
                 >
                    
                 </span>
                 <span
                   className="split-view-word removed"
+                  key="3"
                 >
                   ReactCompositeComponentWrapper
                 </span>
                 <span
                   className="split-view-word"
+                  key="4"
                 >
                   .mountComponent
                 </span>
                 <span
                   className="split-view-word removed"
+                  key="5"
                 >
                   (~/react/lib/ReactCompositeComponent
                 </span>
                 <span
                   className="split-view-word"
+                  key="6"
                 >
                   .
                 </span>
                 <span
                   className="split-view-word removed"
+                  key="7"
                 >
                   js:257:0)
                 </span>
@@ -2028,48 +2344,58 @@ exports[`IssueDiff can dynamically import SplitDiff 1`] = `
               >
                 <span
                   className="split-view-word"
+                  key="0"
                 >
                       
                 </span>
                 <span
                   className="split-view-word added"
+                  key="1"
                 >
                   var
                 </span>
                 <span
                   className="split-view-word"
+                  key="2"
                 >
                    
                 </span>
                 <span
                   className="split-view-word added"
+                  key="3"
                 >
                   mountImage = ReactReconciler
                 </span>
                 <span
                   className="split-view-word"
+                  key="4"
                 >
                   .mountComponent
                 </span>
                 <span
                   className="split-view-word added"
+                  key="5"
                 >
                   (child, transaction, this, this
                 </span>
                 <span
                   className="split-view-word"
+                  key="6"
                 >
                   .
                 </span>
                 <span
                   className="split-view-word added"
+                  key="7"
                 >
                   _hostContainerInfo, context, selfDebugID);
                 </span>
               </div>
             </td>
           </tr>
-          <tr>
+          <tr
+            key="19"
+          >
             <td
               className="split-view-cell removed-row"
             >
@@ -2078,51 +2404,61 @@ exports[`IssueDiff can dynamically import SplitDiff 1`] = `
               >
                 <span
                   className="split-view-word"
+                  key="0"
                 >
                     
                 </span>
                 <span
                   className="split-view-word removed"
+                  key="1"
                 >
                   at
                 </span>
                 <span
                   className="split-view-word"
+                  key="2"
                 >
                    
                 </span>
                 <span
                   className="split-view-word removed"
+                  key="3"
                 >
                   Object.mountComponent(~/
                 </span>
                 <span
                   className="split-view-word"
+                  key="4"
                 >
                   react/lib/
                 </span>
                 <span
                   className="split-view-word removed"
+                  key="5"
                 >
                   ReactReconciler
                 </span>
                 <span
                   className="split-view-word"
+                  key="6"
                 >
                   .js
                 </span>
                 <span
                   className="split-view-word removed"
+                  key="7"
                 >
                   :47:
                 </span>
                 <span
                   className="split-view-word"
+                  key="8"
                 >
                   0
                 </span>
                 <span
                   className="split-view-word removed"
+                  key="9"
                 >
                   )
                 </span>
@@ -2143,58 +2479,70 @@ exports[`IssueDiff can dynamically import SplitDiff 1`] = `
               >
                 <span
                   className="split-view-word"
+                  key="0"
                 >
                     
                 </span>
                 <span
                   className="split-view-word added"
+                  key="1"
                 >
                   File
                 </span>
                 <span
                   className="split-view-word"
+                  key="2"
                 >
                    
                 </span>
                 <span
                   className="split-view-word added"
+                  key="3"
                 >
                   "~/
                 </span>
                 <span
                   className="split-view-word"
+                  key="4"
                 >
                   react/lib/
                 </span>
                 <span
                   className="split-view-word added"
+                  key="5"
                 >
                   ReactDOMComponent
                 </span>
                 <span
                   className="split-view-word"
+                  key="6"
                 >
                   .js
                 </span>
                 <span
                   className="split-view-word added"
+                  key="7"
                 >
                   ", line 699, col 
                 </span>
                 <span
                   className="split-view-word"
+                  key="8"
                 >
                   0
                 </span>
                 <span
                   className="split-view-word added"
+                  key="9"
                 >
                   , in ReactDOMComponent._createInitialChildren
                 </span>
               </div>
             </td>
           </tr>
-          <tr>
+          <tr
+            key="20"
+          >
             <td
               className="split-view-cell removed-row"
             >
@@ -2203,31 +2551,37 @@ exports[`IssueDiff can dynamically import SplitDiff 1`] = `
               >
                 <span
                   className="split-view-word"
+                  key="0"
                 >
                       
                 </span>
                 <span
                   className="split-view-word removed"
+                  key="1"
                 >
                   at
                 </span>
                 <span
                   className="split-view-word"
+                  key="2"
                 >
                    
                 </span>
                 <span
                   className="split-view-word removed"
+                  key="3"
                 >
                   ReactDOMComponent
                 </span>
                 <span
                   className="split-view-word"
+                  key="4"
                 >
                   .mountChildren
                 </span>
                 <span
                   className="split-view-word removed"
+                  key="5"
                 >
                   (~/react/lib/ReactMultiChild.js:240:0)
                 </span>
@@ -2248,38 +2602,46 @@ exports[`IssueDiff can dynamically import SplitDiff 1`] = `
               >
                 <span
                   className="split-view-word"
+                  key="0"
                 >
                       
                 </span>
                 <span
                   className="split-view-word added"
+                  key="1"
                 >
                   var
                 </span>
                 <span
                   className="split-view-word"
+                  key="2"
                 >
                    
                 </span>
                 <span
                   className="split-view-word added"
+                  key="3"
                 >
                   mountImages = this
                 </span>
                 <span
                   className="split-view-word"
+                  key="4"
                 >
                   .mountChildren
                 </span>
                 <span
                   className="split-view-word added"
+                  key="5"
                 >
                   (childrenToUse, transaction, context);
                 </span>
               </div>
             </td>
           </tr>
-          <tr>
+          <tr
+            key="21"
+          >
             <td
               className="split-view-cell removed-row"
             >
@@ -2288,41 +2650,49 @@ exports[`IssueDiff can dynamically import SplitDiff 1`] = `
               >
                 <span
                   className="split-view-word"
+                  key="0"
                 >
                     
                 </span>
                 <span
                   className="split-view-word removed"
+                  key="1"
                 >
                   at
                 </span>
                 <span
                   className="split-view-word"
+                  key="2"
                 >
                    
                 </span>
                 <span
                   className="split-view-word removed"
+                  key="3"
                 >
                   ReactDOMComponent._createInitialChildren(~/
                 </span>
                 <span
                   className="split-view-word"
+                  key="4"
                 >
                   react/lib/ReactDOMComponent.js
                 </span>
                 <span
                   className="split-view-word removed"
+                  key="5"
                 >
                   :699:
                 </span>
                 <span
                   className="split-view-word"
+                  key="6"
                 >
                   0
                 </span>
                 <span
                   className="split-view-word removed"
+                  key="7"
                 >
                   )
                 </span>
@@ -2343,48 +2713,58 @@ exports[`IssueDiff can dynamically import SplitDiff 1`] = `
               >
                 <span
                   className="split-view-word"
+                  key="0"
                 >
                     
                 </span>
                 <span
                   className="split-view-word added"
+                  key="1"
                 >
                   File
                 </span>
                 <span
                   className="split-view-word"
+                  key="2"
                 >
                    
                 </span>
                 <span
                   className="split-view-word added"
+                  key="3"
                 >
                   "~/
                 </span>
                 <span
                   className="split-view-word"
+                  key="4"
                 >
                   react/lib/ReactDOMComponent.js
                 </span>
                 <span
                   className="split-view-word added"
+                  key="5"
                 >
                   ", line 524, col 
                 </span>
                 <span
                   className="split-view-word"
+                  key="6"
                 >
                   0
                 </span>
                 <span
                   className="split-view-word added"
+                  key="7"
                 >
                   , in ReactDOMComponent.mountComponent
                 </span>
               </div>
             </td>
           </tr>
-          <tr>
+          <tr
+            key="22"
+          >
             <td
               className="split-view-cell removed-row"
             >
@@ -2393,21 +2773,25 @@ exports[`IssueDiff can dynamically import SplitDiff 1`] = `
               >
                 <span
                   className="split-view-word"
+                  key="0"
                 >
                       
                 </span>
                 <span
                   className="split-view-word removed"
+                  key="1"
                 >
                   at
                 </span>
                 <span
                   className="split-view-word"
+                  key="2"
                 >
                    
                 </span>
                 <span
                   className="split-view-word removed"
+                  key="3"
                 >
                   ReactDOMComponent.mountComponent(~/react/lib/ReactDOMComponent.js:524:0)
                 </span>
@@ -2428,28 +2812,34 @@ exports[`IssueDiff can dynamically import SplitDiff 1`] = `
               >
                 <span
                   className="split-view-word"
+                  key="0"
                 >
                       
                 </span>
                 <span
                   className="split-view-word added"
+                  key="1"
                 >
                   this._createInitialChildren(transaction,
                 </span>
                 <span
                   className="split-view-word"
+                  key="2"
                 >
                    
                 </span>
                 <span
                   className="split-view-word added"
+                  key="3"
                 >
                   props, context, lazyTree);
                 </span>
               </div>
             </td>
           </tr>
-          <tr>
+          <tr
+            key="23"
+          >
             <td
               className="split-view-cell removed-row"
             >
@@ -2458,51 +2848,61 @@ exports[`IssueDiff can dynamically import SplitDiff 1`] = `
               >
                 <span
                   className="split-view-word"
+                  key="0"
                 >
                     
                 </span>
                 <span
                   className="split-view-word removed"
+                  key="1"
                 >
                   at
                 </span>
                 <span
                   className="split-view-word"
+                  key="2"
                 >
                    
                 </span>
                 <span
                   className="split-view-word removed"
+                  key="3"
                 >
                   Object.mountComponent(~/
                 </span>
                 <span
                   className="split-view-word"
+                  key="4"
                 >
                   react/lib/ReactReconciler.js
                 </span>
                 <span
                   className="split-view-word removed"
+                  key="5"
                 >
                   :
                 </span>
                 <span
                   className="split-view-word"
+                  key="6"
                 >
                   47
                 </span>
                 <span
                   className="split-view-word removed"
+                  key="7"
                 >
                   :
                 </span>
                 <span
                   className="split-view-word"
+                  key="8"
                 >
                   0
                 </span>
                 <span
                   className="split-view-word removed"
+                  key="9"
                 >
                   )
                 </span>
@@ -2523,58 +2923,70 @@ exports[`IssueDiff can dynamically import SplitDiff 1`] = `
               >
                 <span
                   className="split-view-word"
+                  key="0"
                 >
                     
                 </span>
                 <span
                   className="split-view-word added"
+                  key="1"
                 >
                   File
                 </span>
                 <span
                   className="split-view-word"
+                  key="2"
                 >
                    
                 </span>
                 <span
                   className="split-view-word added"
+                  key="3"
                 >
                   "~/
                 </span>
                 <span
                   className="split-view-word"
+                  key="4"
                 >
                   react/lib/ReactReconciler.js
                 </span>
                 <span
                   className="split-view-word added"
+                  key="5"
                 >
                   ", line 
                 </span>
                 <span
                   className="split-view-word"
+                  key="6"
                 >
                   47
                 </span>
                 <span
                   className="split-view-word added"
+                  key="7"
                 >
                   , col 
                 </span>
                 <span
                   className="split-view-word"
+                  key="8"
                 >
                   0
                 </span>
                 <span
                   className="split-view-word added"
+                  key="9"
                 >
                   , in Object.mountComponent
                 </span>
               </div>
             </td>
           </tr>
-          <tr>
+          <tr
+            key="24"
+          >
             <td
               className="split-view-cell removed-row"
             >
@@ -2583,31 +2995,37 @@ exports[`IssueDiff can dynamically import SplitDiff 1`] = `
               >
                 <span
                   className="split-view-word"
+                  key="0"
                 >
                       
                 </span>
                 <span
                   className="split-view-word removed"
+                  key="1"
                 >
                   at
                 </span>
                 <span
                   className="split-view-word"
+                  key="2"
                 >
                    
                 </span>
                 <span
                   className="split-view-word removed"
+                  key="3"
                 >
                   Object
                 </span>
                 <span
                   className="split-view-word"
+                  key="4"
                 >
                   .
                 </span>
                 <span
                   className="split-view-word removed"
+                  key="5"
                 >
                   updateChildren(~/react/lib/ReactChildReconciler.js:122:0)
                 </span>
@@ -2628,38 +3046,46 @@ exports[`IssueDiff can dynamically import SplitDiff 1`] = `
               >
                 <span
                   className="split-view-word"
+                  key="0"
                 >
                       
                 </span>
                 <span
                   className="split-view-word added"
+                  key="1"
                 >
                   var
                 </span>
                 <span
                   className="split-view-word"
+                  key="2"
                 >
                    
                 </span>
                 <span
                   className="split-view-word added"
+                  key="3"
                 >
                   markup = internalInstance
                 </span>
                 <span
                   className="split-view-word"
+                  key="4"
                 >
                   .
                 </span>
                 <span
                   className="split-view-word added"
+                  key="5"
                 >
                   mountComponent(transaction, hostParent, hostContainerInfo, context, parentDebugID);
                 </span>
               </div>
             </td>
           </tr>
-          <tr>
+          <tr
+            key="25"
+          >
             <td
               className="split-view-cell removed-row"
             >
@@ -2668,51 +3094,61 @@ exports[`IssueDiff can dynamically import SplitDiff 1`] = `
               >
                 <span
                   className="split-view-word"
+                  key="0"
                 >
                     
                 </span>
                 <span
                   className="split-view-word removed"
+                  key="1"
                 >
                   at
                 </span>
                 <span
                   className="split-view-word"
+                  key="2"
                 >
                    
                 </span>
                 <span
                   className="split-view-word removed"
+                  key="3"
                 >
                   ReactDOMComponent._reconcilerUpdateChildren(~/
                 </span>
                 <span
                   className="split-view-word"
+                  key="4"
                 >
                   react/lib/
                 </span>
                 <span
                   className="split-view-word removed"
+                  key="5"
                 >
                   ReactMultiChild
                 </span>
                 <span
                   className="split-view-word"
+                  key="6"
                 >
                   .js
                 </span>
                 <span
                   className="split-view-word removed"
+                  key="7"
                 >
                   :210:
                 </span>
                 <span
                   className="split-view-word"
+                  key="8"
                 >
                   0
                 </span>
                 <span
                   className="split-view-word removed"
+                  key="9"
                 >
                   )
                 </span>
@@ -2733,58 +3169,70 @@ exports[`IssueDiff can dynamically import SplitDiff 1`] = `
               >
                 <span
                   className="split-view-word"
+                  key="0"
                 >
                     
                 </span>
                 <span
                   className="split-view-word added"
+                  key="1"
                 >
                   File
                 </span>
                 <span
                   className="split-view-word"
+                  key="2"
                 >
                    
                 </span>
                 <span
                   className="split-view-word added"
+                  key="3"
                 >
                   "~/
                 </span>
                 <span
                   className="split-view-word"
+                  key="4"
                 >
                   react/lib/
                 </span>
                 <span
                   className="split-view-word added"
+                  key="5"
                 >
                   ReactCompositeComponent
                 </span>
                 <span
                   className="split-view-word"
+                  key="6"
                 >
                   .js
                 </span>
                 <span
                   className="split-view-word added"
+                  key="7"
                 >
                   ", line 370, col 
                 </span>
                 <span
                   className="split-view-word"
+                  key="8"
                 >
                   0
                 </span>
                 <span
                   className="split-view-word added"
+                  key="9"
                 >
                   , in ReactCompositeComponentWrapper.performInitialMount
                 </span>
               </div>
             </td>
           </tr>
-          <tr>
+          <tr
+            key="26"
+          >
             <td
               className="split-view-cell removed-row"
             >
@@ -2793,41 +3241,49 @@ exports[`IssueDiff can dynamically import SplitDiff 1`] = `
               >
                 <span
                   className="split-view-word"
+                  key="0"
                 >
                       
                 </span>
                 <span
                   className="split-view-word removed"
+                  key="1"
                 >
                   at
                 </span>
                 <span
                   className="split-view-word"
+                  key="2"
                 >
                    
                 </span>
                 <span
                   className="split-view-word removed"
+                  key="3"
                 >
                   ReactDOMComponent
                 </span>
                 <span
                   className="split-view-word"
+                  key="4"
                 >
                   .
                 </span>
                 <span
                   className="split-view-word removed"
+                  key="5"
                 >
                   _updateChildren(~/react/lib/ReactMultiChild
                 </span>
                 <span
                   className="split-view-word"
+                  key="6"
                 >
                   .
                 </span>
                 <span
                   className="split-view-word removed"
+                  key="7"
                 >
                   js:314:0)
                 </span>
@@ -2848,48 +3304,58 @@ exports[`IssueDiff can dynamically import SplitDiff 1`] = `
               >
                 <span
                   className="split-view-word"
+                  key="0"
                 >
                       
                 </span>
                 <span
                   className="split-view-word added"
+                  key="1"
                 >
                   var
                 </span>
                 <span
                   className="split-view-word"
+                  key="2"
                 >
                    
                 </span>
                 <span
                   className="split-view-word added"
+                  key="3"
                 >
                   markup = ReactReconciler
                 </span>
                 <span
                   className="split-view-word"
+                  key="4"
                 >
                   .
                 </span>
                 <span
                   className="split-view-word added"
+                  key="5"
                 >
                   mountComponent(child, transaction, hostParent, hostContainerInfo, this
                 </span>
                 <span
                   className="split-view-word"
+                  key="6"
                 >
                   .
                 </span>
                 <span
                   className="split-view-word added"
+                  key="7"
                 >
                   _processChildContext(context), debugID);
                 </span>
               </div>
             </td>
           </tr>
-          <tr>
+          <tr
+            key="27"
+          >
             <td
               className="split-view-cell removed-row"
             >
@@ -2898,51 +3364,61 @@ exports[`IssueDiff can dynamically import SplitDiff 1`] = `
               >
                 <span
                   className="split-view-word"
+                  key="0"
                 >
                     
                 </span>
                 <span
                   className="split-view-word removed"
+                  key="1"
                 >
                   at
                 </span>
                 <span
                   className="split-view-word"
+                  key="2"
                 >
                    
                 </span>
                 <span
                   className="split-view-word removed"
+                  key="3"
                 >
                   ReactDOMComponent.updateChildren(~/
                 </span>
                 <span
                   className="split-view-word"
+                  key="4"
                 >
                   react/lib/
                 </span>
                 <span
                   className="split-view-word removed"
+                  key="5"
                 >
                   ReactMultiChild
                 </span>
                 <span
                   className="split-view-word"
+                  key="6"
                 >
                   .js
                 </span>
                 <span
                   className="split-view-word removed"
+                  key="7"
                 >
                   :301:
                 </span>
                 <span
                   className="split-view-word"
+                  key="8"
                 >
                   0
                 </span>
                 <span
                   className="split-view-word removed"
+                  key="9"
                 >
                   )
                 </span>
@@ -2963,58 +3439,70 @@ exports[`IssueDiff can dynamically import SplitDiff 1`] = `
               >
                 <span
                   className="split-view-word"
+                  key="0"
                 >
                     
                 </span>
                 <span
                   className="split-view-word added"
+                  key="1"
                 >
                   File
                 </span>
                 <span
                   className="split-view-word"
+                  key="2"
                 >
                    
                 </span>
                 <span
                   className="split-view-word added"
+                  key="3"
                 >
                   "~/
                 </span>
                 <span
                   className="split-view-word"
+                  key="4"
                 >
                   react/lib/
                 </span>
                 <span
                   className="split-view-word added"
+                  key="5"
                 >
                   ReactCompositeComponent
                 </span>
                 <span
                   className="split-view-word"
+                  key="6"
                 >
                   .js
                 </span>
                 <span
                   className="split-view-word added"
+                  key="7"
                 >
                   ", line 257, col 
                 </span>
                 <span
                   className="split-view-word"
+                  key="8"
                 >
                   0
                 </span>
                 <span
                   className="split-view-word added"
+                  key="9"
                 >
                   , in ReactCompositeComponentWrapper.mountComponent
                 </span>
               </div>
             </td>
           </tr>
-          <tr>
+          <tr
+            key="28"
+          >
             <td
               className="split-view-cell removed-row"
             >
@@ -3023,31 +3511,37 @@ exports[`IssueDiff can dynamically import SplitDiff 1`] = `
               >
                 <span
                   className="split-view-word"
+                  key="0"
                 >
                       
                 </span>
                 <span
                   className="split-view-word removed"
+                  key="1"
                 >
                   at
                 </span>
                 <span
                   className="split-view-word"
+                  key="2"
                 >
                    
                 </span>
                 <span
                   className="split-view-word removed"
+                  key="3"
                 >
                   ReactDOMComponent
                 </span>
                 <span
                   className="split-view-word"
+                  key="4"
                 >
                   .
                 </span>
                 <span
                   className="split-view-word removed"
+                  key="5"
                 >
                   _updateDOMChildren(~/react/lib/ReactDOMComponent.js:942:0)
                 </span>
@@ -3068,38 +3562,46 @@ exports[`IssueDiff can dynamically import SplitDiff 1`] = `
               >
                 <span
                   className="split-view-word"
+                  key="0"
                 >
                       
                 </span>
                 <span
                   className="split-view-word added"
+                  key="1"
                 >
                   markup
                 </span>
                 <span
                   className="split-view-word"
+                  key="2"
                 >
                    
                 </span>
                 <span
                   className="split-view-word added"
+                  key="3"
                 >
                   = this
                 </span>
                 <span
                   className="split-view-word"
+                  key="4"
                 >
                   .
                 </span>
                 <span
                   className="split-view-word added"
+                  key="5"
                 >
                   performInitialMount(renderedElement, hostParent, hostContainerInfo, transaction, context);
                 </span>
               </div>
             </td>
           </tr>
-          <tr>
+          <tr
+            key="29"
+          >
             <td
               className="split-view-cell removed-row"
             >
@@ -3108,51 +3610,61 @@ exports[`IssueDiff can dynamically import SplitDiff 1`] = `
               >
                 <span
                   className="split-view-word"
+                  key="0"
                 >
                     
                 </span>
                 <span
                   className="split-view-word removed"
+                  key="1"
                 >
                   at
                 </span>
                 <span
                   className="split-view-word"
+                  key="2"
                 >
                    
                 </span>
                 <span
                   className="split-view-word removed"
+                  key="3"
                 >
                   ReactDOMComponent.updateComponent(~/
                 </span>
                 <span
                   className="split-view-word"
+                  key="4"
                 >
                   react/lib/
                 </span>
                 <span
                   className="split-view-word removed"
+                  key="5"
                 >
                   ReactDOMComponent
                 </span>
                 <span
                   className="split-view-word"
+                  key="6"
                 >
                   .js
                 </span>
                 <span
                   className="split-view-word removed"
+                  key="7"
                 >
                   :760:
                 </span>
                 <span
                   className="split-view-word"
+                  key="8"
                 >
                   0
                 </span>
                 <span
                   className="split-view-word removed"
+                  key="9"
                 >
                   )
                 </span>
@@ -3173,58 +3685,70 @@ exports[`IssueDiff can dynamically import SplitDiff 1`] = `
               >
                 <span
                   className="split-view-word"
+                  key="0"
                 >
                     
                 </span>
                 <span
                   className="split-view-word added"
+                  key="1"
                 >
                   File
                 </span>
                 <span
                   className="split-view-word"
+                  key="2"
                 >
                    
                 </span>
                 <span
                   className="split-view-word added"
+                  key="3"
                 >
                   "~/
                 </span>
                 <span
                   className="split-view-word"
+                  key="4"
                 >
                   react/lib/
                 </span>
                 <span
                   className="split-view-word added"
+                  key="5"
                 >
                   ReactReconciler
                 </span>
                 <span
                   className="split-view-word"
+                  key="6"
                 >
                   .js
                 </span>
                 <span
                   className="split-view-word added"
+                  key="7"
                 >
                   ", line 47, col 
                 </span>
                 <span
                   className="split-view-word"
+                  key="8"
                 >
                   0
                 </span>
                 <span
                   className="split-view-word added"
+                  key="9"
                 >
                   , in Object.mountComponent
                 </span>
               </div>
             </td>
           </tr>
-          <tr>
+          <tr
+            key="30"
+          >
             <td
               className="split-view-cell removed-row"
             >
@@ -3233,31 +3757,37 @@ exports[`IssueDiff can dynamically import SplitDiff 1`] = `
               >
                 <span
                   className="split-view-word"
+                  key="0"
                 >
                       
                 </span>
                 <span
                   className="split-view-word removed"
+                  key="1"
                 >
                   at
                 </span>
                 <span
                   className="split-view-word"
+                  key="2"
                 >
                    
                 </span>
                 <span
                   className="split-view-word removed"
+                  key="3"
                 >
                   ReactDOMComponent
                 </span>
                 <span
                   className="split-view-word"
+                  key="4"
                 >
                   .
                 </span>
                 <span
                   className="split-view-word removed"
+                  key="5"
                 >
                   receiveComponent(~/react/lib/ReactDOMComponent.js:718:0)
                 </span>
@@ -3278,38 +3808,46 @@ exports[`IssueDiff can dynamically import SplitDiff 1`] = `
               >
                 <span
                   className="split-view-word"
+                  key="0"
                 >
                       
                 </span>
                 <span
                   className="split-view-word added"
+                  key="1"
                 >
                   var
                 </span>
                 <span
                   className="split-view-word"
+                  key="2"
                 >
                    
                 </span>
                 <span
                   className="split-view-word added"
+                  key="3"
                 >
                   markup = internalInstance
                 </span>
                 <span
                   className="split-view-word"
+                  key="4"
                 >
                   .
                 </span>
                 <span
                   className="split-view-word added"
+                  key="5"
                 >
                   mountComponent(transaction, hostParent, hostContainerInfo, context, parentDebugID);
                 </span>
               </div>
             </td>
           </tr>
-          <tr>
+          <tr
+            key="31"
+          >
             <td
               className="split-view-cell removed-row"
             >
@@ -3318,51 +3856,61 @@ exports[`IssueDiff can dynamically import SplitDiff 1`] = `
               >
                 <span
                   className="split-view-word"
+                  key="0"
                 >
                     
                 </span>
                 <span
                   className="split-view-word removed"
+                  key="1"
                 >
                   at
                 </span>
                 <span
                   className="split-view-word"
+                  key="2"
                 >
                    
                 </span>
                 <span
                   className="split-view-word removed"
+                  key="3"
                 >
                   Object.receiveComponent(~/
                 </span>
                 <span
                   className="split-view-word"
+                  key="4"
                 >
                   react/lib/
                 </span>
                 <span
                   className="split-view-word removed"
+                  key="5"
                 >
                   ReactReconciler
                 </span>
                 <span
                   className="split-view-word"
+                  key="6"
                 >
                   .js
                 </span>
                 <span
                   className="split-view-word removed"
+                  key="7"
                 >
                   :126:
                 </span>
                 <span
                   className="split-view-word"
+                  key="8"
                 >
                   0
                 </span>
                 <span
                   className="split-view-word removed"
+                  key="9"
                 >
                   )
                 </span>
@@ -3383,58 +3931,70 @@ exports[`IssueDiff can dynamically import SplitDiff 1`] = `
               >
                 <span
                   className="split-view-word"
+                  key="0"
                 >
                     
                 </span>
                 <span
                   className="split-view-word added"
+                  key="1"
                 >
                   File
                 </span>
                 <span
                   className="split-view-word"
+                  key="2"
                 >
                    
                 </span>
                 <span
                   className="split-view-word added"
+                  key="3"
                 >
                   "~/
                 </span>
                 <span
                   className="split-view-word"
+                  key="4"
                 >
                   react/lib/
                 </span>
                 <span
                   className="split-view-word added"
+                  key="5"
                 >
                   ReactMultiChild
                 </span>
                 <span
                   className="split-view-word"
+                  key="6"
                 >
                   .js
                 </span>
                 <span
                   className="split-view-word added"
+                  key="7"
                 >
                   ", line 240, col 
                 </span>
                 <span
                   className="split-view-word"
+                  key="8"
                 >
                   0
                 </span>
                 <span
                   className="split-view-word added"
+                  key="9"
                 >
                   , in ReactDOMComponent.mountChildren
                 </span>
               </div>
             </td>
           </tr>
-          <tr>
+          <tr
+            key="32"
+          >
             <td
               className="split-view-cell removed-row"
             >
@@ -3443,41 +4003,49 @@ exports[`IssueDiff can dynamically import SplitDiff 1`] = `
               >
                 <span
                   className="split-view-word"
+                  key="0"
                 >
                       
                 </span>
                 <span
                   className="split-view-word removed"
+                  key="1"
                 >
                   at
                 </span>
                 <span
                   className="split-view-word"
+                  key="2"
                 >
                    
                 </span>
                 <span
                   className="split-view-word removed"
+                  key="3"
                 >
                   Object
                 </span>
                 <span
                   className="split-view-word"
+                  key="4"
                 >
                   .
                 </span>
                 <span
                   className="split-view-word removed"
+                  key="5"
                 >
                   updateChildren(~/react/lib/ReactChildReconciler
                 </span>
                 <span
                   className="split-view-word"
+                  key="6"
                 >
                   .
                 </span>
                 <span
                   className="split-view-word removed"
+                  key="7"
                 >
                   js:110:0)
                 </span>
@@ -3498,48 +4066,58 @@ exports[`IssueDiff can dynamically import SplitDiff 1`] = `
               >
                 <span
                   className="split-view-word"
+                  key="0"
                 >
                       
                 </span>
                 <span
                   className="split-view-word added"
+                  key="1"
                 >
                   var
                 </span>
                 <span
                   className="split-view-word"
+                  key="2"
                 >
                    
                 </span>
                 <span
                   className="split-view-word added"
+                  key="3"
                 >
                   mountImage = ReactReconciler
                 </span>
                 <span
                   className="split-view-word"
+                  key="4"
                 >
                   .
                 </span>
                 <span
                   className="split-view-word added"
+                  key="5"
                 >
                   mountComponent(child, transaction, this, this
                 </span>
                 <span
                   className="split-view-word"
+                  key="6"
                 >
                   .
                 </span>
                 <span
                   className="split-view-word added"
+                  key="7"
                 >
                   _hostContainerInfo, context, selfDebugID);
                 </span>
               </div>
             </td>
           </tr>
-          <tr>
+          <tr
+            key="33"
+          >
             <td
               className="split-view-cell removed-row"
             >
@@ -3548,51 +4126,61 @@ exports[`IssueDiff can dynamically import SplitDiff 1`] = `
               >
                 <span
                   className="split-view-word"
+                  key="0"
                 >
                     
                 </span>
                 <span
                   className="split-view-word removed"
+                  key="1"
                 >
                   at
                 </span>
                 <span
                   className="split-view-word"
+                  key="2"
                 >
                    
                 </span>
                 <span
                   className="split-view-word removed"
+                  key="3"
                 >
                   ReactDOMComponent._reconcilerUpdateChildren(~/
                 </span>
                 <span
                   className="split-view-word"
+                  key="4"
                 >
                   react/lib/
                 </span>
                 <span
                   className="split-view-word removed"
+                  key="5"
                 >
                   ReactMultiChild
                 </span>
                 <span
                   className="split-view-word"
+                  key="6"
                 >
                   .js
                 </span>
                 <span
                   className="split-view-word removed"
+                  key="7"
                 >
                   :210:
                 </span>
                 <span
                   className="split-view-word"
+                  key="8"
                 >
                   0
                 </span>
                 <span
                   className="split-view-word removed"
+                  key="9"
                 >
                   )
                 </span>
@@ -3613,58 +4201,70 @@ exports[`IssueDiff can dynamically import SplitDiff 1`] = `
               >
                 <span
                   className="split-view-word"
+                  key="0"
                 >
                     
                 </span>
                 <span
                   className="split-view-word added"
+                  key="1"
                 >
                   File
                 </span>
                 <span
                   className="split-view-word"
+                  key="2"
                 >
                    
                 </span>
                 <span
                   className="split-view-word added"
+                  key="3"
                 >
                   "~/
                 </span>
                 <span
                   className="split-view-word"
+                  key="4"
                 >
                   react/lib/
                 </span>
                 <span
                   className="split-view-word added"
+                  key="5"
                 >
                   ReactDOMComponent
                 </span>
                 <span
                   className="split-view-word"
+                  key="6"
                 >
                   .js
                 </span>
                 <span
                   className="split-view-word added"
+                  key="7"
                 >
                   ", line 699, col 
                 </span>
                 <span
                   className="split-view-word"
+                  key="8"
                 >
                   0
                 </span>
                 <span
                   className="split-view-word added"
+                  key="9"
                 >
                   , in ReactDOMComponent._createInitialChildren
                 </span>
               </div>
             </td>
           </tr>
-          <tr>
+          <tr
+            key="34"
+          >
             <td
               className="split-view-cell removed-row"
             >
@@ -3673,31 +4273,37 @@ exports[`IssueDiff can dynamically import SplitDiff 1`] = `
               >
                 <span
                   className="split-view-word"
+                  key="0"
                 >
                       
                 </span>
                 <span
                   className="split-view-word removed"
+                  key="1"
                 >
                   at
                 </span>
                 <span
                   className="split-view-word"
+                  key="2"
                 >
                    
                 </span>
                 <span
                   className="split-view-word removed"
+                  key="3"
                 >
                   ReactDOMComponent
                 </span>
                 <span
                   className="split-view-word"
+                  key="4"
                 >
                   .
                 </span>
                 <span
                   className="split-view-word removed"
+                  key="5"
                 >
                   _updateChildren(~/react/lib/ReactMultiChild.js:314:0)
                 </span>
@@ -3718,38 +4324,46 @@ exports[`IssueDiff can dynamically import SplitDiff 1`] = `
               >
                 <span
                   className="split-view-word"
+                  key="0"
                 >
                       
                 </span>
                 <span
                   className="split-view-word added"
+                  key="1"
                 >
                   var
                 </span>
                 <span
                   className="split-view-word"
+                  key="2"
                 >
                    
                 </span>
                 <span
                   className="split-view-word added"
+                  key="3"
                 >
                   mountImages = this
                 </span>
                 <span
                   className="split-view-word"
+                  key="4"
                 >
                   .
                 </span>
                 <span
                   className="split-view-word added"
+                  key="5"
                 >
                   mountChildren(childrenToUse, transaction, context);
                 </span>
               </div>
             </td>
           </tr>
-          <tr>
+          <tr
+            key="35"
+          >
             <td
               className="split-view-cell removed-row"
             >
@@ -3758,51 +4372,61 @@ exports[`IssueDiff can dynamically import SplitDiff 1`] = `
               >
                 <span
                   className="split-view-word"
+                  key="0"
                 >
                     
                 </span>
                 <span
                   className="split-view-word removed"
+                  key="1"
                 >
                   at
                 </span>
                 <span
                   className="split-view-word"
+                  key="2"
                 >
                    
                 </span>
                 <span
                   className="split-view-word removed"
+                  key="3"
                 >
                   ReactDOMComponent.updateChildren(~/
                 </span>
                 <span
                   className="split-view-word"
+                  key="4"
                 >
                   react/lib/
                 </span>
                 <span
                   className="split-view-word removed"
+                  key="5"
                 >
                   ReactMultiChild
                 </span>
                 <span
                   className="split-view-word"
+                  key="6"
                 >
                   .js
                 </span>
                 <span
                   className="split-view-word removed"
+                  key="7"
                 >
                   :301:
                 </span>
                 <span
                   className="split-view-word"
+                  key="8"
                 >
                   0
                 </span>
                 <span
                   className="split-view-word removed"
+                  key="9"
                 >
                   )
                 </span>
@@ -3823,58 +4447,70 @@ exports[`IssueDiff can dynamically import SplitDiff 1`] = `
               >
                 <span
                   className="split-view-word"
+                  key="0"
                 >
                     
                 </span>
                 <span
                   className="split-view-word added"
+                  key="1"
                 >
                   File
                 </span>
                 <span
                   className="split-view-word"
+                  key="2"
                 >
                    
                 </span>
                 <span
                   className="split-view-word added"
+                  key="3"
                 >
                   "~/
                 </span>
                 <span
                   className="split-view-word"
+                  key="4"
                 >
                   react/lib/
                 </span>
                 <span
                   className="split-view-word added"
+                  key="5"
                 >
                   ReactDOMComponent
                 </span>
                 <span
                   className="split-view-word"
+                  key="6"
                 >
                   .js
                 </span>
                 <span
                   className="split-view-word added"
+                  key="7"
                 >
                   ", line 524, col 
                 </span>
                 <span
                   className="split-view-word"
+                  key="8"
                 >
                   0
                 </span>
                 <span
                   className="split-view-word added"
+                  key="9"
                 >
                   , in ReactDOMComponent.mountComponent
                 </span>
               </div>
             </td>
           </tr>
-          <tr>
+          <tr
+            key="36"
+          >
             <td
               className="split-view-cell removed-row"
             >
@@ -3883,21 +4519,25 @@ exports[`IssueDiff can dynamically import SplitDiff 1`] = `
               >
                 <span
                   className="split-view-word"
+                  key="0"
                 >
                       
                 </span>
                 <span
                   className="split-view-word removed"
+                  key="1"
                 >
                   at
                 </span>
                 <span
                   className="split-view-word"
+                  key="2"
                 >
                    
                 </span>
                 <span
                   className="split-view-word removed"
+                  key="3"
                 >
                   ReactDOMComponent._updateDOMChildren(~/react/lib/ReactDOMComponent.js:942:0)
                 </span>
@@ -3918,28 +4558,34 @@ exports[`IssueDiff can dynamically import SplitDiff 1`] = `
               >
                 <span
                   className="split-view-word"
+                  key="0"
                 >
                       
                 </span>
                 <span
                   className="split-view-word added"
+                  key="1"
                 >
                   this._createInitialChildren(transaction,
                 </span>
                 <span
                   className="split-view-word"
+                  key="2"
                 >
                    
                 </span>
                 <span
                   className="split-view-word added"
+                  key="3"
                 >
                   props, context, lazyTree);
                 </span>
               </div>
             </td>
           </tr>
-          <tr>
+          <tr
+            key="37"
+          >
             <td
               className="split-view-cell removed-row"
             >
@@ -3948,51 +4594,61 @@ exports[`IssueDiff can dynamically import SplitDiff 1`] = `
               >
                 <span
                   className="split-view-word"
+                  key="0"
                 >
                     
                 </span>
                 <span
                   className="split-view-word removed"
+                  key="1"
                 >
                   at
                 </span>
                 <span
                   className="split-view-word"
+                  key="2"
                 >
                    
                 </span>
                 <span
                   className="split-view-word removed"
+                  key="3"
                 >
                   ReactDOMComponent.updateComponent(~/
                 </span>
                 <span
                   className="split-view-word"
+                  key="4"
                 >
                   react/lib/
                 </span>
                 <span
                   className="split-view-word removed"
+                  key="5"
                 >
                   ReactDOMComponent
                 </span>
                 <span
                   className="split-view-word"
+                  key="6"
                 >
                   .js
                 </span>
                 <span
                   className="split-view-word removed"
+                  key="7"
                 >
                   :760:
                 </span>
                 <span
                   className="split-view-word"
+                  key="8"
                 >
                   0
                 </span>
                 <span
                   className="split-view-word removed"
+                  key="9"
                 >
                   )
                 </span>
@@ -4013,58 +4669,70 @@ exports[`IssueDiff can dynamically import SplitDiff 1`] = `
               >
                 <span
                   className="split-view-word"
+                  key="0"
                 >
                     
                 </span>
                 <span
                   className="split-view-word added"
+                  key="1"
                 >
                   File
                 </span>
                 <span
                   className="split-view-word"
+                  key="2"
                 >
                    
                 </span>
                 <span
                   className="split-view-word added"
+                  key="3"
                 >
                   "~/
                 </span>
                 <span
                   className="split-view-word"
+                  key="4"
                 >
                   react/lib/
                 </span>
                 <span
                   className="split-view-word added"
+                  key="5"
                 >
                   ReactReconciler
                 </span>
                 <span
                   className="split-view-word"
+                  key="6"
                 >
                   .js
                 </span>
                 <span
                   className="split-view-word added"
+                  key="7"
                 >
                   ", line 47, col 
                 </span>
                 <span
                   className="split-view-word"
+                  key="8"
                 >
                   0
                 </span>
                 <span
                   className="split-view-word added"
+                  key="9"
                 >
                   , in Object.mountComponent
                 </span>
               </div>
             </td>
           </tr>
-          <tr>
+          <tr
+            key="38"
+          >
             <td
               className="split-view-cell removed-row"
             >
@@ -4073,31 +4741,37 @@ exports[`IssueDiff can dynamically import SplitDiff 1`] = `
               >
                 <span
                   className="split-view-word"
+                  key="0"
                 >
                       
                 </span>
                 <span
                   className="split-view-word removed"
+                  key="1"
                 >
                   at
                 </span>
                 <span
                   className="split-view-word"
+                  key="2"
                 >
                    
                 </span>
                 <span
                   className="split-view-word removed"
+                  key="3"
                 >
                   ReactDOMComponent
                 </span>
                 <span
                   className="split-view-word"
+                  key="4"
                 >
                   .
                 </span>
                 <span
                   className="split-view-word removed"
+                  key="5"
                 >
                   receiveComponent(~/react/lib/ReactDOMComponent.js:718:0)
                 </span>
@@ -4118,38 +4792,46 @@ exports[`IssueDiff can dynamically import SplitDiff 1`] = `
               >
                 <span
                   className="split-view-word"
+                  key="0"
                 >
                       
                 </span>
                 <span
                   className="split-view-word added"
+                  key="1"
                 >
                   var
                 </span>
                 <span
                   className="split-view-word"
+                  key="2"
                 >
                    
                 </span>
                 <span
                   className="split-view-word added"
+                  key="3"
                 >
                   markup = internalInstance
                 </span>
                 <span
                   className="split-view-word"
+                  key="4"
                 >
                   .
                 </span>
                 <span
                   className="split-view-word added"
+                  key="5"
                 >
                   mountComponent(transaction, hostParent, hostContainerInfo, context, parentDebugID);
                 </span>
               </div>
             </td>
           </tr>
-          <tr>
+          <tr
+            key="39"
+          >
             <td
               className="split-view-cell removed-row"
             >
@@ -4158,51 +4840,61 @@ exports[`IssueDiff can dynamically import SplitDiff 1`] = `
               >
                 <span
                   className="split-view-word"
+                  key="0"
                 >
                     
                 </span>
                 <span
                   className="split-view-word removed"
+                  key="1"
                 >
                   at
                 </span>
                 <span
                   className="split-view-word"
+                  key="2"
                 >
                    
                 </span>
                 <span
                   className="split-view-word removed"
+                  key="3"
                 >
                   Object.receiveComponent(~/
                 </span>
                 <span
                   className="split-view-word"
+                  key="4"
                 >
                   react/lib/
                 </span>
                 <span
                   className="split-view-word removed"
+                  key="5"
                 >
                   ReactReconciler
                 </span>
                 <span
                   className="split-view-word"
+                  key="6"
                 >
                   .js
                 </span>
                 <span
                   className="split-view-word removed"
+                  key="7"
                 >
                   :126:
                 </span>
                 <span
                   className="split-view-word"
+                  key="8"
                 >
                   0
                 </span>
                 <span
                   className="split-view-word removed"
+                  key="9"
                 >
                   )
                 </span>
@@ -4223,58 +4915,70 @@ exports[`IssueDiff can dynamically import SplitDiff 1`] = `
               >
                 <span
                   className="split-view-word"
+                  key="0"
                 >
                     
                 </span>
                 <span
                   className="split-view-word added"
+                  key="1"
                 >
                   File
                 </span>
                 <span
                   className="split-view-word"
+                  key="2"
                 >
                    
                 </span>
                 <span
                   className="split-view-word added"
+                  key="3"
                 >
                   "~/
                 </span>
                 <span
                   className="split-view-word"
+                  key="4"
                 >
                   react/lib/
                 </span>
                 <span
                   className="split-view-word added"
+                  key="5"
                 >
                   ReactMultiChild
                 </span>
                 <span
                   className="split-view-word"
+                  key="6"
                 >
                   .js
                 </span>
                 <span
                   className="split-view-word added"
+                  key="7"
                 >
                   ", line 240, col 
                 </span>
                 <span
                   className="split-view-word"
+                  key="8"
                 >
                   0
                 </span>
                 <span
                   className="split-view-word added"
+                  key="9"
                 >
                   , in ReactDOMComponent.mountChildren
                 </span>
               </div>
             </td>
           </tr>
-          <tr>
+          <tr
+            key="40"
+          >
             <td
               className="split-view-cell removed-row"
             >
@@ -4283,41 +4987,49 @@ exports[`IssueDiff can dynamically import SplitDiff 1`] = `
               >
                 <span
                   className="split-view-word"
+                  key="0"
                 >
                       
                 </span>
                 <span
                   className="split-view-word removed"
+                  key="1"
                 >
                   at
                 </span>
                 <span
                   className="split-view-word"
+                  key="2"
                 >
                    
                 </span>
                 <span
                   className="split-view-word removed"
+                  key="3"
                 >
                   Object
                 </span>
                 <span
                   className="split-view-word"
+                  key="4"
                 >
                   .
                 </span>
                 <span
                   className="split-view-word removed"
+                  key="5"
                 >
                   updateChildren(~/react/lib/ReactChildReconciler
                 </span>
                 <span
                   className="split-view-word"
+                  key="6"
                 >
                   .
                 </span>
                 <span
                   className="split-view-word removed"
+                  key="7"
                 >
                   js:110:0)
                 </span>
@@ -4338,48 +5050,58 @@ exports[`IssueDiff can dynamically import SplitDiff 1`] = `
               >
                 <span
                   className="split-view-word"
+                  key="0"
                 >
                       
                 </span>
                 <span
                   className="split-view-word added"
+                  key="1"
                 >
                   var
                 </span>
                 <span
                   className="split-view-word"
+                  key="2"
                 >
                    
                 </span>
                 <span
                   className="split-view-word added"
+                  key="3"
                 >
                   mountImage = ReactReconciler
                 </span>
                 <span
                   className="split-view-word"
+                  key="4"
                 >
                   .
                 </span>
                 <span
                   className="split-view-word added"
+                  key="5"
                 >
                   mountComponent(child, transaction, this, this
                 </span>
                 <span
                   className="split-view-word"
+                  key="6"
                 >
                   .
                 </span>
                 <span
                   className="split-view-word added"
+                  key="7"
                 >
                   _hostContainerInfo, context, selfDebugID);
                 </span>
               </div>
             </td>
           </tr>
-          <tr>
+          <tr
+            key="41"
+          >
             <td
               className="split-view-cell removed-row"
             >
@@ -4388,51 +5110,61 @@ exports[`IssueDiff can dynamically import SplitDiff 1`] = `
               >
                 <span
                   className="split-view-word"
+                  key="0"
                 >
                     
                 </span>
                 <span
                   className="split-view-word removed"
+                  key="1"
                 >
                   at
                 </span>
                 <span
                   className="split-view-word"
+                  key="2"
                 >
                    
                 </span>
                 <span
                   className="split-view-word removed"
+                  key="3"
                 >
                   ReactDOMComponent._reconcilerUpdateChildren(~/
                 </span>
                 <span
                   className="split-view-word"
+                  key="4"
                 >
                   react/lib/
                 </span>
                 <span
                   className="split-view-word removed"
+                  key="5"
                 >
                   ReactMultiChild
                 </span>
                 <span
                   className="split-view-word"
+                  key="6"
                 >
                   .js
                 </span>
                 <span
                   className="split-view-word removed"
+                  key="7"
                 >
                   :210:
                 </span>
                 <span
                   className="split-view-word"
+                  key="8"
                 >
                   0
                 </span>
                 <span
                   className="split-view-word removed"
+                  key="9"
                 >
                   )
                 </span>
@@ -4453,58 +5185,70 @@ exports[`IssueDiff can dynamically import SplitDiff 1`] = `
               >
                 <span
                   className="split-view-word"
+                  key="0"
                 >
                     
                 </span>
                 <span
                   className="split-view-word added"
+                  key="1"
                 >
                   File
                 </span>
                 <span
                   className="split-view-word"
+                  key="2"
                 >
                    
                 </span>
                 <span
                   className="split-view-word added"
+                  key="3"
                 >
                   "~/
                 </span>
                 <span
                   className="split-view-word"
+                  key="4"
                 >
                   react/lib/
                 </span>
                 <span
                   className="split-view-word added"
+                  key="5"
                 >
                   ReactDOMComponent
                 </span>
                 <span
                   className="split-view-word"
+                  key="6"
                 >
                   .js
                 </span>
                 <span
                   className="split-view-word added"
+                  key="7"
                 >
                   ", line 699, col 
                 </span>
                 <span
                   className="split-view-word"
+                  key="8"
                 >
                   0
                 </span>
                 <span
                   className="split-view-word added"
+                  key="9"
                 >
                   , in ReactDOMComponent._createInitialChildren
                 </span>
               </div>
             </td>
           </tr>
-          <tr>
+          <tr
+            key="42"
+          >
             <td
               className="split-view-cell removed-row"
             >
@@ -4513,31 +5257,37 @@ exports[`IssueDiff can dynamically import SplitDiff 1`] = `
               >
                 <span
                   className="split-view-word"
+                  key="0"
                 >
                       
                 </span>
                 <span
                   className="split-view-word removed"
+                  key="1"
                 >
                   at
                 </span>
                 <span
                   className="split-view-word"
+                  key="2"
                 >
                    
                 </span>
                 <span
                   className="split-view-word removed"
+                  key="3"
                 >
                   ReactDOMComponent
                 </span>
                 <span
                   className="split-view-word"
+                  key="4"
                 >
                   .
                 </span>
                 <span
                   className="split-view-word removed"
+                  key="5"
                 >
                   _updateChildren(~/react/lib/ReactMultiChild.js:314:0)
                 </span>
@@ -4558,38 +5308,46 @@ exports[`IssueDiff can dynamically import SplitDiff 1`] = `
               >
                 <span
                   className="split-view-word"
+                  key="0"
                 >
                       
                 </span>
                 <span
                   className="split-view-word added"
+                  key="1"
                 >
                   var
                 </span>
                 <span
                   className="split-view-word"
+                  key="2"
                 >
                    
                 </span>
                 <span
                   className="split-view-word added"
+                  key="3"
                 >
                   mountImages = this
                 </span>
                 <span
                   className="split-view-word"
+                  key="4"
                 >
                   .
                 </span>
                 <span
                   className="split-view-word added"
+                  key="5"
                 >
                   mountChildren(childrenToUse, transaction, context);
                 </span>
               </div>
             </td>
           </tr>
-          <tr>
+          <tr
+            key="43"
+          >
             <td
               className="split-view-cell removed-row"
             >
@@ -4598,51 +5356,61 @@ exports[`IssueDiff can dynamically import SplitDiff 1`] = `
               >
                 <span
                   className="split-view-word"
+                  key="0"
                 >
                     
                 </span>
                 <span
                   className="split-view-word removed"
+                  key="1"
                 >
                   at
                 </span>
                 <span
                   className="split-view-word"
+                  key="2"
                 >
                    
                 </span>
                 <span
                   className="split-view-word removed"
+                  key="3"
                 >
                   ReactDOMComponent.updateChildren(~/
                 </span>
                 <span
                   className="split-view-word"
+                  key="4"
                 >
                   react/lib/
                 </span>
                 <span
                   className="split-view-word removed"
+                  key="5"
                 >
                   ReactMultiChild
                 </span>
                 <span
                   className="split-view-word"
+                  key="6"
                 >
                   .js
                 </span>
                 <span
                   className="split-view-word removed"
+                  key="7"
                 >
                   :301:
                 </span>
                 <span
                   className="split-view-word"
+                  key="8"
                 >
                   0
                 </span>
                 <span
                   className="split-view-word removed"
+                  key="9"
                 >
                   )
                 </span>
@@ -4663,58 +5431,70 @@ exports[`IssueDiff can dynamically import SplitDiff 1`] = `
               >
                 <span
                   className="split-view-word"
+                  key="0"
                 >
                     
                 </span>
                 <span
                   className="split-view-word added"
+                  key="1"
                 >
                   File
                 </span>
                 <span
                   className="split-view-word"
+                  key="2"
                 >
                    
                 </span>
                 <span
                   className="split-view-word added"
+                  key="3"
                 >
                   "~/
                 </span>
                 <span
                   className="split-view-word"
+                  key="4"
                 >
                   react/lib/
                 </span>
                 <span
                   className="split-view-word added"
+                  key="5"
                 >
                   ReactDOMComponent
                 </span>
                 <span
                   className="split-view-word"
+                  key="6"
                 >
                   .js
                 </span>
                 <span
                   className="split-view-word added"
+                  key="7"
                 >
                   ", line 524, col 
                 </span>
                 <span
                   className="split-view-word"
+                  key="8"
                 >
                   0
                 </span>
                 <span
                   className="split-view-word added"
+                  key="9"
                 >
                   , in ReactDOMComponent.mountComponent
                 </span>
               </div>
             </td>
           </tr>
-          <tr>
+          <tr
+            key="44"
+          >
             <td
               className="split-view-cell removed-row"
             >
@@ -4723,21 +5503,25 @@ exports[`IssueDiff can dynamically import SplitDiff 1`] = `
               >
                 <span
                   className="split-view-word"
+                  key="0"
                 >
                       
                 </span>
                 <span
                   className="split-view-word removed"
+                  key="1"
                 >
                   at
                 </span>
                 <span
                   className="split-view-word"
+                  key="2"
                 >
                    
                 </span>
                 <span
                   className="split-view-word removed"
+                  key="3"
                 >
                   ReactDOMComponent._updateDOMChildren(~/react/lib/ReactDOMComponent.js:942:0)
                 </span>
@@ -4758,28 +5542,34 @@ exports[`IssueDiff can dynamically import SplitDiff 1`] = `
               >
                 <span
                   className="split-view-word"
+                  key="0"
                 >
                       
                 </span>
                 <span
                   className="split-view-word added"
+                  key="1"
                 >
                   this._createInitialChildren(transaction,
                 </span>
                 <span
                   className="split-view-word"
+                  key="2"
                 >
                    
                 </span>
                 <span
                   className="split-view-word added"
+                  key="3"
                 >
                   props, context, lazyTree);
                 </span>
               </div>
             </td>
           </tr>
-          <tr>
+          <tr
+            key="45"
+          >
             <td
               className="split-view-cell removed-row"
             >
@@ -4788,51 +5578,61 @@ exports[`IssueDiff can dynamically import SplitDiff 1`] = `
               >
                 <span
                   className="split-view-word"
+                  key="0"
                 >
                     
                 </span>
                 <span
                   className="split-view-word removed"
+                  key="1"
                 >
                   at
                 </span>
                 <span
                   className="split-view-word"
+                  key="2"
                 >
                    
                 </span>
                 <span
                   className="split-view-word removed"
+                  key="3"
                 >
                   ReactDOMComponent.updateComponent(~/
                 </span>
                 <span
                   className="split-view-word"
+                  key="4"
                 >
                   react/lib/
                 </span>
                 <span
                   className="split-view-word removed"
+                  key="5"
                 >
                   ReactDOMComponent
                 </span>
                 <span
                   className="split-view-word"
+                  key="6"
                 >
                   .js
                 </span>
                 <span
                   className="split-view-word removed"
+                  key="7"
                 >
                   :760:
                 </span>
                 <span
                   className="split-view-word"
+                  key="8"
                 >
                   0
                 </span>
                 <span
                   className="split-view-word removed"
+                  key="9"
                 >
                   )
                 </span>
@@ -4853,58 +5653,70 @@ exports[`IssueDiff can dynamically import SplitDiff 1`] = `
               >
                 <span
                   className="split-view-word"
+                  key="0"
                 >
                     
                 </span>
                 <span
                   className="split-view-word added"
+                  key="1"
                 >
                   File
                 </span>
                 <span
                   className="split-view-word"
+                  key="2"
                 >
                    
                 </span>
                 <span
                   className="split-view-word added"
+                  key="3"
                 >
                   "~/
                 </span>
                 <span
                   className="split-view-word"
+                  key="4"
                 >
                   react/lib/
                 </span>
                 <span
                   className="split-view-word added"
+                  key="5"
                 >
                   ReactReconciler
                 </span>
                 <span
                   className="split-view-word"
+                  key="6"
                 >
                   .js
                 </span>
                 <span
                   className="split-view-word added"
+                  key="7"
                 >
                   ", line 47, col 
                 </span>
                 <span
                   className="split-view-word"
+                  key="8"
                 >
                   0
                 </span>
                 <span
                   className="split-view-word added"
+                  key="9"
                 >
                   , in Object.mountComponent
                 </span>
               </div>
             </td>
           </tr>
-          <tr>
+          <tr
+            key="46"
+          >
             <td
               className="split-view-cell removed-row"
             >
@@ -4913,31 +5725,37 @@ exports[`IssueDiff can dynamically import SplitDiff 1`] = `
               >
                 <span
                   className="split-view-word"
+                  key="0"
                 >
                       
                 </span>
                 <span
                   className="split-view-word removed"
+                  key="1"
                 >
                   at
                 </span>
                 <span
                   className="split-view-word"
+                  key="2"
                 >
                    
                 </span>
                 <span
                   className="split-view-word removed"
+                  key="3"
                 >
                   ReactDOMComponent
                 </span>
                 <span
                   className="split-view-word"
+                  key="4"
                 >
                   .
                 </span>
                 <span
                   className="split-view-word removed"
+                  key="5"
                 >
                   receiveComponent(~/react/lib/ReactDOMComponent.js:718:0)
                 </span>
@@ -4958,38 +5776,46 @@ exports[`IssueDiff can dynamically import SplitDiff 1`] = `
               >
                 <span
                   className="split-view-word"
+                  key="0"
                 >
                       
                 </span>
                 <span
                   className="split-view-word added"
+                  key="1"
                 >
                   var
                 </span>
                 <span
                   className="split-view-word"
+                  key="2"
                 >
                    
                 </span>
                 <span
                   className="split-view-word added"
+                  key="3"
                 >
                   markup = internalInstance
                 </span>
                 <span
                   className="split-view-word"
+                  key="4"
                 >
                   .
                 </span>
                 <span
                   className="split-view-word added"
+                  key="5"
                 >
                   mountComponent(transaction, hostParent, hostContainerInfo, context, parentDebugID);
                 </span>
               </div>
             </td>
           </tr>
-          <tr>
+          <tr
+            key="47"
+          >
             <td
               className="split-view-cell removed-row"
             >
@@ -4998,51 +5824,61 @@ exports[`IssueDiff can dynamically import SplitDiff 1`] = `
               >
                 <span
                   className="split-view-word"
+                  key="0"
                 >
                     
                 </span>
                 <span
                   className="split-view-word removed"
+                  key="1"
                 >
                   at
                 </span>
                 <span
                   className="split-view-word"
+                  key="2"
                 >
                    
                 </span>
                 <span
                   className="split-view-word removed"
+                  key="3"
                 >
                   Object.receiveComponent(~/
                 </span>
                 <span
                   className="split-view-word"
+                  key="4"
                 >
                   react/lib/
                 </span>
                 <span
                   className="split-view-word removed"
+                  key="5"
                 >
                   ReactReconciler
                 </span>
                 <span
                   className="split-view-word"
+                  key="6"
                 >
                   .js
                 </span>
                 <span
                   className="split-view-word removed"
+                  key="7"
                 >
                   :126:
                 </span>
                 <span
                   className="split-view-word"
+                  key="8"
                 >
                   0
                 </span>
                 <span
                   className="split-view-word removed"
+                  key="9"
                 >
                   )
                 </span>
@@ -5063,58 +5899,70 @@ exports[`IssueDiff can dynamically import SplitDiff 1`] = `
               >
                 <span
                   className="split-view-word"
+                  key="0"
                 >
                     
                 </span>
                 <span
                   className="split-view-word added"
+                  key="1"
                 >
                   File
                 </span>
                 <span
                   className="split-view-word"
+                  key="2"
                 >
                    
                 </span>
                 <span
                   className="split-view-word added"
+                  key="3"
                 >
                   "~/
                 </span>
                 <span
                   className="split-view-word"
+                  key="4"
                 >
                   react/lib/
                 </span>
                 <span
                   className="split-view-word added"
+                  key="5"
                 >
                   ReactMultiChild
                 </span>
                 <span
                   className="split-view-word"
+                  key="6"
                 >
                   .js
                 </span>
                 <span
                   className="split-view-word added"
+                  key="7"
                 >
                   ", line 240, col 
                 </span>
                 <span
                   className="split-view-word"
+                  key="8"
                 >
                   0
                 </span>
                 <span
                   className="split-view-word added"
+                  key="9"
                 >
                   , in ReactDOMComponent.mountChildren
                 </span>
               </div>
             </td>
           </tr>
-          <tr>
+          <tr
+            key="48"
+          >
             <td
               className="split-view-cell removed-row"
             >
@@ -5123,41 +5971,49 @@ exports[`IssueDiff can dynamically import SplitDiff 1`] = `
               >
                 <span
                   className="split-view-word"
+                  key="0"
                 >
                       
                 </span>
                 <span
                   className="split-view-word removed"
+                  key="1"
                 >
                   at
                 </span>
                 <span
                   className="split-view-word"
+                  key="2"
                 >
                    
                 </span>
                 <span
                   className="split-view-word removed"
+                  key="3"
                 >
                   ReactCompositeComponentWrapper
                 </span>
                 <span
                   className="split-view-word"
+                  key="4"
                 >
                   .
                 </span>
                 <span
                   className="split-view-word removed"
+                  key="5"
                 >
                   _updateRenderedComponent(~/react/lib/ReactCompositeComponent
                 </span>
                 <span
                   className="split-view-word"
+                  key="6"
                 >
                   .
                 </span>
                 <span
                   className="split-view-word removed"
+                  key="7"
                 >
                   js:751:0)
                 </span>
@@ -5178,48 +6034,58 @@ exports[`IssueDiff can dynamically import SplitDiff 1`] = `
               >
                 <span
                   className="split-view-word"
+                  key="0"
                 >
                       
                 </span>
                 <span
                   className="split-view-word added"
+                  key="1"
                 >
                   var
                 </span>
                 <span
                   className="split-view-word"
+                  key="2"
                 >
                    
                 </span>
                 <span
                   className="split-view-word added"
+                  key="3"
                 >
                   mountImage = ReactReconciler
                 </span>
                 <span
                   className="split-view-word"
+                  key="4"
                 >
                   .
                 </span>
                 <span
                   className="split-view-word added"
+                  key="5"
                 >
                   mountComponent(child, transaction, this, this
                 </span>
                 <span
                   className="split-view-word"
+                  key="6"
                 >
                   .
                 </span>
                 <span
                   className="split-view-word added"
+                  key="7"
                 >
                   _hostContainerInfo, context, selfDebugID);
                 </span>
               </div>
             </td>
           </tr>
-          <tr>
+          <tr
+            key="49"
+          >
             <td
               className="split-view-cell removed-row"
             >
@@ -5228,51 +6094,61 @@ exports[`IssueDiff can dynamically import SplitDiff 1`] = `
               >
                 <span
                   className="split-view-word"
+                  key="0"
                 >
                     
                 </span>
                 <span
                   className="split-view-word removed"
+                  key="1"
                 >
                   at
                 </span>
                 <span
                   className="split-view-word"
+                  key="2"
                 >
                    
                 </span>
                 <span
                   className="split-view-word removed"
+                  key="3"
                 >
                   ReactCompositeComponentWrapper._performComponentUpdate(~/
                 </span>
                 <span
                   className="split-view-word"
+                  key="4"
                 >
                   react/lib/
                 </span>
                 <span
                   className="split-view-word removed"
+                  key="5"
                 >
                   ReactCompositeComponent
                 </span>
                 <span
                   className="split-view-word"
+                  key="6"
                 >
                   .js
                 </span>
                 <span
                   className="split-view-word removed"
+                  key="7"
                 >
                   :721:
                 </span>
                 <span
                   className="split-view-word"
+                  key="8"
                 >
                   0
                 </span>
                 <span
                   className="split-view-word removed"
+                  key="9"
                 >
                   )
                 </span>
@@ -5293,58 +6169,70 @@ exports[`IssueDiff can dynamically import SplitDiff 1`] = `
               >
                 <span
                   className="split-view-word"
+                  key="0"
                 >
                     
                 </span>
                 <span
                   className="split-view-word added"
+                  key="1"
                 >
                   File
                 </span>
                 <span
                   className="split-view-word"
+                  key="2"
                 >
                    
                 </span>
                 <span
                   className="split-view-word added"
+                  key="3"
                 >
                   "~/
                 </span>
                 <span
                   className="split-view-word"
+                  key="4"
                 >
                   react/lib/
                 </span>
                 <span
                   className="split-view-word added"
+                  key="5"
                 >
                   ReactDOMComponent
                 </span>
                 <span
                   className="split-view-word"
+                  key="6"
                 >
                   .js
                 </span>
                 <span
                   className="split-view-word added"
+                  key="7"
                 >
                   ", line 699, col 
                 </span>
                 <span
                   className="split-view-word"
+                  key="8"
                 >
                   0
                 </span>
                 <span
                   className="split-view-word added"
+                  key="9"
                 >
                   , in ReactDOMComponent._createInitialChildren
                 </span>
               </div>
             </td>
           </tr>
-          <tr>
+          <tr
+            key="50"
+          >
             <td
               className="split-view-cell removed-row"
             >
@@ -5353,31 +6241,37 @@ exports[`IssueDiff can dynamically import SplitDiff 1`] = `
               >
                 <span
                   className="split-view-word"
+                  key="0"
                 >
                       
                 </span>
                 <span
                   className="split-view-word removed"
+                  key="1"
                 >
                   at
                 </span>
                 <span
                   className="split-view-word"
+                  key="2"
                 >
                    
                 </span>
                 <span
                   className="split-view-word removed"
+                  key="3"
                 >
                   ReactCompositeComponentWrapper
                 </span>
                 <span
                   className="split-view-word"
+                  key="4"
                 >
                   .
                 </span>
                 <span
                   className="split-view-word removed"
+                  key="5"
                 >
                   updateComponent(~/react/lib/ReactCompositeComponent.js:642:0)
                 </span>
@@ -5398,38 +6292,46 @@ exports[`IssueDiff can dynamically import SplitDiff 1`] = `
               >
                 <span
                   className="split-view-word"
+                  key="0"
                 >
                       
                 </span>
                 <span
                   className="split-view-word added"
+                  key="1"
                 >
                   var
                 </span>
                 <span
                   className="split-view-word"
+                  key="2"
                 >
                    
                 </span>
                 <span
                   className="split-view-word added"
+                  key="3"
                 >
                   mountImages = this
                 </span>
                 <span
                   className="split-view-word"
+                  key="4"
                 >
                   .
                 </span>
                 <span
                   className="split-view-word added"
+                  key="5"
                 >
                   mountChildren(childrenToUse, transaction, context);
                 </span>
               </div>
             </td>
           </tr>
-          <tr>
+          <tr
+            key="51"
+          >
             <td
               className="split-view-cell"
             >
@@ -5452,13 +6354,16 @@ exports[`IssueDiff can dynamically import SplitDiff 1`] = `
               >
                 <span
                   className="split-view-word added"
+                  key="0"
                 >
                     File "~/react/lib/ReactDOMComponent.js", line 524, col 0, in ReactDOMComponent.mountComponent
                 </span>
               </div>
             </td>
           </tr>
-          <tr>
+          <tr
+            key="52"
+          >
             <td
               className="split-view-cell"
             >
@@ -5481,13 +6386,16 @@ exports[`IssueDiff can dynamically import SplitDiff 1`] = `
               >
                 <span
                   className="split-view-word added"
+                  key="0"
                 >
                       this._createInitialChildren(transaction, props, context, lazyTree);
                 </span>
               </div>
             </td>
           </tr>
-          <tr>
+          <tr
+            key="53"
+          >
             <td
               className="split-view-cell"
             >
@@ -5510,13 +6418,16 @@ exports[`IssueDiff can dynamically import SplitDiff 1`] = `
               >
                 <span
                   className="split-view-word added"
+                  key="0"
                 >
                     File "~/react/lib/ReactReconciler.js", line 47, col 0, in Object.mountComponent
                 </span>
               </div>
             </td>
           </tr>
-          <tr>
+          <tr
+            key="54"
+          >
             <td
               className="split-view-cell"
             >
@@ -5539,13 +6450,16 @@ exports[`IssueDiff can dynamically import SplitDiff 1`] = `
               >
                 <span
                   className="split-view-word added"
+                  key="0"
                 >
                       var markup = internalInstance.mountComponent(transaction, hostParent, hostContainerInfo, context, parentDebugID);
                 </span>
               </div>
             </td>
           </tr>
-          <tr>
+          <tr
+            key="55"
+          >
             <td
               className="split-view-cell"
             >
@@ -5568,13 +6482,16 @@ exports[`IssueDiff can dynamically import SplitDiff 1`] = `
               >
                 <span
                   className="split-view-word added"
+                  key="0"
                 >
                     File "~/react/lib/ReactCompositeComponent.js", line 370, col 0, in ReactCompositeComponentWrapper.performInitialMount
                 </span>
               </div>
             </td>
           </tr>
-          <tr>
+          <tr
+            key="56"
+          >
             <td
               className="split-view-cell"
             >
@@ -5597,13 +6514,16 @@ exports[`IssueDiff can dynamically import SplitDiff 1`] = `
               >
                 <span
                   className="split-view-word added"
+                  key="0"
                 >
                       var markup = ReactReconciler.mountComponent(child, transaction, hostParent, hostContainerInfo, this._processChildContext(context), debugID);
                 </span>
               </div>
             </td>
           </tr>
-          <tr>
+          <tr
+            key="57"
+          >
             <td
               className="split-view-cell"
             >
@@ -5626,13 +6546,16 @@ exports[`IssueDiff can dynamically import SplitDiff 1`] = `
               >
                 <span
                   className="split-view-word added"
+                  key="0"
                 >
                     File "~/react/lib/ReactCompositeComponent.js", line 257, col 0, in ReactCompositeComponentWrapper.mountComponent
                 </span>
               </div>
             </td>
           </tr>
-          <tr>
+          <tr
+            key="58"
+          >
             <td
               className="split-view-cell"
             >
@@ -5655,13 +6578,16 @@ exports[`IssueDiff can dynamically import SplitDiff 1`] = `
               >
                 <span
                   className="split-view-word added"
+                  key="0"
                 >
                       markup = this.performInitialMount(renderedElement, hostParent, hostContainerInfo, transaction, context);
                 </span>
               </div>
             </td>
           </tr>
-          <tr>
+          <tr
+            key="59"
+          >
             <td
               className="split-view-cell"
             >
@@ -5684,13 +6610,16 @@ exports[`IssueDiff can dynamically import SplitDiff 1`] = `
               >
                 <span
                   className="split-view-word added"
+                  key="0"
                 >
                     File "~/react/lib/ReactReconciler.js", line 47, col 0, in Object.mountComponent
                 </span>
               </div>
             </td>
           </tr>
-          <tr>
+          <tr
+            key="60"
+          >
             <td
               className="split-view-cell"
             >
@@ -5713,13 +6642,16 @@ exports[`IssueDiff can dynamically import SplitDiff 1`] = `
               >
                 <span
                   className="split-view-word added"
+                  key="0"
                 >
                       var markup = internalInstance.mountComponent(transaction, hostParent, hostContainerInfo, context, parentDebugID);
                 </span>
               </div>
             </td>
           </tr>
-          <tr>
+          <tr
+            key="61"
+          >
             <td
               className="split-view-cell"
             >
@@ -5742,13 +6674,16 @@ exports[`IssueDiff can dynamically import SplitDiff 1`] = `
               >
                 <span
                   className="split-view-word added"
+                  key="0"
                 >
                     File "~/react/lib/ReactCompositeComponent.js", line 370, col 0, in ReactCompositeComponentWrapper.performInitialMount
                 </span>
               </div>
             </td>
           </tr>
-          <tr>
+          <tr
+            key="62"
+          >
             <td
               className="split-view-cell"
             >
@@ -5771,13 +6706,16 @@ exports[`IssueDiff can dynamically import SplitDiff 1`] = `
               >
                 <span
                   className="split-view-word added"
+                  key="0"
                 >
                       var markup = ReactReconciler.mountComponent(child, transaction, hostParent, hostContainerInfo, this._processChildContext(context), debugID);
                 </span>
               </div>
             </td>
           </tr>
-          <tr>
+          <tr
+            key="63"
+          >
             <td
               className="split-view-cell"
             >
@@ -5800,13 +6738,16 @@ exports[`IssueDiff can dynamically import SplitDiff 1`] = `
               >
                 <span
                   className="split-view-word added"
+                  key="0"
                 >
                     File "~/react/lib/ReactCompositeComponent.js", line 257, col 0, in ReactCompositeComponentWrapper.mountComponent
                 </span>
               </div>
             </td>
           </tr>
-          <tr>
+          <tr
+            key="64"
+          >
             <td
               className="split-view-cell"
             >
@@ -5829,13 +6770,16 @@ exports[`IssueDiff can dynamically import SplitDiff 1`] = `
               >
                 <span
                   className="split-view-word added"
+                  key="0"
                 >
                       markup = this.performInitialMount(renderedElement, hostParent, hostContainerInfo, transaction, context);
                 </span>
               </div>
             </td>
           </tr>
-          <tr>
+          <tr
+            key="65"
+          >
             <td
               className="split-view-cell"
             >
@@ -5858,13 +6802,16 @@ exports[`IssueDiff can dynamically import SplitDiff 1`] = `
               >
                 <span
                   className="split-view-word added"
+                  key="0"
                 >
                     File "~/react/lib/ReactReconciler.js", line 47, col 0, in Object.mountComponent
                 </span>
               </div>
             </td>
           </tr>
-          <tr>
+          <tr
+            key="66"
+          >
             <td
               className="split-view-cell"
             >
@@ -5887,13 +6834,16 @@ exports[`IssueDiff can dynamically import SplitDiff 1`] = `
               >
                 <span
                   className="split-view-word added"
+                  key="0"
                 >
                       var markup = internalInstance.mountComponent(transaction, hostParent, hostContainerInfo, context, parentDebugID);
                 </span>
               </div>
             </td>
           </tr>
-          <tr>
+          <tr
+            key="67"
+          >
             <td
               className="split-view-cell"
             >
@@ -5916,13 +6866,16 @@ exports[`IssueDiff can dynamically import SplitDiff 1`] = `
               >
                 <span
                   className="split-view-word added"
+                  key="0"
                 >
                     File "~/react/lib/ReactChildReconciler.js", line 122, col 0, in Object.updateChildren
                 </span>
               </div>
             </td>
           </tr>
-          <tr>
+          <tr
+            key="68"
+          >
             <td
               className="split-view-cell"
             >
@@ -5945,13 +6898,16 @@ exports[`IssueDiff can dynamically import SplitDiff 1`] = `
               >
                 <span
                   className="split-view-word added"
+                  key="0"
                 >
                       var nextChildMountImage = ReactReconciler.mountComponent(nextChildInstance, transaction, hostParent, hostContainerInfo, context, selfDebugID);
                 </span>
               </div>
             </td>
           </tr>
-          <tr>
+          <tr
+            key="69"
+          >
             <td
               className="split-view-cell"
             >
@@ -5974,13 +6930,16 @@ exports[`IssueDiff can dynamically import SplitDiff 1`] = `
               >
                 <span
                   className="split-view-word added"
+                  key="0"
                 >
                     File "~/react/lib/ReactMultiChild.js", line 210, col 0, in ReactDOMComponent._reconcilerUpdateChildren
                 </span>
               </div>
             </td>
           </tr>
-          <tr>
+          <tr
+            key="70"
+          >
             <td
               className="split-view-cell"
             >
@@ -6003,13 +6962,16 @@ exports[`IssueDiff can dynamically import SplitDiff 1`] = `
               >
                 <span
                   className="split-view-word added"
+                  key="0"
                 >
                       ReactChildReconciler.updateChildren(prevChildren, nextChildren, mountImages, removedNodes, transaction, this, this._hostContainerI {snip}
                 </span>
               </div>
             </td>
           </tr>
-          <tr>
+          <tr
+            key="71"
+          >
             <td
               className="split-view-cell"
             >
@@ -6032,13 +6994,16 @@ exports[`IssueDiff can dynamically import SplitDiff 1`] = `
               >
                 <span
                   className="split-view-word added"
+                  key="0"
                 >
                     File "~/react/lib/ReactMultiChild.js", line 314, col 0, in ReactDOMComponent._updateChildren
                 </span>
               </div>
             </td>
           </tr>
-          <tr>
+          <tr
+            key="72"
+          >
             <td
               className="split-view-cell"
             >
@@ -6061,13 +7026,16 @@ exports[`IssueDiff can dynamically import SplitDiff 1`] = `
               >
                 <span
                   className="split-view-word added"
+                  key="0"
                 >
                       var nextChildren = this._reconcilerUpdateChildren(prevChildren, nextNestedChildrenElements, mountImages, removedNodes, transaction, context);
                 </span>
               </div>
             </td>
           </tr>
-          <tr>
+          <tr
+            key="73"
+          >
             <td
               className="split-view-cell"
             >
@@ -6090,13 +7058,16 @@ exports[`IssueDiff can dynamically import SplitDiff 1`] = `
               >
                 <span
                   className="split-view-word added"
+                  key="0"
                 >
                     File "~/react/lib/ReactMultiChild.js", line 301, col 0, in ReactDOMComponent.updateChildren
                 </span>
               </div>
             </td>
           </tr>
-          <tr>
+          <tr
+            key="74"
+          >
             <td
               className="split-view-cell"
             >
@@ -6119,13 +7090,16 @@ exports[`IssueDiff can dynamically import SplitDiff 1`] = `
               >
                 <span
                   className="split-view-word added"
+                  key="0"
                 >
                       this._updateChildren(nextNestedChildrenElements, transaction, context);
                 </span>
               </div>
             </td>
           </tr>
-          <tr>
+          <tr
+            key="75"
+          >
             <td
               className="split-view-cell"
             >
@@ -6148,13 +7122,16 @@ exports[`IssueDiff can dynamically import SplitDiff 1`] = `
               >
                 <span
                   className="split-view-word added"
+                  key="0"
                 >
                     File "~/react/lib/ReactDOMComponent.js", line 942, col 0, in ReactDOMComponent._updateDOMChildren
                 </span>
               </div>
             </td>
           </tr>
-          <tr>
+          <tr
+            key="76"
+          >
             <td
               className="split-view-cell"
             >
@@ -6177,13 +7154,16 @@ exports[`IssueDiff can dynamically import SplitDiff 1`] = `
               >
                 <span
                   className="split-view-word added"
+                  key="0"
                 >
                       this.updateChildren(nextChildren, transaction, context);
                 </span>
               </div>
             </td>
           </tr>
-          <tr>
+          <tr
+            key="77"
+          >
             <td
               className="split-view-cell"
             >
@@ -6206,13 +7186,16 @@ exports[`IssueDiff can dynamically import SplitDiff 1`] = `
               >
                 <span
                   className="split-view-word added"
+                  key="0"
                 >
                     File "~/react/lib/ReactDOMComponent.js", line 760, col 0, in ReactDOMComponent.updateComponent
                 </span>
               </div>
             </td>
           </tr>
-          <tr>
+          <tr
+            key="78"
+          >
             <td
               className="split-view-cell"
             >
@@ -6235,13 +7218,16 @@ exports[`IssueDiff can dynamically import SplitDiff 1`] = `
               >
                 <span
                   className="split-view-word added"
+                  key="0"
                 >
                       this._updateDOMChildren(lastProps, nextProps, transaction, context);
                 </span>
               </div>
             </td>
           </tr>
-          <tr>
+          <tr
+            key="79"
+          >
             <td
               className="split-view-cell"
             >
@@ -6264,13 +7250,16 @@ exports[`IssueDiff can dynamically import SplitDiff 1`] = `
               >
                 <span
                   className="split-view-word added"
+                  key="0"
                 >
                     File "~/react/lib/ReactDOMComponent.js", line 718, col 0, in ReactDOMComponent.receiveComponent
                 </span>
               </div>
             </td>
           </tr>
-          <tr>
+          <tr
+            key="80"
+          >
             <td
               className="split-view-cell"
             >
@@ -6293,13 +7282,16 @@ exports[`IssueDiff can dynamically import SplitDiff 1`] = `
               >
                 <span
                   className="split-view-word added"
+                  key="0"
                 >
                       this.updateComponent(transaction, prevElement, nextElement, context);
                 </span>
               </div>
             </td>
           </tr>
-          <tr>
+          <tr
+            key="81"
+          >
             <td
               className="split-view-cell"
             >
@@ -6322,13 +7314,16 @@ exports[`IssueDiff can dynamically import SplitDiff 1`] = `
               >
                 <span
                   className="split-view-word added"
+                  key="0"
                 >
                     File "~/react/lib/ReactReconciler.js", line 126, col 0, in Object.receiveComponent
                 </span>
               </div>
             </td>
           </tr>
-          <tr>
+          <tr
+            key="82"
+          >
             <td
               className="split-view-cell"
             >
@@ -6351,13 +7346,16 @@ exports[`IssueDiff can dynamically import SplitDiff 1`] = `
               >
                 <span
                   className="split-view-word added"
+                  key="0"
                 >
                       internalInstance.receiveComponent(nextElement, transaction, context);
                 </span>
               </div>
             </td>
           </tr>
-          <tr>
+          <tr
+            key="83"
+          >
             <td
               className="split-view-cell"
             >
@@ -6380,13 +7378,16 @@ exports[`IssueDiff can dynamically import SplitDiff 1`] = `
               >
                 <span
                   className="split-view-word added"
+                  key="0"
                 >
                     File "~/react/lib/ReactChildReconciler.js", line 110, col 0, in Object.updateChildren
                 </span>
               </div>
             </td>
           </tr>
-          <tr>
+          <tr
+            key="84"
+          >
             <td
               className="split-view-cell"
             >
@@ -6409,13 +7410,16 @@ exports[`IssueDiff can dynamically import SplitDiff 1`] = `
               >
                 <span
                   className="split-view-word added"
+                  key="0"
                 >
                       ReactReconciler.receiveComponent(prevChild, nextElement, transaction, context);
                 </span>
               </div>
             </td>
           </tr>
-          <tr>
+          <tr
+            key="85"
+          >
             <td
               className="split-view-cell"
             >
@@ -6438,13 +7442,16 @@ exports[`IssueDiff can dynamically import SplitDiff 1`] = `
               >
                 <span
                   className="split-view-word added"
+                  key="0"
                 >
                     File "~/react/lib/ReactMultiChild.js", line 210, col 0, in ReactDOMComponent._reconcilerUpdateChildren
                 </span>
               </div>
             </td>
           </tr>
-          <tr>
+          <tr
+            key="86"
+          >
             <td
               className="split-view-cell"
             >
@@ -6467,13 +7474,16 @@ exports[`IssueDiff can dynamically import SplitDiff 1`] = `
               >
                 <span
                   className="split-view-word added"
+                  key="0"
                 >
                       ReactChildReconciler.updateChildren(prevChildren, nextChildren, mountImages, removedNodes, transaction, this, this._hostContainerI {snip}
                 </span>
               </div>
             </td>
           </tr>
-          <tr>
+          <tr
+            key="87"
+          >
             <td
               className="split-view-cell"
             >
@@ -6496,13 +7506,16 @@ exports[`IssueDiff can dynamically import SplitDiff 1`] = `
               >
                 <span
                   className="split-view-word added"
+                  key="0"
                 >
                     File "~/react/lib/ReactMultiChild.js", line 314, col 0, in ReactDOMComponent._updateChildren
                 </span>
               </div>
             </td>
           </tr>
-          <tr>
+          <tr
+            key="88"
+          >
             <td
               className="split-view-cell"
             >
@@ -6525,13 +7538,16 @@ exports[`IssueDiff can dynamically import SplitDiff 1`] = `
               >
                 <span
                   className="split-view-word added"
+                  key="0"
                 >
                       var nextChildren = this._reconcilerUpdateChildren(prevChildren, nextNestedChildrenElements, mountImages, removedNodes, transaction, context);
                 </span>
               </div>
             </td>
           </tr>
-          <tr>
+          <tr
+            key="89"
+          >
             <td
               className="split-view-cell"
             >
@@ -6554,13 +7570,16 @@ exports[`IssueDiff can dynamically import SplitDiff 1`] = `
               >
                 <span
                   className="split-view-word added"
+                  key="0"
                 >
                     File "~/react/lib/ReactMultiChild.js", line 301, col 0, in ReactDOMComponent.updateChildren
                 </span>
               </div>
             </td>
           </tr>
-          <tr>
+          <tr
+            key="90"
+          >
             <td
               className="split-view-cell"
             >
@@ -6583,13 +7602,16 @@ exports[`IssueDiff can dynamically import SplitDiff 1`] = `
               >
                 <span
                   className="split-view-word added"
+                  key="0"
                 >
                       this._updateChildren(nextNestedChildrenElements, transaction, context);
                 </span>
               </div>
             </td>
           </tr>
-          <tr>
+          <tr
+            key="91"
+          >
             <td
               className="split-view-cell"
             >
@@ -6612,13 +7634,16 @@ exports[`IssueDiff can dynamically import SplitDiff 1`] = `
               >
                 <span
                   className="split-view-word added"
+                  key="0"
                 >
                     File "~/react/lib/ReactDOMComponent.js", line 942, col 0, in ReactDOMComponent._updateDOMChildren
                 </span>
               </div>
             </td>
           </tr>
-          <tr>
+          <tr
+            key="92"
+          >
             <td
               className="split-view-cell"
             >
@@ -6641,13 +7666,16 @@ exports[`IssueDiff can dynamically import SplitDiff 1`] = `
               >
                 <span
                   className="split-view-word added"
+                  key="0"
                 >
                       this.updateChildren(nextChildren, transaction, context);
                 </span>
               </div>
             </td>
           </tr>
-          <tr>
+          <tr
+            key="93"
+          >
             <td
               className="split-view-cell"
             >
@@ -6670,13 +7698,16 @@ exports[`IssueDiff can dynamically import SplitDiff 1`] = `
               >
                 <span
                   className="split-view-word added"
+                  key="0"
                 >
                     File "~/react/lib/ReactDOMComponent.js", line 760, col 0, in ReactDOMComponent.updateComponent
                 </span>
               </div>
             </td>
           </tr>
-          <tr>
+          <tr
+            key="94"
+          >
             <td
               className="split-view-cell"
             >
@@ -6699,13 +7730,16 @@ exports[`IssueDiff can dynamically import SplitDiff 1`] = `
               >
                 <span
                   className="split-view-word added"
+                  key="0"
                 >
                       this._updateDOMChildren(lastProps, nextProps, transaction, context);
                 </span>
               </div>
             </td>
           </tr>
-          <tr>
+          <tr
+            key="95"
+          >
             <td
               className="split-view-cell"
             >
@@ -6728,13 +7762,16 @@ exports[`IssueDiff can dynamically import SplitDiff 1`] = `
               >
                 <span
                   className="split-view-word added"
+                  key="0"
                 >
                     File "~/react/lib/ReactDOMComponent.js", line 718, col 0, in ReactDOMComponent.receiveComponent
                 </span>
               </div>
             </td>
           </tr>
-          <tr>
+          <tr
+            key="96"
+          >
             <td
               className="split-view-cell"
             >
@@ -6757,13 +7794,16 @@ exports[`IssueDiff can dynamically import SplitDiff 1`] = `
               >
                 <span
                   className="split-view-word added"
+                  key="0"
                 >
                       this.updateComponent(transaction, prevElement, nextElement, context);
                 </span>
               </div>
             </td>
           </tr>
-          <tr>
+          <tr
+            key="97"
+          >
             <td
               className="split-view-cell"
             >
@@ -6786,13 +7826,16 @@ exports[`IssueDiff can dynamically import SplitDiff 1`] = `
               >
                 <span
                   className="split-view-word added"
+                  key="0"
                 >
                     File "~/react/lib/ReactReconciler.js", line 126, col 0, in Object.receiveComponent
                 </span>
               </div>
             </td>
           </tr>
-          <tr>
+          <tr
+            key="98"
+          >
             <td
               className="split-view-cell"
             >
@@ -6815,13 +7858,16 @@ exports[`IssueDiff can dynamically import SplitDiff 1`] = `
               >
                 <span
                   className="split-view-word added"
+                  key="0"
                 >
                       internalInstance.receiveComponent(nextElement, transaction, context);
                 </span>
               </div>
             </td>
           </tr>
-          <tr>
+          <tr
+            key="99"
+          >
             <td
               className="split-view-cell"
             >
@@ -6844,13 +7890,16 @@ exports[`IssueDiff can dynamically import SplitDiff 1`] = `
               >
                 <span
                   className="split-view-word added"
+                  key="0"
                 >
                     File "~/react/lib/ReactCompositeComponent.js", line 751, col 0, in ReactCompositeComponentWrapper._updateRenderedComponent
                 </span>
               </div>
             </td>
           </tr>
-          <tr>
+          <tr
+            key="100"
+          >
             <td
               className="split-view-cell"
             >
@@ -6873,6 +7922,7 @@ exports[`IssueDiff can dynamically import SplitDiff 1`] = `
               >
                 <span
                   className="split-view-word added"
+                  key="0"
                 >
                       ReactReconciler.receiveComponent(prevComponentInstance, nextRenderedElement, transaction, this._processChildContext(context));
                 </span>

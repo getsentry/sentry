@@ -3,11 +3,17 @@
 exports[`OrganizationAuthProvider renders 1`] = `
 <div>
   <h3>
-    <span>
-      <span>
+    <span
+      key="4"
+    >
+      <span
+        key="1"
+      >
         dummy
       </span>
-      <span>
+      <span
+        key="2"
+      >
          Authentication
       </span>
     </span>
@@ -129,14 +135,22 @@ exports[`OrganizationAuthProvider renders 1`] = `
       className="box-header"
     >
       <h3>
-        <span>
-          <span>
+        <span
+          key="5"
+        >
+          <span
+            key="0"
+          >
             Disable 
           </span>
-          <span>
+          <span
+            key="2"
+          >
             dummy
           </span>
-          <span>
+          <span
+            key="3"
+          >
              Authentication
           </span>
         </span>
@@ -158,14 +172,22 @@ exports[`OrganizationAuthProvider renders 1`] = `
           onClick={[Function]}
           priority="danger"
         >
-          <span>
-            <span>
+          <span
+            key="5"
+          >
+            <span
+              key="0"
+            >
               Disable 
             </span>
-            <span>
+            <span
+              key="2"
+            >
               dummy
             </span>
-            <span>
+            <span
+              key="3"
+            >
                Auth
             </span>
           </span>
@@ -179,11 +201,17 @@ exports[`OrganizationAuthProvider renders 1`] = `
 exports[`OrganizationAuthProvider renders with Unlinked members  1`] = `
 <div>
   <h3>
-    <span>
-      <span>
+    <span
+      key="4"
+    >
+      <span
+        key="1"
+      >
         dummy
       </span>
-      <span>
+      <span
+        key="2"
+      >
          Authentication
       </span>
     </span>
@@ -235,21 +263,33 @@ exports[`OrganizationAuthProvider renders with Unlinked members  1`] = `
           Send Reminders
         </Button>
         <p>
-          <span>
-            <span>
+          <span
+            key="8"
+          >
+            <span
+              key="0"
+            >
               There are currently 
             </span>
-            <span>
+            <span
+              key="2"
+            >
               4
             </span>
-            <span>
+            <span
+              key="3"
+            >
                member(s) who have
                   not yet linked their account with 
             </span>
-            <span>
+            <span
+              key="5"
+            >
               dummy
             </span>
-            <span>
+            <span
+              key="6"
+            >
               . Until this
                   is done they will be unable to access the organization.
             </span>
@@ -345,14 +385,22 @@ exports[`OrganizationAuthProvider renders with Unlinked members  1`] = `
       className="box-header"
     >
       <h3>
-        <span>
-          <span>
+        <span
+          key="5"
+        >
+          <span
+            key="0"
+          >
             Disable 
           </span>
-          <span>
+          <span
+            key="2"
+          >
             dummy
           </span>
-          <span>
+          <span
+            key="3"
+          >
              Authentication
           </span>
         </span>
@@ -374,14 +422,22 @@ exports[`OrganizationAuthProvider renders with Unlinked members  1`] = `
           onClick={[Function]}
           priority="danger"
         >
-          <span>
-            <span>
+          <span
+            key="5"
+          >
+            <span
+              key="0"
+            >
               Disable 
             </span>
-            <span>
+            <span
+              key="2"
+            >
               dummy
             </span>
-            <span>
+            <span
+              key="3"
+            >
                Auth
             </span>
           </span>
@@ -392,7 +448,7 @@ exports[`OrganizationAuthProvider renders with Unlinked members  1`] = `
 </div>
 `;
 
-exports[`OrganizationAuthProvider renders with no provider 1`] = `null`;
+exports[`OrganizationAuthProvider renders with no provider 1`] = `""`;
 
 exports[`OrganizationAuthProvider renders with provider template 1`] = `
 Array [
@@ -518,14 +574,22 @@ Array [
         onClick={[Function]}
         priority="danger"
       >
-        <span>
-          <span>
+        <span
+          key="5"
+        >
+          <span
+            key="0"
+          >
             Disable 
           </span>
-          <span>
+          <span
+            key="2"
+          >
             dummy
           </span>
-          <span>
+          <span
+            key="3"
+          >
              Auth
           </span>
         </span>

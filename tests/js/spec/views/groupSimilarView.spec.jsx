@@ -54,6 +54,7 @@ describe('Issues Similar View', function() {
     );
 
     wrapper.instance().componentDidUpdate = jest.fn(() => {
+      wrapper.update();
       if (!wrapper.state('loading')) {
         expect(toJson(wrapper)).toMatchSnapshot();
         done();

@@ -45,6 +45,8 @@ describe('ProjectTags', function() {
       .find('.modal button:contains("Confirm")')
       .click();
 
+    wrapper.update();
+
     expect(wrapper.find('tbody tr').length).toBe(1);
   });
 });

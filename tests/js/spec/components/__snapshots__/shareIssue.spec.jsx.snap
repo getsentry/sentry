@@ -22,7 +22,9 @@ exports[`ShareIssue renders when busy 1`] = `
         center={true}
         truncate={true}
       >
-        <IndicatorDot />
+        <IndicatorDot
+          active={undefined}
+        />
         Share
       </FlowLayout>
     </div>

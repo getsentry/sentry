@@ -40,12 +40,13 @@ describe('IssueDiff', function() {
 
     // Need `mount` because of componentDidMount in <IssueDiff>
     let wrapper = mount(<IssueDiff baseIssueId="base" targetIssueId="target" />);
-
     wrapper.instance().componentDidUpdate = jest.fn(() => {
-      expect(wrapper.state('loading')).toBe(false);
-      expect(wrapper.find('SplitDiff')).toHaveLength(1);
-      expect(wrapper).toMatchSnapshot();
-      done();
+      wrapper.update();
+      if (!wrapper.state('loading')) {
+        expect(wrapper).toMatchSnapshot();
+        expect(wrapper.find('SplitDiff')).toHaveLength(1);
+        done();
+      }
     });
   });
 });

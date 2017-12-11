@@ -67,6 +67,7 @@ exports[`OrganizationApiKeyDetailsView renders 1`] = `
                   className="split-layout-child"
                   disabled={false}
                   hideErrorMessage={false}
+                  key=".0"
                   label="Label"
                   name="label"
                   required={false}
@@ -109,6 +110,7 @@ exports[`OrganizationApiKeyDetailsView renders 1`] = `
                   className="split-layout-child"
                   disabled={true}
                   hideErrorMessage={false}
+                  key=".1"
                   label="API Key"
                   name="key"
                   required={false}
@@ -246,6 +248,7 @@ exports[`OrganizationApiKeyDetailsView renders 1`] = `
               >
                 <label
                   className="checkbox"
+                  key="project:read"
                 >
                   <input
                     checked={true}
@@ -258,6 +261,7 @@ exports[`OrganizationApiKeyDetailsView renders 1`] = `
                 </label>
                 <label
                   className="checkbox"
+                  key="project:write"
                 >
                   <input
                     checked={false}
@@ -270,6 +274,7 @@ exports[`OrganizationApiKeyDetailsView renders 1`] = `
                 </label>
                 <label
                   className="checkbox"
+                  key="project:admin"
                 >
                   <input
                     checked={false}
@@ -282,6 +287,7 @@ exports[`OrganizationApiKeyDetailsView renders 1`] = `
                 </label>
                 <label
                   className="checkbox"
+                  key="project:releases"
                 >
                   <input
                     checked={false}
@@ -294,6 +300,7 @@ exports[`OrganizationApiKeyDetailsView renders 1`] = `
                 </label>
                 <label
                   className="checkbox"
+                  key="team:read"
                 >
                   <input
                     checked={true}
@@ -306,6 +313,7 @@ exports[`OrganizationApiKeyDetailsView renders 1`] = `
                 </label>
                 <label
                   className="checkbox"
+                  key="team:write"
                 >
                   <input
                     checked={false}
@@ -318,6 +326,7 @@ exports[`OrganizationApiKeyDetailsView renders 1`] = `
                 </label>
                 <label
                   className="checkbox"
+                  key="team:admin"
                 >
                   <input
                     checked={false}
@@ -330,6 +339,7 @@ exports[`OrganizationApiKeyDetailsView renders 1`] = `
                 </label>
                 <label
                   className="checkbox"
+                  key="event:read"
                 >
                   <input
                     checked={true}
@@ -342,6 +352,7 @@ exports[`OrganizationApiKeyDetailsView renders 1`] = `
                 </label>
                 <label
                   className="checkbox"
+                  key="event:admin"
                 >
                   <input
                     checked={false}
@@ -354,6 +365,7 @@ exports[`OrganizationApiKeyDetailsView renders 1`] = `
                 </label>
                 <label
                   className="checkbox"
+                  key="org:read"
                 >
                   <input
                     checked={false}
@@ -366,6 +378,7 @@ exports[`OrganizationApiKeyDetailsView renders 1`] = `
                 </label>
                 <label
                   className="checkbox"
+                  key="org:write"
                 >
                   <input
                     checked={false}
@@ -378,6 +391,7 @@ exports[`OrganizationApiKeyDetailsView renders 1`] = `
                 </label>
                 <label
                   className="checkbox"
+                  key="org:admin"
                 >
                   <input
                     checked={false}
@@ -390,6 +404,7 @@ exports[`OrganizationApiKeyDetailsView renders 1`] = `
                 </label>
                 <label
                   className="checkbox"
+                  key="member:read"
                 >
                   <input
                     checked={true}
@@ -402,6 +417,7 @@ exports[`OrganizationApiKeyDetailsView renders 1`] = `
                 </label>
                 <label
                   className="checkbox"
+                  key="member:admin"
                 >
                   <input
                     checked={false}
