@@ -16,7 +16,11 @@ class GroupTagExportTest(TestCase):
 
         project = self.create_project()
         group = self.create_group(project=project)
-        tagstore.create_tag_key(project_id=project.id, environment_id=self.environment.id, key=key)
+        tagstore.create_tag_key(
+            project_id=project.id,
+            environment_id=self.environment.id,
+            key=key
+        )
         tagstore.create_tag_value(
             project_id=project.id,
             environment_id=self.environment.id,
@@ -36,8 +40,8 @@ class GroupTagExportTest(TestCase):
 
         self.login_as(user=self.user)
 
-        url = '/{}/{}/issues/{}/tags/{}/export/'.format(
-            project.organization.slug, project.slug, group.id, key
+        url = '/{}/{}/issues/{}/tags/{}/export/?environment={}'.format(
+            project.organization.slug, project.slug, group.id, key, self.environment.name
         )
 
         response = self.client.get(url)

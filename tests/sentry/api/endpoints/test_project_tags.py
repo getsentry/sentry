@@ -13,7 +13,7 @@ class ProjectTagsTest(APITestCase):
         for key in ('foo', 'bar'):
             tagstore.create_tag_key(
                 project_id=project.id,
-                environment_id=self.environment.id,
+                environment_id=None,
                 key=key,
             )
 

@@ -248,12 +248,12 @@ class GroupListTest(APITestCase):
         group = self.create_group(checksum='a' * 32, project=project)
         group2 = self.create_group(checksum='b' * 32, project=project2)
         tagstore.create_group_tag_value(
-            project_id=project.id, group_id=group.id, environment_id=self.environment.id,
+            project_id=project.id, group_id=group.id, environment_id=None,
             key='sentry:release', value=release.version
         )
 
         tagstore.create_group_tag_value(
-            project_id=project2.id, group_id=group2.id, environment_id=self.environment.id,
+            project_id=project2.id, group_id=group2.id, environment_id=None,
             key='sentry:release', value=release.version
         )
 
@@ -925,7 +925,7 @@ class GroupUpdateTest(APITestCase):
         tagstore.create_group_tag_key(
             group.project_id,
             group.id,
-            self.environment.id,
+            None,
             'sentry:user',
             values_seen=100,
         )

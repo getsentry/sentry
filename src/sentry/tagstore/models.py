@@ -16,3 +16,5 @@ if settings.SENTRY_TAGSTORE.startswith('sentry.tagstore.legacy.LegacyTagStorage'
     from sentry.tagstore.legacy.models import *  # NOQA
 elif settings.SENTRY_TAGSTORE.startswith('sentry.tagstore.v2'):
     from sentry.tagstore.v2.models import *  # NOQA
+else:
+    raise NotImplementedError

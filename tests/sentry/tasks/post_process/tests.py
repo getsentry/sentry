@@ -133,12 +133,12 @@ class IndexEventTagsTest(TestCase):
 
         tagkey = tagstore.get_tag_key(
             project_id=self.project.id,
-            environment_id=None,
+            environment_id=self.environment.id,
             key='foo',
         )
         tagvalue = tagstore.get_tag_value(
             project_id=self.project.id,
-            environment_id=None,
+            environment_id=self.environment.id,
             key='foo',
             value='bar',
         )
@@ -146,12 +146,12 @@ class IndexEventTagsTest(TestCase):
 
         tagkey = tagstore.get_tag_key(
             project_id=self.project.id,
-            environment_id=None,
+            environment_id=self.environment.id,
             key='biz',
         )
         tagvalue = tagstore.get_tag_value(
             project_id=self.project.id,
-            environment_id=None,
+            environment_id=self.environment.id,
             key='biz',
             value='baz',
         )

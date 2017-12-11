@@ -22,7 +22,7 @@ class EnsureReleaseExistsTest(TestCase):
             value='1.0',
         )
 
-        tv = tagstore.get_tag_value(self.project.id, None, 'sentry:release', '1.0')
+        tv = tagstore.get_tag_value(self.project.id, self.environment.id, 'sentry:release', '1.0')
         assert tv.data['release_id']
 
         release = Release.objects.get(id=tv.data['release_id'])
