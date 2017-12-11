@@ -11,10 +11,11 @@ export default class InputField extends React.Component {
   };
 
   static defaultProps = {
-    field: ({onChange, onBlur, ...props}) => (
+    field: ({onChange, onBlur, onKeyDown, ...props}) => (
       <Input
         {...props}
         onBlur={e => onBlur(e.target.value, e)}
+        onKeyDown={e => onKeyDown(e.target.value, e)}
         onChange={e => onChange(e.target.value, e)}
       />
     ),

@@ -52,19 +52,19 @@ export default class Form extends React.Component {
       onSubmitError,
       initialData,
       model,
+      allowUndo,
     } = props;
 
     this.model = model || new FormModel();
     this.model.setInitialData(initialData);
     this.model.setFormOptions({
+      allowUndo,
       onSubmitSuccess,
       onSubmitError,
       saveOnBlur,
       apiEndpoint,
       apiMethod,
     });
-
-    window.test = this.model;
   }
 
   getChildContext() {
