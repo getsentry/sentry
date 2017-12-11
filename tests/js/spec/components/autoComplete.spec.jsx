@@ -113,6 +113,7 @@ describe('AutoComplete', function() {
     expect(wrapper.state('isOpen')).toBe(true);
     expect(wrapper.find('li')).toHaveLength(3);
     jest.runAllTimers();
+    wrapper.update();
 
     expect(wrapper.state('isOpen')).toBe(false);
     expect(wrapper.find('li')).toHaveLength(0);

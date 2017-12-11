@@ -113,6 +113,7 @@ exports[`CreateProject render() should deal with incorrect platform name if its 
                 activeClassName="active"
                 index={false}
                 isActive={[Function]}
+                key="Popular"
                 onClick={[Function]}
                 to=""
               >
@@ -138,6 +139,7 @@ exports[`CreateProject render() should deal with incorrect platform name if its 
                 activeClassName="active"
                 index={false}
                 isActive={[Function]}
+                key="Frontend"
                 onClick={[Function]}
                 to=""
               >
@@ -163,6 +165,7 @@ exports[`CreateProject render() should deal with incorrect platform name if its 
                 activeClassName="active"
                 index={false}
                 isActive={[Function]}
+                key="Mobile"
                 onClick={[Function]}
                 to=""
               >
@@ -188,6 +191,7 @@ exports[`CreateProject render() should deal with incorrect platform name if its 
                 activeClassName="active"
                 index={false}
                 isActive={[Function]}
+                key="Backend"
                 onClick={[Function]}
                 to=""
               >
@@ -213,6 +217,7 @@ exports[`CreateProject render() should deal with incorrect platform name if its 
                 activeClassName="active"
                 index={false}
                 isActive={[Function]}
+                key="All"
                 onClick={[Function]}
                 to=""
               >
@@ -240,6 +245,7 @@ exports[`CreateProject render() should deal with incorrect platform name if its 
             >
               <PlatformCard
                 className=""
+                key="csharp"
                 onClick={[Function]}
                 platform="csharp"
               >
@@ -270,6 +276,7 @@ exports[`CreateProject render() should deal with incorrect platform name if its 
               </PlatformCard>
               <PlatformCard
                 className=""
+                key="java"
                 onClick={[Function]}
                 platform="java"
               >
@@ -300,6 +307,7 @@ exports[`CreateProject render() should deal with incorrect platform name if its 
               </PlatformCard>
               <PlatformCard
                 className=""
+                key="javascript-angular"
                 onClick={[Function]}
                 platform="javascript-angular"
               >
@@ -330,6 +338,7 @@ exports[`CreateProject render() should deal with incorrect platform name if its 
               </PlatformCard>
               <PlatformCard
                 className=""
+                key="javascript"
                 onClick={[Function]}
                 platform="javascript"
               >
@@ -360,6 +369,7 @@ exports[`CreateProject render() should deal with incorrect platform name if its 
               </PlatformCard>
               <PlatformCard
                 className=""
+                key="javascript-react"
                 onClick={[Function]}
                 platform="javascript-react"
               >
@@ -390,6 +400,7 @@ exports[`CreateProject render() should deal with incorrect platform name if its 
               </PlatformCard>
               <PlatformCard
                 className=""
+                key="node-express"
                 onClick={[Function]}
                 platform="node-express"
               >
@@ -420,6 +431,7 @@ exports[`CreateProject render() should deal with incorrect platform name if its 
               </PlatformCard>
               <PlatformCard
                 className=""
+                key="node"
                 onClick={[Function]}
                 platform="node"
               >
@@ -450,6 +462,7 @@ exports[`CreateProject render() should deal with incorrect platform name if its 
               </PlatformCard>
               <PlatformCard
                 className=""
+                key="php-laravel"
                 onClick={[Function]}
                 platform="php-laravel"
               >
@@ -480,6 +493,7 @@ exports[`CreateProject render() should deal with incorrect platform name if its 
               </PlatformCard>
               <PlatformCard
                 className=""
+                key="php"
                 onClick={[Function]}
                 platform="php"
               >
@@ -510,6 +524,7 @@ exports[`CreateProject render() should deal with incorrect platform name if its 
               </PlatformCard>
               <PlatformCard
                 className=""
+                key="php-symfony2"
                 onClick={[Function]}
                 platform="php-symfony2"
               >
@@ -540,6 +555,7 @@ exports[`CreateProject render() should deal with incorrect platform name if its 
               </PlatformCard>
               <PlatformCard
                 className=""
+                key="python-django"
                 onClick={[Function]}
                 platform="python-django"
               >
@@ -570,6 +586,7 @@ exports[`CreateProject render() should deal with incorrect platform name if its 
               </PlatformCard>
               <PlatformCard
                 className=""
+                key="python-flask"
                 onClick={[Function]}
                 platform="python-flask"
               >
@@ -600,6 +617,7 @@ exports[`CreateProject render() should deal with incorrect platform name if its 
               </PlatformCard>
               <PlatformCard
                 className=""
+                key="python"
                 onClick={[Function]}
                 platform="python"
               >
@@ -630,6 +648,7 @@ exports[`CreateProject render() should deal with incorrect platform name if its 
               </PlatformCard>
               <PlatformCard
                 className=""
+                key="cocoa"
                 onClick={[Function]}
                 platform="cocoa"
               >
@@ -660,6 +679,7 @@ exports[`CreateProject render() should deal with incorrect platform name if its 
               </PlatformCard>
               <PlatformCard
                 className=""
+                key="ruby-rails"
                 onClick={[Function]}
                 platform="ruby-rails"
               >
@@ -690,6 +710,7 @@ exports[`CreateProject render() should deal with incorrect platform name if its 
               </PlatformCard>
               <PlatformCard
                 className=""
+                key="ruby"
                 onClick={[Function]}
                 platform="ruby"
               >
@@ -868,6 +889,7 @@ exports[`CreateProject render() should fill in platform name if its provided by 
                 activeClassName="active"
                 index={false}
                 isActive={[Function]}
+                key="Popular"
                 onClick={[Function]}
                 to=""
               >
@@ -893,6 +915,7 @@ exports[`CreateProject render() should fill in platform name if its provided by 
                 activeClassName="active"
                 index={false}
                 isActive={[Function]}
+                key="Frontend"
                 onClick={[Function]}
                 to=""
               >
@@ -918,6 +941,7 @@ exports[`CreateProject render() should fill in platform name if its provided by 
                 activeClassName="active"
                 index={false}
                 isActive={[Function]}
+                key="Mobile"
                 onClick={[Function]}
                 to=""
               >
@@ -943,6 +967,7 @@ exports[`CreateProject render() should fill in platform name if its provided by 
                 activeClassName="active"
                 index={false}
                 isActive={[Function]}
+                key="Backend"
                 onClick={[Function]}
                 to=""
               >
@@ -968,6 +993,7 @@ exports[`CreateProject render() should fill in platform name if its provided by 
                 activeClassName="active"
                 index={false}
                 isActive={[Function]}
+                key="All"
                 onClick={[Function]}
                 to=""
               >
@@ -995,6 +1021,7 @@ exports[`CreateProject render() should fill in platform name if its provided by 
             >
               <PlatformCard
                 className=""
+                key="ruby-rack"
                 onClick={[Function]}
                 platform="ruby-rack"
               >
@@ -1025,6 +1052,7 @@ exports[`CreateProject render() should fill in platform name if its provided by 
               </PlatformCard>
               <PlatformCard
                 className=""
+                key="ruby-rails"
                 onClick={[Function]}
                 platform="ruby-rails"
               >
@@ -1055,6 +1083,7 @@ exports[`CreateProject render() should fill in platform name if its provided by 
               </PlatformCard>
               <PlatformCard
                 className="selected"
+                key="ruby"
                 onClick={[Function]}
                 platform="ruby"
               >
@@ -1157,7 +1186,7 @@ exports[`CreateProject render() should fill in project name if its empty when pl
     <OnboardingProject
       name="another"
       next={[Function]}
-      platform="csharp"
+      platform="ruby"
       setName={[Function]}
       setPlatform={[Function]}
       setTeam={[Function]}
@@ -1182,7 +1211,7 @@ exports[`CreateProject render() should fill in project name if its empty when pl
         <PlatformPicker
           name="another"
           next={[Function]}
-          platform="csharp"
+          platform="ruby"
           setName={[Function]}
           setPlatform={[Function]}
           setTeam={[Function]}
@@ -1233,6 +1262,7 @@ exports[`CreateProject render() should fill in project name if its empty when pl
                 activeClassName="active"
                 index={false}
                 isActive={[Function]}
+                key="Popular"
                 onClick={[Function]}
                 to=""
               >
@@ -1258,6 +1288,7 @@ exports[`CreateProject render() should fill in project name if its empty when pl
                 activeClassName="active"
                 index={false}
                 isActive={[Function]}
+                key="Frontend"
                 onClick={[Function]}
                 to=""
               >
@@ -1283,6 +1314,7 @@ exports[`CreateProject render() should fill in project name if its empty when pl
                 activeClassName="active"
                 index={false}
                 isActive={[Function]}
+                key="Mobile"
                 onClick={[Function]}
                 to=""
               >
@@ -1308,6 +1340,7 @@ exports[`CreateProject render() should fill in project name if its empty when pl
                 activeClassName="active"
                 index={false}
                 isActive={[Function]}
+                key="Backend"
                 onClick={[Function]}
                 to=""
               >
@@ -1333,6 +1366,7 @@ exports[`CreateProject render() should fill in project name if its empty when pl
                 activeClassName="active"
                 index={false}
                 isActive={[Function]}
+                key="All"
                 onClick={[Function]}
                 to=""
               >
@@ -1359,21 +1393,22 @@ exports[`CreateProject render() should fill in project name if its empty when pl
               className="client-platform-list platform-tiles"
             >
               <PlatformCard
-                className="selected"
+                className=""
+                key="csharp"
                 onClick={[Function]}
                 platform="csharp"
               >
                 <span
-                  className="platform-card selected"
+                  className="platform-card"
                   onClick={[Function]}
                 >
                   <PlatformiconTile
-                    className="selected"
+                    className=""
                     onClick={[Function]}
                     platform="csharp"
                   >
                     <li
-                      className="platform-tile list-unstyled csharp csharp selected"
+                      className="platform-tile list-unstyled csharp csharp "
                       onClick={[Function]}
                     >
                       <span
@@ -1390,6 +1425,7 @@ exports[`CreateProject render() should fill in project name if its empty when pl
               </PlatformCard>
               <PlatformCard
                 className=""
+                key="java"
                 onClick={[Function]}
                 platform="java"
               >
@@ -1420,6 +1456,7 @@ exports[`CreateProject render() should fill in project name if its empty when pl
               </PlatformCard>
               <PlatformCard
                 className=""
+                key="javascript-angular"
                 onClick={[Function]}
                 platform="javascript-angular"
               >
@@ -1450,6 +1487,7 @@ exports[`CreateProject render() should fill in project name if its empty when pl
               </PlatformCard>
               <PlatformCard
                 className=""
+                key="javascript"
                 onClick={[Function]}
                 platform="javascript"
               >
@@ -1480,6 +1518,7 @@ exports[`CreateProject render() should fill in project name if its empty when pl
               </PlatformCard>
               <PlatformCard
                 className=""
+                key="javascript-react"
                 onClick={[Function]}
                 platform="javascript-react"
               >
@@ -1510,6 +1549,7 @@ exports[`CreateProject render() should fill in project name if its empty when pl
               </PlatformCard>
               <PlatformCard
                 className=""
+                key="node-express"
                 onClick={[Function]}
                 platform="node-express"
               >
@@ -1540,6 +1580,7 @@ exports[`CreateProject render() should fill in project name if its empty when pl
               </PlatformCard>
               <PlatformCard
                 className=""
+                key="node"
                 onClick={[Function]}
                 platform="node"
               >
@@ -1570,6 +1611,7 @@ exports[`CreateProject render() should fill in project name if its empty when pl
               </PlatformCard>
               <PlatformCard
                 className=""
+                key="php-laravel"
                 onClick={[Function]}
                 platform="php-laravel"
               >
@@ -1600,6 +1642,7 @@ exports[`CreateProject render() should fill in project name if its empty when pl
               </PlatformCard>
               <PlatformCard
                 className=""
+                key="php"
                 onClick={[Function]}
                 platform="php"
               >
@@ -1630,6 +1673,7 @@ exports[`CreateProject render() should fill in project name if its empty when pl
               </PlatformCard>
               <PlatformCard
                 className=""
+                key="php-symfony2"
                 onClick={[Function]}
                 platform="php-symfony2"
               >
@@ -1660,6 +1704,7 @@ exports[`CreateProject render() should fill in project name if its empty when pl
               </PlatformCard>
               <PlatformCard
                 className=""
+                key="python-django"
                 onClick={[Function]}
                 platform="python-django"
               >
@@ -1690,6 +1735,7 @@ exports[`CreateProject render() should fill in project name if its empty when pl
               </PlatformCard>
               <PlatformCard
                 className=""
+                key="python-flask"
                 onClick={[Function]}
                 platform="python-flask"
               >
@@ -1720,6 +1766,7 @@ exports[`CreateProject render() should fill in project name if its empty when pl
               </PlatformCard>
               <PlatformCard
                 className=""
+                key="python"
                 onClick={[Function]}
                 platform="python"
               >
@@ -1750,6 +1797,7 @@ exports[`CreateProject render() should fill in project name if its empty when pl
               </PlatformCard>
               <PlatformCard
                 className=""
+                key="cocoa"
                 onClick={[Function]}
                 platform="cocoa"
               >
@@ -1780,6 +1828,7 @@ exports[`CreateProject render() should fill in project name if its empty when pl
               </PlatformCard>
               <PlatformCard
                 className=""
+                key="ruby-rails"
                 onClick={[Function]}
                 platform="ruby-rails"
               >
@@ -1809,21 +1858,22 @@ exports[`CreateProject render() should fill in project name if its empty when pl
                 </span>
               </PlatformCard>
               <PlatformCard
-                className=""
+                className="selected"
+                key="ruby"
                 onClick={[Function]}
                 platform="ruby"
               >
                 <span
-                  className="platform-card"
+                  className="platform-card selected"
                   onClick={[Function]}
                 >
                   <PlatformiconTile
-                    className=""
+                    className="selected"
                     onClick={[Function]}
                     platform="ruby"
                   >
                     <li
-                      className="platform-tile list-unstyled ruby ruby "
+                      className="platform-tile list-unstyled ruby ruby selected"
                       onClick={[Function]}
                     >
                       <span
@@ -1854,13 +1904,13 @@ exports[`CreateProject render() should fill in project name if its empty when pl
               className="project-name-wrapper"
             >
               <PlatformiconTile
-                platform="csharp"
+                platform="ruby"
               >
                 <li
-                  className="platform-tile list-unstyled csharp csharp undefined"
+                  className="platform-tile list-unstyled ruby ruby undefined"
                 >
                   <span
-                    className="platformicon platformicon-csharp"
+                    className="platformicon platformicon-ruby"
                   />
                 </li>
               </PlatformiconTile>

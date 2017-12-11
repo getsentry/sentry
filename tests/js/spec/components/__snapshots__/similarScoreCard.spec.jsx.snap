@@ -1,6 +1,6 @@
 // Jest Snapshot v1, https://goo.gl/fbAQLP
 
-exports[`SimilarScoreCard renders 1`] = `null`;
+exports[`SimilarScoreCard renders 1`] = `""`;
 
 exports[`SimilarScoreCard renders with score list 1`] = `
 <div
@@ -9,6 +9,7 @@ exports[`SimilarScoreCard renders with score list 1`] = `
   <SpreadLayout
     center={true}
     className="similar-score-card-row"
+    key="exception,message,character-shingles"
     responsive={false}
   >
     <div />
@@ -19,6 +20,7 @@ exports[`SimilarScoreCard renders with score list 1`] = `
   <SpreadLayout
     center={true}
     className="similar-score-card-row"
+    key="exception,stacktrace,application-chunks"
     responsive={false}
   >
     <div />
@@ -29,6 +31,7 @@ exports[`SimilarScoreCard renders with score list 1`] = `
   <SpreadLayout
     center={true}
     className="similar-score-card-row"
+    key="exception,stacktrace,pairs"
     responsive={false}
   >
     <div />
@@ -39,6 +42,7 @@ exports[`SimilarScoreCard renders with score list 1`] = `
   <SpreadLayout
     center={true}
     className="similar-score-card-row"
+    key="message,message,character-shingles"
     responsive={false}
   >
     <div />

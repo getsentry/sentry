@@ -21,17 +21,24 @@ exports[`OrganizationAuthList renders 1`] = `
       className="box-content with-padding"
     >
       <p>
-        <span>
-          <span>
+        <span
+          key="4"
+        >
+          <span
+            key="0"
+          >
             Get started with Single Sign-on for your organization by selecting a
               provider. For more information on SSO please see our 
           </span>
           <ExternalLink
             href="https://docs.sentry.io/learn/sso/"
+            key="2"
             rel="noreferrer noopener"
             target="_blank"
           >
-            <span>
+            <span
+              key="1"
+            >
               documentation
             </span>
           </ExternalLink>
@@ -42,6 +49,7 @@ exports[`OrganizationAuthList renders 1`] = `
         className="simple-list list-unstyled"
       >
         <ProviderItem
+          key="dummy"
           onConfigure={[Function]}
           providerKey="dummy"
           providerName="Dummy"
@@ -73,17 +81,24 @@ exports[`OrganizationAuthList renders with no providers 1`] = `
       className="box-content with-padding"
     >
       <p>
-        <span>
-          <span>
+        <span
+          key="4"
+        >
+          <span
+            key="0"
+          >
             Get started with Single Sign-on for your organization by selecting a
               provider. For more information on SSO please see our 
           </span>
           <ExternalLink
             href="https://docs.sentry.io/learn/sso/"
+            key="2"
             rel="noreferrer noopener"
             target="_blank"
           >
-            <span>
+            <span
+              key="1"
+            >
               documentation
             </span>
           </ExternalLink>

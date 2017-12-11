@@ -85,7 +85,7 @@ exports[`CreateProject render() should render roles when available and allowed, 
             },
           ]
         }
-        selectedRole="1"
+        selectedRole="member"
         setRole={[Function]}
       >
         <div
@@ -106,6 +106,7 @@ exports[`CreateProject render() should render roles when available and allowed, 
             >
               <li
                 className="radio"
+                key="1"
                 onClick={[Function]}
                 style={Object {}}
               >
@@ -113,13 +114,13 @@ exports[`CreateProject render() should render roles when available and allowed, 
                   style={Object {}}
                 >
                   <Radio
-                    checked={true}
+                    checked={false}
                     id="1"
                     readOnly={true}
                     value="member"
                   >
                     <input
-                      checked={true}
+                      checked={false}
                       className="radio-select"
                       id="1"
                       readOnly={true}
@@ -137,6 +138,7 @@ exports[`CreateProject render() should render roles when available and allowed, 
               </li>
               <li
                 className="radio"
+                key="2"
                 onClick={[Function]}
                 style={Object {}}
               >
@@ -209,17 +211,18 @@ exports[`CreateProject render() should render roles when available and allowed, 
           >
             <div
               className="col-md-3"
+              key="bar"
             >
               <label
                 className="checkbox"
               >
                 <Checkbox
-                  checked={true}
+                  checked={false}
                   id="bar"
                   onChange={[Function]}
                 >
                   <input
-                    checked={true}
+                    checked={false}
                     className="chk-select"
                     id="bar"
                     onChange={[Function]}
@@ -236,6 +239,7 @@ exports[`CreateProject render() should render roles when available and allowed, 
             </div>
             <div
               className="col-md-3"
+              key="foo"
             >
               <label
                 className="checkbox"
