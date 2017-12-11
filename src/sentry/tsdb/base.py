@@ -7,6 +7,7 @@ sentry.tsdb.base
 """
 from __future__ import absolute_import
 
+import collections
 import six
 
 from collections import OrderedDict
@@ -100,7 +101,7 @@ class TSDBModel(Enum):
 class BaseTSDB(Service):
     __all__ = (
         'models', 'incr', 'incr_multi', 'get_range', 'get_rollups', 'get_sums', 'rollup',
-        'validate',
+        'validate', 'make_series',
     )
 
     models = TSDBModel
@@ -225,6 +226,11 @@ class BaseTSDB(Service):
             )
             rollups[rollup] = map(to_datetime, series)
         return rollups
+
+    def make_series(self, default, start, end=None, rollup=None):
+        f = default if isinstance(default, collections.Callable) else lambda timestamp: default
+        return [(timestamp, f(timestamp))
+                for timestamp in self.get_optimal_rollup_series(start, end, rollup)[1]]
 
     def calculate_expiry(self, rollup, samples, timestamp):
         """
