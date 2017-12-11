@@ -95,7 +95,6 @@ class Client {
         },
         resp
       );
-      // respond(Client.mockAsync, options.error, resp);
     } else {
       response.callCount++;
       respond(

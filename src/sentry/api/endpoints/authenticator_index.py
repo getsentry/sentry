@@ -11,7 +11,7 @@ class AuthenticatorIndexEndpoint(Endpoint):
     permission_classes = (IsAuthenticated, )
 
     def get(self, request):
-        """Returns all authenticator interfaces for a user
+        """Returns u2f interface for a user, otherwise an empty array
         """
 
         # Currently just expose u2f challenge, not sure if it's necessary to list all
