@@ -1,6 +1,5 @@
 from __future__ import absolute_import
 
-import functools
 from rest_framework.response import Response
 
 from sentry.api.base import EnvironmentMixin
@@ -56,11 +55,7 @@ class OrganizationIssuesEndpoint(OrganizationMemberEndpoint, EnvironmentMixin):
         def on_results(results):
             results = serialize(
                 results, request.user, StreamGroupSerializer(
-                    environment_id_func=functools.partial(
-                        self._get_environment_id_from_request,
-                        request,
-                        organization.id,
-                    ),
+                    environment_id_func=self._get_environment_id_func(request, organization.id),
                     stats_period=stats_period,
                 )
             )

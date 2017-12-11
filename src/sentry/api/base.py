@@ -1,5 +1,6 @@
 from __future__ import absolute_import
 
+import functools
 import logging
 import six
 import time
@@ -221,9 +222,15 @@ class Endpoint(APIView):
 
 
 class EnvironmentMixin(object):
+    def _get_environment_id_func(self, request, organization_id):
+        return functools.partial(
+            self._get_environment_id_from_request,
+            request,
+            organization_id,
+        )
+
     def _get_environment_id_from_request(self, request, organization_id):
         environment = self._get_environment_from_request(request, organization_id)
-
         return environment and environment.id
 
     def _get_environment_from_request(self, request, organization_id):

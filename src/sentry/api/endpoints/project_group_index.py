@@ -272,11 +272,7 @@ class ProjectGroupIndexEndpoint(ProjectEndpoint, EnvironmentMixin):
 
         serializer = functools.partial(
             StreamGroupSerializer,
-            environment_id_func=functools.partial(
-                self._get_environment_id_from_request,
-                request,
-                project.organization_id,
-            ),
+            environment_id_func=self._get_environment_id_func(request, project.organization_id),
             stats_period=stats_period,
         )
 
