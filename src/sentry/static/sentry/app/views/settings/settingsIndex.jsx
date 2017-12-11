@@ -98,12 +98,14 @@ class SettingsIndex extends React.Component {
     let isOnPremise = ConfigStore.get('isOnPremise');
     let isSuperuser = user.isSuperuser;
 
-    let supportLinkProps = isOnPremise ? {href: LINKS.FORUM} : {to: ''};
-    let supportText = isOnPremise ? t('Community Forums') : t('Contact Support');
-    let SupportLinkComponent = isOnPremise ? ExternalHomeLink : HomeLink;
-
     let organizationSettingsUrl =
       (organization && `/settings/organization/${organization.slug}/`) || '';
+
+    let supportLinkProps = isOnPremise
+      ? {href: LINKS.FORUM}
+      : {to: `${organizationSettingsUrl}support`};
+    let supportText = isOnPremise ? t('Community Forums') : t('Contact Support');
+    let SupportLinkComponent = isOnPremise ? ExternalHomeLink : HomeLink;
 
     return (
       <SettingsLayout {...this.props}>
@@ -158,13 +160,19 @@ class SettingsIndex extends React.Component {
                 <h3>{t('Quick links')}:</h3>
                 <ul>
                   <li>
-                    <HomeLink>{t('Usage & Billing')}</HomeLink>
+                    <HomeLink to={`${organizationSettingsUrl}teams/`}>
+                      {t('Projects & Teams')}
+                    </HomeLink>
                   </li>
                   <li>
-                    <HomeLink>{t('Projects & Teams')}</HomeLink>
+                    <HomeLink to={`${organizationSettingsUrl}members/`}>
+                      {t('Members')}
+                    </HomeLink>
                   </li>
                   <li>
-                    <HomeLink>{t('Audit log')}</HomeLink>
+                    <HomeLink to={`${organizationSettingsUrl}stats/`}>
+                      {t('Stats')}
+                    </HomeLink>
                   </li>
                 </ul>
               </HomePanelBody>
