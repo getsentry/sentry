@@ -14,6 +14,13 @@ const OrganizationsStore = Reflux.createStore({
     this.items = [];
   },
 
+  onChangeSlug(prev, next) {
+    if (prev.slug === next.slug) return;
+
+    this.remove(prev.slug);
+    this.add(next);
+  },
+
   onRemoveSuccess(slug) {
     this.remove(slug);
   },
@@ -53,3 +60,5 @@ const OrganizationsStore = Reflux.createStore({
 });
 
 export default OrganizationsStore;
+
+window.o = OrganizationsStore;

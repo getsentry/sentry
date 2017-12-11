@@ -3,7 +3,10 @@ import PropTypes from 'prop-types';
 import React from 'react';
 import Reflux from 'reflux';
 
-import {removeAndRedirectToRemainingOrganization} from '../../../../actionCreators/organizations';
+import {
+  removeAndRedirectToRemainingOrganization,
+  changeOrganizationSlug,
+} from '../../../../actionCreators/organizations';
 import {t, tct} from '../../../../locale';
 import ApiMixin from '../../../../mixins/apiMixin';
 import LinkWithConfirmation from '../../../../components/linkWithConfirmation';
@@ -92,12 +95,16 @@ const OrganizationGeneralSettingsView = React.createClass({
     });
   },
 
-  handleSave(data) {
-    // TODO(dcramer): this should propagate
-    this.setState({data});
-
-    // Ugh `data` here is different than data in OrganizationsStore
-    OrganizationsStore.add(data);
+  handleSave(prevData, data) {
+    if (data.slug && data.slug !== prevData.slug) {
+      changeOrganizationSlug(prevData, data);
+      browserHistory.push(`/settings/organization/${data.slug}/settings/`);
+    } else {
+      // TODO(dcramer): this should propagate
+      this.setState({data});
+      // Ugh `data` here is different than data in OrganizationsStore
+      OrganizationsStore.add(data);
+    }
   },
 
   render() {

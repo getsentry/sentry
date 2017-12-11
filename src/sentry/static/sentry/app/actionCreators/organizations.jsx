@@ -46,3 +46,7 @@ export function removeAndRedirectToRemainingOrganization(api, params) {
 export function setActiveOrganization(org) {
   OrganizationsActions.setActive(org);
 }
+
+export function changeOrganizationSlug(prev, next) {
+  OrganizationsActions.changeSlug(prev, next);
+}

@@ -47,8 +47,9 @@ const NewOrganizationSettingsForm = React.createClass({
             {model, id}
           );
 
+          // Special case for slug, need to forward to new slug
           if (typeof onSave === 'function') {
-            onSave(model.initialData);
+            onSave(initialData, model.initialData);
           }
         }}
         onSubmitError={() => addErrorMessage('Unable to save change', TOAST_DURATION)}

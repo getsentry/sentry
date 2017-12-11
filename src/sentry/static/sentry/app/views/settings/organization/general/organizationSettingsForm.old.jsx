@@ -84,7 +84,7 @@ const OldOrganizationSettingsForm = React.createClass({
             sensitiveFields: extractMultilineFields(formData.sensitiveFields),
           },
           success: data => {
-            this.props.onSave(data);
+            this.props.onSave(formData, data);
             this.setState({
               state: FormState.READY,
               errors: {},
