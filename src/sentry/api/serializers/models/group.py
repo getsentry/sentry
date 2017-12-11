@@ -35,8 +35,8 @@ disabled = object()
 
 @register(Group)
 class GroupSerializer(Serializer):
-    def __init__(self, environment_id_func=lambda: None):
-        self.environment_id_func = environment_id_func
+    def __init__(self, environment_id_func=None):
+        self.environment_id_func = environment_id_func if environment_id_func is not None else lambda: None
 
     def _get_subscriptions(self, item_list, user):
         """
@@ -332,7 +332,7 @@ class StreamGroupSerializer(GroupSerializer):
         '24h': StatsPeriod(24, timedelta(hours=1)),
     }
 
-    def __init__(self, environment_id_func=lambda: None, stats_period=None, matching_event_id=None):
+    def __init__(self, environment_id_func=None, stats_period=None, matching_event_id=None):
         super(StreamGroupSerializer, self).__init__(environment_id_func)
 
         if stats_period is not None:
