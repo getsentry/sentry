@@ -56,12 +56,12 @@ class OrganizationIssuesEndpoint(OrganizationMemberEndpoint, EnvironmentMixin):
         def on_results(results):
             results = serialize(
                 results, request.user, StreamGroupSerializer(
-                    stats_period=stats_period,
-                    get_environment_id=functools.partial(
+                    environment_id_func=functools.partial(
                         self._get_environment_id_from_request,
                         request,
                         organization.id,
                     ),
+                    stats_period=stats_period,
                 )
             )
 

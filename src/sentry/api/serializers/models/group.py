@@ -35,6 +35,9 @@ disabled = object()
 
 @register(Group)
 class GroupSerializer(Serializer):
+    def __init__(self, environment_id_func=lambda: None):
+        self.environment_id_func = environment_id_func
+
     def _get_subscriptions(self, item_list, user):
         """
         Returns a mapping of group IDs to a two-tuple of (subscribed: bool,
@@ -329,17 +332,14 @@ class StreamGroupSerializer(GroupSerializer):
         '24h': StatsPeriod(24, timedelta(hours=1)),
     }
 
-    def __init__(self, stats_period=None, matching_event_id=None, get_environment_id=None):
+    def __init__(self, environment_id_func=lambda: None, stats_period=None, matching_event_id=None):
+        super(StreamGroupSerializer, self).__init__(environment_id_func)
+
         if stats_period is not None:
             assert stats_period in self.STATS_PERIOD_CHOICES
 
-        if get_environment_id is None:
-            def get_environment_id():
-                return None
-
         self.stats_period = stats_period
         self.matching_event_id = matching_event_id
-        self.get_environment_id = get_environment_id
 
     def get_attrs(self, item_list, user):
         attrs = super(StreamGroupSerializer, self).get_attrs(item_list, user)
@@ -359,7 +359,7 @@ class StreamGroupSerializer(GroupSerializer):
                 stats = tsdb.get_range(
                     model=tsdb.models.group,
                     keys=group_ids,
-                    environment_id=self.get_environment_id(),
+                    environment_id=self.environment_id_func(),
                     **query_params
                 )
             except Environment.DoesNotExist:

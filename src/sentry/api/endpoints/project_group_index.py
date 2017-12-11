@@ -302,12 +302,12 @@ class ProjectGroupIndexEndpoint(ProjectEndpoint, EnvironmentMixin):
 
             serializer = functools.partial(
                 StreamGroupSerializer,
-                stats_period=stats_period,
-                get_environment_id=functools.partial(
+                environment_id_func=functools.partial(
                     self._get_environment_id_from_request,
                     request,
                     project.organization_id,
                 ),
+                stats_period=stats_period,
             )
 
             if matching_group is not None:
