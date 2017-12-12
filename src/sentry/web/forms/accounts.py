@@ -400,16 +400,13 @@ class AccountSettingsForm(forms.Form):
         return value
 
     def clean_verify_new_password(self):
-        # cleaned_data not working because it is not a part of the model
-        # not sure what to do
         new_password = self.cleaned_data.get('new_password')
 
         if new_password:
-            verify_new_password = self.data.get('verify_new_password')
+            verify_new_password = self.cleaned_data.get('verify_new_password')
             if verify_new_password is None:
                 raise forms.ValidationError('You must verify your new password.')
 
-            # Not sure where best to make this check. Need feedback.
             if new_password != verify_new_password:
                 raise forms.ValidationError('Your new password and verify new password must match.')
 
