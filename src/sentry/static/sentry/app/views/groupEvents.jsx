@@ -152,7 +152,7 @@ const GroupEvents = React.createClass({
         <div style={{marginBottom: 20}}>
           <SearchBar
             defaultQuery=""
-            placeholder={t('search event message or tags')}
+            placeholder={t('search event id, message, or tags')}
             query={this.state.query}
             onSearch={this.onSearch}
           />
