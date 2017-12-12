@@ -1,5 +1,7 @@
 /* eslint-env jest */
-import React, {PropTypes} from 'react';
+import React from 'react';
+import PropTypes from 'prop-types';
+
 import {mount, shallow} from 'enzyme';
 
 import GroupMergedView from 'app/views/groupMerged/groupMergedView';
