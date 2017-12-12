@@ -401,6 +401,16 @@ class AccountSettingsForm(forms.Form):
             raise forms.ValidationError('You must confirm your current password to make changes.')
         return value
 
+    def clean_verify_new_password(self):
+        # cleaned_data not working because it is not a part of the model
+        # not sure what to do
+        new_password = self.cleaned_data.get('new_password')
+        verify_new_password = self.data['verify_new_password']
+
+        if new_password != verify_new_password:
+            raise forms.ValidationError('Your new password and verify new password must match.')
+        return verify_new_password
+
     def clean_new_password(self):
         new_password = self.cleaned_data.get('new_password')
         if new_password:
