@@ -62,6 +62,8 @@ class AuditLogEntryEvent(object):
     RULE_EDIT = 81
     RULE_REMOVE = 82
 
+    SET_ONDEMAND = 90
+
 
 class AuditLogEntry(Model):
     __core__ = False
@@ -117,6 +119,7 @@ class AuditLogEntry(Model):
             (AuditLogEntryEvent.RULE_ADD, 'rule.create'),
             (AuditLogEntryEvent.RULE_EDIT, 'rule.edit'),
             (AuditLogEntryEvent.RULE_REMOVE, 'rule.remove'),
+            (AuditLogEntryEvent.SET_ONDEMAND, 'ondemand.edit'),
         )
     )
     ip_address = models.GenericIPAddressField(null=True, unpack_ipv4=True)
@@ -242,5 +245,8 @@ class AuditLogEntry(Model):
             return 'edited rule "%s"' % (self.data['label'], )
         elif self.event == AuditLogEntryEvent.RULE_REMOVE:
             return 'removed rule "%s"' % (self.data['label'], )
+
+        elif self.event == AuditLogEntryEvent.SET_ONDEMAND:
+            return 'changed on-demand max spend to $%d' % (self.data['ondemand'] / 100, )
 
         return ''
