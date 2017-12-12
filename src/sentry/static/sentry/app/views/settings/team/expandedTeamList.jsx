@@ -2,15 +2,30 @@ import {Link} from 'react-router';
 import LazyLoad from 'react-lazy-load';
 import PropTypes from 'prop-types';
 import React from 'react';
+import styled from 'react-emotion';
 
 import {sortArray} from '../../../utils';
 import {t, tct} from '../../../locale';
 import ApiMixin from '../../../mixins/apiMixin';
 import {update} from '../../../actionCreators/projects';
+
 import TooltipMixin from '../../../mixins/tooltip';
 import BarChart from '../../../components/barChart';
+import Panel from '../components/panel';
+import PanelHeader from '../components/panelHeader';
 import ProjectLabel from '../../../components/projectLabel';
 import SentryTypes from '../../../proptypes';
+
+const TeamHeaderLink = styled(Link)`
+  color: ${p => p.theme.gray3};
+  margin-left: 20px;
+  text-transform: none;
+  font-weight: normal;
+
+  &:hover {
+    color: ${p => p.theme.gray4};
+  }
+`;
 
 const ExpandedTeamList = React.createClass({
   propTypes: {
@@ -87,23 +102,20 @@ const ExpandedTeamList = React.createClass({
     // TODO: make this cleaner
     let access = this.props.access;
     return (
-      <div className="box" key={team.slug}>
-        <div className="box-header">
+      <Panel>
+        <PanelHeader>
           <div className="pull-right actions hidden-xs">
-            <a className="leave-team" onClick={this.leaveTeam.bind(this, team)}>
+            <TeamHeaderLink onClick={this.leaveTeam.bind(this, team)}>
               {t('Leave Team')}
-            </a>
+            </TeamHeaderLink>
             {access.has('team:write') && (
-              <Link
-                className="team-settings"
-                to={`${this.urlPrefix()}teams/${team.slug}/settings/`}
-              >
+              <TeamHeaderLink to={`${this.urlPrefix()}teams/${team.slug}/settings/`}>
                 {t('Team Settings')}
-              </Link>
+              </TeamHeaderLink>
             )}
           </div>
-          <h3>{team.name}</h3>
-        </div>
+          {team.name}
+        </PanelHeader>
         <div className="box-content">
           <table className="table table-no-top-border m-b-0">
             {team.projects.length
@@ -111,7 +123,7 @@ const ExpandedTeamList = React.createClass({
               : this.renderNoProjects(team)}
           </table>
         </div>
-      </div>
+      </Panel>
     );
   },
 
