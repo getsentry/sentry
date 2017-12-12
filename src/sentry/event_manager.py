@@ -852,7 +852,13 @@ class EventManager(object):
         if is_regression and not raw:
             regression_signal.send_robust(sender=Group, instance=group)
 
-        metrics.timing('event.latency', received_timestamp - recorded_timestamp)
+        metrics.timing(
+            'events.latency',
+            received_timestamp - recorded_timestamp,
+            tags={
+                'project_id': project.id,
+            },
+        )
 
         return event
 
