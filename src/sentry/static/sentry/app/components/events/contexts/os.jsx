@@ -17,8 +17,8 @@ const OsContextType = React.createClass({
         data={data}
         knownData={[
           ['?Name', name],
-          ['Version', version + (build ? ` (${build})` : '')],
-          ['Kernel Version', kernel_version],
+          ['?Version', version + (build ? ` (${build})` : '')],
+          ['?Kernel Version', kernel_version],
           ['?Rooted', defined(rooted) ? (rooted ? 'yes' : 'no') : null],
         ]}
         alias={this.props.alias}
