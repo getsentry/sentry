@@ -345,6 +345,7 @@ class AccountSettingsForm(forms.Form):
                     needs_password = False
 
             del self.fields['new_password']
+            del self.fields['verify_new_password']
 
         # don't show username field if its the same as their email address
         if self.user.email == self.user.username:

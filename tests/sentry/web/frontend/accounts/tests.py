@@ -215,6 +215,34 @@ class SettingsTest(TestCase):
         user = User.objects.get(id=self.user.id)
         assert user.email == 'admin@localhost'
 
+    def test_settings_renders_with_verify_new_password(self):
+        user = self.create_user('foo@example.com')
+        self.login_as(user)
+        path = reverse('sentry-account-settings')
+        resp = self.client.get(path)
+        assert resp.status_code == 200
+        self.assertTemplateUsed('sentry/account/settings.html')
+        form = resp.context['form']
+        assert form.errors == {}
+        for field in ('name', 'email', 'new_password', 'verify_new_password', 'password'):
+            assert field in form.fields
+
+        self.assertContains(resp, 'New password')
+        self.assertContains(resp, 'Verify new password')
+
+    def test_settings_renders_without_new_password(self):
+        user = self.create_user('foo@example.com')
+        user.update(is_managed=True)
+        self.login_as(user)
+        path = reverse('sentry-account-settings')
+        resp = self.client.get(path)
+        assert resp.status_code == 200
+        self.assertTemplateUsed('sentry/account/settings.html')
+        form = resp.context['form']
+        assert form.errors == {}
+        for field in ('new_password', 'verify_new_password'):
+            assert field not in form.fields
+
 
 class ListIdentitiesTest(TestCase):
     @fixture
