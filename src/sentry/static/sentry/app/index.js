@@ -135,6 +135,7 @@ export default {
     LoadingIndicator: require('./components/loadingIndicator').default,
     ListLink: require('./components/listLink').default,
     MenuItem: require('./components/menuItem').default,
+    NarrowLayout: require('./components/narrowLayout').default,
     OrganizationHomeContainer: require('./components/organizations/homeContainer')
       .default,
     OrganizationsLoader: require('./components/organizations/organizationsLoader')
