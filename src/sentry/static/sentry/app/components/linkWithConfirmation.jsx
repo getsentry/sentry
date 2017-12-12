@@ -9,8 +9,8 @@ import Confirm from './confirm';
 class LinkWithConfirmation extends React.PureComponent {
   static propTypes = {
     disabled: PropTypes.bool,
-    message: PropTypes.string.isRequired,
-    title: PropTypes.string.isRequired,
+    message: PropTypes.node.isRequired,
+    title: PropTypes.node.isRequired,
     onConfirm: PropTypes.func.isRequired,
   };
 

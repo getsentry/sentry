@@ -1,9 +1,9 @@
 import React from 'react';
-import * as Router from 'react-router';
+import {Router, browserHistory} from 'react-router';
 import routes from './routes';
 
 export default class App extends React.Component {
   render() {
-    return <Router.Router history={Router.browserHistory}>{routes()}</Router.Router>;
+    return <Router history={browserHistory}>{routes()}</Router>;
   }
 }

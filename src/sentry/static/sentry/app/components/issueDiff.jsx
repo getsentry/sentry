@@ -41,7 +41,7 @@ const IssueDiff = React.createClass({
 
     // Fetch component and event data
     Promise.all([
-      import('./splitDiff'),
+      import(/* webpackChunkName: "splitDiff" */ './splitDiff'),
       this.fetchData(baseIssueId, baseEventId),
       this.fetchData(targetIssueId, targetEventId),
     ]).then(([{default: SplitDiffAsync}, baseEvent, targetEvent]) => {

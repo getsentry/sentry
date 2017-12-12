@@ -3,66 +3,65 @@
 exports[`OrganizationAccessRequests renders empty 1`] = `null`;
 
 exports[`OrganizationAccessRequests renders list 1`] = `
-<div
-  className="panel panel-default horizontal-scroll"
->
-  <table
-    className="table"
-    id="access_request_list"
+<Styled(div)>
+  <PanelHeader
+    disablePadding={true}
   >
-    <thead>
-      <tr>
-        <th
-          colSpan="2"
-        >
-          Pending Access Requests
-        </th>
-      </tr>
-    </thead>
-    <tbody>
-      <tr>
-        <td>
+    <Flex>
+      <Box
+        flex="1"
+        px={2}
+      >
+        Pending Access Requests
+      </Box>
+    </Flex>
+  </PanelHeader>
+  <Styled(div)>
+    <WithTheme(Styled(SpreadLayout))>
+      <Box
+        flex="1"
+        p={2}
+      >
+        <span>
+          <strong>
+            sentry@test.com
+          </strong>
           <span>
-            <strong>
-              sentry@test.com
-            </strong>
-            <span>
-               requests access to the 
-            </span>
-            <strong>
-              Team Name
-            </strong>
-            <span>
-               team.
-            </span>
+             requests access to the 
           </span>
-        </td>
-        <td
-          className="align-right"
-        >
-          <Button
-            disabled={false}
-            onClick={[Function]}
-            priority="primary"
-            size="small"
-            style={
-              Object {
-                "marginRight": 4,
-              }
+          <strong>
+            Team Name
+          </strong>
+          <span>
+             team.
+          </span>
+        </span>
+      </Box>
+      <Box
+        p={2}
+      >
+        <Button
+          disabled={false}
+          onClick={[Function]}
+          priority="primary"
+          size="small"
+          style={
+            Object {
+              "marginRight": 4,
             }
-          >
-            Approve
-          </Button>
-          <Button
-            disabled={false}
-            onClick={[Function]}
-            size="small"
-          >
-            Deny
-          </Button>
-        </td>
-      </tr>
-    </tbody>
-  </table>
-</div>
+          }
+        >
+          Approve
+        </Button>
+        <Button
+          disabled={false}
+          onClick={[Function]}
+          size="small"
+        >
+          Deny
+        </Button>
+      </Box>
+    </WithTheme(Styled(SpreadLayout))>
+  </Styled(div)>
+</Styled(div)>
 `;

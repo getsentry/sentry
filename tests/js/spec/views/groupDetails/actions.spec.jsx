@@ -32,6 +32,7 @@ describe('GroupActions', function() {
           },
           project: {
             id: '2448',
+            name: 'project name',
             slug: 'project',
           },
           team: {

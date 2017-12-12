@@ -95,7 +95,7 @@ const Avatar = React.createClass({
     }
 
     return (
-      <span className={this.props.className}>
+      <span className={this.props.className} style={this.props.style}>
         {this.state.showBackupAvatar && <UserLetterAvatar user={user} />}
         {this.renderImg()}
       </span>

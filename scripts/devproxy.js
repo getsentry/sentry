@@ -47,4 +47,9 @@ const server = http.createServer(function(req, res) {
     console.log('Proxy target not responding');
   }
 });
+
+server.on('error', function() {
+  console.log('devproxy error', arguments);
+});
+
 server.listen(WEBPACK_DEV_PROXY);

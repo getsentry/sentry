@@ -1,19 +1,18 @@
+import {browserHistory} from 'react-router';
 import React from 'react';
 import classNames from 'classnames';
 
-import OrganizationState from '../../mixins/organizationState';
-import ApiMixin from '../../mixins/apiMixin';
+import {t} from '../../locale';
 import AlertActions from '../../actions/alertActions';
-
+import ApiMixin from '../../mixins/apiMixin';
 import Button from '../../components/buttons/button';
+import ConfigStore from '../../stores/configStore';
 import LoadingIndicator from '../../components/loadingIndicator';
-import TextField from '../../components/forms/textField';
-
+import OrganizationState from '../../mixins/organizationState';
 import RoleSelect from './roleSelect';
 import TeamSelect from './teamSelect';
-
-import ConfigStore from '../../stores/configStore';
-import {t} from '../../locale';
+import TextField from '../../components/forms/textField';
+import recreateRoute from '../../utils/recreateRoute';
 
 const InviteMember = React.createClass({
   mixins: [ApiMixin, OrganizationState],
@@ -71,8 +70,13 @@ const InviteMember = React.createClass({
   },
 
   redirectToMemberPage() {
-    let {slug} = this.getOrganization();
-    window.location.href = `/organizations/${slug}/members/`;
+    // Get path to parent route (`/organizations/${slug}/members/`)
+    let pathToParentRoute = recreateRoute('', {
+      params: this.props.params,
+      routes: this.props.routes,
+      stepBack: -1,
+    });
+    browserHistory.push(pathToParentRoute);
   },
 
   splitEmails(text) {
@@ -96,6 +100,7 @@ const InviteMember = React.createClass({
           role: selectedRole,
         },
         success: () => {
+          // TODO(billy): Use SettingsIndicator when these views only exist in Settings area
           AlertActions.addAlert({
             message: `Added ${email}`,
             type: 'success',
@@ -129,7 +134,7 @@ const InviteMember = React.createClass({
     if (!emails.length) return;
     this.setState({busy: true});
     Promise.all(emails.map(this.inviteUser))
-      .then(() => setTimeout(this.redirectToMemberPage, 3000))
+      .then(() => this.redirectToMemberPage())
       .catch(error => {
         if (!error.email && !error.role) {
           Raven.captureMessage('unkown error ', {

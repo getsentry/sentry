@@ -1,7 +1,7 @@
 import React from 'react';
 
 import ApiMixin from '../../mixins/apiMixin';
-import OrganizationStore from '../../stores/organizationStore';
+import OrganizationsStore from '../../stores/organizationsStore';
 
 const OrganizationsLoader = React.createClass({
   mixins: [ApiMixin],
@@ -12,7 +12,7 @@ const OrganizationsLoader = React.createClass({
         member: '1',
       },
       success: data => {
-        OrganizationStore.load(data);
+        OrganizationsStore.load(data);
         this.setState({
           loading: false,
         });
@@ -27,7 +27,7 @@ const OrganizationsLoader = React.createClass({
   },
 
   componentWillUnmount() {
-    OrganizationStore.load([]);
+    OrganizationsStore.load([]);
   },
 
   render() {

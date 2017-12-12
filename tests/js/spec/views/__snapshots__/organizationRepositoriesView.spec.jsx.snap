@@ -1,0 +1,29 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`OrganizationRepositoriesView render() without any providers is loading when initially rendering 1`] = `
+<DocumentTitle
+  title="Repositories"
+>
+  <LazyLoad
+    component={[Function]}
+    error={false}
+    errors={Object {}}
+    itemList={Array []}
+    loading={false}
+    onAddRepo={[Function]}
+    onCancelDelete={[Function]}
+    onDeleteRepo={[Function]}
+    params={
+      Object {
+        "orgId": "org-slug",
+      }
+    }
+    remainingRequests={0}
+    repoConfig={
+      Object {
+        "providers": Array [],
+      }
+    }
+  />
+</DocumentTitle>
+`;

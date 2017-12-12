@@ -83,7 +83,7 @@ exports[`Configure should render correctly render() should render platform docs 
         }
       >
         <DocumentTitle
-          title="undefined / undefined"
+          title="undefined / Test Project"
         >
           <ProjectDocsContext>
             <LoadingIndicator>

@@ -3,7 +3,7 @@ import _ from 'lodash';
 
 import ProjectActions from '../actions/projectActions';
 
-const ProjectStore = Reflux.createStore({
+const ProjectsStore = Reflux.createStore({
   init() {
     this.reset();
     this.listenTo(ProjectActions.createSuccess, this.onCreateSuccess);
@@ -61,4 +61,4 @@ const ProjectStore = Reflux.createStore({
   },
 });
 
-export default ProjectStore;
+export default ProjectsStore;

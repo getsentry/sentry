@@ -3,6 +3,8 @@ import _ from 'lodash';
 
 let validHookNames = new Set([
   'footer',
+  'settings:organization-navigation',
+  'settings:organization-navigation-config',
   'organization:header',
   'organization:sidebar',
   'organization:dashboard:secondary-column',
@@ -51,3 +53,4 @@ const HookStore = Reflux.createStore({
 });
 
 export default HookStore;
+window.hook = HookStore;

@@ -91,6 +91,7 @@ describe('Configure should render correctly', function() {
                 hasAccess: true,
                 projects: [
                   {
+                    name: 'Test Project',
                     slug: 'testProject',
                     id: 'testProject',
                   },

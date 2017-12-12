@@ -11,6 +11,8 @@
     ]
   ],
   "plugins": [
+    "emotion",
+    "transform-decorators-legacy",
     "transform-class-properties",
     "transform-object-rest-spread",
     "lodash",
@@ -19,29 +21,25 @@
     [
       "babel-plugin-transform-builtin-extend",
       {
-        "globals": [
-          "Array"
-        ]
+        "globals": ["Array"]
       }
     ],
     "idx"
   ],
   "env": {
     "test": {
-      "presets": [
-        "react",
-        "latest"
-      ],
+      "presets": ["react", "latest"],
       "plugins": [
+        "emotion",
+        "transform-decorators-legacy",
         "transform-class-properties",
         "transform-object-rest-spread",
         "dynamic-import-node",
+        "syntax-dynamic-import",
         [
           "babel-plugin-transform-builtin-extend",
           {
-            "globals": [
-              "Array"
-            ]
+            "globals": ["Array"]
           }
         ],
         "idx"

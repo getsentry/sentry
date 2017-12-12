@@ -200,7 +200,7 @@ var appConfig = {
     library: 'exports',
     sourceMapFilename: '[name].js.map',
   },
-  devtool: IS_PRODUCTION ? '#source-map' : '#cheap-source-map',
+  devtool: IS_PRODUCTION ? '#source-map' : '#cheap-module-eval-source-map',
 };
 
 /**
