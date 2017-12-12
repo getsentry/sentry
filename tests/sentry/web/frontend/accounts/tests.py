@@ -139,6 +139,7 @@ class SettingsTest(TestCase):
         params = self.params()
         params['password'] = 'admin'
         params['new_password'] = 'foobar'
+        params['verify_new_password'] = 'foobar'
 
         resp = self.client.post(self.path, params)
         assert resp.status_code == 302
@@ -151,6 +152,7 @@ class SettingsTest(TestCase):
 
         params = self.params()
         params['new_password'] = 'foobar'
+        params['verify_new_password'] = 'foobar'
 
         resp = self.client.post(self.path, params)
         assert resp.status_code == 200
@@ -168,6 +170,7 @@ class SettingsTest(TestCase):
         params['email'] = user.email
         params['password'] = 'admin'
         params['new_password'] = 'foobar'
+        params['verify_new_password'] = 'foobar'
 
         resp = self.client.post(self.path, params)
         assert resp.status_code == 302

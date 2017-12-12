@@ -320,7 +320,6 @@ class AccountSettingsForm(forms.Form):
         label=_('Verify new password'),
         widget=forms.PasswordInput(),
         required=False,
-        # help_text=password_validation.password_validators_help_text_html(),
     )
     password = forms.CharField(
         label=_('Current password'),
@@ -346,7 +345,6 @@ class AccountSettingsForm(forms.Form):
                     needs_password = False
 
             del self.fields['new_password']
-            del self.fields['verify_new_password']
 
         # don't show username field if its the same as their email address
         if self.user.email == self.user.username:
@@ -354,7 +352,6 @@ class AccountSettingsForm(forms.Form):
 
         if not needs_password:
             del self.fields['password']
-            del self.fields['verify_new_password']
 
     def is_readonly(self):
         if self.user.is_managed:
@@ -405,11 +402,17 @@ class AccountSettingsForm(forms.Form):
         # cleaned_data not working because it is not a part of the model
         # not sure what to do
         new_password = self.cleaned_data.get('new_password')
-        verify_new_password = self.data['verify_new_password']
 
-        if new_password != verify_new_password:
-            raise forms.ValidationError('Your new password and verify new password must match.')
-        return verify_new_password
+        if new_password:
+            verify_new_password = self.data.get('verify_new_password')
+            if verify_new_password is None:
+                raise forms.ValidationError('You must verify your new password.')
+
+            # Not sure where best to make this check. Need feedback.
+            if new_password != verify_new_password:
+                raise forms.ValidationError('Your new password and verify new password must match.')
+
+            return verify_new_password
 
     def clean_new_password(self):
         new_password = self.cleaned_data.get('new_password')
