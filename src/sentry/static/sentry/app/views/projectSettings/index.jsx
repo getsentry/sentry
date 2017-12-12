@@ -78,7 +78,6 @@ const ProjectSettings = React.createClass({
     let {orgId, projectId} = this.props.params;
     let settingsUrlRoot = `/${orgId}/${projectId}/settings`;
     let project = this.state.project;
-    let features = new Set(project.features);
     let rootInstallPath = `/${orgId}/${projectId}/settings/install/`;
     let path = this.props.location.pathname;
     let processingIssues = this.state.project.processingIssues;
@@ -97,11 +96,6 @@ const ProjectSettings = React.createClass({
             >
               {t('Alerts')}
             </ListLink>
-            {features.has('quotas') && (
-              <li>
-                <a href={`${settingsUrlRoot}/quotas/`}>{t('Rate Limits')}</a>
-              </li>
-            )}
             <ListLink to={`/${orgId}/${projectId}/settings/tags/`}>{t('Tags')}</ListLink>
             <li>
               <a href={`${settingsUrlRoot}/issue-tracking/`}>{t('Issue Tracking')}</a>
