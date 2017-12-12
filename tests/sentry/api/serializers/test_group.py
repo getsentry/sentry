@@ -2,6 +2,7 @@
 
 from __future__ import absolute_import
 
+import mock
 import six
 
 from datetime import timedelta
@@ -10,8 +11,9 @@ from django.utils import timezone
 from mock import patch
 
 from sentry.api.serializers import serialize
+from sentry.api.serializers.models.group import StreamGroupSerializer
 from sentry.models import (
-    GroupResolution, GroupSnooze, GroupStatus,
+    Environment, GroupResolution, GroupSnooze, GroupStatus,
     GroupSubscription, UserOption, UserOptionValue
 )
 from sentry.testutils import TestCase
@@ -267,3 +269,41 @@ class GroupSerializerTest(TestCase):
 
         result = serialize(group)
         assert not result['isSubscribed']
+
+
+class StreamGroupSerializerTestCase(TestCase):
+    def test_environment(self):
+        group = self.group
+
+        environment = Environment.get_or_create(group.project, 'production')
+
+        from sentry.api.serializers.models.group import tsdb
+
+        with mock.patch(
+                'sentry.api.serializers.models.group.tsdb.get_range',
+                side_effect=tsdb.get_range) as get_range:
+            serialize(
+                [group],
+                serializer=StreamGroupSerializer(
+                    environment_id_func=lambda: environment.id,
+                    stats_period='14d',
+                ),
+            )
+            assert get_range.call_count == 1
+            for args, kwargs in get_range.call_args_list:
+                assert kwargs['environment_id'] == environment.id
+
+        def get_invalid_environment():
+            raise Environment.DoesNotExist()
+
+        with mock.patch(
+                'sentry.api.serializers.models.group.tsdb.make_series',
+                side_effect=tsdb.make_series) as make_series:
+            serialize(
+                [group],
+                serializer=StreamGroupSerializer(
+                    environment_id_func=get_invalid_environment,
+                    stats_period='14d',
+                )
+            )
+            assert make_series.call_count == 1

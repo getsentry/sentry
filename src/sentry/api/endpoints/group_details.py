@@ -1,6 +1,7 @@
 from __future__ import absolute_import
 
 from datetime import timedelta
+import functools
 import logging
 from uuid import uuid4
 
@@ -188,24 +189,6 @@ class GroupDetailsEndpoint(GroupEndpoint, EnvironmentMixin):
 
         action_list = self._get_actions(request, group)
 
-        now = timezone.now()
-        hourly_stats = tsdb.rollup(
-            tsdb.get_range(
-                model=tsdb.models.group,
-                keys=[group.id],
-                end=now,
-                start=now - timedelta(days=1),
-            ), 3600
-        )[group.id]
-        daily_stats = tsdb.rollup(
-            tsdb.get_range(
-                model=tsdb.models.group,
-                keys=[group.id],
-                end=now,
-                start=now - timedelta(days=30),
-            ), 3600 * 24
-        )[group.id]
-
         if first_release:
             first_release = self._get_release_info(request, group, first_release)
         if last_release:
@@ -215,10 +198,31 @@ class GroupDetailsEndpoint(GroupEndpoint, EnvironmentMixin):
             environment_id = self._get_environment_id_from_request(
                 request, group.project.organization_id)
         except Environment.DoesNotExist:
+            get_range = lambda model, keys, start, end, **kwargs: \
+                {k: tsdb.make_series(0, start, end) for k in keys}
             tags = []
         else:
+            get_range = functools.partial(tsdb.get_range, environment_id=environment_id)
             tags = tagstore.get_group_tag_keys(
                 group.project_id, group.id, environment_id, limit=100)
+
+        now = timezone.now()
+        hourly_stats = tsdb.rollup(
+            get_range(
+                model=tsdb.models.group,
+                keys=[group.id],
+                end=now,
+                start=now - timedelta(days=1),
+            ), 3600
+        )[group.id]
+        daily_stats = tsdb.rollup(
+            get_range(
+                model=tsdb.models.group,
+                keys=[group.id],
+                end=now,
+                start=now - timedelta(days=30),
+            ), 3600 * 24
+        )[group.id]
 
         participants = list(
             User.objects.filter(

@@ -1,6 +1,7 @@
 from __future__ import absolute_import, division, print_function
 
 from datetime import timedelta
+import functools
 import logging
 from uuid import uuid4
 
@@ -269,8 +270,13 @@ class ProjectGroupIndexEndpoint(ProjectEndpoint, EnvironmentMixin):
             # disable stats
             stats_period = None
 
-        query = request.GET.get('query', '').strip()
+        serializer = functools.partial(
+            StreamGroupSerializer,
+            environment_id_func=self._get_environment_id_func(request, project.organization_id),
+            stats_period=stats_period,
+        )
 
+        query = request.GET.get('query', '').strip()
         if query:
             matching_group = None
             matching_event = None
@@ -302,11 +308,8 @@ class ProjectGroupIndexEndpoint(ProjectEndpoint, EnvironmentMixin):
             if matching_group is not None:
                 response = Response(
                     serialize(
-                        [matching_group], request.user,
-                        StreamGroupSerializer(
-                            stats_period=stats_period,
-                            matching_event_id=getattr(
-                                matching_event, 'id', None)
+                        [matching_group], request.user, serializer(
+                            matching_event_id=getattr(matching_event, 'id', None),
                         )
                     )
                 )
@@ -332,9 +335,7 @@ class ProjectGroupIndexEndpoint(ProjectEndpoint, EnvironmentMixin):
 
         results = list(cursor_result)
 
-        context = serialize(
-            results, request.user, StreamGroupSerializer(
-                stats_period=stats_period))
+        context = serialize(results, request.user, serializer())
 
         # HACK: remove auto resolved entries
         if query_kwargs.get('status') == GroupStatus.UNRESOLVED:
