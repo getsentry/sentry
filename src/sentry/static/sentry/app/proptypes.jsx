@@ -105,6 +105,47 @@ export const Tag = PropTypes.shape({
   uniqueValues: PropTypes.number,
 });
 
+export const Project = PropTypes.shape({
+  id: PropTypes.string.isRequired,
+  name: PropTypes.string.isRequired,
+  slug: PropTypes.string.isRequired,
+  callSign: PropTypes.string,
+  color: PropTypes.string,
+  dateCreated: PropTypes.string,
+  features: PropTypes.arrayOf(PropTypes.string),
+  firstEvent: PropTypes.oneOfType([PropTypes.string, PropTypes.bool]),
+  isBookmarked: PropTypes.bool,
+  isPublic: PropTypes.bool,
+  platform: PropTypes.string,
+  stats: PropTypes.arrayOf(PropTypes.arrayOf(PropTypes.number)),
+  status: PropTypes.string,
+});
+
+export const NavigationObject = PropTypes.shape({
+  name: PropTypes.string,
+  items: PropTypes.arrayOf(
+    PropTypes.shape({
+      path: PropTypes.string.isRequired,
+      title: PropTypes.string.isRequired,
+      /**
+       * Function that is given an object with
+       * `access`, `features`
+       *
+       * Return true to show nav item, false to hide
+       */
+      show: PropTypes.oneOfType([PropTypes.func, PropTypes.bool]),
+
+      /**
+       * Function that is given an object with
+       * `access`, `features`, `organization`
+       *
+       * Return number to show in badge
+       */
+      badge: PropTypes.func,
+    })
+  ),
+});
+
 let SentryTypes = {
   AnyModel: PropTypes.shape({
     id: PropTypes.string.isRequired,
@@ -115,15 +156,14 @@ let SentryTypes = {
     id: PropTypes.string.isRequired,
   }),
   Tag,
-  Project: PropTypes.shape({
-    id: PropTypes.string.isRequired,
-  }),
+  Project,
   TagKey: PropTypes.shape({
     key: PropTypes.string.isRequired,
   }),
   Team: PropTypes.shape({
     id: PropTypes.string.isRequired,
   }),
+  NavigationObject,
   Member,
   User,
 };

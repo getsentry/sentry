@@ -696,6 +696,23 @@ table.integrations {
   margin: 6em auto;
   position: relative;
 
+  &.overlay {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background-color: rgba(255, 255, 255, 0.8);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0;
+
+    &.dark {
+      background-color: rgba(0, 0, 0, 0.6);
+    }
+  }
+
   .loading-indicator {
     position: relative;
     border: @check-thickness solid @white-darker;

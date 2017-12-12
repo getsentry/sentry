@@ -4,8 +4,7 @@ import React from 'react';
 import {Client} from 'app/api';
 import {mount} from 'enzyme';
 import ConfigStore from 'app/stores/configStore';
-import OrganizationMembersView
-  from 'app/views/settings/organization/members/organizationMembersView';
+import OrganizationMembersView from 'app/views/settings/organization/members/organizationMembersView';
 
 jest.mock('app/api');
 
@@ -15,6 +14,7 @@ describe('OrganizationMembersView', function() {
     orgId: 'org-slug',
     orgName: 'Organization Name',
     status: '',
+    routes: [],
     requireLink: false,
     memberCanLeave: false,
     canAddMembers: false,
@@ -22,7 +22,7 @@ describe('OrganizationMembersView', function() {
     currentUser,
     onSendInvite: () => {},
     onRemove: () => {},
-    onLeave: () => {}
+    onLeave: () => {},
   };
 
   beforeAll(function() {
@@ -38,12 +38,12 @@ describe('OrganizationMembersView', function() {
     Client.addMockResponse({
       url: '/organizations/org-id/members/',
       method: 'GET',
-      body: TestStubs.Members()
+      body: TestStubs.Members(),
     });
     Client.addMockResponse({
       url: '/organizations/org-id/access-requests/',
       method: 'GET',
-      body: []
+      body: [],
     });
   });
 
@@ -54,8 +54,8 @@ describe('OrganizationMembersView', function() {
         method: 'GET',
         body: {
           ...TestStubs.AuthProvider(),
-          require_link: true
-        }
+          require_link: true,
+        },
       });
     });
 
@@ -64,17 +64,17 @@ describe('OrganizationMembersView', function() {
         <OrganizationMembersView
           {...defaultProps}
           params={{
-            orgId: 'org-id'
+            orgId: 'org-id',
           }}
         />,
         {
           childContextTypes: {
-            router: PropTypes.object
+            router: PropTypes.object,
           },
           context: {
             organization: TestStubs.Organization(),
-            router: TestStubs.router()
-          }
+            router: TestStubs.router(),
+          },
         }
       );
 
@@ -89,8 +89,8 @@ describe('OrganizationMembersView', function() {
         method: 'GET',
         body: {
           ...TestStubs.AuthProvider(),
-          require_link: false
-        }
+          require_link: false,
+        },
       });
     });
 
@@ -99,17 +99,17 @@ describe('OrganizationMembersView', function() {
         <OrganizationMembersView
           {...defaultProps}
           params={{
-            orgId: 'org-id'
+            orgId: 'org-id',
           }}
         />,
         {
           childContextTypes: {
-            router: PropTypes.object
+            router: PropTypes.object,
           },
           context: {
             organization: TestStubs.Organization(),
-            router: TestStubs.router()
-          }
+            router: TestStubs.router(),
+          },
         }
       );
 

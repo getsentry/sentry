@@ -29,3 +29,5 @@ export const DEFAULT_API_SCOPES = [
   'team:read',
   'member:read',
 ];
+
+export const DEFAULT_TOAST_DURATION = 2000;

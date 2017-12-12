@@ -10,11 +10,10 @@ import LoadingIndicator from '../components/loadingIndicator';
 import BroadcastModal from '../components/broadcastModal';
 import SentryTypes from '../proptypes';
 import TeamStore from '../stores/teamStore';
-import ProjectStore from '../stores/projectStore';
+import ProjectsStore from '../stores/projectsStore';
 import ProjectActions from '../actions/projectActions';
 import ConfigStore from '../stores/configStore';
-
-import OrganizationState from '../mixins/organizationState';
+import {setActiveOrganization} from '../actionCreators/organizations';
 
 import {t} from '../locale';
 
@@ -31,11 +30,7 @@ const OrganizationContext = React.createClass({
     organization: SentryTypes.Organization,
   },
 
-  mixins: [
-    ApiMixin,
-    OrganizationState,
-    Reflux.listenTo(ProjectActions.createSuccess, 'onProjectCreation'),
-  ],
+  mixins: [ApiMixin, Reflux.listenTo(ProjectActions.createSuccess, 'onProjectCreation')],
 
   getInitialState() {
     return {
@@ -100,8 +95,10 @@ const OrganizationContext = React.createClass({
           showBroadcast: this.shouldShowBroadcast(data),
         });
 
+        setActiveOrganization(data);
+
         TeamStore.loadInitialData(data.teams);
-        ProjectStore.loadInitialData(
+        ProjectsStore.loadInitialData(
           data.teams.reduce((out, team) => {
             return out.concat(team.projects);
           }, [])

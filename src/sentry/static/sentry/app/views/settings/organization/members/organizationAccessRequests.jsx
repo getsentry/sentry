@@ -1,9 +1,20 @@
 import React from 'react';
 import PropTypes from 'prop-types';
+import {Flex, Box} from 'grid-emotion';
+import {withTheme} from 'emotion-theming';
+import styled from 'react-emotion';
 
 import {t, tct} from '../../../../locale';
 import Button from '../../../../components/buttons/button';
+import Panel from '../../components/panel';
+import PanelBody from '../../components/panelBody';
+import SpreadLayout from '../../../../components/spreadLayout';
+import PanelHeader from '../../components/panelHeader';
 import SentryTypes from '../../../../proptypes';
+
+const PendingRow = withTheme(styled(SpreadLayout)`
+  border-bottom: 1px solid ${p => p.theme.borderLight};
+`);
 
 class OrganizationAccessRequests extends React.Component {
   static propTypes = {
@@ -39,51 +50,51 @@ class OrganizationAccessRequests extends React.Component {
     if (!requestList || !requestList.length) return null;
 
     return (
-      <div className="panel panel-default horizontal-scroll">
-        <table className="table" id="access_request_list">
-          <thead>
-            <tr>
-              <th colSpan="2">{t('Pending Access Requests')}</th>
-            </tr>
-          </thead>
+      <Panel>
+        <PanelHeader disablePadding>
+          <Flex>
+            <Box px={2} flex="1">
+              {t('Pending Access Requests')}
+            </Box>
+          </Flex>
+        </PanelHeader>
 
-          <tbody>
-            {requestList.map(({id, member, team}, i) => {
-              let displayName =
-                member.user &&
-                (member.user.name || member.user.email || member.user.username);
-              return (
-                <tr key={i}>
-                  <td>
-                    {tct('[name] requests access to the [team] team.', {
-                      name: <strong>{displayName}</strong>,
-                      team: <strong>{team.name}</strong>,
-                    })}
-                  </td>
-                  <td className="align-right">
-                    <Button
-                      onClick={e => this.handleApprove(id, e)}
-                      busy={accessRequestBusy.get(id)}
-                      priority="primary"
-                      style={{marginRight: 4}}
-                      size="small"
-                    >
-                      {t('Approve')}
-                    </Button>
-                    <Button
-                      busy={accessRequestBusy.get(id)}
-                      onClick={e => this.handleDeny(id, e)}
-                      size="small"
-                    >
-                      {t('Deny')}
-                    </Button>
-                  </td>
-                </tr>
-              );
-            })}
-          </tbody>
-        </table>
-      </div>
+        <PanelBody>
+          {requestList.map(({id, member, team}, i) => {
+            let displayName =
+              member.user &&
+              (member.user.name || member.user.email || member.user.username);
+            return (
+              <PendingRow key={id}>
+                <Box p={2} flex="1">
+                  {tct('[name] requests access to the [team] team.', {
+                    name: <strong>{displayName}</strong>,
+                    team: <strong>{team.name}</strong>,
+                  })}
+                </Box>
+                <Box p={2}>
+                  <Button
+                    onClick={e => this.handleApprove(id, e)}
+                    busy={accessRequestBusy.get(id)}
+                    priority="primary"
+                    style={{marginRight: 4}}
+                    size="small"
+                  >
+                    {t('Approve')}
+                  </Button>
+                  <Button
+                    busy={accessRequestBusy.get(id)}
+                    onClick={e => this.handleDeny(id, e)}
+                    size="small"
+                  >
+                    {t('Deny')}
+                  </Button>
+                </Box>
+              </PendingRow>
+            );
+          })}
+        </PanelBody>
+      </Panel>
     );
   }
 }
