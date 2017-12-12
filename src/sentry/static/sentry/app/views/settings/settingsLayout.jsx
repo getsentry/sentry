@@ -20,7 +20,7 @@ const StyledIconCircleExclamation = styled(IconCircleExclamation)`
 `;
 
 let StyledWarning = styled.div`
-  margin-bottom: 30px;
+  margin: 30px 0;
   background: ${p => p.theme.alert.info.background};
   border: 1px solid ${p => p.theme.alert.info.border};
   padding: 15px 20px;

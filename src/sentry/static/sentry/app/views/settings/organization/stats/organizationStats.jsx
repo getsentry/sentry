@@ -5,6 +5,9 @@ import LoadingError from '../../../../components/loadingError';
 import LoadingIndicator from '../../../../components/loadingIndicator';
 import StackedBarChart from '../../../../components/stackedBarChart';
 import Pagination from '../../../../components/pagination';
+import Panel from '../../components/panel';
+import PanelBody from '../../components/panelBody';
+import PanelHeader from '../../components/panelHeader';
 import SettingsPageHeader from '../../components/settingsPageHeader';
 
 import ProjectTable from './projectTable';
@@ -82,30 +85,28 @@ class OrganizationStats extends React.Component {
             </div>
           )}
         </div>
-        <div className="organization-stats">
+        <div>
           {statsLoading ? (
             <LoadingIndicator />
           ) : statsError ? (
             <LoadingError onRetry={this.fetchData} />
           ) : (
-            <div className="bar-chart">
+            <Panel className="bar-chart">
               <StackedBarChart
                 points={orgStats}
                 height={150}
                 label="events"
-                className="standard-barchart"
+                className="standard-barchart b-a-0 m-b-0"
                 barClasses={['accepted', 'rate-limited', 'black-listed']}
                 tooltip={this.renderTooltip}
               />
-            </div>
+            </Panel>
           )}
         </div>
 
-        <div className="box">
-          <div className="box-header">
-            <h3>{t('Events by Project')}</h3>
-          </div>
-          <div className="box-content">
+        <Panel>
+          <PanelHeader>{t('Events by Project')}</PanelHeader>
+          <PanelBody>
             {statsLoading || projectsLoading ? (
               <LoadingIndicator />
             ) : projectsError ? (
@@ -118,8 +119,8 @@ class OrganizationStats extends React.Component {
                 projectMap={projectMap}
               />
             )}
-          </div>
-        </div>
+          </PanelBody>
+        </Panel>
         {pageLinks && <Pagination pageLinks={pageLinks} {...this.props} />}
       </div>
     );
