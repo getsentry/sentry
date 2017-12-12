@@ -50,7 +50,6 @@ from sentry.web.frontend.project_plugin_configure import \
 from sentry.web.frontend.project_plugin_disable import ProjectPluginDisableView
 from sentry.web.frontend.project_plugin_enable import ProjectPluginEnableView
 from sentry.web.frontend.project_plugin_reset import ProjectPluginResetView
-from sentry.web.frontend.project_plugins import ProjectPluginsView
 from sentry.web.frontend.project_rule_edit import ProjectRuleEditView
 from sentry.web.frontend.project_settings import ProjectSettingsView
 from sentry.web.frontend.react_page import GenericReactPageView, ReactPageView
@@ -426,11 +425,6 @@ urlpatterns += patterns(
         r'^(?P<organization_slug>[\w_-]+)/(?P<project_slug>[\w_-]+)/settings/issue-tracking/$',
         ProjectIssueTrackingView.as_view(),
         name='sentry-project-issue-tracking'
-    ),
-    url(
-        r'^(?P<organization_slug>[\w_-]+)/(?P<project_slug>[\w_-]+)/settings/plugins/$',
-        ProjectPluginsView.as_view(),
-        name='sentry-manage-project-plugins'
     ),
     url(
         r'^(?P<organization_slug>[\w_-]+)/(?P<project_slug>[\w_-]+)/settings/plugins/(?P<slug>[\w_-]+)/$',
