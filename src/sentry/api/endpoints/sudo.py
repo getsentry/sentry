@@ -30,9 +30,11 @@ class SudoEndpoint(Endpoint):
                 try:
                     challenge = json.loads(request.DATA['challenge'])
                     response = json.loads(request.DATA['response'])
-                    authenticated = interface.validate_response(request, challenge, response)
                 except ValueError:
-                    pass
+                    # Invalid JSON, return "Bad Request" status code
+                    return Response(status=400)
+                else:
+                    authenticated = interface.validate_response(request, challenge, response)
 
         else:
             authenticated = auth.authenticate(
