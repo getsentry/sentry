@@ -1,4 +1,5 @@
 import React from 'react';
+import PropTypes from 'prop-types';
 import {shallow, mount} from 'enzyme';
 
 import {Client} from 'app/api';
@@ -60,8 +61,8 @@ describe('OnboardingWizard', function() {
           router: TestStubs.router(),
         },
         childContextTypes: {
-          router: React.PropTypes.object,
-          organization: React.PropTypes.object,
+          router: PropTypes.object,
+          organization: PropTypes.object,
         },
       });
 

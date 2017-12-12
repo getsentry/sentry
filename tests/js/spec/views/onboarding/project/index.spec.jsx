@@ -1,3 +1,4 @@
+import PropTypes from 'prop-types';
 import React from 'react';
 import {shallow, mount} from 'enzyme';
 
@@ -55,8 +56,8 @@ describe('Project', function() {
           router: TestStubs.router(),
         },
         childContextTypes: {
-          router: React.PropTypes.object,
-          organization: React.PropTypes.object,
+          router: PropTypes.object,
+          organization: PropTypes.object,
         },
       });
 

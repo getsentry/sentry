@@ -1,4 +1,5 @@
 import React from 'react';
+import PropTypes from 'prop-types';
 import {shallow, mount} from 'enzyme';
 import _ from 'lodash';
 import InviteMember from 'app/views/inviteMember/inviteMember';
@@ -42,9 +43,9 @@ describe('CreateProject', function() {
         location: {query: {}},
       },
       childContextTypes: {
-        organization: React.PropTypes.object,
-        location: React.PropTypes.object,
-        router: React.PropTypes.object,
+        organization: PropTypes.object,
+        location: PropTypes.object,
+        router: PropTypes.object,
       },
     };
 
