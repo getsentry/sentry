@@ -1,11 +1,11 @@
 const theme = {
-  offWhite: '#FBFBFC',
+  offWhite: '#F8F7F9',
 
-  gray1: '#C1B8CA',
-  gray2: '#9788A5',
-  gray3: '#655674',
-  gray4: '',
-  gray5: '#2F2837',
+  gray1: '#BDB4C7',
+  gray2: '#9585A3',
+  gray3: '#645574',
+  gray4: '#4A3E56',
+  gray5: '#302839',
 
   blue: '#4674ca',
   blueLight: '#608EE4',
@@ -41,8 +41,8 @@ const theme = {
   purpleDark: '#5346AE',
   purpleDarkest: '#392C94',
 
-  borderLight: '#E7E1EC',
-  borderDark: '#D5CFDB',
+  borderLight: '#E2DBE8',
+  borderDark: '#D1CAD8',
   borderRadius: '4px',
 
   dropShadowLight: '0 2px 0 rgba(37, 11, 54, 0.04)',
