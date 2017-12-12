@@ -87,7 +87,7 @@ const DeviceContextType = React.createClass({
           ['?Name', name],
           ['?Family', family],
           ['?Model', model + (model_id ? ` (${model_id})` : '')],
-          ['Architecture', arch],
+          ['?Architecture', arch],
           ['?Battery Level', defined(battery_level) ? `${battery_level}%` : null],
           ['?Orientation', orientation],
           ['?Memory', memory],
