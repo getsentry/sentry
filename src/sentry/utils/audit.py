@@ -65,6 +65,7 @@ def create_project_delete_log(entry):
     delete_log.name = project.name
     delete_log.slug = project.slug
     delete_log.date_created = project.date_added
+    delete_log.platform = project.platform
 
     delete_log.organization_id = entry.organization.id
     delete_log.organization_name = entry.organization.name
