@@ -504,7 +504,8 @@ class EventManager(object):
         else:
             transaction_name = culprit
 
-        date = datetime.fromtimestamp(data.pop('timestamp'))
+        recorded_timestamp = data.pop('timestamp')
+        date = datetime.fromtimestamp(recorded_timestamp)
         date = date.replace(tzinfo=timezone.utc)
 
         kwargs = {
@@ -636,6 +637,7 @@ class EventManager(object):
         event.message = message
         kwargs['message'] = message
 
+        received_timestamp = event.data.get('received') or float(event.datetime.strftime('%s'))
         group_kwargs = kwargs.copy()
         group_kwargs.update(
             {
@@ -646,8 +648,7 @@ class EventManager(object):
                 'first_seen': date,
                 'active_at': date,
                 'data': {
-                    'last_received':
-                    event.data.get('received') or float(event.datetime.strftime('%s')),
+                    'last_received': received_timestamp,
                     'type':
                     event_type.key,
                     # we cache the events metadata on the group to ensure its
@@ -850,6 +851,14 @@ class EventManager(object):
         # TODO: move this to the queue
         if is_regression and not raw:
             regression_signal.send_robust(sender=Group, instance=group)
+
+        metrics.timing(
+            'events.latency',
+            received_timestamp - recorded_timestamp,
+            tags={
+                'project_id': project.id,
+            },
+        )
 
         return event
 
