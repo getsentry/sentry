@@ -5,6 +5,7 @@ import React from 'react';
 import styled from 'react-emotion';
 
 import IconChevronLeft from '../../icons/icon-chevron-left';
+import IconCircleExclamation from '../../icons/icon-circle-exclamation';
 import SettingsActivity from './components/settingsActivity';
 import SettingsBreadcrumb from './components/settingsBreadcrumb';
 import SettingsHeader from './components/settingsHeader';
@@ -13,8 +14,20 @@ import replaceRouterParams from '../../utils/replaceRouterParams';
 import withLatestContext from '../../utils/withLatestContext';
 import SentryTypes from '../../proptypes';
 
+const StyledIconCircleExclamation = styled(IconCircleExclamation)`
+  color: ${p => p.theme.blue};
+  opacity: 0.6;
+`;
+
 let StyledWarning = styled.div`
   margin-bottom: 30px;
+  background: ${p => p.theme.alert.info.background};
+  border: 1px solid ${p => p.theme.alert.info.border};
+  padding: 15px 20px;
+  border-radius: ${p => p.theme.borderRadius};
+  line-height: ${p => p.theme.type.lineHeightBody};
+  font-size: ${p => p.theme.type.size.small};
+  box-shadow: ${p => p.theme.dropShadowLight};
 `;
 // TODO(billy): Temp
 let NewSettingsWarning = ({location = {}}) => {
@@ -33,9 +46,17 @@ let NewSettingsWarning = ({location = {}}) => {
   };
   let Component = isRouter ? Link : 'a';
   return (
-    <StyledWarning className="alert alert-warning">
-      These settings are currently in beta. Please report any issues. You can temporarily
-      visit the <Component {...linkProps}>old settings page</Component> if necessary.
+    <StyledWarning>
+      <Flex align="center">
+        <Box w={32} mr={2}>
+          <StyledIconCircleExclamation size="32" />
+        </Box>
+        <Box>
+          These settings are currently in beta. Please report any issues. You can
+          temporarily visit the <Component {...linkProps}>old settings page</Component> if
+          necessary.
+        </Box>
+      </Flex>
     </StyledWarning>
   );
 };
@@ -121,9 +142,8 @@ class SettingsLayout extends React.Component {
             </Box>
           )}
           <Content>
-            <NewSettingsWarning location={this.props.location} />
-
             {children}
+            <NewSettingsWarning location={this.props.location} />
           </Content>
         </Flex>
         <SettingsActivity />

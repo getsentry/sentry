@@ -17,7 +17,7 @@ const Menu = styled.div`
   border: 1px solid ${p => p.theme.borderDark};
   box-shadow: ${p => p.theme.dropShadowHeavy};
   transition: 0.1s all ease;
-  border-radius: ${p => p.theme.radius};
+  border-radius: ${p => p.theme.borderRadius};
   overflow: hidden;
 
   ${p =>
