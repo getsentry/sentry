@@ -243,6 +243,34 @@ class SettingsTest(TestCase):
         for field in ('new_password', 'verify_new_password'):
             assert field not in form.fields
 
+    def test_cannot_change_password_without_verify_password(self):
+        self.login_as(self.user)
+
+        params = self.params()
+        params['new_password'] = 'foobar'
+
+        resp = self.client.post(self.path, params)
+        assert resp.status_code == 200
+        self.assertTemplateUsed('sentry/account/settings.html')
+        assert resp.context['form'].errors
+        user = User.objects.get(id=self.user.id)
+        assert not user.check_password('foobar')
+
+    def test_cannot_change_password_with_unequal_verify_password(self):
+        self.login_as(self.user)
+
+        params = self.params()
+        params['new_password'] = 'foobar'
+        params['verify_new_password'] = 'foobars'
+
+        resp = self.client.post(self.path, params)
+        assert resp.status_code == 200
+        self.assertTemplateUsed('sentry/account/settings.html')
+        assert resp.context['form'].errors
+        user = User.objects.get(id=self.user.id)
+        assert not user.check_password('foobar')
+        assert not user.check_password('foobars')
+
 
 class ListIdentitiesTest(TestCase):
     @fixture
