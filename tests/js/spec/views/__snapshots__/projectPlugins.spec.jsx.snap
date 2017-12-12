@@ -1,0 +1,144 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`ProjectPlugins renders 1`] = `
+<ProjectPlugins
+  params={
+    Object {
+      "orgId": "org-slug",
+      "projectId": "project-slug",
+    }
+  }
+>
+  <DocumentTitle
+    title="Project Integration Settings"
+  >
+    <div>
+      <h2>
+        Integrations
+      </h2>
+      <div
+        className="panel panel-default"
+      >
+        <table
+          className="table integrations simple"
+        >
+          <thead>
+            <tr>
+              <th
+                colSpan={2}
+              >
+                Integration
+              </th>
+              <th
+                className="align-right"
+              >
+                Enabled
+              </th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr
+              className="amazon-sqs"
+            >
+              <td
+                colSpan={2}
+              >
+                <div
+                  className="icon-integration icon-amazon-sqs"
+                />
+                <h5>
+                  Amazon SQS 
+                  <span>
+                    v8.23.0.dev0
+                  </span>
+                </h5>
+                <p>
+                  <ExternalLink
+                    href="https://github.com/getsentry/sentry"
+                    rel="noreferrer noopener"
+                    target="_blank"
+                  >
+                    <a
+                      href="https://github.com/getsentry/sentry"
+                      rel="noreferrer noopener"
+                      target="_blank"
+                    >
+                      Sentry Team
+                    </a>
+                  </ExternalLink>
+                </p>
+              </td>
+              <td
+                className="align-right"
+              >
+                <Checkbox
+                  checked={false}
+                  name="amazon-sqs"
+                  onChange={[Function]}
+                >
+                  <input
+                    checked={false}
+                    className="chk-select"
+                    name="amazon-sqs"
+                    onChange={[Function]}
+                    type="checkbox"
+                  />
+                </Checkbox>
+              </td>
+            </tr>
+            <tr
+              className="github"
+            >
+              <td
+                colSpan={2}
+              >
+                <div
+                  className="icon-integration icon-github"
+                />
+                <h5>
+                  GitHub 
+                  <span>
+                    v8.23.0.dev0
+                  </span>
+                </h5>
+                <p>
+                  <ExternalLink
+                    href="https://github.com/getsentry/sentry"
+                    rel="noreferrer noopener"
+                    target="_blank"
+                  >
+                    <a
+                      href="https://github.com/getsentry/sentry"
+                      rel="noreferrer noopener"
+                      target="_blank"
+                    >
+                      Sentry Team
+                    </a>
+                  </ExternalLink>
+                </p>
+              </td>
+              <td
+                className="align-right"
+              >
+                <Checkbox
+                  checked={true}
+                  name="github"
+                  onChange={[Function]}
+                >
+                  <input
+                    checked={true}
+                    className="chk-select"
+                    name="github"
+                    onChange={[Function]}
+                    type="checkbox"
+                  />
+                </Checkbox>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </DocumentTitle>
+</ProjectPlugins>
+`;

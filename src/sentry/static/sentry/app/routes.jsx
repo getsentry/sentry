@@ -81,6 +81,7 @@ import ProjectSettings from './views/projectSettings';
 import ProjectSettingsLayout from './views/settings/project/projectSettingsLayout';
 import ProjectUserReportSettings from './views/projectUserReportSettings';
 import ProjectUserReports from './views/projectUserReports';
+import ProjectPlugins from './views/projectPlugins';
 import ReleaseAllEvents from './views/releaseAllEvents';
 import ReleaseArtifacts from './views/releaseArtifacts';
 import ReleaseCommits from './views/releases/releaseCommits';
@@ -291,6 +292,12 @@ const projectSettingsRoutes = [
     path="csp/"
     name="CSP Reports"
     component={errorHandler(ProjectCspSettings)}
+  />,
+  <Route
+    key="plugins/"
+    path="plugins/"
+    name="Integrations"
+    component={errorHandler(ProjectPlugins)}
   />,
   <Route
     key="install/"

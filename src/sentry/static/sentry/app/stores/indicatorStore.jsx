@@ -6,6 +6,14 @@ const IndicatorStore = Reflux.createStore({
     this.lastId = 0;
   },
 
+  addSuccess(message) {
+    return this.add(message, 'success', {duration: 2000});
+  },
+
+  addError(message = 'An error Occurred') {
+    return this.add(message, 'error', {duration: 2000});
+  },
+
   add(message, type, options) {
     options = options || {};
 

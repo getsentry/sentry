@@ -262,14 +262,14 @@
   {% with project|get_plugins as plugins %}
     <h6 class="nav-header">{% trans "Integrations" %}</h6>
     <ul class="nav nav-stacked">
-      <li class="{% if page == 'plugins' %} active{% endif %}">
-        <a href="{% url 'sentry-manage-project-plugins' project.organization.slug project.slug %}">{% trans "All Integrations" %}</a>
+      <li>
+        <a href="{% absolute_uri '/{}/{}/settings/plugins/' project.organization.slug project.slug %}">{% trans "All Integrations" %}</a>
       </li>
-    {% for p in plugins %}
-      <li{% if page == 'plugin' and plugin.slug == p.slug %} class="active"{% endif %}>
-          <a href="{% url 'sentry-configure-project-plugin' project.organization.slug project.slug p.slug %}">{{ p.get_title }}</a>
-      </li>
-    {% endfor %}
+      {% for p in plugins %}
+        <li{% if page == 'plugin' and plugin.slug == p.slug %} class="active"{% endif %}>
+            <a href="{% url 'sentry-configure-project-plugin' project.organization.slug project.slug p.slug %}">{{ p.get_title }}</a>
+        </li>
+      {% endfor %}
     </ul>
   {% endwith %}
 {% endblock %}
