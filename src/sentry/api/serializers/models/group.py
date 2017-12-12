@@ -13,7 +13,7 @@ from sentry import tagstore, tsdb
 from sentry.api.serializers import Serializer, register, serialize
 from sentry.constants import LOG_LEVELS, StatsPeriod
 from sentry.models import (
-    Group, GroupAssignee, GroupBookmark, GroupMeta, GroupResolution, GroupSeen, GroupSnooze,
+    Environment, Group, GroupAssignee, GroupBookmark, GroupMeta, GroupResolution, GroupSeen, GroupSnooze,
     GroupShare, GroupStatus, GroupSubscription, GroupSubscriptionReason, User, UserOption,
     UserOptionValue
 )
@@ -35,6 +35,9 @@ disabled = object()
 
 @register(Group)
 class GroupSerializer(Serializer):
+    def __init__(self, environment_id_func=None):
+        self.environment_id_func = environment_id_func if environment_id_func is not None else lambda: None
+
     def _get_subscriptions(self, item_list, user):
         """
         Returns a mapping of group IDs to a two-tuple of (subscribed: bool,
@@ -329,7 +332,9 @@ class StreamGroupSerializer(GroupSerializer):
         '24h': StatsPeriod(24, timedelta(hours=1)),
     }
 
-    def __init__(self, stats_period=None, matching_event_id=None):
+    def __init__(self, environment_id_func=None, stats_period=None, matching_event_id=None):
+        super(StreamGroupSerializer, self).__init__(environment_id_func)
+
         if stats_period is not None:
             assert stats_period in self.STATS_PERIOD_CHOICES
 
@@ -345,13 +350,20 @@ class StreamGroupSerializer(GroupSerializer):
 
             segments, interval = self.STATS_PERIOD_CHOICES[self.stats_period]
             now = timezone.now()
-            stats = tsdb.get_range(
-                model=tsdb.models.group,
-                keys=group_ids,
-                end=now,
-                start=now - ((segments - 1) * interval),
-                rollup=int(interval.total_seconds()),
-            )
+            query_params = {
+                'start': now - ((segments - 1) * interval),
+                'end': now,
+                'rollup': int(interval.total_seconds()),
+            }
+            try:
+                stats = tsdb.get_range(
+                    model=tsdb.models.group,
+                    keys=group_ids,
+                    environment_id=self.environment_id_func(),
+                    **query_params
+                )
+            except Environment.DoesNotExist:
+                stats = {key: tsdb.make_series(0, **query_params) for key in group_ids}
 
             for item in item_list:
                 attrs[item].update({

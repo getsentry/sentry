@@ -1,5 +1,6 @@
 from __future__ import absolute_import
 
+import functools
 import logging
 import six
 import time
@@ -221,9 +222,27 @@ class Endpoint(APIView):
 
 
 class EnvironmentMixin(object):
+    def _get_environment_id_func(self, request, organization_id):
+        """\
+        Creates a function that when called returns the environment_id
+        associated with a request object, or ``None`` if no environment was
+        provided. If the environment doesn't exist, an ``Environment.DoesNotExist``
+        exception will be raised.
+
+        This returns as a callable since some objects outside of the API
+        endpoint need to handle the "environment was provided but does not
+        exist" state in addition to the two non-exceptional states (the
+        environment was provided and exists, or the environment was not
+        provided.)
+        """
+        return functools.partial(
+            self._get_environment_id_from_request,
+            request,
+            organization_id,
+        )
+
     def _get_environment_id_from_request(self, request, organization_id):
         environment = self._get_environment_from_request(request, organization_id)
-
         return environment and environment.id
 
     def _get_environment_from_request(self, request, organization_id):

@@ -1,5 +1,6 @@
 from __future__ import absolute_import, print_function
 
+import mock
 import six
 
 from datetime import timedelta
@@ -7,7 +8,7 @@ from django.utils import timezone
 
 from sentry import tagstore
 from sentry.models import (
-    Activity, Group, GroupHash, GroupAssignee, GroupBookmark, GroupResolution, GroupSeen,
+    Activity, Environment, Group, GroupHash, GroupAssignee, GroupBookmark, GroupResolution, GroupSeen,
     GroupSnooze, GroupSubscription, GroupStatus, GroupTombstone, Release
 )
 from sentry.testutils import APITestCase
@@ -77,6 +78,32 @@ class GroupDetailsTest(APITestCase):
         url = '/api/0/issues/{}/'.format(group3.id)
         response = self.client.get(url, format='json')
         assert response.status_code == 404
+
+    def test_environment(self):
+        group = self.create_group()
+        self.login_as(user=self.user)
+
+        environment = Environment.get_or_create(group.project, 'production')
+
+        url = '/api/0/issues/{}/'.format(group.id)
+
+        from sentry.api.endpoints.group_details import tsdb
+
+        with mock.patch(
+                'sentry.api.endpoints.group_details.tsdb.get_range',
+                side_effect=tsdb.get_range) as get_range:
+            response = self.client.get(url, {'environment': 'production'}, format='json')
+            assert response.status_code == 200
+            assert get_range.call_count == 2
+            for args, kwargs in get_range.call_args_list:
+                assert kwargs['environment_id'] == environment.id
+
+        with mock.patch(
+                'sentry.api.endpoints.group_details.tsdb.make_series',
+                side_effect=tsdb.make_series) as make_series:
+            response = self.client.get(url, {'environment': 'invalid'}, format='json')
+            assert response.status_code == 200
+            assert make_series.call_count == 2
 
 
 class GroupUpdateTest(APITestCase):
