@@ -28,7 +28,8 @@ from sentry.cache import default_cache
 from sentry.constants import VERSION_LENGTH
 from sentry.interfaces.csp import Csp
 from sentry.event_manager import EventManager
-from sentry.models import EventError, ProjectKey, upload_minidump, merge_minidump_event
+from sentry.lang.native.utils import merge_minidump_event
+from sentry.models import ProjectKey
 from sentry.tasks.store import preprocess_event, \
     preprocess_event_from_reprocessing
 from sentry.utils import json
@@ -405,33 +406,16 @@ class MinidumpApiHelper(ClientApiHelper):
         # Copy/pasted from above in ClientApiHelper.validate_data
         if release:
             release = six.text_type(release)
-            if len(release) <= VERSION_LENGTH:
-                validated['release'] = release
-            else:
-                validated['errors'].append({
-                    'type': EventError.VALUE_TOO_LONG,
-                    'name': 'release',
-                    'value': release,
-                })
 
         return validated
 
     def insert_data_to_database(self, data, start_time=None, from_reprocessing=False):
         # Seems like the event is valid and we can do some more expensive
-        # work on the minidump. That is, persisting the file itself for
-        # later postprocessing and extracting some more information from
-        # the minidump to populate the initial callstacks and exception
+        # work on the minidump. We process the minidump to extract some more
+        # information to populate the initial callstacks and exception
         # information.
-        event_id = data['event_id']
         minidump = data['extra'].pop('upload_file_minidump')
         merge_minidump_event(data, minidump.temporary_file_path())
-        upload_minidump(minidump, event_id)
-
-        # All more advanced analysis, such as stack frame symbolication,
-        # requires a proper stacktrace, which requires call frame infos
-        # (CFI) for more accurate stackwalking. This task is executed
-        # even before starting the native language plugin, which will
-        # ultimately perform stack frame symbolication.
 
         # Continue with persisting the event in the usual manner and
         # schedule default preprocessing tasks
