@@ -33,6 +33,7 @@ class RadioField extends InputField {
                   key={index}
                   onClick={this.onChange.bind(this, id, onChange, onBlur)}
                   role="radio"
+                  index={index}
                   tabIndex={this.isSelected({value, id}) ? 0 : -1}
                   aria-checked={this.isSelected({value, id})}
                 >
