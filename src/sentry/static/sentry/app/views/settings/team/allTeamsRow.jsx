@@ -1,9 +1,11 @@
 import PropTypes from 'prop-types';
 import React from 'react';
 import {Link} from 'react-router';
+import {Box} from 'grid-emotion';
 
 import ApiMixin from '../../../mixins/apiMixin';
 import AlertActions from '../../../actions/alertActions';
+import PanelItem from '../components/panelItem';
 import {t} from '../../../locale';
 
 // TODO(dcramer): this isnt great UX
@@ -91,11 +93,11 @@ const AllTeamsRow = React.createClass({
   render() {
     let {access, team, urlPrefix, openMembership} = this.props;
     return (
-      <tr>
-        <td>
-          <h5>{team.name}</h5>
-        </td>
-        <td className="actions align-right">
+      <PanelItem align="center">
+        <Box w={1 / 2} p={2}>
+          {team.name}
+        </Box>
+        <Box w={1 / 2} p={2} style={{textAlign: 'right'}}>
           {this.state.loading ? (
             <a className="btn btn-default btn-sm btn-loading btn-disabled">...</a>
           ) : team.isMember ? (
@@ -122,8 +124,8 @@ const AllTeamsRow = React.createClass({
               {t('Team Settings')}
             </Link>
           )}
-        </td>
-      </tr>
+        </Box>
+      </PanelItem>
     );
   },
 });

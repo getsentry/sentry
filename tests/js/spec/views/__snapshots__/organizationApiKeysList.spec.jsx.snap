@@ -6,10 +6,10 @@ exports[`OrganizationApiKeysList renders 1`] = `
   display: -webkit-flex;
   display: -ms-flexbox;
   display: flex;
-  -webkit-align-items: center;
-  -webkit-box-align: center;
-  -ms-flex-align: center;
-  align-items: center;
+  -webkit-align-items: top;
+  -webkit-box-align: top;
+  -ms-flex-align: top;
+  align-items: top;
   font-size: 14px;
   box-shadow: inset 0 -1px 0;
   margin-bottom: 30px;
@@ -39,7 +39,7 @@ exports[`OrganizationApiKeysList renders 1`] = `
 }
 
 .glamor-0 {
-  padding: 14px 0;
+  padding: 0 0 15px;
 }
 
 .glamor-6 {

@@ -7,7 +7,7 @@ import IconChevronRight from '../../../icons/icon-chevron-right';
 const StyledDivider = styled.span`
   display: inline-block;
   margin-left: 6px;
-  color: ${p => p.theme.gray1};
+  color: ${p => p.theme.borderDark};
   position: relative;
   top: -1px;
 

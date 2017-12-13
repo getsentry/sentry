@@ -28,7 +28,7 @@ const SearchInputIcon = styled(IconSearch)`
 const SearchInput = styled.input`
   transition: border-color 0.15s ease;
   font-size: 14px;
-  width: 220px;
+  width: 260px;
   line-height: 1;
   padding: 5px 8px 4px 28px;
   border: 1px solid ${p => p.theme.borderDark};

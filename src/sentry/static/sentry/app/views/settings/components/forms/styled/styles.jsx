@@ -8,6 +8,7 @@ const inputStyles = props => css`
   border-radius: 2px;
   padding: 10px;
   transition: border 0.2s ease;
+  resize: vertical;
 
   &:focus {
     outline: none;

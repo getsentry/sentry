@@ -17,7 +17,9 @@ exports[`OrganizationAccessRequests renders list 1`] = `
     </Flex>
   </PanelHeader>
   <Styled(div)>
-    <WithTheme(Styled(SpreadLayout))>
+    <Styled(Base)
+      align="center"
+    >
       <Box
         flex="1"
         p={2}
@@ -61,7 +63,7 @@ exports[`OrganizationAccessRequests renders list 1`] = `
           Deny
         </Button>
       </Box>
-    </WithTheme(Styled(SpreadLayout))>
+    </Styled(Base)>
   </Styled(div)>
 </Styled(div)>
 `;

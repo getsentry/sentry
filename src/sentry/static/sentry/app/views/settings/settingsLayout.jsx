@@ -4,18 +4,28 @@ import PropTypes from 'prop-types';
 import React from 'react';
 import styled from 'react-emotion';
 
-import IconChevronLeft from '../../icons/icon-chevron-left';
+import IconCircleExclamation from '../../icons/icon-circle-exclamation';
 import SettingsActivity from './components/settingsActivity';
 import SettingsBreadcrumb from './components/settingsBreadcrumb';
 import SettingsHeader from './components/settingsHeader';
 import SettingsSearch from './components/settingsSearch';
-import replaceRouterParams from '../../utils/replaceRouterParams';
-import withLatestContext from '../../utils/withLatestContext';
-import SentryTypes from '../../proptypes';
+
+const StyledIconCircleExclamation = styled(IconCircleExclamation)`
+  color: ${p => p.theme.blue};
+  opacity: 0.6;
+`;
 
 let StyledWarning = styled.div`
-  margin-bottom: 30px;
+  margin: 30px 0;
+  background: ${p => p.theme.alert.info.background};
+  border: 1px solid ${p => p.theme.alert.info.border};
+  padding: 15px 20px;
+  border-radius: ${p => p.theme.borderRadius};
+  line-height: ${p => p.theme.text.lineHeightBody};
+  font-size: ${p => p.theme.text.size.small};
+  box-shadow: ${p => p.theme.dropShadowLight};
 `;
+
 // TODO(billy): Temp
 let NewSettingsWarning = ({location = {}}) => {
   // TODO(billy): Remove this warning when ready
@@ -33,60 +43,20 @@ let NewSettingsWarning = ({location = {}}) => {
   };
   let Component = isRouter ? Link : 'a';
   return (
-    <StyledWarning className="alert alert-warning">
-      These settings are currently in beta. Please report any issues. You can temporarily
-      visit the <Component {...linkProps}>old settings page</Component> if necessary.
+    <StyledWarning>
+      <Flex align="center">
+        <Box w={32} mr={2}>
+          <StyledIconCircleExclamation size="32" />
+        </Box>
+        <Box>
+          These settings are currently in beta. Please report any issues. You can
+          temporarily visit the <Component {...linkProps}>old settings page</Component> if
+          necessary.
+        </Box>
+      </Flex>
     </StyledWarning>
   );
 };
-
-const BackButtonWrapper = styled(Link)`
-  position: fixed;
-  display: block;
-  left: 20px;
-  font-size: 18px;
-  color: ${p => p.theme.gray3};
-  &:hover {
-    color: ${p => p.theme.gray5};
-  }
-`;
-
-const BackIcon = styled.span`
-  color: ${p => p.theme.gray1};
-  position: relative;
-  top: -2px;
-  margin-right: 8px;
-`;
-
-class BackButtonComponent extends React.Component {
-  static propTypes = {
-    organization: SentryTypes.Organization,
-    project: SentryTypes.Project,
-  };
-
-  render() {
-    let {params, organization, project} = this.props;
-
-    let projectId = params.projectId || (project && project.slug);
-    let orgId = params.orgId || (organization && organization.slug);
-    let url = projectId ? '/:orgId/:projectId/' : '/:orgId/';
-
-    return (
-      <BackButtonWrapper
-        to={replaceRouterParams(url, {
-          orgId,
-          projectId,
-        })}
-      >
-        <BackIcon>
-          <IconChevronLeft size="15" />
-        </BackIcon>Back
-      </BackButtonWrapper>
-    );
-  }
-}
-
-const BackButton = withLatestContext(BackButtonComponent);
 
 const Content = styled(Box)`
   flex: 1;
@@ -108,7 +78,6 @@ class SettingsLayout extends React.Component {
     return (
       <div>
         <SettingsHeader>
-          <BackButton params={params} />
           <Box flex="1">
             <SettingsBreadcrumb params={params} routes={childRoutes} route={childRoute} />
           </Box>
@@ -121,9 +90,8 @@ class SettingsLayout extends React.Component {
             </Box>
           )}
           <Content>
-            <NewSettingsWarning location={this.props.location} />
-
             {children}
+            <NewSettingsWarning location={this.props.location} />
           </Content>
         </Flex>
         <SettingsActivity />

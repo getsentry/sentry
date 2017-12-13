@@ -12,7 +12,9 @@ import LoadingIndicator from '../../../../components/loadingIndicator';
 import SentryTypes from '../../../../proptypes';
 import recreateRoute from '../../../../utils/recreateRoute';
 
-const UserName = styled(Link)`font-size: 16px;`;
+const UserName = styled(Link)`
+  font-size: 16px;
+`;
 
 const Email = styled.div`
   color: ${p => p.theme.gray3};
@@ -26,8 +28,6 @@ const Row = styled(Flex)`
     border: 0;
   }
 `;
-
-const TextCenter = styled.div`text-align: center;`;
 
 export default class OrganizationMemberRow extends React.PureComponent {
   static propTypes = {
@@ -107,7 +107,7 @@ export default class OrganizationMemberRow extends React.PureComponent {
     let isInviting = status === 'loading';
 
     return (
-      <Row align="center" py={1}>
+      <Row align="center" py={2}>
         <Box pl={2}>
           <Avatar style={{width: 32, height: 32}} user={user ? user : {email}} />
         </Box>
@@ -168,12 +168,12 @@ export default class OrganizationMemberRow extends React.PureComponent {
           )}
         </Box>
 
-        <Box px={2} w={100}>
+        <Box px={2} w={140}>
           {roleName}
         </Box>
 
         {showRemoveButton || showLeaveButton ? (
-          <Box px={2} w={120}>
+          <Box px={2} w={140}>
             {showRemoveButton &&
               canRemoveMember && (
                 <Confirm

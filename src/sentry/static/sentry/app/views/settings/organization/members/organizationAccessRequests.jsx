@@ -1,20 +1,14 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 import {Flex, Box} from 'grid-emotion';
-import {withTheme} from 'emotion-theming';
-import styled from 'react-emotion';
 
 import {t, tct} from '../../../../locale';
 import Button from '../../../../components/buttons/button';
 import Panel from '../../components/panel';
 import PanelBody from '../../components/panelBody';
-import SpreadLayout from '../../../../components/spreadLayout';
 import PanelHeader from '../../components/panelHeader';
+import PanelItem from '../../components/panelItem';
 import SentryTypes from '../../../../proptypes';
-
-const PendingRow = withTheme(styled(SpreadLayout)`
-  border-bottom: 1px solid ${p => p.theme.borderLight};
-`);
 
 class OrganizationAccessRequests extends React.Component {
   static propTypes = {
@@ -65,7 +59,7 @@ class OrganizationAccessRequests extends React.Component {
               member.user &&
               (member.user.name || member.user.email || member.user.username);
             return (
-              <PendingRow key={id}>
+              <PanelItem key={id} align="center">
                 <Box p={2} flex="1">
                   {tct('[name] requests access to the [team] team.', {
                     name: <strong>{displayName}</strong>,
@@ -90,7 +84,7 @@ class OrganizationAccessRequests extends React.Component {
                     {t('Deny')}
                   </Button>
                 </Box>
-              </PendingRow>
+              </PanelItem>
             );
           })}
         </PanelBody>
