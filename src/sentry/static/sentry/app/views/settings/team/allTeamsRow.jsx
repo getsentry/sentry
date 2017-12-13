@@ -6,6 +6,7 @@ import {Box} from 'grid-emotion';
 import ApiMixin from '../../../mixins/apiMixin';
 import AlertActions from '../../../actions/alertActions';
 import PanelItem from '../components/panelItem';
+import {joinTeam, leaveTeam} from '../../../actionCreators/teams';
 import {t} from '../../../locale';
 
 // TODO(dcramer): this isnt great UX
@@ -33,7 +34,8 @@ const AllTeamsRow = React.createClass({
       loading: true,
     });
 
-    this.api.joinTeam(
+    joinTeam(
+      this.api,
       {
         orgId: this.props.organization.slug,
         teamId: this.props.team.slug,
@@ -64,7 +66,8 @@ const AllTeamsRow = React.createClass({
       loading: true,
     });
 
-    this.api.leaveTeam(
+    leaveTeam(
+      this.api,
       {
         orgId: this.props.organization.slug,
         teamId: this.props.team.slug,
