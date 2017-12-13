@@ -339,7 +339,7 @@ class DetailedProjectSerializer(ProjectWithTeamSerializer):
                 'securityToken': attrs['options'].get('sentry:token') or obj.get_security_token(),
                 'securityTokenHeader': attrs['options'].get('sentry:token_header'),
                 'verifySSL': bool(attrs['options'].get('sentry:verify_ssl', False)),
-                'scrubIpAddresses': bool(attrs['options'].get('sentry:scrub_ip_address', False)),
+                'scrubIPAddresses': bool(attrs['options'].get('sentry:scrub_ip_address', False)),
                 'scrapeJavaScript': bool(attrs['options'].get('sentry:scrape_javascript', True)),
                 'organization':
                 attrs['org'],

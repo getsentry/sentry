@@ -91,7 +91,7 @@ class ProjectAdminSerializer(ProjectMemberSerializer):
     dataScrubberDefaults = serializers.BooleanField(required=False)
     sensitiveFields = ListField(child=serializers.CharField(), required=False)
     safeFields = ListField(child=serializers.CharField(), required=False)
-    scrubIpAddresses = serializers.BooleanField(required=False)
+    scrubIPAddresses = serializers.BooleanField(required=False)
     scrapeJavaScript = serializers.BooleanField(required=False)
     allowedDomains = ListField(child=OriginField(), required=False)
     resolveAge = serializers.IntegerField(required=False)
@@ -296,8 +296,8 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
                                   result['subjectTemplate'])
         if result.get('defaultEnvironment') is not None:
             project.update_option('sentry:default_environment', result['defaultEnvironment'])
-        if result.get('scrubIpAddresses') is not None:
-            project.update_option('sentry:scrub_ip_address', result['scrubIpAddresses'])
+        if result.get('scrubIPAddresses') is not None:
+            project.update_option('sentry:scrub_ip_address', result['scrubIPAddresses'])
         if result.get('securityToken') is not None:
             project.update_option('sentry:token', result['securityToken'])
         if result.get('securityTokenHeader') is not None:

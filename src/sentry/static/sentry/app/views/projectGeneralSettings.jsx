@@ -161,7 +161,7 @@ export default class ProjectGeneralSettings extends AsyncView {
       safeFields: project.safeFields,
       defaultEnvironment: project.defaultEnvironment,
       subjectPrefix: project.subjectPrefix,
-      scrubIpAddresses: project.scrubIpAddresses,
+      scrubIPAddresses: project.scrubIPAddresses,
       securityToken: project.securityToken,
       securityHeader: project.securityHeader,
       securityTokenHeader: project.securityTokenHeader,
@@ -295,7 +295,7 @@ export default class ProjectGeneralSettings extends AsyncView {
                 placeholder={t('e.g. email')}
               />
               <BooleanField
-                name="scrubIpAddresses"
+                name="scrubIPAddresses"
                 label={t("Don't store IP Addresses")}
                 help={t('Prevent IP addresses from being stored for new events.')}
               />
