@@ -158,12 +158,12 @@ lint: lint-python lint-js
 
 lint-python:
 	@echo "--> Linting python"
-	bin/lint --python --parseable | tee flake8.pycodestyle.log
+	bash -eo pipefail -c "bin/lint --python --parseable | tee flake8.pycodestyle.log"
 	@echo ""
 
 lint-js:
 	@echo "--> Linting javascript"
-	bin/lint --js --parseable | tee eslint.codestyle.xml
+	bash -eo pipefail -c "bin/lint --js --parseable | tee eslint.codestyle.xml"
 	@echo ""
 
 coverage: develop

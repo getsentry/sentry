@@ -638,7 +638,7 @@ const ProjectFilters = React.createClass({
               orgId,
               projectId,
               onToggle: this.onToggleFilter,
-              idx: idx,
+              idx,
             };
             return filter.id === 'legacy-browsers' ? (
               <LegacyBrowserFilterRow {...props} />

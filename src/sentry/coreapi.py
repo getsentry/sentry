@@ -25,7 +25,6 @@ from time import time
 
 from sentry import filters
 from sentry.cache import default_cache
-from sentry.constants import VERSION_LENGTH
 from sentry.interfaces.csp import Csp
 from sentry.event_manager import EventManager
 from sentry.lang.native.utils import merge_minidump_event
