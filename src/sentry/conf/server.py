@@ -622,6 +622,11 @@ LOGGING = {
             'filters': ['important_django_request'],
             'class': 'sentry.logging.handlers.MetricsLogHandler',
         },
+        'django_internal': {
+            'level': 'WARNING',
+            'filters': ['sentry:internal', 'important_django_request'],
+            'class': 'raven.contrib.django.handlers.SentryHandler',
+        },
     },
     'filters': {
         'sentry:internal': {
@@ -676,7 +681,7 @@ LOGGING = {
         },
         'django.request': {
             'level': 'WARNING',
-            'handlers': ['console', 'metrics'],
+            'handlers': ['console', 'metrics', 'django_internal'],
             'propagate': False,
         },
         'toronado': {
