@@ -12,6 +12,23 @@ const forms = [
   },
 
   {
+    title: 'Workflow Notifications',
+    fields: [
+      {
+        name: 'workflowNotifications',
+        type: 'radio',
+        label: 'Send Me Workflow Notifications',
+        choices: () => [
+          [0, 'Always'],
+          [1, 'Only On Issues I Subscribe To'],
+          [2, 'Never'],
+        ],
+        help: 'E.g. changes in issue assignment, resolution status, and comments.',
+      },
+    ],
+  },
+
+  {
     title: 'Weekly Reports',
     fields: [
       {
@@ -19,6 +36,23 @@ const forms = [
         type: 'boolean',
         label: 'Send Me Weekly Reports',
         help: "Reports contain a summary of what's happened within your organization.",
+      },
+    ],
+  },
+
+  {
+    title: 'Deploy Notifications',
+    fields: [
+      {
+        name: 'deployNotifications',
+        type: 'radio',
+        label: 'Send Me Deploy Notifications',
+        choices: () => [
+          [0, 'Always'],
+          [1, 'Only On Deploys With My Commits'],
+          [2, 'Never'],
+        ],
+        help: 'Deploy emails include release, environment and commit overviews.',
       },
     ],
   },

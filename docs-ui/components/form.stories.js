@@ -4,11 +4,18 @@ import {storiesOf} from '@storybook/react';
 import {withInfo} from '@storybook/addon-info';
 import {action} from '@storybook/addon-actions';
 
-import {Form, TextField, PasswordField, BooleanField} from 'sentry-ui/forms';
+import {
+  Form as LegacyForm,
+  TextField,
+  PasswordField,
+  BooleanField,
+} from 'sentry-ui/forms';
+import RadioField from 'settings-ui/forms/radioField';
+import Form from 'settings-ui/forms/form';
 
 class UndoButton extends React.Component {
   static contextTypes = {
-    form: PropTypes.object
+    form: PropTypes.object,
   };
 
   handleClick = e => {
@@ -17,7 +24,11 @@ class UndoButton extends React.Component {
   };
 
   render() {
-    return <button type="button" onClick={this.handleClick}> Undo</button>;
+    return (
+      <button type="button" onClick={this.handleClick}>
+        Undo
+      </button>
+    );
   }
 }
 
@@ -27,13 +38,13 @@ storiesOf('Forms/Form', module)
   .add(
     'with Cancel',
     withInfo('Adds a "Cancel" button when `onCancel` is defined')(() => (
-      <Form onCancel={action('cancel')} onSubmit={action('submit')} />
+      <LegacyForm onCancel={action('cancel')} onSubmit={action('submit')} />
     ))
   )
   .add(
     'save on blur and undo',
     withInfo('Saves on blur and has undo')(() => (
-      <Form saveOnBlur allowUndo>
+      <LegacyForm saveOnBlur allowUndo>
         <TextField
           name="name"
           label="Team Name"
@@ -42,7 +53,7 @@ storiesOf('Forms/Form', module)
         />
         <TextField name="slug" label="Short name" placeholder="e.g. api-team" />
         <UndoButton />
-      </Form>
+      </LegacyForm>
     ))
   );
 
@@ -50,7 +61,7 @@ storiesOf('Forms/Fields', module)
   .add(
     'TextField',
     withInfo('Simple text input')(() => (
-      <Form saveOnBlur allowUndo>
+      <LegacyForm saveOnBlur allowUndo>
         <TextField
           name="name"
           label="Team Name"
@@ -58,22 +69,34 @@ storiesOf('Forms/Fields', module)
           required
         />
         <TextField name="slug" label="Short name" placeholder="e.g. api-team" />
-      </Form>
+      </LegacyForm>
     ))
   )
   .add(
     'PasswordField',
     withInfo('Password input')(() => (
-      <Form>
+      <LegacyForm>
         <PasswordField hasSavedValue name="password" label="password" />
-      </Form>
+      </LegacyForm>
     ))
   )
   .add(
     'BooleanField',
     withInfo('Boolean field (i.e. checkbox)')(() => (
-      <Form>
+      <LegacyForm>
         <BooleanField name="field" />
+      </LegacyForm>
+    ))
+  )
+  .add(
+    'RadioField',
+    withInfo('Radio field')(() => (
+      <Form>
+        <RadioField
+          name="radio"
+          label="Radio Field"
+          choices={() => [[0, 'Choice One'], [1, 'Choice Two'], [2, 'Choice Three']]}
+        />
       </Form>
     ))
   );
