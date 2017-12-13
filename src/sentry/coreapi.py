@@ -425,7 +425,7 @@ class MinidumpApiHelper(ClientApiHelper):
         event_id = data['event_id']
         minidump = data['extra'].pop('upload_file_minidump')
         merge_minidump_event(data, minidump.temporary_file_path())
-        upload_minidump(minidump, event_id)
+        upload_minidump(minidump, event_id, data['project'])
 
         # All more advanced analysis, such as stack frame symbolication,
         # requires a proper stacktrace, which requires call frame infos
