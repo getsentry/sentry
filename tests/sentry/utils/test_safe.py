@@ -25,7 +25,7 @@ class TrimTest(TestCase):
     def test_idempotent(self):
         trm = partial(trim, max_depth=2)
         a = {'a': {'b': {'c': {'d': 1}}}}
-        assert trm(a) == {'a': {'b': {'c': "{'d': 1}"}}}
+        assert trm(a) == {'a': {'b': {'c': '{"d":1}'}}}
         assert trm(trm(trm(trm(a)))) == trm(a)
 
     def test_sorted_trim(self):
@@ -38,6 +38,20 @@ class TrimTest(TestCase):
 
         assert trm(alpha) == expected
         assert trm(reverse) == expected
+
+    def test_max_depth(self):
+        trm = partial(trim, max_depth=2)
+        a = {'a': {'b': {'c': 'd'}}}
+        assert trm(a) == a
+
+        a = {'a': {'b': {'c': u'd'}}}
+        assert trm(a) == {'a': {'b': {'c': 'd'}}}
+
+        a = {'a': {'b': {'c': {u'd': u'e'}}}}
+        assert trm(a) == {'a': {'b': {'c': '{"d":"e"}'}}}
+
+        a = {'a': {'b': {'c': []}}}
+        assert trm(a) == {'a': {'b': {'c': '[]'}}}
 
 
 class TrimDictTest(TestCase):
