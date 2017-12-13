@@ -28,62 +28,6 @@
   </a>
 {% endblock %}
 
-{% block main %}
-    <div class="box">
-      <div class="box-header">
-        <h3>{% trans "Remove Project" %}</h3>
-      </div>
-      <div class="box-content with-padding">
-        {% if not ACCESS.project_admin %}
-        <p>{% trans "You do not have the required permission to remove this project." %}</p>
-        {% elif project.is_internal_project %}
-        <p>{% trans "This project cannot be removed. It is used internally by the Sentry server." %}</p>
-        {% else %}
-        <p class="clearfix">
-          <a href="{% url 'sentry-remove-project' project.organization.slug project.slug %}" class="btn btn-danger pull-right">{% trans "Remove Project" %}</a>
-          Remove the <strong>{{ project.slug }}</strong> project and all related data. </br>
-          Careful, this action cannot be undone.
-        </p>
-        {% endif %}
-      </div>
-    </div>
-
-    <div class="box">
-      <div class="box-header">
-        <h3>{% trans "Transfer Project" %}</h3>
-      </div>
-      <div class="box-content with-padding">
-        {% if not ACCESS.project_admin %}
-        <p>{% trans "You do not have the required permission to remove this project." %}</p>
-        {% elif project.is_internal_project %}
-        <p>{% trans "This project cannot be removed. It is used internally by the Sentry server." %}</p>
-        {% else %}
-        <p class="clearfix">
-          <a href="{% url 'sentry-transfer-project' project.organization.slug project.slug %}" class="btn btn-danger pull-right">{% trans "Transfer Project" %}</a>
-          Transfer the <strong>{{ project.slug }}</strong> project and all related data. </br>
-          Careful, this action cannot be undone.
-        </p>
-        {% endif %}
-      </div>
-    </div>
-
-  <script>
-  (function(){
-    $.each({{ form.org_overrides|to_json|safe }}, function(n, value) {
-      if ($('#id_' + value).attr('disabled')) {
-        $('<span/>').addClass('disabled-indicator tip')
-          .attr('title', {% filter to_json %}{% trans "This option is enforced by your organization's settings and cannot be customized per-project." %}{% endfilter %})
-          .append(
-            $('<span/>').addClass('icon-question')
-          ).insertBefore('#hint_id_' + value);
-      }
-    });
-
-    $('.tip').tooltip();
-  }());
-  </script>
-{% endblock %}
-
 {% block sidebar %}
   <h6 class="nav-header">{% trans "Configuration" %}</h6>
   <ul class="nav nav-stacked">
