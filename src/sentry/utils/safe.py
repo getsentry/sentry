@@ -45,7 +45,7 @@ def safe_execute(func, *args, **kwargs):
 def trim(
     value,
     max_size=settings.SENTRY_MAX_VARIABLE_SIZE,
-    max_depth=3,
+    max_depth=6,
     object_hook=None,
     _depth=0,
     _size=0,
