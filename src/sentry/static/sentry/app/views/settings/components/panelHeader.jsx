@@ -6,7 +6,7 @@ import PanelHeading from './panelHeading';
 
 const StyledPanelHeader = styled.div`
   border-bottom: 1px solid ${p => p.theme.borderDark};
-  border-radius: ${p => p.theme.radius} ${p => p.theme.radius} 0 0;
+  border-radius: ${p => p.theme.borderRadius} ${p => p.theme.borderRadius} 0 0;
   background: ${p => p.theme.offWhite}
   padding: ${p => (p.disablePadding ? '15px 0' : '15px 20px')};
   text-transform: uppercase;

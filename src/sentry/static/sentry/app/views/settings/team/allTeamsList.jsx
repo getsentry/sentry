@@ -4,6 +4,7 @@ import {Link} from 'react-router';
 
 import SentryTypes from '../../../proptypes';
 
+import Panel from '../components/panel';
 import AllTeamsRow from './allTeamsRow';
 import {tct} from '../../../locale';
 
@@ -32,13 +33,7 @@ const AllTeamsList = React.createClass({
     });
 
     if (teamNodes.length !== 0) {
-      return (
-        <div className="panel panel-default">
-          <table className="table">
-            <tbody>{teamNodes}</tbody>
-          </table>
-        </div>
-      );
+      return <Panel>{teamNodes}</Panel>;
     }
 
     return tct(

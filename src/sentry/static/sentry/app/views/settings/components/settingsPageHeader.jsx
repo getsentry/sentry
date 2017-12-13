@@ -27,7 +27,7 @@ class SettingsPageHeading extends React.Component {
 
 const Wrapper = styled.div`
   display: flex;
-  align-items: center;
+  align-items: top;
   font-size: 14px;
   box-shadow: inset 0 -1px 0 ${p => p.theme.borderLight};
   margin-bottom: 30px;
@@ -48,7 +48,7 @@ const Label = styled.div`
 
 // Label text only
 const LabelText = styled.span`
-  padding: 14px 0;
+  padding: 0 0 15px;
 `;
 
 export default SettingsPageHeading;

@@ -250,10 +250,10 @@ class OrganizationMembersView extends OrganizationSettingsView {
               <Box px={2} w={180}>
                 {t('Status')}
               </Box>
-              <Box px={2} w={100}>
+              <Box px={2} w={140}>
                 {t('Role')}
               </Box>
-              <Box px={2} w={120}>
+              <Box px={2} w={140}>
                 {t('Actions')}
               </Box>
             </Flex>

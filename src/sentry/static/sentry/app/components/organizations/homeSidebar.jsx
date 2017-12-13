@@ -141,7 +141,7 @@ const HomeSidebar = React.createClass({
             {t('Projects & Teams')}
           </ListLink>
           {access.has('org:read') && (
-            <ListLink to={`/organizations/${orgId}/stats/`}>{t('Stats')}</ListLink>
+            <ListLink to={`${pathPrefix}/stats/`}>{t('Stats')}</ListLink>
           )}
         </ul>
         <div>

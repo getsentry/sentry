@@ -1,11 +1,11 @@
 const theme = {
-  offWhite: '#FBFBFC',
+  offWhite: '#FAF9FB',
 
-  gray1: '#C1B8CA',
-  gray2: '#9788A5',
-  gray3: '#655674',
-  gray4: '',
-  gray5: '#2F2837',
+  gray1: '#BDB4C7',
+  gray2: '#9585A3',
+  gray3: '#645574',
+  gray4: '#4A3E56',
+  gray5: '#302839',
 
   blue: '#4674ca',
   blueLight: '#608EE4',
@@ -41,13 +41,9 @@ const theme = {
   purpleDark: '#5346AE',
   purpleDarkest: '#392C94',
 
-  borderLight: '#E7E1EC',
-  borderDark: '#D5CFDB',
-
-  fontFamily: '"Rubik", "Avenir Next", sans-serif',
-  fontFamilyMono: 'Monaco, monospace',
-
-  radius: '4px',
+  borderLight: '#E2DBE8',
+  borderDark: '#D1CAD8',
+  borderRadius: '4px',
 
   dropShadowLight: '0 2px 0 rgba(37, 11, 54, 0.04)',
   dropShadowHeavy: '0 1px 4px 1px rgba(47,40,55,0.08), 0 4px 16px 0 rgba(47,40,55,0.12)',
@@ -70,6 +66,18 @@ const theme = {
       border: '#E7C0BC',
       textLight: '#92635f',
       textDark: '#5d3e3b',
+    },
+  },
+
+  text: {
+    family: '"Rubik", "Avenir Next", sans-serif',
+    familyMono: 'Monaco, monospace',
+    lineHeightHeading: '1.15',
+    lineHeightBody: '1.4',
+    size: {
+      default: '12px',
+      small: '14px',
+      large: '18px',
     },
   },
 };
