@@ -1,0 +1,15 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`RadioField render() can select a different item 1`] = `
+<InputField
+  choices={[Function]}
+  field={[Function]}
+/>
+`;
+
+exports[`RadioField render() renders 1`] = `
+<InputField
+  choices={[Function]}
+  field={[Function]}
+/>
+`;
