@@ -352,22 +352,6 @@ class Group(Model):
                 self._oldest_event = None
         return self._oldest_event
 
-    def get_tags(self):
-        if not hasattr(self, '_tag_cache'):
-            group_tags = set(
-                [gtk.key for gtk in tagstore.get_group_tag_keys(self.project_id, self.id, environment_id=None)])
-
-            results = []
-            for key in group_tags:
-                results.append({
-                    'key': key,
-                    'label': tagstore.get_tag_key_label(key),
-                })
-
-            self._tag_cache = sorted(results, key=lambda x: x['label'])
-
-        return self._tag_cache
-
     def get_first_release(self):
         if self.first_release_id is None:
             return tagstore.get_first_release(self.project_id, self.id)
