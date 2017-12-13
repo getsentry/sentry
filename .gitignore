@@ -37,4 +37,3 @@ Gemfile.lock
 .vscode/tags
 coverage.xml
 junit.xml
-*.codestyle.xml
