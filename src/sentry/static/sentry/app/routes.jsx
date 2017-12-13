@@ -213,7 +213,12 @@ const orgSettingsRoutes = [
     component={errorHandler(OrganizationTeams)}
   />,
 
-  <Route key="org-stats" path="stats/" component={errorHandler(OrganizationStats)} />,
+  <Route
+    key="org-stats"
+    name="Stats"
+    path="stats/"
+    component={errorHandler(OrganizationStats)}
+  />,
 ];
 
 const projectSettingsRoutes = [
