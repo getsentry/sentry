@@ -8,7 +8,7 @@ import {sortArray} from '../../../utils';
 import {t, tct} from '../../../locale';
 import ApiMixin from '../../../mixins/apiMixin';
 import {update} from '../../../actionCreators/projects';
-
+import {leaveTeam} from '../../../actionCreators/teams';
 import TooltipMixin from '../../../mixins/tooltip';
 import BarChart from '../../../components/barChart';
 import Panel from '../components/panel';
@@ -25,6 +25,10 @@ const TeamHeaderLink = styled(Link)`
   &:hover {
     color: ${p => p.theme.gray4};
   }
+`;
+
+const ProjectTitle = styled.h5`
+  padding: 2px 0;
 `;
 
 const ExpandedTeamList = React.createClass({
@@ -53,7 +57,7 @@ const ExpandedTeamList = React.createClass({
 
   leaveTeam(team) {
     // TODO(dcramer): handle loading indicator
-    this.api.leaveTeam({
+    leaveTeam(this.api, {
       orgId: this.props.organization.slug,
       teamId: team.slug,
     });
@@ -148,7 +152,7 @@ const ExpandedTeamList = React.createClass({
     return (
       <tr key={project.id} className={project.isBookmarked ? 'isBookmarked' : null}>
         <td>
-          <h5>
+          <ProjectTitle>
             <a
               onClick={this.toggleBookmark.bind(this, project)}
               className="tip"
@@ -165,7 +169,7 @@ const ExpandedTeamList = React.createClass({
             >
               <ProjectLabel project={project} organization={this.props.organization} />
             </Link>
-          </h5>
+          </ProjectTitle>
         </td>
         <td className="align-right project-chart">
           {chartData && (
