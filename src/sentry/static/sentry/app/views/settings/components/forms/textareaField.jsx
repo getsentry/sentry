@@ -7,7 +7,7 @@ export default class TextareaField extends InputField {
     return (
       <InputField
         {...this.props}
-        field={({children, ...fieldProps}) => <Textarea {...fieldProps} />}
+        field={({children, onKeyDown, ...fieldProps}) => <Textarea {...fieldProps} />}
       />
     );
   }
