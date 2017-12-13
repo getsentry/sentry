@@ -34,7 +34,7 @@ class UndoButton extends React.Component {
 
 // eslint-disable-next-line
 storiesOf('Forms/Form', module)
-  .add('empty', withInfo('Empty form')(() => <Form onSubmit={action('submit')} />))
+  .add('empty', withInfo('Empty form')(() => <LegacyForm onSubmit={action('submit')} />))
   .add(
     'with Cancel',
     withInfo('Adds a "Cancel" button when `onCancel` is defined')(() => (
