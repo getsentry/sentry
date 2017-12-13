@@ -147,6 +147,18 @@ export default class ProjectGeneralSettings extends AsyncView {
   }
 
   renderBody() {
+    // These values cannot be changed on a project basis if any of them are 'true' at the org level
+    let orgOverrideFields = ['dataScrubber', 'dataScrubberDefaults', 'scrubIPAddresses'];
+
+    let orgOverrides = orgOverrideFields.reduce((res, key) => {
+      res[key] = this.context.organization[key];
+      return res;
+    }, {});
+
+    let orgOverrideDisabledReason = t(
+      "This option is enforced by your organization's settings and cannot be customized per-project."
+    );
+
     let project = this.state.data;
     let {orgId, projectId} = this.props.params;
     let initialData = {
@@ -267,11 +279,17 @@ export default class ProjectGeneralSettings extends AsyncView {
             </div>
             <div className="box-content with-padding">
               <BooleanField
+                disabled={orgOverrides.dataScrubber}
+                disabledReason={orgOverrideDisabledReason}
+                value={orgOverrides.dataScrubber || null}
                 name="dataScrubber"
                 label={t('Data scrubber')}
                 help={t('Enable server-side data scrubbing.')}
               />
               <BooleanField
+                disabled={orgOverrides.dataScrubberDefaults}
+                value={orgOverrides.dataScrubberDefaults || null}
+                disabledReason={orgOverrideDisabledReason}
                 name="dataScrubberDefaults"
                 label={t('Use default scrubbers')}
                 help={t(
@@ -295,6 +313,9 @@ export default class ProjectGeneralSettings extends AsyncView {
                 placeholder={t('e.g. email')}
               />
               <BooleanField
+                disabled={orgOverrides.scrubIPAddresses}
+                value={orgOverrides.scrubIPAddresses || null}
+                disabledReason={orgOverrideDisabledReason}
                 name="scrubIPAddresses"
                 label={t("Don't store IP Addresses")}
                 help={t('Prevent IP addresses from being stored for new events.')}
