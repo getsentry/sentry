@@ -129,7 +129,7 @@ class SettingsLayout extends React.Component {
     return (
       <div>
         <SettingsHeader>
-          <BackButton params={params} />
+          {/* <BackButton params={params} /> */}
           <Box flex="1">
             <SettingsBreadcrumb params={params} routes={childRoutes} route={childRoute} />
           </Box>

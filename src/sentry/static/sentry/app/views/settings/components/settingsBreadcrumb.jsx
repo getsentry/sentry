@@ -182,6 +182,10 @@ class SettingsBreadcrumb extends React.Component {
     let lastRouteIndex = routesWithNames.length - 1;
     return (
       <Breadcrumbs>
+        <Crumb>
+          <span className="icon-sentry-logo" style={{fontSize: 20, marginRight: 4}} />
+          <SettingsBreadcrumbDivider />
+        </Crumb>
         {routesWithNames.map((route, i) => {
           let isLast = i === lastRouteIndex;
           let createMenu = MENUS[route.name];
