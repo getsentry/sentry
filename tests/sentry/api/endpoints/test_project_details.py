@@ -306,18 +306,18 @@ class ProjectUpdateTest(APITestCase):
 
     def test_scrub_ip_address(self):
         resp = self.client.put(self.path, data={
-            'scrubIpAddresses': True,
+            'scrubIPAddresses': True,
         })
         assert resp.status_code == 200, resp.content
         assert self.project.get_option('sentry:scrub_ip_address') is True
-        assert resp.data['scrubIpAddresses'] is True
+        assert resp.data['scrubIPAddresses'] is True
 
         resp = self.client.put(self.path, data={
-            'scrubIpAddresses': False,
+            'scrubIPAddresses': False,
         })
         assert resp.status_code == 200, resp.content
         assert self.project.get_option('sentry:scrub_ip_address') is False
-        assert resp.data['scrubIpAddresses'] is False
+        assert resp.data['scrubIPAddresses'] is False
 
     def test_scrape_javascript(self):
         resp = self.client.put(self.path, data={
