@@ -1,6 +1,7 @@
 filter_secrets: false
-sudo: false
+group: deprecated-2017Q4
 dist: trusty
+sudo: required
 language: python
 rvm:
   - 2.2
