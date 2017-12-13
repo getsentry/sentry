@@ -69,7 +69,7 @@ const theme = {
     },
   },
 
-  type: {
+  text: {
     family: '"Rubik", "Avenir Next", sans-serif',
     familyMono: 'Monaco, monospace',
     lineHeightHeading: '1.15',

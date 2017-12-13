@@ -21,8 +21,8 @@ let StyledWarning = styled.div`
   border: 1px solid ${p => p.theme.alert.info.border};
   padding: 15px 20px;
   border-radius: ${p => p.theme.borderRadius};
-  line-height: ${p => p.theme.type.lineHeightBody};
-  font-size: ${p => p.theme.type.size.small};
+  line-height: ${p => p.theme.text.lineHeightBody};
+  font-size: ${p => p.theme.text.size.small};
   box-shadow: ${p => p.theme.dropShadowLight};
 `;
 
