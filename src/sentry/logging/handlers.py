@@ -6,13 +6,16 @@ sentry.logging.handlers
 """
 from __future__ import absolute_import
 
-import six
 import logging
+import re
+import six
 
 from django.utils.timezone import now
 from simplejson import JSONEncoder
 from structlog import get_logger
 from structlog.processors import _json_fallback_handler
+
+from sentry.utils import metrics
 
 _default_encoder = JSONEncoder(
     separators=(',', ':'),
@@ -83,3 +86,40 @@ class StructLogHandler(logging.StreamHandler):
                 kwargs['positional_args'] = (record.args, )
 
         logger.log(**kwargs)
+
+
+class MessageContainsFilter(logging.Filter):
+    """
+    A logging filter that allows log records where the message
+    contains given substring(s).
+
+    contains -- a string or list of strings to match
+    """
+
+    def __init__(self, contains):
+        if not isinstance(contains, list):
+            contains = [contains]
+        if not all(isinstance(c, six.string_types) for c in contains):
+            raise TypeError("'contains' must be a string or list of strings")
+        self.contains = contains
+
+    def filter(self, record):
+        message = record.getMessage()
+        return any(c in message for c in self.contains)
+
+
+class MetricsLogHandler(logging.Handler):
+    def emit(self, record, logger=get_logger()):
+        """
+        Turn something like:
+            > django.request: Forbidden (CSRF cookie not set.): /account
+        into:
+            > django.request.forbidden_csrf_cookie_not_set
+        and track it as an incremented counter.
+        """
+        key = record.name + '.' + record.getMessage()
+        key = key.lower()
+        key = re.subn("\s+", "_", key)[0]
+        key = re.subn("[^a-z0-9_.]", "", key)[0]
+        key = ".".join(key.split(".")[:3])
+        metrics.incr(key)
