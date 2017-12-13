@@ -129,19 +129,9 @@ const HomeSidebar = React.createClass({
           >
             {t('Dashboard')}
           </ListLink>
-          <ListLink
-            to={`${pathPrefix}/teams/`}
-            isActive={() => {
-              // return true if path matches /organizations/slug-name/teams/ OR /organizations/slug-name/all-teams/
-              return /^\/organizations\/[^\/]+\/(teams|all-teams)\/$/.test(
-                this.context.location.pathname
-              );
-            }}
-          >
-            {t('Projects & Teams')}
-          </ListLink>
+          <ListLink to={`${pathPrefix}/teams/`}>{t('Projects & Teams')}</ListLink>
           {access.has('org:read') && (
-            <ListLink to={`/organizations/${orgId}/stats/`}>{t('Stats')}</ListLink>
+            <ListLink to={`${pathPrefix}/stats/`}>{t('Stats')}</ListLink>
           )}
         </ul>
         <div>
