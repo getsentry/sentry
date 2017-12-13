@@ -14,6 +14,7 @@ from django.conf import settings
 from django.db import transaction
 from django.utils.encoding import force_text
 
+from sentry.utils import json
 from sentry.utils.strings import truncatechars
 
 
@@ -65,7 +66,7 @@ def trim(
 
     if _depth > max_depth:
         if not isinstance(value, six.string_types):
-            value = repr(value)
+            value = json.dumps(value)
         return trim(value, _size=_size, max_size=max_size)
 
     elif isinstance(value, dict):
