@@ -2,8 +2,8 @@ import PropTypes from 'prop-types';
 import React from 'react';
 import ConfigStore from '../stores/configStore';
 import ApiMixin from '../mixins/apiMixin';
-//import IconCloseLg from '../icons/icon-close-lg.svg';
 import {logAjaxError} from '../utils/logging';
+import InlineSvg from './inlineSvg';
 
 const ReleaseAnnouncement = ({close}) => {
   const mediaUrl = ConfigStore.get('mediaUrl');
@@ -126,6 +126,7 @@ const BroadcastModal = React.createClass({
                     this.setState({index: this.state.index + 1});
                   }}
                 >
+                  <InlineSvg src="icon-close-lg" />
                 </span>
               </div>
               {message({close: this.close})}
