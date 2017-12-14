@@ -59,7 +59,7 @@ class TeamDeleteTest(APITestCase):
 
         org = self.create_organization()
         team = self.create_team(organization=org)
-        project = self.create_project(team=team)  # NOQA
+        project = self.create_project(teams=[team])  # NOQA
 
         user = self.create_user(email='foo@example.com', is_superuser=False)
 
@@ -102,7 +102,7 @@ class TeamDeleteTest(APITestCase):
     def test_cannot_remove_as_member(self):
         org = self.create_organization(owner=self.user)
         team = self.create_team(organization=org)
-        project = self.create_project(team=team)  # NOQA
+        project = self.create_project(teams=[team])  # NOQA
 
         user = self.create_user(email='foo@example.com', is_superuser=False)
 

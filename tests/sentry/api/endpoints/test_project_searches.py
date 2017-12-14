@@ -13,8 +13,8 @@ class ProjectSearchListTest(APITestCase):
         self.login_as(user=self.user)
 
         team = self.create_team()
-        project1 = self.create_project(team=team, name='foo')
-        project2 = self.create_project(team=team, name='bar')
+        project1 = self.create_project(teams=[team], name='foo')
+        project2 = self.create_project(teams=[team], name='bar')
         SavedSearch.objects.filter(project=project1).delete()
         SavedSearch.objects.filter(project=project2).delete()
 
@@ -54,7 +54,7 @@ class ProjectSearchCreateTest(APITestCase):
         self.login_as(user=self.user)
 
         team = self.create_team()
-        project = self.create_project(team=team, name='foo')
+        project = self.create_project(teams=[team], name='foo')
 
         url = reverse(
             'sentry-api-0-project-searches',
@@ -78,7 +78,7 @@ class ProjectSearchCreateTest(APITestCase):
         self.login_as(user=self.user)
 
         team = self.create_team()
-        project = self.create_project(team=team, name='foo')
+        project = self.create_project(teams=[team], name='foo')
 
         SavedSearch.objects.create(name='ignored', project=project, query='')
 
@@ -98,7 +98,7 @@ class ProjectSearchCreateTest(APITestCase):
         self.login_as(user=self.user)
 
         team = self.create_team()
-        project = self.create_project(team=team, name='foo')
+        project = self.create_project(teams=[team], name='foo')
 
         url = reverse(
             'sentry-api-0-project-searches',
@@ -134,7 +134,7 @@ class ProjectSearchCreateTest(APITestCase):
         self.login_as(user=self.user)
 
         team = self.create_team()
-        project = self.create_project(team=team, name='foo')
+        project = self.create_project(teams=[team], name='foo')
 
         url = reverse(
             'sentry-api-0-project-searches',

@@ -10,7 +10,7 @@ from sentry.web.frontend.base import ProjectView
 class ProjectPluginsView(ProjectView):
     required_scope = 'project:write'
 
-    def handle(self, request, organization, team, project):
+    def handle(self, request, organization, project):
         if request.POST:
             enabled = set(request.POST.getlist('plugin'))
             for plugin in plugins.configurable_for_project(project, version=None):

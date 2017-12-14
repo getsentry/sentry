@@ -189,7 +189,7 @@ class Fixtures(object):
         return self.create_project(
             name='Bar',
             slug='bar',
-            team=self.team,
+            teams=[self.team],
         )
 
     @fixture
@@ -284,17 +284,31 @@ class Fixtures(object):
         return env
 
     def create_project(self, **kwargs):
+        teams = kwargs.pop('teams', None)
+
+        # TOOD(jess): this is just to keep backwards compat
+        # for sentry-plugins and getsentry. Remove once those
+        # are updated
+        team = kwargs.pop('team', None)
+        assert team is None or teams is None
+        if team is not None:
+            teams = [team]
+
+        if teams is None:
+            teams = [self.team]
+        # TODO(jess): remove when deprecated
+        kwargs['team'] = teams[0]
+
         if not kwargs.get('name'):
             kwargs['name'] = petname.Generate(2, ' ', letters=10).title()
         if not kwargs.get('slug'):
             kwargs['slug'] = slugify(six.text_type(kwargs['name']))
-        if not kwargs.get('team'):
-            kwargs['team'] = self.team
         if not kwargs.get('organization'):
             kwargs['organization'] = kwargs['team'].organization
 
         project = Project.objects.create(**kwargs)
-        project.add_team(kwargs['team'])
+        for team in teams:
+            project.add_team(team)
         return project
 
     def create_project_key(self, project):

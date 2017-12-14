@@ -61,7 +61,7 @@ class OrganizationStatsEndpoint(OrganizationEndpoint, EnvironmentMixin, StatsMix
                     team=team,
                     user=request.user,
                 ))
-            keys = [p.id for p in project_list]
+            keys = list({p.id for p in project_list})
         else:
             raise ValueError('Invalid group: %s' % group)
 

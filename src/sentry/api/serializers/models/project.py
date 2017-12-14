@@ -14,8 +14,8 @@ from sentry.api.serializers.models.plugin import PluginSerializer
 from sentry.constants import StatsPeriod
 from sentry.digests import backend as digests
 from sentry.models import (
-    Project, ProjectBookmark, ProjectOption, ProjectPlatform, ProjectStatus, Release, UserOption,
-    DEFAULT_SUBJECT_TEMPLATE
+    Project, ProjectBookmark, ProjectOption, ProjectPlatform, ProjectStatus, ProjectTeam,
+    Release, UserOption, DEFAULT_SUBJECT_TEMPLATE
 )
 from sentry.utils.data_filters import FilterTypes
 
@@ -159,16 +159,29 @@ class ProjectWithTeamSerializer(ProjectSerializer):
         attrs = super(ProjectWithTeamSerializer,
                       self).get_attrs(item_list, user)
 
+        project_teams = list(
+            ProjectTeam.objects.filter(
+                project__in=item_list,
+            ).select_related('team')
+        )
+
         teams = {d['id']: d for d in serialize(
-            list(set(i.team for i in item_list)), user)}
+            list(set(pt.team for pt in project_teams)), user)}
+
+        teams_by_project_id = defaultdict(list)
+        for pt in project_teams:
+            teams_by_project_id[pt.project_id].append(teams[six.text_type(pt.team_id)])
+
         for item in item_list:
-            attrs[item]['team'] = teams[six.text_type(item.team_id)]
+            attrs[item]['teams'] = teams_by_project_id[item.id]
         return attrs
 
     def serialize(self, obj, attrs, user):
         data = super(ProjectWithTeamSerializer,
                      self).serialize(obj, attrs, user)
-        data['team'] = attrs['team']
+        # TODO(jess): remove this when this is deprecated
+        data['team'] = attrs['teams'][0]
+        data['teams'] = attrs['teams']
         return data
 
 

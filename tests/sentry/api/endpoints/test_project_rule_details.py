@@ -13,8 +13,8 @@ class ProjectRuleDetailsTest(APITestCase):
         self.login_as(user=self.user)
 
         team = self.create_team()
-        project1 = self.create_project(team=team, name='foo')
-        self.create_project(team=team, name='bar')
+        project1 = self.create_project(teams=[team], name='foo')
+        self.create_project(teams=[team], name='bar')
 
         rule = project1.rule_set.all()[0]
 

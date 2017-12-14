@@ -10,7 +10,7 @@ from sentry.testutils import TestCase
 class DeleteTagKeyTest(TestCase):
     def test_simple(self):
         team = self.create_team(name='test', slug='test')
-        project = self.create_project(team=team, name='test1', slug='test1')
+        project = self.create_project(teams=[team], name='test1', slug='test1')
         group = self.create_group(project=project)
         key = 'foo'
         value = 'bar'
@@ -41,7 +41,7 @@ class DeleteTagKeyTest(TestCase):
             ]
         )
 
-        project2 = self.create_project(team=team, name='test2')
+        project2 = self.create_project(teams=[team], name='test2')
         env2 = self.create_environment(project=project2)
         group2 = self.create_group(project=project2)
         tk2 = tagstore.create_tag_key(project2.id, env2.id, key)

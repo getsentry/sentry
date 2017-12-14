@@ -11,8 +11,8 @@ class ProjectRuleListTest(APITestCase):
         self.login_as(user=self.user)
 
         team = self.create_team()
-        project1 = self.create_project(team=team, name='foo')
-        self.create_project(team=team, name='bar')
+        project1 = self.create_project(teams=[team], name='foo')
+        self.create_project(teams=[team], name='bar')
 
         url = reverse(
             'sentry-api-0-project-rules',

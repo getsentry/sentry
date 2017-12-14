@@ -11,7 +11,7 @@ class OrganizationProjectsTest(APITestCase):
 
         org = self.create_organization(owner=self.user, name='baz')
         team = self.create_team(organization=org)
-        project = self.create_project(team=team)
+        project = self.create_project(teams=[team])
 
         path = '/api/0/organizations/{}/projects/'.format(org.slug)
         response = self.client.get(path)
@@ -25,7 +25,7 @@ class OrganizationProjectsTest(APITestCase):
 
         org = self.create_organization(owner=self.user, name='baz')
         team = self.create_team(organization=org)
-        self.create_project(team=team)
+        self.create_project(teams=[team])
 
         path = '/api/0/organizations/{}/projects/'.format(org.slug)
 

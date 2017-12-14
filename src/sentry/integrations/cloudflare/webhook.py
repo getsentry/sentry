@@ -79,7 +79,7 @@ class CloudflareWebhookEndpoint(Endpoint):
 
         projects = Project.objects.filter(
             organization=org,
-            team__in=Team.objects.get_for_user(org, request.user, scope='project:write'),
+            teams__in=Team.objects.get_for_user(org, request.user, scope='project:write'),
         )
         for project in projects:
             if six.text_type(project.id) == project_id:
@@ -144,7 +144,7 @@ class CloudflareWebhookEndpoint(Endpoint):
 
         projects = sorted(Project.objects.filter(
             organization=org,
-            team__in=Team.objects.get_for_user(org, request.user, scope='project:write'),
+            teams__in=Team.objects.get_for_user(org, request.user, scope='project:write'),
         ), key=lambda x: x.slug)
 
         enum_choices = [six.text_type(o.id) for o in projects]

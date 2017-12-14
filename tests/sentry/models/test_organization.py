@@ -16,7 +16,7 @@ class OrganizationTest(TestCase):
         from_team_two = self.create_team(organization=from_org, slug='bizzy')
         from_project_two = self.create_project(
             organization=from_org,
-            team=from_team_two,
+            teams=[from_team_two],
             slug='bizzy',
         )
         from_release = Release.objects.create(version='abcabcabc', organization=from_org)
@@ -58,7 +58,7 @@ class OrganizationTest(TestCase):
         to_team_two = self.create_team(organization=to_org, slug='bizzy')
         to_project_two = self.create_project(
             organization=to_org,
-            team=to_team_two,
+            teams=[to_team_two],
             slug='bizzy',
         )
         to_member = self.create_member(organization=to_org, user=other_user)

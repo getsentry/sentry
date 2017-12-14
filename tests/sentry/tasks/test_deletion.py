@@ -97,8 +97,8 @@ class DeleteTeamTest(TestCase):
             name='test',
             status=TeamStatus.PENDING_DELETION,
         )
-        self.create_project(team=team, name='test1')
-        self.create_project(team=team, name='test2')
+        self.create_project(teams=[team], name='test1')
+        self.create_project(teams=[team], name='test2')
 
         with self.tasks():
             delete_team(object_id=team.id)
@@ -110,8 +110,8 @@ class DeleteTeamTest(TestCase):
             name='test',
             status=TeamStatus.VISIBLE,
         )
-        self.create_project(team=team, name='test1')
-        self.create_project(team=team, name='test2')
+        self.create_project(teams=[team], name='test1')
+        self.create_project(teams=[team], name='test2')
 
         with self.assertRaises(DeleteAborted):
             with self.tasks():
@@ -188,7 +188,7 @@ class DeleteTagKeyTest(TestCase):
         from sentry.tagstore.tasks import delete_tag_key as delete_tag_key_task
 
         team = self.create_team(name='test', slug='test')
-        project = self.create_project(team=team, name='test1', slug='test1')
+        project = self.create_project(teams=[team], name='test1', slug='test1')
         group = self.create_group(project=project)
         key = 'foo'
         value = 'bar'
@@ -219,7 +219,7 @@ class DeleteTagKeyTest(TestCase):
             ],
         )
 
-        project2 = self.create_project(team=team, name='test2')
+        project2 = self.create_project(teams=[team], name='test2')
         env2 = self.create_environment(project=project2)
         group2 = self.create_group(project=project2)
         tk2 = tagstore.create_tag_key(

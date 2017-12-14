@@ -23,7 +23,7 @@ class RemoveProjectView(ProjectView):
             return RemoveProjectForm(request.POST)
         return RemoveProjectForm()
 
-    def handle(self, request, organization, team, project):
+    def handle(self, request, organization, project):
         form = self.get_form(request)
 
         if form.is_valid():
@@ -39,7 +39,7 @@ class RemoveProjectView(ProjectView):
             )
 
             return HttpResponseRedirect(
-                reverse('sentry-organization-home', args=[team.organization.slug])
+                reverse('sentry-organization-home', args=[organization.slug])
             )
 
         context = {

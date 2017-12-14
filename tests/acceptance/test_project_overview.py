@@ -15,7 +15,7 @@ class ProjectOverviewTest(AcceptanceTestCase):
             organization=self.org, name='Mariachi Band')
         self.project = self.create_project(
             organization=self.org,
-            team=self.team,
+            teams=[self.team],
             name='Bengal',
         )
         self.login_as(self.user)

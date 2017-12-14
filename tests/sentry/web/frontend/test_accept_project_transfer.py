@@ -12,7 +12,7 @@ from sentry.testutils import TestCase, PermissionTestCase
 class AcceptTransferProjectPermissionTest(PermissionTestCase):
     def setUp(self):
         super(AcceptTransferProjectPermissionTest, self).setUp()
-        self.project = self.create_project(team=self.team)
+        self.project = self.create_project(teams=[self.team])
         self.path = reverse('sentry-accept-project-transfer')
 
     def test_team_admin_cannot_load(self):
@@ -34,7 +34,7 @@ class AcceptTransferProjectTest(TestCase):
             role='admin',
             teams=[self.from_team],
         )
-        self.project = self.create_project(name='proj', team=self.from_team)
+        self.project = self.create_project(name='proj', teams=[self.from_team])
         self.transaction_id = uuid4().hex
         self.path = reverse('sentry-accept-project-transfer')
 

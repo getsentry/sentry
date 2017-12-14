@@ -45,7 +45,7 @@ class OrganizationStatsTest(APITestCase):
 
         org = self.create_organization(owner=self.user)
         project = self.create_project(
-            team=self.create_team(organization=org, members=[self.user]),
+            teams=[self.create_team(organization=org, members=[self.user])],
         )
 
         make_request = functools.partial(
