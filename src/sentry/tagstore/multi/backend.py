@@ -1,0 +1,175 @@
+"""
+sentry.tagstore.multi.backend
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+:copyright: (c) 2010-2017 by the Sentry Team, see AUTHORS for more details.
+:license: BSD, see LICENSE for more details.
+"""
+
+from __future__ import absolute_import
+
+import six
+
+import random
+
+from sentry.tagstore.base import TagStorage
+from sentry.utils.imports import import_string
+
+
+class MultiTagStorage(TagStorage):
+    def __init__(self, backends, read_selector=random.choice, **kwargs):
+        assert backends, "you should provide at least one backend"
+
+        self.backends = []
+        for backend, backend_options in backends:
+            if isinstance(backend, six.string_types):
+                backend = import_string(backend)
+            self.backends.append(backend(**backend_options))
+
+        self.read_selector = read_selector
+
+        super(TagStorage, self).__init__(**kwargs)
+
+    def _call_all_backends(self, func, *args, **kwargs):
+        """\
+        Call `func` on all backends, returning the first backend's return value, or raising any exception.
+        """
+
+        ret_val = None
+        should_raise = False
+        for i, backend in enumerate(self.backends):
+            try:
+                r = getattr(backend, func)(*args, **kwargs)
+                if (i == 0):
+                    ret_val = r
+            except Exception:
+                should_raise = True
+
+        if should_raise:
+            raise
+
+        return ret_val
+
+    def _call_one_backend(self, func, *args, **kwargs):
+        """\
+        Call `func` on one backend, using `read_selector` to choose which.
+        """
+        backend = self.read_selector(self.backends)
+        return getattr(backend, func)(*args, **kwargs)
+
+    def setup(self):
+        return self._call_all_backends('setup')
+
+    def create_tag_key(self, *args, **kwargs):
+        return self._call_all_backends('create_tag_key', *args, **kwargs)
+
+    def get_or_create_tag_key(self, *args, **kwargs):
+        return self._call_all_backends('get_or_create_tag_key', *args, **kwargs)
+
+    def create_tag_value(self, *args, **kwargs):
+        return self._call_all_backends('create_tag_value', *args, **kwargs)
+
+    def get_or_create_tag_value(self, *args, **kwargs):
+        return self._call_all_backends('get_or_create_tag_value', *args, **kwargs)
+
+    def create_group_tag_key(self, *args, **kwargs):
+        return self._call_all_backends('create_group_tag_key', *args, **kwargs)
+
+    def get_or_create_group_tag_key(self, *args, **kwargs):
+        return self._call_all_backends('get_or_create_group_tag_key', *args, **kwargs)
+
+    def create_group_tag_value(self, *args, **kwargs):
+        return self._call_all_backends('create_group_tag_value', *args, **kwargs)
+
+    def get_or_create_group_tag_value(self, *args, **kwargs):
+        return self._call_all_backends('get_or_create_group_tag_value', *args, **kwargs)
+
+    def create_event_tags(self, *args, **kwargs):
+        return self._call_all_backends('create_event_tags', *args, **kwargs)
+
+    def get_tag_key(self, *args, **kwargs):
+        return self._call_one_backend('get_tag_key', *args, **kwargs)
+
+    def get_tag_keys(self, *args, **kwargs):
+        return self._call_one_backend('get_tag_keys', *args, **kwargs)
+
+    def get_tag_value(self, *args, **kwargs):
+        return self._call_one_backend('get_tag_value', *args, **kwargs)
+
+    def get_tag_values(self, *args, **kwargs):
+        return self._call_one_backend('get_tag_values', *args, **kwargs)
+
+    def get_group_tag_key(self, *args, **kwargs):
+        return self._call_one_backend('get_group_tag_key', *args, **kwargs)
+
+    def get_group_tag_keys(self, *args, **kwargs):
+        return self._call_one_backend('get_group_tag_keys', *args, **kwargs)
+
+    def get_group_tag_value(self, *args, **kwargs):
+        return self._call_one_backend('get_group_tag_value', *args, **kwargs)
+
+    def get_group_tag_values(self, *args, **kwargs):
+        return self._call_one_backend('get_group_tag_values', *args, **kwargs)
+
+    def delete_tag_key(self, *args, **kwargs):
+        return self._call_all_backends('delete_tag_key', *args, **kwargs)
+
+    def delete_all_group_tag_keys(self, *args, **kwargs):
+        return self._call_all_backends('delete_all_group_tag_keys', *args, **kwargs)
+
+    def delete_all_group_tag_values(self, *args, **kwargs):
+        return self._call_all_backends('delete_all_group_tag_values', *args, **kwargs)
+
+    def incr_tag_key_values_seen(self, *args, **kwargs):
+        return self._call_all_backends('incr_tag_key_values_seen', *args, **kwargs)
+
+    def incr_tag_value_times_seen(self, *args, **kwargs):
+        return self._call_all_backends('incr_tag_value_times_seen', *args, **kwargs)
+
+    def incr_group_tag_key_values_seen(self, *args, **kwargs):
+        return self._call_all_backends('incr_group_tag_key_values_seen', *args, **kwargs)
+
+    def incr_group_tag_value_times_seen(self, *args, **kwargs):
+        return self._call_all_backends('incr_group_tag_value_times_seen', *args, **kwargs)
+
+    def get_group_event_ids(self, *args, **kwargs):
+        return self._call_one_backend('get_group_event_ids', *args, **kwargs)
+
+    def get_groups_user_counts(self, *args, **kwargs):
+        return self._call_one_backend('get_groups_user_counts', *args, **kwargs)
+
+    def get_group_tag_value_count(self, *args, **kwargs):
+        return self._call_one_backend('get_group_tag_value_count', *args, **kwargs)
+
+    def get_top_group_tag_values(self, *args, **kwargs):
+        return self._call_one_backend('get_top_group_tag_values', *args, **kwargs)
+
+    def get_first_release(self, *args, **kwargs):
+        return self._call_one_backend('get_first_release', *args, **kwargs)
+
+    def get_last_release(self, *args, **kwargs):
+        return self._call_one_backend('get_last_release', *args, **kwargs)
+
+    def get_release_tags(self, *args, **kwargs):
+        return self._call_one_backend('get_release_tags', *args, **kwargs)
+
+    def get_group_ids_for_users(self, *args, **kwargs):
+        return self._call_one_backend('get_group_ids_for_users', *args, **kwargs)
+
+    def get_group_tag_values_for_users(self, *args, **kwargs):
+        return self._call_one_backend('get_group_tag_values_for_users', *args, **kwargs)
+
+    def get_group_ids_for_search_filter(self, *args, **kwargs):
+        return self._call_one_backend('get_group_ids_for_search_filter', *args, **kwargs)
+
+    def update_group_tag_key_values_seen(self, *args, **kwargs):
+        return self._call_all_backends('update_group_tag_key_values_seen', *args, **kwargs)
+
+    def get_tag_value_qs(self, *args, **kwargs):
+        return self._call_one_backend('get_tag_value_qs', *args, **kwargs)
+
+    def get_group_tag_value_qs(self, *args, **kwargs):
+        return self._call_one_backend('get_group_tag_value_qs', *args, **kwargs)
+
+    def update_group_for_events(self, *args, **kwargs):
+        return self._call_all_backends('update_group_for_events', *args, **kwargs)
