@@ -108,6 +108,10 @@ class MessageContainsFilter(logging.Filter):
         return any(c in message for c in self.contains)
 
 
+whitespace_re = re.compile("\s+")
+metrics_badchars_re = re.compile("[^a-z0-9_.]")
+
+
 class MetricsLogHandler(logging.Handler):
     def emit(self, record, logger=get_logger()):
         """
@@ -119,7 +123,7 @@ class MetricsLogHandler(logging.Handler):
         """
         key = record.name + '.' + record.getMessage()
         key = key.lower()
-        key = re.sub("\s+", "_", key)
-        key = re.sub("[^a-z0-9_.]", "", key)
+        key = whitespace_re.sub("_", key)
+        key = metrics_badchars_re.sub("", key)
         key = ".".join(key.split(".")[:3])
         metrics.incr(key)
