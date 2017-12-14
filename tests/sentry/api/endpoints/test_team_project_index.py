@@ -12,8 +12,8 @@ class TeamProjectIndexTest(APITestCase):
     def test_simple(self):
         self.login_as(user=self.user)
         team = self.create_team(members=[self.user])
-        project_1 = self.create_project(team=team, slug='fiz')
-        project_2 = self.create_project(team=team, slug='buzz')
+        project_1 = self.create_project(teams=[team], slug='fiz')
+        project_2 = self.create_project(teams=[team], slug='buzz')
 
         url = reverse(
             'sentry-api-0-team-project-index',

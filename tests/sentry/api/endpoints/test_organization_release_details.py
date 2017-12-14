@@ -20,8 +20,8 @@ class ReleaseDetailsTest(APITestCase):
         team1 = self.create_team(organization=org)
         team2 = self.create_team(organization=org)
 
-        project = self.create_project(team=team1, organization=org)
-        project2 = self.create_project(team=team2, organization=org)
+        project = self.create_project(teams=[team1], organization=org)
+        project2 = self.create_project(teams=[team2], organization=org)
 
         release = Release.objects.create(
             organization_id=org.id,
@@ -73,8 +73,8 @@ class ReleaseDetailsTest(APITestCase):
         team1 = self.create_team(organization=org)
         team2 = self.create_team(organization=org)
 
-        project = self.create_project(team=team1, organization=org)
-        project2 = self.create_project(team=team2, organization=org)
+        project = self.create_project(teams=[team1], organization=org)
+        project2 = self.create_project(teams=[team2], organization=org)
 
         release = Release.objects.create(
             organization_id=org.id,
@@ -121,8 +121,8 @@ class UpdateReleaseDetailsTest(APITestCase):
         team1 = self.create_team(organization=org)
         team2 = self.create_team(organization=org)
 
-        project = self.create_project(team=team1, organization=org)
-        project2 = self.create_project(team=team2, organization=org)
+        project = self.create_project(teams=[team1], organization=org)
+        project2 = self.create_project(teams=[team2], organization=org)
 
         base_release = Release.objects.create(
             organization_id=org.id,
@@ -251,8 +251,8 @@ class UpdateReleaseDetailsTest(APITestCase):
         team1 = self.create_team(organization=org)
         team2 = self.create_team(organization=org)
 
-        project = self.create_project(team=team1, organization=org)
-        project2 = self.create_project(team=team2, organization=org)
+        project = self.create_project(teams=[team1], organization=org)
+        project2 = self.create_project(teams=[team2], organization=org)
 
         base_release = Release.objects.create(
             organization_id=org.id,
@@ -371,7 +371,7 @@ class UpdateReleaseDetailsTest(APITestCase):
 
         team = self.create_team(organization=org)
 
-        project = self.create_project(team=team, organization=org)
+        project = self.create_project(teams=[team], organization=org)
 
         release = Release.objects.create(
             organization_id=org.id,
@@ -423,7 +423,7 @@ class UpdateReleaseDetailsTest(APITestCase):
 
         team = self.create_team(organization=org)
 
-        project = self.create_project(team=team, organization=org)
+        project = self.create_project(teams=[team], organization=org)
 
         release = Release.objects.create(
             organization_id=org.id,
@@ -471,7 +471,7 @@ class ReleaseDeleteTest(APITestCase):
 
         team = self.create_team(organization=org)
 
-        project = self.create_project(team=team, organization=org)
+        project = self.create_project(teams=[team], organization=org)
 
         release = Release.objects.create(
             organization_id=org.id,
@@ -515,7 +515,7 @@ class ReleaseDeleteTest(APITestCase):
 
         team = self.create_team(organization=org)
 
-        project = self.create_project(team=team, organization=org)
+        project = self.create_project(teams=[team], organization=org)
 
         release = Release.objects.create(
             organization_id=org.id,
@@ -549,7 +549,7 @@ class ReleaseDeleteTest(APITestCase):
         org.save()
 
         team = self.create_team(organization=org)
-        project = self.create_project(name='foo', organization=org, team=team)
+        project = self.create_project(name='foo', organization=org, teams=[team])
         release = Release.objects.create(
             organization_id=org.id,
             version='abcabcabc',
@@ -588,7 +588,7 @@ class ReleaseDeleteTest(APITestCase):
         org.save()
 
         team = self.create_team(organization=org)
-        project = self.create_project(name='foo', organization=org, team=team)
+        project = self.create_project(name='foo', organization=org, teams=[team])
         Repository.objects.create(organization_id=org.id, name='a_repo')
         release = Release.objects.create(
             organization_id=org.id,

@@ -13,7 +13,7 @@ class OrganizationStatsTest(AcceptanceTestCase):
         self.team = self.create_team(name='Team Name', organization=self.org, members=[self.user])
         self.project = self.create_project(
             organization=self.org,
-            team=self.team,
+            teams=[self.team],
             name='Project Name'
         )
         self.login_as(self.user)

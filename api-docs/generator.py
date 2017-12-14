@@ -167,7 +167,7 @@ def cli(output_path):
         projects = []
         for project_name in 'Pump Station', 'Prime Mover':
             report('project', 'Creating project "%s"' % project_name)
-            project = utils.create_project(project_name, team=team, org=org)
+            project = utils.create_project(project_name, teams=[team], org=org)
             release = utils.create_release(project=project, user=user)
             report('event', 'Creating event for "%s"' % project_name)
 

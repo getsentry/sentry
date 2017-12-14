@@ -24,7 +24,7 @@ def _get_user_from_email(group, email):
     for user in User.objects.filter(email__iexact=email):
         # Make sure that the user actually has access to this project
         context = access.from_user(user=user, organization=group.organization)
-        if not context.has_team(group.project.team):
+        if not any(context.has_team(t) for t in group.project.teams.all()):
             logger.warning('User %r does not have access to group %r', user, group)
             continue
 

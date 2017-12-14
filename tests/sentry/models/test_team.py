@@ -70,7 +70,7 @@ class TransferTest(TestCase):
         org = self.create_organization(name='foo', owner=user)
         org2 = self.create_organization(name='bar', owner=None)
         team = self.create_team(organization=org)
-        project = self.create_project(team=team)
+        project = self.create_project(teams=[team])
         user2 = self.create_user('foo@example.com')
         self.create_member(
             user=user2,
@@ -125,7 +125,7 @@ class TransferTest(TestCase):
         org2 = self.create_organization(name='bar')
         team = self.create_team(name='foo', organization=org)
         team2 = self.create_team(name='foo', organization=org2)
-        project = self.create_project(team=team)
+        project = self.create_project(teams=[team])
         team.transfer_to(org2)
 
         project = Project.objects.get(id=project.id)
@@ -139,7 +139,7 @@ class TransferTest(TestCase):
         org = self.create_organization(name='foo', owner=user)
         org2 = self.create_organization(name='bar', owner=None)
         team = self.create_team(organization=org)
-        project = self.create_project(team=team)
+        project = self.create_project(teams=[team])
 
         release = Release.objects.create(
             version='a' * 7,

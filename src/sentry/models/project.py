@@ -70,13 +70,12 @@ class ProjectManager(BaseManager):
                 return []
 
         base_qs = self.filter(
-            team=team,
+            teams=team,
             status=ProjectStatus.VISIBLE,
         )
 
         project_list = []
         for project in base_qs:
-            project.team = team
             project_list.append(project)
 
         return sorted(project_list, key=lambda x: x.name.lower())

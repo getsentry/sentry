@@ -33,8 +33,8 @@ class TeamWithProjectsSerializerTest(TestCase):
         user = self.create_user(username='foo')
         organization = self.create_organization(owner=user)
         team = self.create_team(organization=organization)
-        project = self.create_project(team=team, organization=organization, name='foo')
-        project2 = self.create_project(team=team, organization=organization, name='bar')
+        project = self.create_project(teams=[team], organization=organization, name='foo')
+        project2 = self.create_project(teams=[team], organization=organization, name='bar')
 
         result = serialize(team, user, TeamWithProjectsSerializer())
         result.pop('dateCreated')

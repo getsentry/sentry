@@ -62,7 +62,7 @@ class ProjectIndexEndpoint(Endpoint):
                 queryset = queryset.none()
         elif not is_active_superuser(request):
             queryset = queryset.filter(
-                team__organizationmember__user=request.user,
+                teams__organizationmember__user=request.user,
             )
 
         query = request.GET.get('query')

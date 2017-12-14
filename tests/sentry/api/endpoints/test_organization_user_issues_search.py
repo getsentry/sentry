@@ -19,8 +19,8 @@ class OrganizationUserIssuesSearchTest(APITestCase):
         self.org.save()
         self.team1 = self.create_team(organization=self.org)
         self.team2 = self.create_team(organization=self.org)
-        self.project1 = self.create_project(team=self.team1)
-        self.project2 = self.create_project(team=self.team2)
+        self.project1 = self.create_project(teams=[self.team1])
+        self.project2 = self.create_project(teams=[self.team2])
         group1 = self.create_group(
             project=self.project1, last_seen=timezone.now() - timedelta(minutes=1)
         )

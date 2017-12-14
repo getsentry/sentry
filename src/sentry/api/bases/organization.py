@@ -9,7 +9,7 @@ from sentry.app import raven
 from sentry.auth import access
 from sentry.auth.superuser import is_active_superuser
 from sentry.models import (
-    ApiKey, Organization, OrganizationMemberTeam, Project, ReleaseProject, Team
+    ApiKey, Organization, OrganizationMemberTeam, Project, ProjectTeam, ReleaseProject, Team
 )
 from sentry.utils import auth
 
@@ -157,7 +157,12 @@ class OrganizationReleasesBaseEndpoint(OrganizationEndpoint):
             ).values_list(
                 'team_id', flat=True
             )
-        return Project.objects.filter(team_id__in=allowed_teams)
+
+        return Project.objects.filter(
+            id__in=ProjectTeam.objects.filter(
+                team_id__in=allowed_teams,
+            ).values_list('project_id', flat=True)
+        )
 
     def has_release_permission(self, request, organization, release):
         return ReleaseProject.objects.filter(

@@ -28,10 +28,6 @@ class EventMapping(Model):
 
     __repr__ = sane_repr('project_id', 'group_id', 'event_id')
 
-    @property
-    def team(self):
-        return self.project.team
-
     # Implement a ForeignKey-like accessor for backwards compat
     def _set_group(self, group):
         self.group_id = group.id

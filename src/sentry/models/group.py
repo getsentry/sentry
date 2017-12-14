@@ -405,10 +405,6 @@ class Group(Model):
         return self.project.organization
 
     @property
-    def team(self):
-        return self.project.team
-
-    @property
     def checksum(self):
         warnings.warn('Group.checksum is no longer used', DeprecationWarning)
         return ''

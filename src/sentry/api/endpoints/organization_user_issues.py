@@ -7,7 +7,7 @@ from sentry.api.base import EnvironmentMixin
 from sentry.api.bases.organization import OrganizationEndpoint
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.group import TagBasedStreamGroupSerializer
-from sentry.models import (EventUser, Group, Project)
+from sentry.models import (EventUser, Group, ProjectTeam, Team)
 
 
 class OrganizationUserIssuesEndpoint(OrganizationEndpoint, EnvironmentMixin):
@@ -21,8 +21,15 @@ class OrganizationUserIssuesEndpoint(OrganizationEndpoint, EnvironmentMixin):
         )
         # they have organization access but not to this project, thus
         # they shouldn't be able to see this user
-        if not request.access.has_team_access(
-                Project.objects.select_related('team').get(pk=euser.project_id).team):
+        teams = Team.objects.filter(
+            organization=organization,
+            id__in=ProjectTeam.objects.filter(
+                project_id=euser.project_id,
+            ).values_list('team_id', flat=True)
+        )
+        has_team_access = any([request.access.has_team_access(t) for t in teams])
+
+        if not has_team_access:
             return Response([])
 
         other_eusers = euser.find_similar_users(request.user)

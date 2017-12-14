@@ -80,11 +80,11 @@ class ReleaseTestCase(TestCase):
 
         self.project = self.create_project(
             organization=self.org,
-            team=self.team,
+            teams=[self.team],
         )
         self.project2 = self.create_project(
             organization=self.org,
-            team=self.team2,
+            teams=[self.team2],
         )
         self.release = Release.objects.create(
             version='a' * 40,

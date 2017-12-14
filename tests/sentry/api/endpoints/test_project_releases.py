@@ -12,8 +12,8 @@ class ProjectReleaseListTest(APITestCase):
         self.login_as(user=self.user)
 
         team = self.create_team()
-        project1 = self.create_project(team=team, name='foo')
-        project2 = self.create_project(team=team, name='bar')
+        project1 = self.create_project(teams=[team], name='foo')
+        project2 = self.create_project(teams=[team], name='bar')
 
         release1 = Release.objects.create(
             organization_id=project1.organization_id,
@@ -64,7 +64,7 @@ class ProjectReleaseListTest(APITestCase):
         self.login_as(user=self.user)
 
         team = self.create_team()
-        project = self.create_project(team=team, name='foo')
+        project = self.create_project(teams=[team], name='foo')
 
         release = Release.objects.create(
             organization_id=project.organization_id,

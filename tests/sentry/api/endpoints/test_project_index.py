@@ -18,10 +18,10 @@ class ProjectsListTest(APITestCase):
         user = self.create_user()
         org = self.create_organization()
         team = self.create_team(organization=org, members=[user])
-        project = self.create_project(team=team)
+        project = self.create_project(teams=[team])
         org2 = self.create_organization()
         team2 = self.create_team(organization=org2, members=[])
-        self.create_project(team=team2)
+        self.create_project(teams=[team2])
 
         self.login_as(user=user)
         response = self.client.get(self.path)
@@ -53,8 +53,8 @@ class ProjectsListTest(APITestCase):
         user = self.create_user()
         org = self.create_organization()
         team = self.create_team(organization=org, members=[user])
-        project1 = self.create_project(team=team)
-        project2 = self.create_project(team=team, status=ProjectStatus.PENDING_DELETION)
+        project1 = self.create_project(teams=[team])
+        project2 = self.create_project(teams=[team], status=ProjectStatus.PENDING_DELETION)
 
         self.login_as(user=user)
 
@@ -74,8 +74,8 @@ class ProjectsListTest(APITestCase):
         user = self.create_user()
         org = self.create_organization()
         team = self.create_team(organization=org, members=[user])
-        project1 = self.create_project(name='foo', team=team)
-        self.create_project(name='bar', team=team)
+        project1 = self.create_project(name='foo', teams=[team])
+        self.create_project(name='bar', teams=[team])
 
         self.login_as(user=user)
 
@@ -94,8 +94,8 @@ class ProjectsListTest(APITestCase):
         user = self.create_user()
         org = self.create_organization()
         team = self.create_team(organization=org, members=[user])
-        project1 = self.create_project(slug='foo', name='foo', team=team)
-        self.create_project(name='bar', slug='bar', team=team)
+        project1 = self.create_project(slug='foo', name='foo', teams=[team])
+        self.create_project(name='bar', slug='bar', teams=[team])
 
         self.login_as(user=user)
 
@@ -114,8 +114,8 @@ class ProjectsListTest(APITestCase):
         user = self.create_user()
         org = self.create_organization()
         team = self.create_team(organization=org, members=[user])
-        project1 = self.create_project(team=team)
-        self.create_project(team=team)
+        project1 = self.create_project(teams=[team])
+        self.create_project(teams=[team])
 
         self.login_as(user=user)
 

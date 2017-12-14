@@ -100,7 +100,7 @@ class EventUser(Model):
         # limit to only teams user has opted into
         project_ids = list(
             Project.objects.filter(
-                team__in=OrganizationMemberTeam.objects.filter(
+                teams__in=OrganizationMemberTeam.objects.filter(
                     organizationmember__user=user,
                     organizationmember__organization__project=self.project_id,
                     is_active=True,

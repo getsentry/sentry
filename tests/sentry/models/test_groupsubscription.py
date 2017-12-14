@@ -29,7 +29,7 @@ class GetParticipantsTest(TestCase):
     def test_simple(self):
         org = self.create_organization()
         team = self.create_team(organization=org)
-        project = self.create_project(team=team, organization=org)
+        project = self.create_project(teams=[team], organization=org)
         group = self.create_group(project=project)
         user = self.create_user('foo@example.com')
         user2 = self.create_user('bar@example.com')
@@ -89,7 +89,7 @@ class GetParticipantsTest(TestCase):
     def test_no_conversations(self):
         org = self.create_organization()
         team = self.create_team(organization=org)
-        project = self.create_project(team=team, organization=org)
+        project = self.create_project(teams=[team], organization=org)
         group = self.create_group(project=project)
         user = self.create_user()
         self.create_member(user=user, organization=org, teams=[team])
@@ -210,7 +210,7 @@ class GetParticipantsTest(TestCase):
     def test_participating_only(self):
         org = self.create_organization()
         team = self.create_team(organization=org)
-        project = self.create_project(team=team, organization=org)
+        project = self.create_project(teams=[team], organization=org)
         group = self.create_group(project=project)
         user = self.create_user()
         self.create_member(user=user, organization=org, teams=[team])
@@ -378,7 +378,7 @@ class GetParticipantsTest(TestCase):
     def test_does_not_include_nonmember(self):
         org = self.create_organization()
         team = self.create_team(organization=org)
-        project = self.create_project(team=team, organization=org)
+        project = self.create_project(teams=[team], organization=org)
         group = self.create_group(project=project)
         user = self.create_user('foo@example.com')
 

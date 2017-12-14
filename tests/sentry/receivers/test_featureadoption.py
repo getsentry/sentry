@@ -32,7 +32,7 @@ class FeatureAdoptionTest(TestCase):
         self.owner = self.create_user()
         self.organization = self.create_organization(owner=self.owner)
         self.team = self.create_team(organization=self.organization)
-        self.project = self.create_project(team=self.team)
+        self.project = self.create_project(teams=[self.team])
 
     def test_bad_feature_slug(self):
         FeatureAdoption.objects.record(self.organization.id, "xxx")

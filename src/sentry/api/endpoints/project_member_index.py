@@ -13,7 +13,7 @@ class ProjectMemberIndexEndpoint(ProjectEndpoint):
         queryset = OrganizationMember.objects.filter(
             Q(user__is_active=True) | Q(user__isnull=True),
             organization=project.organization,
-            teams=project.team,
+            teams=project.teams.all(),
         ).select_related('user')
 
         member_list = sorted(

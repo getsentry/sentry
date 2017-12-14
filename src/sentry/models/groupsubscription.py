@@ -101,7 +101,7 @@ class GroupSubscriptionManager(BaseManager):
             user.id: user
             for user in
             User.objects.filter(
-                sentry_orgmember_set__teams=group.project.team,
+                sentry_orgmember_set__teams=group.project.teams.all(),
                 is_active=True,
             )
         }

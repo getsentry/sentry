@@ -128,10 +128,6 @@ class Event(Model):
         return self.title
 
     @property
-    def team(self):
-        return self.project.team
-
-    @property
     def organization(self):
         return self.project.organization
 

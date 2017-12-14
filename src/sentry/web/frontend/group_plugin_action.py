@@ -12,7 +12,7 @@ from sentry.web.frontend.base import ProjectView
 class GroupPluginActionView(ProjectView):
     required_scope = 'event:read'
 
-    def handle(self, request, organization, team, project, group_id, slug):
+    def handle(self, request, organization, project, group_id, slug):
         group = get_object_or_404(Group, pk=group_id, project=project)
 
         try:

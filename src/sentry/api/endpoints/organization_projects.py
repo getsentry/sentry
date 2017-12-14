@@ -54,18 +54,18 @@ class OrganizationProjectsEndpoint(OrganizationEndpoint):
         if request.auth and not request.user.is_authenticated():
             # TODO: remove this, no longer supported probably
             if hasattr(request.auth, 'project'):
-                team_list = [request.auth.project.team]
+                team_list = list(request.auth.project.teams.all())
                 queryset = queryset = Project.objects.filter(
                     id=request.auth.project.id,
-                ).select_related('team')
+                ).prefetch_related('teams')
             elif request.auth.organization is not None:
                 org = request.auth.organization
                 team_list = list(Team.objects.filter(
                     organization=org,
                 ))
                 queryset = Project.objects.filter(
-                    team__in=team_list,
-                ).select_related('team')
+                    teams__in=team_list,
+                ).prefetch_related('teams')
             else:
                 return Response(
                     {
@@ -76,8 +76,8 @@ class OrganizationProjectsEndpoint(OrganizationEndpoint):
         else:
             team_list = list(request.access.teams)
             queryset = Project.objects.filter(
-                team__in=team_list,
-            ).select_related('team')
+                teams__in=team_list,
+            ).prefetch_related('team')
 
         return self.paginate(
             request=request,

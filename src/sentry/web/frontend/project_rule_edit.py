@@ -10,7 +10,7 @@ from sentry.utils.http import absolute_uri
 class ProjectRuleEditView(ProjectView):
     required_scope = 'project:write'
 
-    def get(self, request, organization, team, project, rule_id=None):
+    def get(self, request, organization, project, rule_id=None):
         if rule_id:
             try:
                 rule = Rule.objects.get(

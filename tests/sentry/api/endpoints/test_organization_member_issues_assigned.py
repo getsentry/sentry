@@ -22,11 +22,11 @@ class OrganizationMemberIssuesAssignedTest(APITestCase):
             role='admin',
             teams=[team],
         )
-        project1 = self.create_project(name='foo', organization=org, team=team)
+        project1 = self.create_project(name='foo', organization=org, teams=[team])
         group1 = self.create_group(project=project1)
         group2 = self.create_group(project=project1)
         project2 = self.create_project(
-            name='bar', organization=org, team=team, status=ProjectStatus.PENDING_DELETION
+            name='bar', organization=org, teams=[team], status=ProjectStatus.PENDING_DELETION
         )
         group3 = self.create_group(project=project2)
         GroupAssignee.objects.create(

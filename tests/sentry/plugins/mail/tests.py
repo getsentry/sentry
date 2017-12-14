@@ -193,7 +193,7 @@ class MailPluginTest(TestCase):
         organization = self.create_organization(owner=user)
         team = self.create_team(organization=organization)
 
-        project = self.create_project(name='Test', team=team)
+        project = self.create_project(name='Test', teams=[team])
         OrganizationMemberTeam.objects.create(
             organizationmember=OrganizationMember.objects.get(
                 user=user,
@@ -395,7 +395,7 @@ class ActivityEmailTestCase(TestCase):
     def get_fixture_data(self, users):
         organization = self.create_organization(owner=self.create_user())
         team = self.create_team(organization=organization)
-        project = self.create_project(organization=organization, team=team)
+        project = self.create_project(organization=organization, teams=[team])
         group = self.create_group(project=project)
 
         users = [self.create_user() for _ in range(users)]
