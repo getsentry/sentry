@@ -1,0 +1,6 @@
+Unable to Fetch Commits
+-----------------------
+
+We were unable to fetch the commit log for your pull request ({{ pr.key }}) due to the following error:
+
+{{ error_message }}

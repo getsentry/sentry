@@ -42,6 +42,20 @@ def generate_fetch_commits_error_email(release, error_message):
         html_template='sentry/emails/unable-to-fetch-commits.html',
     )
 
+
+def generate_fetch_commits_pr_error_email(pr, error_message):
+    new_context = {
+        'pr': pr,
+        'error_message': error_message,
+    }
+
+    return MessageBuilder(
+        subject='Unable to Fetch Commits',
+        context=new_context,
+        template='sentry/emails/unable-to-fetch-commits-pr.txt',
+        html_template='sentry/emails/unable-to-fetch-commits-pr.html',
+    )
+
 # we're future proofing this function a bit so it could be used with other code
 
 
@@ -217,8 +231,13 @@ def fetch_pr_commits(change_id, user_id, **kwargs):
         )
         if isinstance(exc, InvalidIdentity) and getattr(exc, 'identity', None):
             handle_invalid_identity(identity=exc.identity, commit_failure=True)
-        # TODO(maxbittker): Send a failure email
-        # elif isinstance(exc, (PluginError, InvalidIdentity)):
+        elif isinstance(exc, PluginError):
+            msg = generate_fetch_commits_pr_error_email(changerequest, exc.message)
+            msg.send_async(to=[user.email])
+        else:
+            msg = generate_fetch_commits_pr_error_email(
+                changerequest, 'An internal system error occurred.')
+            msg.send_async(to=[user.email])
 
     logger.info(
         'fetch_pr_commits.complete',
