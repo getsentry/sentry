@@ -120,7 +120,14 @@ var appConfig = {
       },
       {
         test: /app\/icons\/.*\.svg$/,
-        loader: 'svg-sprite-loader',
+        use: [
+          {
+            loader: 'svg-sprite-loader',
+          },
+          {
+            loader: 'svgo-loader',
+          },
+        ],
       },
       // loader for dynamic styles imported into components (embedded as js)
       {

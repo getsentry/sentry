@@ -33,7 +33,7 @@ const FileChange = React.createClass({
       <li className="list-group-item list-group-item-sm release-file-change">
         <div className="row row-flex row-center-vertically">
           <div className="col-sm-9 truncate">
-            <InlineSvg src="icon-file-generic" width="15px" />
+            <InlineSvg src="icon-file-generic" size="15px" />
             <span className="file-name">{filename}</span>
           </div>
           <div className="col-sm-3 avatar-grid align-right">

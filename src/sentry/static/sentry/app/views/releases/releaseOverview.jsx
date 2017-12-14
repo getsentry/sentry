@@ -271,7 +271,7 @@ const ReleaseOverview = React.createClass({
                                 <InlineSvg
                                   src="icon-open"
                                   className="icon-open"
-                                  width="11px"
+                                  size="11px"
                                   style="marginLeft: 6px;"
                                 />
                               </span>
