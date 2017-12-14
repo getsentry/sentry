@@ -83,24 +83,24 @@ class TagStorage(Service):
         'get_group_tag_value_qs',
     )
 
-    def setup_deletions(self, tagkey_model, tagvalue_model, grouptagkey_model,
+    def setup_deletions(self, tagvalue_model, grouptagkey_model,
                         grouptagvalue_model, eventtag_model):
-        from sentry.deletions import default_manager
+        from sentry.deletions import default_manager as deletion_manager
         from sentry.deletions.defaults import BulkModelDeletionTask
         from sentry.deletions.base import ModelRelation, ModelDeletionTask
         from sentry.models import Group, Event
 
-        default_manager.register(tagvalue_model, BulkModelDeletionTask)
-        default_manager.register(grouptagkey_model, BulkModelDeletionTask)
-        default_manager.register(grouptagvalue_model, BulkModelDeletionTask)
-        default_manager.register(eventtag_model, BulkModelDeletionTask)
+        deletion_manager.register(tagvalue_model, BulkModelDeletionTask)
+        deletion_manager.register(grouptagkey_model, BulkModelDeletionTask)
+        deletion_manager.register(grouptagvalue_model, BulkModelDeletionTask)
+        deletion_manager.register(eventtag_model, BulkModelDeletionTask)
 
-        default_manager.add_dependencies(Group, [
+        deletion_manager.add_dependencies(Group, [
             lambda instance: ModelRelation(eventtag_model, {'group_id': instance.id}),
             lambda instance: ModelRelation(grouptagkey_model, {'group_id': instance.id}),
             lambda instance: ModelRelation(grouptagvalue_model, {'group_id': instance.id}),
         ])
-        default_manager.add_bulk_dependencies(Event, [
+        deletion_manager.add_bulk_dependencies(Event, [
             lambda instance_list: ModelRelation(eventtag_model,
                                                 {'event_id__in': [i.id for i in instance_list]},
                                                 ModelDeletionTask),

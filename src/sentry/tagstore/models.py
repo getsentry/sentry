@@ -9,6 +9,7 @@ sentry.tagstore.models
 from __future__ import absolute_import
 
 from django.conf import settings
+from django.core.exceptions import ImproperlyConfigured
 
 # HACK: This was taken from nodestore.models. Django doesn't play well with our
 # naming schemes, and we prefer our methods ways over Django's limited scoping
@@ -17,4 +18,4 @@ if settings.SENTRY_TAGSTORE.startswith('sentry.tagstore.legacy.LegacyTagStorage'
 elif settings.SENTRY_TAGSTORE.startswith('sentry.tagstore.v2'):
     from sentry.tagstore.v2.models import *  # NOQA
 else:
-    raise NotImplementedError
+    raise ImproperlyConfigured("Found unknown tagstore backend '%s'" % settings.SENTRY_TAGSTORE)

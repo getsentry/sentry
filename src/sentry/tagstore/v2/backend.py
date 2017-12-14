@@ -20,7 +20,6 @@ from operator import or_
 from six.moves import reduce
 
 from sentry import buffer
-from sentry.signals import buffer_incr_complete
 from sentry.tagstore import TagKeyStatus
 from sentry.tagstore.base import TagStorage
 from sentry.utils import db
@@ -40,23 +39,12 @@ class TagStorage(TagStorage):
     """
 
     def setup(self):
-        from sentry.deletions import default_manager
-        from sentry.deletions.defaults import BulkModelDeletionTask
-        from sentry.deletions.base import ModelRelation
-        from sentry.models import Project
-
         self.setup_deletions(
-            tagkey_model=TagKey,
             tagvalue_model=TagValue,
             grouptagkey_model=GroupTagKey,
             grouptagvalue_model=GroupTagValue,
             eventtag_model=EventTag,
         )
-
-        default_manager.register(TagKey, BulkModelDeletionTask)
-        default_manager.add_dependencies(Project, [
-            lambda instance: ModelRelation(TagKey, {'project_id': instance.id}),
-        ])
 
         self.setup_cleanup(
             tagvalue_model=TagValue,
@@ -78,22 +66,34 @@ class TagStorage(TagStorage):
             grouptagvalue_model=GroupTagValue,
         )
 
+    def setup_deletions(self, **kwargs):
+        from sentry.deletions import default_manager as deletion_manager
+        from sentry.deletions.defaults import BulkModelDeletionTask
+        from sentry.deletions.base import ModelRelation
+        from sentry.models import Project
+
+        deletion_manager.register(TagKey, BulkModelDeletionTask)
+        deletion_manager.add_dependencies(Project, [
+            lambda instance: ModelRelation(TagKey, {'project_id': instance.id}),
+        ])
+
+        super(TagStorage, self).setup_deletions(**kwargs)
+
+    def setup_receivers(self, **kwargs):
+        from sentry.signals import buffer_incr_complete
+
         @buffer_incr_complete.connect(sender=TagValue, weak=False)
         def record_project_tag_count(filters, created, **kwargs):
-            from sentry import tagstore
-
             if not created:
                 return
 
             project_id = filters['project_id']
             environment_id = filters['environment_id']
 
-            tagstore.incr_tag_key_values_seen(project_id, environment_id, filters['_key_id'])
+            self.incr_tag_key_values_seen(project_id, environment_id, filters['_key_id'])
 
         @buffer_incr_complete.connect(sender=GroupTagValue, weak=False)
         def record_group_tag_count(filters, created, extra, **kwargs):
-            from sentry import tagstore
-
             if not created:
                 return
 
@@ -101,8 +101,10 @@ class TagStorage(TagStorage):
             group_id = filters['group_id']
             environment_id = filters['environment_id']
 
-            tagstore.incr_group_tag_key_values_seen(
+            self.incr_group_tag_key_values_seen(
                 project_id, group_id, environment_id, filters['_key_id'])
+
+        super(TagStorage, self).setup_receivers(**kwargs)
 
     def create_tag_key(self, project_id, environment_id, key, **kwargs):
         return TagKey.objects.create(
@@ -247,8 +249,6 @@ class TagStorage(TagStorage):
                     'environment_id': environment_id,
                     'group_id': group_id,
                     'event_id': event_id,
-                    'key_id': key_id,
-                    'value_id': value_id,
                 }
             )
 
@@ -488,7 +488,7 @@ class TagStorage(TagStorage):
         try:
             tag_lookups = [(tagkeys[k], tagvalues[(k, v)])
                            for k, v in six.iteritems(tags)]
-            # [(1, 10), ...]
+            # [([key_id1, key_id2], [value_id1, value_id2]), ...]
         except KeyError:
             # one or more tags were invalid, thus the result should be an empty
             # set
