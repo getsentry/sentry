@@ -218,6 +218,8 @@ window.TestStubs = {
         name: 'Amazon SQS',
         slug: 'amazon-sqs',
         version: '8.23.0.dev0',
+        assets: [],
+        canDisable: true,
       },
       {
         author: {url: 'https://github.com/getsentry/sentry', name: 'Sentry Team'},
@@ -226,6 +228,8 @@ window.TestStubs = {
         name: 'GitHub',
         slug: 'github',
         version: '8.23.0.dev0',
+        assets: [],
+        canDisable: false,
       },
     ];
   },

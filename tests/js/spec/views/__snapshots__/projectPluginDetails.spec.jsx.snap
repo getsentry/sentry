@@ -1,0 +1,300 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`ProjectPluginDetails renders 1`] = `
+<ProjectPlugins
+  organization={
+    Object {
+      "access": Array [
+        "org:read",
+        "org:write",
+        "org:admin",
+        "project:read",
+        "project:write",
+        "project:admin",
+        "team:read",
+        "team:write",
+        "team:admin",
+      ],
+      "features": Array [],
+      "id": "3",
+      "name": "Organization Name",
+      "onboardingTasks": Array [],
+      "slug": "org-slug",
+      "teams": Array [],
+    }
+  }
+  params={
+    Object {
+      "orgId": "org-slug",
+      "pluginId": "amazon-sqs",
+      "projectId": "project-slug",
+    }
+  }
+  project={
+    Object {
+      "digestsMaxDelay": 60,
+      "digestsMinDelay": 5,
+      "id": "2",
+      "name": "Project Name",
+      "slug": "project-slug",
+      "subjectTemplate": "[$project] \${tag:level}: $title",
+    }
+  }
+>
+  <DocumentTitle
+    title="Amazon SQS"
+  >
+    <div>
+      <div
+        className="pull-right"
+      >
+        <Button
+          disabled={false}
+          onClick={[Function]}
+          style={
+            Object {
+              "marginRight": "6px",
+            }
+          }
+        >
+          <button
+            className="button button-default"
+            disabled={false}
+            onClick={[Function]}
+            role="button"
+            style={
+              Object {
+                "marginRight": "6px",
+              }
+            }
+          >
+            <FlowLayout
+              truncate={false}
+            >
+              <div
+                className="flow-layout"
+              >
+                <span
+                  className="button-label"
+                >
+                  Enable Plugin
+                </span>
+              </div>
+            </FlowLayout>
+          </button>
+        </Button>
+        <Button
+          disabled={false}
+          onClick={[Function]}
+        >
+          <button
+            className="button button-default"
+            disabled={false}
+            onClick={[Function]}
+            role="button"
+          >
+            <FlowLayout
+              truncate={false}
+            >
+              <div
+                className="flow-layout"
+              >
+                <span
+                  className="button-label"
+                >
+                  Reset Configuration
+                </span>
+              </div>
+            </FlowLayout>
+          </button>
+        </Button>
+      </div>
+      <h2>
+        Amazon SQS
+      </h2>
+      <hr />
+      <div
+        className="row"
+      >
+        <div
+          className="col-md-7"
+        >
+          <PluginConfig
+            data={
+              Object {
+                "assets": Array [],
+                "author": Object {
+                  "name": "Sentry Team",
+                  "url": "https://github.com/getsentry/sentry",
+                },
+                "canDisable": true,
+                "enabled": false,
+                "id": "amazon-sqs",
+                "name": "Amazon SQS",
+                "slug": "amazon-sqs",
+                "version": "8.23.0.dev0",
+              }
+            }
+            onDisablePlugin={[Function]}
+            organization={
+              Object {
+                "access": Array [
+                  "org:read",
+                  "org:write",
+                  "org:admin",
+                  "project:read",
+                  "project:write",
+                  "project:admin",
+                  "team:read",
+                  "team:write",
+                  "team:admin",
+                ],
+                "features": Array [],
+                "id": "3",
+                "name": "Organization Name",
+                "onboardingTasks": Array [],
+                "slug": "org-slug",
+                "teams": Array [],
+              }
+            }
+            project={
+              Object {
+                "digestsMaxDelay": 60,
+                "digestsMinDelay": 5,
+                "id": "2",
+                "name": "Project Name",
+                "slug": "project-slug",
+                "subjectTemplate": "[$project] \${tag:level}: $title",
+              }
+            }
+          >
+            <div
+              className="box ref-plugin-config-amazon-sqs"
+            >
+              <div
+                className="box-header"
+              >
+                <h3>
+                  Amazon SQS
+                </h3>
+              </div>
+              <div
+                className="box-content with-padding"
+              >
+                <div
+                  dangerouslySetInnerHTML={
+                    Object {
+                      "__html": undefined,
+                    }
+                  }
+                />
+                <PluginSettings
+                  organization={
+                    Object {
+                      "access": Array [
+                        "org:read",
+                        "org:write",
+                        "org:admin",
+                        "project:read",
+                        "project:write",
+                        "project:admin",
+                        "team:read",
+                        "team:write",
+                        "team:admin",
+                      ],
+                      "features": Array [],
+                      "id": "3",
+                      "name": "Organization Name",
+                      "onboardingTasks": Array [],
+                      "slug": "org-slug",
+                      "teams": Array [],
+                    }
+                  }
+                  plugin={
+                    DefaultPlugin {
+                      "assets": Array [],
+                      "author": Object {
+                        "name": "Sentry Team",
+                        "url": "https://github.com/getsentry/sentry",
+                      },
+                      "canDisable": true,
+                      "enabled": false,
+                      "id": "amazon-sqs",
+                      "name": "Amazon SQS",
+                      "slug": "amazon-sqs",
+                      "version": "8.23.0.dev0",
+                    }
+                  }
+                  project={
+                    Object {
+                      "digestsMaxDelay": 60,
+                      "digestsMinDelay": 5,
+                      "id": "2",
+                      "name": "Project Name",
+                      "slug": "project-slug",
+                      "subjectTemplate": "[$project] \${tag:level}: $title",
+                    }
+                  }
+                />
+              </div>
+            </div>
+          </PluginConfig>
+        </div>
+        <div
+          className="col-md-4 col-md-offset-1"
+        >
+          <div
+            className="plugin-meta"
+          >
+            <h4>
+              Plugin Information
+            </h4>
+            <dl
+              className="flat"
+            >
+              <dt>
+                Name
+              </dt>
+              <dd>
+                Amazon SQS
+              </dd>
+              <dt>
+                Author
+              </dt>
+              <dd>
+                Sentry Team
+              </dd>
+              <div>
+                <dt>
+                  URL
+                </dt>
+                <dd>
+                  <ExternalLink
+                    href="https://github.com/getsentry/sentry"
+                    rel="noreferrer noopener"
+                    target="_blank"
+                  >
+                    <a
+                      href="https://github.com/getsentry/sentry"
+                      rel="noreferrer noopener"
+                      target="_blank"
+                    >
+                      github.com/getsentry/sentry
+                    </a>
+                  </ExternalLink>
+                </dd>
+              </div>
+              <dt>
+                Version
+              </dt>
+              <dd>
+                8.23.0.dev0
+              </dd>
+            </dl>
+          </div>
+        </div>
+      </div>
+    </div>
+  </DocumentTitle>
+</ProjectPlugins>
+`;
