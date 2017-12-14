@@ -130,11 +130,11 @@
     ]
   },
   "devDependencies": {
-    "@percy-io/react-percy-storybook": "^1.0.2",
-    "@storybook/addon-actions": "^3.2.11",
-    "@storybook/addon-info": "^3.2.11",
-    "@storybook/addon-knobs": "^3.2.10",
-    "@storybook/react": "^3.2.11",
+    "@percy-io/react-percy-storybook": "^1.1.5",
+    "@storybook/addon-actions": "^3.2.17",
+    "@storybook/addon-info": "^3.2.17",
+    "@storybook/addon-knobs": "^3.2.17",
+    "@storybook/react": "^3.2.17",
     "babel-eslint": "7.2.3",
     "babel-jest": "21.2.0",
     "chai": "3.4.1",
