@@ -112,14 +112,14 @@ class MetricsLogHandler(logging.Handler):
     def emit(self, record, logger=get_logger()):
         """
         Turn something like:
-            > django.request: Forbidden (CSRF cookie not set.): /account
+            > django.request.Forbidden (CSRF cookie not set.): /account
         into:
             > django.request.forbidden_csrf_cookie_not_set
         and track it as an incremented counter.
         """
         key = record.name + '.' + record.getMessage()
         key = key.lower()
-        key = re.subn("\s+", "_", key)[0]
-        key = re.subn("[^a-z0-9_.]", "", key)[0]
+        key = re.sub("\s+", "_", key)
+        key = re.sub("[^a-z0-9_.]", "", key)
         key = ".".join(key.split(".")[:3])
         metrics.incr(key)
