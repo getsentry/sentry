@@ -4,13 +4,15 @@ import PropTypes from 'prop-types';
 import React from 'react';
 import styled from 'react-emotion';
 
-import IconCircleExclamation from '../../icons/icon-circle-exclamation';
+import InlineSvg from '../../components/inlineSvg';
 import SettingsActivity from './components/settingsActivity';
 import SettingsBreadcrumb from './components/settingsBreadcrumb';
 import SettingsHeader from './components/settingsHeader';
 import SettingsSearch from './components/settingsSearch';
 
-const StyledIconCircleExclamation = styled(IconCircleExclamation)`
+const StyledIconCircleExclamation = styled(
+  <InlineSvg src="icon-circle-exclamation" style={{verticalAlign: 'text-top'}} />
+)`
   color: ${p => p.theme.blue};
   opacity: 0.6;
 `;
