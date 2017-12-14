@@ -76,7 +76,8 @@ export default class ProjectGeneralSettings extends AsyncView {
     let {orgId, projectId} = this.props.params;
 
     let project = this.state.data;
-    let isProjectAdmin = getOrganizationState(this.props.organization)
+
+    let isProjectAdmin = getOrganizationState(this.context.organization)
       .getAccess()
       .has('project:admin');
 
@@ -113,7 +114,7 @@ export default class ProjectGeneralSettings extends AsyncView {
     let {orgId, projectId} = this.props.params;
 
     let project = this.state.data;
-    let isProjectAdmin = getOrganizationState(this.props.organization)
+    let isProjectAdmin = getOrganizationState(this.context.organization)
       .getAccess()
       .has('project:admin');
 
