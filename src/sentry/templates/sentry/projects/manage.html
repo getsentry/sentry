@@ -267,7 +267,7 @@
       </li>
       {% for p in plugins %}
         <li{% if page == 'plugin' and plugin.slug == p.slug %} class="active"{% endif %}>
-            <a href="{% url 'sentry-configure-project-plugin' project.organization.slug project.slug p.slug %}">{{ p.get_title }}</a>
+            <a href="{% absolute_uri '/{}/{}/settings/plugins/' project.organization.slug project.slug p.slug %}">{{ p.get_title }}</a>
         </li>
       {% endfor %}
     </ul>

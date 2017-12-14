@@ -38,9 +38,7 @@ const PluginConfig = React.createClass({
   },
 
   componentWillReceiveProps(nextProps) {
-    if (!_.isEqual(nextProps.data, this.props.data)) {
-      this.loadPlugin(nextProps.data);
-    }
+    this.loadPlugin(nextProps.data);
   },
 
   shouldComponentUpdate(nextProps, nextState) {
@@ -50,8 +48,6 @@ const PluginConfig = React.createClass({
   },
 
   loadPlugin(data) {
-    if (plugins.isLoaded(data)) return;
-
     this.setState(
       {
         loading: true,

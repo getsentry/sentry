@@ -45,11 +45,6 @@ from sentry.web.frontend.organization_integration_setup import \
 from sentry.web.frontend.out import OutView
 from sentry.web.frontend.organization_members import OrganizationMembersView
 from sentry.web.frontend.project_issue_tracking import ProjectIssueTrackingView
-from sentry.web.frontend.project_plugin_configure import \
-    ProjectPluginConfigureView
-from sentry.web.frontend.project_plugin_disable import ProjectPluginDisableView
-from sentry.web.frontend.project_plugin_enable import ProjectPluginEnableView
-from sentry.web.frontend.project_plugin_reset import ProjectPluginResetView
 from sentry.web.frontend.project_rule_edit import ProjectRuleEditView
 from sentry.web.frontend.project_settings import ProjectSettingsView
 from sentry.web.frontend.react_page import GenericReactPageView, ReactPageView
@@ -425,26 +420,6 @@ urlpatterns += patterns(
         r'^(?P<organization_slug>[\w_-]+)/(?P<project_slug>[\w_-]+)/settings/issue-tracking/$',
         ProjectIssueTrackingView.as_view(),
         name='sentry-project-issue-tracking'
-    ),
-    url(
-        r'^(?P<organization_slug>[\w_-]+)/(?P<project_slug>[\w_-]+)/settings/plugins/(?P<slug>[\w_-]+)/$',
-        ProjectPluginConfigureView.as_view(),
-        name='sentry-configure-project-plugin'
-    ),
-    url(
-        r'^(?P<organization_slug>[\w_-]+)/(?P<project_slug>[\w_-]+)/settings/plugins/(?P<slug>[\w_-]+)/reset/$',
-        ProjectPluginResetView.as_view(),
-        name='sentry-reset-project-plugin'
-    ),
-    url(
-        r'^(?P<organization_slug>[\w_-]+)/(?P<project_slug>[\w_-]+)/settings/plugins/(?P<slug>[\w_-]+)/disable/$',
-        ProjectPluginDisableView.as_view(),
-        name='sentry-disable-project-plugin'
-    ),
-    url(
-        r'^(?P<organization_slug>[\w_-]+)/(?P<project_slug>[\w_-]+)/settings/plugins/(?P<slug>[\w_-]+)/enable/$',
-        ProjectPluginEnableView.as_view(),
-        name='sentry-enable-project-plugin'
     ),
     url(
         r'^(?P<organization_slug>[\w_-]+)/(?P<project_slug>[\w_-]+)/settings/remove/$',

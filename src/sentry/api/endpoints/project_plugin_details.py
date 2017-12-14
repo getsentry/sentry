@@ -46,7 +46,7 @@ class ProjectPluginDetailsEndpoint(ProjectEndpoint):
 
     def post(self, request, project, plugin_id):
         """
-        Enable plugin or Test plugin
+        Enable plugin, Test plugin or Reset plugin values
         """
         plugin = self._get_plugin(plugin_id)
 
@@ -65,6 +65,12 @@ class ProjectPluginDetailsEndpoint(ProjectEndpoint):
             if not test_results:
                 test_results = 'No errors returned'
             return Response({'detail': test_results}, status=200)
+
+        if request.DATA.get('reset'):
+            plugin = self._get_plugin(plugin_id)
+            plugin.reset_options(project=project)
+            context = serialize(plugin, request.user, PluginWithConfigSerializer(project))
+            return Response(context, status=200)
 
         if not plugin.can_disable:
             return Response({'detail': ERR_ALWAYS_ENABLED}, status=400)
