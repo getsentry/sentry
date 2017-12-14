@@ -4,10 +4,10 @@ from django.db import models
 from django.utils import timezone
 
 from sentry.db.models import (BoundedPositiveIntegerField, FlexibleForeignKey, Model, sane_repr)
-from sentry.utils.grouprefence import find_referenced_groups
+from sentry.utils.groupreference import find_referenced_groups
 
 
-class ChangeRequest(Model):
+class PullRequest(Model):
     __core__ = False
 
     organization_id = BoundedPositiveIntegerField(db_index=True)
@@ -25,7 +25,7 @@ class ChangeRequest(Model):
 
     class Meta:
         app_label = 'sentry'
-        db_table = 'sentry_change_request'
+        db_table = 'sentry_pull_request'
         index_together = (('repository_id', 'date_added'), )
         unique_together = (('repository_id', 'key'), )
 
@@ -67,7 +67,7 @@ class ChangeRequest(Model):
             fetch_pr_commits.apply_async(
                 kwargs={
                     'user_id': user.id,
-                    'change_id': self.change_id,
+                    'pull_id': self.pull_id,
                 }
             )
 

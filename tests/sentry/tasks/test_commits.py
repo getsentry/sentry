@@ -5,8 +5,8 @@ from mock import patch
 from social_auth.models import UserSocialAuth
 
 from sentry.exceptions import InvalidIdentity, PluginError
-from sentry.models import ChangeRequest, Commit, Deploy, Release, ReleaseHeadCommit, Repository
-from sentry.tasks.commits import fetch_commits, fetch_pr_commits, handle_invalid_identity
+from sentry.models import PullRequest, Commit, Deploy, Release, ReleaseHeadCommit, Repository
+from sentry.tasks.commits import fetch_commits, fetch_pull_request_commits, handle_invalid_identity
 from sentry.testutils import TestCase
 
 
@@ -301,7 +301,7 @@ class FetchPRCommitsTest(TestCase):
             organization_id=org.id,
         )
 
-        changerequest = ChangeRequest.objects.create(
+        pull_request = PullRequest.objects.create(
             organization_id=org.id,
             repository_id=repo.id,
             key="1",
@@ -310,13 +310,13 @@ class FetchPRCommitsTest(TestCase):
         )
 
         with self.tasks():
-            fetch_pr_commits(
-                change_id=changerequest.id,
+            fetch_pull_request_commits(
+                pull_id=pull_request.id,
                 user_id=self.user.id,
             )
 
-        changerequest.save()
-        commits = changerequest.commits.all()
+        pull_request.save()
+        commits = pull_request.commits.all()
 
         assert len(commits) == 0
         # TODO(maxbittker) flesh out this test with mock api responses

@@ -5,7 +5,7 @@ from django.utils import timezone
 
 from sentry.db.models import (BoundedPositiveIntegerField, FlexibleForeignKey, Model, sane_repr)
 from sentry.utils.cache import memoize
-from sentry.utils.grouprefence import find_referenced_groups
+from sentry.utils.groupreference import find_referenced_groups
 
 
 class Commit(Model):

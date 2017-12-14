@@ -3,7 +3,7 @@ from __future__ import absolute_import
 from hashlib import sha1
 from uuid import uuid4
 
-from sentry.models import Commit, Repository, ChangeRequest
+from sentry.models import Commit, Repository, PullRequest
 from sentry.testutils import TestCase
 
 
@@ -30,7 +30,7 @@ class FindReferencedGroupsTest(TestCase):
         assert len(groups) == 1
         assert group in groups
 
-        pr = ChangeRequest.objects.create(
+        pr = PullRequest.objects.create(
             key="1",
             repository_id=repo.id,
             organization_id=group.organization.id,
