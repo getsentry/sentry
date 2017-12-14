@@ -134,9 +134,9 @@ class OriginsField(CharField):
     )
 
     def clean(self, value):
-        if not value:
-            return []
         values = [v for v in (v.strip() for v in value.split('\n')) if v]
+        if not len(values):
+            return ['*']
         for value in values:
             if not self.is_valid_origin(value):
                 raise ValidationError('%r is not an acceptable value' % value)
