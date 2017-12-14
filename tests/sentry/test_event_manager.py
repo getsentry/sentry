@@ -623,7 +623,7 @@ class EventManagerTest(TransactionTestCase):
         ).exists()
 
     def test_bad_logger(self):
-        manager = EventManager(self.make_event(logger='foo bar'))
+        manager = EventManager(self.make_event(logger="foo\nbar"))
         data = manager.normalize()
         assert data['logger'] == DEFAULT_LOGGER_NAME
 
