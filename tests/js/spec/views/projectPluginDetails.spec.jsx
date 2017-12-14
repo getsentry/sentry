@@ -20,11 +20,6 @@ describe('ProjectPluginDetails', function() {
     MockApiClient.addMockResponse({
       url: `/projects/${org.slug}/${project.slug}/plugins/${pluginId}/`,
       method: 'POST',
-    });
-
-    MockApiClient.addMockResponse({
-      url: `/projects/${org.slug}/${project.slug}/plugins/${pluginId}/reset/`,
-      method: 'POST',
       body: {
         ...plugin,
         config: [{value: 'default'}],

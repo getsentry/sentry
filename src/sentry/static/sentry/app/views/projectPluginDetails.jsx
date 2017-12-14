@@ -28,8 +28,9 @@ export default class ProjectPlugins extends AsyncView {
   handleReset = () => {
     let {projectId, orgId, pluginId} = this.props.params;
     let loadingIndicator = IndicatorStore.add(t('Saving changes..'));
-    this.api.request(`/projects/${orgId}/${projectId}/plugins/${pluginId}/reset/`, {
+    this.api.request(`/projects/${orgId}/${projectId}/plugins/${pluginId}/`, {
       method: 'POST',
+      data: {reset: true},
       success: plugin => {
         this.setState({plugin});
         IndicatorStore.addSuccess(t('Plugin was reset'));

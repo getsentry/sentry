@@ -64,7 +64,7 @@ class PluginSerializer(Serializer):
         if obj.description:
             d['description'] = six.text_type(obj.description)
 
-        if obj.resource_links and len(obj.resource_links):
+        if obj.resource_links:
             d['resourceLinks'] = [
                 {'title': title, 'url': url} for [title, url] in obj.resource_links
             ]
