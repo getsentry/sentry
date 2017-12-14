@@ -1079,11 +1079,44 @@ class JavascriptIntegrationTest(TestCase):
             }
         ]
 
-    @patch('sentry.lang.javascript.processor.fetch_file')
-    def test_foo(self, mock_fetch_file):
+    def test_node_processing(self):
+        project = self.project
+        release = Release.objects.create(
+            organization_id=project.organization_id,
+            version='nodeabc123',
+        )
+        release.add_project(project)
+
+        f_minified = File.objects.create(
+            name='dist.bundle.js',
+            type='release.file',
+            headers={'Content-Type': 'application/javascript'},
+        )
+        f_minified.putfile(open(get_fixture_path('dist.bundle.js'), 'rb'))
+        ReleaseFile.objects.create(
+            name='~/{}'.format(f_minified.name),
+            release=release,
+            organization_id=project.organization_id,
+            file=f_minified,
+        )
+
+        f_sourcemap = File.objects.create(
+            name='dist.bundle.js.map',
+            type='release.file',
+            headers={'Content-Type': 'application/javascript'},
+        )
+        f_sourcemap.putfile(open(get_fixture_path('dist.bundle.js.map'), 'rb'))
+        ReleaseFile.objects.create(
+            name='~/{}'.format(f_sourcemap.name),
+            release=release,
+            organization_id=project.organization_id,
+            file=f_sourcemap,
+        )
+
         data = {
             'message': 'hello',
             'platform': 'node',
+            'release': 'nodeabc123',
             'sentry.interfaces.Exception': {
                 'values': [
                     {
@@ -1091,41 +1124,41 @@ class JavascriptIntegrationTest(TestCase):
                         'stacktrace': {
                             'frames': [
                                 {
-                                    'abs_path': 'node_bootstrap.js',
-                                    'filename': 'node_bootstrap.js',
-                                    'lineno': 1,
-                                    'colno': 38,
+                                    'filename': 'app:///dist.bundle.js',
+                                    'function': 'bar',
+                                    'lineno': 9,
+                                    'colno': 2321,
                                 },
                                 {
-                                    'abs_path': 'timers.js',
-                                    'filename': 'timers.js',
-                                    'lineno': 1,
-                                    'colno': 39,
+                                    'filename': 'app:///dist.bundle.js',
+                                    'function': 'foo',
+                                    'lineno': 3,
+                                    'colno': 2308,
                                 },
                                 {
-                                    'abs_path': 'webpack:///internal',
-                                    'filename': 'internal',
-                                    'lineno': 1,
-                                    'colno': 43,
+                                    'filename': 'app:///dist.bundle.js',
+                                    'function': 'App',
+                                    'lineno': 3,
+                                    'colno': 1011,
                                 },
                                 {
-                                    'abs_path': 'webpack:///~/some_dep/file.js',
-                                    'filename': 'file.js',
+                                    'filename': 'app:///dist.bundle.js',
+                                    'function': 'Object.<anonymous>',
                                     'lineno': 1,
-                                    'colno': 41,
+                                    'colno': 1014,
                                 },
                                 {
-                                    'abs_path': 'webpack:///./node_modules/file.js',
-                                    'filename': 'file.js',
-                                    'lineno': 1,
-                                    'colno': 42,
+                                    'filename': 'app:///dist.bundle.js',
+                                    'function': '__webpack_require__',
+                                    'lineno': 20,
+                                    'colno': 30,
                                 },
                                 {
-                                    'abs_path': 'app:///file.js',
-                                    'filename': 'file.js',
-                                    'lineno': 1,
-                                    'colno': 40,
-                                },
+                                    'filename': 'app:///dist.bundle.js',
+                                    'function': '<unknown>',
+                                    'lineno': 18,
+                                    'colno': 63,
+                                }
                             ],
                         },
                     }
@@ -1133,34 +1166,47 @@ class JavascriptIntegrationTest(TestCase):
             }
         }
 
-        mock_fetch_file.return_value.body = '\n'.join('hello world')
-        mock_fetch_file.return_value.encoding = None
-
         resp = self._postWithHeader(data)
         assert resp.status_code, 200
-
-        assert mock_fetch_file.call_count == 3
-
-        args, kwargs = mock_fetch_file.call_args_list[0]
-        assert args[0] == 'app:///file.js'
-        args, kwargs = mock_fetch_file.call_args_list[1]
-        assert args[0] == 'webpack:///~/some_dep/file.js'
-        args, kwargs = mock_fetch_file.call_args_list[2]
-        assert args[0] == 'webpack:///./node_modules/file.js'
-        args, kwargs = mock_fetch_file.call_args_list[3]
-        assert args[0] == 'webpack:///internal'
 
         event = Event.objects.get()
 
         exception = event.interfaces['sentry.interfaces.Exception']
         frame_list = exception.values[0].stacktrace.frames
 
-        assert not frame_list[0].in_app
-        assert not frame_list[1].in_app
-        assert not frame_list[2].in_app
-        assert not frame_list[3].in_app
-        assert not frame_list[4].in_app
-        assert frame_list[5].in_app
+        assert len(frame_list) == 6
+
+        import pprint
+        pprint.pprint(frame_list[0].__dict__)
+        pprint.pprint(frame_list[1].__dict__)
+        pprint.pprint(frame_list[2].__dict__)
+        pprint.pprint(frame_list[3].__dict__)
+        pprint.pprint(frame_list[4].__dict__)
+        pprint.pprint(frame_list[5].__dict__)
+
+        assert frame_list[0].abs_path == 'webpack:///webpack/bootstrap d9a5a31d9276b73873d3'
+        assert frame_list[0].function == 'bar'
+        assert frame_list[0].lineno == 8
+
+        assert frame_list[1].abs_path == 'webpack:///webpack/bootstrap d9a5a31d9276b73873d3'
+        assert frame_list[1].function == 'foo'
+        assert frame_list[1].lineno == 2
+
+        assert frame_list[2].abs_path == 'webpack:///webpack/bootstrap d9a5a31d9276b73873d3'
+        assert frame_list[2].function == 'App'
+        assert frame_list[2].lineno == 2
+
+        assert frame_list[3].abs_path == 'app:///dist.bundle.js'
+        assert frame_list[3].function == 'Object.<anonymous>'
+        assert frame_list[3].lineno == 1
+
+        assert frame_list[4].abs_path == 'webpack:///webpack/bootstrap d9a5a31d9276b73873d3'
+        assert frame_list[4].function == '__webpack_require__'
+        assert frame_list[4].lineno == 19
+
+        assert frame_list[5].abs_path == 'webpack:///webpack/bootstrap d9a5a31d9276b73873d3'
+        assert frame_list[5].function == '<unknown>'
+        assert frame_list[5].lineno == 16
 
     @responses.activate
     def test_no_fetch_from_http(self):
