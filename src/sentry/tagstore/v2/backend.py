@@ -30,7 +30,7 @@ from .models import EventTag, GroupTagKey, GroupTagValue, TagKey, TagValue
 logger = logging.getLogger('sentry.tagstore.v2')
 
 
-class TagStorage(TagStorage):
+class V2TagStorage(TagStorage):
     """\
     The v2 tagstore backend stores and respects ``environment_id``.
 
@@ -77,7 +77,7 @@ class TagStorage(TagStorage):
             lambda instance: ModelRelation(TagKey, {'project_id': instance.id}),
         ])
 
-        super(TagStorage, self).setup_deletions(**kwargs)
+        super(V2TagStorage, self).setup_deletions(**kwargs)
 
     def setup_receivers(self, **kwargs):
         from sentry.signals import buffer_incr_complete
@@ -104,7 +104,7 @@ class TagStorage(TagStorage):
             self.incr_group_tag_key_values_seen(
                 project_id, group_id, environment_id, filters['_key_id'])
 
-        super(TagStorage, self).setup_receivers(**kwargs)
+        super(V2TagStorage, self).setup_receivers(**kwargs)
 
     def create_tag_key(self, project_id, environment_id, key, **kwargs):
         return TagKey.objects.create(
@@ -458,20 +458,8 @@ class TagStorage(TagStorage):
         else:
             env_filter = {'environment_id': environment_id}
 
-        tagkey_qs = TagKey.objects.filter(
-            project_id=project_id,
-            key__in=tags.keys(),
-            status=TagKeyStatus.VISIBLE,
-            **env_filter
-        ).values_list('key', 'id')
-
-        tagkeys = defaultdict(list)
-        for key, key_id in tagkey_qs:
-            tagkeys[key].append(key_id)
-        tagkeys = dict(tagkeys)
-
         tagvalue_qs = TagValue.objects.filter(
-            reduce(or_, (Q(_key__key=k, value=v)
+            reduce(or_, (Q(_key__key=k, _key__status=TagKeyStatus.VISIBLE, value=v)
                          for k, v in six.iteritems(tags))),
             project_id=project_id,
             **env_filter
@@ -483,9 +471,9 @@ class TagStorage(TagStorage):
         tagvalues = dict(tagvalues)
 
         try:
-            tag_lookups = [(tagkeys[k], tagvalues[(k, v)])
-                           for k, v in six.iteritems(tags)]
-            # [([key_id1, key_id2], [value_id1, value_id2]), ...]
+            # ensure all key/value pairs were found
+            tag_lookups = [tagvalues[(k, v)] for k, v in six.iteritems(tags)]
+            # [[value_id1_env1, value_id2_env2], [value_id3_env1, value_id2_en2], ...]
         except KeyError:
             # one or more tags were invalid, thus the result should be an empty
             # set
@@ -500,9 +488,7 @@ class TagStorage(TagStorage):
             EventTag.objects.filter(
                 project_id=project_id,
                 group_id=group_id,
-                key_id__in=k,
                 value_id__in=v,
-                **env_filter
             ).values_list('event_id', flat=True)[:1000]
         )
 
@@ -514,9 +500,7 @@ class TagStorage(TagStorage):
                     project_id=project_id,
                     group_id=group_id,
                     event_id__in=matches,
-                    key_id__in=k,
                     value_id__in=v,
-                    **env_filter
                 ).values_list('event_id', flat=True)[:1000]
             )
             if not matches:

@@ -90,7 +90,7 @@ class LegacyTagStorage(TagStorage):
             lambda instance: ModelRelation(GroupTagValue, {'project_id': instance.id}),
         ])
 
-        super(TagStorage, self).setup_deletions(**kwargs)
+        super(LegacyTagStorage, self).setup_deletions(**kwargs)
 
     def setup_receivers(self, **kwargs):
         from sentry.signals import buffer_incr_complete
@@ -145,6 +145,8 @@ class LegacyTagStorage(TagStorage):
 
             self.incr_group_tag_key_values_seen(
                 project_id, group_id, environment_id, filters['key'])
+
+        super(LegacyTagStorage, self).setup_receivers(**kwargs)
 
     def create_tag_key(self, project_id, environment_id, key, **kwargs):
         return TagKey.objects.create(project_id=project_id, key=key, **kwargs)
