@@ -41,7 +41,6 @@ class TagKey(Model):
     class Meta:
         app_label = 'tagstore'
         unique_together = (('project_id', 'environment_id', 'key'), )
-        # TODO: environment index(es)
 
     __repr__ = sane_repr('project_id', 'environment_id', 'key')
 

@@ -914,7 +914,7 @@ SENTRY_NODESTORE = 'sentry.nodestore.django.DjangoNodeStorage'
 SENTRY_NODESTORE_OPTIONS = {}
 
 # Tag storage backend
-SENTRY_TAGSTORE = 'sentry.tagstore.legacy.LegacyTagStorage'
+SENTRY_TAGSTORE = os.environ.get('SENTRY_TAGSTORE', 'sentry.tagstore.legacy.LegacyTagStorage')
 SENTRY_TAGSTORE_OPTIONS = {}
 
 # Search backend

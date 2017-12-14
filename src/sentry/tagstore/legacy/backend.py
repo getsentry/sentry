@@ -19,7 +19,6 @@ from operator import or_
 from six.moves import reduce
 
 from sentry import buffer
-from sentry.signals import buffer_incr_complete
 from sentry.tagstore import TagKeyStatus
 from sentry.tagstore.base import TagStorage
 from sentry.utils import db
@@ -35,7 +34,6 @@ class LegacyTagStorage(TagStorage):
 
     def setup(self):
         self.setup_deletions(
-            tagkey_model=TagKey,
             tagvalue_model=TagValue,
             grouptagkey_model=GroupTagKey,
             grouptagvalue_model=GroupTagValue,
@@ -61,6 +59,43 @@ class LegacyTagStorage(TagStorage):
             tagvalue_model=TagValue,
             grouptagvalue_model=GroupTagValue,
         )
+
+    def setup_deletions(self, **kwargs):
+        super(LegacyTagStorage, self).setup_deletions(**kwargs)
+
+        from sentry.deletions import default_manager as deletion_manager
+        from sentry.deletions.base import ModelRelation, ModelDeletionTask
+        from sentry.models import Project
+
+        class TagKeyDeletionTask(ModelDeletionTask):
+            def get_child_relations(self, instance):
+                # in bulk
+                model_list = (GroupTagValue, GroupTagKey, TagValue)
+                relations = [
+                    ModelRelation(m, {
+                        'project_id': instance.project_id,
+                        'key': instance.key,
+                    }) for m in model_list
+                ]
+                return relations
+
+            def mark_deletion_in_progress(self, instance_list):
+                for instance in instance_list:
+                    if instance.status != TagKeyStatus.DELETION_IN_PROGRESS:
+                        instance.update(status=TagKeyStatus.DELETION_IN_PROGRESS)
+
+        deletion_manager.register(TagKey, TagKeyDeletionTask)
+        deletion_manager.add_dependencies(Project, [
+            lambda instance: ModelRelation(TagKey, {'project_id': instance.id}),
+            lambda instance: ModelRelation(TagValue, {'project_id': instance.id}),
+            lambda instance: ModelRelation(GroupTagKey, {'project_id': instance.id}),
+            lambda instance: ModelRelation(GroupTagValue, {'project_id': instance.id}),
+        ])
+
+    def setup_receivers(self, **kwargs):
+        super(LegacyTagStorage, self).setup_receivers(**kwargs)
+
+        from sentry.signals import buffer_incr_complete
 
         # Legacy tag write flow:
         #
@@ -93,20 +128,16 @@ class LegacyTagStorage(TagStorage):
 
         @buffer_incr_complete.connect(sender=TagValue, weak=False)
         def record_project_tag_count(filters, created, **kwargs):
-            from sentry import tagstore
-
             if not created:
                 return
 
             project_id = filters['project_id']
             environment_id = filters.get('environment_id')
 
-            tagstore.incr_tag_key_values_seen(project_id, environment_id, filters['key'])
+            self.incr_tag_key_values_seen(project_id, environment_id, filters['key'])
 
         @buffer_incr_complete.connect(sender=GroupTagValue, weak=False)
         def record_group_tag_count(filters, created, extra, **kwargs):
-            from sentry import tagstore
-
             if not created:
                 return
 
@@ -114,7 +145,7 @@ class LegacyTagStorage(TagStorage):
             group_id = filters['group_id']
             environment_id = filters.get('environment_id')
 
-            tagstore.incr_group_tag_key_values_seen(
+            self.incr_group_tag_key_values_seen(
                 project_id, group_id, environment_id, filters['key'])
 
     def create_tag_key(self, project_id, environment_id, key, **kwargs):

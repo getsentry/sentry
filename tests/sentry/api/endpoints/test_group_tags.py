@@ -18,25 +18,25 @@ class GroupTagsTest(APITestCase):
             for key, value in group.data['tags']:
                 tagstore.create_tag_key(
                     project_id=group.project_id,
-                    environment_id=self.environment.id,
+                    environment_id=None,
                     key=key,
                 )
                 tagstore.create_tag_value(
                     project_id=group.project_id,
-                    environment_id=self.environment.id,
+                    environment_id=None,
                     key=key,
                     value=value,
                 )
                 tagstore.create_group_tag_key(
                     project_id=group.project_id,
                     group_id=group.id,
-                    environment_id=self.environment.id,
+                    environment_id=None,
                     key=key,
                 )
                 tagstore.create_group_tag_value(
                     project_id=group.project_id,
                     group_id=group.id,
-                    environment_id=self.environment.id,
+                    environment_id=None,
                     key=key,
                     value=value,
                 )

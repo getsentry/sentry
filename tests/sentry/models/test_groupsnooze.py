@@ -71,7 +71,7 @@ class GroupSnoozeTest(TestCase):
         tagstore.create_group_tag_key(
             project_id=self.group.project_id,
             group_id=self.group.id,
-            environment_id=self.environment.id,
+            environment_id=None,
             key='sentry:user',
             values_seen=100,
         )

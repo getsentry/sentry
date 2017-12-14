@@ -160,12 +160,12 @@ class GroupManager(BaseManager):
             else:
                 key, value, data = tag_item
 
-            tagstore.incr_tag_value_times_seen(project_id, environment.id, key, value, {
+            tagstore.incr_tag_value_times_seen(project_id, environment.id, key, value, extra={
                 'last_seen': date,
                 'data': data,
             })
 
-            tagstore.incr_group_tag_value_times_seen(project_id, group.id, environment.id, key, value, {
+            tagstore.incr_group_tag_value_times_seen(project_id, group.id, environment.id, key, value, extra={
                 'project_id': project_id,
                 'last_seen': date,
             })

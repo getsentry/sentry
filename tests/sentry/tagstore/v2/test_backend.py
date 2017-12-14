@@ -6,14 +6,14 @@ from datetime import datetime
 
 from sentry.testutils import TestCase
 from sentry.tagstore import TagKeyStatus
-from sentry.tagstore.v2.backend import TagStorage
+from sentry.tagstore.v2.backend import V2TagStorage
 from sentry.tagstore.v2.models import TagKey, TagValue, GroupTagKey, GroupTagValue, EventTag
 from sentry.tagstore.exceptions import TagKeyNotFound, TagValueNotFound, GroupTagKeyNotFound, GroupTagValueNotFound
 
 
-class V2TagStorage(TestCase):
+class TagStorage(TestCase):
     def setUp(self):
-        self.ts = TagStorage()
+        self.ts = V2TagStorage()
 
         self.proj1 = self.create_project()
         self.proj1group1 = self.create_group(self.proj1)

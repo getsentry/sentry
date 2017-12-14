@@ -77,7 +77,7 @@ class DjangoSearchBackendTest(TestCase):
             tagstore.create_group_tag_value(
                 project_id=self.group1.project_id,
                 group_id=self.group1.id,
-                environment_id=self.env1.id,
+                environment_id=None,
                 key=key,
                 value=value,
             )
@@ -85,7 +85,7 @@ class DjangoSearchBackendTest(TestCase):
             tagstore.create_group_tag_value(
                 project_id=self.group2.project_id,
                 group_id=self.group2.id,
-                environment_id=self.env2.id,
+                environment_id=None,
                 key=key,
                 value=value,
             )
@@ -151,7 +151,10 @@ class DjangoSearchBackendTest(TestCase):
         assert results[0] == self.group2
 
     def test_tags(self):
-        results = self.backend.query(self.project1, tags={'env': 'staging'})
+        results = self.backend.query(
+            self.project1,
+            tags={
+                'env': 'staging'})
         assert len(results) == 1
         assert results[0] == self.group2
 

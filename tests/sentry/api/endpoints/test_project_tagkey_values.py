@@ -11,11 +11,11 @@ class ProjectTagKeyValuesTest(APITestCase):
         project = self.create_project()
         tagkey = tagstore.create_tag_key(
             project_id=project.id,
-            environment_id=self.environment.id,
+            environment_id=None,
             key='foo')
         tagstore.create_tag_value(
             project_id=project.id,
-            environment_id=self.environment.id,
+            environment_id=None,
             key='foo',
             value='bar')
 
@@ -41,11 +41,11 @@ class ProjectTagKeyValuesTest(APITestCase):
         project = self.create_project()
         tagkey = tagstore.create_tag_key(
             project_id=project.id,
-            environment_id=self.environment.id,
+            environment_id=None,
             key='foo')
         tagstore.create_tag_value(
             project_id=project.id,
-            environment_id=self.environment.id,
+            environment_id=None,
             key='foo',
             value='bar')
 

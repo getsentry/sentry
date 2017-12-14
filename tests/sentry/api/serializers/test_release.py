@@ -41,7 +41,7 @@ class ReleaseSerializerTest(TestCase):
         value = release.version
         tagstore.create_tag_value(
             project_id=project.id,
-            environment_id=self.environment.id,
+            environment_id=None,
             key=key,
             value=value,
             first_seen=timezone.now(),
@@ -50,7 +50,7 @@ class ReleaseSerializerTest(TestCase):
         )
         tagstore.create_tag_value(
             project_id=project2.id,
-            environment_id=self.environment.id,
+            environment_id=None,
             key=key,
             value=value,
             first_seen=timezone.now() - datetime.timedelta(days=2),
