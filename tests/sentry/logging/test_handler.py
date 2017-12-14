@@ -60,3 +60,15 @@ def test_emit(record, out, handler, logger):
     expected = dict(level=logging.INFO, event='msg', name='name')
     expected.update(out)
     logger.log.assert_called_once_with(**expected)
+
+
+@mock.patch('sentry.logging.handlers.metrics')
+def test_log_to_metric(metrics):
+    logger = logging.getLogger('django.request')
+    logger.warn("CSRF problem")
+    metrics.incr.assert_called_once_with('django.request.csrf_problem')
+
+    metrics.reset_mock()
+
+    logger.warn("Some other problem we don't care about")
+    assert metrics.incr.call_count == 0
