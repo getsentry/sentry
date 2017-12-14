@@ -3,7 +3,7 @@ import React from 'react';
 
 import LoadingIndicator from '../../components/loadingIndicator';
 import LoadingError from '../../components/loadingError';
-import IconOpen from '../../icons/icon-open.svg';
+import InlineSvg from '../../components/inlineSvg';
 import LastCommit from '../../components/lastCommit';
 import IssueList from '../../components/issueList';
 import CommitAuthorStats from '../../components/commitAuthorStats';
@@ -268,10 +268,11 @@ const ReleaseOverview = React.createClass({
                                 style={{verticalAlign: 'bottom'}}
                               >
                                 {deploy.environment}
-                                <IconOpen
+                                <InlineSvg
+                                  src="icon-open"
                                   className="icon-open"
                                   width="11px"
-                                  style="marginLeft: 6;"
+                                  style="marginLeft: 6px;"
                                 />
                               </span>
                             </div>
