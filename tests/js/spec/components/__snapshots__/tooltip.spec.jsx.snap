@@ -1,0 +1,14 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`Tooltip renders 1`] = `
+<Tooltip
+  title="test"
+>
+  <span
+    className="tip"
+    title="test"
+  >
+    My Button
+  </span>
+</Tooltip>
+`;

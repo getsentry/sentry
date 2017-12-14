@@ -1,8 +1,7 @@
 import React from 'react';
 import {shallow} from 'enzyme';
 
-import OrganizationMemberRow
-  from 'app/views/settings/organization/members/organizationMemberRow';
+import OrganizationMemberRow from 'app/views/settings/organization/members/organizationMemberRow';
 
 const findWithText = (wrapper, text) =>
   wrapper.filterWhere(n => n.prop('children') && n.prop('children').includes(text));
@@ -15,18 +14,18 @@ describe('OrganizationMemberRow', function() {
     roleName: '',
     pending: false,
     flags: {
-      'sso:linked': false
+      'sso:linked': false,
     },
     user: {
       id: '',
       has2fa: false,
-      name: 'sentry@test.com'
-    }
+      name: 'sentry@test.com',
+    },
   };
 
   let currentUser = {
     id: '2',
-    email: 'currentUser@email.com'
+    email: 'currentUser@email.com',
   };
 
   let defaultProps = {
@@ -42,7 +41,7 @@ describe('OrganizationMemberRow', function() {
     currentUser,
     onSendInvite: () => {},
     onRemove: () => {},
-    onLeave: () => {}
+    onLeave: () => {},
   };
 
   beforeEach(function() {});
@@ -55,12 +54,12 @@ describe('OrganizationMemberRow', function() {
           ...member,
           user: {
             ...member.user,
-            has2fa: true
-          }
+            has2fa: true,
+          },
         }}
       />
     );
-    expect(wrapper.find('.icon-exclamation.tip')).toHaveLength(0);
+    expect(wrapper.find('.icon-exclamation')).toHaveLength(0);
   });
 
   it('has 2fa warning if user does not have 2fa enabled', function() {
@@ -71,12 +70,12 @@ describe('OrganizationMemberRow', function() {
           ...member,
           user: {
             ...member.user,
-            has2fa: false
-          }
+            has2fa: false,
+          },
         }}
       />
     );
-    expect(wrapper.find('.icon-exclamation.tip')).toHaveLength(1);
+    expect(wrapper.find('.icon-exclamation')).toHaveLength(1);
   });
 
   describe('Pending user', function() {
@@ -84,8 +83,8 @@ describe('OrganizationMemberRow', function() {
       ...defaultProps,
       member: {
         ...member,
-        pending: true
-      }
+        pending: true,
+      },
     };
 
     it('has "Invited" status, no "Resend Invite"', function() {
@@ -94,7 +93,7 @@ describe('OrganizationMemberRow', function() {
           {...props}
           member={{
             ...member,
-            pending: true
+            pending: true,
           }}
         />
       );
@@ -142,9 +141,9 @@ describe('OrganizationMemberRow', function() {
     let props = {
       ...defaultProps,
       flags: {
-        'sso:link': false
+        'sso:link': false,
       },
-      requireLink: true
+      requireLink: true,
     };
 
     it('shows "Invited" status if user has not registered and not linked', function() {
@@ -153,7 +152,7 @@ describe('OrganizationMemberRow', function() {
           {...props}
           member={{
             ...member,
-            pending: true
+            pending: true,
           }}
         />
       );
@@ -168,7 +167,7 @@ describe('OrganizationMemberRow', function() {
         <OrganizationMemberRow
           {...props}
           member={{
-            ...member
+            ...member,
           }}
         />
       );
@@ -184,7 +183,7 @@ describe('OrganizationMemberRow', function() {
           {...props}
           canAddMembers={true}
           member={{
-            ...member
+            ...member,
           }}
         />
       );
@@ -199,16 +198,16 @@ describe('OrganizationMemberRow', function() {
           member={{
             ...member,
             flags: {
-              'sso:linked': true
+              'sso:linked': true,
             },
             user: {
               ...member.user,
-              has2fa: false
-            }
+              has2fa: false,
+            },
           }}
         />
       );
-      expect(wrapper.find('.icon-exclamation.tip')).toHaveLength(1);
+      expect(wrapper.find('.icon-exclamation')).toHaveLength(1);
     });
   });
 
@@ -217,8 +216,8 @@ describe('OrganizationMemberRow', function() {
       ...defaultProps,
       member: {
         ...member,
-        email: 'currentUser@email.com'
-      }
+        email: 'currentUser@email.com',
+      },
     };
 
     it('has button to leave organization and no button to remove', function() {
@@ -230,16 +229,18 @@ describe('OrganizationMemberRow', function() {
     it('has disabled button to leave organization and no button to remove when member can not leave', function() {
       let wrapper = shallow(<OrganizationMemberRow {...props} memberCanLeave={false} />);
       expect(findWithText(wrapper.find('Button'), 'Leave')).toHaveLength(1);
-      expect(findWithText(wrapper.find('Button'), 'Leave').first().prop('disabled')).toBe(
-        true
-      );
+      expect(
+        findWithText(wrapper.find('Button'), 'Leave')
+          .first()
+          .prop('disabled')
+      ).toBe(true);
       expect(findWithText(wrapper.find('Button'), 'Remove')).toHaveLength(0);
     });
   });
 
   describe('Not Current User', function() {
     let props = {
-      ...defaultProps
+      ...defaultProps,
     };
 
     it('does not have Leave button', function() {
