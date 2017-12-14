@@ -2,7 +2,7 @@ import PropTypes from 'prop-types';
 import React from 'react';
 
 const InlineSvg = ({src, size, width, height}) => {
-  const {id, viewBox} = require(`../icons/${src}`).default;
+  const {id, viewBox} = require(`../icons/${src}.svg`).default;
 
   return (
     <svg

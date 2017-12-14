@@ -89,7 +89,7 @@ class ShareUrlContainer extends React.Component {
               onClick={this.handleCopyClick}
               style={{borderRadius: 0, borderRight: `1px solid ${BORDER_COLOR}`}}
             >
-              <InlineSvg src="icon-copy.svg"/>
+              <InlineSvg src="icon-copy" />
             </Button>
           </Clipboard>
 
@@ -102,7 +102,7 @@ class ShareUrlContainer extends React.Component {
             onConfirm={onShare}
           >
             <Button borderless size="xsmall">
-              <InlineSvg src="icon-refresh.svg"/>
+              <InlineSvg src="icon-refresh" />
             </Button>
           </Confirm>
         </FlowLayout>
