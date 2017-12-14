@@ -50,6 +50,20 @@ class Client {
     });
   }
 
+  requestPromise(url, options) {
+    return new Promise((resolve, reject) =>
+      this.request(url, {
+        ...options,
+        success: (...resp) => {
+          resolve(...resp);
+        },
+        error: err => {
+          reject(err);
+        },
+      })
+    );
+  }
+
   request(url, options) {
     let response = Client.findMockResponse(url, options);
     if (!response) {

@@ -215,18 +215,21 @@ window.TestStubs = {
   Tags: (...params) => {
     return [{key: 'browser', name: 'Browser'}, {key: 'device', name: 'Device'}];
   },
+  Plugin: (...params) => {
+    return {
+      author: {url: 'https://github.com/getsentry/sentry', name: 'Sentry Team'},
+      enabled: false,
+      id: 'amazon-sqs',
+      name: 'Amazon SQS',
+      slug: 'amazon-sqs',
+      version: '8.23.0.dev0',
+      assets: [],
+      canDisable: true,
+    },
+  },
   Plugins: (...params) => {
     return [
-      {
-        author: {url: 'https://github.com/getsentry/sentry', name: 'Sentry Team'},
-        enabled: false,
-        id: 'amazon-sqs',
-        name: 'Amazon SQS',
-        slug: 'amazon-sqs',
-        version: '8.23.0.dev0',
-        assets: [],
-        canDisable: true,
-      },
+      TestStubs.Plugin(),
       {
         author: {url: 'https://github.com/getsentry/sentry', name: 'Sentry Team'},
         enabled: true,
