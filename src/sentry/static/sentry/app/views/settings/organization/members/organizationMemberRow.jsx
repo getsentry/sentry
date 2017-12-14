@@ -8,6 +8,7 @@ import Avatar from '../../../../components/avatar';
 import Button from '../../../../components/buttons/button';
 import Confirm from '../../../../components/confirm';
 import Link from '../../../../components/link';
+import Tooltip from '../../../../components/tooltip';
 import LoadingIndicator from '../../../../components/loadingIndicator';
 import SentryTypes from '../../../../proptypes';
 import recreateRoute from '../../../../utils/recreateRoute';
@@ -156,11 +157,9 @@ export default class OrganizationMemberRow extends React.PureComponent {
           ) : (
             <div>
               {!has2fa ? (
-                <span
-                  style={{color: '#B64236'}}
-                  className="icon-exclamation tip"
-                  title={t('Two-factor auth not enabled')}
-                />
+                <Tooltip title={t('Two-factor auth not enabled')}>
+                  <span style={{color: '#B64236'}} className="icon-exclamation" />
+                </Tooltip>
               ) : (
                 <span style={{color: 'green'}} className="icon-check" />
               )}
