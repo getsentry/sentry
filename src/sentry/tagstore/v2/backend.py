@@ -483,24 +483,24 @@ class V2TagStorage(TagStorage):
         # reasonable matches
 
         # get initial matches to start the filter
-        k, v = tag_lookups.pop()
+        value_ids = tag_lookups.pop()
         matches = list(
             EventTag.objects.filter(
                 project_id=project_id,
                 group_id=group_id,
-                value_id__in=v,
+                value_id__in=value_ids,
             ).values_list('event_id', flat=True)[:1000]
         )
 
         # for each remaining tag, find matches contained in our
         # existing set, pruning it down each iteration
-        for k, v in tag_lookups:
+        for value_ids in tag_lookups:
             matches = list(
                 EventTag.objects.filter(
                     project_id=project_id,
                     group_id=group_id,
                     event_id__in=matches,
-                    value_id__in=v,
+                    value_id__in=value_ids,
                 ).values_list('event_id', flat=True)[:1000]
             )
             if not matches:
