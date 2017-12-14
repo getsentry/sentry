@@ -15,7 +15,7 @@ class ProjectTagKeyDetailsTest(APITestCase):
         project = self.create_project()
         tagkey = tagstore.create_tag_key(
             project_id=project.id,
-            environment_id=self.environment.id,
+            environment_id=None,
             key='foo',
             values_seen=16
         )
@@ -44,7 +44,7 @@ class ProjectTagKeyDeleteTest(APITestCase):
         project = self.create_project()
         tagkey = tagstore.create_tag_key(
             project_id=project.id,
-            environment_id=self.environment.id,
+            environment_id=None,
             key='foo')
 
         self.login_as(user=self.user)

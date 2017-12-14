@@ -9,6 +9,7 @@ from collections import OrderedDict
 from datetime import datetime, timedelta
 
 import pytz
+from django.conf import settings
 from django.utils import timezone
 from mock import patch
 
@@ -229,10 +230,8 @@ class UnmergeTestCase(TestCase):
                 message='%s' % (id, ),
                 datetime=now + shift(i),
                 data={
-                    'environment':
-                    'production',
-                    'type':
-                    'default',
+                    'environment': 'production',
+                    'type': 'default',
                     'metadata': {
                         'title': template % parameters,
                     },
@@ -241,8 +240,7 @@ class UnmergeTestCase(TestCase):
                         'params': parameters,
                         'formatted': template % parameters,
                     },
-                    'sentry.interfaces.User':
-                    next(user_values),
+                    'sentry.interfaces.User': next(user_values),
                     'tags': [
                         ['color', next(tag_values)],
                         ['environment', 'production'],
@@ -300,7 +298,7 @@ class UnmergeTestCase(TestCase):
 
         assert set(
             [(gtk.key, gtk.values_seen)
-             for gtk in tagstore.get_group_tag_keys(source.project_id, source.id, None)]
+             for gtk in tagstore.get_group_tag_keys(source.project_id, source.id, environment.id)]
         ) == set([
             (u'color', 3),
             (u'environment', 1),
@@ -415,12 +413,17 @@ class UnmergeTestCase(TestCase):
 
         assert set(
             [(gtk.key, gtk.values_seen)
-             for gtk in tagstore.get_group_tag_keys(source.project_id, source.id, None)]
+             for gtk in tagstore.get_group_tag_keys(source.project_id, source.id, environment.id)]
         ) == set([
             (u'color', 3),
             (u'environment', 1),
             (u'sentry:release', 1),
         ])
+
+        if settings.SENTRY_TAGSTORE.startswith('sentry.tagstore.v2'):
+            env_filter = {'environment_id': environment.id}
+        else:
+            env_filter = {}
 
         assert set(
             [(gtv.key, gtv.value, gtv.times_seen,
@@ -429,6 +432,7 @@ class UnmergeTestCase(TestCase):
              GroupTagValue.objects.filter(
                 project_id=source.project_id,
                 group_id=source.id,
+                **env_filter
             )]
         ) == set([
             (u'color', u'red', 4, now + shift(0), now + shift(9), ),
@@ -471,7 +475,8 @@ class UnmergeTestCase(TestCase):
             (u'production', now + shift(10), now + shift(16), ),
         ])
 
-        assert set([(gtk.key, gtk.values_seen) for gtk in tagstore.get_group_tag_keys(source.project_id, source.id, None)]
+        assert set([(gtk.key, gtk.values_seen)
+                    for gtk in tagstore.get_group_tag_keys(source.project_id, source.id, environment.id)]
                    ) == set(
             [
                 (u'color', 3),
@@ -487,6 +492,7 @@ class UnmergeTestCase(TestCase):
              GroupTagValue.objects.filter(
                  project_id=destination.project_id,
                  group_id=destination.id,
+                 **env_filter
             )]
         ) == set([
             (u'color', u'red', 2, now + shift(12), now + shift(15), ),

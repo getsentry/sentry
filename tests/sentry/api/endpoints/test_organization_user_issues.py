@@ -38,21 +38,21 @@ class OrganizationUserIssuesTest(APITestCase):
             value=self.euser1.tag_value,
             group_id=self.group1.id,
             project_id=self.project1.id,
-            environment_id=self.environment.id,
+            environment_id=None,
         )
         tagstore.create_group_tag_value(
             key='sentry:user',
             value=self.euser2.tag_value,
             group_id=self.group1.id,
             project_id=self.project1.id,
-            environment_id=self.environment.id,
+            environment_id=None,
         )
         tagstore.create_group_tag_value(
             key='sentry:user',
             value=self.euser3.tag_value,
             group_id=self.group2.id,
             project_id=self.project2.id,
-            environment_id=self.environment.id,
+            environment_id=None,
         )
         self.path = reverse(
             'sentry-api-0-organization-user-issues', args=[

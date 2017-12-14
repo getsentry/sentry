@@ -34,21 +34,21 @@ class OrganizationUserIssuesSearchTest(APITestCase):
             key='sentry:user',
             value='email:foo@example.com',
             group_id=group1.id,
-            environment_id=self.environment.id,
+            environment_id=None,
             project_id=self.project1.id
         )
         tagstore.create_group_tag_value(
             key='sentry:user',
             value='email:bar@example.com',
             group_id=group1.id,
-            environment_id=self.environment.id,
+            environment_id=None,
             project_id=self.project1.id
         )
         tagstore.create_group_tag_value(
             key='sentry:user',
             value='email:foo@example.com',
             group_id=group2.id,
-            environment_id=self.environment.id,
+            environment_id=None,
             project_id=self.project2.id
         )
 

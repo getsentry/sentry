@@ -15,29 +15,28 @@ class GroupTagDetailsTest(APITestCase):
         key, value = group.data['tags'][0]
         tagkey = tagstore.create_tag_key(
             project_id=group.project_id,
-            environment_id=self.environment.id,
+            environment_id=None,
             key=key,
             values_seen=2
         )
         tagstore.create_tag_value(
             project_id=group.project_id,
-            environment_id=self.environment.id,
+            environment_id=None,
             key=key,
             value=value,
             times_seen=4
         )
-
         tagstore.create_group_tag_key(
             project_id=group.project_id,
             group_id=group.id,
-            environment_id=self.environment.id,
+            environment_id=None,
             key=key,
             values_seen=1,
         )
         tagstore.create_group_tag_value(
             project_id=group.project_id,
             group_id=group.id,
-            environment_id=self.environment.id,
+            environment_id=None,
             key=key,
             value=value,
             times_seen=3,
