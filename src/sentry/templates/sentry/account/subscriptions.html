@@ -20,18 +20,42 @@
     {% endif %}
 
     <legend class="m-t-0">Subscriptions</legend>
+
+    <p>
+    Sentry is committed to respecting your inbox; we'll never sell your data. Opt-in to receive the latest news and
+    product updates about Sentry.
+    </p>
+
+    <table class="table">
+      <tbody>
     {% for subscription in subscriptions.subscriptions %}
-        <div class="row p-b-1">
-            <div class="col-md-9">
-                <h5>{{ subscription.list_name }}</h5>
+        <tr>
+          <td>
+            <h5>{{ subscription.list_name }}</h5>
+            {% if subscription.list_description %}
+            <p class="help-block">
+              {{ subscription.list_description }}
+            </p>
+            {% endif %}
+          </td>
+          <td class="align-right">
+              <div data-list-id="{{ subscription.list_id }}" class="switch switch-lg{% if subscription.subscribed %} switch-on{% endif %}" role="checkbox">
+                  <span class="switch-toggle"></span>
+              </div>
+              <div>
+            {% if subscription.subscribed %}
+            <p class="help-block">
+              <small>
+                {% firstof subscription.email email.email %} on {{subscription.subscribed_date|date:'SHORT_DATE_FORMAT' }}
+              </small>
+            </p>
+            {% endif %}
             </div>
-            <div class="col-md-3 align-right" style="padding-right: 25px">
-                <div data-list-id="{{ subscription.list_id }}" class="switch switch-lg{% if subscription.subscribed %} switch-on{% endif %}" role="checkbox">
-                    <span class="switch-toggle"></span>
-                </div>
-            </div>
-        </div>
+          </td>
+        </tr>
     {% endfor %}
+      </tbody>
+    </table>
 
     <script>
     $('div.switch').click(function(){
