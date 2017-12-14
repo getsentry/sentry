@@ -86,7 +86,7 @@ class V2TagStorage(TagStorage):
                 return
 
             project_id = filters['project_id']
-            environment_id = filters['environment_id']
+            environment_id = filters['_key__environment_id']
 
             self.incr_tag_key_values_seen(project_id, environment_id, filters['_key_id'])
 
@@ -97,7 +97,7 @@ class V2TagStorage(TagStorage):
 
             project_id = extra['project_id']
             group_id = filters['group_id']
-            environment_id = filters['environment_id']
+            environment_id = filters['_key__environment_id']
 
             self.incr_group_tag_key_values_seen(
                 project_id, group_id, environment_id, filters['_key_id'])
@@ -128,7 +128,6 @@ class V2TagStorage(TagStorage):
 
         return TagValue.objects.create(
             project_id=project_id,
-            environment_id=environment_id,
             _key_id=tag_key.id,
             value=value,
             **kwargs
@@ -143,7 +142,6 @@ class V2TagStorage(TagStorage):
 
         return TagValue.objects.get_or_create(
             project_id=project_id,
-            environment_id=environment_id,
             _key_id=key_id,
             value=value,
             **kwargs
@@ -159,7 +157,6 @@ class V2TagStorage(TagStorage):
         return GroupTagKey.objects.create(
             project_id=project_id,
             group_id=group_id,
-            environment_id=environment_id,
             _key_id=tag_key.id,
             **kwargs
         )
@@ -171,7 +168,6 @@ class V2TagStorage(TagStorage):
         return GroupTagKey.objects.get_or_create(
             project_id=project_id,
             group_id=group_id,
-            environment_id=environment_id,
             _key_id=tag_key.id,
             **kwargs
         )
@@ -191,7 +187,6 @@ class V2TagStorage(TagStorage):
         return GroupTagValue.objects.create(
             project_id=project_id,
             group_id=group_id,
-            environment_id=environment_id,
             _key_id=tag_key.id,
             _value_id=tag_value.id,
             **kwargs
@@ -208,7 +203,6 @@ class V2TagStorage(TagStorage):
         return GroupTagValue.objects.get_or_create(
             project_id=project_id,
             group_id=group_id,
-            environment_id=environment_id,
             _key_id=tag_key.id,
             _value_id=tag_value.id,
             **kwargs
@@ -233,7 +227,6 @@ class V2TagStorage(TagStorage):
                 EventTag.objects.bulk_create([
                     EventTag(
                         project_id=project_id,
-                        environment_id=environment_id,
                         group_id=group_id,
                         event_id=event_id,
                         key_id=key_id,
@@ -246,7 +239,6 @@ class V2TagStorage(TagStorage):
                 'tagstore.create_event_tags.integrity_error',
                 extra={
                     'project_id': project_id,
-                    'environment_id': environment_id,
                     'group_id': group_id,
                     'event_id': event_id,
                 }
@@ -287,7 +279,7 @@ class V2TagStorage(TagStorage):
             project_id=project_id,
             _key__key=key,
             value=value,
-            **self._get_environment_filter(environment_id)
+            **self._get_environment_filter(environment_id, join=True)
         )
 
         try:
@@ -299,7 +291,7 @@ class V2TagStorage(TagStorage):
         qs = TagValue.objects.filter(
             project_id=project_id,
             _key__key=key,
-            **self._get_environment_filter(environment_id)
+            **self._get_environment_filter(environment_id, join=True)
         )
 
         return list(qs)
@@ -311,7 +303,7 @@ class V2TagStorage(TagStorage):
             project_id=project_id,
             group_id=group_id,
             _key__key=key,
-            **self._get_environment_filter(environment_id)
+            **self._get_environment_filter(environment_id, join=True)
         )
 
         try:
@@ -322,7 +314,7 @@ class V2TagStorage(TagStorage):
     def get_group_tag_keys(self, project_id, group_id, environment_id, limit=None):
         qs = GroupTagKey.objects.filter(
             group_id=group_id,
-            **self._get_environment_filter(environment_id)
+            **self._get_environment_filter(environment_id, join=True)
         )
 
         if limit is not None:
@@ -338,7 +330,7 @@ class V2TagStorage(TagStorage):
             group_id=group_id,
             _key__key=key,
             _value__value=value,
-            **self._get_environment_filter(environment_id)
+            **self._get_environment_filter(environment_id, join=True)
         )
 
         try:
@@ -350,7 +342,7 @@ class V2TagStorage(TagStorage):
         qs = GroupTagValue.objects.filter(
             group_id=group_id,
             _key__key=key,
-            **self._get_environment_filter(environment_id)
+            **self._get_environment_filter(environment_id, join=True)
         )
 
         return list(qs)
@@ -411,7 +403,7 @@ class V2TagStorage(TagStorage):
                         },
                         filters={
                             'project_id': project_id,
-                            'environment_id': env,
+                            'environment_id': env,  # TODO
                             '_key_id': tagkey.id,
                             'value': value,
                         },
@@ -426,7 +418,7 @@ class V2TagStorage(TagStorage):
                     filters={
                         'project_id': project_id,
                         'group_id': group_id,
-                        'environment_id': environment_id,
+                        'environment_id': environment_id,  # TODO
                         '_key_id': key,
                     })
 
@@ -443,7 +435,7 @@ class V2TagStorage(TagStorage):
                         filters={
                             'project_id': project_id,
                             'group_id': group_id,
-                            'environment_id': env,
+                            'environment_id': env,  # TODO
                             '_key_id': tagkey.id,
                             '_value_id': tagvalue.id,
                         },
@@ -457,9 +449,9 @@ class V2TagStorage(TagStorage):
 
         if environment_id is None:
             # filter for all 'real' environments
-            env_filter = {'environment_id__isnull': False}
+            env_filter = {'_key__environment_id__isnull': False}
         else:
-            env_filter = {'environment_id': environment_id}
+            env_filter = {'_key__environment_id': environment_id}
 
         tagvalue_qs = TagValue.objects.filter(
             reduce(or_, (Q(_key__key=k, _key__status=TagKeyStatus.VISIBLE, value=v)
@@ -518,7 +510,7 @@ class V2TagStorage(TagStorage):
             project_id=project_id,
             group_id__in=group_ids,
             _key__key='sentry:user',
-            **self._get_environment_filter(environment_id)
+            **self._get_environment_filter(environment_id, join=True)
         )
 
         return defaultdict(int, qs.values_list('group_id', 'values_seen'))
@@ -538,7 +530,7 @@ class V2TagStorage(TagStorage):
                     INNER JOIN tagstore_tagkey
                     ON (tagstore_grouptagvalue.key_id = tagstore_tagkey.id)
                     WHERE tagstore_grouptagvalue.group_id = %%s
-                    AND tagstore_grouptagvalue.environment_id %s %%s
+                    AND tagstore_tagkey.environment_id %s %%s
                     AND tagstore_tagkey.key = %%s
                     ORDER BY last_seen DESC
                     LIMIT 10000
@@ -552,7 +544,7 @@ class V2TagStorage(TagStorage):
             group_id=group_id,
             _key__key=key,
             last_seen__gte=cutoff,
-            **self._get_environment_filter(environment_id)
+            **self._get_environment_filter(environment_id, join=True)
         ).aggregate(t=Sum('times_seen'))['t']
 
     def get_top_group_tag_values(self, project_id, group_id, environment_id, key, limit=3):
@@ -577,7 +569,7 @@ class V2TagStorage(TagStorage):
                     INNER JOIN tagstore_tagkey
                     ON (tagstore_grouptagvalue.key_id = tagstore_tagkey.id)
                     WHERE tagstore_grouptagvalue.group_id = %%s
-                    AND tagstore_grouptagvalue.environment_id %s %%s
+                    AND tagstore_tagkey.environment_id %s %%s
                     AND tagstore_tagkey.key = %%s
                     ORDER BY last_seen DESC
                     LIMIT 10000
@@ -594,7 +586,7 @@ class V2TagStorage(TagStorage):
                 group_id=group_id,
                 _key__key=key,
                 last_seen__gte=cutoff,
-                **self._get_environment_filter(environment_id)
+                **self._get_environment_filter(environment_id, join=True)
             ).order_by('-times_seen')[:limit]
         )
 
@@ -627,13 +619,13 @@ class V2TagStorage(TagStorage):
             project_id__in=project_ids,
             _key__key='sentry:release',
             value__in=versions,
-            **self._get_environment_filter(environment_id)
+            **self._get_environment_filter(environment_id, join=True)
         ))
 
     def get_group_ids_for_users(self, project_ids, event_users, limit=100):
         return list(GroupTagValue.objects.filter(
             project_id__in=project_ids,
-            environment_id__isnull=True,
+            _key__environment_id__isnull=True,
             _key__key='sentry:user',
             _value__value__in=[eu.tag_value for eu in event_users],
         ).order_by('-last_seen').values_list('group_id', flat=True)[:limit])
@@ -646,7 +638,7 @@ class V2TagStorage(TagStorage):
 
         return list(GroupTagValue.objects.filter(
             reduce(or_, tag_filters),
-            environment_id__isnull=True,
+            _key__environment_id__isnull=True,
             _key__key='sentry:user',
         ).order_by('-last_seen')[:limit])
 
@@ -673,14 +665,14 @@ class V2TagStorage(TagStorage):
                     project_id=project_id,
                     _key__key=k,
                     _value__value=v,
-                    **self._get_environment_filter(environment_id)
+                    **self._get_environment_filter(environment_id, join=True)
                 )
 
             else:
                 base_qs = GroupTagValue.objects.filter(
                     project_id=project_id,
                     _key__key=k,
-                    **self._get_environment_filter(environment_id)
+                    **self._get_environment_filter(environment_id, join=True)
                 ).distinct()
 
             if matches:
@@ -707,7 +699,6 @@ class V2TagStorage(TagStorage):
                 values_seen=GroupTagValue.objects.filter(
                     project_id=instance.project_id,
                     group_id=instance.group_id,
-                    environment_id=instance.environment_id,
                     _key_id=instance._key_id,
                 ).count(),
             )
@@ -716,7 +707,7 @@ class V2TagStorage(TagStorage):
         queryset = TagValue.objects.filter(
             project_id=project_id,
             _key__key=key,
-            **self._get_environment_filter(environment_id)
+            **self._get_environment_filter(environment_id, join=True)
         )
 
         if query:
@@ -729,7 +720,7 @@ class V2TagStorage(TagStorage):
             project_id=project_id,
             group_id=group_id,
             _key__key=key,
-            **self._get_environment_filter(environment_id)
+            **self._get_environment_filter(environment_id, join=True)
         )
 
     def update_group_for_events(self, project_id, event_ids, destination_id):
@@ -738,8 +729,12 @@ class V2TagStorage(TagStorage):
             event_id__in=event_ids,
         ).update(group_id=destination_id)
 
-    def _get_environment_filter(self, environment_id):
+    def _get_environment_filter(self, environment_id, join=False):
+        """\
+        TODO
+        """
+        prefix = "_key__" if join else ""
         if environment_id is None:
-            return {'environment_id__isnull': True}
+            return {'%senvironment_id__isnull' % prefix: True}
         else:
-            return {'environment_id': environment_id}
+            return {'%senvironment_id' % prefix: environment_id}

@@ -148,7 +148,6 @@ class TagStorage(TestCase):
 
         assert TagValue.objects.filter(
             project_id=self.proj1.id,
-            environment_id=self.proj1env1.id,
             _key_id=tk.id,
             value=self.value1,
         ).count() == 1
@@ -224,7 +223,6 @@ class TagStorage(TestCase):
         assert GroupTagKey.objects.filter(
             project_id=self.proj1.id,
             group_id=self.proj1group1.id,
-            environment_id=self.proj1env1.id,
             _key_id=tk.id,
         ).count() == 1
         assert GroupTagKey.objects.all().count() == 1
@@ -301,7 +299,6 @@ class TagStorage(TestCase):
 
         tv = TagValue.objects.get(
             project_id=self.proj1.id,
-            environment_id=self.proj1env1.id,
             _key_id=tk.id,
             value=self.value1,
         )
@@ -310,7 +307,6 @@ class TagStorage(TestCase):
         assert GroupTagValue.objects.filter(
             project_id=self.proj1.id,
             group_id=self.proj1group1.id,
-            environment_id=self.proj1env1.id,
             _key_id=tk.id,
             _value_id=tv.id,
         ).count() == 1
@@ -335,7 +331,6 @@ class TagStorage(TestCase):
             assert EventTag.objects.get(
                 project_id=self.proj1.id,
                 group_id=self.proj1group1.id,
-                environment_id=self.proj1env1.id,
                 event_id=self.proj1group1event1.id,
                 key_id=k.id,
                 value_id=v.id,

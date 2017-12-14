@@ -27,7 +27,6 @@ class GroupTagKey(Model):
 
     project_id = BoundedPositiveIntegerField(db_index=True)
     group_id = BoundedPositiveIntegerField(db_index=True)
-    environment_id = BoundedPositiveIntegerField(null=True)
     _key = FlexibleForeignKey('tagstore.TagKey', db_column='key_id')
     values_seen = BoundedPositiveIntegerField(default=0)
 
@@ -35,9 +34,9 @@ class GroupTagKey(Model):
 
     class Meta:
         app_label = 'tagstore'
-        unique_together = (('project_id', 'group_id', 'environment_id', '_key'), )
+        unique_together = (('project_id', 'group_id', '_key'), )
 
-    __repr__ = sane_repr('project_id', 'group_id', 'environment_id', '_key')
+    __repr__ = sane_repr('project_id', 'group_id', '_key')
 
     @property
     def key(self):
@@ -50,12 +49,10 @@ class GroupTagKey(Model):
             with transaction.atomic(using=router.db_for_write(GroupTagKey)):
                 GroupTagKey.objects.filter(
                     group_id=new_group.id,
-                    environment_id=self.environment_id,
                     _key_id=self._key_id,
                 ).update(
                     values_seen=GroupTagValue.objects.filter(
                         group_id=new_group.id,
-                        environment_id=self.environment_id,
                         _key_id=self._key_id,
                     ).count()
                 )
