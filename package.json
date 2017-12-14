@@ -69,6 +69,7 @@
     "react-dom": "15.3.2",
     "react-emotion": "^8.0.2-12 ",
     "react-hot-loader": "^3.0.0-beta.7",
+    "react-icon-base": "^2.0.4",
     "react-lazy-load": "3.0.10",
     "react-mentions": "^1.0.0",
     "react-router": "2.8.1",
