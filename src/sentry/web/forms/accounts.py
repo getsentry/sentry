@@ -194,7 +194,7 @@ class RegistrationForm(forms.ModelForm):
     subscribe = forms.BooleanField(
         label=_('Subscribe to product updates newsletter'),
         required=False,
-        initial=True,
+        initial=False,
     )
 
     def __init__(self, *args, **kwargs):
