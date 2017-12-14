@@ -22,20 +22,26 @@ export default class ProjectPlugins extends AsyncView {
 
     let loadingIndicator = IndicatorStore.add(t('Saving changes..'));
 
+    this.setState(() => {
+      let plugins = this.state.plugins.slice();
+      plugins[idx].enabled = shouldEnable;
+      return plugins;
+    });
+
     this.api.request(`/projects/${orgId}/${projectId}/plugins/${pluginId}/`, {
       method,
       success: () => {
-        let plugins = this.state.plugins.slice();
-        plugins[idx].enabled = shouldEnable;
-        this.setState({
-          plugins,
-        });
         IndicatorStore.addSuccess(
           t(`Plugin was ${shouldEnable ? 'enabled' : 'disabled'}`)
         );
       },
       error: () => {
-        IndicatorStore.addError(t('An error occurred'));
+        IndicatorStore.addError(t('Unable to update plugin'));
+        this.setState(() => {
+          let plugins = this.state.plugins.slice();
+          plugins[idx].enabled = !shouldEnable;
+          return plugins;
+        });
       },
       complete: () => IndicatorStore.remove(loadingIndicator),
     });
