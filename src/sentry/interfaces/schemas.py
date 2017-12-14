@@ -461,10 +461,16 @@ EXPECT_CT_SCHEMA = {
         'expect-ct-report': {
             'type': 'object',
             'properties': {
-                'date-time': {'type': 'string', },  # TODO validate (RFC3339)
+                'date-time': {
+                    'type': 'string',
+                    'format': 'date-time',
+                },
                 'hostname': {'type': 'string'},
                 'port': {'type': 'number'},
-                'effective-expiration-date': {'type': 'string', },  # TODO validate (RFC3339)
+                'effective-expiration-date': {
+                    'type': 'string',
+                    'format': 'date-time',
+                },
                 'served-certificate-chain': {
                     'type': 'array',
                     'items': {'type': 'string'}
@@ -514,10 +520,16 @@ EXPECT_STAPLE_SCHEMA = {
         'expect-staple-report': {
             'type': 'object',
             'properties': {
-                'date-time': {'type': 'string', },  # TODO validate (RFC3339)
+                'date-time': {
+                    'type': 'string',
+                    'format': 'date-time',
+                },
                 'hostname': {'type': 'string'},
                 'port': {'type': 'number'},
-                'effective-expiration-date': {'type': 'string', },  # TODO validate (RFC3339)
+                'effective-expiration-date': {
+                    'type': 'string',
+                    'format': 'date-time',
+                },
                 'response-status': {
                     'type': 'string',
                     'enum': [
@@ -612,7 +624,11 @@ INTERFACE_SCHEMAS = {
 def validator_for_interface(name):
     if name not in INTERFACE_SCHEMAS:
         return None
-    return jsonschema.Draft4Validator(INTERFACE_SCHEMAS[name], types={'array': (list, tuple)})
+    return jsonschema.Draft4Validator(
+        INTERFACE_SCHEMAS[name],
+        types={'array': (list, tuple)},
+        format_checker=jsonschema.FormatChecker()
+    )
 
 
 def validate_and_default_interface(data, interface, name=None,
