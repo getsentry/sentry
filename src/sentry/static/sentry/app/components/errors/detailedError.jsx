@@ -3,7 +3,7 @@ import React from 'react';
 import classNames from 'classnames';
 
 import {t} from '../../locale';
-import IconCircleExclamation from '../../icons/icon-circle-exclamation.svg';
+import InlineSvg from '../inlineSvg';
 
 const DetailedError = React.createClass({
   propTypes: {
@@ -33,7 +33,7 @@ const DetailedError = React.createClass({
     return (
       <div className={cx}>
         <div className="detailed-error-icon">
-          <IconCircleExclamation width="1em" />
+          <InlineSvg src="icon-circle-exclamation" />
         </div>
         <div className="detailed-error-content">
           <h4>{heading}</h4>
