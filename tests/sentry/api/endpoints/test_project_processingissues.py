@@ -13,7 +13,7 @@ class ProjectProjectProcessingIssuesTest(APITestCase):
         self.login_as(user=self.user)
 
         team = self.create_team()
-        project1 = self.create_project(team=team, name='foo')
+        project1 = self.create_project(teams=[team], name='foo')
 
         raw_event = RawEvent.objects.create(project_id=project1.id, event_id='abc')
 
@@ -45,7 +45,7 @@ class ProjectProjectProcessingIssuesTest(APITestCase):
         self.login_as(user=self.user)
 
         team = self.create_team()
-        project1 = self.create_project(team=team, name='foo')
+        project1 = self.create_project(teams=[team], name='foo')
 
         raw_event = RawEvent.objects.create(project_id=project1.id, event_id='abc')
 
@@ -93,7 +93,7 @@ class ProjectProjectProcessingIssuesTest(APITestCase):
         self.login_as(user=self.user)
 
         team = self.create_team()
-        project1 = self.create_project(team=team, name='foo')
+        project1 = self.create_project(teams=[team], name='foo')
 
         RawEvent.objects.create(project_id=project1.id, event_id='abc')
 

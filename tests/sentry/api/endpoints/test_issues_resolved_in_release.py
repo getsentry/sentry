@@ -22,7 +22,7 @@ class IssuesResolvedInReleaseEndpointTest(APITestCase):
         self.team = self.create_team(organization=self.org)
         self.create_member(organization=self.org, user=self.user, teams=[self.team])
         self.project = self.create_project(
-            team=self.team,
+            teams=[self.team],
         )
         self.release = self.create_release(
             project=self.project,

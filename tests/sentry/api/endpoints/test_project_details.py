@@ -40,7 +40,7 @@ class ProjectDetailsTest(APITestCase):
         project = self.create_project(
             name='Bar',
             slug='bar',
-            team=team,
+            teams=[team],
         )
         # We want to make sure we don't hit the LegacyProjectRedirect view at all.
         url = '/api/0/projects/%s/%s/' % (org.slug, project.slug)

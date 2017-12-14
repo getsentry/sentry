@@ -54,8 +54,8 @@ class AccountNotificationView(BaseView):
 
         project_list = list(
             Project.objects.filter(
-                team__organizationmemberteam__organizationmember__user=request.user,
-                team__organizationmemberteam__is_active=True,
+                teams__organizationmemberteam__organizationmember__user=request.user,
+                teams__organizationmemberteam__is_active=True,
                 status=ProjectStatus.VISIBLE,
             ).distinct()
         )

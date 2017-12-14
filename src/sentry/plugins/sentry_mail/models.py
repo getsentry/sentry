@@ -118,7 +118,7 @@ class MailPlugin(NotificationPlugin):
 
         This result may come from cached data.
         """
-        if not (project and project.team):
+        if not (project and project.teams.exists()):
             logger.debug('Tried to send notification to invalid project: %r', project)
             return []
 
@@ -187,7 +187,6 @@ class MailPlugin(NotificationPlugin):
         headers = {
             'X-Sentry-Logger': group.logger,
             'X-Sentry-Logger-Level': group.get_level_display(),
-            'X-Sentry-Team': project.team.slug,
             'X-Sentry-Project': project.slug,
             'X-Sentry-Reply-To': group_id_to_email(group.id),
         }
@@ -241,7 +240,6 @@ class MailPlugin(NotificationPlugin):
         }
 
         headers = {
-            'X-Sentry-Team': project.team.slug,
             'X-Sentry-Project': project.slug,
         }
 
