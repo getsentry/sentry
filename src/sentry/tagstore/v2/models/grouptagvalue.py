@@ -41,7 +41,7 @@ class GroupTagValue(Model):
     class Meta:
         app_label = 'tagstore'
         unique_together = (('project_id', 'group_id', 'environment_id', '_key', '_value'), )
-        index_together = (('project_id', 'environment_id', '_key', '_value', 'last_seen'), )
+        index_together = (('project_id', '_key', '_value', 'last_seen'), )
 
     __repr__ = sane_repr('project_id', 'group_id', '_key', '_value')
 
