@@ -125,8 +125,7 @@ class TagStorage(TagStorage):
     def create_tag_value(self, project_id, environment_id, key, value, **kwargs):
         tag_key_kwargs = kwargs.copy()
         for k in ['times_seen', 'first_seen', 'last_seen']:
-            if k in tag_key_kwargs:
-                del tag_key_kwargs[k]
+            tag_key_kwargs.pop(k, None)
 
         tag_key, _ = self.get_or_create_tag_key(
             project_id, environment_id, key, **tag_key_kwargs)
@@ -156,8 +155,7 @@ class TagStorage(TagStorage):
 
     def create_group_tag_key(self, project_id, group_id, environment_id, key, **kwargs):
         tag_key_kwargs = kwargs.copy()
-        if 'values_seen' in tag_key_kwargs:
-            del tag_key_kwargs['values_seen']
+        tag_key_kwargs.pop('values_seen', None)
 
         tag_key, _ = self.get_or_create_tag_key(
             project_id, environment_id, key, **tag_key_kwargs)
@@ -186,8 +184,7 @@ class TagStorage(TagStorage):
                                key, value, **kwargs):
         other_kwargs = kwargs.copy()
         for k in ['times_seen', 'first_seen', 'last_seen']:
-            if k in other_kwargs:
-                del other_kwargs[k]
+            other_kwargs.pop(k, None)
 
         tag_key, _ = self.get_or_create_tag_key(
             project_id, environment_id, key, **other_kwargs)
