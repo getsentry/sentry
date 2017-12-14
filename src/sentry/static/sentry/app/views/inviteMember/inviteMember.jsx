@@ -116,9 +116,7 @@ const InviteMember = createReactClass({
         error: err => {
           if (err.status === 403) {
             AlertActions.addAlert({
-              message: t(
-                "You aren't allowed to invite members. Start a trial, upgrade your subscription, or request permissions from your organization owner."
-              ),
+              message: t("You aren't allowed to invite members."),
               type: 'error',
             });
             reject(err.responseJSON);
@@ -144,7 +142,7 @@ const InviteMember = createReactClass({
     Promise.all(emails.map(this.inviteUser))
       .then(() => this.redirectToMemberPage())
       .catch(error => {
-        if (!error.email && !error.role && !error.organization) {
+        if (!error.email && !error.role) {
           Raven.captureMessage('Unkown invite member api response', {
             extra: {error, state: this.state},
           });
