@@ -67,6 +67,8 @@ class V2TagStorage(TagStorage):
         )
 
     def setup_deletions(self, **kwargs):
+        super(V2TagStorage, self).setup_deletions(**kwargs)
+
         from sentry.deletions import default_manager as deletion_manager
         from sentry.deletions.defaults import BulkModelDeletionTask
         from sentry.deletions.base import ModelRelation
@@ -77,9 +79,9 @@ class V2TagStorage(TagStorage):
             lambda instance: ModelRelation(TagKey, {'project_id': instance.id}),
         ])
 
-        super(V2TagStorage, self).setup_deletions(**kwargs)
-
     def setup_receivers(self, **kwargs):
+        super(V2TagStorage, self).setup_receivers(**kwargs)
+
         from sentry.signals import buffer_incr_complete
 
         @buffer_incr_complete.connect(sender=TagValue, weak=False)
@@ -103,8 +105,6 @@ class V2TagStorage(TagStorage):
 
             self.incr_group_tag_key_values_seen(
                 project_id, group_id, environment_id, filters['_key_id'])
-
-        super(V2TagStorage, self).setup_receivers(**kwargs)
 
     def create_tag_key(self, project_id, environment_id, key, **kwargs):
         return TagKey.objects.create(
