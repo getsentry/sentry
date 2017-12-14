@@ -463,17 +463,17 @@ class V2TagStorage(TagStorage):
                          for k, v in six.iteritems(tags))),
             project_id=project_id,
             **env_filter
-        ).values_list('id', '_key__key', 'value')
+        ).values_list('_key_id', 'id', '_key__key', 'value')
 
         tagvalues = defaultdict(list)
-        for value_id, key, value in tagvalue_qs:
-            tagvalues[(key, value)].append(value_id)
+        for key_id, value_id, key, value in tagvalue_qs:
+            tagvalues[(key, value)].append((key_id, value_id))
         tagvalues = dict(tagvalues)
 
         try:
             # ensure all key/value pairs were found
             tag_lookups = [tagvalues[(k, v)] for k, v in six.iteritems(tags)]
-            # [[value_id1_env1, value_id2_env2], [value_id3_env1, value_id2_en2], ...]
+            # [[(key0, value0), (key1, value1)], ...]
         except KeyError:
             # one or more tags were invalid, thus the result should be an empty
             # set
@@ -483,24 +483,26 @@ class V2TagStorage(TagStorage):
         # reasonable matches
 
         # get initial matches to start the filter
-        value_ids = tag_lookups.pop()
+        kv_pairs = tag_lookups.pop()
         matches = list(
             EventTag.objects.filter(
+                reduce(or_, (Q(key_id=k, value_id=v)
+                             for k, v in kv_pairs)),
                 project_id=project_id,
                 group_id=group_id,
-                value_id__in=value_ids,
             ).values_list('event_id', flat=True)[:1000]
         )
 
         # for each remaining tag, find matches contained in our
         # existing set, pruning it down each iteration
-        for value_ids in tag_lookups:
+        for kv_pairs in tag_lookups:
             matches = list(
                 EventTag.objects.filter(
+                    reduce(or_, (Q(key_id=k, value_id=v)
+                                 for k, v in kv_pairs)),
                     project_id=project_id,
                     group_id=group_id,
                     event_id__in=matches,
-                    value_id__in=value_ids,
                 ).values_list('event_id', flat=True)[:1000]
             )
             if not matches:
