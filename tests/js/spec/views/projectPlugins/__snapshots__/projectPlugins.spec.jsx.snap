@@ -27,12 +27,14 @@ exports[`ProjectPlugins renders 1`] = `
       </thead>
       <tbody>
         <ProjectPluginRow
+          assets={Array []}
           author={
             Object {
               "name": "Sentry Team",
               "url": "https://github.com/getsentry/sentry",
             }
           }
+          canDisable={true}
           enabled={false}
           id="amazon-sqs"
           name="Amazon SQS"
@@ -42,12 +44,14 @@ exports[`ProjectPlugins renders 1`] = `
           version="8.23.0.dev0"
         />
         <ProjectPluginRow
+          assets={Array []}
           author={
             Object {
               "name": "Sentry Team",
               "url": "https://github.com/getsentry/sentry",
             }
           }
+          canDisable={false}
           enabled={true}
           id="github"
           name="GitHub"
