@@ -225,7 +225,7 @@ window.TestStubs = {
       version: '8.23.0.dev0',
       assets: [],
       canDisable: true,
-    },
+    };
   },
   Plugins: (...params) => {
     return [
