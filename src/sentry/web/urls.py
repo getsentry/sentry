@@ -360,6 +360,11 @@ urlpatterns += patterns(
         OrganizationIntegrationSetupView.as_view()
     ),
     url(
+        r'^organizations/(?P<organization_slug>[\w_-]+)/members/$',
+        react_page_view,
+        name='sentry-organization-members'
+    ),
+    url(
         r'^organizations/(?P<organization_slug>[\w_-]+)/members/new/$',
         react_page_view,
         name='sentry-create-organization-member'
