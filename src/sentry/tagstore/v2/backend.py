@@ -559,7 +559,6 @@ class V2TagStorage(TagStorage):
                     SELECT tagstore_grouptagvalue.id,
                            tagstore_grouptagvalue.project_id,
                            tagstore_grouptagvalue.group_id,
-                           tagstore_grouptagvalue.environment_id,
                            tagstore_grouptagvalue.times_seen,
                            tagstore_grouptagvalue.key_id,
                            tagstore_grouptagvalue.value_id,
