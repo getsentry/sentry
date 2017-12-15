@@ -1,8 +1,8 @@
 import {t} from '../../../locale';
 
-const pathPrefix = '/settings/personal';
+const pathPrefix = '/settings/account';
 
-const personalNavigation = [
+const accountNavigation = [
   {
     name: t('Personal'),
     items: [
@@ -18,4 +18,4 @@ const personalNavigation = [
   },
 ];
 
-export default personalNavigation;
+export default accountNavigation;

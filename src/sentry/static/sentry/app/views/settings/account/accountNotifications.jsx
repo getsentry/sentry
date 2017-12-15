@@ -1,21 +1,21 @@
 import React from 'react';
 
 import SettingsPageHeader from '../components/settingsPageHeader';
-import personalNotificationFields from '../../../data/forms/personalNotificationSettings';
+import accountNotificationFields from '../../../data/forms/accountNotificationSettings';
 import Form from '../components/forms/form';
 import JsonForm from '../components/forms/jsonForm';
 
-const PersonalNotifications = React.createClass({
+const AccountNotifications = React.createClass({
   render() {
     return (
       <div>
         <SettingsPageHeader label="Notifications" />
         <Form>
-          <JsonForm location={this.props.location} forms={personalNotificationFields} />
+          <JsonForm location={this.props.location} forms={accountNotificationFields} />
         </Form>
       </div>
     );
   },
 });
 
-export default PersonalNotifications;
+export default AccountNotifications;

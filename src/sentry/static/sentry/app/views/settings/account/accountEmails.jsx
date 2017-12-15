@@ -2,7 +2,7 @@ import React from 'react';
 
 import SettingsPageHeader from '../components/settingsPageHeader';
 
-const PersonalEmails = () => {
+const AccountEmails = () => {
   return (
     <div>
       <SettingsPageHeader label="Emails" />
@@ -10,4 +10,4 @@ const PersonalEmails = () => {
   );
 };
 
-export default PersonalEmails;
+export default AccountEmails;

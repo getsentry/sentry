@@ -3,8 +3,8 @@ import React from 'react';
 import SettingsNavigation from '../components/settingsNavigation';
 import navigationConfiguration from './navigationConfiguration';
 
-const PersonalSettingsNavigation = () => {
+const AccountSettingsNavigation = () => {
   return <SettingsNavigation navigationObjects={navigationConfiguration} />;
 };
 
-export default PersonalSettingsNavigation;
+export default AccountSettingsNavigation;

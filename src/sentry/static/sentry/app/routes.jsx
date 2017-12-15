@@ -3,6 +3,9 @@ import React from 'react';
 
 import AccountAuthorizations from './views/accountAuthorizations';
 import AccountLayout from './views/accountLayout';
+import AccountSettingsLayout from './views/settings/account/accountSettingsLayout';
+import AccountNotifications from './views/settings/account/accountNotifications';
+import AccountEmails from './views/settings/account/accountEmails';
 import AdminBuffer from './views/adminBuffer';
 import AdminLayout from './views/adminLayout';
 import AdminOrganizations from './views/adminOrganizations';
@@ -56,9 +59,6 @@ import OrganizationGeneralSettingsView from './views/settings/organization/gener
 import OrganizationSettingsLayout from './views/settings/organization/organizationSettingsLayout';
 import OrganizationStats from './views/organizationStats';
 import OrganizationTeams from './views/organizationTeams';
-import PersonalSettingsLayout from './views/settings/personal/personalSettingsLayout';
-import PersonalNotifications from './views/settings/personal/personalNotifications';
-import PersonalEmails from './views/settings/personal/personalEmails';
 import ProjectAlertRules from './views/projectAlertRules';
 import ProjectAlertSettings from './views/projectAlertSettings';
 import ProjectTags from './views/projectTags';
@@ -229,20 +229,20 @@ const orgSettingsRoutes = [
   />,
 ];
 
-const personalSettingsRoutes = [
-  <IndexRedirect key="personal-settings-index" to="notifications/" />,
+const accountSettingsRoutes = [
+  <IndexRedirect key="account-settings-index" to="notifications/" />,
 
   <Route
     key="notifications/"
     path="notifications/"
     name="Notifications"
-    component={errorHandler(PersonalNotifications)}
+    component={errorHandler(AccountNotifications)}
   />,
   <Route
     key="emails/"
     path="emails/"
     name="Emails"
-    component={errorHandler(PersonalEmails)}
+    component={errorHandler(AccountEmails)}
   />,
 ];
 
@@ -388,8 +388,8 @@ function routes() {
         component={errorHandler(SettingsWrapper)}
       >
         <IndexRoute component={errorHandler(SettingsIndex)} />
-        <Route path="personal/" name="Personal" component={PersonalSettingsLayout}>
-          {personalSettingsRoutes}
+        <Route path="account/" name="Account" component={AccountSettingsLayout}>
+          {accountSettingsRoutes}
         </Route>
         <Route path="organization/">
           <IndexRoute component={errorHandler(OrganizationPicker)} />
