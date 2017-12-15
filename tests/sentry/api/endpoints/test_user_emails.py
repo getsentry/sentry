@@ -31,3 +31,8 @@ class UserEmailsTest(APITestCase):
         assert response.status_code == 201, response.content
         assert UserEmail.objects.filter(email='b@example.com').exists()
         assert User.objects.filter(email='b@example.com').exists() is False
+
+    def test_bad_request(self):
+        url = reverse('sentry-api-0-user-emails', kwargs={'user_id': self.user.id})
+        response = self.client.put(url, data={}, format='json')
+        assert response.status_code == 400, response.content

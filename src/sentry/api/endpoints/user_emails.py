@@ -33,8 +33,8 @@ class UserEmailsEndpoint(UserEndpoint):
             if result.get('primary'):
                 user.update(email=result.get('email'))
 
-            return Response(status=201)
-
         user.send_confirm_email_singular(user_email)
         msg = _('A confirmation email has been sent to %s.') % user_email.email
         messages.add_message(request, messages.SUCCESS, msg)
+
+        return Response(status=201)
