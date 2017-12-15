@@ -2,6 +2,7 @@ import Reflux from 'reflux';
 import _ from 'lodash';
 
 let validHookNames = new Set([
+  'component:org-members-view',
   'footer',
   'settings:organization-navigation',
   'settings:organization-navigation-config',
@@ -11,7 +12,6 @@ let validHookNames = new Set([
   'routes',
   'routes:admin',
   'routes:organization',
-  'routes:settings:organization',
   'project:data-forwarding:disabled',
   'project:rate-limits:disabled',
   'project:custom-inbound-filters:disabled',

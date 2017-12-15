@@ -164,16 +164,6 @@ const orgSettingsRoutes = [
     component={errorHandler(OrganizationIntegrations)}
   />,
 
-  <Route key="members" path="members/" name="Members">
-    <IndexRoute component={errorHandler(OrganizationMembersView)} />
-    <Route path="new/" name="Invite" component={errorHandler(InviteMember)} />,
-    <Route
-      path=":memberId/"
-      name="Details"
-      component={errorHandler(OrganizationMemberDetail)}
-    />,
-  </Route>,
-
   <Route
     key="rate-limits"
     path="rate-limits/"
@@ -366,11 +356,6 @@ function routes() {
     hooksOrgRoutes.push(cb());
   });
 
-  let hooksOrgSettingsRoutes = [];
-  HookStore.get('routes:settings:organization').forEach(cb => {
-    hooksOrgSettingsRoutes.push(cb());
-  });
-
   return (
     <Route path="/" component={errorHandler(App)}>
       <Route path="/account/" component={errorHandler(AccountLayout)}>
@@ -405,8 +390,18 @@ function routes() {
             component={errorHandler(OrganizationContext)}
           >
             <Route component={errorHandler(OrganizationSettingsLayout)}>
-              {hooksOrgSettingsRoutes}
               {orgSettingsRoutes}
+              // Add members route separately because it needs to access the HookStore
+              // which is only available after all the JS has loaded.
+              <Route key="members" path="members/" name="Members">
+                <IndexRoute component={HookStore.get('component:org-members-view')[0]()} />
+                <Route path="new/" name="Invite" component={errorHandler(InviteMember)} />,
+                <Route
+                  path=":memberId/"
+                  name="Details"
+                  component={errorHandler(OrganizationMemberDetail)}
+                />,
+              </Route>,
             </Route>
 
             <Route path="project/">
