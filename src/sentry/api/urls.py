@@ -174,7 +174,7 @@ urlpatterns = patterns(
     ),
     url(
         r'^users/(?P<user_id>[^\/]+)/emails/$', UserEmailsEndpoint.as_view(),
-        name='sentry-api-0-user-email'
+        name='sentry-api-0-user-emails'
     ),
     url(
         r'^users/(?P<user_id>[^\/]+)/avatar/$',
