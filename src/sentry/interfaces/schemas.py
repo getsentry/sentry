@@ -293,7 +293,7 @@ EVENT_SCHEMA = {
         },
         'logger': {
             'type': 'string',
-            'pattern': r'^[^\r\n]+\Z',  # \Z because $ matches before a trailing newline
+            'pattern': r'^[^\r\n]*\Z',  # \Z because $ matches before a trailing newline
             'default': '',
         },
         'platform': {
