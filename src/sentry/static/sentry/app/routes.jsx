@@ -366,6 +366,11 @@ function routes() {
     hooksOrgRoutes.push(cb());
   });
 
+  let hooksOrgSettingsRoutes = [];
+  HookStore.get('routes:settings:organization').forEach(cb => {
+    hooksOrgSettingsRoutes.push(cb());
+  });
+
   return (
     <Route path="/" component={errorHandler(App)}>
       <Route path="/account/" component={errorHandler(AccountLayout)}>
@@ -400,6 +405,7 @@ function routes() {
             component={errorHandler(OrganizationContext)}
           >
             <Route component={errorHandler(OrganizationSettingsLayout)}>
+              {hooksOrgSettingsRoutes}
               {orgSettingsRoutes}
             </Route>
 

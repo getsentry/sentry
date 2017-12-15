@@ -11,6 +11,7 @@ let validHookNames = new Set([
   'routes',
   'routes:admin',
   'routes:organization',
+  'routes:settings:organization',
   'project:data-forwarding:disabled',
   'project:rate-limits:disabled',
   'project:custom-inbound-filters:disabled',
