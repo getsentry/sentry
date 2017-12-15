@@ -1,6 +1,8 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 
+import classNames from 'classnames';
+
 import Confirm from '../confirm';
 
 export default class ActionLink extends React.Component {
@@ -42,7 +44,11 @@ export default class ActionLink extends React.Component {
       );
     } else {
       return (
-        <a className={className} onClick={!disabled && onAction} disabled={disabled}>
+        <a
+          className={classNames(className, {disabled})}
+          onClick={!disabled && onAction}
+          disabled={disabled}
+        >
           {children}
         </a>
       );
