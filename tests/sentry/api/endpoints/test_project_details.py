@@ -92,6 +92,7 @@ class ProjectUpdateTest(APITestCase):
         assert resp.status_code == 200, resp.content
         project = Project.objects.get(id=project.id)
         assert project.team == team
+        assert project.teams.first() == team
 
     def test_team_changes_not_found(self):
         project = self.create_project()
