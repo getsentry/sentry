@@ -6,15 +6,13 @@ import styled, {keyframes} from 'react-emotion';
 
 import {defined} from '../../../../../utils';
 import FormState from '../../../../../components/forms/state';
-import {
-  FormFieldControl,
-  FormFieldControlState,
-  FormFieldDescription,
-  FormFieldHelp,
-  FormFieldLabel,
-  FormFieldRequiredBadge,
-  FormFieldWrapper,
-} from './index';
+import FormFieldWrapper from './formFieldWrapper';
+import FormFieldDescription from './formFieldDescription';
+import FormFieldControl from './formFieldControl';
+import FormFieldControlState from './formFieldControlState';
+import FormFieldHelp from './formFieldHelp';
+import FormFieldLabel from './formFieldLabel';
+import FormFieldRequiredBadge from './formFieldRequiredBadge';
 
 import IconCheckmarkSm from '../../../../../icons/icon-checkmark-sm';
 import IconWarningSm from '../../../../../icons/icon-warning-sm';

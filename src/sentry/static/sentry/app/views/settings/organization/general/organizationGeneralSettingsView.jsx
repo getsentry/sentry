@@ -10,13 +10,11 @@ import {
 } from '../../../../actionCreators/organizations';
 import {t, tct} from '../../../../locale';
 import ApiMixin from '../../../../mixins/apiMixin';
-import {
-  FormFieldWrapper,
-  FormFieldDescription,
-  FormFieldControl,
-  FormFieldHelp,
-  FormFieldLabel,
-} from '../../components/forms/formField';
+import FormFieldWrapper from '../../components/forms/formField/formFieldWrapper';
+import FormFieldDescription from '../../components/forms/formField/formFieldDescription';
+import FormFieldControl from '../../components/forms/formField/formFieldControl';
+import FormFieldHelp from '../../components/forms/formField/formFieldHelp';
+import FormFieldLabel from '../../components/forms/formField/formFieldLabel';
 import LinkWithConfirmation from '../../../../components/linkWithConfirmation';
 import LoadingIndicator from '../../../../components/loadingIndicator';
 import OrganizationsStore from '../../../../stores/organizationsStore';
