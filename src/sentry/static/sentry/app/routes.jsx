@@ -189,31 +189,32 @@ const orgSettingsRoutes = [
     component={errorHandler(OrganizationGeneralSettingsView)}
   />,
 
-  <Route
-    key="team-details"
-    name="Teams"
-    path="teams/:teamId/"
-    component={errorHandler(TeamDetails)}
-  >
-    <IndexRedirect to="settings/" />
-    <Route path="settings/" name="Settings" component={errorHandler(TeamSettings)} />
-    <Route path="members/" name="Members" component={errorHandler(TeamMembers)} />
+  <Route key="teams" name="Project & Teams" path="teams/">
+    <IndexRedirect to="your-teams" />
+    <Route
+      path="all-teams/"
+      name="All Teams"
+      allTeams
+      component={errorHandler(OrganizationTeams)}
+    />
+
+    <Route
+      name="Your Teams"
+      path="your-teams/"
+      component={errorHandler(OrganizationTeams)}
+    />
+
+    <Route
+      key="team-details"
+      name="Team"
+      path=":teamId/"
+      component={errorHandler(TeamDetails)}
+    >
+      <IndexRedirect to="settings/" />
+      <Route path="settings/" name="Settings" component={errorHandler(TeamSettings)} />
+      <Route path="members/" name="Members" component={errorHandler(TeamMembers)} />
+    </Route>
   </Route>,
-
-  <Route
-    key="teams"
-    path="teams/"
-    name="Teams"
-    component={errorHandler(OrganizationTeams)}
-  />,
-
-  <Route
-    key="all-teams"
-    path="all-teams/"
-    name="All Teams"
-    allTeams
-    component={errorHandler(OrganizationTeams)}
-  />,
 
   <Route
     key="org-stats"
