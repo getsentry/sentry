@@ -1,70 +1,21 @@
-import {Box, Flex} from 'grid-emotion';
 import {Observer} from 'mobx-react';
-import {css} from 'emotion';
 import PropTypes from 'prop-types';
 import React from 'react';
 import ReactDOM from 'react-dom';
 import styled, {keyframes} from 'react-emotion';
 
-import {defined} from '../../../../utils';
-import FormState from '../../../../components/forms/state';
-import IconCheckmarkSm from '../../../../icons/icon-checkmark-sm';
-import IconWarningSm from '../../../../icons/icon-warning-sm';
-import Spinner from './styled/spinner';
-
-const FormFieldWrapper = styled(({highlighted, ...props}) => <Flex {...props} />)`
-  padding: 15px 20px;
-  border-bottom: 1px solid ${p => p.theme.borderLight};
-  align-items: center;
-  transition: background 0.15s;
-
-  ${p =>
-    p.highlighted
-      ? css`
-          outline: 1px solid ${p.theme.purple};
-        `
-      : ''} &:last-child {
-    border-bottom: none;
-  }
-`;
-
-const FormFieldLabel = styled.div`
-  color: ${p => p.theme.gray5};
-`;
-
-const FormFieldCtrl = styled(Box)`
-  color: ${p => p.theme.gray3};
-  width: 50%;
-  padding-left: 10px;
-  position: relative;
-`;
-
-const FormFieldCtrlState = styled(Box)`
-  width: 36px;
-  text-align: right;
-`;
-
-const FormFieldDesc = styled(Box)`
-  width: 50%;
-  padding-right: 10px;
-`;
-
-const FormFieldRequiredBadge = styled.div`
-  display: inline-block;
-  background: ${p => p.theme.gray2};
-  width: 5px;
-  height: 5px;
-  border-radius: 5px;
-  text-indent: -9999em;
-  vertical-align: super;
-`;
-
-const FormFieldHelp = styled.div`
-  color: ${p => p.theme.gray2};
-  font-size: 14px;
-  margin-top: 8px;
-  line-height: 1.4;
-`;
+import {defined} from '../../../../../utils';
+import FormState from '../../../../../components/forms/state';
+import FormFieldCtrl from './formFieldCtrl';
+import FormFieldCtrlState from './formFieldCtrlState';
+import FormFieldDesc from './formFieldDesc';
+import FormFieldHelp from './formFieldHelp';
+import FormFieldLabel from './formFieldLabel';
+import FormFieldRequiredBadge from './formFieldRequiredBadge';
+import FormFieldWrapper from './formFieldWrapper';
+import IconCheckmarkSm from '../../../../../icons/icon-checkmark-sm';
+import IconWarningSm from '../../../../../icons/icon-warning-sm';
+import Spinner from '../styled/spinner';
 
 const FormFieldErrorReason = styled.div`
   color: ${p => p.theme.redDark};
@@ -78,6 +29,7 @@ const FormFieldErrorReason = styled.div`
   box-shadow: 0 0 0 1px rgba(64, 11, 54, 0.15), 0 4px 20px 0 rgba(64, 11, 54, 0.36);
   z-index: 10000;
 `;
+
 const fadeOut = keyframes`
   0% {
     opacity: 1;
