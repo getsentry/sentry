@@ -37,13 +37,14 @@ class OrganizationTeamsView extends React.Component {
 
     if (!organization) return null;
 
-    let urlPrefix = recreateRoute('', {routes, params, stepBack: -1});
+    let teamRoute = routes.find(({path}) => path === 'teams/');
+    let urlPrefix = recreateRoute(teamRoute, {routes, params, stepBack: -1});
 
     return (
       <div className="team-list">
         <ul className="nav nav-tabs border-bottom">
-          <ListLink to={`${urlPrefix}teams/`}>{t('Your Teams')}</ListLink>
-          <ListLink to={`${urlPrefix}all-teams/`}>
+          <ListLink to={`${urlPrefix}teams/your-teams/`}>{t('Your Teams')}</ListLink>
+          <ListLink to={`${urlPrefix}teams/all-teams/`}>
             {t('All Teams')} <span className="badge badge-soft">{allTeams.length}</span>
           </ListLink>
         </ul>
