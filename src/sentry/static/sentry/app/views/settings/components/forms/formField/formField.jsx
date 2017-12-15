@@ -7,9 +7,9 @@ import styled, {keyframes} from 'react-emotion';
 import {defined} from '../../../../../utils';
 import FormState from '../../../../../components/forms/state';
 import {
-  formFieldControl,
-  formFieldControlState,
-  formFieldDescription,
+  FormFieldControl,
+  FormFieldControlState,
+  FormFieldDescription,
   FormFieldHelp,
   FormFieldLabel,
   FormFieldRequiredBadge,
@@ -245,15 +245,15 @@ class FormField extends React.Component {
         onMouseOver={e => this.handleHover(true, e)}
         onMouseOut={e => this.handleHover(false, e)}
       >
-        <formFieldDescription>
+        <FormFieldDescription>
           {label && (
             <FormFieldLabel>
               {label} {required && <FormFieldRequiredBadge />}
             </FormFieldLabel>
           )}
           {help && <FormFieldHelp>{help}</FormFieldHelp>}
-        </formFieldDescription>
-        <formFieldControl>
+        </FormFieldDescription>
+        <FormFieldControl>
           <Observer>
             {() => {
               let error = this.getError();
@@ -292,8 +292,8 @@ class FormField extends React.Component {
               return <FormFieldErrorReason>{error}</FormFieldErrorReason>;
             }}
           </Observer>
-        </formFieldControl>
-        <formFieldControlState>
+        </FormFieldControl>
+        <FormFieldControlState>
           <Observer>
             {() => {
               let isSaving = model.getFieldState(this.props.name, FormState.SAVING);
@@ -326,7 +326,7 @@ class FormField extends React.Component {
               );
             }}
           </Observer>
-        </formFieldControlState>
+        </FormFieldControlState>
       </FormFieldWrapper>
     );
   }
