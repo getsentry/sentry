@@ -80,6 +80,12 @@ def create_or_update(model, using=None, **kwargs):
         return affected, False
 
     create_kwargs = kwargs.copy()
+
+    # only use join filters for filtering (above) and not creation
+    for key in create_kwargs.keys():
+        if '__' in key:
+            create_kwargs.pop(key)
+
     inst = objects.model()
     for k, v in itertools.chain(six.iteritems(values), six.iteritems(defaults)):
         # XXX(dcramer): we want to support column shortcut on create so

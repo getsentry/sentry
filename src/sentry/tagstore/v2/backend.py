@@ -403,7 +403,7 @@ class V2TagStorage(TagStorage):
                         },
                         filters={
                             'project_id': project_id,
-                            'environment_id': env,  # TODO
+                            '_key__environment_id': env,  # TODO
                             '_key_id': tagkey.id,
                             'value': value,
                         },
@@ -418,7 +418,7 @@ class V2TagStorage(TagStorage):
                     filters={
                         'project_id': project_id,
                         'group_id': group_id,
-                        'environment_id': environment_id,  # TODO
+                        '_key__environment_id': environment_id,  # TODO
                         '_key_id': key,
                     })
 
@@ -435,7 +435,7 @@ class V2TagStorage(TagStorage):
                         filters={
                             'project_id': project_id,
                             'group_id': group_id,
-                            'environment_id': env,  # TODO
+                            '_key__environment_id': env,  # TODO
                             '_key_id': tagkey.id,
                             '_value_id': tagvalue.id,
                         },
