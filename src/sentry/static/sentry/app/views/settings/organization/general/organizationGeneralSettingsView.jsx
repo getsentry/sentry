@@ -12,8 +12,8 @@ import {t, tct} from '../../../../locale';
 import ApiMixin from '../../../../mixins/apiMixin';
 import {
   FormFieldWrapper,
-  FormFieldDesc,
-  FormFieldCtrl,
+  formFieldDescription,
+  formFieldControl,
   FormFieldHelp,
   FormFieldLabel,
 } from '../../components/forms/formField';
@@ -147,16 +147,16 @@ const OrganizationGeneralSettingsView = React.createClass({
                   <Panel>
                     <PanelHeader>{t('Remove Organization')}</PanelHeader>
                     <FormFieldWrapper>
-                      <FormFieldDesc>
+                      <formFieldDescription>
                         <FormFieldLabel>{t('Remove Organization')}</FormFieldLabel>
                         <FormFieldHelp>
                           {t(
                             'Removing this organization will delete all data including projects and their associated events.'
                           )}
                         </FormFieldHelp>
-                      </FormFieldDesc>
+                      </formFieldDescription>
 
-                      <FormFieldCtrl>
+                      <formFieldControl>
                         <LinkWithConfirmation
                           className="btn btn-danger"
                           priority="danger"
@@ -193,7 +193,7 @@ const OrganizationGeneralSettingsView = React.createClass({
                         >
                           {t('Remove Organization')}
                         </LinkWithConfirmation>
-                      </FormFieldCtrl>
+                      </formFieldControl>
                     </FormFieldWrapper>
                   </Panel>
                 )}

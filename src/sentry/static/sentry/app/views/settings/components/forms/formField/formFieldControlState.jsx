@@ -1,9 +1,9 @@
 import styled from 'react-emotion';
 import {Box} from 'grid-emotion';
 
-const FormFieldCtrlState = styled(Box)`
+const formFieldControlState = styled(Box)`
   width: 36px;
   text-align: right;
 `;
 
-export default FormFieldCtrlState;
+export default formFieldControlState;

@@ -1,9 +1,9 @@
 import styled from 'react-emotion';
 import {Box} from 'grid-emotion';
 
-const FormFieldDesc = styled(Box)`
+const formFieldDescription = styled(Box)`
   width: 50%;
   padding-right: 10px;
 `;
 
-export default FormFieldDesc;
+export default formFieldDescription;
