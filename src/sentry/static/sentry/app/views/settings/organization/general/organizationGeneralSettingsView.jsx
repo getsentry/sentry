@@ -10,9 +10,18 @@ import {
 } from '../../../../actionCreators/organizations';
 import {t, tct} from '../../../../locale';
 import ApiMixin from '../../../../mixins/apiMixin';
+import {
+  FormFieldWrapper,
+  FormFieldDesc,
+  FormFieldCtrl,
+  FormFieldHelp,
+  FormFieldLabel,
+} from '../../components/forms/formField';
 import LinkWithConfirmation from '../../../../components/linkWithConfirmation';
 import LoadingIndicator from '../../../../components/loadingIndicator';
 import OrganizationsStore from '../../../../stores/organizationsStore';
+import Panel from '../../components/panel';
+import PanelHeader from '../../components/panelHeader';
 import SettingsPageHeader from '../../components/settingsPageHeader';
 import getSettingsComponent from '../../../../utils/getSettingsComponent';
 import recreateRoute from '../../../../utils/recreateRoute';
@@ -135,21 +144,23 @@ const OrganizationGeneralSettingsView = React.createClass({
               {access.has('org:admin') &&
                 !data.isDefault &&
                 hasMultipleOrgs && (
-                  <div className="box">
-                    <div className="box-header">
-                      <h3>{t('Remove Organization')}</h3>
-                    </div>
-                    <div className="box-content with-padding">
-                      <p>
-                        {t(
-                          'Removing this organization will delete all data including projects and their associated events.'
-                        )}
-                      </p>
+                  <Panel>
+                    <PanelHeader>{t('Remove Organization')}</PanelHeader>
+                    <FormFieldWrapper>
+                      <FormFieldDesc>
+                        <FormFieldLabel>{t('Remove Organization')}</FormFieldLabel>
+                        <FormFieldHelp>
+                          {t(
+                            'Removing this organization will delete all data including projects and their associated events.'
+                          )}
+                        </FormFieldHelp>
+                      </FormFieldDesc>
 
-                      <fieldset className="form-actions">
+                      <FormFieldCtrl>
                         <LinkWithConfirmation
                           className="btn btn-danger"
                           priority="danger"
+                          size="small"
                           title={tct('Remove [name] organization', {
                             name: data && data.name,
                           })}
@@ -182,9 +193,9 @@ const OrganizationGeneralSettingsView = React.createClass({
                         >
                           {t('Remove Organization')}
                         </LinkWithConfirmation>
-                      </fieldset>
-                    </div>
-                  </div>
+                      </FormFieldCtrl>
+                    </FormFieldWrapper>
+                  </Panel>
                 )}
             </div>
           )}
