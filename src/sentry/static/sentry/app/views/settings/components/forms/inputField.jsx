@@ -1,7 +1,7 @@
 import PropTypes from 'prop-types';
 import React from 'react';
 
-import {FormField} from './formField';
+import FormField from './formField';
 import Input from './styled/input';
 
 export default class InputField extends React.Component {
