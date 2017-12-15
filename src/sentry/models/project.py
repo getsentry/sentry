@@ -317,9 +317,13 @@ class Project(Model):
             return True
 
     def get_security_token(self):
-        # TODO(dcramer): this update should happen within a lock
-        security_token = self.get_option('sentry:token', None)
-        if security_token is None:
-            security_token = uuid1().hex
-            self.update_option('sentry:token', security_token)
-        return security_token
+        lock = locks.get(self.get_lock_key(), duration=5)
+        with TimedRetryPolicy(10)(lock.acquire):
+            security_token = self.get_option('sentry:token', None)
+            if security_token is None:
+                security_token = uuid1().hex
+                self.update_option('sentry:token', security_token)
+            return security_token
+
+    def get_lock_key(self):
+        return 'project_token:%s' % self.id
