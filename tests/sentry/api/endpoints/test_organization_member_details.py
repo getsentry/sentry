@@ -201,6 +201,52 @@ class UpdateOrganizationMemberTest(APITestCase):
         assert resp.status_code == 200
         assert team.slug in resp.data['teams']
 
+    def test_can_update_member_membership(self):
+        self.login_as(user=self.user)
+
+        organization = self.create_organization(name='foo', owner=self.user)
+
+        member = self.create_user('baz@example.com')
+        member_om = self.create_member(
+            organization=organization,
+            user=member,
+            role='member',
+            teams=[]
+        )
+
+        path = reverse(
+            'sentry-api-0-organization-member-details', args=[organization.slug, member_om.id]
+        )
+
+        self.login_as(self.user)
+
+        resp = self.client.put(path, data={
+            'role': 'admin'
+        })
+        assert resp.status_code == 200
+
+        member_om = OrganizationMember.objects.get(id=member_om.id)
+        assert member_om.role == 'admin'
+
+    def test_can_note_update_own_membership(self):
+        self.login_as(user=self.user)
+
+        organization = self.create_organization(name='foo', owner=self.user)
+
+        path = reverse(
+            'sentry-api-0-organization-member-details', args=[organization.slug, self.user.id]
+        )
+
+        self.login_as(self.user)
+
+        resp = self.client.put(path, data={
+            'role': 'admin'
+        })
+        assert resp.status_code == 400
+
+        member_om = OrganizationMember.objects.get(id=self.user.id)
+        assert member_om.role == 'owner'
+
     def test_can_update_teams(self):
         self.login_as(user=self.user)
 

@@ -110,6 +110,7 @@ class OrganizationMemberDetailsEndpoint(OrganizationEndpoint):
         if request.access.has_scope('member:admin'):
             context['invite_link'] = member.get_invite_link()
 
+        context['isOnlyOwner'] = self._is_only_owner(member)
         context['roles'] = serialize(
             roles.get_all(), serializer=RoleSerializer(), allowed_roles=allowed_roles)
 
@@ -134,6 +135,11 @@ class OrganizationMemberDetailsEndpoint(OrganizationEndpoint):
             om = self._get_member(request, organization, member_id)
         except OrganizationMember.DoesNotExist:
             raise ResourceDoesNotExist
+
+        # You can't edit your own membership
+        if om.user == request.user:
+            return Response(
+                {'detail': 'You cannot make changes to your own membership.'}, status=400)
 
         serializer = OrganizationMemberSerializer(
             data=request.DATA, partial=True)
