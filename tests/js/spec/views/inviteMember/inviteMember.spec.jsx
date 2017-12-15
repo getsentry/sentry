@@ -117,7 +117,7 @@ describe('CreateProject', function() {
       let wrapper = mount(<InviteMember {...baseProps} />, baseContext);
 
       expect(handleSubmitStub.callCount).toEqual(1);
-      expect(wrapper.state('loading')).toBe(true);
+      expect(wrapper.state('loading')).toBe(false);
     });
 
     it('should render roles when available and allowed, and handle submitting', function() {
