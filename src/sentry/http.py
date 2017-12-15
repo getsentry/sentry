@@ -186,6 +186,7 @@ def safe_urlopen(
     allow_redirects=False,
     timeout=30,
     verify_ssl=True,
+    proxies=None,
     user_agent=None
 ):
     """
@@ -213,6 +214,9 @@ def safe_urlopen(
 
     if headers:
         kwargs['headers'] = headers
+
+    if proxies:
+        kwargs['proxies'] = proxies
 
     if method is None:
         method = 'POST' if (data or json) else 'GET'
