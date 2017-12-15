@@ -1,13 +1,13 @@
 import PropTypes from 'prop-types';
 import React from 'react';
 
-import AlertActions from '../actions/alertActions';
-import ApiMixin from '../mixins/apiMixin';
-import AvatarCropper from '../components/avatarCropper';
-import AvatarRadio from '../components/avatarRadio';
-import LoadingError from '../components/loadingError';
-import LoadingIndicator from '../components/loadingIndicator';
-import {t} from '../locale';
+import AlertActions from '../../../actions/alertActions';
+import ApiMixin from '../../../mixins/apiMixin';
+import AvatarCropper from '../../../components/avatarCropper';
+import AvatarRadio from '../../../components/avatarRadio';
+import LoadingError from '../../../components/loadingError';
+import LoadingIndicator from '../../../components/loadingIndicator';
+import {t} from '../../../locale';
 
 const AvatarSettings = React.createClass({
   propTypes: {
@@ -101,7 +101,7 @@ const AvatarSettings = React.createClass({
     );
 
     return (
-      <div>
+      <div style={{lineHeight: '1.5em'}}>
         <form>
           <AvatarRadio user={this.state.user} updateUser={this.updateUserState} />
 
