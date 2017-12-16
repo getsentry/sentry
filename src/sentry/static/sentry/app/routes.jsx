@@ -394,7 +394,11 @@ function routes() {
               // Add members route separately because it needs to access the HookStore
               // which is only available after all the JS has loaded.
               <Route key="members" path="members/" name="Members">
-                <IndexRoute component={HookStore.get('component:org-members-view')[0]()} />
+                <IndexRoute component={
+                  HookStore.get('component:org-members-view').length ?
+                    HookStore.get('component:org-members-view')[0]() :
+                    OrganizationMembersView
+                } />
                 <Route path="new/" name="Invite" component={errorHandler(InviteMember)} />,
                 <Route
                   path=":memberId/"
