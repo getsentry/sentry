@@ -31,6 +31,6 @@ class ListOrganizationMembersTest(AcceptanceTestCase):
         self.login_as(self.user)
 
     def test_list(self):
-        self.browser.wait_until_not('.loading')
+        self.browser.wait_until_not('.loading-indicator')
         self.browser.get('/organizations/{}/members/'.format(self.org.slug))
         self.browser.snapshot(name='list organization members')
