@@ -42,17 +42,12 @@ class TeamGroupsNewEndpoint(TeamEndpoint, EnvironmentMixin):
         for group in group_list:
             group._project_cache = project_dict.get(group.project_id)
 
-        if group_list:
-            organization_id = group_list[0].project.organization_id
-
-            return Response(
-                serialize(
-                    group_list,
-                    request.user,
-                    GroupSerializer(
-                        environment_id_func=self._get_environment_id_func(request, organization_id)
-                    )
+        return Response(
+            serialize(
+                group_list,
+                request.user,
+                GroupSerializer(
+                    environment_id_func=self._get_environment_id_func(request, team.organization_id)
                 )
             )
-        else:
-            return Response([])
+        )

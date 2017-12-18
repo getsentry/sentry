@@ -6,7 +6,7 @@ from sentry import tagstore
 from sentry.api.base import EnvironmentMixin
 from sentry.api.bases.organization import OrganizationEndpoint
 from sentry.api.serializers import serialize
-from sentry.api.serializers.models.group import StreamGroupSerializer
+from sentry.api.serializers.models.group import GroupSerializer
 from sentry.models import (EventUser, Group, OrganizationMemberTeam, Project)
 
 
@@ -43,8 +43,7 @@ class OrganizationUserIssuesSearchEndpoint(OrganizationEndpoint, EnvironmentMixi
             id__in=group_ids,
         ).order_by('-last_seen')[:limit]
 
-        context = serialize(list(groups), request.user, StreamGroupSerializer(
-            stats_period=None,
+        context = serialize(list(groups), request.user, GroupSerializer(
             environment_id_func=self._get_environment_id_func(
                 request, organization.id)
         ))

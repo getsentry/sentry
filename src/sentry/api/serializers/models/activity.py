@@ -11,7 +11,7 @@ from sentry.utils.functional import apply_values
 @register(Activity)
 class ActivitySerializer(Serializer):
     def __init__(self, environment_id_func=None):
-        self.environment_id_func = environment_id_func if environment_id_func is not None else lambda: None
+        self.environment_id_func = environment_id_func
 
     def get_attrs(self, item_list, user):
         # TODO(dcramer); assert on relations

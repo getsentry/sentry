@@ -6,7 +6,7 @@ from sentry.api.base import DocSection, EnvironmentMixin
 from sentry.api.bases.project import ProjectEndpoint, ProjectPermission
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.serializers import serialize
-from sentry.api.serializers.models.group import StreamGroupSerializer
+from sentry.api.serializers.models.group import GroupSerializer
 from sentry.models import (
     Group,
     GroupLink,
@@ -64,8 +64,7 @@ class IssuesResolvedInReleaseEndpoint(ProjectEndpoint, EnvironmentMixin):
         context = serialize(
             list(groups),
             request.user,
-            StreamGroupSerializer(
-                stats_period=None,
+            GroupSerializer(
                 environment_id_func=self._get_environment_id_func(request, project.organization_id)
             )
         )
