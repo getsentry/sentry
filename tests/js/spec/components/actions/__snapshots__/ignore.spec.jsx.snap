@@ -259,6 +259,7 @@ exports[`IgnoreActions with confirmation step renders 1`] = `
               bsClass="modal"
               dialogComponentClass={[Function]}
               enforceFocus={true}
+              key="confirm"
               keyboard={true}
               manager={
                 ModalManager {
@@ -387,6 +388,7 @@ exports[`IgnoreActions with confirmation step renders 1`] = `
                         onMouseLeave={[Function]}
                       >
                         <MenuItem
+                          key="30"
                           noAnchor={true}
                         >
                           <li
@@ -429,6 +431,7 @@ exports[`IgnoreActions with confirmation step renders 1`] = `
                                     bsClass="modal"
                                     dialogComponentClass={[Function]}
                                     enforceFocus={true}
+                                    key="confirm"
                                     keyboard={true}
                                     manager={
                                       ModalManager {
@@ -476,6 +479,7 @@ exports[`IgnoreActions with confirmation step renders 1`] = `
                           </li>
                         </MenuItem>
                         <MenuItem
+                          key="120"
                           noAnchor={true}
                         >
                           <li
@@ -518,6 +522,7 @@ exports[`IgnoreActions with confirmation step renders 1`] = `
                                     bsClass="modal"
                                     dialogComponentClass={[Function]}
                                     enforceFocus={true}
+                                    key="confirm"
                                     keyboard={true}
                                     manager={
                                       ModalManager {
@@ -565,6 +570,7 @@ exports[`IgnoreActions with confirmation step renders 1`] = `
                           </li>
                         </MenuItem>
                         <MenuItem
+                          key="360"
                           noAnchor={true}
                         >
                           <li
@@ -607,6 +613,7 @@ exports[`IgnoreActions with confirmation step renders 1`] = `
                                     bsClass="modal"
                                     dialogComponentClass={[Function]}
                                     enforceFocus={true}
+                                    key="confirm"
                                     keyboard={true}
                                     manager={
                                       ModalManager {
@@ -654,6 +661,7 @@ exports[`IgnoreActions with confirmation step renders 1`] = `
                           </li>
                         </MenuItem>
                         <MenuItem
+                          key="1440"
                           noAnchor={true}
                         >
                           <li
@@ -696,6 +704,7 @@ exports[`IgnoreActions with confirmation step renders 1`] = `
                                     bsClass="modal"
                                     dialogComponentClass={[Function]}
                                     enforceFocus={true}
+                                    key="confirm"
                                     keyboard={true}
                                     manager={
                                       ModalManager {
@@ -743,6 +752,7 @@ exports[`IgnoreActions with confirmation step renders 1`] = `
                           </li>
                         </MenuItem>
                         <MenuItem
+                          key="10080"
                           noAnchor={true}
                         >
                           <li
@@ -785,6 +795,7 @@ exports[`IgnoreActions with confirmation step renders 1`] = `
                                     bsClass="modal"
                                     dialogComponentClass={[Function]}
                                     enforceFocus={true}
+                                    key="confirm"
                                     keyboard={true}
                                     manager={
                                       ModalManager {
@@ -901,6 +912,7 @@ exports[`IgnoreActions with confirmation step renders 1`] = `
                       >
                         <li
                           className="dropdown-submenu"
+                          key="10"
                         >
                           <DropdownLink
                             alwaysRenderMenu={true}
@@ -973,6 +985,7 @@ exports[`IgnoreActions with confirmation step renders 1`] = `
                                               bsClass="modal"
                                               dialogComponentClass={[Function]}
                                               enforceFocus={true}
+                                              key="confirm"
                                               keyboard={true}
                                               manager={
                                                 ModalManager {
@@ -1020,6 +1033,7 @@ exports[`IgnoreActions with confirmation step renders 1`] = `
                                     </li>
                                   </MenuItem>
                                   <MenuItem
+                                    key="1"
                                     noAnchor={true}
                                   >
                                     <li
@@ -1056,6 +1070,7 @@ exports[`IgnoreActions with confirmation step renders 1`] = `
                                               bsClass="modal"
                                               dialogComponentClass={[Function]}
                                               enforceFocus={true}
+                                              key="confirm"
                                               keyboard={true}
                                               manager={
                                                 ModalManager {
@@ -1103,6 +1118,7 @@ exports[`IgnoreActions with confirmation step renders 1`] = `
                                     </li>
                                   </MenuItem>
                                   <MenuItem
+                                    key="24"
                                     noAnchor={true}
                                   >
                                     <li
@@ -1139,6 +1155,7 @@ exports[`IgnoreActions with confirmation step renders 1`] = `
                                               bsClass="modal"
                                               dialogComponentClass={[Function]}
                                               enforceFocus={true}
+                                              key="confirm"
                                               keyboard={true}
                                               manager={
                                                 ModalManager {
@@ -1186,6 +1203,7 @@ exports[`IgnoreActions with confirmation step renders 1`] = `
                                     </li>
                                   </MenuItem>
                                   <MenuItem
+                                    key="168"
                                     noAnchor={true}
                                   >
                                     <li
@@ -1222,6 +1240,7 @@ exports[`IgnoreActions with confirmation step renders 1`] = `
                                               bsClass="modal"
                                               dialogComponentClass={[Function]}
                                               enforceFocus={true}
+                                              key="confirm"
                                               keyboard={true}
                                               manager={
                                                 ModalManager {
@@ -1275,6 +1294,7 @@ exports[`IgnoreActions with confirmation step renders 1`] = `
                         </li>
                         <li
                           className="dropdown-submenu"
+                          key="100"
                         >
                           <DropdownLink
                             alwaysRenderMenu={true}
@@ -1347,6 +1367,7 @@ exports[`IgnoreActions with confirmation step renders 1`] = `
                                               bsClass="modal"
                                               dialogComponentClass={[Function]}
                                               enforceFocus={true}
+                                              key="confirm"
                                               keyboard={true}
                                               manager={
                                                 ModalManager {
@@ -1394,6 +1415,7 @@ exports[`IgnoreActions with confirmation step renders 1`] = `
                                     </li>
                                   </MenuItem>
                                   <MenuItem
+                                    key="1"
                                     noAnchor={true}
                                   >
                                     <li
@@ -1430,6 +1452,7 @@ exports[`IgnoreActions with confirmation step renders 1`] = `
                                               bsClass="modal"
                                               dialogComponentClass={[Function]}
                                               enforceFocus={true}
+                                              key="confirm"
                                               keyboard={true}
                                               manager={
                                                 ModalManager {
@@ -1477,6 +1500,7 @@ exports[`IgnoreActions with confirmation step renders 1`] = `
                                     </li>
                                   </MenuItem>
                                   <MenuItem
+                                    key="24"
                                     noAnchor={true}
                                   >
                                     <li
@@ -1513,6 +1537,7 @@ exports[`IgnoreActions with confirmation step renders 1`] = `
                                               bsClass="modal"
                                               dialogComponentClass={[Function]}
                                               enforceFocus={true}
+                                              key="confirm"
                                               keyboard={true}
                                               manager={
                                                 ModalManager {
@@ -1560,6 +1585,7 @@ exports[`IgnoreActions with confirmation step renders 1`] = `
                                     </li>
                                   </MenuItem>
                                   <MenuItem
+                                    key="168"
                                     noAnchor={true}
                                   >
                                     <li
@@ -1596,6 +1622,7 @@ exports[`IgnoreActions with confirmation step renders 1`] = `
                                               bsClass="modal"
                                               dialogComponentClass={[Function]}
                                               enforceFocus={true}
+                                              key="confirm"
                                               keyboard={true}
                                               manager={
                                                 ModalManager {
@@ -1649,6 +1676,7 @@ exports[`IgnoreActions with confirmation step renders 1`] = `
                         </li>
                         <li
                           className="dropdown-submenu"
+                          key="1000"
                         >
                           <DropdownLink
                             alwaysRenderMenu={true}
@@ -1721,6 +1749,7 @@ exports[`IgnoreActions with confirmation step renders 1`] = `
                                               bsClass="modal"
                                               dialogComponentClass={[Function]}
                                               enforceFocus={true}
+                                              key="confirm"
                                               keyboard={true}
                                               manager={
                                                 ModalManager {
@@ -1768,6 +1797,7 @@ exports[`IgnoreActions with confirmation step renders 1`] = `
                                     </li>
                                   </MenuItem>
                                   <MenuItem
+                                    key="1"
                                     noAnchor={true}
                                   >
                                     <li
@@ -1804,6 +1834,7 @@ exports[`IgnoreActions with confirmation step renders 1`] = `
                                               bsClass="modal"
                                               dialogComponentClass={[Function]}
                                               enforceFocus={true}
+                                              key="confirm"
                                               keyboard={true}
                                               manager={
                                                 ModalManager {
@@ -1851,6 +1882,7 @@ exports[`IgnoreActions with confirmation step renders 1`] = `
                                     </li>
                                   </MenuItem>
                                   <MenuItem
+                                    key="24"
                                     noAnchor={true}
                                   >
                                     <li
@@ -1887,6 +1919,7 @@ exports[`IgnoreActions with confirmation step renders 1`] = `
                                               bsClass="modal"
                                               dialogComponentClass={[Function]}
                                               enforceFocus={true}
+                                              key="confirm"
                                               keyboard={true}
                                               manager={
                                                 ModalManager {
@@ -1934,6 +1967,7 @@ exports[`IgnoreActions with confirmation step renders 1`] = `
                                     </li>
                                   </MenuItem>
                                   <MenuItem
+                                    key="168"
                                     noAnchor={true}
                                   >
                                     <li
@@ -1970,6 +2004,7 @@ exports[`IgnoreActions with confirmation step renders 1`] = `
                                               bsClass="modal"
                                               dialogComponentClass={[Function]}
                                               enforceFocus={true}
+                                              key="confirm"
                                               keyboard={true}
                                               manager={
                                                 ModalManager {
@@ -2023,6 +2058,7 @@ exports[`IgnoreActions with confirmation step renders 1`] = `
                         </li>
                         <li
                           className="dropdown-submenu"
+                          key="10000"
                         >
                           <DropdownLink
                             alwaysRenderMenu={true}
@@ -2095,6 +2131,7 @@ exports[`IgnoreActions with confirmation step renders 1`] = `
                                               bsClass="modal"
                                               dialogComponentClass={[Function]}
                                               enforceFocus={true}
+                                              key="confirm"
                                               keyboard={true}
                                               manager={
                                                 ModalManager {
@@ -2142,6 +2179,7 @@ exports[`IgnoreActions with confirmation step renders 1`] = `
                                     </li>
                                   </MenuItem>
                                   <MenuItem
+                                    key="1"
                                     noAnchor={true}
                                   >
                                     <li
@@ -2178,6 +2216,7 @@ exports[`IgnoreActions with confirmation step renders 1`] = `
                                               bsClass="modal"
                                               dialogComponentClass={[Function]}
                                               enforceFocus={true}
+                                              key="confirm"
                                               keyboard={true}
                                               manager={
                                                 ModalManager {
@@ -2225,6 +2264,7 @@ exports[`IgnoreActions with confirmation step renders 1`] = `
                                     </li>
                                   </MenuItem>
                                   <MenuItem
+                                    key="24"
                                     noAnchor={true}
                                   >
                                     <li
@@ -2261,6 +2301,7 @@ exports[`IgnoreActions with confirmation step renders 1`] = `
                                               bsClass="modal"
                                               dialogComponentClass={[Function]}
                                               enforceFocus={true}
+                                              key="confirm"
                                               keyboard={true}
                                               manager={
                                                 ModalManager {
@@ -2308,6 +2349,7 @@ exports[`IgnoreActions with confirmation step renders 1`] = `
                                     </li>
                                   </MenuItem>
                                   <MenuItem
+                                    key="168"
                                     noAnchor={true}
                                   >
                                     <li
@@ -2344,6 +2386,7 @@ exports[`IgnoreActions with confirmation step renders 1`] = `
                                               bsClass="modal"
                                               dialogComponentClass={[Function]}
                                               enforceFocus={true}
+                                              key="confirm"
                                               keyboard={true}
                                               manager={
                                                 ModalManager {
@@ -2397,6 +2440,7 @@ exports[`IgnoreActions with confirmation step renders 1`] = `
                         </li>
                         <li
                           className="dropdown-submenu"
+                          key="100000"
                         >
                           <DropdownLink
                             alwaysRenderMenu={true}
@@ -2469,6 +2513,7 @@ exports[`IgnoreActions with confirmation step renders 1`] = `
                                               bsClass="modal"
                                               dialogComponentClass={[Function]}
                                               enforceFocus={true}
+                                              key="confirm"
                                               keyboard={true}
                                               manager={
                                                 ModalManager {
@@ -2516,6 +2561,7 @@ exports[`IgnoreActions with confirmation step renders 1`] = `
                                     </li>
                                   </MenuItem>
                                   <MenuItem
+                                    key="1"
                                     noAnchor={true}
                                   >
                                     <li
@@ -2552,6 +2598,7 @@ exports[`IgnoreActions with confirmation step renders 1`] = `
                                               bsClass="modal"
                                               dialogComponentClass={[Function]}
                                               enforceFocus={true}
+                                              key="confirm"
                                               keyboard={true}
                                               manager={
                                                 ModalManager {
@@ -2599,6 +2646,7 @@ exports[`IgnoreActions with confirmation step renders 1`] = `
                                     </li>
                                   </MenuItem>
                                   <MenuItem
+                                    key="24"
                                     noAnchor={true}
                                   >
                                     <li
@@ -2635,6 +2683,7 @@ exports[`IgnoreActions with confirmation step renders 1`] = `
                                               bsClass="modal"
                                               dialogComponentClass={[Function]}
                                               enforceFocus={true}
+                                              key="confirm"
                                               keyboard={true}
                                               manager={
                                                 ModalManager {
@@ -2682,6 +2731,7 @@ exports[`IgnoreActions with confirmation step renders 1`] = `
                                     </li>
                                   </MenuItem>
                                   <MenuItem
+                                    key="168"
                                     noAnchor={true}
                                   >
                                     <li
@@ -2718,6 +2768,7 @@ exports[`IgnoreActions with confirmation step renders 1`] = `
                                               bsClass="modal"
                                               dialogComponentClass={[Function]}
                                               enforceFocus={true}
+                                              key="confirm"
                                               keyboard={true}
                                               manager={
                                                 ModalManager {
@@ -2839,6 +2890,7 @@ exports[`IgnoreActions with confirmation step renders 1`] = `
                       >
                         <li
                           className="dropdown-submenu"
+                          key="10"
                         >
                           <DropdownLink
                             alwaysRenderMenu={true}
@@ -2911,6 +2963,7 @@ exports[`IgnoreActions with confirmation step renders 1`] = `
                                               bsClass="modal"
                                               dialogComponentClass={[Function]}
                                               enforceFocus={true}
+                                              key="confirm"
                                               keyboard={true}
                                               manager={
                                                 ModalManager {
@@ -2958,6 +3011,7 @@ exports[`IgnoreActions with confirmation step renders 1`] = `
                                     </li>
                                   </MenuItem>
                                   <MenuItem
+                                    key="1"
                                     noAnchor={true}
                                   >
                                     <li
@@ -2994,6 +3048,7 @@ exports[`IgnoreActions with confirmation step renders 1`] = `
                                               bsClass="modal"
                                               dialogComponentClass={[Function]}
                                               enforceFocus={true}
+                                              key="confirm"
                                               keyboard={true}
                                               manager={
                                                 ModalManager {
@@ -3041,6 +3096,7 @@ exports[`IgnoreActions with confirmation step renders 1`] = `
                                     </li>
                                   </MenuItem>
                                   <MenuItem
+                                    key="24"
                                     noAnchor={true}
                                   >
                                     <li
@@ -3077,6 +3133,7 @@ exports[`IgnoreActions with confirmation step renders 1`] = `
                                               bsClass="modal"
                                               dialogComponentClass={[Function]}
                                               enforceFocus={true}
+                                              key="confirm"
                                               keyboard={true}
                                               manager={
                                                 ModalManager {
@@ -3124,6 +3181,7 @@ exports[`IgnoreActions with confirmation step renders 1`] = `
                                     </li>
                                   </MenuItem>
                                   <MenuItem
+                                    key="168"
                                     noAnchor={true}
                                   >
                                     <li
@@ -3160,6 +3218,7 @@ exports[`IgnoreActions with confirmation step renders 1`] = `
                                               bsClass="modal"
                                               dialogComponentClass={[Function]}
                                               enforceFocus={true}
+                                              key="confirm"
                                               keyboard={true}
                                               manager={
                                                 ModalManager {
@@ -3213,6 +3272,7 @@ exports[`IgnoreActions with confirmation step renders 1`] = `
                         </li>
                         <li
                           className="dropdown-submenu"
+                          key="100"
                         >
                           <DropdownLink
                             alwaysRenderMenu={true}
@@ -3285,6 +3345,7 @@ exports[`IgnoreActions with confirmation step renders 1`] = `
                                               bsClass="modal"
                                               dialogComponentClass={[Function]}
                                               enforceFocus={true}
+                                              key="confirm"
                                               keyboard={true}
                                               manager={
                                                 ModalManager {
@@ -3332,6 +3393,7 @@ exports[`IgnoreActions with confirmation step renders 1`] = `
                                     </li>
                                   </MenuItem>
                                   <MenuItem
+                                    key="1"
                                     noAnchor={true}
                                   >
                                     <li
@@ -3368,6 +3430,7 @@ exports[`IgnoreActions with confirmation step renders 1`] = `
                                               bsClass="modal"
                                               dialogComponentClass={[Function]}
                                               enforceFocus={true}
+                                              key="confirm"
                                               keyboard={true}
                                               manager={
                                                 ModalManager {
@@ -3415,6 +3478,7 @@ exports[`IgnoreActions with confirmation step renders 1`] = `
                                     </li>
                                   </MenuItem>
                                   <MenuItem
+                                    key="24"
                                     noAnchor={true}
                                   >
                                     <li
@@ -3451,6 +3515,7 @@ exports[`IgnoreActions with confirmation step renders 1`] = `
                                               bsClass="modal"
                                               dialogComponentClass={[Function]}
                                               enforceFocus={true}
+                                              key="confirm"
                                               keyboard={true}
                                               manager={
                                                 ModalManager {
@@ -3498,6 +3563,7 @@ exports[`IgnoreActions with confirmation step renders 1`] = `
                                     </li>
                                   </MenuItem>
                                   <MenuItem
+                                    key="168"
                                     noAnchor={true}
                                   >
                                     <li
@@ -3534,6 +3600,7 @@ exports[`IgnoreActions with confirmation step renders 1`] = `
                                               bsClass="modal"
                                               dialogComponentClass={[Function]}
                                               enforceFocus={true}
+                                              key="confirm"
                                               keyboard={true}
                                               manager={
                                                 ModalManager {
@@ -3587,6 +3654,7 @@ exports[`IgnoreActions with confirmation step renders 1`] = `
                         </li>
                         <li
                           className="dropdown-submenu"
+                          key="1000"
                         >
                           <DropdownLink
                             alwaysRenderMenu={true}
@@ -3659,6 +3727,7 @@ exports[`IgnoreActions with confirmation step renders 1`] = `
                                               bsClass="modal"
                                               dialogComponentClass={[Function]}
                                               enforceFocus={true}
+                                              key="confirm"
                                               keyboard={true}
                                               manager={
                                                 ModalManager {
@@ -3706,6 +3775,7 @@ exports[`IgnoreActions with confirmation step renders 1`] = `
                                     </li>
                                   </MenuItem>
                                   <MenuItem
+                                    key="1"
                                     noAnchor={true}
                                   >
                                     <li
@@ -3742,6 +3812,7 @@ exports[`IgnoreActions with confirmation step renders 1`] = `
                                               bsClass="modal"
                                               dialogComponentClass={[Function]}
                                               enforceFocus={true}
+                                              key="confirm"
                                               keyboard={true}
                                               manager={
                                                 ModalManager {
@@ -3789,6 +3860,7 @@ exports[`IgnoreActions with confirmation step renders 1`] = `
                                     </li>
                                   </MenuItem>
                                   <MenuItem
+                                    key="24"
                                     noAnchor={true}
                                   >
                                     <li
@@ -3825,6 +3897,7 @@ exports[`IgnoreActions with confirmation step renders 1`] = `
                                               bsClass="modal"
                                               dialogComponentClass={[Function]}
                                               enforceFocus={true}
+                                              key="confirm"
                                               keyboard={true}
                                               manager={
                                                 ModalManager {
@@ -3872,6 +3945,7 @@ exports[`IgnoreActions with confirmation step renders 1`] = `
                                     </li>
                                   </MenuItem>
                                   <MenuItem
+                                    key="168"
                                     noAnchor={true}
                                   >
                                     <li
@@ -3908,6 +3982,7 @@ exports[`IgnoreActions with confirmation step renders 1`] = `
                                               bsClass="modal"
                                               dialogComponentClass={[Function]}
                                               enforceFocus={true}
+                                              key="confirm"
                                               keyboard={true}
                                               manager={
                                                 ModalManager {
@@ -3961,6 +4036,7 @@ exports[`IgnoreActions with confirmation step renders 1`] = `
                         </li>
                         <li
                           className="dropdown-submenu"
+                          key="10000"
                         >
                           <DropdownLink
                             alwaysRenderMenu={true}
@@ -4033,6 +4109,7 @@ exports[`IgnoreActions with confirmation step renders 1`] = `
                                               bsClass="modal"
                                               dialogComponentClass={[Function]}
                                               enforceFocus={true}
+                                              key="confirm"
                                               keyboard={true}
                                               manager={
                                                 ModalManager {
@@ -4080,6 +4157,7 @@ exports[`IgnoreActions with confirmation step renders 1`] = `
                                     </li>
                                   </MenuItem>
                                   <MenuItem
+                                    key="1"
                                     noAnchor={true}
                                   >
                                     <li
@@ -4116,6 +4194,7 @@ exports[`IgnoreActions with confirmation step renders 1`] = `
                                               bsClass="modal"
                                               dialogComponentClass={[Function]}
                                               enforceFocus={true}
+                                              key="confirm"
                                               keyboard={true}
                                               manager={
                                                 ModalManager {
@@ -4163,6 +4242,7 @@ exports[`IgnoreActions with confirmation step renders 1`] = `
                                     </li>
                                   </MenuItem>
                                   <MenuItem
+                                    key="24"
                                     noAnchor={true}
                                   >
                                     <li
@@ -4199,6 +4279,7 @@ exports[`IgnoreActions with confirmation step renders 1`] = `
                                               bsClass="modal"
                                               dialogComponentClass={[Function]}
                                               enforceFocus={true}
+                                              key="confirm"
                                               keyboard={true}
                                               manager={
                                                 ModalManager {
@@ -4246,6 +4327,7 @@ exports[`IgnoreActions with confirmation step renders 1`] = `
                                     </li>
                                   </MenuItem>
                                   <MenuItem
+                                    key="168"
                                     noAnchor={true}
                                   >
                                     <li
@@ -4282,6 +4364,7 @@ exports[`IgnoreActions with confirmation step renders 1`] = `
                                               bsClass="modal"
                                               dialogComponentClass={[Function]}
                                               enforceFocus={true}
+                                              key="confirm"
                                               keyboard={true}
                                               manager={
                                                 ModalManager {
@@ -4335,6 +4418,7 @@ exports[`IgnoreActions with confirmation step renders 1`] = `
                         </li>
                         <li
                           className="dropdown-submenu"
+                          key="100000"
                         >
                           <DropdownLink
                             alwaysRenderMenu={true}
@@ -4407,6 +4491,7 @@ exports[`IgnoreActions with confirmation step renders 1`] = `
                                               bsClass="modal"
                                               dialogComponentClass={[Function]}
                                               enforceFocus={true}
+                                              key="confirm"
                                               keyboard={true}
                                               manager={
                                                 ModalManager {
@@ -4454,6 +4539,7 @@ exports[`IgnoreActions with confirmation step renders 1`] = `
                                     </li>
                                   </MenuItem>
                                   <MenuItem
+                                    key="1"
                                     noAnchor={true}
                                   >
                                     <li
@@ -4490,6 +4576,7 @@ exports[`IgnoreActions with confirmation step renders 1`] = `
                                               bsClass="modal"
                                               dialogComponentClass={[Function]}
                                               enforceFocus={true}
+                                              key="confirm"
                                               keyboard={true}
                                               manager={
                                                 ModalManager {
@@ -4537,6 +4624,7 @@ exports[`IgnoreActions with confirmation step renders 1`] = `
                                     </li>
                                   </MenuItem>
                                   <MenuItem
+                                    key="24"
                                     noAnchor={true}
                                   >
                                     <li
@@ -4573,6 +4661,7 @@ exports[`IgnoreActions with confirmation step renders 1`] = `
                                               bsClass="modal"
                                               dialogComponentClass={[Function]}
                                               enforceFocus={true}
+                                              key="confirm"
                                               keyboard={true}
                                               manager={
                                                 ModalManager {
@@ -4620,6 +4709,7 @@ exports[`IgnoreActions with confirmation step renders 1`] = `
                                     </li>
                                   </MenuItem>
                                   <MenuItem
+                                    key="168"
                                     noAnchor={true}
                                   >
                                     <li
@@ -4656,6 +4746,7 @@ exports[`IgnoreActions with confirmation step renders 1`] = `
                                               bsClass="modal"
                                               dialogComponentClass={[Function]}
                                               enforceFocus={true}
+                                              key="confirm"
                                               keyboard={true}
                                               manager={
                                                 ModalManager {
@@ -5074,6 +5165,7 @@ exports[`IgnoreActions without confirmation renders 1`] = `
                         onMouseLeave={[Function]}
                       >
                         <MenuItem
+                          key="30"
                           noAnchor={true}
                         >
                           <li
@@ -5106,6 +5198,7 @@ exports[`IgnoreActions without confirmation renders 1`] = `
                           </li>
                         </MenuItem>
                         <MenuItem
+                          key="120"
                           noAnchor={true}
                         >
                           <li
@@ -5138,6 +5231,7 @@ exports[`IgnoreActions without confirmation renders 1`] = `
                           </li>
                         </MenuItem>
                         <MenuItem
+                          key="360"
                           noAnchor={true}
                         >
                           <li
@@ -5170,6 +5264,7 @@ exports[`IgnoreActions without confirmation renders 1`] = `
                           </li>
                         </MenuItem>
                         <MenuItem
+                          key="1440"
                           noAnchor={true}
                         >
                           <li
@@ -5202,6 +5297,7 @@ exports[`IgnoreActions without confirmation renders 1`] = `
                           </li>
                         </MenuItem>
                         <MenuItem
+                          key="10080"
                           noAnchor={true}
                         >
                           <li
@@ -5303,6 +5399,7 @@ exports[`IgnoreActions without confirmation renders 1`] = `
                       >
                         <li
                           className="dropdown-submenu"
+                          key="10"
                         >
                           <DropdownLink
                             alwaysRenderMenu={true}
@@ -5365,6 +5462,7 @@ exports[`IgnoreActions without confirmation renders 1`] = `
                                     </li>
                                   </MenuItem>
                                   <MenuItem
+                                    key="1"
                                     noAnchor={true}
                                   >
                                     <li
@@ -5391,6 +5489,7 @@ exports[`IgnoreActions without confirmation renders 1`] = `
                                     </li>
                                   </MenuItem>
                                   <MenuItem
+                                    key="24"
                                     noAnchor={true}
                                   >
                                     <li
@@ -5417,6 +5516,7 @@ exports[`IgnoreActions without confirmation renders 1`] = `
                                     </li>
                                   </MenuItem>
                                   <MenuItem
+                                    key="168"
                                     noAnchor={true}
                                   >
                                     <li
@@ -5449,6 +5549,7 @@ exports[`IgnoreActions without confirmation renders 1`] = `
                         </li>
                         <li
                           className="dropdown-submenu"
+                          key="100"
                         >
                           <DropdownLink
                             alwaysRenderMenu={true}
@@ -5511,6 +5612,7 @@ exports[`IgnoreActions without confirmation renders 1`] = `
                                     </li>
                                   </MenuItem>
                                   <MenuItem
+                                    key="1"
                                     noAnchor={true}
                                   >
                                     <li
@@ -5537,6 +5639,7 @@ exports[`IgnoreActions without confirmation renders 1`] = `
                                     </li>
                                   </MenuItem>
                                   <MenuItem
+                                    key="24"
                                     noAnchor={true}
                                   >
                                     <li
@@ -5563,6 +5666,7 @@ exports[`IgnoreActions without confirmation renders 1`] = `
                                     </li>
                                   </MenuItem>
                                   <MenuItem
+                                    key="168"
                                     noAnchor={true}
                                   >
                                     <li
@@ -5595,6 +5699,7 @@ exports[`IgnoreActions without confirmation renders 1`] = `
                         </li>
                         <li
                           className="dropdown-submenu"
+                          key="1000"
                         >
                           <DropdownLink
                             alwaysRenderMenu={true}
@@ -5657,6 +5762,7 @@ exports[`IgnoreActions without confirmation renders 1`] = `
                                     </li>
                                   </MenuItem>
                                   <MenuItem
+                                    key="1"
                                     noAnchor={true}
                                   >
                                     <li
@@ -5683,6 +5789,7 @@ exports[`IgnoreActions without confirmation renders 1`] = `
                                     </li>
                                   </MenuItem>
                                   <MenuItem
+                                    key="24"
                                     noAnchor={true}
                                   >
                                     <li
@@ -5709,6 +5816,7 @@ exports[`IgnoreActions without confirmation renders 1`] = `
                                     </li>
                                   </MenuItem>
                                   <MenuItem
+                                    key="168"
                                     noAnchor={true}
                                   >
                                     <li
@@ -5741,6 +5849,7 @@ exports[`IgnoreActions without confirmation renders 1`] = `
                         </li>
                         <li
                           className="dropdown-submenu"
+                          key="10000"
                         >
                           <DropdownLink
                             alwaysRenderMenu={true}
@@ -5803,6 +5912,7 @@ exports[`IgnoreActions without confirmation renders 1`] = `
                                     </li>
                                   </MenuItem>
                                   <MenuItem
+                                    key="1"
                                     noAnchor={true}
                                   >
                                     <li
@@ -5829,6 +5939,7 @@ exports[`IgnoreActions without confirmation renders 1`] = `
                                     </li>
                                   </MenuItem>
                                   <MenuItem
+                                    key="24"
                                     noAnchor={true}
                                   >
                                     <li
@@ -5855,6 +5966,7 @@ exports[`IgnoreActions without confirmation renders 1`] = `
                                     </li>
                                   </MenuItem>
                                   <MenuItem
+                                    key="168"
                                     noAnchor={true}
                                   >
                                     <li
@@ -5887,6 +5999,7 @@ exports[`IgnoreActions without confirmation renders 1`] = `
                         </li>
                         <li
                           className="dropdown-submenu"
+                          key="100000"
                         >
                           <DropdownLink
                             alwaysRenderMenu={true}
@@ -5949,6 +6062,7 @@ exports[`IgnoreActions without confirmation renders 1`] = `
                                     </li>
                                   </MenuItem>
                                   <MenuItem
+                                    key="1"
                                     noAnchor={true}
                                   >
                                     <li
@@ -5975,6 +6089,7 @@ exports[`IgnoreActions without confirmation renders 1`] = `
                                     </li>
                                   </MenuItem>
                                   <MenuItem
+                                    key="24"
                                     noAnchor={true}
                                   >
                                     <li
@@ -6001,6 +6116,7 @@ exports[`IgnoreActions without confirmation renders 1`] = `
                                     </li>
                                   </MenuItem>
                                   <MenuItem
+                                    key="168"
                                     noAnchor={true}
                                   >
                                     <li
@@ -6101,6 +6217,7 @@ exports[`IgnoreActions without confirmation renders 1`] = `
                       >
                         <li
                           className="dropdown-submenu"
+                          key="10"
                         >
                           <DropdownLink
                             alwaysRenderMenu={true}
@@ -6163,6 +6280,7 @@ exports[`IgnoreActions without confirmation renders 1`] = `
                                     </li>
                                   </MenuItem>
                                   <MenuItem
+                                    key="1"
                                     noAnchor={true}
                                   >
                                     <li
@@ -6189,6 +6307,7 @@ exports[`IgnoreActions without confirmation renders 1`] = `
                                     </li>
                                   </MenuItem>
                                   <MenuItem
+                                    key="24"
                                     noAnchor={true}
                                   >
                                     <li
@@ -6215,6 +6334,7 @@ exports[`IgnoreActions without confirmation renders 1`] = `
                                     </li>
                                   </MenuItem>
                                   <MenuItem
+                                    key="168"
                                     noAnchor={true}
                                   >
                                     <li
@@ -6247,6 +6367,7 @@ exports[`IgnoreActions without confirmation renders 1`] = `
                         </li>
                         <li
                           className="dropdown-submenu"
+                          key="100"
                         >
                           <DropdownLink
                             alwaysRenderMenu={true}
@@ -6309,6 +6430,7 @@ exports[`IgnoreActions without confirmation renders 1`] = `
                                     </li>
                                   </MenuItem>
                                   <MenuItem
+                                    key="1"
                                     noAnchor={true}
                                   >
                                     <li
@@ -6335,6 +6457,7 @@ exports[`IgnoreActions without confirmation renders 1`] = `
                                     </li>
                                   </MenuItem>
                                   <MenuItem
+                                    key="24"
                                     noAnchor={true}
                                   >
                                     <li
@@ -6361,6 +6484,7 @@ exports[`IgnoreActions without confirmation renders 1`] = `
                                     </li>
                                   </MenuItem>
                                   <MenuItem
+                                    key="168"
                                     noAnchor={true}
                                   >
                                     <li
@@ -6393,6 +6517,7 @@ exports[`IgnoreActions without confirmation renders 1`] = `
                         </li>
                         <li
                           className="dropdown-submenu"
+                          key="1000"
                         >
                           <DropdownLink
                             alwaysRenderMenu={true}
@@ -6455,6 +6580,7 @@ exports[`IgnoreActions without confirmation renders 1`] = `
                                     </li>
                                   </MenuItem>
                                   <MenuItem
+                                    key="1"
                                     noAnchor={true}
                                   >
                                     <li
@@ -6481,6 +6607,7 @@ exports[`IgnoreActions without confirmation renders 1`] = `
                                     </li>
                                   </MenuItem>
                                   <MenuItem
+                                    key="24"
                                     noAnchor={true}
                                   >
                                     <li
@@ -6507,6 +6634,7 @@ exports[`IgnoreActions without confirmation renders 1`] = `
                                     </li>
                                   </MenuItem>
                                   <MenuItem
+                                    key="168"
                                     noAnchor={true}
                                   >
                                     <li
@@ -6539,6 +6667,7 @@ exports[`IgnoreActions without confirmation renders 1`] = `
                         </li>
                         <li
                           className="dropdown-submenu"
+                          key="10000"
                         >
                           <DropdownLink
                             alwaysRenderMenu={true}
@@ -6601,6 +6730,7 @@ exports[`IgnoreActions without confirmation renders 1`] = `
                                     </li>
                                   </MenuItem>
                                   <MenuItem
+                                    key="1"
                                     noAnchor={true}
                                   >
                                     <li
@@ -6627,6 +6757,7 @@ exports[`IgnoreActions without confirmation renders 1`] = `
                                     </li>
                                   </MenuItem>
                                   <MenuItem
+                                    key="24"
                                     noAnchor={true}
                                   >
                                     <li
@@ -6653,6 +6784,7 @@ exports[`IgnoreActions without confirmation renders 1`] = `
                                     </li>
                                   </MenuItem>
                                   <MenuItem
+                                    key="168"
                                     noAnchor={true}
                                   >
                                     <li
@@ -6685,6 +6817,7 @@ exports[`IgnoreActions without confirmation renders 1`] = `
                         </li>
                         <li
                           className="dropdown-submenu"
+                          key="100000"
                         >
                           <DropdownLink
                             alwaysRenderMenu={true}
@@ -6747,6 +6880,7 @@ exports[`IgnoreActions without confirmation renders 1`] = `
                                     </li>
                                   </MenuItem>
                                   <MenuItem
+                                    key="1"
                                     noAnchor={true}
                                   >
                                     <li
@@ -6773,6 +6907,7 @@ exports[`IgnoreActions without confirmation renders 1`] = `
                                     </li>
                                   </MenuItem>
                                   <MenuItem
+                                    key="24"
                                     noAnchor={true}
                                   >
                                     <li
@@ -6799,6 +6934,7 @@ exports[`IgnoreActions without confirmation renders 1`] = `
                                     </li>
                                   </MenuItem>
                                   <MenuItem
+                                    key="168"
                                     noAnchor={true}
                                   >
                                     <li

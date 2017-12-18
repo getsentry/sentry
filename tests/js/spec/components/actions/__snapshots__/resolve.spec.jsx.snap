@@ -116,6 +116,7 @@ exports[`ResolveActions with confirmation step renders 1`] = `
               bsClass="modal"
               dialogComponentClass={[Function]}
               enforceFocus={true}
+              key="confirm"
               keyboard={true}
               manager={
                 ModalManager {
@@ -166,6 +167,7 @@ exports[`ResolveActions with confirmation step renders 1`] = `
         caret={true}
         className="btn btn-default btn-sm"
         disabled={false}
+        key="resolve-dropdown"
         title=""
       >
         <DropdownMenu
@@ -245,6 +247,7 @@ exports[`ResolveActions with confirmation step renders 1`] = `
                           bsClass="modal"
                           dialogComponentClass={[Function]}
                           enforceFocus={true}
+                          key="confirm"
                           keyboard={true}
                           manager={
                             ModalManager {
@@ -319,6 +322,7 @@ exports[`ResolveActions with confirmation step renders 1`] = `
                           bsClass="modal"
                           dialogComponentClass={[Function]}
                           enforceFocus={true}
+                          key="confirm"
                           keyboard={true}
                           manager={
                             ModalManager {
@@ -497,6 +501,7 @@ exports[`ResolveActions without confirmation renders 1`] = `
         caret={true}
         className="btn btn-default btn-sm"
         disabled={false}
+        key="resolve-dropdown"
         title=""
       >
         <DropdownMenu
