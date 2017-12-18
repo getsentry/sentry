@@ -23,7 +23,7 @@ class RadioField extends InputField {
         field={({onChange, onBlur, value, disabled, ...props}) => (
           <RadioGroup
             choices={props.choices}
-            value={value}
+            value={value == '' ? null : value}
             label={props.label}
             onChange={(id, e) => this.onChange(id, onChange, onBlur, e)}
           />
