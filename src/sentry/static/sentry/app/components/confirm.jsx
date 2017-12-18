@@ -74,13 +74,17 @@ class Confirm extends React.PureComponent {
   render() {
     let {disabled, message, priority, confirmText, cancelText, children} = this.props;
 
+    let confirmMessage = React.isValidElement(message) ? (
+      message
+    ) : (
+      <p>
+        <strong>{message}</strong>
+      </p>
+    );
+
     const ConfirmModal = (
       <Modal show={this.state.isModalOpen} animation={false} onHide={this.handleToggle}>
-        <div className="modal-body">
-          <div>
-            <strong>{message}</strong>
-          </div>
-        </div>
+        <div className="modal-body">{confirmMessage}</div>
         <div className="modal-footer">
           <Button style={{marginRight: 10}} onClick={this.handleToggle}>
             {cancelText}
