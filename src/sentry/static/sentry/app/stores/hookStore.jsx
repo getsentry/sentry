@@ -10,6 +10,7 @@ let validHookNames = new Set([
   'organization:dashboard:secondary-column',
   'routes',
   'routes:admin',
+  'routes:pre-organization',
   'routes:organization',
   'project:data-forwarding:disabled',
   'project:rate-limits:disabled',
