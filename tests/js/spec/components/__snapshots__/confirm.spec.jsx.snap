@@ -31,11 +31,11 @@ exports[`Confirm renders 1`] = `
     <div
       className="modal-body"
     >
-      <div>
+      <p>
         <strong>
           Are you sure?
         </strong>
-      </div>
+      </p>
     </div>
     <div
       className="modal-footer"
