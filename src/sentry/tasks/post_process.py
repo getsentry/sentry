@@ -30,8 +30,7 @@ def _get_service_hooks(project_id):
     result = cache.get(cache_key)
     if result is None:
         result = [(h.id, h.events) for h in
-            ServiceHook.objects.filter(project_id=project_id)
-        ]
+                  ServiceHook.objects.filter(project_id=project_id)]
         cache.set(result, 60)
     return result
 
@@ -171,8 +170,10 @@ def index_event_tags(organization_id, project_id, event_id, tags,
     tag_ids = []
     for key, value in tags:
         tagkey, _ = tagstore.get_or_create_tag_key(project_id, environment_id, key)
+        # TODO(brett): when we're on a single tagstore backend we can optimize
+        # this call by passing key_id=tagkey.id
         tagvalue, _ = tagstore.get_or_create_tag_value(
-            project_id, environment_id, key, value, key_id=tagkey.id)
+            project_id, environment_id, key, value)
         tag_ids.append((tagkey.id, tagvalue.id))
 
     tagstore.create_event_tags(
