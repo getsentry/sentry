@@ -57,6 +57,9 @@
               {% with form.new_password as field %}
                 {{ field|as_crispy_field }}
               {% endwith %}
+              {% with form.verify_new_password as field %}
+                {{ field|as_crispy_field }}
+              {% endwith %}
             {% endif %}
           </div>
         </div>
