@@ -2,11 +2,11 @@ from __future__ import absolute_import
 
 from rest_framework.response import Response
 
-from sentry.api.base import DocSection
+from sentry.api.base import DocSection, EnvironmentMixin
 from sentry.api.bases.project import ProjectEndpoint, ProjectPermission
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.serializers import serialize
-from sentry.api.serializers.models.group import StreamGroupSerializer
+from sentry.api.serializers.models.group import GroupSerializer
 from sentry.models import (
     Group,
     GroupLink,
@@ -16,7 +16,7 @@ from sentry.models import (
 )
 
 
-class IssuesResolvedInReleaseEndpoint(ProjectEndpoint):
+class IssuesResolvedInReleaseEndpoint(ProjectEndpoint, EnvironmentMixin):
     doc_section = DocSection.RELEASES
     permission_classes = (ProjectPermission, )
 
@@ -61,5 +61,12 @@ class IssuesResolvedInReleaseEndpoint(ProjectEndpoint):
 
         groups = Group.objects.filter(project=project, id__in=group_ids)
 
-        context = serialize(list(groups), request.user, StreamGroupSerializer(stats_period=None))
+        context = serialize(
+            list(groups),
+            request.user,
+            GroupSerializer(
+                environment_id_func=self._get_environment_id_func(request, project.organization_id)
+            )
+        )
+
         return Response(context)

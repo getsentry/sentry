@@ -12,7 +12,7 @@ from sentry import tsdb, tagstore
 from sentry.api import client
 from sentry.api.base import DocSection, EnvironmentMixin
 from sentry.api.bases import GroupEndpoint
-from sentry.api.serializers import serialize
+from sentry.api.serializers import serialize, GroupSerializer
 from sentry.api.serializers.models.plugin import PluginSerializer
 from sentry.models import (
     Activity,
@@ -174,7 +174,14 @@ class GroupDetailsEndpoint(GroupEndpoint, EnvironmentMixin):
         :auth: required
         """
         # TODO(dcramer): handle unauthenticated/public response
-        data = serialize(group, request.user)
+        data = serialize(
+            group,
+            request.user,
+            GroupSerializer(
+                environment_id_func=self._get_environment_id_func(
+                    request, group.project.organization_id)
+            )
+        )
 
         # TODO: these probably should be another endpoint
         activity = self._get_activity(request, group, num=100)
@@ -306,7 +313,16 @@ class GroupDetailsEndpoint(GroupEndpoint, EnvironmentMixin):
         # for mutation.
         group = Group.objects.get(id=group.id)
 
-        return Response(serialize(group, request.user), status=response.status_code)
+        serialized = serialize(
+            group,
+            request.user,
+            GroupSerializer(
+                environment_id_func=self._get_environment_id_func(
+                    request, group.project.organization_id)
+            )
+        )
+
+        return Response(serialized, status=response.status_code)
 
     @attach_scenarios([delete_aggregate_scenario])
     def delete(self, request, group):

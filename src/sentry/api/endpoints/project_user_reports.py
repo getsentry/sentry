@@ -6,7 +6,7 @@ from rest_framework import serializers
 from rest_framework.response import Response
 from uuid import uuid4
 
-from sentry.api.base import DocSection
+from sentry.api.base import DocSection, EnvironmentMixin
 from sentry.api.bases.project import ProjectEndpoint
 from sentry.api.serializers import serialize, ProjectUserReportSerializer
 from sentry.api.paginator import DateTimePaginator
@@ -36,7 +36,7 @@ class UserReportSerializer(serializers.ModelSerializer):
         fields = ('name', 'email', 'comments', 'event_id')
 
 
-class ProjectUserReportsEndpoint(ProjectEndpoint):
+class ProjectUserReportsEndpoint(ProjectEndpoint, EnvironmentMixin):
     doc_section = DocSection.PROJECTS
 
     def get(self, request, project):
@@ -67,7 +67,10 @@ class ProjectUserReportsEndpoint(ProjectEndpoint):
             request=request,
             queryset=queryset,
             order_by='-date_added',
-            on_results=lambda x: serialize(x, request.user, ProjectUserReportSerializer()),
+            on_results=lambda x: serialize(x, request.user, ProjectUserReportSerializer(
+                environment_id_func=self._get_environment_id_func(
+                    request, project.organization_id)
+            )),
             paginator_cls=DateTimePaginator,
         )
 
@@ -133,7 +136,10 @@ class ProjectUserReportsEndpoint(ProjectEndpoint):
 
         user_feedback_received.send(project=report.project, group=report.group, sender=self)
 
-        return Response(serialize(report, request.user, ProjectUserReportSerializer()))
+        return Response(serialize(report, request.user, ProjectUserReportSerializer(
+            environment_id_func=self._get_environment_id_func(
+                request, project.organization_id)
+        )))
 
     def find_event_user(self, report):
         try:

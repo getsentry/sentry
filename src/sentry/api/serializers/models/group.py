@@ -144,9 +144,13 @@ class GroupSerializer(Serializer):
             ).select_related('user')
         )
 
-        # TODO(brett): support environment in this serializer
-        user_counts = tagstore.get_groups_user_counts(
-            item_list[0].project_id, [g.id for g in item_list], environment_id=None)
+        try:
+            environment_id = self.environment_id_func()
+        except Environment.DoesNotExist:
+            user_counts = {}
+        else:
+            user_counts = tagstore.get_groups_user_counts(
+                item_list[0].project_id, [g.id for g in item_list], environment_id=environment_id)
 
         ignore_items = {g.group_id: g for g in GroupSnooze.objects.filter(
             group__in=item_list,
