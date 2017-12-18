@@ -11,9 +11,9 @@ class RadioField extends InputField {
     choices: PropTypes.arrayOf(PropTypes.array),
   };
 
-  onChange = (value, onChange, onBlur, e) => {
-    onChange(value, e);
-    onBlur(value, e);
+  onChange = (id, onChange, onBlur, e) => {
+    onChange(id, e);
+    onBlur(id, e);
   };
 
   render() {
@@ -25,7 +25,7 @@ class RadioField extends InputField {
             choices={props.choices}
             value={value}
             label={props.label}
-            onChange={(val, e) => this.onChange(val, onChange, onBlur, e)}
+            onChange={(id, e) => this.onChange(id, onChange, onBlur, e)}
           />
         )}
       />

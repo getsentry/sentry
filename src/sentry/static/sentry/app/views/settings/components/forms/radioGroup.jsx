@@ -5,8 +5,8 @@ import PropTypes from 'prop-types';
 import {growIn} from './styled/animations';
 
 const RadioGroup = ({value, choices, label, onChange}) => {
-  const isSelected = ({val, id}) => {
-    return val ? val === id : id === 0;
+  const isSelected = id => {
+    return value ? value === id : id === 0;
   };
 
   return (
@@ -17,11 +17,11 @@ const RadioGroup = ({value, choices, label, onChange}) => {
           onClick={e => onChange(id, e)}
           role="radio"
           index={index}
-          tabIndex={isSelected({value, id}) ? 0 : -1}
-          aria-checked={isSelected({value, id})}
+          tabIndex={isSelected(id) ? 0 : -1}
+          aria-checked={isSelected(id)}
         >
           <RadioLineButton>
-            {isSelected({value, id}) && <RadioLineButtonFill animate={value !== ''} />}
+            {isSelected(id) && <RadioLineButtonFill animate={value !== ''} />}
           </RadioLineButton>
           <RadioLineText>{name}</RadioLineText>
         </RadioLineItem>
