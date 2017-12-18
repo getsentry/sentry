@@ -110,3 +110,9 @@ class TwoFactorAuthTest(TestCase):
         self.assertTemplateUsed('sentry/account/twofactor/remove.html')
         self.assertContains(resp, 'Do you want to remove the method?')
         self.assertContains(resp, 'Sentry account password')
+
+    def test_resend_expired_2fa(self):
+        pass
+
+    def test_2fa_expires_after_2_minutes(self):
+        pass

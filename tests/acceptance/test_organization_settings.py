@@ -32,3 +32,23 @@ class OrganizationSettingsTest(AcceptanceTestCase):
         self.browser.wait_until_not('.loading-indicator')
         self.browser.snapshot('organization settings')
         assert self.browser.element_exists('.ref-organization-settings')
+
+    def test_renders_2FA_setting_for_admin(self):
+        user_owner = self.create_user('owner@example.com')
+        # user_admin = self.create_user('admin@gexample.com')
+        organization = self.create_organization(name="Example", owner=user_owner)
+        # admin_member = self.create_member(
+        #    organization=organization,
+        #    user=user_admin,
+        #    role='admin')
+
+        self.login_as(user_owner)
+        path = '/organizations/%s/settings/' % organization.slug
+        import pdb
+        pdb.set_trace()
+        self.browser.get(path)
+        self.browser.wait_until('.organization-home')
+        self.browser.wait_until_not('.loading-indicator')
+        self.browser.snapshot('organization settings')
+        assert self.browser.element_exists('.ref-organization-settings')
+        assert self.browser.element_exists('#id-')
