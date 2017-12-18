@@ -928,8 +928,18 @@ SENTRY_NODESTORE = 'sentry.nodestore.django.DjangoNodeStorage'
 SENTRY_NODESTORE_OPTIONS = {}
 
 # Tag storage backend
-SENTRY_TAGSTORE = os.environ.get('SENTRY_TAGSTORE', 'sentry.tagstore.legacy.LegacyTagStorage')
-SENTRY_TAGSTORE_OPTIONS = {}
+_SENTRY_TAGSTORE_DEFAULT_MULTI_OPTIONS = {
+    'backends': [
+        ('sentry.tagstore.legacy.LegacyTagStorage', {}),
+        ('sentry.tagstore.v2.V2TagStorage', {}),
+    ],
+    'read_selector': lambda backends: backends[0]
+}
+SENTRY_TAGSTORE = os.environ.get('SENTRY_TAGSTORE', 'sentry.tagstore.multi.MultiTagStorage')
+SENTRY_TAGSTORE_OPTIONS = (
+    _SENTRY_TAGSTORE_DEFAULT_MULTI_OPTIONS if 'SENTRY_TAGSTORE_DEFAULT_MULTI_OPTIONS' in os.environ
+    else {}
+)
 
 # Search backend
 SENTRY_SEARCH = 'sentry.search.django.DjangoSearchBackend'

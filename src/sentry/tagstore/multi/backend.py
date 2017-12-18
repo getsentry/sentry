@@ -17,6 +17,18 @@ from sentry.utils.imports import import_string
 
 
 class MultiTagStorage(TagStorage):
+    """
+    A backend which will write to multiple backends, and read from a random
+    choice (by default).
+
+    This is designed to allow you to dual-write for the purpose of migration.
+
+    >>> MultiTagStorage(backends=[
+    >>>     ('sentry.tagstore.legacy.LegacyTagStorage', {}),
+    >>>     ('sentry.tagstore.v2.V2TagStorage', {}),
+    >>> ], read_selector=lambda backends: backends[0])
+    """
+
     def __init__(self, backends, read_selector=random.choice, **kwargs):
         assert backends, "you should provide at least one backend"
 
@@ -36,17 +48,18 @@ class MultiTagStorage(TagStorage):
         """
 
         ret_val = None
-        should_raise = False
+        exc = None
         for i, backend in enumerate(self.backends):
             try:
                 r = getattr(backend, func)(*args, **kwargs)
                 if (i == 0):
                     ret_val = r
-            except Exception:
-                should_raise = True
+            except Exception as e:
+                if exc is None:
+                    exc = e
 
-        if should_raise:
-            raise
+        if exc is not None:
+            raise exc
 
         return ret_val
 

@@ -57,10 +57,6 @@ class V2TagStorage(TagStorage):
             grouptagvalue_model=GroupTagValue,
         )
 
-        self.setup_tasks(
-            tagkey_model=TagKey,
-        )
-
         self.setup_receivers(
             tagvalue_model=TagValue,
             grouptagvalue_model=GroupTagValue,
@@ -368,7 +364,7 @@ class V2TagStorage(TagStorage):
             ).update(status=TagKeyStatus.PENDING_DELETION)
 
             if updated:
-                delete_tag_key_task.delay(object_id=tagkey.id)
+                delete_tag_key_task.delay(object_id=tagkey.id, model=TagKey)
                 deleted.append(tagkey)
 
         return deleted

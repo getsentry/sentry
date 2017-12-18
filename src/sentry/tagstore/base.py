@@ -123,15 +123,13 @@ class TagStorage(Service):
             grouptagkey_model,
         ]
 
-    def setup_tasks(self, tagkey_model):
-        from .tasks import setup_tasks
-
-        setup_tasks(tagkey_model=tagkey_model)
-
     def setup_receivers(self, tagvalue_model, grouptagvalue_model):
-        from .receivers import setup_receivers
+        from django.db.models.signals import post_save
+        from sentry.receivers.releases import ensure_release_exists
 
-        setup_receivers(tagvalue_model=tagvalue_model, grouptagvalue_model=grouptagvalue_model)
+        post_save.connect(
+            ensure_release_exists, sender=tagvalue_model, dispatch_uid="ensure_release_exists", weak=False
+        )
 
     def is_valid_key(self, key):
         return bool(TAG_KEY_RE.match(key))
