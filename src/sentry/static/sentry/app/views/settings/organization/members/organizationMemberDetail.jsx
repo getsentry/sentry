@@ -5,13 +5,14 @@ import {resendMemberInvite, updateMember} from '../../../../actionCreators/membe
 import {t} from '../../../../locale';
 import AsyncView from '../../../asyncView';
 import Button from '../../../../components/buttons/button';
+import ConfigStore from '../../../../stores/configStore';
 import DateTime from '../../../../components/dateTime';
 import IndicatorStore from '../../../../stores/indicatorStore';
 import NotFound from '../../../../components/errors/notFound';
-import recreateRoute from '../../../../utils/recreateRoute';
 import RoleSelect from '../../../inviteMember/roleSelect';
 import SentryTypes from '../../../../proptypes';
 import TeamSelect from '../../../inviteMember/teamSelect';
+import recreateRoute from '../../../../utils/recreateRoute';
 
 class OrganizationMemberDetail extends AsyncView {
   static contextTypes = {
@@ -64,7 +65,7 @@ class OrganizationMemberDetail extends AsyncView {
     })
       .then(() => {
         IndicatorStore.add('Saved', 'success', {duration: 5000});
-        let members = recreateRoute('members/', {
+        let members = recreateRoute('', {
           routes: this.props.routes,
           params: this.props.params,
           stepBack: -1,
@@ -128,6 +129,12 @@ class OrganizationMemberDetail extends AsyncView {
 
     let email = member.email;
     let inviteLink = member.invite_link;
+
+    let currentUser = ConfigStore.get('user');
+    let isCurrentUser = currentUser.email === email;
+    let disabled = isCurrentUser;
+    let roleSelectDisabled = disabled;
+    let teamSelectDisabled = disabled;
 
     return (
       <div>
@@ -204,6 +211,8 @@ class OrganizationMemberDetail extends AsyncView {
         </div>
 
         <RoleSelect
+          enforceAllowed={false}
+          disabled={roleSelectDisabled}
           roleList={member.roles}
           selectedRole={member.role}
           setRole={slug => this.setState({member: {...member, role: slug}})}
@@ -211,6 +220,7 @@ class OrganizationMemberDetail extends AsyncView {
 
         <TeamSelect
           teams={teams}
+          disabled={teamSelectDisabled}
           selectedTeams={new Set(member.teams)}
           toggleTeam={this.handleToggleTeam}
         />

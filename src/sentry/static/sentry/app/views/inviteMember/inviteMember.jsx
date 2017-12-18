@@ -191,6 +191,7 @@ const InviteMember = React.createClass({
             </div>
             {error && error.role && <p className="error alert-error">{error.role}</p>}
             <RoleSelect
+              enforceAllowed
               roleList={roleList}
               selectedRole={selectedRole}
               setRole={slug => this.setState({selectedRole: slug})}

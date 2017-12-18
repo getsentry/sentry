@@ -69,6 +69,7 @@ exports[`CreateProject render() should render roles when available and allowed, 
         </TextField>
       </div>
       <RoleSelect
+        enforceAllowed={true}
         roleList={
           Array [
             Object {
