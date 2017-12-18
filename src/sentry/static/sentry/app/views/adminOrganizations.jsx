@@ -6,8 +6,8 @@ import {Link} from 'react-router';
 import ResultGrid from '../components/resultGrid';
 import {t} from '../locale';
 
-const AdminOrganizations = React.createClass({
-  getRow(row) {
+class AdminOrganizations extends React.Component {
+  getRow = row => {
     return [
       <td>
         <strong>
@@ -17,7 +17,7 @@ const AdminOrganizations = React.createClass({
         <small>{row.slug}</small>
       </td>,
     ];
-  },
+  };
 
   render() {
     let columns = [<th>Organization</th>];
@@ -44,7 +44,7 @@ const AdminOrganizations = React.createClass({
         />
       </div>
     );
-  },
-});
+  }
+}
 
 export default AdminOrganizations;

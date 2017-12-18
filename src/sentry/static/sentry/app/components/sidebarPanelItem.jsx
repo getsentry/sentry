@@ -1,14 +1,14 @@
 import PropTypes from 'prop-types';
 import React from 'react';
 
-const SidebarPanelItem = React.createClass({
-  propTypes: {
+class SidebarPanelItem extends React.Component {
+  static propTypes = {
     title: PropTypes.string,
     image: PropTypes.string,
     message: PropTypes.any,
     link: PropTypes.string,
     hasSeen: PropTypes.bool,
-  },
+  };
 
   render() {
     let className = 'sidebar-panel-item';
@@ -35,7 +35,7 @@ const SidebarPanelItem = React.createClass({
         )}
       </div>
     );
-  },
-});
+  }
+}
 
 export default SidebarPanelItem;

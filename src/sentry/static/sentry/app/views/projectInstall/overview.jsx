@@ -7,22 +7,20 @@ import PlatformPicker from '../onboarding/project/platformpicker';
 
 import {t, tct} from '../../locale';
 
-const ProjectInstallOverview = React.createClass({
-  propTypes: {
+class ProjectInstallOverview extends React.Component {
+  static propTypes = {
     platformData: PropTypes.object,
-  },
+  };
 
-  getInitialState() {
-    return {
-      data: this.props.platformData,
-    };
-  },
+  state = {
+    data: this.props.platformData,
+  };
 
-  isGettingStarted() {
+  isGettingStarted = () => {
     return location.href.indexOf('getting-started') > 0;
-  },
+  };
 
-  redirectToDocs(platform) {
+  redirectToDocs = platform => {
     let {orgId, projectId} = this.props.params;
     let rootUrl = `/${orgId}/${projectId}/settings/install`;
 
@@ -31,11 +29,11 @@ const ProjectInstallOverview = React.createClass({
     }
 
     browserHistory.push(`${rootUrl}/${platform}/`);
-  },
+  };
 
-  toggleDsn() {
+  toggleDsn = () => {
     this.setState({showDsn: !this.state.showDsn});
-  },
+  };
 
   render() {
     let {data} = this.state;
@@ -98,7 +96,7 @@ const ProjectInstallOverview = React.createClass({
         </p>
       </div>
     );
-  },
-});
+  }
+}
 
 export default ProjectInstallOverview;
