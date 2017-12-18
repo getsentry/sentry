@@ -3,12 +3,12 @@ import PluginActions from 'app/actions/pluginActions';
 
 describe('PluginsStore', function() {
   let sandbox;
-  beforeAll(function() {});
 
   beforeEach(function() {
     sandbox = sinon.sandbox.create();
     sandbox.stub(PluginsStore, 'trigger');
   });
+
   afterEach(function() {
     sandbox.restore();
   });
@@ -16,20 +16,26 @@ describe('PluginsStore', function() {
   it('has correct initial state', function() {
     PluginsStore.reset();
     expect(PluginsStore.getState()).toEqual({
+      loading: true,
       error: null,
       pageLinks: null,
-      plugins: null,
+      plugins: [],
     });
   });
 
   describe('fetchAll', function() {
+    beforeEach(function() {
+      PluginsStore.reset();
+    });
+
     it('has correct state when all plugins fetched successfully', function() {
       PluginActions.fetchAll.trigger();
       expect(
         PluginsStore.trigger.calledWith({
+          loading: true,
           error: null,
           pageLinks: null,
-          plugins: null,
+          plugins: [],
         })
       ).toBe(true);
 
@@ -37,6 +43,7 @@ describe('PluginsStore', function() {
 
       expect(
         PluginsStore.trigger.calledWith({
+          loading: false,
           error: null,
           pageLinks: null,
           plugins: TestStubs.Plugins(),
@@ -46,11 +53,13 @@ describe('PluginsStore', function() {
 
     it('has correct state when error in fetching all plugins', function() {
       PluginActions.fetchAll.trigger();
+
       expect(
         PluginsStore.trigger.calledWith({
+          loading: true,
           error: null,
           pageLinks: null,
-          plugins: null,
+          plugins: [],
         })
       ).toBe(true);
 
@@ -58,9 +67,43 @@ describe('PluginsStore', function() {
 
       expect(
         PluginsStore.trigger.calledWith({
+          loading: false,
           error: {responseJSON: {message: 'Error'}},
           pageLinks: null,
-          plugins: null,
+          plugins: [],
+        })
+      ).toBe(true);
+    });
+
+    it('does not reset loading state on consecutive fetches', function() {
+      PluginActions.fetchAll.trigger();
+      expect(
+        PluginsStore.trigger.calledWith({
+          loading: true,
+          error: null,
+          pageLinks: null,
+          plugins: [],
+        })
+      ).toBe(true);
+
+      PluginActions.fetchAllSuccess.trigger(TestStubs.Plugins(), {pageLinks: null});
+
+      expect(
+        PluginsStore.trigger.calledWith({
+          loading: false,
+          error: null,
+          pageLinks: null,
+          plugins: TestStubs.Plugins(),
+        })
+      ).toBe(true);
+
+      PluginActions.fetchAll.trigger();
+      expect(
+        PluginsStore.trigger.calledWith({
+          loading: false,
+          error: null,
+          pageLinks: null,
+          plugins: TestStubs.Plugins(),
         })
       ).toBe(true);
     });

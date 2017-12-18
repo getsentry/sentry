@@ -16,7 +16,7 @@ const PluginsStore = Reflux.createStore({
 
     return {
       ...state,
-      plugins: this.plugins ? Array.from(this.plugins.values()) : this.plugins,
+      plugins: this.plugins ? Array.from(this.plugins.values()) : [],
     };
   },
 
@@ -33,7 +33,8 @@ const PluginsStore = Reflux.createStore({
   reset() {
     this.plugins = null;
     this.state = {
-      plugins: null,
+      loading: true,
+      plugins: [],
       error: null,
       pageLinks: null,
     };
@@ -45,8 +46,10 @@ const PluginsStore = Reflux.createStore({
     this.trigger(this.getState());
   },
 
-  onFetchAll({noReset} = {}) {
-    if (!noReset) {
+  onFetchAll({resetLoading} = {}) {
+    if (resetLoading) {
+      this.state.loading = true;
+      this.state.error = null;
       this.plugins = null;
     }
 
@@ -56,11 +59,13 @@ const PluginsStore = Reflux.createStore({
   onFetchAllSuccess(data, {pageLinks}) {
     this.plugins = new Map(data.map(plugin => [plugin.id, plugin]));
     this.state.pageLinks = pageLinks;
+    this.state.loading = false;
     this.triggerState();
   },
 
   onFetchAllError(err) {
     this.plugins = null;
+    this.state.loading = false;
     this.state.error = err;
     this.triggerState();
   },

@@ -10,16 +10,17 @@ import SentryTypes from '../../proptypes';
 class ProjectPlugins extends React.Component {
   static propTypes = {
     plugins: PropTypes.arrayOf(SentryTypes.PluginShape),
+    loading: PropTypes.bool,
     error: PropTypes.any,
     onChange: PropTypes.func,
     onError: PropTypes.func,
   };
 
   render() {
-    let {plugins, error, onError, onChange, params} = this.props;
+    let {plugins, loading, error, onError, onChange, params} = this.props;
     let {projectId, orgId} = params;
     let hasError = error;
-    let isLoading = !hasError && !plugins;
+    let isLoading = !hasError && loading;
 
     return (
       <div>

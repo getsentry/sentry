@@ -13,7 +13,7 @@ const ProjectPluginsContainer = React.createClass({
   },
 
   fetchData() {
-    fetchPlugins(this.api, this.props.params, {noReset: true});
+    fetchPlugins(this.api, this.props.params);
   },
 
   handleChange(pluginId, shouldEnable) {

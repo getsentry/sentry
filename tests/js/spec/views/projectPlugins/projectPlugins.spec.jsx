@@ -16,14 +16,19 @@ describe('ProjectPlugins', function() {
   });
 
   it('has loading state', function() {
-    wrapper = shallow(<ProjectPlugins params={params} plugins={null} />);
+    wrapper = shallow(<ProjectPlugins params={params} loading plugins={[]} />);
 
     expect(wrapper.find('LoadingIndicator')).toHaveLength(1);
   });
 
-  it('has error state when plugins=null', function() {
+  it('has error state when plugins=null and loading is true', function() {
     wrapper = shallow(
-      <ProjectPlugins params={params} plugins={null} error={new Error('An error')} />
+      <ProjectPlugins
+        params={params}
+        plugins={null}
+        loading
+        error={new Error('An error')}
+      />
     );
 
     expect(wrapper.find('RouteError')).toHaveLength(1);
@@ -31,7 +36,12 @@ describe('ProjectPlugins', function() {
 
   it('has error state when plugins=[]', function() {
     wrapper = shallow(
-      <ProjectPlugins params={params} plugins={[]} error={new Error('An error')} />
+      <ProjectPlugins
+        params={params}
+        plugins={[]}
+        loading
+        error={new Error('An error')}
+      />
     );
 
     expect(wrapper.find('RouteError')).toHaveLength(1);
