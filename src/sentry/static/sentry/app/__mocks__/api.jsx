@@ -54,12 +54,8 @@ class Client {
     return new Promise((resolve, reject) =>
       this.request(url, {
         ...options,
-        success: (...resp) => {
-          resolve(...resp);
-        },
-        error: err => {
-          reject(err);
-        },
+        success: resolve,
+        error: reject,
       })
     );
   }
