@@ -9,7 +9,23 @@ exports[`RadioField render() can select a different item 1`] = `
 
 exports[`RadioField render() renders 1`] = `
 <InputField
-  choices={[Function]}
+  choices={
+    Array [
+      Array [
+        0,
+        "Choice One",
+      ],
+      Array [
+        1,
+        "Choice Two",
+      ],
+      Array [
+        2,
+        "Choice Three",
+      ],
+    ]
+  }
   field={[Function]}
+  name="radio"
 />
 `;

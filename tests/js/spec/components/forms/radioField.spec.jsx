@@ -9,7 +9,8 @@ describe('RadioField', function() {
     it('renders', function() {
       const wrapper = shallow(
         <RadioField
-          choices={() => [[0, 'Choice One'], [1, 'Choice Two'], [2, 'Choice Three']]}
+          name="radio"
+          choices={[[0, 'Choice One'], [1, 'Choice Two'], [2, 'Choice Three']]}
         />
       );
       expect(wrapper).toMatchSnapshot();
@@ -19,7 +20,8 @@ describe('RadioField', function() {
       const wrapper = mount(
         <Form>
           <RadioField
-            choices={() => [[0, 'Choice One'], [1, 'Choice Two'], [2, 'Choice Three']]}
+            name="radio"
+            choices={[[0, 'Choice One'], [1, 'Choice Two'], [2, 'Choice Three']]}
           />
         </Form>
       );

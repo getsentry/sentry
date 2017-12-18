@@ -9,7 +9,7 @@ class RadioField extends InputField {
   static propTypes = {
     id: PropTypes.number,
     value: PropTypes.string,
-    choices: PropTypes.func,
+    choices: PropTypes.arrayOf(PropTypes.array),
   };
 
   onChange = (value, onChange, onBlur, e) => {
@@ -27,7 +27,7 @@ class RadioField extends InputField {
         {...this.props}
         field={({onChange, onBlur, value, disabled, ...props}) => (
           <div role="radiogroup" aria-labelledby={props.label}>
-            {(props.choices() || []).map(([id, name], index) => {
+            {(props.choices || []).map(([id, name], index) => {
               return (
                 <RadioLineItem
                   key={index}
