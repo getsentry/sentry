@@ -4,7 +4,7 @@ const pathPrefix = '/settings/account';
 
 const accountNavigation = [
   {
-    name: t('Personal'),
+    name: t('Account'),
     items: [
       {
         path: `${pathPrefix}/notifications/`,
