@@ -7,6 +7,7 @@ exports[`RadioGroup render() can select a different item 1`] = `
   <Styled(div)
     aria-checked={false}
     index={0}
+    key="0"
     onClick={[Function]}
     role="radio"
     tabIndex={-1}
@@ -19,6 +20,7 @@ exports[`RadioGroup render() can select a different item 1`] = `
   <Styled(div)
     aria-checked={false}
     index={1}
+    key="1"
     onClick={[Function]}
     role="radio"
     tabIndex={-1}
@@ -31,6 +33,7 @@ exports[`RadioGroup render() can select a different item 1`] = `
   <Styled(div)
     aria-checked={true}
     index={2}
+    key="2"
     onClick={[Function]}
     role="radio"
     tabIndex={0}
@@ -54,6 +57,7 @@ exports[`RadioGroup render() renders 1`] = `
   <Styled(div)
     aria-checked={true}
     index={0}
+    key="0"
     onClick={[Function]}
     role="radio"
     tabIndex={0}
@@ -70,6 +74,7 @@ exports[`RadioGroup render() renders 1`] = `
   <Styled(div)
     aria-checked={false}
     index={1}
+    key="1"
     onClick={[Function]}
     role="radio"
     tabIndex={-1}
@@ -82,6 +87,7 @@ exports[`RadioGroup render() renders 1`] = `
   <Styled(div)
     aria-checked={false}
     index={2}
+    key="2"
     onClick={[Function]}
     role="radio"
     tabIndex={-1}
