@@ -30,6 +30,7 @@ const ProjectPluginsContainer = React.createClass({
         {...this.props}
         onError={this.fetchData}
         onChange={this.handleChange}
+        loading={store.loading}
         error={store.error}
         plugins={store.plugins}
       />
