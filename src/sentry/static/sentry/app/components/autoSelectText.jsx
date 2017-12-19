@@ -4,21 +4,21 @@ import jQuery from 'jquery';
 
 import {selectText} from '../utils/selectText';
 
-const AutoSelectText = React.createClass({
+class AutoSelectText extends React.Component {
   componentDidMount() {
     let ref = ReactDOM.findDOMNode(this.refs.element);
     jQuery(ref).bind('click', this.selectText);
-  },
+  }
 
   componentWillUnmount() {
     let ref = ReactDOM.findDOMNode(this.refs.element);
     jQuery(ref).unbind('click', this.selectText);
-  },
+  }
 
-  selectText() {
+  selectText = () => {
     let node = ReactDOM.findDOMNode(this.refs.element).firstChild;
     selectText(node);
-  },
+  };
 
   render() {
     let {className, children, style} = this.props;
@@ -28,7 +28,7 @@ const AutoSelectText = React.createClass({
         {children}
       </div>
     );
-  },
-});
+  }
+}
 
 export default AutoSelectText;

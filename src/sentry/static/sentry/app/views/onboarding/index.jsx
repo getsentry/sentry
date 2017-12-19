@@ -4,10 +4,10 @@ import DocumentTitle from 'react-document-title';
 
 import ProgressNodes from './progress';
 
-const OnboardingWizard = React.createClass({
-  contextTypes: {
+class OnboardingWizard extends React.Component {
+  static contextTypes = {
     organization: PropTypes.object,
-  },
+  };
 
   render() {
     return (
@@ -19,7 +19,7 @@ const OnboardingWizard = React.createClass({
         </div>
       </div>
     );
-  },
-});
+  }
+}
 
 export default OnboardingWizard;

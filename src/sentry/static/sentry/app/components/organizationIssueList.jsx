@@ -7,28 +7,26 @@ import IssueList from './issueList';
 import OrganizationHomeContainer from './organizations/homeContainer';
 import {t} from '../locale';
 
-const OrganizationIssueList = React.createClass({
-  propTypes: {
+class OrganizationIssueList extends React.Component {
+  static propTypes = {
     title: PropTypes.string,
     endpoint: PropTypes.string.isRequired,
     pageSize: PropTypes.number,
-  },
+  };
 
-  getInitialState() {
-    return this.getQueryStringState(this.props);
-  },
+  state = this.getQueryStringState(this.props);
 
   componentWillReceiveProps(nextProps) {
     if (nextProps.location.search !== this.props.location.search) {
       this.setState(this.getQueryStringState(nextProps), this.fetchData);
     }
-  },
+  }
 
   componentWillUnmount() {
     GroupStore.reset();
-  },
+  }
 
-  getQueryStringState(props) {
+  getQueryStringState = props => {
     let location = props.location;
     let status = location.query.hasOwnProperty('status')
       ? location.query.status
@@ -36,7 +34,7 @@ const OrganizationIssueList = React.createClass({
     return {
       status,
     };
-  },
+  };
 
   render() {
     let path = this.props.location.pathname;
@@ -74,7 +72,7 @@ const OrganizationIssueList = React.createClass({
         />
       </OrganizationHomeContainer>
     );
-  },
-});
+  }
+}
 
 export default OrganizationIssueList;
