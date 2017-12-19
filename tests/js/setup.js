@@ -224,6 +224,7 @@ window.TestStubs = {
       slug: 'amazon-sqs',
       version: '8.23.0.dev0',
       assets: [],
+      hasConfiguration: true,
       canDisable: true,
     };
   },

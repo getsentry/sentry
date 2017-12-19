@@ -3,6 +3,7 @@
 exports[`ProjectPluginRow renders 1`] = `
 <tr
   className="amazon-sqs"
+  key="amazon-sqs"
 >
   <td
     colSpan={2}
