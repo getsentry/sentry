@@ -4,7 +4,7 @@ import PropTypes from 'prop-types';
 import RadioGroup from './radioGroup';
 import InputField from './inputField';
 
-class RadioField extends InputField {
+class RadioField extends React.Component {
   static propTypes = {
     id: PropTypes.number,
     value: PropTypes.string,
