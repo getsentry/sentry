@@ -1,5 +1,7 @@
 import React from 'react';
 
+import createReactClass from 'create-react-class';
+
 import ApiMixin from '../mixins/apiMixin';
 import OrganizationState from '../mixins/organizationState';
 import TimeSince from '../components/timeSince';
@@ -31,7 +33,8 @@ const HELP_LINKS = {
   native_missing_symbol: 'https://docs.sentry.io/server/dsym/',
 };
 
-const ProjectProcessingIssues = React.createClass({
+const ProjectProcessingIssues = createReactClass({
+  displayName: 'ProjectProcessingIssues',
   mixins: [ApiMixin, OrganizationState],
 
   getInitialState() {

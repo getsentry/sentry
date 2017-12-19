@@ -5,31 +5,27 @@ import MD5 from 'crypto-js/md5';
 import ConfigStore from '../stores/configStore';
 import UserLetterAvatar from '../components/userLetterAvatar';
 
-const Avatar = React.createClass({
-  propTypes: {
+class Avatar extends React.Component {
+  static propTypes = {
     user: PropTypes.object,
     size: PropTypes.number,
     default: PropTypes.string,
     title: PropTypes.string,
     gravatar: PropTypes.bool,
-  },
+  };
 
-  getDefaultProps() {
-    return {
-      className: 'avatar',
-      size: 64,
-      gravatar: true,
-    };
-  },
+  static defaultProps = {
+    className: 'avatar',
+    size: 64,
+    gravatar: true,
+  };
 
-  getInitialState() {
-    return {
-      showBackupAvatar: false,
-      loadError: false,
-    };
-  },
+  state = {
+    showBackupAvatar: false,
+    loadError: false,
+  };
 
-  buildGravatarUrl() {
+  buildGravatarUrl = () => {
     let url = ConfigStore.getConfig().gravatarBaseUrl + '/avatar/';
 
     url += MD5(this.props.user.email.toLowerCase());
@@ -42,25 +38,25 @@ const Avatar = React.createClass({
     url += '?' + $.param(query);
 
     return url;
-  },
+  };
 
-  buildProfileUrl() {
+  buildProfileUrl = () => {
     let url = '/avatar/' + this.props.user.avatar.avatarUuid + '/';
     if (this.props.size) {
       url += '?' + $.param({s: this.props.size});
     }
     return url;
-  },
+  };
 
-  onLoad() {
+  onLoad = () => {
     this.setState({showBackupAvatar: true});
-  },
+  };
 
-  onError() {
+  onError = () => {
     this.setState({showBackupAvatar: true, loadError: true});
-  },
+  };
 
-  renderImg() {
+  renderImg = () => {
     if (this.state.loadError) {
       return null;
     }
@@ -86,7 +82,7 @@ const Avatar = React.createClass({
     } else {
       return <UserLetterAvatar user={user} />;
     }
-  },
+  };
 
   render() {
     let user = this.props.user;
@@ -100,7 +96,7 @@ const Avatar = React.createClass({
         {this.renderImg()}
       </span>
     );
-  },
-});
+  }
+}
 
 export default Avatar;

@@ -1,5 +1,6 @@
 import PropTypes from 'prop-types';
 import React from 'react';
+import createReactClass from 'create-react-class';
 import {Link} from 'react-router';
 
 import GroupStore from '../stores/groupStore';
@@ -7,7 +8,9 @@ import IssueList from './issueList';
 import OrganizationHomeContainer from './organizations/homeContainer';
 import {t} from '../locale';
 
-const OrganizationIssueList = React.createClass({
+const OrganizationIssueList = createReactClass({
+  displayName: 'OrganizationIssueList',
+
   propTypes: {
     title: PropTypes.string,
     endpoint: PropTypes.string.isRequired,
@@ -17,8 +20,6 @@ const OrganizationIssueList = React.createClass({
   getInitialState() {
     return this.getQueryStringState(this.props);
   },
-
-  state = this.getQueryStringState(this.props),
 
   componentWillReceiveProps(nextProps) {
     if (nextProps.location.search !== this.props.location.search) {
@@ -30,7 +31,7 @@ const OrganizationIssueList = React.createClass({
     GroupStore.reset();
   },
 
-  getQueryStringState = props => {
+  getQueryStringState(props) {
     let location = props.location;
     let status = location.query.hasOwnProperty('status')
       ? location.query.status

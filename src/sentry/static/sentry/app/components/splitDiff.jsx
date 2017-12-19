@@ -10,22 +10,18 @@ const diffFnMap = {
   lines: diffLines,
 };
 
-const SplitDiff = React.createClass({
-  propTypes: {
+class SplitDiff extends React.Component {
+  static propTypes = {
     base: PropTypes.string,
     target: PropTypes.string,
     type: PropTypes.oneOf(['lines', 'words', 'chars']),
-  },
+  };
 
-  getDefaultProps() {
-    return {
-      type: 'lines',
-    };
-  },
+  static defaultProps = {
+    type: 'lines',
+  };
 
-  getInitialState() {
-    return {};
-  },
+  state = {};
 
   render() {
     let {className, type, base, target} = this.props;
@@ -102,7 +98,7 @@ const SplitDiff = React.createClass({
         </tbody>
       </table>
     );
-  },
-});
+  }
+}
 
 export default SplitDiff;

@@ -8,22 +8,22 @@ import MergedToolbar from './mergedToolbar';
 import Pagination from '../../components/pagination';
 import QueryCount from '../../components/queryCount';
 
-const MergedList = React.createClass({
-  propTypes: {
+class MergedList extends React.Component {
+  static propTypes = {
     onUnmerge: PropTypes.func.isRequired,
     onToggleCollapse: PropTypes.func.isRequired,
     items: PropTypes.arrayOf(Event),
     pageLinks: PropTypes.string,
-  },
+  };
 
-  renderEmpty() {
+  renderEmpty = () => {
     return (
       <div className="box empty-stream">
         <span className="icon icon-exclamation" />
         <p>{t("There don't seem to be any hashes for this issue.")}</p>
       </div>
     );
-  },
+  };
 
   render() {
     let {items, pageLinks, onToggleCollapse, onUnmerge, ...otherProps} = this.props;
@@ -62,7 +62,7 @@ const MergedList = React.createClass({
         <Pagination pageLinks={pageLinks} />
       </div>
     );
-  },
-});
+  }
+}
 
 export default MergedList;

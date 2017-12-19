@@ -122,8 +122,8 @@ function findBestThread(threads) {
   return threads[0];
 }
 
-const Thread = React.createClass({
-  propTypes: {
+class Thread extends React.Component {
+  static propTypes = {
     group: SentryTypes.Group.isRequired,
     event: SentryTypes.Event.isRequired,
     data: PropTypes.object.isRequired,
@@ -132,9 +132,9 @@ const Thread = React.createClass({
     newestFirst: PropTypes.bool,
     exception: PropTypes.object,
     stacktrace: PropTypes.object,
-  },
+  };
 
-  renderMissingStacktrace() {
+  renderMissingStacktrace = () => {
     return (
       <div className="traceback missing-traceback">
         <ul>
@@ -148,12 +148,12 @@ const Thread = React.createClass({
         </ul>
       </div>
     );
-  },
+  };
 
-  hasMissingStacktrace() {
+  hasMissingStacktrace = () => {
     const {exception, stacktrace} = this.props;
     return !(exception || stacktrace);
-  },
+  };
 
   render() {
     const {
@@ -191,47 +191,49 @@ const Thread = React.createClass({
         )}
       </div>
     );
-  },
-});
+  }
+}
 
-const ThreadsInterface = React.createClass({
-  propTypes: {
+class ThreadsInterface extends React.Component {
+  static propTypes = {
     group: SentryTypes.Group.isRequired,
     event: SentryTypes.Event.isRequired,
     type: PropTypes.string.isRequired,
     data: PropTypes.object.isRequired,
     platform: PropTypes.string,
-  },
+  };
 
-  getInitialState() {
-    let thread = findBestThread(this.props.data.values);
-    return {
+  constructor(props) {
+    super(props);
+    let thread = findBestThread(props.data.values);
+
+    this.state = {
       activeThread: thread,
-      stackView: getIntendedStackView(thread, this.props.event),
+      stackView: getIntendedStackView(thread, props.event),
       stackType: 'original',
       newestFirst: isStacktraceNewestFirst(),
     };
-  },
+  }
 
-  toggleStack(value) {
+  toggleStack = value => {
     this.setState({
       stackView: value,
     });
-  },
+  };
 
-  getStacktrace() {
+  getStacktrace = () => {
     return findThreadStacktrace(
       this.state.activeThread,
       this.props.event,
       this.state.stackType !== 'original'
     );
-  },
+  };
 
-  getException() {
+  getException = () => {
     return findThreadException(this.state.activeThread, this.props.event);
-  },
+  };
 
-  onSelectNewThread(thread) {
+  onSelectNewThread = thread => {
     let newStackView = this.state.stackView;
     if (this.state.stackView !== 'raw') {
       newStackView = getIntendedStackView(thread, this.props.event);
@@ -241,7 +243,7 @@ const ThreadsInterface = React.createClass({
       stackView: newStackView,
       stackType: 'original',
     });
-  },
+  };
 
   render() {
     let group = this.props.group;
@@ -309,7 +311,7 @@ const ThreadsInterface = React.createClass({
         />
       </GroupEventDataSection>
     );
-  },
-});
+  }
+}
 
 export default ThreadsInterface;

@@ -1,5 +1,6 @@
 import PropTypes from 'prop-types';
 import React from 'react';
+import createReactClass from 'create-react-class';
 import Reflux from 'reflux';
 import {Link, browserHistory} from 'react-router';
 import Cookies from 'js-cookie';
@@ -28,7 +29,9 @@ import {t, tn, tct} from '../locale';
 
 const MAX_TAGS = 500;
 
-const Stream = React.createClass({
+const Stream = createReactClass({
+  displayName: 'Stream',
+
   propTypes: {
     defaultSort: PropTypes.string,
     defaultStatsPeriod: PropTypes.string,
@@ -625,6 +628,7 @@ const Stream = React.createClass({
       </div>
     );
   },
+
   renderGroupNodes(ids, statsPeriod) {
     let {orgId, projectId} = this.props.params;
     let groupNodes = ids.map(id => {
@@ -644,6 +648,7 @@ const Stream = React.createClass({
       </ul>
     );
   },
+
   renderAwaitingEvents() {
     let org = this.getOrganization();
     let project = this.getProject();
@@ -696,6 +701,7 @@ const Stream = React.createClass({
       </div>
     );
   },
+
   renderEmpty() {
     return (
       <div className="box empty-stream">
@@ -704,6 +710,7 @@ const Stream = React.createClass({
       </div>
     );
   },
+
   renderLoading() {
     return (
       <div className="box">
@@ -711,6 +718,7 @@ const Stream = React.createClass({
       </div>
     );
   },
+
   renderStreamBody() {
     let body;
     let project = this.getProject();
@@ -727,6 +735,7 @@ const Stream = React.createClass({
     }
     return body;
   },
+
   render() {
     // global loading
     if (this.state.loading) {

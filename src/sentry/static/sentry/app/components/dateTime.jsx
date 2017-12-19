@@ -5,20 +5,18 @@ import _ from 'lodash';
 
 import ConfigStore from '../stores/configStore';
 
-const DateTime = React.createClass({
-  propTypes: {
+class DateTime extends React.Component {
+  static propTypes = {
     date: PropTypes.any.isRequired,
     dateOnly: PropTypes.bool,
     seconds: PropTypes.bool,
-  },
+  };
 
-  getDefaultProps() {
-    return {
-      seconds: true,
-    };
-  },
+  static defaultProps = {
+    seconds: true,
+  };
 
-  getFormat({clock24Hours}) {
+  getFormat = ({clock24Hours}) => {
     let {dateOnly, seconds} = this.props;
 
     // October 26, 2017
@@ -37,7 +35,7 @@ const DateTime = React.createClass({
 
     // Default is Oct 26, 2017 11:30 AM
     return 'lll';
-  },
+  };
 
   render() {
     let {
@@ -55,7 +53,7 @@ const DateTime = React.createClass({
     }
 
     return <time {...carriedProps}>{moment(date).format(format)}</time>;
-  },
-});
+  }
+}
 
 export default DateTime;

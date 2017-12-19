@@ -1,6 +1,8 @@
 import PropTypes from 'prop-types';
 import React from 'react';
 
+import createReactClass from 'create-react-class';
+
 import ListLink from '../listLink';
 import OrganizationState from '../../mixins/organizationState';
 import HookStore from '../../stores/hookStore';
@@ -85,7 +87,9 @@ OrgSettingsMenu.propTypes = {
   org: PropTypes.object,
 };
 
-const HomeSidebar = React.createClass({
+const HomeSidebar = createReactClass({
+  displayName: 'HomeSidebar',
+
   contextTypes: {
     location: PropTypes.object,
   },

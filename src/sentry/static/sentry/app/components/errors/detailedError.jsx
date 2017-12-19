@@ -5,8 +5,8 @@ import classNames from 'classnames';
 import {t} from '../../locale';
 import IconCircleExclamation from '../../icons/icon-circle-exclamation';
 
-const DetailedError = React.createClass({
-  propTypes: {
+class DetailedError extends React.Component {
+  static propTypes = {
     className: PropTypes.string,
     /* Retry callback */
     onRetry: PropTypes.func,
@@ -16,13 +16,11 @@ const DetailedError = React.createClass({
     message: PropTypes.node,
     /* Hide support links in footer of error message */
     hideSupportLinks: PropTypes.bool,
-  },
+  };
 
-  getDefaultProps() {
-    return {
-      hideSupportLinks: false,
-    };
-  },
+  static defaultProps = {
+    hideSupportLinks: false,
+  };
 
   render() {
     const {className, heading, message, onRetry, hideSupportLinks} = this.props;
@@ -62,7 +60,7 @@ const DetailedError = React.createClass({
         </div>
       </div>
     );
-  },
-});
+  }
+}
 
 export default DetailedError;

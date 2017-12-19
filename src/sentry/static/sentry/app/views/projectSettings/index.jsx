@@ -1,5 +1,6 @@
 import PropTypes from 'prop-types';
 import React from 'react';
+import createReactClass from 'create-react-class';
 import OrganizationState from '../../mixins/organizationState';
 import ApiMixin from '../../mixins/apiMixin';
 import Badge from '../../components/badge';
@@ -8,7 +9,9 @@ import LoadingError from '../../components/loadingError';
 import LoadingIndicator from '../../components/loadingIndicator';
 import {t} from '../../locale';
 
-const ProjectSettings = React.createClass({
+const ProjectSettings = createReactClass({
+  displayName: 'ProjectSettings',
+
   propTypes: {
     setProjectNavSection: PropTypes.func,
   },

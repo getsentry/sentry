@@ -1,12 +1,15 @@
 import Reflux from 'reflux';
 import React from 'react';
 
+import createReactClass from 'create-react-class';
+
 import HookStore from '../../../stores/hookStore';
 import OrganizationState from '../../../mixins/organizationState';
 import SettingsNavigation from '../components/settingsNavigation';
 import navigationConfiguration from './navigationConfiguration';
 
-const OrganizationSettingsNavigation = React.createClass({
+const OrganizationSettingsNavigation = createReactClass({
+  displayName: 'OrganizationSettingsNavigation',
   mixins: [OrganizationState, Reflux.listenTo(HookStore, 'handleHooks')],
 
   handleHooks(name, hooks) {

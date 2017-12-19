@@ -1,4 +1,5 @@
 import React from 'react';
+import createReactClass from 'create-react-class';
 import Reflux from 'reflux';
 import styled from 'react-emotion';
 
@@ -33,7 +34,8 @@ const Undo = styled.div`
   }
 `;
 
-const SettingsActivity = React.createClass({
+const SettingsActivity = createReactClass({
+  displayName: 'SettingsActivity',
   mixins: [Reflux.connect(SettingsIndicatorStore, 'activity')],
 
   getInitialState() {
