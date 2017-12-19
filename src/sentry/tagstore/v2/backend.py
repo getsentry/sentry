@@ -250,8 +250,9 @@ class V2TagStorage(TagStorage):
         qs = TagKey.objects.filter(
             project_id=project_id,
             key=key,
-            **self._get_environment_filter(environment_id)
         )
+
+        qs = self._add_environment_filter(qs, environment_id)
 
         if status is not None:
             qs = qs.filter(status=status)
@@ -264,8 +265,9 @@ class V2TagStorage(TagStorage):
     def get_tag_keys(self, project_id, environment_id, status=TagKeyStatus.VISIBLE):
         qs = TagKey.objects.filter(
             project_id=project_id,
-            **self._get_environment_filter(environment_id)
         )
+
+        qs = self._add_environment_filter(qs, environment_id)
 
         if status is not None:
             qs = qs.filter(status=status)
@@ -279,8 +281,9 @@ class V2TagStorage(TagStorage):
             project_id=project_id,
             _key__key=key,
             value=value,
-            **self._get_environment_filter(environment_id, join=True)
         )
+
+        qs = self._add_environment_filter(qs, environment_id)
 
         try:
             return qs.get()
@@ -291,8 +294,9 @@ class V2TagStorage(TagStorage):
         qs = TagValue.objects.filter(
             project_id=project_id,
             _key__key=key,
-            **self._get_environment_filter(environment_id, join=True)
         )
+
+        qs = self._add_environment_filter(qs, environment_id)
 
         return list(qs)
 
@@ -303,8 +307,9 @@ class V2TagStorage(TagStorage):
             project_id=project_id,
             group_id=group_id,
             _key__key=key,
-            **self._get_environment_filter(environment_id, join=True)
         )
+
+        qs = self._add_environment_filter(qs, environment_id)
 
         try:
             return qs.get()
@@ -314,8 +319,9 @@ class V2TagStorage(TagStorage):
     def get_group_tag_keys(self, project_id, group_id, environment_id, limit=None):
         qs = GroupTagKey.objects.filter(
             group_id=group_id,
-            **self._get_environment_filter(environment_id, join=True)
         )
+
+        qs = self._add_environment_filter(qs, environment_id)
 
         if limit is not None:
             qs = qs[:limit]
@@ -330,8 +336,9 @@ class V2TagStorage(TagStorage):
             group_id=group_id,
             _key__key=key,
             _value__value=value,
-            **self._get_environment_filter(environment_id, join=True)
         )
+
+        qs = self._add_environment_filter(qs, environment_id)
 
         try:
             return qs.get()
@@ -342,8 +349,9 @@ class V2TagStorage(TagStorage):
         qs = GroupTagValue.objects.filter(
             group_id=group_id,
             _key__key=key,
-            **self._get_environment_filter(environment_id, join=True)
         )
+
+        qs = self._add_environment_filter(qs, environment_id)
 
         return list(qs)
 
@@ -510,8 +518,9 @@ class V2TagStorage(TagStorage):
             project_id=project_id,
             group_id__in=group_ids,
             _key__key='sentry:user',
-            **self._get_environment_filter(environment_id, join=True)
         )
+
+        qs = self._add_environment_filter(qs, environment_id)
 
         return defaultdict(int, qs.values_list('group_id', 'values_seen'))
 
@@ -540,12 +549,13 @@ class V2TagStorage(TagStorage):
             return cursor.fetchone()[0] or 0
 
         cutoff = timezone.now() - timedelta(days=7)
-        return GroupTagValue.objects.filter(
+        qs = GroupTagValue.objects.filter(
             group_id=group_id,
             _key__key=key,
             last_seen__gte=cutoff,
-            **self._get_environment_filter(environment_id, join=True)
-        ).aggregate(t=Sum('times_seen'))['t']
+        )
+        qs = self._add_environment_filter(qs, environment_id)
+        return qs.aggregate(t=Sum('times_seen'))['t']
 
     def get_top_group_tag_values(self, project_id, group_id, environment_id, key, limit=3):
         if db.is_postgres():
@@ -580,14 +590,13 @@ class V2TagStorage(TagStorage):
             )
 
         cutoff = timezone.now() - timedelta(days=7)
-        return list(
-            GroupTagValue.objects.filter(
-                group_id=group_id,
-                _key__key=key,
-                last_seen__gte=cutoff,
-                **self._get_environment_filter(environment_id, join=True)
-            ).order_by('-times_seen')[:limit]
+        qs = GroupTagValue.objects.filter(
+            group_id=group_id,
+            _key__key=key,
+            last_seen__gte=cutoff,
         )
+        qs = self._add_environment_filter(qs, environment_id)
+        return list(qs.order_by('-times_seen')[:limit])
 
     def get_first_release(self, project_id, group_id):
         try:
@@ -614,12 +623,15 @@ class V2TagStorage(TagStorage):
         return last_release.value
 
     def get_release_tags(self, project_ids, environment_id, versions):
-        return list(TagValue.objects.filter(
+        qs = TagValue.objects.filter(
             project_id__in=project_ids,
             _key__key='sentry:release',
             value__in=versions,
-            **self._get_environment_filter(environment_id, join=True)
-        ))
+        )
+
+        qs = self._add_environment_filter(qs, environment_id)
+
+        return list(qs)
 
     def get_group_ids_for_users(self, project_ids, event_users, limit=100):
         return list(GroupTagValue.objects.filter(
@@ -664,15 +676,15 @@ class V2TagStorage(TagStorage):
                     project_id=project_id,
                     _key__key=k,
                     _value__value=v,
-                    **self._get_environment_filter(environment_id, join=True)
                 )
+                base_qs = self._add_environment_filter(base_qs, environment_id)
 
             else:
                 base_qs = GroupTagValue.objects.filter(
                     project_id=project_id,
                     _key__key=k,
-                    **self._get_environment_filter(environment_id, join=True)
-                ).distinct()
+                )
+                base_qs = self._add_environment_filter(base_qs, environment_id).distinct()
 
             if matches:
                 base_qs = base_qs.filter(group_id__in=matches)
@@ -703,24 +715,26 @@ class V2TagStorage(TagStorage):
             )
 
     def get_tag_value_qs(self, project_id, environment_id, key, query=None):
-        queryset = TagValue.objects.filter(
+        qs = TagValue.objects.filter(
             project_id=project_id,
             _key__key=key,
-            **self._get_environment_filter(environment_id, join=True)
         )
 
-        if query:
-            queryset = queryset.filter(value__contains=query)
+        qs = self._add_environment_filter(qs, environment_id)
 
-        return queryset
+        if query:
+            qs = qs.filter(value__contains=query)
+
+        return qs
 
     def get_group_tag_value_qs(self, project_id, group_id, environment_id, key):
-        return GroupTagValue.objects.filter(
+        qs = GroupTagValue.objects.filter(
             project_id=project_id,
             group_id=group_id,
             _key__key=key,
-            **self._get_environment_filter(environment_id, join=True)
         )
+        qs = self._add_environment_filter(qs, environment_id)
+        return qs
 
     def update_group_for_events(self, project_id, event_ids, destination_id):
         return EventTag.objects.filter(
@@ -728,16 +742,20 @@ class V2TagStorage(TagStorage):
             event_id__in=event_ids,
         ).update(group_id=destination_id)
 
-    def _get_environment_filter(self, environment_id, join=False):
+    def _add_environment_filter(self, queryset, environment_id):
         """\
-        Returns a dict to be used in ORM queries to filter by
-        `environment_id`.
-
-        If `join` is true it will join across the `_key` column that non-TagKey
-        models have in order to reach the `environment_id` there.
+        Filter a queryset by the provided `environment_id`, handling
+        whether a JOIN is required or not depending on the model.
         """
-        prefix = "_key__" if join else ""
-        if environment_id is None:
-            return {'%senvironment_id__isnull' % prefix: True}
+        if queryset.model == TagKey:
+            if environment_id is None:
+                return queryset.filter(environment_id__isnull=True)
+            else:
+                return queryset.filter(environment_id=environment_id)
+        elif queryset.model in (TagValue, GroupTagKey, GroupTagValue):
+            if environment_id is None:
+                return queryset.filter(_key__environment_id__isnull=True)
+            else:
+                return queryset.filter(_key__environment_id=environment_id)
         else:
-            return {'%senvironment_id' % prefix: environment_id}
+            raise ValueError("queryset of unsupported model '%s' provided" % queryset.model)
