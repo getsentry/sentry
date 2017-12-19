@@ -267,34 +267,53 @@ exports[`projectGeneralSettings renders 1`] = `
           className="box-content with-padding"
         >
           <p>
-            <span>
-              <span>
+            <span
+              key="4"
+            >
+              <span
+                key="0"
+              >
                 Configure origin URLs which Sentry should accept events from. This is used for communication with clients like 
               </span>
               <a
                 href="https://github.com/getsentry/raven-js"
+                key="1"
               >
                 raven-js
               </a>
-              <span>
+              <span
+                key="2"
+              >
                 .
               </span>
             </span>
              
-            <span>
-              <span>
+            <span
+              key="6"
+            >
+              <span
+                key="0"
+              >
                 This will restrict requests based on the 
               </span>
-              <code>
+              <code
+                key="1"
+              >
                 Origin
               </code>
-              <span>
+              <span
+                key="2"
+              >
                  and 
               </span>
-              <code>
+              <code
+                key="3"
+              >
                 Referer
               </code>
-              <span>
+              <span
+                key="4"
+              >
                  headers.
               </span>
             </span>
