@@ -1,8 +1,6 @@
 from __future__ import absolute_import
 
-import json
-
-from django.http import HttpResponse
+from rest_framework.response import Response
 from functools import wraps
 
 from sentry.models import ApiKey, ApiToken
@@ -31,8 +29,7 @@ def sudo_required(func):
                 "sudoRequired": True,
                 "username": request.user.username,
             }
-            return HttpResponse(content=json.dumps(
-                data), content_type="application/json", status=401)
+            return Response(data, content_type="application/json", status=401)
         return func(self, request, *args, **kwargs)
 
     return wrapped
