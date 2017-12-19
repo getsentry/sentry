@@ -85,7 +85,7 @@ class MultiTagStorage(TagStorage):
             self.backends.append(backend(**backend_options))
 
         self.read_selector = read_selector
-        self.runner = globals()[runner]()
+        self.runner = {'QueuedRunner': QueuedRunner, 'ImmediateRunner': ImmediateRunner}[runner]()
 
         super(TagStorage, self).__init__(**kwargs)
 
