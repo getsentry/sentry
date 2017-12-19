@@ -80,15 +80,15 @@ exports[`IgnoreActions with confirmation step renders 1`] = `
       windowChoices={
         Array [
           Array [
-            1,
+            60,
             "per hour",
           ],
           Array [
-            24,
+            1440,
             "per day",
           ],
           Array [
-            168,
+            10080,
             "per week",
           ],
         ]
@@ -154,15 +154,15 @@ exports[`IgnoreActions with confirmation step renders 1`] = `
       windowChoices={
         Array [
           Array [
-            1,
+            60,
             "per hour",
           ],
           Array [
-            24,
+            1440,
             "per day",
           ],
           Array [
-            168,
+            10080,
             "per week",
           ],
         ]
@@ -1033,7 +1033,7 @@ exports[`IgnoreActions with confirmation step renders 1`] = `
                                     </li>
                                   </MenuItem>
                                   <MenuItem
-                                    key="1"
+                                    key="60"
                                     noAnchor={true}
                                   >
                                     <li
@@ -1118,7 +1118,7 @@ exports[`IgnoreActions with confirmation step renders 1`] = `
                                     </li>
                                   </MenuItem>
                                   <MenuItem
-                                    key="24"
+                                    key="1440"
                                     noAnchor={true}
                                   >
                                     <li
@@ -1203,7 +1203,7 @@ exports[`IgnoreActions with confirmation step renders 1`] = `
                                     </li>
                                   </MenuItem>
                                   <MenuItem
-                                    key="168"
+                                    key="10080"
                                     noAnchor={true}
                                   >
                                     <li
@@ -1415,7 +1415,7 @@ exports[`IgnoreActions with confirmation step renders 1`] = `
                                     </li>
                                   </MenuItem>
                                   <MenuItem
-                                    key="1"
+                                    key="60"
                                     noAnchor={true}
                                   >
                                     <li
@@ -1500,7 +1500,7 @@ exports[`IgnoreActions with confirmation step renders 1`] = `
                                     </li>
                                   </MenuItem>
                                   <MenuItem
-                                    key="24"
+                                    key="1440"
                                     noAnchor={true}
                                   >
                                     <li
@@ -1585,7 +1585,7 @@ exports[`IgnoreActions with confirmation step renders 1`] = `
                                     </li>
                                   </MenuItem>
                                   <MenuItem
-                                    key="168"
+                                    key="10080"
                                     noAnchor={true}
                                   >
                                     <li
@@ -1797,7 +1797,7 @@ exports[`IgnoreActions with confirmation step renders 1`] = `
                                     </li>
                                   </MenuItem>
                                   <MenuItem
-                                    key="1"
+                                    key="60"
                                     noAnchor={true}
                                   >
                                     <li
@@ -1882,7 +1882,7 @@ exports[`IgnoreActions with confirmation step renders 1`] = `
                                     </li>
                                   </MenuItem>
                                   <MenuItem
-                                    key="24"
+                                    key="1440"
                                     noAnchor={true}
                                   >
                                     <li
@@ -1967,7 +1967,7 @@ exports[`IgnoreActions with confirmation step renders 1`] = `
                                     </li>
                                   </MenuItem>
                                   <MenuItem
-                                    key="168"
+                                    key="10080"
                                     noAnchor={true}
                                   >
                                     <li
@@ -2179,7 +2179,7 @@ exports[`IgnoreActions with confirmation step renders 1`] = `
                                     </li>
                                   </MenuItem>
                                   <MenuItem
-                                    key="1"
+                                    key="60"
                                     noAnchor={true}
                                   >
                                     <li
@@ -2264,7 +2264,7 @@ exports[`IgnoreActions with confirmation step renders 1`] = `
                                     </li>
                                   </MenuItem>
                                   <MenuItem
-                                    key="24"
+                                    key="1440"
                                     noAnchor={true}
                                   >
                                     <li
@@ -2349,7 +2349,7 @@ exports[`IgnoreActions with confirmation step renders 1`] = `
                                     </li>
                                   </MenuItem>
                                   <MenuItem
-                                    key="168"
+                                    key="10080"
                                     noAnchor={true}
                                   >
                                     <li
@@ -2561,7 +2561,7 @@ exports[`IgnoreActions with confirmation step renders 1`] = `
                                     </li>
                                   </MenuItem>
                                   <MenuItem
-                                    key="1"
+                                    key="60"
                                     noAnchor={true}
                                   >
                                     <li
@@ -2646,7 +2646,7 @@ exports[`IgnoreActions with confirmation step renders 1`] = `
                                     </li>
                                   </MenuItem>
                                   <MenuItem
-                                    key="24"
+                                    key="1440"
                                     noAnchor={true}
                                   >
                                     <li
@@ -2731,7 +2731,7 @@ exports[`IgnoreActions with confirmation step renders 1`] = `
                                     </li>
                                   </MenuItem>
                                   <MenuItem
-                                    key="168"
+                                    key="10080"
                                     noAnchor={true}
                                   >
                                     <li
@@ -3011,7 +3011,7 @@ exports[`IgnoreActions with confirmation step renders 1`] = `
                                     </li>
                                   </MenuItem>
                                   <MenuItem
-                                    key="1"
+                                    key="60"
                                     noAnchor={true}
                                   >
                                     <li
@@ -3096,7 +3096,7 @@ exports[`IgnoreActions with confirmation step renders 1`] = `
                                     </li>
                                   </MenuItem>
                                   <MenuItem
-                                    key="24"
+                                    key="1440"
                                     noAnchor={true}
                                   >
                                     <li
@@ -3181,7 +3181,7 @@ exports[`IgnoreActions with confirmation step renders 1`] = `
                                     </li>
                                   </MenuItem>
                                   <MenuItem
-                                    key="168"
+                                    key="10080"
                                     noAnchor={true}
                                   >
                                     <li
@@ -3393,7 +3393,7 @@ exports[`IgnoreActions with confirmation step renders 1`] = `
                                     </li>
                                   </MenuItem>
                                   <MenuItem
-                                    key="1"
+                                    key="60"
                                     noAnchor={true}
                                   >
                                     <li
@@ -3478,7 +3478,7 @@ exports[`IgnoreActions with confirmation step renders 1`] = `
                                     </li>
                                   </MenuItem>
                                   <MenuItem
-                                    key="24"
+                                    key="1440"
                                     noAnchor={true}
                                   >
                                     <li
@@ -3563,7 +3563,7 @@ exports[`IgnoreActions with confirmation step renders 1`] = `
                                     </li>
                                   </MenuItem>
                                   <MenuItem
-                                    key="168"
+                                    key="10080"
                                     noAnchor={true}
                                   >
                                     <li
@@ -3775,7 +3775,7 @@ exports[`IgnoreActions with confirmation step renders 1`] = `
                                     </li>
                                   </MenuItem>
                                   <MenuItem
-                                    key="1"
+                                    key="60"
                                     noAnchor={true}
                                   >
                                     <li
@@ -3860,7 +3860,7 @@ exports[`IgnoreActions with confirmation step renders 1`] = `
                                     </li>
                                   </MenuItem>
                                   <MenuItem
-                                    key="24"
+                                    key="1440"
                                     noAnchor={true}
                                   >
                                     <li
@@ -3945,7 +3945,7 @@ exports[`IgnoreActions with confirmation step renders 1`] = `
                                     </li>
                                   </MenuItem>
                                   <MenuItem
-                                    key="168"
+                                    key="10080"
                                     noAnchor={true}
                                   >
                                     <li
@@ -4157,7 +4157,7 @@ exports[`IgnoreActions with confirmation step renders 1`] = `
                                     </li>
                                   </MenuItem>
                                   <MenuItem
-                                    key="1"
+                                    key="60"
                                     noAnchor={true}
                                   >
                                     <li
@@ -4242,7 +4242,7 @@ exports[`IgnoreActions with confirmation step renders 1`] = `
                                     </li>
                                   </MenuItem>
                                   <MenuItem
-                                    key="24"
+                                    key="1440"
                                     noAnchor={true}
                                   >
                                     <li
@@ -4327,7 +4327,7 @@ exports[`IgnoreActions with confirmation step renders 1`] = `
                                     </li>
                                   </MenuItem>
                                   <MenuItem
-                                    key="168"
+                                    key="10080"
                                     noAnchor={true}
                                   >
                                     <li
@@ -4539,7 +4539,7 @@ exports[`IgnoreActions with confirmation step renders 1`] = `
                                     </li>
                                   </MenuItem>
                                   <MenuItem
-                                    key="1"
+                                    key="60"
                                     noAnchor={true}
                                   >
                                     <li
@@ -4624,7 +4624,7 @@ exports[`IgnoreActions with confirmation step renders 1`] = `
                                     </li>
                                   </MenuItem>
                                   <MenuItem
-                                    key="24"
+                                    key="1440"
                                     noAnchor={true}
                                   >
                                     <li
@@ -4709,7 +4709,7 @@ exports[`IgnoreActions with confirmation step renders 1`] = `
                                     </li>
                                   </MenuItem>
                                   <MenuItem
-                                    key="168"
+                                    key="10080"
                                     noAnchor={true}
                                   >
                                     <li
@@ -4916,15 +4916,15 @@ exports[`IgnoreActions without confirmation renders 1`] = `
       windowChoices={
         Array [
           Array [
-            1,
+            60,
             "per hour",
           ],
           Array [
-            24,
+            1440,
             "per day",
           ],
           Array [
-            168,
+            10080,
             "per week",
           ],
         ]
@@ -4990,15 +4990,15 @@ exports[`IgnoreActions without confirmation renders 1`] = `
       windowChoices={
         Array [
           Array [
-            1,
+            60,
             "per hour",
           ],
           Array [
-            24,
+            1440,
             "per day",
           ],
           Array [
-            168,
+            10080,
             "per week",
           ],
         ]
@@ -5462,7 +5462,7 @@ exports[`IgnoreActions without confirmation renders 1`] = `
                                     </li>
                                   </MenuItem>
                                   <MenuItem
-                                    key="1"
+                                    key="60"
                                     noAnchor={true}
                                   >
                                     <li
@@ -5489,7 +5489,7 @@ exports[`IgnoreActions without confirmation renders 1`] = `
                                     </li>
                                   </MenuItem>
                                   <MenuItem
-                                    key="24"
+                                    key="1440"
                                     noAnchor={true}
                                   >
                                     <li
@@ -5516,7 +5516,7 @@ exports[`IgnoreActions without confirmation renders 1`] = `
                                     </li>
                                   </MenuItem>
                                   <MenuItem
-                                    key="168"
+                                    key="10080"
                                     noAnchor={true}
                                   >
                                     <li
@@ -5612,7 +5612,7 @@ exports[`IgnoreActions without confirmation renders 1`] = `
                                     </li>
                                   </MenuItem>
                                   <MenuItem
-                                    key="1"
+                                    key="60"
                                     noAnchor={true}
                                   >
                                     <li
@@ -5639,7 +5639,7 @@ exports[`IgnoreActions without confirmation renders 1`] = `
                                     </li>
                                   </MenuItem>
                                   <MenuItem
-                                    key="24"
+                                    key="1440"
                                     noAnchor={true}
                                   >
                                     <li
@@ -5666,7 +5666,7 @@ exports[`IgnoreActions without confirmation renders 1`] = `
                                     </li>
                                   </MenuItem>
                                   <MenuItem
-                                    key="168"
+                                    key="10080"
                                     noAnchor={true}
                                   >
                                     <li
@@ -5762,7 +5762,7 @@ exports[`IgnoreActions without confirmation renders 1`] = `
                                     </li>
                                   </MenuItem>
                                   <MenuItem
-                                    key="1"
+                                    key="60"
                                     noAnchor={true}
                                   >
                                     <li
@@ -5789,7 +5789,7 @@ exports[`IgnoreActions without confirmation renders 1`] = `
                                     </li>
                                   </MenuItem>
                                   <MenuItem
-                                    key="24"
+                                    key="1440"
                                     noAnchor={true}
                                   >
                                     <li
@@ -5816,7 +5816,7 @@ exports[`IgnoreActions without confirmation renders 1`] = `
                                     </li>
                                   </MenuItem>
                                   <MenuItem
-                                    key="168"
+                                    key="10080"
                                     noAnchor={true}
                                   >
                                     <li
@@ -5912,7 +5912,7 @@ exports[`IgnoreActions without confirmation renders 1`] = `
                                     </li>
                                   </MenuItem>
                                   <MenuItem
-                                    key="1"
+                                    key="60"
                                     noAnchor={true}
                                   >
                                     <li
@@ -5939,7 +5939,7 @@ exports[`IgnoreActions without confirmation renders 1`] = `
                                     </li>
                                   </MenuItem>
                                   <MenuItem
-                                    key="24"
+                                    key="1440"
                                     noAnchor={true}
                                   >
                                     <li
@@ -5966,7 +5966,7 @@ exports[`IgnoreActions without confirmation renders 1`] = `
                                     </li>
                                   </MenuItem>
                                   <MenuItem
-                                    key="168"
+                                    key="10080"
                                     noAnchor={true}
                                   >
                                     <li
@@ -6062,7 +6062,7 @@ exports[`IgnoreActions without confirmation renders 1`] = `
                                     </li>
                                   </MenuItem>
                                   <MenuItem
-                                    key="1"
+                                    key="60"
                                     noAnchor={true}
                                   >
                                     <li
@@ -6089,7 +6089,7 @@ exports[`IgnoreActions without confirmation renders 1`] = `
                                     </li>
                                   </MenuItem>
                                   <MenuItem
-                                    key="24"
+                                    key="1440"
                                     noAnchor={true}
                                   >
                                     <li
@@ -6116,7 +6116,7 @@ exports[`IgnoreActions without confirmation renders 1`] = `
                                     </li>
                                   </MenuItem>
                                   <MenuItem
-                                    key="168"
+                                    key="10080"
                                     noAnchor={true}
                                   >
                                     <li
@@ -6280,7 +6280,7 @@ exports[`IgnoreActions without confirmation renders 1`] = `
                                     </li>
                                   </MenuItem>
                                   <MenuItem
-                                    key="1"
+                                    key="60"
                                     noAnchor={true}
                                   >
                                     <li
@@ -6307,7 +6307,7 @@ exports[`IgnoreActions without confirmation renders 1`] = `
                                     </li>
                                   </MenuItem>
                                   <MenuItem
-                                    key="24"
+                                    key="1440"
                                     noAnchor={true}
                                   >
                                     <li
@@ -6334,7 +6334,7 @@ exports[`IgnoreActions without confirmation renders 1`] = `
                                     </li>
                                   </MenuItem>
                                   <MenuItem
-                                    key="168"
+                                    key="10080"
                                     noAnchor={true}
                                   >
                                     <li
@@ -6430,7 +6430,7 @@ exports[`IgnoreActions without confirmation renders 1`] = `
                                     </li>
                                   </MenuItem>
                                   <MenuItem
-                                    key="1"
+                                    key="60"
                                     noAnchor={true}
                                   >
                                     <li
@@ -6457,7 +6457,7 @@ exports[`IgnoreActions without confirmation renders 1`] = `
                                     </li>
                                   </MenuItem>
                                   <MenuItem
-                                    key="24"
+                                    key="1440"
                                     noAnchor={true}
                                   >
                                     <li
@@ -6484,7 +6484,7 @@ exports[`IgnoreActions without confirmation renders 1`] = `
                                     </li>
                                   </MenuItem>
                                   <MenuItem
-                                    key="168"
+                                    key="10080"
                                     noAnchor={true}
                                   >
                                     <li
@@ -6580,7 +6580,7 @@ exports[`IgnoreActions without confirmation renders 1`] = `
                                     </li>
                                   </MenuItem>
                                   <MenuItem
-                                    key="1"
+                                    key="60"
                                     noAnchor={true}
                                   >
                                     <li
@@ -6607,7 +6607,7 @@ exports[`IgnoreActions without confirmation renders 1`] = `
                                     </li>
                                   </MenuItem>
                                   <MenuItem
-                                    key="24"
+                                    key="1440"
                                     noAnchor={true}
                                   >
                                     <li
@@ -6634,7 +6634,7 @@ exports[`IgnoreActions without confirmation renders 1`] = `
                                     </li>
                                   </MenuItem>
                                   <MenuItem
-                                    key="168"
+                                    key="10080"
                                     noAnchor={true}
                                   >
                                     <li
@@ -6730,7 +6730,7 @@ exports[`IgnoreActions without confirmation renders 1`] = `
                                     </li>
                                   </MenuItem>
                                   <MenuItem
-                                    key="1"
+                                    key="60"
                                     noAnchor={true}
                                   >
                                     <li
@@ -6757,7 +6757,7 @@ exports[`IgnoreActions without confirmation renders 1`] = `
                                     </li>
                                   </MenuItem>
                                   <MenuItem
-                                    key="24"
+                                    key="1440"
                                     noAnchor={true}
                                   >
                                     <li
@@ -6784,7 +6784,7 @@ exports[`IgnoreActions without confirmation renders 1`] = `
                                     </li>
                                   </MenuItem>
                                   <MenuItem
-                                    key="168"
+                                    key="10080"
                                     noAnchor={true}
                                   >
                                     <li
@@ -6880,7 +6880,7 @@ exports[`IgnoreActions without confirmation renders 1`] = `
                                     </li>
                                   </MenuItem>
                                   <MenuItem
-                                    key="1"
+                                    key="60"
                                     noAnchor={true}
                                   >
                                     <li
@@ -6907,7 +6907,7 @@ exports[`IgnoreActions without confirmation renders 1`] = `
                                     </li>
                                   </MenuItem>
                                   <MenuItem
-                                    key="24"
+                                    key="1440"
                                     noAnchor={true}
                                   >
                                     <li
@@ -6934,7 +6934,7 @@ exports[`IgnoreActions without confirmation renders 1`] = `
                                     </li>
                                   </MenuItem>
                                   <MenuItem
-                                    key="168"
+                                    key="10080"
                                     noAnchor={true}
                                   >
                                     <li
