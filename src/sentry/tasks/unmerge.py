@@ -310,7 +310,7 @@ def repair_tag_data(caches, project, events):
             # ingestion logic (but actually represent a more accurate value.)
             # See GH-5289 for more details.
             for value, (times_seen, first_seen, last_seen) in values.items():
-                instance, created = tagstore.get_or_create_group_tag_value(
+                _, created = tagstore.get_or_create_group_tag_value(
                     project_id=project.id,
                     group_id=group_id,
                     environment_id=environment.id,

@@ -123,15 +123,13 @@ class TagStorage(Service):
             grouptagkey_model,
         ]
 
-    def setup_tasks(self, tagkey_model):
-        from .tasks import setup_tasks
-
-        setup_tasks(tagkey_model=tagkey_model)
-
     def setup_receivers(self, tagvalue_model, grouptagvalue_model):
-        from .receivers import setup_receivers
+        from django.db.models.signals import post_save
+        from sentry.receivers.releases import ensure_release_exists
 
-        setup_receivers(tagvalue_model=tagvalue_model, grouptagvalue_model=grouptagvalue_model)
+        post_save.connect(
+            ensure_release_exists, sender=tagvalue_model, dispatch_uid="ensure_release_exists", weak=False
+        )
 
     def is_valid_key(self, key):
         return bool(TAG_KEY_RE.match(key))
@@ -194,8 +192,7 @@ class TagStorage(Service):
         """
         raise NotImplementedError
 
-    def get_or_create_tag_value(self, project_id, environment_id,
-                                key, value, key_id=None, **kwargs):
+    def get_or_create_tag_value(self, project_id, environment_id, key, value, **kwargs):
         """
         >>> get_or_create_tag_key(1, 2, "key1", "value1")
         """
@@ -229,7 +226,7 @@ class TagStorage(Service):
 
     def create_event_tags(self, project_id, group_id, environment_id, event_id, tags):
         """
-        >>> create_event_tags(1, 2, 3, 4, [(5, 6)])
+        >>> create_event_tags(1, 2, 3, 4, [('foo', 'bar'), ('baz', 'qux')])
         """
         raise NotImplementedError
 
