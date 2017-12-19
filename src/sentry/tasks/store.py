@@ -15,6 +15,7 @@ from raven.contrib.django.models import client as Raven
 from time import time
 from django.utils import timezone
 
+from sentry import reprocessing
 from sentry.cache import default_cache
 from sentry.tasks.base import instrumented_task
 from sentry.utils import metrics
@@ -29,6 +30,10 @@ info_logger = logging.getLogger('sentry.store')
 
 # Is reprocessing on or off by default?
 REPROCESSING_DEFAULT = False
+
+
+class RetryProcessing(Exception):
+    pass
 
 
 def should_process(data):
@@ -99,7 +104,7 @@ def preprocess_event_from_reprocessing(
     )
 
 
-def _do_process_event(cache_key, start_time, event_id):
+def _do_process_event(cache_key, start_time, event_id, process_task):
     from sentry.plugins import plugins
 
     data = default_cache.get(cache_key)
@@ -114,6 +119,9 @@ def _do_process_event(cache_key, start_time, event_id):
         'project': project,
     })
     has_changed = False
+
+    # Fetch the reprocessing revision
+    reprocessing_rev = reprocessing.get_reprocessing_revision(project)
 
     # Stacktrace based event processors.  These run before anything else.
     new_data = process_stacktraces(data)
@@ -137,9 +145,19 @@ def _do_process_event(cache_key, start_time, event_id):
 
     if has_changed:
         issues = data.get('processing_issues')
-        if issues and create_failed_event(
-            cache_key, project, list(issues.values()), event_id=event_id, start_time=start_time
-        ):
+        try:
+            if issues and create_failed_event(
+                cache_key, project, list(issues.values()),
+                event_id=event_id, start_time=start_time,
+                reprocessing_rev=reprocessing_rev
+            ):
+                return
+        except RetryProcessing:
+            # If `create_failed_event` indicates that we need to retry we
+            # invoke outselves again.  This happens when the reprocessing
+            # revision changed while we were processing.
+            process_task.delay(cache_key, start_time=start_time,
+                               event_id=event_id)
             return
 
         default_cache.set(cache_key, data, 3600)
@@ -156,7 +174,7 @@ def _do_process_event(cache_key, start_time, event_id):
     soft_time_limit=60,
 )
 def process_event(cache_key, start_time=None, event_id=None, **kwargs):
-    return _do_process_event(cache_key, start_time, event_id)
+    return _do_process_event(cache_key, start_time, event_id, process_event)
 
 
 @instrumented_task(
@@ -166,7 +184,8 @@ def process_event(cache_key, start_time=None, event_id=None, **kwargs):
     soft_time_limit=60,
 )
 def process_event_from_reprocessing(cache_key, start_time=None, event_id=None, **kwargs):
-    return _do_process_event(cache_key, start_time, event_id)
+    return _do_process_event(cache_key, start_time, event_id,
+                             process_event_from_reprocessing)
 
 
 def delete_raw_event(project_id, event_id, allow_hint_clear=False):
@@ -193,13 +212,24 @@ def delete_raw_event(project_id, event_id, allow_hint_clear=False):
                 ProjectOption.objects.set_value(project, 'sentry:sent_failed_event_hint', False)
 
 
-def create_failed_event(cache_key, project_id, issues, event_id, start_time=None):
+def create_failed_event(cache_key, project_id, issues, event_id, start_time=None,
+                        reprocessing_rev=None):
     """If processing failed we put the original data from the cache into a
     raw event.  Returns `True` if a failed event was inserted
     """
     reprocessing_active = ProjectOption.objects.get_value(
         project_id, 'sentry:reprocessing_active', REPROCESSING_DEFAULT
     )
+
+    # In case there is reprocessing active but the current reprocessing
+    # revision is already different than when we started, we want to
+    # immediately retry the event.  This resolves the problem when
+    # otherwise a concurrent change of debug symbols might leave a
+    # reprocessing issue stuck in the project forever.
+    if reprocessing_active and \
+       reprocessing.get_reprocessing_revision(project_id, cached=False) != \
+       reprocessing_rev:
+        raise RetryProcessing()
 
     # The first time we encounter a failed event and the hint was cleared
     # we send a notification.
