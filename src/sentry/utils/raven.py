@@ -60,6 +60,10 @@ class SentryInternalClient(DjangoClient):
         if not is_current_event_safe():
             return
 
+        # Force raven-python encoding of this event, so that edge cases like
+        # non JSON-serializable objects are handled.
+        kwargs = self.decode(self.encode(kwargs))
+
         from sentry import tsdb
         from sentry.coreapi import ClientApiHelper
         from sentry.event_manager import EventManager
