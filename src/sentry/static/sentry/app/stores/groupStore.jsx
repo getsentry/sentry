@@ -243,10 +243,13 @@ const GroupStore = Reflux.createStore({
   },
 
   onDeleteError(changeId, itemIds, response) {
+    showAlert(t('Unable to delete events. Please try again.'), 'error');
+
+    if (!itemIds) return;
+
     itemIds.forEach(itemId => {
       this.clearStatus(itemId, 'delete');
     });
-    showAlert(t('Unable to delete events. Please try again.'), 'error');
     this.trigger(new Set(itemIds));
   },
 
