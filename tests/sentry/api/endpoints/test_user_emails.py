@@ -13,7 +13,7 @@ class UserEmailsTest(APITestCase):
 
     def test_simple(self):
         url = reverse('sentry-api-0-user-emails', kwargs={'user_id': self.user.id})
-        response = self.client.put(url, data={'email': 'b@example.com'}, format='json')
+        response = self.client.post(url, data={'email': 'b@example.com'}, format='json')
 
         assert response.status_code == 201, response.content
         assert UserEmail.objects.filter(email='b@example.com').exists()
@@ -21,7 +21,7 @@ class UserEmailsTest(APITestCase):
 
     def test_with_primary_false(self):
         url = reverse('sentry-api-0-user-emails', kwargs={'user_id': self.user.id})
-        response = self.client.put(
+        response = self.client.post(
             url,
             data={
                 'email': 'b@example.com',
@@ -34,5 +34,5 @@ class UserEmailsTest(APITestCase):
 
     def test_bad_request(self):
         url = reverse('sentry-api-0-user-emails', kwargs={'user_id': self.user.id})
-        response = self.client.put(url, data={}, format='json')
+        response = self.client.post(url, data={}, format='json')
         assert response.status_code == 400, response.content

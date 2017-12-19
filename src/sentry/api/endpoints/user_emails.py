@@ -1,7 +1,6 @@
 from __future__ import absolute_import
 
-from django.contrib import messages
-from django.db import transaction
+from django.db import IntegrityError, transaction
 from django.utils.translation import ugettext as _
 from rest_framework import serializers, status
 from rest_framework.response import Response
@@ -16,7 +15,7 @@ class UserEmailSerializer(serializers.Serializer):
 
 
 class UserEmailsEndpoint(UserEndpoint):
-    def put(self, request, user):
+    def post(self, request, user):
         serializer = UserEmailSerializer(data=request.DATA)
 
         if not serializer.is_valid():
@@ -24,17 +23,19 @@ class UserEmailsEndpoint(UserEndpoint):
 
         result = serializer.object
 
-        with transaction.atomic():
-            user_email = UserEmail.objects.create(
-                user=user,
-                email=result.get('email'),
-            )
+        try:
+            with transaction.atomic():
+                user_email = UserEmail.objects.create(
+                    user=user,
+                    email=result.get('email'),
+                )
 
             if result.get('primary'):
                 user.update(email=result.get('email'))
 
-        user.send_confirm_email_singular(user_email)
-        msg = _('A confirmation email has been sent to %s.') % user_email.email
-        messages.add_message(request, messages.SUCCESS, msg)
+        except IntegrityError:
+            return Response({'detail': 'Email already exists.'}, status=status.HTTP_400_BAD_REQUEST)
 
-        return Response(status=201)
+        user.send_confirm_email_singular(user_email)
+        return Response(
+            {'detail': _('A confirmation email has been sent to %s.') % user_email.email}, status=201)
