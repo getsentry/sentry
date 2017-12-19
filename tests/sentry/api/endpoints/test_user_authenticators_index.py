@@ -32,7 +32,7 @@ class AuthenticatorIndex(APITestCase):
             'sentry-api-0-authenticator-index',
         )
 
-        new_options = settings.SENTRY_OPTIONS
+        new_options = settings.SENTRY_OPTIONS.copy()
         new_options['system.url-prefix'] = 'https://testserver'
         with self.settings(SENTRY_OPTIONS=new_options):
             resp = self.client.get(url, format='json')
