@@ -1,6 +1,6 @@
 import PropTypes from 'prop-types';
 import React from 'react';
-import moment from 'moment';
+import moment from 'moment-timezone';
 import _ from 'lodash';
 import PureRenderMixin from 'react-addons-pure-render-mixin';
 
@@ -76,11 +76,10 @@ const TimeSince = React.createClass({
     let user = ConfigStore.get('user');
     let options = user ? user.options : {};
     let format = options.clock24Hours ? 'MMMM D YYYY HH:mm:ss z' : 'LLL z';
-
     return (
       <time
         dateTime={date.toISOString()}
-        title={moment(date).format(format)}
+        title={moment.tz(date, options.timezone).format(format)}
         className={this.props.className}
       >
         {this.state.relative}
