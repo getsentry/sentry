@@ -25,6 +25,16 @@ exports[`ProjectPluginRow renders 1`] = `
       >
         Sentry Team
       </ExternalLink>
+      <span>
+         
+        ·
+         
+        <a
+          href="/org-slug/project-slug/settings/plugins/amazon-sqs"
+        >
+          Configure plugin
+        </a>
+      </span>
     </p>
   </td>
   <td

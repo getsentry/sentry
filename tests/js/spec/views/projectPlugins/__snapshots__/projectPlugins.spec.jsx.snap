@@ -36,6 +36,7 @@ exports[`ProjectPlugins renders 1`] = `
           }
           canDisable={true}
           enabled={false}
+          hasConfiguration={true}
           id="amazon-sqs"
           key="amazon-sqs"
           name="Amazon SQS"
