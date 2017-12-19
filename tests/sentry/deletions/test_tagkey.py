@@ -37,7 +37,7 @@ class DeleteTagKeyTest(TestCase):
             event_id=1,
             environment_id=self.environment.id,
             tags=[
-                (tk.id, tv.id),
+                (tk.key, tv.value),
             ]
         )
 
@@ -65,7 +65,7 @@ class DeleteTagKeyTest(TestCase):
             environment_id=env2.id,
             event_id=1,
             tags=[
-                (tk2.id, tv2.id),
+                (tk2.key, tv2.value),
             ],
         )
 

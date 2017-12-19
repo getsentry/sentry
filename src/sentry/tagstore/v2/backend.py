@@ -217,6 +217,13 @@ class V2TagStorage(TagStorage):
     def create_event_tags(self, project_id, group_id, environment_id, event_id, tags):
         assert environment_id is not None
 
+        tag_ids = []
+        for key, value in tags:
+            tagkey, _ = self.get_or_create_tag_key(project_id, environment_id, key)
+            tagvalue, _ = self.get_or_create_tag_value(
+                project_id, environment_id, key, value, key_id=tagkey.id)
+            tag_ids.append((tagkey.id, tagvalue.id))
+
         try:
             # don't let a duplicate break the outer transaction
             with transaction.atomic():
@@ -232,7 +239,7 @@ class V2TagStorage(TagStorage):
                         key_id=key_id,
                         value_id=value_id,
                     )
-                    for key_id, value_id in tags
+                    for key_id, value_id in tag_ids
                 ])
         except IntegrityError:
             logger.error(

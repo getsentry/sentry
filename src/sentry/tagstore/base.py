@@ -192,8 +192,7 @@ class TagStorage(Service):
         """
         raise NotImplementedError
 
-    def get_or_create_tag_value(self, project_id, environment_id,
-                                key, value, key_id=None, **kwargs):
+    def get_or_create_tag_value(self, project_id, environment_id, key, value, **kwargs):
         """
         >>> get_or_create_tag_key(1, 2, "key1", "value1")
         """
@@ -227,7 +226,7 @@ class TagStorage(Service):
 
     def create_event_tags(self, project_id, group_id, environment_id, event_id, tags):
         """
-        >>> create_event_tags(1, 2, 3, 4, [(5, 6)])
+        >>> create_event_tags(1, 2, 3, 4, [('foo', 'bar'), ('baz', 'qux')])
         """
         raise NotImplementedError
 
