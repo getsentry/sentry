@@ -13,8 +13,6 @@ import SudoActions from '../../actions/sudoActions';
 import SudoModalStore from '../../stores/sudoModalStore';
 import U2fContainer from '../u2fContainer';
 
-// import '../../../less/components/modals/modalProps.less';
-
 const SudoModal = React.createClass({
   mixins: [ApiMixin, Reflux.connect(SudoModalStore, 'modalProps')],
 
