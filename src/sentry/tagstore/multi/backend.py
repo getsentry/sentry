@@ -9,9 +9,56 @@ sentry.tagstore.multi.backend
 from __future__ import absolute_import
 
 import six
+import random
+from threading import Thread
+from six.moves.queue import Queue, Full
+from django.conf import settings
 
 from sentry.tagstore.base import TagStorage
 from sentry.utils.imports import import_string
+
+
+class QueuedRunner(object):
+    """\
+    Secondary backend runner that puts method calls on a bounded queue and drops them
+    when the queue is full.
+
+    A separate (non-main) thread works the queue.
+    """
+
+    def __init__(self):
+        self.q = q = Queue(maxsize=100)
+        self.sample_channel = getattr(settings, 'SENTRY_TAGSTORE_MULTI_SAMPLING', 1.0)
+
+        def worker():
+            while True:
+                (func, args, kwargs) = q.get()
+                try:
+                    func(*args, **kwargs)
+                except Exception:
+                    pass
+                finally:
+                    q.task_done()
+
+        t = Thread(target=worker)
+        t.setDaemon(True)
+        t.start()
+
+    def run(self, f, *args, **kwargs):
+        if random.random() <= self.sample_channel:
+            try:
+                self.q.put((f, args, kwargs), block=False)
+            except Full:
+                return
+
+
+class ImmediateRunner(object):
+    """\
+    Secondary backend runner that runs functions immediately. Useful for tests.
+    """
+
+    def run(self, f, *args, **kwargs):
+        return f(*args, **kwargs)
 
 
 class MultiTagStorage(TagStorage):
@@ -26,7 +73,8 @@ class MultiTagStorage(TagStorage):
     >>> ])
     """
 
-    def __init__(self, backends, read_selector=lambda backends: backends[0], **kwargs):
+    def __init__(self, backends, read_selector=lambda backends: backends[0],
+                 runner='QueuedRunner', **kwargs):
         assert backends, "you should provide at least one backend"
 
         self.backends = []
@@ -36,6 +84,7 @@ class MultiTagStorage(TagStorage):
             self.backends.append(backend(**backend_options))
 
         self.read_selector = read_selector
+        self.runner = globals()[runner]()
 
         super(TagStorage, self).__init__(**kwargs)
 
@@ -48,9 +97,12 @@ class MultiTagStorage(TagStorage):
         exc = None
         for i, backend in enumerate(self.backends):
             try:
-                r = getattr(backend, func)(*args, **kwargs)
+                f = getattr(backend, func)
+
                 if (i == 0):
-                    ret_val = r
+                    ret_val = f(*args, **kwargs)
+                else:
+                    self.runner.run(f, *args, **kwargs)
             except Exception as e:
                 if exc is None:
                     exc = e
