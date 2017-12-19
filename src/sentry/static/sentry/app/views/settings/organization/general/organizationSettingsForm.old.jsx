@@ -36,6 +36,7 @@ const OldOrganizationSettingsForm = React.createClass({
       openMembership: data.openMembership,
       allowSharedIssues: data.allowSharedIssues,
       isEarlyAdopter: data.isEarlyAdopter,
+      require2FA: data.require2FA,
       enhancedPrivacy: data.enhancedPrivacy,
       dataScrubber: data.dataScrubber,
       dataScrubberDefaults: data.dataScrubberDefaults,
@@ -214,6 +215,17 @@ const OldOrganizationSettingsForm = React.createClass({
               />
 
               <legend>{t('Security & Privacy')}</legend>
+
+              <BooleanField
+                key="require2FA"
+                name="require2FA"
+                label={t('Require Two Factor Auth')}
+                value={formData.required2FA}
+                help={t('Require Two Factor Authentication for all members.')}
+                required={false}
+                error={errors.required2FA}
+                onChange={this.onFieldChange.bind(this, 'required2FA')}
+              />
 
               <BooleanField
                 key="allowSharedIssues"
