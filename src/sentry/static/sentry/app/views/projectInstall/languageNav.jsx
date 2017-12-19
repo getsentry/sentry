@@ -7,9 +7,12 @@ class LanguageNav extends React.Component {
     active: PropTypes.bool,
   };
 
-  state = {
-    isVisible: this.props.active || false,
-  };
+  constructor(...args) {
+    super(...args);
+    this.state = {
+      isVisible: this.props.active || false,
+    };
+  }
 
   toggle = () => {
     this.setState({isVisible: !this.state.isVisible});

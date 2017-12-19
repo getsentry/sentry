@@ -32,9 +32,12 @@ class SimilarList extends React.Component {
     filteredItems: [],
   };
 
-  state = {
-    showAllItems: false,
-  };
+  constructor(...args) {
+    super(...args);
+    this.state = {
+      showAllItems: false,
+    };
+  }
 
   renderEmpty = () => {
     return (

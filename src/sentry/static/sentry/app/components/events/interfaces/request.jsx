@@ -23,9 +23,12 @@ class RequestInterface extends React.Component {
     project: SentryTypes.Project,
   };
 
-  state = {
-    view: 'formatted',
-  };
+  constructor(...args) {
+    super(...args);
+    this.state = {
+      view: 'formatted',
+    };
+  }
 
   isPartial = () => {
     // We assume we only have a partial interface is we're missing

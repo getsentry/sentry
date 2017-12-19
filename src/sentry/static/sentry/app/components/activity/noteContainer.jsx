@@ -14,9 +14,12 @@ class NoteContainer extends React.Component {
     memberList: PropTypes.array.isRequired,
   };
 
-  state = {
-    editing: false,
-  };
+  constructor(...args) {
+    super(...args);
+    this.state = {
+      editing: false,
+    };
+  }
 
   onEdit = () => {
     this.setState({editing: true});

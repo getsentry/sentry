@@ -12,9 +12,12 @@ class ProjectInstallOverview extends React.Component {
     platformData: PropTypes.object,
   };
 
-  state = {
-    data: this.props.platformData,
-  };
+  constructor(...args) {
+    super(...args);
+    this.state = {
+      data: this.props.platformData,
+    };
+  }
 
   isGettingStarted = () => {
     return location.href.indexOf('getting-started') > 0;

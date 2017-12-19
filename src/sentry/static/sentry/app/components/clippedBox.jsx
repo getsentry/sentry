@@ -20,10 +20,13 @@ class ClippedBox extends React.Component {
     btnText: t('Show More'),
   };
 
-  state = {
-    clipped: this.props.defaultClipped,
-    revealed: false, // True once user has clicked "Show More" button
-  };
+  constructor(...args) {
+    super(...args);
+    this.state = {
+      clipped: this.props.defaultClipped,
+      revealed: false, // True once user has clicked "Show More" button
+    };
+  }
 
   componentDidMount() {
     let renderedHeight = ReactDOM.findDOMNode(this).offsetHeight;

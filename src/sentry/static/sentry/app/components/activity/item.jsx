@@ -26,9 +26,12 @@ class ActivityItem extends React.Component {
     clipHeight: 68,
   };
 
-  state = {
-    clipped: this.props.defaultClipped,
-  };
+  constructor(...args) {
+    super(...args);
+    this.state = {
+      clipped: this.props.defaultClipped,
+    };
+  }
 
   componentDidMount() {
     if (this.refs.activityBubble) {

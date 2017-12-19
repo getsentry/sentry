@@ -10,9 +10,12 @@ class Hovercard extends React.Component {
     body: PropTypes.node,
   };
 
-  state = {
-    visible: false,
-  };
+  constructor(...args) {
+    super(...args);
+    this.state = {
+      visible: false,
+    };
+  }
 
   handleToggleHovercard = () => {
     let {header, body} = this.props;

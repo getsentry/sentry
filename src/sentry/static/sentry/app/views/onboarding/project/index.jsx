@@ -25,7 +25,10 @@ class OnboardingProject extends React.Component {
     teams: [],
   };
 
-  state = {projectRequired: false};
+  constructor(...args) {
+    super(...args);
+    this.state = {projectRequired: false};
+  }
 
   componentWillReceiveProps(newProps) {
     this.setWarning(newProps.name);

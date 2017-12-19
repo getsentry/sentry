@@ -11,9 +11,12 @@ class NumberConfirm extends React.Component {
     onFinished: PropTypes.func,
   };
 
-  state = {
-    showModal: this.props.show || false,
-  };
+  constructor(...args) {
+    super(...args);
+    this.state = {
+      showModal: this.props.show || false,
+    };
+  }
 
   componentWillReceiveProps(nextProps) {
     if (nextProps.show != this.props.show) {

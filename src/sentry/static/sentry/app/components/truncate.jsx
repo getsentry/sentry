@@ -13,9 +13,12 @@ class Truncate extends React.Component {
     maxLength: 50,
   };
 
-  state = {
-    isExpanded: false,
-  };
+  constructor(...args) {
+    super(...args);
+    this.state = {
+      isExpanded: false,
+    };
+  }
 
   onFocus = e => {
     let {value, maxLength} = this.props;

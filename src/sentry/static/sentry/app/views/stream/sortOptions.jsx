@@ -10,9 +10,12 @@ class SortOptions extends React.PureComponent {
     onSelect: PropTypes.func,
   };
 
-  state = {
-    sortKey: this.props.sort || 'date',
-  };
+  constructor(...args) {
+    super(...args);
+    this.state = {
+      sortKey: this.props.sort || 'date',
+    };
+  }
 
   componentWillReceiveProps(nextProps) {
     this.setState({

@@ -16,10 +16,13 @@ export default class CustomIgnoreCountModal extends React.Component {
     windowChoices: PropTypes.array.isRequired,
   };
 
-  state = {
-    count: 100,
-    window: '',
-  };
+  constructor(...args) {
+    super(...args);
+    this.state = {
+      count: 100,
+      window: '',
+    };
+  }
 
   onSubmit = () => {
     this.props.onSelected({

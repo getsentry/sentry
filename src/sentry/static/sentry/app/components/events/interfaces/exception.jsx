@@ -14,11 +14,14 @@ class ExceptionInterface extends React.Component {
     data: PropTypes.object.isRequired,
   };
 
-  state = {
-    stackView: this.props.data.hasSystemFrames ? 'app' : 'full',
-    newestFirst: isStacktraceNewestFirst(),
-    stackType: 'original',
-  };
+  constructor(...args) {
+    super(...args);
+    this.state = {
+      stackView: this.props.data.hasSystemFrames ? 'app' : 'full',
+      newestFirst: isStacktraceNewestFirst(),
+      stackType: 'original',
+    };
+  }
 
   eventHasThreads = () => {
     return !!this.props.event.entries.find(x => x.type === 'threads');
