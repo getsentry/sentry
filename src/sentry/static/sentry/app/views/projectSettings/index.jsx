@@ -1,12 +1,15 @@
 import PropTypes from 'prop-types';
 import React from 'react';
-import OrganizationState from '../../mixins/organizationState';
+
+import {fetchPlugins} from '../../actionCreators/plugins';
+import {t} from '../../locale';
 import ApiMixin from '../../mixins/apiMixin';
 import Badge from '../../components/badge';
 import ListLink from '../../components/listLink';
 import LoadingError from '../../components/loadingError';
 import LoadingIndicator from '../../components/loadingIndicator';
-import {t} from '../../locale';
+import OrganizationState from '../../mixins/organizationState';
+import PluginNavigation from './pluginNavigation';
 
 const ProjectSettings = React.createClass({
   propTypes: {
@@ -29,8 +32,15 @@ const ProjectSettings = React.createClass({
   },
 
   componentWillMount() {
-    this.props.setProjectNavSection('settings');
+    let {params, setProjectNavSection} = this.props;
+    let {projectId, orgId} = params || {};
+
+    setProjectNavSection('settings');
     this.fetchData();
+
+    // fetch list of plugins, we will also fetch everytime we are routed
+    // to plugins view (e.g. "All Integrations")
+    fetchPlugins(this.api, {projectId, orgId});
   },
 
   componentWillReceiveProps(nextProps) {
@@ -159,13 +169,7 @@ const ProjectSettings = React.createClass({
             <ListLink to={`/${orgId}/${projectId}/settings/plugins/`}>
               {t('All Integrations')}
             </ListLink>
-            {project.plugins.filter(p => p.enabled).map(plugin => {
-              return (
-                <li key={plugin.id}>
-                  <a href={`${settingsUrlRoot}/plugins/${plugin.id}/`}>{plugin.name}</a>
-                </li>
-              );
-            })}
+            <PluginNavigation urlRoot={settingsUrlRoot} />
           </ul>
         </div>
         <div className="col-md-10">
