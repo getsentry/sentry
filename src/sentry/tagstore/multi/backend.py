@@ -13,6 +13,7 @@ import random
 from threading import Thread
 from six.moves.queue import Queue, Full
 from django.conf import settings
+from operator import itemgetter
 
 from sentry.tagstore.base import TagStorage
 from sentry.utils.imports import import_string
@@ -73,7 +74,7 @@ class MultiTagStorage(TagStorage):
     >>> ])
     """
 
-    def __init__(self, backends, read_selector=lambda backends: backends[0],
+    def __init__(self, backends, read_selector=itemgetter(0),
                  runner='QueuedRunner', **kwargs):
         assert backends, "you should provide at least one backend"
 
