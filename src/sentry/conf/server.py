@@ -933,7 +933,6 @@ _SENTRY_TAGSTORE_DEFAULT_MULTI_OPTIONS = {
         ('sentry.tagstore.legacy.LegacyTagStorage', {}),
         ('sentry.tagstore.v2.V2TagStorage', {}),
     ],
-    'read_selector': lambda backends: backends[0]
 }
 SENTRY_TAGSTORE = os.environ.get('SENTRY_TAGSTORE', 'sentry.tagstore.legacy.LegacyTagStorage')
 SENTRY_TAGSTORE_OPTIONS = (
