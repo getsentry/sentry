@@ -1,0 +1,70 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`ProjectPlugins renders 1`] = `
+<div>
+  <h2>
+    Integrations
+  </h2>
+  <div
+    className="panel panel-default"
+  >
+    <table
+      className="table integrations simple"
+    >
+      <thead>
+        <tr>
+          <th
+            colSpan={2}
+          >
+            Integration
+          </th>
+          <th
+            className="align-right"
+          >
+            Enabled
+          </th>
+        </tr>
+      </thead>
+      <tbody>
+        <ProjectPluginRow
+          assets={Array []}
+          author={
+            Object {
+              "name": "Sentry Team",
+              "url": "https://github.com/getsentry/sentry",
+            }
+          }
+          canDisable={true}
+          enabled={false}
+          hasConfiguration={true}
+          id="amazon-sqs"
+          key="amazon-sqs"
+          name="Amazon SQS"
+          orgId="org-slug"
+          projectId="project-slug"
+          slug="amazon-sqs"
+          version="8.23.0.dev0"
+        />
+        <ProjectPluginRow
+          assets={Array []}
+          author={
+            Object {
+              "name": "Sentry Team",
+              "url": "https://github.com/getsentry/sentry",
+            }
+          }
+          canDisable={false}
+          enabled={true}
+          id="github"
+          key="github"
+          name="GitHub"
+          orgId="org-slug"
+          projectId="project-slug"
+          slug="github"
+          version="8.23.0.dev0"
+        />
+      </tbody>
+    </table>
+  </div>
+</div>
+`;

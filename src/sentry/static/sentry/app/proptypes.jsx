@@ -146,6 +146,30 @@ export const NavigationObject = PropTypes.shape({
   ),
 });
 
+export const Plugin = {
+  assets: PropTypes.array,
+  author: PropTypes.shape({
+    url: PropTypes.string,
+    name: PropTypes.string,
+  }),
+  canDisable: PropTypes.bool,
+  contexts: PropTypes.array,
+  doc: PropTypes.string,
+  enabled: PropTypes.bool,
+  hasConfiguration: PropTypes.bool,
+  id: PropTypes.string,
+  isTestable: PropTypes.bool,
+  metadata: PropTypes.object,
+  name: PropTypes.string,
+  shortName: PropTypes.string,
+  slug: PropTypes.string,
+  status: PropTypes.string,
+  type: PropTypes.string,
+  version: PropTypes.string,
+};
+
+export const PluginShape = PropTypes.shape(Plugin);
+
 let SentryTypes = {
   AnyModel: PropTypes.shape({
     id: PropTypes.string.isRequired,
@@ -165,6 +189,8 @@ let SentryTypes = {
   }),
   NavigationObject,
   Member,
+  Plugin,
+  PluginShape,
   User,
 };
 
