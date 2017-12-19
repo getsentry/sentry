@@ -356,6 +356,24 @@ function routes() {
     hooksOrgRoutes.push(cb());
   });
 
+  // Add members route in the function because it needs the hook store
+  // which is not available at import time.
+  orgSettingsRoutes.push(
+    <Route key="members" path="members/" name="Members">
+      <IndexRoute component={
+        HookStore.get('component:org-members-view').length ?
+          HookStore.get('component:org-members-view')[0]() :
+          OrganizationMembersView
+      } />
+      <Route path="new/" name="Invite" component={errorHandler(InviteMember)} />,
+      <Route
+        path=":memberId/"
+        name="Details"
+        component={errorHandler(OrganizationMemberDetail)}
+      />,
+    </Route>
+  )
+
   return (
     <Route path="/" component={errorHandler(App)}>
       <Route path="/account/" component={errorHandler(AccountLayout)}>
@@ -391,21 +409,6 @@ function routes() {
           >
             <Route component={errorHandler(OrganizationSettingsLayout)}>
               {orgSettingsRoutes}
-              // Add members route separately because it needs to access the HookStore
-              // which is only available after all the JS has loaded.
-              <Route key="members" path="members/" name="Members">
-                <IndexRoute component={
-                  HookStore.get('component:org-members-view').length ?
-                    HookStore.get('component:org-members-view')[0]() :
-                    OrganizationMembersView
-                } />
-                <Route path="new/" name="Invite" component={errorHandler(InviteMember)} />,
-                <Route
-                  path=":memberId/"
-                  name="Details"
-                  component={errorHandler(OrganizationMemberDetail)}
-                />,
-              </Route>,
             </Route>
 
             <Route path="project/">
