@@ -107,9 +107,9 @@ const ProjectSettings = React.createClass({
               {t('Alerts')}
             </ListLink>
             <ListLink to={`/${orgId}/${projectId}/settings/tags/`}>{t('Tags')}</ListLink>
-            <li>
-              <a href={`${settingsUrlRoot}/issue-tracking/`}>{t('Issue Tracking')}</a>
-            </li>
+            <ListLink to={`/${orgId}/${projectId}/settings/issue-tracking/`}>
+              {t('Issue Tracking')}
+            </ListLink>
             {access.has('project:write') && (
               <ListLink
                 to={`/${orgId}/${projectId}/settings/release-tracking/`}
