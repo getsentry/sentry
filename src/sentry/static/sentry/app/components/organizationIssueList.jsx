@@ -14,7 +14,10 @@ class OrganizationIssueList extends React.Component {
     pageSize: PropTypes.number,
   };
 
-  state = this.getQueryStringState(this.props);
+  constructor(props) {
+    super(props);
+    this.state = this.getQueryStringState(props);
+  }
 
   componentWillReceiveProps(nextProps) {
     if (nextProps.location.search !== this.props.location.search) {
