@@ -690,6 +690,12 @@ class NotificationSettingsForm(forms.Form):
             value='1' if self.cleaned_data['self_notifications'] else '0',
         )
 
+        UserOption.objects.set_value(
+            user=self.user,
+            key='self_assign_issue',
+            value='1' if self.cleaned_data['self_assign_issue'] else '0',
+        )
+
         workflow_notifications_value = self.cleaned_data.get('workflow_notifications')
         if not workflow_notifications_value:
             UserOption.objects.unset_value(
