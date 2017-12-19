@@ -43,7 +43,7 @@ class DeleteGroupTest(TestCase):
             project_id=project.id,
             environment_id=self.environment.id,
             tags=[
-                (tk.id, tv.id),
+                (tk.key, tv.value),
             ],
         )
         GroupAssignee.objects.create(

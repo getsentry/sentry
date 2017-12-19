@@ -215,7 +215,7 @@ class DeleteTagKeyTest(TestCase):
             environment_id=self.environment.id,
             event_id=1,
             tags=[
-                (tk.id, tv.id),
+                (tk.key, tv.value),
             ],
         )
 
@@ -252,7 +252,7 @@ class DeleteTagKeyTest(TestCase):
             environment_id=env2.id,
             event_id=1,
             tags=[
-                (tk2.id, tv2.id)
+                (tk2.key, tv2.value)
             ],
         )
 
@@ -300,13 +300,14 @@ class DeleteGroupTest(TestCase):
             event_id='a' * 32,
             group_id=group.id,
         )
+        tv, _ = tagstore.get_or_create_tag_value(project.id, self.environment.id, 'key1', 'value1')
         tagstore.create_event_tags(
             event_id=event.id,
             group_id=group.id,
             project_id=project.id,
             environment_id=self.environment.id,
             tags=[
-                (1, 1),
+                (tv.key, tv.value),
             ],
         )
         GroupAssignee.objects.create(

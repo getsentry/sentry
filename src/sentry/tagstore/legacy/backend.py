@@ -51,10 +51,6 @@ class LegacyTagStorage(TagStorage):
             grouptagvalue_model=GroupTagValue,
         )
 
-        self.setup_tasks(
-            tagkey_model=TagKey,
-        )
-
         self.setup_receivers(
             tagvalue_model=TagValue,
             grouptagvalue_model=GroupTagValue,
@@ -180,6 +176,13 @@ class LegacyTagStorage(TagStorage):
             project_id=project_id, group_id=group_id, key=key, value=value, **kwargs)
 
     def create_event_tags(self, project_id, group_id, environment_id, event_id, tags):
+        tag_ids = []
+        for key, value in tags:
+            tagkey, _ = self.get_or_create_tag_key(project_id, environment_id, key)
+            tagvalue, _ = self.get_or_create_tag_value(
+                project_id, environment_id, key, value)
+            tag_ids.append((tagkey.id, tagvalue.id))
+
         try:
             # don't let a duplicate break the outer transaction
             with transaction.atomic():
@@ -194,7 +197,7 @@ class LegacyTagStorage(TagStorage):
                         key_id=key_id,
                         value_id=value_id,
                     )
-                    for key_id, value_id in tags
+                    for key_id, value_id in tag_ids
                 ])
         except IntegrityError:
             pass
@@ -298,7 +301,7 @@ class LegacyTagStorage(TagStorage):
             ).update(status=TagKeyStatus.PENDING_DELETION)
 
             if updated:
-                delete_tag_key_task.delay(object_id=tagkey.id)
+                delete_tag_key_task.delay(object_id=tagkey.id, model=TagKey)
                 deleted.append(tagkey)
 
         return deleted

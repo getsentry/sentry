@@ -63,8 +63,8 @@ class GroupEventsTest(APITestCase):
             environment_id=self.environment.id,
             event_id=event_1.id,
             tags=[
-                (tagkey_1.id, tagvalue_1.id),
-                (tagkey_2.id, tagvalue_3.id),
+                (tagkey_1.key, tagvalue_1.value),
+                (tagkey_2.key, tagvalue_3.value),
             ],
         )
         tagstore.create_event_tags(
@@ -73,7 +73,7 @@ class GroupEventsTest(APITestCase):
             environment_id=self.environment.id,
             event_id=event_2.id,
             tags=[
-                (tagkey_2.id, tagvalue_2.id),
+                (tagkey_2.key, tagvalue_2.value),
             ],
         )
 

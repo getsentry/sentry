@@ -321,24 +321,24 @@ class TagStorage(TestCase):
         v2, _ = self.ts.get_or_create_tag_value(self.proj1.id, self.proj1env1.id, 'k2', 'v2')
         v3, _ = self.ts.get_or_create_tag_value(self.proj1.id, self.proj1env1.id, 'k3', 'v3')
 
-        tags = [(v1._key.id, v1.id), (v2._key.id, v2.id), (v3._key.id, v3.id)]
+        tags = [(v1._key, v1), (v2._key, v2), (v3._key, v3)]
         self.ts.create_event_tags(
             project_id=self.proj1.id,
             group_id=self.proj1group1.id,
             environment_id=self.proj1env1.id,
             event_id=self.proj1group1event1.id,
-            tags=tags
+            tags=[(k.key, v.value) for k, v in tags]
         )
 
         assert EventTag.objects.count() == 3
-        for (key_id, value_id) in tags:
+        for (k, v) in tags:
             assert EventTag.objects.get(
                 project_id=self.proj1.id,
                 group_id=self.proj1group1.id,
                 environment_id=self.proj1env1.id,
                 event_id=self.proj1group1event1.id,
-                key_id=key_id,
-                value_id=value_id,
+                key_id=k.id,
+                value_id=v.id,
             ) is not None
 
     def test_delete_tag_key(self):
@@ -408,16 +408,6 @@ class TagStorage(TestCase):
             'baz': 'quux',
         }
 
-        def _create_tags_for_dict(tags):
-            ids = []
-            for k, v in tags.items():
-                key, _ = self.ts.get_or_create_tag_key(self.proj1.id, self.proj1env1.id, k)
-                value, _ = self.ts.get_or_create_tag_value(self.proj1.id, self.proj1env1.id, k, v)
-                ids.append((key.id, value.id))
-            return ids
-
-        tags_ids = _create_tags_for_dict(tags)
-
         # 2 events with the same tags
         for event in (self.proj1group1event1, self.proj1group1event2):
             self.ts.create_event_tags(
@@ -425,7 +415,7 @@ class TagStorage(TestCase):
                 group_id=self.proj1group1.id,
                 environment_id=self.proj1env1.id,
                 event_id=event.id,
-                tags=tags_ids,
+                tags=tags.items(),
             )
 
         different_tags = {
@@ -434,15 +424,13 @@ class TagStorage(TestCase):
             'baz': 'quux',
         }
 
-        different_tags_ids = _create_tags_for_dict(different_tags)
-
         # 1 event with different tags
         self.ts.create_event_tags(
             project_id=self.proj1.id,
             group_id=self.proj1group1.id,
             environment_id=self.proj1env1.id,
             event_id=self.proj1group1event3.id,
-            tags=different_tags_ids,
+            tags=different_tags.items(),
         )
 
         assert len(
@@ -645,7 +633,7 @@ class TagStorage(TestCase):
         v2, _ = self.ts.get_or_create_tag_value(self.proj1.id, self.proj1env1.id, 'k2', 'v2')
         v3, _ = self.ts.get_or_create_tag_value(self.proj1.id, self.proj1env1.id, 'k3', 'v3')
 
-        tags = [(v1._key.id, v1.id), (v2._key.id, v2.id), (v3._key.id, v3.id)]
+        tags = [(v1.key, v1.value), (v2.key, v2.value), (v3.key, v3.value)]
         self.ts.create_event_tags(
             project_id=self.proj1.id,
             group_id=self.proj1group1.id,

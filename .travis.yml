@@ -118,6 +118,12 @@ matrix:
         - memcached
         - redis-server
         - postgresql
+    - python: 2.7
+      env: SENTRY_TAGSTORE=sentry.tagstore.multi.MultiTagStorage SENTRY_TAGSTORE_DEFAULT_MULTI_OPTIONS=1 TEST_SUITE=postgres DB=postgres
+      services:
+        - memcached
+        - redis-server
+        - postgresql
 notifications:
   webhooks:
     urls:
