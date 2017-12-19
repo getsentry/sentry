@@ -113,115 +113,8 @@ function appendTrailingSlash(nextState, replaceState) {
   }
 }
 
-const orgSettingsRoutes = [
-  <IndexRedirect key="index-org-settings" to="settings/" />,
-
-  <Route
-    key="projects"
-    path="projects/"
-    name="Projects"
-    component={errorHandler(OrganizationProjectsView)}
-  />,
-
-  <Route
-    key="settings"
-    path="settings/"
-    name="General"
-    component={errorHandler(OrganizationGeneralSettingsView)}
-  />,
-
-  <Route
-    key="api-keys"
-    path="api-keys/"
-    name="API Key"
-    component={errorHandler(OrganizationApiKeysView)}
-  />,
-
-  <Route
-    key="api-keys-detail"
-    path="api-keys/:apiKey/"
-    component={errorHandler(OrganizationApiKeyDetailsView)}
-  />,
-
-  <Route
-    key="audit-log"
-    path="audit-log/"
-    name="Audit Log"
-    component={errorHandler(OrganizationAuditLogView)}
-  />,
-
-  <Route
-    key="auth"
-    path="auth/"
-    name="Auth Providers"
-    component={errorHandler(OrganizationAuthView)}
-  />,
-
-  <Route
-    key="integrations"
-    path="integrations/"
-    name="Integrations"
-    component={errorHandler(OrganizationIntegrations)}
-  />,
-
-  <Route
-    key="rate-limits"
-    path="rate-limits/"
-    name="Rate Limits"
-    component={errorHandler(OrganizationRateLimits)}
-  />,
-
-  <Route
-    key="repos"
-    path="repos/"
-    name="Repositories"
-    component={errorHandler(OrganizationRepositoriesView)}
-  />,
-
-  <Route
-    key="settings"
-    path="settings/"
-    component={errorHandler(OrganizationGeneralSettingsView)}
-  />,
-
-  <Route key="teams" name="Project & Teams" path="teams/">
-    <IndexRedirect to="your-teams" />
-    <Route
-      path="all-teams/"
-      name="All Teams"
-      allTeams
-      component={errorHandler(OrganizationTeams)}
-    />
-
-    <Route
-      name="Your Teams"
-      path="your-teams/"
-      component={errorHandler(OrganizationTeams)}
-    />
-
-    <Route
-      key="team-details"
-      name="Team"
-      path=":teamId/"
-      component={errorHandler(TeamDetails)}
-    >
-      <IndexRedirect to="settings/" />
-      <Route path="settings/" name="Settings" component={errorHandler(TeamSettings)} />
-      <Route path="members/" name="Members" component={errorHandler(TeamMembers)} />
-    </Route>
-  </Route>,
-
-  <Route
-    key="org-stats"
-    name="Stats"
-    path="stats/"
-    component={errorHandler(OrganizationStats)}
-  />,
-];
-
 const accountSettingsRoutes = [
   <IndexRedirect key="account-settings-index" to="notifications/" />,
-
   <Route
     key="notifications/"
     path="notifications/"
@@ -356,9 +249,59 @@ function routes() {
     hooksOrgRoutes.push(cb());
   });
 
-  // Add members route in the function because it needs the hook store
-  // which is not available at import time.
-  orgSettingsRoutes.push(
+  // This is declared in the routes() function because some routes need the
+  // hook store which is not available at import time.
+  const orgSettingsRoutes = [
+    <IndexRedirect key="index-org-settings" to="settings/" />,
+
+    <Route
+      key="projects"
+      path="projects/"
+      name="Projects"
+      component={errorHandler(OrganizationProjectsView)}
+    />,
+
+    <Route
+      key="settings"
+      path="settings/"
+      name="General"
+      component={errorHandler(OrganizationGeneralSettingsView)}
+    />,
+
+    <Route
+      key="api-keys"
+      path="api-keys/"
+      name="API Key"
+      component={errorHandler(OrganizationApiKeysView)}
+    />,
+
+    <Route
+      key="api-keys-detail"
+      path="api-keys/:apiKey/"
+      component={errorHandler(OrganizationApiKeyDetailsView)}
+    />,
+
+    <Route
+      key="audit-log"
+      path="audit-log/"
+      name="Audit Log"
+      component={errorHandler(OrganizationAuditLogView)}
+    />,
+
+    <Route
+      key="auth"
+      path="auth/"
+      name="Auth Providers"
+      component={errorHandler(OrganizationAuthView)}
+    />,
+
+    <Route
+      key="integrations"
+      path="integrations/"
+      name="Integrations"
+      component={errorHandler(OrganizationIntegrations)}
+    />,
+
     <Route key="members" path="members/" name="Members">
       <IndexRoute component={
         HookStore.get('component:org-members-view').length ?
@@ -371,8 +314,62 @@ function routes() {
         name="Details"
         component={errorHandler(OrganizationMemberDetail)}
       />,
-    </Route>
-  )
+    </Route>,
+
+    <Route
+      key="rate-limits"
+      path="rate-limits/"
+      name="Rate Limits"
+      component={errorHandler(OrganizationRateLimits)}
+    />,
+
+    <Route
+      key="repos"
+      path="repos/"
+      name="Repositories"
+      component={errorHandler(OrganizationRepositoriesView)}
+    />,
+
+    <Route
+      key="settings"
+      path="settings/"
+      component={errorHandler(OrganizationGeneralSettingsView)}
+    />,
+
+    <Route key="teams" name="Project & Teams" path="teams/">
+      <IndexRedirect to="your-teams" />
+      <Route
+        path="all-teams/"
+        name="All Teams"
+        allTeams
+        component={errorHandler(OrganizationTeams)}
+      />
+
+      <Route
+        name="Your Teams"
+        path="your-teams/"
+        component={errorHandler(OrganizationTeams)}
+      />
+
+      <Route
+        key="team-details"
+        name="Team"
+        path=":teamId/"
+        component={errorHandler(TeamDetails)}
+      >
+        <IndexRedirect to="settings/" />
+        <Route path="settings/" name="Settings" component={errorHandler(TeamSettings)} />
+        <Route path="members/" name="Members" component={errorHandler(TeamMembers)} />
+      </Route>
+    </Route>,
+
+    <Route
+      key="org-stats"
+      name="Stats"
+      path="stats/"
+      component={errorHandler(OrganizationStats)}
+    />,
+  ];
 
   return (
     <Route path="/" component={errorHandler(App)}>
