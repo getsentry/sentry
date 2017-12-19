@@ -4,19 +4,17 @@ import {Link} from 'react-router';
 
 import {getShortVersion} from '../utils';
 
-const Version = React.createClass({
-  propTypes: {
+class Version extends React.Component {
+  static propTypes = {
     anchor: PropTypes.bool,
     version: PropTypes.string.isRequired,
     orgId: PropTypes.string,
     projectId: PropTypes.string,
-  },
+  };
 
-  getDefaultProps() {
-    return {
-      anchor: true,
-    };
-  },
+  static defaultProps = {
+    anchor: true,
+  };
 
   render() {
     let {orgId, projectId, version} = this.props;
@@ -32,7 +30,7 @@ const Version = React.createClass({
       );
     }
     return <span title={version}>{shortVersion}</span>;
-  },
-});
+  }
+}
 
 export default Version;

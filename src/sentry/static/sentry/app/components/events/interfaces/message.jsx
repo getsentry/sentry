@@ -6,13 +6,13 @@ import SentryTypes from '../../../proptypes';
 import utils from '../../../utils';
 import {t} from '../../../locale';
 
-const MessageInterface = React.createClass({
-  propTypes: {
+class MessageInterface extends React.Component {
+  static propTypes = {
     group: SentryTypes.Group.isRequired,
     event: SentryTypes.Event.isRequired,
     type: PropTypes.string.isRequired,
     data: PropTypes.object.isRequired,
-  },
+  };
 
   render() {
     let data = this.props.data;
@@ -40,7 +40,7 @@ const MessageInterface = React.createClass({
           )}
       </EventDataSection>
     );
-  },
-});
+  }
+}
 
 export default MessageInterface;

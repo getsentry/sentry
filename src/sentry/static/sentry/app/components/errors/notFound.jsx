@@ -1,7 +1,7 @@
 import React from 'react';
 import {t} from '../../locale';
 
-const NotFound = React.createClass({
+class NotFound extends React.Component {
   render() {
     return (
       <div className="alert alert-block alert-error">
@@ -31,7 +31,7 @@ const NotFound = React.createClass({
         </p>
       </div>
     );
-  },
-});
+  }
+}
 
 export default NotFound;

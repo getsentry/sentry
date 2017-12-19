@@ -4,10 +4,10 @@ import Footer from '../components/footer';
 import Sidebar from '../components/sidebar';
 import NotFound from '../components/errors/notFound';
 
-const RouteNotFound = React.createClass({
-  getTitle() {
+class RouteNotFound extends React.Component {
+  getTitle = () => {
     return 'Page Not Found';
-  },
+  };
 
   render() {
     // TODO(dcramer): show additional resource links
@@ -26,7 +26,7 @@ const RouteNotFound = React.createClass({
         </div>
       </DocumentTitle>
     );
-  },
-});
+  }
+}
 
 export default RouteNotFound;

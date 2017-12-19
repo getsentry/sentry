@@ -4,11 +4,11 @@ import SentryTypes from '../../proptypes';
 import GroupEventDataSection from './eventDataSection';
 import {t} from '../../locale';
 
-const EventSdk = React.createClass({
-  propTypes: {
+class EventSdk extends React.Component {
+  static propTypes = {
     group: SentryTypes.Group.isRequired,
     event: SentryTypes.Event.isRequired,
-  },
+  };
 
   render() {
     let {group, event} = this.props;
@@ -48,7 +48,7 @@ const EventSdk = React.createClass({
         </table>
       </GroupEventDataSection>
     );
-  },
-});
+  }
+}
 
 export default EventSdk;

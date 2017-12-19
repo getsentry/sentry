@@ -4,10 +4,10 @@ import {Link} from 'react-router';
 import GroupList from '../components/groupList';
 import {t} from '../locale';
 
-const ReleaseAllEvents = React.createClass({
-  contextTypes: {
+class ReleaseAllEvents extends React.Component {
+  static contextTypes = {
     release: PropTypes.object,
-  },
+  };
 
   render() {
     let {orgId, projectId} = this.props.params;
@@ -33,7 +33,7 @@ const ReleaseAllEvents = React.createClass({
         />
       </div>
     );
-  },
-});
+  }
+}
 
 export default ReleaseAllEvents;

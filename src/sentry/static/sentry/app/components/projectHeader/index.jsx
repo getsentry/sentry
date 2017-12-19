@@ -7,12 +7,12 @@ import BookmarkToggle from '../projects/bookmarkToggle';
 
 import {t} from '../../locale';
 
-const ProjectHeader = React.createClass({
-  propTypes: {
+class ProjectHeader extends React.Component {
+  static propTypes = {
     project: PropTypes.object.isRequired,
     organization: PropTypes.object.isRequired,
     activeSection: PropTypes.string,
-  },
+  };
 
   render() {
     let navSection = this.props.activeSection;
@@ -81,7 +81,7 @@ const ProjectHeader = React.createClass({
         </div>
       </div>
     );
-  },
-});
+  }
+}
 
 export default ProjectHeader;

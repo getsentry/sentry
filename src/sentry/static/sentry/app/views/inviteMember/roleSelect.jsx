@@ -5,8 +5,8 @@ import Radio from '../../components/radio';
 
 import {t} from '../../locale';
 
-const RoleSelect = React.createClass({
-  propTypes: {
+class RoleSelect extends React.Component {
+  static propTypes = {
     /**
      * Whether to disable or not using `allowed` prop from API request
      */
@@ -15,7 +15,7 @@ const RoleSelect = React.createClass({
     selectedRole: PropTypes.string,
     roleList: PropTypes.array,
     setRole: PropTypes.func,
-  },
+  };
 
   render() {
     let {disabled, enforceAllowed, roleList, selectedRole} = this.props;
@@ -49,7 +49,7 @@ const RoleSelect = React.createClass({
         </div>
       </div>
     );
-  },
-});
+  }
+}
 
 export default RoleSelect;

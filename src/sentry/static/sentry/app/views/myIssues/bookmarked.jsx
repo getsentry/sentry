@@ -3,14 +3,14 @@ import React from 'react';
 import OrganizationIssueList from '../../components/organizationIssueList';
 import {t} from '../../locale';
 
-const Bookmarked = React.createClass({
-  getEndpoint() {
+class Bookmarked extends React.Component {
+  getEndpoint = () => {
     return `/organizations/${this.props.params.orgId}/members/me/issues/bookmarked/`;
-  },
+  };
 
-  getTitle() {
+  getTitle = () => {
     return t('Bookmarks');
-  },
+  };
 
   render() {
     return (
@@ -20,7 +20,7 @@ const Bookmarked = React.createClass({
         {...this.props}
       />
     );
-  },
-});
+  }
+}
 
 export default Bookmarked;

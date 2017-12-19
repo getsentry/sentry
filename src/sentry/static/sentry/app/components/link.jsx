@@ -6,14 +6,14 @@ import {Link as RouterLink} from 'react-router';
  * A context-aware version of Link (from react-router) that falls
  * back to <a> if there is no router present.
  */
-const Link = React.createClass({
-  propTypes: {
+class Link extends React.Component {
+  static propTypes = {
     to: PropTypes.string.isRequired,
-  },
+  };
 
-  contextTypes: {
+  static contextTypes = {
     location: PropTypes.object,
-  },
+  };
 
   render() {
     if (this.context.location) {
@@ -26,7 +26,7 @@ const Link = React.createClass({
         </a>
       );
     }
-  },
-});
+  }
+}
 
 export default Link;

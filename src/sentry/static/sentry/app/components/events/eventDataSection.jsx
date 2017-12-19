@@ -3,8 +3,8 @@ import React from 'react';
 import SentryTypes from '../../proptypes';
 import {t} from '../../locale';
 
-const GroupEventDataSection = React.createClass({
-  propTypes: {
+class GroupEventDataSection extends React.Component {
+  static propTypes = {
     group: SentryTypes.Group.isRequired,
     event: SentryTypes.Event.isRequired,
     title: PropTypes.any,
@@ -12,14 +12,12 @@ const GroupEventDataSection = React.createClass({
     wrapTitle: PropTypes.bool,
     toggleRaw: PropTypes.func,
     raw: PropTypes.bool,
-  },
+  };
 
-  getDefaultProps() {
-    return {
-      wrapTitle: true,
-      raw: false,
-    };
-  },
+  static defaultProps = {
+    wrapTitle: true,
+    raw: false,
+  };
 
   componentDidMount() {
     if (location.hash) {
@@ -39,9 +37,9 @@ const GroupEventDataSection = React.createClass({
         // > Uncaught DOMException: Failed to execute 'querySelector' on 'Document': 'div#=' is not a valid selector.
       }
     }
-  },
+  }
 
-  render: function() {
+  render() {
     return (
       <div className={(this.props.className || '') + ' box'}>
         {this.props.title && (
@@ -77,7 +75,7 @@ const GroupEventDataSection = React.createClass({
         <div className="box-content with-padding">{this.props.children}</div>
       </div>
     );
-  },
-});
+  }
+}
 
 export default GroupEventDataSection;

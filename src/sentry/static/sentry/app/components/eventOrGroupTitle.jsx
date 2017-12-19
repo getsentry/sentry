@@ -2,15 +2,15 @@ import PropTypes from 'prop-types';
 import React from 'react';
 import {Metadata} from '../proptypes';
 
-const EventOrGroupTitle = React.createClass({
-  propTypes: {
+class EventOrGroupTitle extends React.Component {
+  static propTypes = {
     data: PropTypes.shape({
       type: PropTypes.oneOf(['error', 'csp', 'default']).isRequired,
       title: PropTypes.string,
       metadata: Metadata.isRequired,
       culprit: PropTypes.string,
     }),
-  },
+  };
 
   render() {
     let {data} = this.props;
@@ -37,7 +37,7 @@ const EventOrGroupTitle = React.createClass({
       );
     }
     return <span>{title}</span>;
-  },
-});
+  }
+}
 
 export default EventOrGroupTitle;

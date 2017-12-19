@@ -6,14 +6,14 @@ import ClippedBox from '../../clippedBox';
 import KeyValueList from './keyValueList';
 import {t} from '../../../locale';
 
-const DebugMetaInterface = React.createClass({
-  propTypes: {
+class DebugMetaInterface extends React.Component {
+  static propTypes = {
     group: SentryTypes.Group.isRequired,
     event: SentryTypes.Event.isRequired,
     data: PropTypes.object.isRequired,
-  },
+  };
 
-  getImageDetail(img, evt) {
+  getImageDetail = (img, evt) => {
     // in particular proguard images do not have a name, skip them
     if (img.name === null || img.type === 'proguard') {
       return null;
@@ -39,7 +39,7 @@ const DebugMetaInterface = React.createClass({
     if (version) return [name, version];
 
     return null;
-  },
+  };
 
   render() {
     let data = this.props.data;
@@ -67,7 +67,7 @@ const DebugMetaInterface = React.createClass({
     }
 
     return result;
-  },
-});
+  }
+}
 
 export default DebugMetaInterface;

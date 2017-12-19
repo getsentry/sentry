@@ -1,7 +1,6 @@
 import PropTypes from 'prop-types';
 import React from 'react';
 import {Link} from 'react-router';
-import PureRenderMixin from 'react-addons-pure-render-mixin';
 
 import Count from '../../../../components/count';
 import {t} from '../../../../locale';
@@ -16,15 +15,13 @@ let getPercent = (item, total) => {
   return parseInt(item / total * 100, 10) + '%';
 };
 
-const ProjectTable = React.createClass({
-  propTypes: {
+class ProjectTable extends React.PureComponent {
+  static propTypes = {
     projectMap: PropTypes.object.isRequired,
     projectTotals: PropTypes.array.isRequired,
     orgTotal: PropTypes.object.isRequired,
     organization: PropTypes.object.isRequired,
-  },
-
-  mixins: [PureRenderMixin],
+  };
 
   render() {
     let projectMap = this.props.projectMap;
@@ -101,7 +98,7 @@ const ProjectTable = React.createClass({
         </tbody>
       </table>
     );
-  },
-});
+  }
+}
 
 export default ProjectTable;

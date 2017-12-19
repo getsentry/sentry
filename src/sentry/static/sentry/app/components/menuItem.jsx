@@ -3,8 +3,8 @@ import React from 'react';
 import {Link} from 'react-router';
 import classNames from 'classnames';
 
-const MenuItem = React.createClass({
-  propTypes: {
+class MenuItem extends React.Component {
+  static propTypes = {
     header: PropTypes.bool,
     divider: PropTypes.bool,
     title: PropTypes.string,
@@ -19,16 +19,16 @@ const MenuItem = React.createClass({
     query: PropTypes.object,
     linkClassName: PropTypes.string,
     onClick: PropTypes.func,
-  },
+  };
 
-  handleClick(e) {
+  handleClick = e => {
     if (this.props.onSelect) {
       e.preventDefault();
       this.props.onSelect(this.props.eventKey);
     }
-  },
+  };
 
-  renderAnchor() {
+  renderAnchor = () => {
     if (this.props.to) {
       return (
         <Link
@@ -53,7 +53,7 @@ const MenuItem = React.createClass({
         {this.props.children}
       </a>
     );
-  },
+  };
 
   render() {
     let classes = {
@@ -82,7 +82,7 @@ const MenuItem = React.createClass({
         {children}
       </li>
     );
-  },
-});
+  }
+}
 
 export default MenuItem;

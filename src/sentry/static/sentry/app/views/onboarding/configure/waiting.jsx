@@ -2,11 +2,11 @@ import PropTypes from 'prop-types';
 import React from 'react';
 import {t} from '../../../locale';
 
-const Waiting = React.createClass({
-  propTypes: {
+class Waiting extends React.Component {
+  static propTypes = {
     skip: PropTypes.func,
     hasEvent: PropTypes.bool.isRequired,
-  },
+  };
 
   render() {
     return (
@@ -28,7 +28,7 @@ const Waiting = React.createClass({
         </div>
       </div>
     );
-  },
-});
+  }
+}
 
 export default Waiting;

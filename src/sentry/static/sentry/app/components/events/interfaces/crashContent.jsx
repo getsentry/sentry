@@ -6,8 +6,8 @@ import StacktraceContent from './stacktraceContent';
 import ExceptionContent from './exceptionContent';
 import RawExceptionContent from './rawExceptionContent';
 
-const CrashContent = React.createClass({
-  propTypes: {
+class CrashContent extends React.Component {
+  static propTypes = {
     group: SentryTypes.Group.isRequired,
     event: SentryTypes.Event.isRequired,
     stackView: PropTypes.string.isRequired,
@@ -15,9 +15,9 @@ const CrashContent = React.createClass({
     newestFirst: PropTypes.bool.isRequired,
     exception: PropTypes.object,
     stacktrace: PropTypes.object,
-  },
+  };
 
-  renderException() {
+  renderException = () => {
     const {event, stackView, stackType, newestFirst, exception} = this.props;
     return stackView === 'raw' ? (
       <RawExceptionContent
@@ -35,9 +35,9 @@ const CrashContent = React.createClass({
         newestFirst={newestFirst}
       />
     );
-  },
+  };
 
-  renderStacktrace() {
+  renderStacktrace = () => {
     const {event, stackView, newestFirst, stacktrace} = this.props;
     return stackView === 'raw' ? (
       <pre className="traceback plain">
@@ -52,7 +52,7 @@ const CrashContent = React.createClass({
         newestFirst={newestFirst}
       />
     );
-  },
+  };
 
   render() {
     if (this.props.exception) {
@@ -62,7 +62,7 @@ const CrashContent = React.createClass({
       return this.renderStacktrace();
     }
     return null;
-  },
-});
+  }
+}
 
 export default CrashContent;

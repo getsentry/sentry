@@ -3,15 +3,15 @@ import React from 'react';
 
 import {t} from '../locale';
 
-export default React.createClass({
-  propTypes: {
+export default class extends React.Component {
+  static propTypes = {
     plugins: PropTypes.array.isRequired,
     onEnablePlugin: PropTypes.func.isRequired,
-  },
+  };
 
-  enablePlugin(plugin) {
+  enablePlugin = plugin => {
     return this.props.onEnablePlugin(plugin, true);
-  },
+  };
 
   render() {
     let plugins = this.props.plugins;
@@ -40,5 +40,5 @@ export default React.createClass({
         </div>
       </div>
     );
-  },
-});
+  }
+}

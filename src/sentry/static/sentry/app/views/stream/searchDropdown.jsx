@@ -1,32 +1,27 @@
 import PropTypes from 'prop-types';
 import React from 'react';
-import PureRenderMixin from 'react-addons-pure-render-mixin';
 import classNames from 'classnames';
 
 import LoadingIndicator from '../../components/loadingIndicator';
 
-const SearchDropdown = React.createClass({
-  propTypes: {
+class SearchDropdown extends React.PureComponent {
+  static propTypes = {
     items: PropTypes.array.isRequired,
     searchSubstring: PropTypes.string,
     onClick: PropTypes.func.isRequired,
     loading: PropTypes.bool,
-  },
+  };
 
-  mixins: [PureRenderMixin],
+  static defaultProps = {
+    searchSubstring: '',
+    onClick: function() {},
+  };
 
-  getDefaultProps() {
-    return {
-      searchSubstring: '',
-      onClick: function() {},
-    };
-  },
-
-  onClick(itemValue) {
+  onClick = itemValue => {
     this.props.onClick(itemValue);
-  },
+  };
 
-  renderDescription(item) {
+  renderDescription = item => {
     let searchSubstring = this.props.searchSubstring;
     if (!searchSubstring) return item.desc;
 
@@ -42,7 +37,7 @@ const SearchDropdown = React.createClass({
         {text.substr(idx + searchSubstring.length)}
       </span>
     );
-  },
+  };
 
   render() {
     return (
@@ -78,7 +73,7 @@ const SearchDropdown = React.createClass({
         </ul>
       </div>
     );
-  },
-});
+  }
+}
 
 export default SearchDropdown;

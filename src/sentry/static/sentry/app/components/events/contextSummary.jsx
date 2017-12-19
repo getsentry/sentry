@@ -14,10 +14,10 @@ const generateClassName = function(name) {
     .replace(/\-+$/, '');
 };
 
-const NoSummary = React.createClass({
-  propTypes: {
+class NoSummary extends React.Component {
+  static propTypes = {
     title: PropTypes.string.isRequired,
-  },
+  };
 
   render() {
     return (
@@ -26,14 +26,14 @@ const NoSummary = React.createClass({
         <h3>{this.props.title}</h3>
       </div>
     );
-  },
-});
+  }
+}
 
-const GenericSummary = React.createClass({
-  propTypes: {
+class GenericSummary extends React.Component {
+  static propTypes = {
     data: PropTypes.object.isRequired,
     unknownTitle: PropTypes.string.isRequired,
-  },
+  };
 
   render() {
     let data = this.props.data;
@@ -53,13 +53,13 @@ const GenericSummary = React.createClass({
         </p>
       </div>
     );
-  },
-});
+  }
+}
 
-const UserSummary = React.createClass({
-  propTypes: {
+class UserSummary extends React.Component {
+  static propTypes = {
     data: PropTypes.object.isRequired,
-  },
+  };
 
   render() {
     let user = this.props.data;
@@ -96,13 +96,13 @@ const UserSummary = React.createClass({
         )}
       </div>
     );
-  },
-});
+  }
+}
 
-const DeviceSummary = React.createClass({
-  propTypes: {
+class DeviceSummary extends React.Component {
+  static propTypes = {
     data: PropTypes.object.isRequired,
-  },
+  };
 
   render() {
     let data = this.props.data;
@@ -121,14 +121,14 @@ const DeviceSummary = React.createClass({
         <p>{data.arch || data.model_id || ''}</p>
       </div>
     );
-  },
-});
+  }
+}
 
-const EventContextSummary = React.createClass({
-  propTypes: {
+class EventContextSummary extends React.Component {
+  static propTypes = {
     group: SentryTypes.Group.isRequired,
     event: SentryTypes.Event.isRequired,
-  },
+  };
 
   render() {
     let evt = this.props.event;
@@ -187,7 +187,7 @@ const EventContextSummary = React.createClass({
     }
 
     return <div className="context-summary">{children}</div>;
-  },
-});
+  }
+}
 
 export default EventContextSummary;

@@ -22,27 +22,25 @@ export function isStacktraceNewestFirst() {
   }
 }
 
-const StacktraceInterface = React.createClass({
-  propTypes: {
+class StacktraceInterface extends React.Component {
+  static propTypes = {
     group: SentryTypes.Group.isRequired,
     event: SentryTypes.Event.isRequired,
     type: PropTypes.string.isRequired,
     data: PropTypes.object.isRequired,
     platform: PropTypes.string,
-  },
+  };
 
-  getInitialState() {
-    return {
-      stackView: this.props.data.hasSystemFrames ? 'app' : 'full',
-      newestFirst: isStacktraceNewestFirst(),
-    };
-  },
+  state = {
+    stackView: this.props.data.hasSystemFrames ? 'app' : 'full',
+    newestFirst: isStacktraceNewestFirst(),
+  };
 
-  toggleStack(value) {
+  toggleStack = value => {
     this.setState({
       stackView: value,
     });
-  },
+  };
 
   render() {
     let group = this.props.group;
@@ -82,7 +80,7 @@ const StacktraceInterface = React.createClass({
         />
       </GroupEventDataSection>
     );
-  },
-});
+  }
+}
 
 export default StacktraceInterface;

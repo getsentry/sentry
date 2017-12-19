@@ -1,14 +1,11 @@
 import PropTypes from 'prop-types';
 import React from 'react';
-import PureRenderMixin from 'react-addons-pure-render-mixin';
 
-const ProjectLabel = React.createClass({
-  propTypes: {
+export default class ProjectLabel extends React.PureComponent {
+  static propTypes = {
     project: PropTypes.object,
     organization: PropTypes.object,
-  },
-
-  mixins: [PureRenderMixin],
+  };
 
   render() {
     let project = this.props.project;
@@ -17,7 +14,5 @@ const ProjectLabel = React.createClass({
         <span className="project-name">{project.name}</span>
       </span>
     );
-  },
-});
-
-export default ProjectLabel;
+  }
+}
