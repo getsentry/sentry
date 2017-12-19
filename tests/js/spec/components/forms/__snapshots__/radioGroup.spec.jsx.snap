@@ -1,0 +1,101 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`RadioGroup render() can select a different item 1`] = `
+<div
+  role="radiogroup"
+>
+  <Styled(div)
+    aria-checked={false}
+    index={0}
+    key="0"
+    onClick={[Function]}
+    role="radio"
+    tabIndex={-1}
+  >
+    <Styled(div) />
+    <Styled(div)>
+      Choice One
+    </Styled(div)>
+  </Styled(div)>
+  <Styled(div)
+    aria-checked={false}
+    index={1}
+    key="1"
+    onClick={[Function]}
+    role="radio"
+    tabIndex={-1}
+  >
+    <Styled(div) />
+    <Styled(div)>
+      Choice Two
+    </Styled(div)>
+  </Styled(div)>
+  <Styled(div)
+    aria-checked={true}
+    index={2}
+    key="2"
+    onClick={[Function]}
+    role="radio"
+    tabIndex={0}
+  >
+    <Styled(div)>
+      <Styled(div)
+        animate={true}
+      />
+    </Styled(div)>
+    <Styled(div)>
+      Choice Three
+    </Styled(div)>
+  </Styled(div)>
+</div>
+`;
+
+exports[`RadioGroup render() renders 1`] = `
+<div
+  role="radiogroup"
+>
+  <Styled(div)
+    aria-checked={true}
+    index={0}
+    key="0"
+    onClick={[Function]}
+    role="radio"
+    tabIndex={0}
+  >
+    <Styled(div)>
+      <Styled(div)
+        animate={true}
+      />
+    </Styled(div)>
+    <Styled(div)>
+      Choice One
+    </Styled(div)>
+  </Styled(div)>
+  <Styled(div)
+    aria-checked={false}
+    index={1}
+    key="1"
+    onClick={[Function]}
+    role="radio"
+    tabIndex={-1}
+  >
+    <Styled(div) />
+    <Styled(div)>
+      Choice Two
+    </Styled(div)>
+  </Styled(div)>
+  <Styled(div)
+    aria-checked={false}
+    index={2}
+    key="2"
+    onClick={[Function]}
+    role="radio"
+    tabIndex={-1}
+  >
+    <Styled(div) />
+    <Styled(div)>
+      Choice Three
+    </Styled(div)>
+  </Styled(div)>
+</div>
+`;

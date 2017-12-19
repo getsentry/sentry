@@ -11,12 +11,13 @@ import Select2Field from './select2Field';
 // import Select2TextField from './select2TextField';
 import TextField from './textField';
 import TextareaField from './textareaField';
+import RadioField from './radioField';
 
 export default class FieldFromConfig extends React.Component {
   static propTypes = {
     field: PropTypes.shape({
       name: PropTypes.string,
-      type: PropTypes.oneOf(['string', 'array', 'boolean']),
+      type: PropTypes.oneOf(['string', 'array', 'boolean', 'radio']),
       required: PropTypes.bool,
       multiline: PropTypes.bool,
       label: PropTypes.oneOfType([PropTypes.string, PropTypes.func]),
@@ -90,6 +91,8 @@ export default class FieldFromConfig extends React.Component {
         // return <Select2FieldAutocomplete {...props} />;
         // }
         return <Select2Field {...props} />;
+      case 'radio':
+        return <RadioField {...props} />;
       default:
         return null;
     }

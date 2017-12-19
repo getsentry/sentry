@@ -3,6 +3,9 @@ import React from 'react';
 
 import AccountAuthorizations from './views/accountAuthorizations';
 import AccountLayout from './views/accountLayout';
+import AccountSettingsLayout from './views/settings/account/accountSettingsLayout';
+import AccountNotifications from './views/settings/account/accountNotifications';
+import AccountEmails from './views/settings/account/accountEmails';
 import AdminBuffer from './views/adminBuffer';
 import AdminLayout from './views/adminLayout';
 import AdminOrganizations from './views/adminOrganizations';
@@ -226,6 +229,23 @@ const orgSettingsRoutes = [
   />,
 ];
 
+const accountSettingsRoutes = [
+  <IndexRedirect key="account-settings-index" to="notifications/" />,
+
+  <Route
+    key="notifications/"
+    path="notifications/"
+    name="Notifications"
+    component={errorHandler(AccountNotifications)}
+  />,
+  <Route
+    key="emails/"
+    path="emails/"
+    name="Emails"
+    component={errorHandler(AccountEmails)}
+  />,
+];
+
 const projectSettingsRoutes = [
   <IndexRedirect key="projects-index" to="settings/" />,
   <Route
@@ -368,6 +388,9 @@ function routes() {
         component={errorHandler(SettingsWrapper)}
       >
         <IndexRoute component={errorHandler(SettingsIndex)} />
+        <Route path="account/" name="Account" component={AccountSettingsLayout}>
+          {accountSettingsRoutes}
+        </Route>
         <Route path="organization/">
           <IndexRoute component={errorHandler(OrganizationPicker)} />
 
