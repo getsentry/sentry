@@ -22,8 +22,14 @@
     <legend class="m-t-0">Subscriptions</legend>
 
     <p>
-    Sentry is committed to respecting your inbox; we'll never sell your data. Opt-in to receive the latest news and
-    product updates about Sentry.
+      Sentry is committed to respecting your inbox. Our goal is to provide useful
+      content and resources that make fixing errors less painful. Enjoyable even.
+    </p>
+
+    <p>
+      As part of our compliance with the EU’s General Data Protection Regulation
+      (GDPR), starting on 25 May 2018, we’ll only email you according to the
+      marketing categories to which you’ve explicitly opted-in.
     </p>
 
     <table class="table">
@@ -56,6 +62,16 @@
     {% endfor %}
       </tbody>
     </table>
+
+    <p>
+      We’re applying GDPR consent and privacy policies to all Sentry contacts,
+      regardless of location. You’ll be able to manage your subscriptions here
+      and from an Unsubscribe link in the footer of all marketing emails.
+    </p>
+
+    <p>
+      Please contact {{ "learn@sentry.io"|urlize }} with any questions or suggestions.
+    </p>
 
     <script>
     $('div.switch').click(function(){
