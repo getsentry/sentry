@@ -35,12 +35,15 @@ export function fetchPlugins(api, {orgId, projectId}, options) {
       method: 'GET',
     })
     .then((data, _, jqXHR) => {
-      return PluginActions.fetchAllSuccess(data, {
+      PluginActions.fetchAllSuccess(data, {
         pageLinks: jqXHR && jqXHR.getResponseHeader('Link'),
       });
+
+      return data;
     })
     .catch(err => {
-      return PluginActions.fetchAllError(err);
+      PluginActions.fetchAllError(err);
+      throw err;
     });
 }
 
