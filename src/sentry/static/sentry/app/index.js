@@ -140,6 +140,8 @@ export default {
       .default,
     OrganizationsLoader: require('./components/organizations/organizationsLoader')
       .default,
+    OrganizationMembersView:
+      require('./views/settings/organization/members/organizationMembersView').default,
     Pagination: require('./components/pagination').default,
     PluginConfig: require('./components/pluginConfig').default,
     ProjectIssueTracking: require('./views/projectIssueTracking').default,
