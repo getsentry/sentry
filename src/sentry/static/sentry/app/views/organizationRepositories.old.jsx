@@ -86,7 +86,7 @@ class OrganizationRepositories extends React.Component {
             <table className="table">
               <tbody>
                 {itemList.map(repo => {
-                  let repoIsVisible = repo.status === 'visible';
+                  let repoIsVisible = repo.status === 'active';
                   return (
                     <tr key={repo.id}>
                       <td>
