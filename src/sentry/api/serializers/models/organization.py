@@ -134,7 +134,7 @@ class DetailedOrganizationSerializer(OrganizationSerializer):
                     'name': r.name,
                 } for r in roles.get_all()],
                 'openMembership': bool(obj.flags.allow_joinleave),
-                'requre2FA': bool(obj.flags.require_2fa),
+                'require2FA': bool(obj.flags.require_2fa),
                 'allowSharedIssues': not obj.flags.disable_shared_issues,
                 'enhancedPrivacy': bool(obj.flags.enhanced_privacy),
                 'dataScrubber': bool(obj.get_option('sentry:require_scrub_data', False)),
