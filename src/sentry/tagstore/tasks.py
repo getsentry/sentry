@@ -41,6 +41,7 @@ def delete_tag_key(object_id, model=None, transaction_id=None, **kwargs):
     if has_more:
         delete_tag_key.apply_async(
             kwargs={'object_id': object_id,
+                    'model': model,
                     'transaction_id': transaction_id},
             countdown=15,
         )
