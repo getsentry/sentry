@@ -11,6 +11,8 @@ from __future__ import absolute_import
 from copy import copy
 import logging
 import six
+
+from bitfield.types import BitHandler
 from django.db import models
 from django.db.models import signals
 
@@ -74,11 +76,10 @@ class BaseModel(models.Model):
             data = {}
             for f in self._meta.fields:
                 try:
-                    if isinstance(self.__get_field_value(f), (int, float, complex,
-                                                              bool, six.binary_type, tuple, bytes)):
-                        data[f.column] = self.__get_field_value(f)
-                    else:
+                    if isinstance(self.__get_field_value(f), BitHandler):
                         data[f.column] = copy(self.__get_field_value(f))
+                    else:
+                        data[f.column] = self.__get_field_value(f)
                 except AttributeError as e:
                     # this case can come up from pickling
                     logging.exception(six.text_type(e))
