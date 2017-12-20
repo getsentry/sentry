@@ -7,6 +7,10 @@ const accountNavigation = [
     name: t('Account'),
     items: [
       {
+        path: `${pathPrefix}/avatar`,
+        title: t('Avatar'),
+      },
+      {
         path: `${pathPrefix}/notifications/`,
         title: t('Notifications'),
       },

@@ -6,6 +6,8 @@ import AccountLayout from './views/accountLayout';
 import AccountSettingsLayout from './views/settings/account/accountSettingsLayout';
 import AccountNotifications from './views/settings/account/accountNotifications';
 import AccountEmails from './views/settings/account/accountEmails';
+import AccountAvatar from './views/settings/account/avatar';
+
 import AdminBuffer from './views/adminBuffer';
 import AdminLayout from './views/adminLayout';
 import AdminOrganizations from './views/adminOrganizations';
@@ -127,6 +129,12 @@ const accountSettingsRoutes = [
     path="emails/"
     name="Emails"
     component={errorHandler(AccountEmails)}
+  />,
+  <Route
+    key="avatar/"
+    path="avatar/"
+    name="Avatar"
+    component={errorHandler(AccountAvatar)}
   />,
 ];
 

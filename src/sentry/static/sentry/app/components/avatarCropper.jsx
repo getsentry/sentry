@@ -366,6 +366,7 @@ class AvatarCropper extends React.Component {
     let src = this.getImgSrc();
     let style = {
       position: 'absolute',
+      opacity: 0,
     };
 
     return (
