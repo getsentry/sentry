@@ -15,6 +15,7 @@ import six
 from django.conf import settings
 
 from sentry.interfaces.base import Interface, InterfaceValidationError
+from sentry.interfaces.schemas import validate_and_default_interface
 from sentry.utils import json
 from sentry.utils.safe import trim
 
@@ -41,13 +42,14 @@ class Message(Interface):
 
     @classmethod
     def to_python(cls, data):
-        if not data.get('message'):
-            raise InterfaceValidationError("No 'message' present")
-
         # TODO(dcramer): some day we should stop people from sending arbitrary
         # crap to the server
         if not isinstance(data['message'], six.string_types):
             data['message'] = json.dumps(data['message'])
+
+        is_valid, errors = validate_and_default_interface(data, cls.path)
+        if not is_valid:
+            raise InterfaceValidationError("Invalid message")
 
         kwargs = {
             'message': trim(data['message'], settings.SENTRY_MAX_MESSAGE_LENGTH),

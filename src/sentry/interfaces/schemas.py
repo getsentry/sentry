@@ -267,7 +267,17 @@ USER_INTERFACE_SCHEMA = {
 
 
 TEMPLATE_INTERFACE_SCHEMA = {'type': 'object'}
-MESSAGE_INTERFACE_SCHEMA = {'type': 'object'}
+MESSAGE_INTERFACE_SCHEMA = {
+    'type': 'object',
+    'properties': {
+        'message': {},
+        'formatted': {},
+        'params': {},
+    },
+    'required': ['message'],
+    'additionalProperties': {'not': {}},
+}
+
 
 TAGS_DICT_SCHEMA = {
     'allOf': [
