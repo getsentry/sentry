@@ -128,9 +128,16 @@ class LegacyTagStorage(TagStorage):
                 return
 
             project_id = filters['project_id']
-            environment_id = filters.get('environment_id')
+            key = filters['key']
 
-            self.incr_tag_key_values_seen(project_id, environment_id, filters['key'])
+            buffer.incr(TagKey,
+                        columns={
+                            'values_seen': 1,
+                        },
+                        filters={
+                            'project_id': project_id,
+                            'key': key,
+                        })
 
         @buffer_incr_complete.connect(sender=GroupTagValue, weak=False)
         def record_group_tag_count(filters, created, extra, **kwargs):
@@ -139,10 +146,17 @@ class LegacyTagStorage(TagStorage):
 
             project_id = extra['project_id']
             group_id = filters['group_id']
-            environment_id = filters.get('environment_id')
+            key = filters['key']
 
-            self.incr_group_tag_key_values_seen(
-                project_id, group_id, environment_id, filters['key'])
+            buffer.incr(GroupTagKey,
+                        columns={
+                            'values_seen': 1,
+                        },
+                        filters={
+                            'project_id': project_id,
+                            'group_id': group_id,
+                            'key': key,
+                        })
 
     def create_tag_key(self, project_id, environment_id, key, **kwargs):
         return TagKey.objects.create(project_id=project_id, key=key, **kwargs)
@@ -316,16 +330,6 @@ class LegacyTagStorage(TagStorage):
             group_id=group_id,
         ).delete()
 
-    def incr_tag_key_values_seen(self, project_id, environment_id, key, count=1):
-        buffer.incr(TagKey,
-                    columns={
-                        'values_seen': count,
-                    },
-                    filters={
-                        'project_id': project_id,
-                        'key': key,
-                    })
-
     def incr_tag_value_times_seen(self, project_id, environment_id,
                                   key, value, extra=None, count=1):
         buffer.incr(TagValue,
@@ -338,17 +342,6 @@ class LegacyTagStorage(TagStorage):
                         'value': value,
                     },
                     extra=extra)
-
-    def incr_group_tag_key_values_seen(self, project_id, group_id, environment_id, key, count=1):
-        buffer.incr(GroupTagKey,
-                    columns={
-                        'values_seen': count,
-                    },
-                    filters={
-                        'project_id': project_id,
-                        'group_id': group_id,
-                        'key': key,
-                    })
 
     def incr_group_tag_value_times_seen(self, project_id, group_id, environment_id,
                                         key, value, extra=None, count=1):

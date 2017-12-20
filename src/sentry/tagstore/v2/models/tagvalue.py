@@ -26,7 +26,6 @@ class TagValue(Model):
     __core__ = False
 
     project_id = BoundedPositiveIntegerField(db_index=True)
-    environment_id = BoundedPositiveIntegerField(null=True)
     _key = FlexibleForeignKey('tagstore.TagKey', db_column='key_id')
     value = models.CharField(max_length=MAX_TAG_VALUE_LENGTH)
     data = GzippedDictField(blank=True, null=True)
@@ -40,10 +39,10 @@ class TagValue(Model):
 
     class Meta:
         app_label = 'tagstore'
-        unique_together = (('project_id', 'environment_id', '_key', 'value'), )
+        unique_together = (('project_id', '_key', 'value'), )
         index_together = (('project_id', '_key', 'last_seen'), )
 
-    __repr__ = sane_repr('project_id', 'environment_id', '_key', 'value')
+    __repr__ = sane_repr('project_id', '_key', 'value')
 
     @property
     def key(self):

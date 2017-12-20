@@ -257,7 +257,8 @@ class DeleteTagKeyTest(TestCase):
         )
 
         with self.tasks():
-            delete_tag_key_task(object_id=tk.id)
+            from sentry.tagstore.models import TagKey
+            delete_tag_key_task(object_id=tk.id, model=TagKey)
 
             try:
                 tagstore.get_group_tag_value(group.project_id, group.id, None, key, value)

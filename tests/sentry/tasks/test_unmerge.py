@@ -421,7 +421,7 @@ class UnmergeTestCase(TestCase):
         ])
 
         if settings.SENTRY_TAGSTORE.startswith('sentry.tagstore.v2'):
-            env_filter = {'environment_id': environment.id}
+            env_filter = {'_key__environment_id': environment.id}
         else:
             env_filter = {}
 

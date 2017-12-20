@@ -17,7 +17,6 @@ class EventTag(Model):
     __core__ = False
 
     project_id = BoundedPositiveIntegerField()
-    environment_id = BoundedPositiveIntegerField()
     group_id = BoundedPositiveIntegerField()
     event_id = BoundedPositiveIntegerField()
     key = FlexibleForeignKey('tagstore.TagKey', db_column='key_id')
@@ -30,7 +29,6 @@ class EventTag(Model):
         index_together = (
             ('project_id', 'key', 'value'),
             ('group_id', 'key', 'value'),
-            ('environment_id', 'key', 'value'),
         )
 
     __repr__ = sane_repr('event_id', 'key', 'value')
