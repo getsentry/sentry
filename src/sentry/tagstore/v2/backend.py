@@ -86,9 +86,16 @@ class V2TagStorage(TagStorage):
                 return
 
             project_id = filters['project_id']
-            environment_id = filters['_key__environment_id']
+            key_id = filters['_key_id']
 
-            self.incr_tag_key_values_seen(project_id, environment_id, filters['_key_id'])
+            buffer.incr(TagKey,
+                        columns={
+                            'values_seen': 1,
+                        },
+                        filters={
+                            'id': key_id,
+                            'project_id': project_id,
+                        })
 
         @buffer_incr_complete.connect(sender=GroupTagValue, weak=False)
         def record_group_tag_count(filters, created, extra, **kwargs):
@@ -97,10 +104,17 @@ class V2TagStorage(TagStorage):
 
             project_id = extra['project_id']
             group_id = filters['group_id']
-            environment_id = filters['_key__environment_id']
+            key_id = filters['_key_id']
 
-            self.incr_group_tag_key_values_seen(
-                project_id, group_id, environment_id, filters['_key_id'])
+            buffer.incr(GroupTagKey,
+                        columns={
+                            'values_seen': 1,
+                        },
+                        filters={
+                            'project_id': project_id,
+                            'group_id': group_id,
+                            '_key_id': key_id,
+                        })
 
     def create_tag_key(self, project_id, environment_id, key, **kwargs):
         return TagKey.objects.create(
@@ -388,18 +402,6 @@ class V2TagStorage(TagStorage):
             group_id=group_id,
         ).delete()
 
-    def incr_tag_key_values_seen(self, project_id, environment_id, key, count=1):
-        # key is passed `key_id` from `buffer_incr_complete.connect(sender=TagValue)`
-        buffer.incr(TagKey,
-                    columns={
-                        'values_seen': count,
-                    },
-                    filters={
-                        'id': key,
-                        'project_id': project_id,
-                        'environment_id': environment_id,
-                    })
-
     def incr_tag_value_times_seen(self, project_id, environment_id,
                                   key, value, extra=None, count=1):
         for env in [environment_id, None]:
@@ -411,24 +413,10 @@ class V2TagStorage(TagStorage):
                         },
                         filters={
                             'project_id': project_id,
-                            '_key__environment_id': env,
                             '_key_id': tagkey.id,
                             'value': value,
                         },
                         extra=extra)
-
-    def incr_group_tag_key_values_seen(self, project_id, group_id, environment_id, key, count=1):
-        # key is passed `key_id` from `buffer_incr_complete.connect(sender=GroupTagValue)`
-        buffer.incr(GroupTagKey,
-                    columns={
-                        'values_seen': count,
-                    },
-                    filters={
-                        'project_id': project_id,
-                        'group_id': group_id,
-                        '_key__environment_id': environment_id,
-                        '_key_id': key,
-                    })
 
     def incr_group_tag_value_times_seen(self, project_id, group_id, environment_id,
                                         key, value, extra=None, count=1):
@@ -443,7 +431,6 @@ class V2TagStorage(TagStorage):
                         filters={
                             'project_id': project_id,
                             'group_id': group_id,
-                            '_key__environment_id': env,
                             '_key_id': tagkey.id,
                             '_value_id': tagvalue.id,
                         },
