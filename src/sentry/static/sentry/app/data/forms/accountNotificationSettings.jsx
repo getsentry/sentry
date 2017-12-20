@@ -62,7 +62,7 @@ const forms = [
         name: 'claimUnassignedIssues',
         type: 'boolean',
         label: "Claim Unassigned Issues I've Resolved",
-        help: "You'll recieve notifications about any changes that happen afterwords.",
+        help: "You'll recieve notifications about any changes that happen afterwards.",
       },
     ],
   },
