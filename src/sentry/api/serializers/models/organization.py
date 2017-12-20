@@ -98,6 +98,8 @@ class DetailedOrganizationSerializer(OrganizationSerializer):
             feature_list.append('open-membership')
         if not getattr(obj.flags, 'disable_shared_issues'):
             feature_list.append('shared-issues')
+        if getattr(obj.flags, 'require_2fa'):
+            feature_list.append('require-2fa')
 
         context = super(DetailedOrganizationSerializer, self).serialize(obj, attrs, user)
         max_rate = quotas.get_maximum_quota(obj)
@@ -132,6 +134,7 @@ class DetailedOrganizationSerializer(OrganizationSerializer):
                     'name': r.name,
                 } for r in roles.get_all()],
                 'openMembership': bool(obj.flags.allow_joinleave),
+                'requre2FA': bool(obj.flags.require_2fa),
                 'allowSharedIssues': not obj.flags.disable_shared_issues,
                 'enhancedPrivacy': bool(obj.flags.enhanced_privacy),
                 'dataScrubber': bool(obj.get_option('sentry:require_scrub_data', False)),

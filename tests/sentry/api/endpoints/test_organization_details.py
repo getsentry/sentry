@@ -134,6 +134,7 @@ class OrganizationUpdateTest(APITestCase):
             data={
                 'openMembership': False,
                 'isEarlyAdopter': True,
+                'require2FA': True,
                 'allowSharedIssues': False,
                 'enhancedPrivacy': True,
                 'dataScrubber': True,
@@ -148,6 +149,7 @@ class OrganizationUpdateTest(APITestCase):
         org = Organization.objects.get(id=org.id)
 
         assert org.flags.early_adopter
+        assert org.flags.require_2fa
         assert not org.flags.allow_joinleave
         assert org.flags.disable_shared_issues
         assert org.flags.enhanced_privacy

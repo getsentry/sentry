@@ -15,7 +15,7 @@ from sentry.api.serializers import serialize
 from sentry.api.serializers.models.organization import (DetailedOrganizationSerializer)
 from sentry.api.serializers.rest_framework import ListField
 from sentry.models import (
-    AuditLogEntryEvent, Organization, OrganizationAvatar, OrganizationOption, OrganizationStatus
+    AuditLogEntryEvent, Organization, OrganizationAvatar, OrganizationOption, OrganizationStatus, Authenticator
 )
 from sentry.tasks.deletion import delete_organization
 from sentry.utils.apidocs import scenario, attach_scenarios
@@ -75,6 +75,7 @@ class OrganizationSerializer(serializers.Serializer):
     safeFields = ListField(child=serializers.CharField(), required=False)
     scrubIPAddresses = serializers.BooleanField(required=False)
     isEarlyAdopter = serializers.BooleanField(required=False)
+    require2FA = serializers.BooleanField(required=False)
 
     def validate_slug(self, attrs, source):
         value = attrs[source]
@@ -95,6 +96,14 @@ class OrganizationSerializer(serializers.Serializer):
         value = attrs[source]
         if value and not all(value):
             raise serializers.ValidationError('Empty values are not allowed.')
+        return attrs
+
+    def validate_require2FA(self, attrs, source):
+        value = attrs[source]
+        user = self.context['user']
+        has_2fa = Authenticator.objects.user_has_2fa(user)
+        if value and not has_2fa:
+            raise serializers.ValidationError('User setting 2FA enforcement without 2FA enabled.')
         return attrs
 
     def validate(self, attrs):
@@ -122,6 +131,8 @@ class OrganizationSerializer(serializers.Serializer):
             org.flags.enhanced_privacy = self.init_data['enhancedPrivacy']
         if 'isEarlyAdopter' in self.init_data:
             org.flags.early_adopter = self.init_data['isEarlyAdopter']
+        if 'require2FA' in self.init_data:
+            org.flags.require_2fa = self.init_data['require2FA']
         if 'name' in self.init_data:
             org.name = self.init_data['name']
         if 'slug' in self.init_data:
@@ -197,10 +208,11 @@ class OrganizationDetailsEndpoint(OrganizationEndpoint):
             serializer_cls = OwnerOrganizationSerializer
         else:
             serializer_cls = OrganizationSerializer
+
         serializer = serializer_cls(
             data=request.DATA,
             partial=True,
-            context={'organization': organization},
+            context={'organization': organization, 'user': request.user},
         )
         if serializer.is_valid():
             organization = serializer.save()
