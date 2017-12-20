@@ -12,9 +12,12 @@ class EventRow extends React.Component {
     projectSlug: PropTypes.string.isRequired,
   };
 
-  state = {
-    event: EventStore.get(this.props.id),
-  };
+  constructor(...args) {
+    super(...args);
+    this.state = {
+      event: EventStore.get(this.props.id),
+    };
+  }
 
   componentWillReceiveProps(nextProps) {
     if (nextProps.id != this.props.id) {

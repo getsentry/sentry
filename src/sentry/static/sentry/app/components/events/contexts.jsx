@@ -39,9 +39,12 @@ class ContextChunk extends React.Component {
     value: PropTypes.object.isRequired,
   };
 
-  state = {
-    isLoading: false,
-  };
+  constructor(...args) {
+    super(...args);
+    this.state = {
+      isLoading: false,
+    };
+  }
 
   componentWillMount() {
     this.syncPlugin();

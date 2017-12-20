@@ -24,11 +24,14 @@ class StreamTagFilter extends React.Component {
     value: '',
   };
 
-  state = {
-    query: '',
-    loading: false,
-    value: this.props.value,
-  };
+  constructor(...args) {
+    super(...args);
+    this.state = {
+      query: '',
+      loading: false,
+      value: this.props.value,
+    };
+  }
 
   componentDidMount() {
     let select = this.refs.select;

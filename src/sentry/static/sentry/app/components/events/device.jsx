@@ -12,8 +12,6 @@ class DeviceInterface extends React.Component {
     event: SentryTypes.Event.isRequired,
   };
 
-  state = {};
-
   render() {
     let {group, event} = this.props;
     let data = event.device;

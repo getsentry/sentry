@@ -48,10 +48,13 @@ class BreadcrumbsInterface extends React.Component {
 
   static MAX_CRUMBS_WHEN_COLLAPSED = 10;
 
-  state = {
-    collapsed: true,
-    queryValue: '',
-  };
+  constructor(...args) {
+    super(...args);
+    this.state = {
+      collapsed: true,
+      queryValue: '',
+    };
+  }
 
   onCollapseToggle = () => {
     this.setState({

@@ -7,9 +7,12 @@ class EventErrorItem extends React.Component {
     error: PropTypes.object.isRequired,
   };
 
-  state = {
-    isOpen: false,
-  };
+  constructor(...args) {
+    super(...args);
+    this.state = {
+      isOpen: false,
+    };
+  }
 
   shouldComponentUpdate(nextProps, nextState) {
     return this.state.isOpen !== nextState.isOpen;

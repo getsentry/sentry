@@ -17,9 +17,12 @@ export default class CustomIgnoreDurationModal extends React.Component {
     label: t('Ignore this issue until it occurs after ..'),
   };
 
-  state = {
-    dateWarning: false,
-  };
+  constructor(...args) {
+    super(...args);
+    this.state = {
+      dateWarning: false,
+    };
+  }
 
   selectedIgnoreMinutes = () => {
     const dateStr = this.refs.snoozeDateInput.value; // YYYY-MM-DD

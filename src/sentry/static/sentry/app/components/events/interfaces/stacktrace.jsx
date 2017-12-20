@@ -31,10 +31,13 @@ class StacktraceInterface extends React.Component {
     platform: PropTypes.string,
   };
 
-  state = {
-    stackView: this.props.data.hasSystemFrames ? 'app' : 'full',
-    newestFirst: isStacktraceNewestFirst(),
-  };
+  constructor(...args) {
+    super(...args);
+    this.state = {
+      stackView: this.props.data.hasSystemFrames ? 'app' : 'full',
+      newestFirst: isStacktraceNewestFirst(),
+    };
+  }
 
   toggleStack = value => {
     this.setState({

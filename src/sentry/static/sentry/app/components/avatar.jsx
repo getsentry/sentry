@@ -20,10 +20,13 @@ class Avatar extends React.Component {
     gravatar: true,
   };
 
-  state = {
-    showBackupAvatar: false,
-    loadError: false,
-  };
+  constructor(...args) {
+    super(...args);
+    this.state = {
+      showBackupAvatar: false,
+      loadError: false,
+    };
+  }
 
   buildGravatarUrl = () => {
     let url = ConfigStore.getConfig().gravatarBaseUrl + '/avatar/';

@@ -7,7 +7,6 @@ import '../../less/components/similarSpectrum.less';
 class SimilarSpectrum extends React.Component {
   static propTypes = {};
   static defaultProps = {};
-  state = {};
 
   render() {
     let {className} = this.props;

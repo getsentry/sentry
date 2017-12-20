@@ -21,8 +21,6 @@ class ScoreBar extends React.Component {
     paletteClassNames: ['low', 'low-med', 'med', 'med-high', 'high'],
   };
 
-  state = {};
-
   render() {
     let {
       className,

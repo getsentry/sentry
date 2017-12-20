@@ -15,9 +15,12 @@ class StrictClick extends React.PureComponent {
   static MAX_DELTA_X = 10;
   static MAX_DELTA_Y = 10;
 
-  state = {
-    startCoords: null,
-  };
+  constructor(...args) {
+    super(...args);
+    this.state = {
+      startCoords: null,
+    };
+  }
 
   handleMouseDown = evt => {
     this.setState({

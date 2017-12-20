@@ -20,7 +20,10 @@ export default class CustomResolutionModal extends React.Component {
     show: PropTypes.bool,
   };
 
-  state = {version: ''};
+  constructor(...args) {
+    super(...args);
+    this.state = {version: ''};
+  }
 
   componentDidUpdate(prevProps, prevState) {
     if (!prevProps.show && this.props.show) {

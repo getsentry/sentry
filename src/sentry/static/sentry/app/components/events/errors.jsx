@@ -12,9 +12,12 @@ class EventErrors extends React.Component {
     event: SentryTypes.Event.isRequired,
   };
 
-  state = {
-    isOpen: false,
-  };
+  constructor(...args) {
+    super(...args);
+    this.state = {
+      isOpen: false,
+    };
+  }
 
   shouldComponentUpdate(nextProps, nextState) {
     if (this.state.isOpen != nextState.isOpen) {

@@ -18,9 +18,12 @@ class SearchBar extends React.PureComponent {
     onQueryChange: function() {},
   };
 
-  state = {
-    query: this.props.query || this.props.defaultQuery,
-  };
+  constructor(...args) {
+    super(...args);
+    this.state = {
+      query: this.props.query || this.props.defaultQuery,
+    };
+  }
 
   blur = () => {
     ReactDOM.findDOMNode(this.refs.searchInput).blur();

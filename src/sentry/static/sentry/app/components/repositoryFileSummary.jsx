@@ -27,10 +27,13 @@ class RepositoryFileSummary extends React.Component {
 
   static MAX_WHEN_COLLAPSED = 5;
 
-  state = {
-    loading: true,
-    collapsed: true,
-  };
+  constructor(...args) {
+    super(...args);
+    this.state = {
+      loading: true,
+      collapsed: true,
+    };
+  }
 
   onCollapseToggle = () => {
     this.setState({
