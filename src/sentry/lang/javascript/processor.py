@@ -325,10 +325,7 @@ def fetch_file(url, project=None, release=None, dist=None, allow_scraping=True):
             verify_ssl = bool(project.get_option('sentry:verify_ssl', False))
             token = project.get_option('sentry:token')
             if token:
-                token_header = project.get_option(
-                    'sentry:token_header',
-                    'X-Sentry-Token',
-                )
+                token_header = project.get_option('sentry:token_header') or 'X-Sentry-Token'
                 headers[token_header] = token
 
         with metrics.timer('sourcemaps.fetch'):
