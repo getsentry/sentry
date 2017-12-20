@@ -9,9 +9,13 @@ from sentry.models import ApiKey, ApiToken
 
 
 def is_considered_sudo(request):
+    # Users without a password are assumed to always have sudo powers
+    user = request.user
+
     return request.is_sudo() or \
         isinstance(request.auth, ApiKey) or \
-        isinstance(request.auth, ApiToken)
+        isinstance(request.auth, ApiToken) or \
+        user.is_authenticated() and not user.has_usable_password()
 
 
 def sudo_required(func):
@@ -27,7 +31,8 @@ def sudo_required(func):
                 "sudoRequired": True,
                 "username": request.user.username,
             }
-            return HttpResponse(json.dumps(data), status=401)
+            return HttpResponse(content=json.dumps(
+                data), content_type="application/json", status=401)
         return func(self, request, *args, **kwargs)
 
     return wrapped
