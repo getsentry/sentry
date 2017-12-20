@@ -373,6 +373,11 @@ function routes() {
     hooksOrgRoutes.push(cb());
   });
 
+  let hooksPreOrgRoutes = [];
+  HookStore.get('routes:pre-organization').forEach(cb => {
+    hooksPreOrgRoutes.push(cb());
+  });
+
   return (
     <Route path="/" component={errorHandler(App)}>
       <Route path="/account/" component={errorHandler(AccountLayout)}>
@@ -452,7 +457,7 @@ function routes() {
           />
         </Route>
       </Route>
-
+      {hooksPreOrgRoutes}
       <Route path="/:orgId/" component={errorHandler(OrganizationDetails)}>
         <IndexRoute component={errorHandler(OrganizationDashboard)} />
 
