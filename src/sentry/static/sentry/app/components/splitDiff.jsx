@@ -21,8 +21,6 @@ class SplitDiff extends React.Component {
     type: 'lines',
   };
 
-  state = {};
-
   render() {
     let {className, type, base, target} = this.props;
     let cx = classNames('split-diff', className);

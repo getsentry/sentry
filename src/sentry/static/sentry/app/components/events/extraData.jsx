@@ -12,9 +12,12 @@ class EventExtraData extends React.Component {
     event: SentryTypes.Event.isRequired,
   };
 
-  state = {
-    raw: false,
-  };
+  constructor(...args) {
+    super(...args);
+    this.state = {
+      raw: false,
+    };
+  }
 
   shouldComponentUpdate(nextProps, nextState) {
     return this.props.event.id !== nextProps.event.id || this.state.raw !== nextState.raw;

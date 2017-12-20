@@ -5,10 +5,13 @@ import ApiChart from './apiChart';
 import EventChart from './eventChart';
 
 export default class extends React.Component {
-  state = {
-    since: new Date().getTime() / 1000 - 3600 * 24 * 7,
-    resolution: '1h',
-  };
+  constructor(...args) {
+    super(...args);
+    this.state = {
+      since: new Date().getTime() / 1000 - 3600 * 24 * 7,
+      resolution: '1h',
+    };
+  }
 
   render() {
     return (

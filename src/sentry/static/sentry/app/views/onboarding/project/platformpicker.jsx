@@ -18,10 +18,13 @@ class PlatformPicker extends React.Component {
 
   static defaultProps = {showOther: true};
 
-  state = {
-    tab: categoryList[0],
-    filter: (this.props.platform || '').split('-')[0],
-  };
+  constructor(...args) {
+    super(...args);
+    this.state = {
+      tab: categoryList[0],
+      filter: (this.props.platform || '').split('-')[0],
+    };
+  }
 
   renderPlatformList = () => {
     let {tab} = this.state;

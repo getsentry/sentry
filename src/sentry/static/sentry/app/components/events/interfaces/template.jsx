@@ -13,8 +13,6 @@ class TemplateInterface extends React.Component {
     data: PropTypes.object.isRequired,
   };
 
-  state = {};
-
   render() {
     return (
       <GroupEventDataSection

@@ -17,9 +17,12 @@ class SnoozeAction extends React.Component {
     tooltip: PropTypes.string,
   };
 
-  state = {
-    isModalOpen: false,
-  };
+  constructor(...args) {
+    super(...args);
+    this.state = {
+      isModalOpen: false,
+    };
+  }
 
   toggleModal = () => {
     if (this.props.disabled) {

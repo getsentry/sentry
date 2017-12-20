@@ -4,10 +4,13 @@ import React from 'react';
 import InternalStatChart from '../components/internalStatChart';
 
 class AdminBuffer extends React.Component {
-  state = {
-    since: new Date().getTime() / 1000 - 3600 * 24 * 7,
-    resolution: '1h',
-  };
+  constructor(...args) {
+    super(...args);
+    this.state = {
+      since: new Date().getTime() / 1000 - 3600 * 24 * 7,
+      resolution: '1h',
+    };
+  }
 
   render() {
     // TODO(dcramer): show buffer configuration when its moved into option store
