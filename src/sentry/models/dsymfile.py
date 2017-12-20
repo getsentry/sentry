@@ -34,7 +34,8 @@ from sentry.db.models import FlexibleForeignKey, Model, \
 from sentry.models.file import File
 from sentry.utils.zip import safe_extract_zip
 from sentry.constants import KNOWN_DSYM_TYPES
-from sentry.reprocessing import resolve_processing_issue
+from sentry.reprocessing import resolve_processing_issue, \
+    bump_reprocessing_revision
 
 
 logger = logging.getLogger(__name__)
@@ -351,6 +352,9 @@ def create_files_from_dsym_zip(fileobj, project,
             if uuids_to_update:
                 symcache_update.delay(project_id=project.id,
                                       uuids=uuids_to_update)
+
+        # Uploading new dsysm changes the reprocessing revision
+        bump_reprocessing_revision(project)
 
         return rv
     finally:
