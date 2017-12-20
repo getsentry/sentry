@@ -5,7 +5,8 @@ from sentry.utils.services import Service
 
 class Newsletter(Service):
     __all__ = (
-        'is_enabled', 'get_subscriptions', 'update_subscription', 'create_or_update_subscription'
+        'is_enabled', 'get_subscriptions', 'update_subscription',
+        'create_or_update_subscription', 'optout_email',
     )
 
     DEFAULT_LIST_ID = 1
@@ -24,3 +25,6 @@ class Newsletter(Service):
     def create_or_update_subscription(self, user, **kwargs):
         kwargs['create'] = True
         return self.update_subscription(user, **kwargs)
+
+    def optout_email(self, email, property):
+        raise NotImplementedError
