@@ -171,7 +171,7 @@ window.TestStubs = {
       name: 'repo-name',
       provider: 'github',
       url: 'https://github.com/example/repo-name',
-      status: 'visible',
+      status: 'active',
       ...params,
     };
   },
