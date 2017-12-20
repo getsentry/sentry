@@ -58,11 +58,9 @@ export default React.createClass({
             <div className="control-group m-b-1">
               <h6 className="nav-header">{t('Time window')}</h6>
               <Select2Field
-                className="form-control"
                 value={window}
                 name="window"
                 onChange={v => this.onChange('window', v)}
-                style={{padding: '3px 10px'}}
                 choices={[['', ' '], ...this.props.windowChoices]}
                 placeholder={t('e.g. per hour')}
                 allowClear={true}
