@@ -55,6 +55,30 @@ const StreamTagStore = Reflux.createStore({
         values: getMemberListStoreUsernames(),
         predefined: true,
       },
+      lastSeen: {
+        key: 'lastSeen',
+        name: 'Last Seen',
+        values: ['-1h', '+1d', '-1w'],
+        predefined: true,
+      },
+      firstSeen: {
+        key: 'firstSeen',
+        name: 'First Seen',
+        values: ['-1h', '+1d', '-1w'],
+        predefined: true,
+      },
+      'event.timestamp': {
+        key: 'event.timestamp',
+        name: 'Event Timestamp',
+        values: ['2017-01-02', '>=2017-01-02T01:00:00', '<2017-01-02T02:00:00'],
+        predefined: true,
+      },
+      timesSeen: {
+        key: 'timesSeen',
+        name: 'Times Seen',
+        values: [],
+        predefined: true,
+      },
     };
     this.trigger(this.tags);
   },
