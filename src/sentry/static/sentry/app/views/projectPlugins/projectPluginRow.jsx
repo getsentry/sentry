@@ -1,5 +1,6 @@
 import PropTypes from 'prop-types';
 import React from 'react';
+import {Link} from 'react-router';
 
 import {t} from '../../locale';
 import Checkbox from '../../components/checkbox';
@@ -46,9 +47,9 @@ class ProjectPluginRow extends React.PureComponent {
               <span>
                 {' '}
                 &middot;{' '}
-                <a href={`/${orgId}/${projectId}/settings/plugins/${id}`}>
+                <Link to={`/${orgId}/${projectId}/settings/plugins/${id}`}>
                   {t('Configure plugin')}
-                </a>
+                </Link>
               </span>
             )}
           </p>
