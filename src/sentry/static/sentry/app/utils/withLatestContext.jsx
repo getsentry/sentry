@@ -21,7 +21,8 @@ const withLatestContext = WrappedComponent =>
         // expect consistent data structure because OrganizationsStore has a list
         // of orgs but not full org details
         let latestOrganization =
-          organization || (organizations && organizations.length && organizations[0]);
+          organization ||
+          (organizations && organizations.length ? organizations[0] : null);
 
         return (
           <WrappedComponent
