@@ -40,7 +40,7 @@ describe('RichHttpContent', function() {
         data: {foo: ['bar'], bar: ['baz']},
       });
 
-      // NOTE: displayName is set manually in this class
+      // NOTE: ContextData is stubbed in tests; instead returns <div className="ContextData"/>
       expect(out.type.displayName).toEqual('KeyValueList');
       expect(out.props.data).toEqual([['bar', 'baz'], ['foo', 'bar']]);
     });
@@ -51,7 +51,7 @@ describe('RichHttpContent', function() {
         data: {foo: 'bar'},
       });
 
-      // NOTE: displayName is set manually in this class
+      // NOTE: ContextData is stubbed in tests; instead returns <div className="ContextData"/>
       expect(out.type.displayName).toEqual('ContextData');
       expect(out.props.data).toEqual({
         foo: 'bar',

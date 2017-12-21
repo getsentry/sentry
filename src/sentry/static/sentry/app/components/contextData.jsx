@@ -70,16 +70,18 @@ function analyzeStringForRepr(value) {
   return rv;
 }
 
-class ContextData extends React.Component {
-  static propTypes = {
+const ContextData = React.createClass({
+  propTypes: {
     data: PropTypes.any,
-  };
+  },
 
-  static defaultProps = {
-    data: null,
-  };
+  getDefaultProps() {
+    return {
+      data: null,
+    };
+  },
 
-  renderValue = value => {
+  renderValue(value) {
     function toggle(evt) {
       jQuery(evt.target)
         .parent()
@@ -193,14 +195,14 @@ class ContextData extends React.Component {
       }
     }
     return walk(value, 0);
-  };
+  },
 
-  renderKeyPosValue = value => {
+  renderKeyPosValue(value) {
     if (_.isString(value)) {
       return <span className="val-string">{value}</span>;
     }
     return this.renderValue(value);
-  };
+  },
 
   render() {
     // XXX(dcramer): babel does not support this yet
@@ -216,9 +218,7 @@ class ContextData extends React.Component {
     other.className = 'val ' + (className || '');
 
     return <pre {...other}>{this.renderValue(data)}</pre>;
-  }
-}
-
-ContextData.displayName = 'ContextData';
+  },
+});
 
 export default ContextData;
