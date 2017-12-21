@@ -1,19 +1,27 @@
 import PluginActions from '../actions/pluginActions';
 import IndicatorStore from '../stores/indicatorStore';
 
+let activeFetch = {};
+
 function doUpdate(api, {orgId, projectId, pluginId, update, ...params}) {
   PluginActions.update(pluginId, update);
-  return api
-    .requestPromise(`/projects/${orgId}/${projectId}/plugins/${pluginId}/`, {
+  let request = api.requestPromise(
+    `/projects/${orgId}/${projectId}/plugins/${pluginId}/`,
+    {
       ...params,
-    })
+    }
+  );
+
+  // This is intentionally not chained because we want the unhandled promise to be returned
+  request
     .then(() => {
       PluginActions.updateSuccess(pluginId, update);
     })
     .catch(err => {
       PluginActions.updateError(pluginId, update, err);
-      throw err;
     });
+
+  return request;
 }
 
 /**
@@ -29,11 +37,16 @@ function doUpdate(api, {orgId, projectId, pluginId, update, ...params}) {
  * @return Promise
  */
 export function fetchPlugins(api, {orgId, projectId}, options) {
+  let path = `/projects/${orgId}/${projectId}/plugins/`;
+  if (activeFetch[path]) return activeFetch[path];
+
   PluginActions.fetchAll(options);
-  return api
-    .requestPromise(`/projects/${orgId}/${projectId}/plugins/`, {
-      method: 'GET',
-    })
+  let request = api.requestPromise(`/projects/${orgId}/${projectId}/plugins/`, {
+    method: 'GET',
+  });
+
+  // This is intentionally not chained because we want the unhandled promise to be returned
+  request
     .then((data, _, jqXHR) => {
       PluginActions.fetchAllSuccess(data, {
         pageLinks: jqXHR && jqXHR.getResponseHeader('Link'),
@@ -44,7 +57,10 @@ export function fetchPlugins(api, {orgId, projectId}, options) {
     .catch(err => {
       PluginActions.fetchAllError(err);
       throw err;
-    });
+    })
+    .then(() => (activeFetch[path] = null));
+
+  return request;
 }
 
 /**
