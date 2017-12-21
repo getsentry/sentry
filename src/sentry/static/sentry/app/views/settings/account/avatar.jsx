@@ -111,9 +111,9 @@ const AvatarSettings = React.createClass({
           <AvatarForm>
             <RadioGroup
               choices={[
+                ['letter_avatar', 'Use my initials'],
                 ['upload', 'Upload a Photo'],
                 ['gravatar', 'Use Gravatar'],
-                ['letter_avatar', 'Use my initials'],
               ]}
               value={this.state.user.avatar.avatarType || 'letter_avatar'}
               label="Avatar Type"
@@ -125,21 +125,23 @@ const AvatarSettings = React.createClass({
                 )}
             />
 
-            {this.state.user.avatar.avatarType === 'gravatar' && gravatarMessage}
+            <AvatarUploadSection>
+              {this.state.user.avatar.avatarType === 'gravatar' && gravatarMessage}
 
-            {this.state.user.avatar.avatarType === 'upload' && (
-              <AvatarCropper
-                {...this.props}
-                user={this.state.user}
-                savedDataUrl={this.state.savedDataUrl}
-                updateDataUrlState={this.updateDataUrlState}
-              />
-            )}
-            <AvatarSubmit className="form-actions">
-              <button className="btn btn-primary" onClick={this.saveSettings}>
-                {t('Done')}
-              </button>
-            </AvatarSubmit>
+              {this.state.user.avatar.avatarType === 'upload' && (
+                <AvatarCropper
+                  {...this.props}
+                  user={this.state.user}
+                  savedDataUrl={this.state.savedDataUrl}
+                  updateDataUrlState={this.updateDataUrlState}
+                />
+              )}
+              <AvatarSubmit className="form-actions">
+                <button className="btn btn-primary" onClick={this.saveSettings}>
+                  {t('Done')}
+                </button>
+              </AvatarSubmit>
+            </AvatarUploadSection>
           </AvatarForm>
         </PanelBody>
       </Panel>
@@ -153,6 +155,10 @@ const AvatarForm = styled('form')`
 `;
 
 const AvatarSubmit = styled('fieldset')`
+  margin-top: 1em;
+`;
+
+const AvatarUploadSection = styled('div')`
   margin-top: 1em;
 `;
 

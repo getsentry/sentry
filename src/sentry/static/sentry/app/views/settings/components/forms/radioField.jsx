@@ -6,7 +6,7 @@ import InputField from './inputField';
 
 class RadioField extends React.Component {
   static propTypes = {
-    id: PropTypes.number,
+    id: PropTypes.string,
     value: PropTypes.string,
     choices: PropTypes.arrayOf(PropTypes.array),
   };
