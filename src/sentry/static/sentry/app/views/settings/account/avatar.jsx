@@ -1,6 +1,9 @@
 import PropTypes from 'prop-types';
 import React from 'react';
 
+import Panel from '../components/panel';
+import PanelBody from '../components/panelBody';
+import PanelHeader from '../components/panelHeader';
 import AlertActions from '../../../actions/alertActions';
 import ApiMixin from '../../../mixins/apiMixin';
 import AvatarCropper from '../../../components/avatarCropper';
@@ -101,27 +104,30 @@ const AvatarSettings = React.createClass({
     );
 
     return (
-      <div style={{lineHeight: '1.5em'}}>
-        <form>
-          <AvatarRadio user={this.state.user} updateUser={this.updateUserState} />
+      <Panel style={{lineHeight: '1.5em'}}>
+        <PanelHeader>Avatar</PanelHeader>
+        <PanelBody>
+          <form>
+            <AvatarRadio user={this.state.user} updateUser={this.updateUserState} />
 
-          {this.state.user.avatar.avatarType === 'gravatar' && gravatarMessage}
+            {this.state.user.avatar.avatarType === 'gravatar' && gravatarMessage}
 
-          {this.state.user.avatar.avatarType === 'upload' && (
-            <AvatarCropper
-              {...this.props}
-              user={this.state.user}
-              savedDataUrl={this.state.savedDataUrl}
-              updateDataUrlState={this.updateDataUrlState}
-            />
-          )}
-          <fieldset className="form-actions">
-            <button className="btn btn-primary" onClick={this.saveSettings}>
-              {t('Done')}
-            </button>
-          </fieldset>
-        </form>
-      </div>
+            {this.state.user.avatar.avatarType === 'upload' && (
+              <AvatarCropper
+                {...this.props}
+                user={this.state.user}
+                savedDataUrl={this.state.savedDataUrl}
+                updateDataUrlState={this.updateDataUrlState}
+              />
+            )}
+            <fieldset className="form-actions">
+              <button className="btn btn-primary" onClick={this.saveSettings}>
+                {t('Done')}
+              </button>
+            </fieldset>
+          </form>
+        </PanelBody>
+      </Panel>
     );
   },
 });
