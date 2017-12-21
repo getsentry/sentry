@@ -27,6 +27,11 @@
     "idx"
   ],
   "env": {
+    "development": {
+      "plugins": [
+        ["emotion", {"sourceMap": true}]
+      ]
+    },
     "test": {
       "presets": ["react", "latest"],
       "plugins": [
