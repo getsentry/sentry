@@ -399,7 +399,8 @@ class DSymCache(object):
             project, uuids, on_dsym_file_referenced)
         symcaches = self._load_cachefiles_via_fs(project, cachefiles)
         if with_conversion_errors:
-            return symcaches, conversion_errors
+            return symcaches, dict((uuid.UUID(k), v)
+                                   for k, v in conversion_errors.items())
         return symcaches
 
     def fetch_dsyms(self, project, uuids):
