@@ -29,9 +29,18 @@ let StyledWarning = styled.div`
 // TODO(billy): Temp
 let NewSettingsWarning = ({location = {}}) => {
   // TODO(billy): Remove this warning when ready
-  let oldLocation = location.pathname
-    ? location.pathname.replace(/^\/settings\/organization\//, '/organizations/')
-    : '';
+  let projectRegex = /^\/settings\/organization\/([^\/]+)\/project\/([^\/]+)\//;
+  let isProject = projectRegex.test(location.pathname);
+  let oldLocation;
+
+  if (isProject) {
+    oldLocation = location.pathname.replace(projectRegex, '/$1/$2/settings/');
+  } else {
+    oldLocation = location.pathname.replace(
+      /^\/settings\/organization\//,
+      '/organizations/'
+    );
+  }
 
   if (oldLocation === location.pathname) return null;
 
