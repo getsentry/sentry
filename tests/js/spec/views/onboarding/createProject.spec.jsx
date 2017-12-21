@@ -1,3 +1,4 @@
+import PropTypes from 'prop-types';
 import React from 'react';
 import {shallow, mount} from 'enzyme';
 
@@ -40,8 +41,8 @@ describe('CreateProject', function() {
           location: {query: {}},
         },
         childContextTypes: {
-          organization: React.PropTypes.object,
-          location: React.PropTypes.object,
+          organization: PropTypes.object,
+          location: PropTypes.object,
         },
       });
       expect(wrapper).toMatchSnapshot();
@@ -63,9 +64,9 @@ describe('CreateProject', function() {
           location: {query: {}},
         },
         childContextTypes: {
-          router: React.PropTypes.object,
-          organization: React.PropTypes.object,
-          location: React.PropTypes.object,
+          router: PropTypes.object,
+          organization: PropTypes.object,
+          location: PropTypes.object,
         },
       });
 
@@ -103,9 +104,9 @@ describe('CreateProject', function() {
           location: {query: {platform: 'ruby'}},
         },
         childContextTypes: {
-          router: React.PropTypes.object,
-          organization: React.PropTypes.object,
-          location: React.PropTypes.object,
+          router: PropTypes.object,
+          organization: PropTypes.object,
+          location: PropTypes.object,
         },
       });
 
@@ -130,9 +131,9 @@ describe('CreateProject', function() {
           location: {query: {platform: 'XrubyROOLs'}},
         },
         childContextTypes: {
-          router: React.PropTypes.object,
-          organization: React.PropTypes.object,
-          location: React.PropTypes.object,
+          router: PropTypes.object,
+          organization: PropTypes.object,
+          location: PropTypes.object,
         },
       });
 

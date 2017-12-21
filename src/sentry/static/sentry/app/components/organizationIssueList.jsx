@@ -19,6 +19,8 @@ class OrganizationIssueList extends React.Component {
     this.state = this.getQueryStringState(props);
   }
 
+  state = this.getQueryStringState(this.props),
+
   componentWillReceiveProps(nextProps) {
     if (nextProps.location.search !== this.props.location.search) {
       this.setState(this.getQueryStringState(nextProps), this.fetchData);
