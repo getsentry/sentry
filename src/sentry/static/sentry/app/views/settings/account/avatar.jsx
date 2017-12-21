@@ -1,5 +1,6 @@
 import PropTypes from 'prop-types';
 import React from 'react';
+import styled from 'react-emotion';
 
 import Panel from '../components/panel';
 import PanelBody from '../components/panelBody';
@@ -7,7 +8,7 @@ import PanelHeader from '../components/panelHeader';
 import AlertActions from '../../../actions/alertActions';
 import ApiMixin from '../../../mixins/apiMixin';
 import AvatarCropper from '../../../components/avatarCropper';
-import AvatarRadio from '../../../components/avatarRadio';
+import RadioGroup from '../components/forms/radioGroup';
 import LoadingError from '../../../components/loadingError';
 import LoadingIndicator from '../../../components/loadingIndicator';
 import {t} from '../../../locale';
@@ -104,11 +105,25 @@ const AvatarSettings = React.createClass({
     );
 
     return (
-      <Panel style={{lineHeight: '1.5em'}}>
+      <Panel>
         <PanelHeader>Avatar</PanelHeader>
         <PanelBody>
-          <form>
-            <AvatarRadio user={this.state.user} updateUser={this.updateUserState} />
+          <AvatarForm>
+            <RadioGroup
+              choices={[
+                ['upload', 'Upload a Photo'],
+                ['gravatar', 'Use Gravatar'],
+                ['letter_avatar', 'Use my initials'],
+              ]}
+              value={this.state.user.avatar.avatarType || 'letter_avatar'}
+              label="Avatar Type"
+              onChange={(id, e) =>
+                this.updateUserState(
+                  Object.assign({}, this.state.user, {
+                    avatar: Object.assign({}, this.state.user.avatar, {avatarType: id}),
+                  })
+                )}
+            />
 
             {this.state.user.avatar.avatarType === 'gravatar' && gravatarMessage}
 
@@ -120,16 +135,25 @@ const AvatarSettings = React.createClass({
                 updateDataUrlState={this.updateDataUrlState}
               />
             )}
-            <fieldset className="form-actions">
+            <AvatarSubmit className="form-actions">
               <button className="btn btn-primary" onClick={this.saveSettings}>
                 {t('Done')}
               </button>
-            </fieldset>
-          </form>
+            </AvatarSubmit>
+          </AvatarForm>
         </PanelBody>
       </Panel>
     );
   },
 });
+
+const AvatarForm = styled('form')`
+  line-height: 1.5em;
+  padding: 1em 1.25em;
+`;
+
+const AvatarSubmit = styled('fieldset')`
+  margin-top: 1em;
+`;
 
 export default AvatarSettings;
