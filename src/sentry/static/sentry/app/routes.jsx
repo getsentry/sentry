@@ -318,11 +318,13 @@ function routes() {
     />,
 
     <Route key="members" path="members/" name="Members">
-      <IndexRoute component={
-        HookStore.get('component:org-members-view').length ?
-          HookStore.get('component:org-members-view')[0]() :
-          OrganizationMembersView
-      } />
+      <IndexRoute
+        component={
+          HookStore.get('component:org-members-view').length
+            ? HookStore.get('component:org-members-view')[0]()
+            : OrganizationMembersView
+        }
+      />
       <Route path="new/" name="Invite" component={errorHandler(InviteMember)} />,
       <Route
         path=":memberId/"
