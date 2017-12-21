@@ -3,7 +3,7 @@ from __future__ import absolute_import
 import re
 import six
 
-from symbolic import SymbolicError, ObjectLookup, Symbol, parse_addr
+from symbolic import SymbolicError, ObjectLookup, LineInfo, parse_addr
 
 from sentry.utils.safe import trim
 from sentry.utils.compat import implements_to_string
@@ -236,7 +236,7 @@ class Symbolizer(object):
             symbol = symbol[1:]
 
         return [
-            self._process_frame(Symbol(
+            self._process_frame(LineInfo(
                 sym_addr=parse_addr(symbolserver_match['addr']),
                 instr_addr=parse_addr(instruction_addr),
                 line=None,
