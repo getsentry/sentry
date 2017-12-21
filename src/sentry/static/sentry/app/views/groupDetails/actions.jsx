@@ -28,9 +28,12 @@ class DeleteActions extends React.Component {
     onDiscard: PropTypes.func.isRequired,
   };
 
-  state = {
-    hooksDisabled: HookStore.get('project:discard-groups:disabled'),
-  };
+  constructor(...args) {
+    super(...args);
+    this.state = {
+      hooksDisabled: HookStore.get('project:discard-groups:disabled'),
+    };
+  }
 
   renderDisabledDiscard = () => {
     let {project, organization} = this.props;
