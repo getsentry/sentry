@@ -12,7 +12,7 @@ from sentry.models import Event
 from sentry.testutils import TestCase
 from sentry.lang.native.symbolizer import Symbolizer
 
-from symbolic import parse_addr
+from symbolic import parse_addr, Object, SymbolicError
 
 
 class BasicResolvingIntegrationTest(TestCase):
@@ -1115,3 +1115,95 @@ class RealResolvingIntegrationTest(TestCase):
         assert frames[0].filename == 'hello.c'
         assert frames[0].abs_path == '/tmp/hello.c'
         assert frames[0].lineno == 1
+
+    def test_broken_conversion(self):
+        url = reverse(
+            'sentry-api-0-dsym-files',
+            kwargs={
+                'organization_slug': self.project.organization.slug,
+                'project_slug': self.project.slug,
+            }
+        )
+
+        self.login_as(user=self.user)
+
+        out = BytesIO()
+        f = zipfile.ZipFile(out, 'w')
+        f.write(os.path.join(os.path.dirname(__file__), 'fixtures', 'hello.dsym'),
+                'dSYM/hello')
+        f.close()
+
+        original_make_symcache = Object.make_symcache
+
+        def broken_make_symcache(self):
+            raise SymbolicError('shit on fire')
+        Object.make_symcache = broken_make_symcache
+        try:
+            response = self.client.post(
+                url, {
+                    'file':
+                    SimpleUploadedFile(
+                        'symbols.zip',
+                        out.getvalue(),
+                        content_type='application/zip'),
+                },
+                format='multipart'
+            )
+            assert response.status_code == 201, response.content
+            assert len(response.data) == 1
+
+            event_data = {
+                "project": self.project.id,
+                "platform": "cocoa",
+                "debug_meta": {
+                    "images": [{
+                        "type": "apple",
+                        "arch": "x86_64",
+                        "uuid": "502fc0a5-1ec1-3e47-9998-684fa139dca7",
+                        "image_vmaddr": "0x0000000100000000",
+                        "image_size": 4096,
+                        "image_addr": "0x0000000100000000",
+                        "name": "Foo.app/Contents/Foo"
+                    }],
+                    "sdk_info": {
+                        "dsym_type": "macho",
+                        "sdk_name": "macOS",
+                        "version_major": 10,
+                        "version_minor": 12,
+                        "version_patchlevel": 4,
+                    }
+                },
+                "sentry.interfaces.Exception": {
+                    "values": [
+                        {
+                            'stacktrace': {
+                                "frames": [
+                                    {
+                                        "function": "unknown",
+                                        "instruction_addr": "0x0000000100000fa0"
+                                    },
+                                ]
+                            },
+                            "type": "Fail",
+                            "value": "fail"
+                        }
+                    ]
+                },
+            }
+
+            for _ in range(3):
+                resp = self._postWithHeader(event_data)
+                assert resp.status_code == 200
+                event = Event.objects.get()
+                errors = event.data['errors']
+                assert len(errors) == 1
+                assert errors[0] == {
+                    'image_arch': u'x86_64',
+                    'image_path': u'Foo.app/Contents/Foo',
+                    'image_uuid': u'502fc0a5-1ec1-3e47-9998-684fa139dca7',
+                    'message': u'shit on fire',
+                    'type': 'native_bad_dsym'
+                }
+                event.delete()
+        finally:
+            Object.make_symcache = original_make_symcache
