@@ -405,6 +405,87 @@ class JavascriptIntegrationTest(TestCase):
         assert frame.post_context == ['}', '']
 
     @responses.activate
+    def test_sourcemap_nofiles_source_expansion(self):
+        project = self.project
+        release = Release.objects.create(
+            organization_id=project.organization_id,
+            version='abc',
+        )
+        release.add_project(project)
+
+        f_minified = File.objects.create(
+            name='nofiles.js',
+            type='release.file',
+            headers={'Content-Type': 'application/json'},
+        )
+        f_minified.putfile(open(get_fixture_path('nofiles.js'), 'rb'))
+        ReleaseFile.objects.create(
+            name='~/{}'.format(f_minified.name),
+            release=release,
+            organization_id=project.organization_id,
+            file=f_minified,
+        )
+
+        f_sourcemap = File.objects.create(
+            name='nofiles.js.map',
+            type='release.file',
+            headers={'Content-Type': 'application/json'},
+        )
+        f_sourcemap.putfile(open(get_fixture_path('nofiles.js.map'), 'rb'))
+        ReleaseFile.objects.create(
+            name='app:///{}'.format(f_sourcemap.name),
+            release=release,
+            organization_id=project.organization_id,
+            file=f_sourcemap,
+        )
+
+        data = {
+            'message': 'hello',
+            'platform': 'javascript',
+            'release': 'abc',
+            'sentry.interfaces.Exception': {
+                'values': [
+                    {
+                        'type': 'Error',
+                        'stacktrace': {
+                            'frames': [
+                                {
+                                    'abs_path': 'app:///nofiles.js',
+                                    'lineno': 1,
+                                    'colno': 39,
+                                }
+                            ],
+                        },
+                    }
+                ],
+            }
+        }
+
+        resp = self._postWithHeader(data)
+        assert resp.status_code, 200
+
+        event = Event.objects.get()
+        assert not event.data['errors']
+
+        exception = event.interfaces['sentry.interfaces.Exception']
+        frame_list = exception.values[0].stacktrace.frames
+
+        assert len(frame_list) == 1
+        frame = frame_list[0]
+        assert frame.pre_context == [
+            'function multiply(a, b) {',
+            '\t"use strict";',
+        ]
+        assert frame.context_line == u'\treturn a * b;'
+        assert frame.post_context == [
+            '}',
+            'function divide(a, b) {',
+            '\t"use strict";',
+            '\ttry {',
+            '\t\treturn multiply(add(a, b), a, b) / c;'
+        ]
+
+    @responses.activate
     def test_indexed_sourcemap_source_expansion(self):
         responses.add(
             responses.GET,
