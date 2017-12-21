@@ -7,18 +7,18 @@ import LinkWithConfirmation from '../../components/linkWithConfirmation';
 import {t} from '../../locale';
 import marked from '../../utils/marked';
 
-class Note extends React.Component {
-  static propTypes = {
+const Note = React.createClass({
+  propTypes: {
     author: PropTypes.object.isRequired,
     item: PropTypes.object.isRequired,
     onEdit: PropTypes.func.isRequired,
     onDelete: PropTypes.func.isRequired,
-  };
+  },
 
-  canEdit = () => {
+  canEdit() {
     let user = ConfigStore.get('user');
     return user.isSuperuser || user.id === this.props.item.user.id;
-  };
+  },
 
   render() {
     let {item, author, onEdit, onDelete} = this.props;
@@ -45,7 +45,7 @@ class Note extends React.Component {
         <div dangerouslySetInnerHTML={{__html: noteBody}} />
       </div>
     );
-  }
-}
+  },
+});
 
 export default Note;

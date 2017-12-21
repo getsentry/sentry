@@ -1,15 +1,11 @@
 import PropTypes from 'prop-types';
 import React from 'react';
 
-import createReactClass from 'create-react-class';
-
 import Avatar from '../avatar';
 import TooltipMixin from '../../mixins/tooltip';
 import {userDisplayName} from '../../utils/formatters';
 
-const GroupParticipants = createReactClass({
-  displayName: 'GroupParticipants',
-
+const GroupParticipants = React.createClass({
   propTypes: {
     participants: PropTypes.array.isRequired,
   },

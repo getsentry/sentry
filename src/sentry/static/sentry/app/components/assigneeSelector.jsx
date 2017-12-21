@@ -1,6 +1,5 @@
 import PropTypes from 'prop-types';
 import React from 'react';
-import createReactClass from 'create-react-class';
 import Reflux from 'reflux';
 import classNames from 'classnames';
 
@@ -18,9 +17,7 @@ import MemberListStore from '../stores/memberListStore';
 import MenuItem from './menuItem';
 import TooltipMixin from '../mixins/tooltip';
 
-const AssigneeSelector = createReactClass({
-  displayName: 'AssigneeSelector',
-
+const AssigneeSelector = React.createClass({
   propTypes: {
     id: PropTypes.string.isRequired,
   },

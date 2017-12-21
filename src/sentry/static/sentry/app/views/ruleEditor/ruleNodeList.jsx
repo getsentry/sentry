@@ -4,24 +4,23 @@ import React from 'react';
 import SelectInput from '../../components/selectInput';
 import RuleNode from './ruleNode';
 
-class RuleNodeList extends React.Component {
-  static propTypes = {
+const RuleNodeList = React.createClass({
+  propTypes: {
     initialItems: PropTypes.array,
     nodes: PropTypes.array.isRequired,
-  };
+  },
 
-  constructor(props) {
-    super(props);
+  getInitialState() {
     let counter = 0;
-    let initialItems = (props.initialItems || []).map(item => {
+    let initialItems = (this.props.initialItems || []).map(item => {
       return {...item, key_attr: counter++};
     });
 
-    this.state = {
+    return {
       items: initialItems,
       counter,
     };
-  }
+  },
 
   componentWillMount() {
     this._nodesById = {};
@@ -29,9 +28,9 @@ class RuleNodeList extends React.Component {
     this.props.nodes.forEach(node => {
       this._nodesById[node.id] = node;
     });
-  }
+  },
 
-  onAddRow = sel => {
+  onAddRow(sel) {
     let nodeId = sel.val();
     if (!nodeId) return;
 
@@ -49,18 +48,18 @@ class RuleNodeList extends React.Component {
       items: this.state.items,
       counter: this.state.counter + 1,
     });
-  };
+  },
 
-  onDeleteRow = (idx, e) => {
+  onDeleteRow(idx, e) {
     this.state.items.splice(idx, 1);
     this.setState({
       items: this.state.items,
     });
-  };
+  },
 
-  getNode = id => {
+  getNode(id) {
     return this._nodesById[id];
-  };
+  },
 
   render() {
     return (
@@ -93,7 +92,7 @@ class RuleNodeList extends React.Component {
         </fieldset>
       </div>
     );
-  }
-}
+  },
+});
 
 export default RuleNodeList;

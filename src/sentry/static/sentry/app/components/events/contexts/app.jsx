@@ -3,11 +3,11 @@ import React from 'react';
 
 import ContextBlock from './contextBlock';
 
-class AppContextType extends React.Component {
-  static propTypes = {
+const AppContextType = React.createClass({
+  propTypes: {
     alias: PropTypes.string.isRequired,
     data: PropTypes.object.isRequired,
-  };
+  },
 
   render() {
     let {
@@ -37,8 +37,8 @@ class AppContextType extends React.Component {
         alias={this.props.alias}
       />
     );
-  }
-}
+  },
+});
 
 AppContextType.getTitle = function(value) {
   return 'App';

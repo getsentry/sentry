@@ -1,6 +1,5 @@
 import PropTypes from 'prop-types';
 import React from 'react';
-import createReactClass from 'create-react-class';
 import Modal from 'react-bootstrap/lib/Modal';
 import ApiMixin from '../../mixins/apiMixin';
 import DropdownLink from '../../components/dropdownLink';
@@ -10,9 +9,7 @@ import plugins from '../../plugins';
 import {t} from '../../locale';
 import {toTitleCase} from '../../utils';
 
-const IssuePluginActions = createReactClass({
-  displayName: 'IssuePluginActions',
-
+const IssuePluginActions = React.createClass({
   propTypes: {
     plugin: PropTypes.object.isRequired,
   },

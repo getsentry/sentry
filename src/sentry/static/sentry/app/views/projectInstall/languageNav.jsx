@@ -1,19 +1,21 @@
 import PropTypes from 'prop-types';
 import React from 'react';
 
-class LanguageNav extends React.Component {
-  static propTypes = {
+const LanguageNav = React.createClass({
+  propTypes: {
     name: PropTypes.string.isRequired,
     active: PropTypes.bool,
-  };
+  },
 
-  state = {
-    isVisible: this.props.active || false,
-  };
+  getInitialState() {
+    return {
+      isVisible: this.props.active || false,
+    };
+  },
 
-  toggle = () => {
+  toggle() {
     this.setState({isVisible: !this.state.isVisible});
-  };
+  },
 
   render() {
     let {isVisible} = this.state;
@@ -42,7 +44,7 @@ class LanguageNav extends React.Component {
         </ul>
       </div>
     );
-  }
-}
+  },
+});
 
 export default LanguageNav;

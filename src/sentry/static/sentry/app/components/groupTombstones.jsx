@@ -1,6 +1,5 @@
 import PropTypes from 'prop-types';
 import React from 'react';
-import createReactClass from 'create-react-class';
 import _ from 'lodash';
 
 import Avatar from '../components/avatar';
@@ -14,9 +13,7 @@ import ApiMixin from '../mixins/apiMixin';
 
 import {t} from '../locale';
 
-const GroupTombstoneRow = createReactClass({
-  displayName: 'GroupTombstoneRow',
-
+const GroupTombstoneRow = React.createClass({
   propTypes: {
     data: PropTypes.object.isRequired,
     undiscard: PropTypes.func.isRequired,
@@ -74,9 +71,7 @@ const GroupTombstoneRow = createReactClass({
   },
 });
 
-const GroupTombstones = createReactClass({
-  displayName: 'GroupTombstones',
-
+const GroupTombstones = React.createClass({
   propTypes: {
     orgId: PropTypes.string.isRequired,
     projectId: PropTypes.string.isRequired,

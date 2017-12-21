@@ -3,11 +3,11 @@ import React from 'react';
 import Pills from '../../pills';
 import Pill from '../../pill';
 
-class ExceptionMechanism extends React.Component {
-  static propTypes = {
+const ExceptionMechanism = React.createClass({
+  propTypes: {
     data: PropTypes.object.isRequired,
     platform: PropTypes.string,
-  };
+  },
 
   render() {
     let pills = [];
@@ -47,7 +47,7 @@ class ExceptionMechanism extends React.Component {
         <Pills>{pills}</Pills>
       </div>
     );
-  }
-}
+  },
+});
 
 export default ExceptionMechanism;

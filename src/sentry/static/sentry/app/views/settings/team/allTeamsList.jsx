@@ -8,14 +8,14 @@ import Panel from '../components/panel';
 import AllTeamsRow from './allTeamsRow';
 import {tct} from '../../../locale';
 
-class AllTeamsList extends React.Component {
-  static propTypes = {
+const AllTeamsList = React.createClass({
+  propTypes: {
     urlPrefix: PropTypes.string,
     access: PropTypes.object,
     organization: SentryTypes.Organization,
     teamList: PropTypes.arrayOf(SentryTypes.Team),
     openMembership: PropTypes.bool,
-  };
+  },
 
   render() {
     let {access, organization, urlPrefix, openMembership} = this.props;
@@ -43,7 +43,7 @@ class AllTeamsList extends React.Component {
         link: <Link to={`${urlPrefix}teams/new/`} />,
       }
     );
-  }
-}
+  },
+});
 
 export default AllTeamsList;

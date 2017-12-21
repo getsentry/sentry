@@ -1,6 +1,5 @@
 import PropTypes from 'prop-types';
 import React from 'react';
-import createReactClass from 'create-react-class';
 import DocumentTitle from 'react-document-title';
 import {Link} from 'react-router';
 
@@ -10,9 +9,7 @@ import LoadingError from '../components/loadingError';
 import LoadingIndicator from '../components/loadingIndicator';
 import {t} from '../locale';
 
-const ApiApplicationRow = createReactClass({
-  displayName: 'ApiApplicationRow',
-
+const ApiApplicationRow = React.createClass({
   propTypes: {
     app: PropTypes.object.isRequired,
     onRemove: PropTypes.func.isRequired,
@@ -86,9 +83,7 @@ const ApiApplicationRow = createReactClass({
   },
 });
 
-const ApiApplications = createReactClass({
-  displayName: 'ApiApplications',
-
+const ApiApplications = React.createClass({
   contextTypes: {
     router: PropTypes.object.isRequired,
   },

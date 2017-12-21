@@ -1,15 +1,12 @@
 import PropTypes from 'prop-types';
 import React from 'react';
-import createReactClass from 'create-react-class';
 import {Link} from 'react-router';
 
 import ProjectState from '../mixins/projectState';
 import TimeSince from './timeSince';
 import ShortId from './shortId';
 
-const EventOrGroupExtraDetails = createReactClass({
-  displayName: 'EventOrGroupExtraDetails',
-
+const EventOrGroupExtraDetails = React.createClass({
   propTypes: {
     orgId: PropTypes.string.isRequired,
     projectId: PropTypes.string.isRequired,

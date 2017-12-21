@@ -1331,7 +1331,7 @@ exports[`Issues -> Merged View renders with mocked data 1`] = `
             </div>
           </MergedItem>
         </div>
-        <Pagination
+        <pagination
           onCursor={[Function]}
         />
       </div>
@@ -2655,7 +2655,7 @@ exports[`Issues -> Merged View renders with mocked data 2`] = `
             </div>
           </MergedItem>
         </div>
-        <Pagination
+        <pagination
           onCursor={[Function]}
         />
       </div>

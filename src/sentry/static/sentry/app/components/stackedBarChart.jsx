@@ -1,5 +1,4 @@
 import React from 'react';
-import createReactClass from 'create-react-class';
 import PropTypes from 'prop-types';
 import moment from 'moment';
 import _ from 'lodash';
@@ -8,9 +7,7 @@ import TooltipMixin from '../mixins/tooltip';
 import Count from './count';
 import ConfigStore from '../stores/configStore';
 
-const StackedBarChart = createReactClass({
-  displayName: 'StackedBarChart',
-
+const StackedBarChart = React.createClass({
   propTypes: {
     // TODO(dcramer): DEPRECATED, use series instead
     points: PropTypes.arrayOf(

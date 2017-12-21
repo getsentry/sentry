@@ -4,15 +4,17 @@ import React from 'react';
 import U2fInterface from './u2finterface';
 import {t} from '../locale';
 
-class U2fSign extends React.Component {
-  static propTypes = {
+const U2fSign = React.createClass({
+  propTypes: {
     challengeData: PropTypes.object,
     displayMode: PropTypes.string,
-  };
+  },
 
-  static defaultProps = {
-    displayMode: 'signin',
-  };
+  getDefaultProps() {
+    return {
+      displayMode: 'signin',
+    };
+  },
 
   render() {
     const {displayMode} = this.props;
@@ -40,7 +42,7 @@ class U2fSign extends React.Component {
         </p>
       </U2fInterface>
     );
-  }
-}
+  },
+});
 
 export default U2fSign;

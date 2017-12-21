@@ -6,13 +6,15 @@ import {t} from '../../locale';
 import ContextData from '../contextData';
 
 // TODO(hazat): Is this interface used somewhere? If not delete it?
-class DeviceInterface extends React.Component {
-  static propTypes = {
+const DeviceInterface = React.createClass({
+  propTypes: {
     group: SentryTypes.Group.isRequired,
     event: SentryTypes.Event.isRequired,
-  };
+  },
 
-  state = {};
+  getInitialState() {
+    return {};
+  },
 
   render() {
     let {group, event} = this.props;
@@ -68,7 +70,7 @@ class DeviceInterface extends React.Component {
         </table>
       </GroupEventDataSection>
     );
-  }
-}
+  },
+});
 
 export default DeviceInterface;

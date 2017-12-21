@@ -1,7 +1,7 @@
 import React from 'react';
 import classNames from 'classnames';
 
-class Pills extends React.Component {
+const Pills = React.createClass({
   render() {
     let {className, children, ...otherProps} = this.props;
     return (
@@ -9,7 +9,7 @@ class Pills extends React.Component {
         {children}
       </div>
     );
-  }
-}
+  },
+});
 
 export default Pills;

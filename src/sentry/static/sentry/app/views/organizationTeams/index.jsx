@@ -1,6 +1,5 @@
 import PropTypes from 'prop-types';
 import React from 'react';
-import createReactClass from 'create-react-class';
 import Reflux from 'reflux';
 
 import {loadStats} from '../../actionCreators/projects';
@@ -11,9 +10,7 @@ import OrganizationState from '../../mixins/organizationState';
 import TeamStore from '../../stores/teamStore';
 import getSettingsComponent from '../../utils/getSettingsComponent';
 
-const OrganizationTeams = createReactClass({
-  displayName: 'OrganizationTeams',
-
+const OrganizationTeams = React.createClass({
   propTypes: {
     routes: PropTypes.arrayOf(PropTypes.object),
   },

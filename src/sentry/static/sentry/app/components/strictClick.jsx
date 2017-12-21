@@ -1,6 +1,5 @@
 import PropTypes from 'prop-types';
 import React from 'react';
-import createReactClass from 'create-react-class';
 import PureRenderMixin from 'react-addons-pure-render-mixin';
 
 /**
@@ -9,9 +8,7 @@ import PureRenderMixin from 'react-addons-pure-render-mixin';
  *     <button>Some button</button>
  *   </StrictClick>
  */
-const StrictClick = createReactClass({
-  displayName: 'StrictClick',
-
+const StrictClick = React.createClass({
   propTypes: {
     onClick: PropTypes.func,
   },

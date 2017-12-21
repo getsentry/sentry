@@ -1,8 +1,6 @@
 import PropTypes from 'prop-types';
 import React from 'react';
 
-import createReactClass from 'create-react-class';
-
 import LoadingIndicator from '../../components/loadingIndicator';
 import LoadingError from '../../components/loadingError';
 import IconOpen from '../../icons/icon-open';
@@ -17,9 +15,7 @@ import ApiMixin from '../../mixins/apiMixin';
 
 import {t} from '../../locale';
 
-const ReleaseOverview = createReactClass({
-  displayName: 'ReleaseOverview',
-
+const ReleaseOverview = React.createClass({
   contextTypes: {
     release: PropTypes.object,
   },

@@ -1,8 +1,6 @@
 import PropTypes from 'prop-types';
 import React from 'react';
 
-import createReactClass from 'create-react-class';
-
 import ApiMixin from '../../mixins/apiMixin';
 import SuggestedOwners from './suggestedOwners';
 import GroupParticipants from './participants';
@@ -14,9 +12,7 @@ import TagDistributionMeter from './tagDistributionMeter';
 import LoadingError from '../../components/loadingError';
 import {t, tct} from '../../locale';
 
-const GroupSidebar = createReactClass({
-  displayName: 'GroupSidebar',
-
+const GroupSidebar = React.createClass({
   propTypes: {
     group: PropTypes.object,
     event: PropTypes.object,

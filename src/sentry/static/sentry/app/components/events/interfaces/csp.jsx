@@ -20,31 +20,30 @@ function getView(view, data) {
   }
 }
 
-class CSPInterface extends React.Component {
-  static propTypes = {
+const CSPInterface = React.createClass({
+  propTypes: {
     group: SentryTypes.Group.isRequired,
     event: SentryTypes.Event.isRequired,
     type: PropTypes.string.isRequired,
     data: PropTypes.object.isRequired,
-  };
+  },
 
-  constructor(props) {
-    super(props);
-    let {data} = props;
+  getInitialState() {
+    let {data} = this.props;
     // hide the report-uri since this is redundant and silly
     data.original_policy = data.original_policy.replace(/(;\s+)?report-uri [^;]+/, '');
 
-    this.state = {
+    return {
       view: 'report',
       data,
     };
-  }
+  },
 
-  toggleView = value => {
+  toggleView(value) {
     this.setState({
       view: value,
     });
-  };
+  },
 
   render() {
     let {view, data} = this.state;
@@ -89,7 +88,7 @@ class CSPInterface extends React.Component {
         {children}
       </GroupEventDataSection>
     );
-  }
-}
+  },
+});
 
 export default CSPInterface;

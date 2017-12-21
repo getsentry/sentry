@@ -1,14 +1,11 @@
 import React from 'react';
-import createReactClass from 'create-react-class';
 import Reflux from 'reflux';
 
 import OrganizationsStore from '../stores/organizationsStore';
 
 const withOrganizations = WrappedComponent =>
-  createReactClass({
-    displayName: 'withOrganizations',
+  React.createClass({
     mixins: [Reflux.connect(OrganizationsStore, 'organizations')],
-
     render() {
       return (
         <WrappedComponent organizations={this.state.organizations} {...this.props} />

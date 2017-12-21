@@ -5,7 +5,7 @@ import MenuItem from '../components/menuItem';
 import NarrowLayout from '../components/narrowLayout';
 import {t} from '../locale';
 
-class AccountLayout extends React.Component {
+const AccountLayout = React.createClass({
   render() {
     let header = (
       <div>
@@ -55,7 +55,7 @@ class AccountLayout extends React.Component {
         {this.props.children}
       </NarrowLayout>
     );
-  }
-}
+  },
+});
 
 export default AccountLayout;

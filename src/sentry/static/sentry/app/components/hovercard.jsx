@@ -2,19 +2,21 @@ import PropTypes from 'prop-types';
 import React from 'react';
 import classNames from 'classnames';
 
-class Hovercard extends React.Component {
-  static propTypes = {
+const Hovercard = React.createClass({
+  propTypes: {
     className: PropTypes.string,
     containerClassName: PropTypes.string,
     header: PropTypes.node,
     body: PropTypes.node,
-  };
+  },
 
-  state = {
-    visible: false,
-  };
+  getInitialState() {
+    return {
+      visible: false,
+    };
+  },
 
-  handleToggleHovercard = () => {
+  handleToggleHovercard() {
     let {header, body} = this.props;
 
     // Don't toggle hovercard if both of these are null
@@ -23,7 +25,7 @@ class Hovercard extends React.Component {
     this.setState({
       visible: !this.state.visible,
     });
-  };
+  },
 
   render() {
     let {containerClassName, className, header, body} = this.props;
@@ -48,7 +50,7 @@ class Hovercard extends React.Component {
         )}
       </span>
     );
-  }
-}
+  },
+});
 
 export default Hovercard;

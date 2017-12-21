@@ -2,22 +2,24 @@ import PropTypes from 'prop-types';
 import React from 'react';
 import {t} from '../../locale';
 
-class EventErrorItem extends React.Component {
-  static propTypes = {
+const EventErrorItem = React.createClass({
+  propTypes: {
     error: PropTypes.object.isRequired,
-  };
+  },
 
-  state = {
-    isOpen: false,
-  };
+  getInitialState() {
+    return {
+      isOpen: false,
+    };
+  },
 
   shouldComponentUpdate(nextProps, nextState) {
     return this.state.isOpen !== nextState.isOpen;
-  }
+  },
 
-  toggle = () => {
+  toggle() {
     this.setState({isOpen: !this.state.isOpen});
-  };
+  },
 
   render() {
     let error = this.props.error;
@@ -36,7 +38,7 @@ class EventErrorItem extends React.Component {
         </pre>
       </li>
     );
-  }
-}
+  },
+});
 
 export default EventErrorItem;

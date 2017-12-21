@@ -1,6 +1,5 @@
 import PropTypes from 'prop-types';
 import React from 'react';
-import createReactClass from 'create-react-class';
 import Reflux from 'reflux';
 import jQuery from 'jquery';
 
@@ -14,9 +13,7 @@ import StreamGroup from '../components/stream/group';
 import utils from '../utils';
 import {t} from '../locale';
 
-const GroupList = createReactClass({
-  displayName: 'GroupList',
-
+const GroupList = React.createClass({
   propTypes: {
     query: PropTypes.string.isRequired,
     canSelectGroups: PropTypes.bool,

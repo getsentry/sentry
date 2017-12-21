@@ -1,5 +1,4 @@
 import React from 'react';
-import createReactClass from 'create-react-class';
 import DocumentTitle from 'react-document-title';
 
 import OrganizationState from '../../mixins/organizationState';
@@ -7,8 +6,7 @@ import OrganizationState from '../../mixins/organizationState';
 import CreateProject from '../onboarding/createProject';
 import ProjectSelector from '../../components/projectHeader/projectSelector';
 
-const NewProject = createReactClass({
-  displayName: 'NewProject',
+const NewProject = React.createClass({
   mixins: [OrganizationState],
 
   render() {

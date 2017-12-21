@@ -1,6 +1,5 @@
 import PropTypes from 'prop-types';
 import React from 'react';
-import createReactClass from 'create-react-class';
 import DocumentTitle from 'react-document-title';
 
 import ApiMixin from '../mixins/apiMixin';
@@ -14,9 +13,7 @@ import TimeSince from '../components/timeSince';
 import Version from '../components/version';
 import {t} from '../locale';
 
-const ReleaseDetails = createReactClass({
-  displayName: 'ReleaseDetails',
-
+const ReleaseDetails = React.createClass({
   propTypes: {
     setProjectNavSection: PropTypes.func,
   },

@@ -5,13 +5,13 @@ import TimeSince from '../../components/timeSince';
 import utils from '../../utils';
 import Link from '../link';
 
-class EventUserReport extends React.Component {
-  static propTypes = {
+const EventUserReport = React.createClass({
+  propTypes: {
     report: PropTypes.object.isRequired,
     orgId: PropTypes.string.isRequired,
     projectId: PropTypes.string.isRequired,
     issueId: PropTypes.string.isRequired,
-  };
+  },
 
   render() {
     let {report, orgId, projectId, issueId} = this.props;
@@ -52,7 +52,7 @@ class EventUserReport extends React.Component {
         </div>
       </div>
     );
-  }
-}
+  },
+});
 
 export default EventUserReport;

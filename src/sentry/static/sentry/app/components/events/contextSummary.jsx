@@ -14,10 +14,10 @@ const generateClassName = function(name) {
     .replace(/\-+$/, '');
 };
 
-class NoSummary extends React.Component {
-  static propTypes = {
+const NoSummary = React.createClass({
+  propTypes: {
     title: PropTypes.string.isRequired,
-  };
+  },
 
   render() {
     return (
@@ -26,14 +26,14 @@ class NoSummary extends React.Component {
         <h3>{this.props.title}</h3>
       </div>
     );
-  }
-}
+  },
+});
 
-class GenericSummary extends React.Component {
-  static propTypes = {
+const GenericSummary = React.createClass({
+  propTypes: {
     data: PropTypes.object.isRequired,
     unknownTitle: PropTypes.string.isRequired,
-  };
+  },
 
   render() {
     let data = this.props.data;
@@ -53,13 +53,13 @@ class GenericSummary extends React.Component {
         </p>
       </div>
     );
-  }
-}
+  },
+});
 
-class UserSummary extends React.Component {
-  static propTypes = {
+const UserSummary = React.createClass({
+  propTypes: {
     data: PropTypes.object.isRequired,
-  };
+  },
 
   render() {
     let user = this.props.data;
@@ -96,13 +96,13 @@ class UserSummary extends React.Component {
         )}
       </div>
     );
-  }
-}
+  },
+});
 
-class DeviceSummary extends React.Component {
-  static propTypes = {
+const DeviceSummary = React.createClass({
+  propTypes: {
     data: PropTypes.object.isRequired,
-  };
+  },
 
   render() {
     let data = this.props.data;
@@ -121,14 +121,14 @@ class DeviceSummary extends React.Component {
         <p>{data.arch || data.model_id || ''}</p>
       </div>
     );
-  }
-}
+  },
+});
 
-class EventContextSummary extends React.Component {
-  static propTypes = {
+const EventContextSummary = React.createClass({
+  propTypes: {
     group: SentryTypes.Group.isRequired,
     event: SentryTypes.Event.isRequired,
-  };
+  },
 
   render() {
     let evt = this.props.event;
@@ -187,7 +187,7 @@ class EventContextSummary extends React.Component {
     }
 
     return <div className="context-summary">{children}</div>;
-  }
-}
+  },
+});
 
 export default EventContextSummary;

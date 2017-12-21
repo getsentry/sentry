@@ -1,7 +1,6 @@
 import jQuery from 'jquery';
 import PropTypes from 'prop-types';
 import React from 'react';
-import createReactClass from 'create-react-class';
 import {Link} from 'react-router';
 
 import EventList from './projectDashboard/eventList';
@@ -14,9 +13,7 @@ const PERIOD_DAY = '1d';
 const PERIOD_WEEK = '1w';
 const PERIODS = new Set([PERIOD_HOUR, PERIOD_DAY, PERIOD_WEEK]);
 
-const ProjectDashboard = createReactClass({
-  displayName: 'ProjectDashboard',
-
+const ProjectDashboard = React.createClass({
   propTypes: {
     defaultStatsPeriod: PropTypes.string,
     setProjectNavSection: PropTypes.func,

@@ -1,11 +1,7 @@
 import PropTypes from 'prop-types';
 import React from 'react';
 
-import createReactClass from 'create-react-class';
-
-export default createReactClass({
-  displayName: 'count',
-
+export default React.createClass({
   propTypes: {
     value: PropTypes.any.isRequired,
   },

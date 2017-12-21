@@ -5,23 +5,27 @@ import {sprintf} from 'sprintf-js';
 
 import {t} from '../locale';
 
-class CustomIgnoreDurationModal extends React.Component {
-  static propTypes = {
+export default React.createClass({
+  propTypes: {
     onSelected: PropTypes.func,
     onCanceled: PropTypes.func,
     show: PropTypes.bool,
     label: PropTypes.string,
-  };
+  },
 
-  static defaultProps = {
-    label: t('Ignore this issue until it occurs after ..'),
-  };
+  getDefaultProps() {
+    return {
+      label: t('Ignore this issue until it occurs after ..'),
+    };
+  },
 
-  state = {
-    dateWarning: false,
-  };
+  getInitialState() {
+    return {
+      dateWarning: false,
+    };
+  },
 
-  selectedIgnoreMinutes = () => {
+  selectedIgnoreMinutes() {
     const dateStr = this.refs.snoozeDateInput.value; // YYYY-MM-DD
     const timeStr = this.refs.snoozeTimeInput.value; // HH:MM
     if (dateStr && timeStr) {
@@ -34,9 +38,9 @@ class CustomIgnoreDurationModal extends React.Component {
       }
     }
     return 0;
-  };
+  },
 
-  snoozeClicked = () => {
+  snoozeClicked() {
     const minutes = this.selectedIgnoreMinutes();
 
     this.setState({
@@ -46,7 +50,7 @@ class CustomIgnoreDurationModal extends React.Component {
     if (minutes > 0) {
       this.props.onSelected({ignoreDuration: minutes});
     }
-  };
+  },
 
   render() {
     // Give the user a sane starting point to select a date
@@ -117,7 +121,5 @@ class CustomIgnoreDurationModal extends React.Component {
         </div>
       </Modal>
     );
-  }
-}
-
-export default CustomIgnoreDurationModal;
+  },
+});

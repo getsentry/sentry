@@ -5,15 +5,17 @@ import SentryTypes from '../../../proptypes';
 import Frame from './frame';
 import {t} from '../../../locale';
 
-class TemplateInterface extends React.Component {
-  static propTypes = {
+const TemplateInterface = React.createClass({
+  propTypes: {
     group: SentryTypes.Group.isRequired,
     event: SentryTypes.Event.isRequired,
     type: PropTypes.string.isRequired,
     data: PropTypes.object.isRequired,
-  };
+  },
 
-  state = {};
+  getInitialState() {
+    return {};
+  },
 
   render() {
     return (
@@ -30,7 +32,7 @@ class TemplateInterface extends React.Component {
         </div>
       </GroupEventDataSection>
     );
-  }
-}
+  },
+});
 
 export default TemplateInterface;

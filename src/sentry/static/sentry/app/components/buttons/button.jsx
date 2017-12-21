@@ -7,8 +7,8 @@ import FlowLayout from '../flowLayout';
 
 import '../../../less/components/button.less';
 
-class Button extends React.Component {
-  static propTypes = {
+const Button = React.createClass({
+  propTypes: {
     priority: PropTypes.oneOf(['primary', 'danger', 'link']),
     size: PropTypes.oneOf(['small', 'xsmall', 'large']),
     disabled: PropTypes.bool,
@@ -27,14 +27,16 @@ class Button extends React.Component {
     title: PropTypes.string,
     borderless: PropTypes.bool,
     onClick: PropTypes.func,
-  };
+  },
 
-  static defaultProps = {
-    disabled: false,
-  };
+  getDefaultProps() {
+    return {
+      disabled: false,
+    };
+  },
 
   // Intercept onClick and propagate
-  handleClick = (...args) => {
+  handleClick(...args) {
     let {disabled, busy, onClick} = this.props;
 
     // Don't allow clicks when disabled or busy
@@ -43,13 +45,13 @@ class Button extends React.Component {
     if (typeof onClick !== 'function') return;
 
     onClick(...args);
-  };
+  },
 
-  getUrl = () => {
+  getUrl() {
     let {disabled, to, href} = this.props;
     if (disabled) return null;
     return to || href;
-  };
+  },
 
   render() {
     let {
@@ -124,7 +126,7 @@ class Button extends React.Component {
 
     // Otherwise, fall back to basic button element
     return <button {...componentProps} />;
-  }
-}
+  },
+});
 
 export default Button;

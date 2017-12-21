@@ -1,6 +1,5 @@
 import PropTypes from 'prop-types';
 import React from 'react';
-import createReactClass from 'create-react-class';
 import moment from 'moment';
 import ApiMixin from '../../mixins/apiMixin';
 import BarChart from '../../components/barChart';
@@ -9,9 +8,7 @@ import LoadingError from '../../components/loadingError';
 import LoadingIndicator from '../../components/loadingIndicator';
 import ProjectState from '../../mixins/projectState';
 
-const ProjectChart = createReactClass({
-  displayName: 'ProjectChart',
-
+const ProjectChart = React.createClass({
   propTypes: {
     dateSince: PropTypes.number.isRequired,
     resolution: PropTypes.string.isRequired,

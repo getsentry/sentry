@@ -1,8 +1,6 @@
 import PropTypes from 'prop-types';
 import React from 'react';
 
-import createReactClass from 'create-react-class';
-
 import ApiMixin from '../../mixins/apiMixin';
 import ActivityItem from './item';
 import LoadingError from '../loadingError';
@@ -11,9 +9,7 @@ import Pagination from '../pagination';
 import {t} from '../../locale';
 import {logException} from '../../utils/logging';
 
-const ActivityFeed = createReactClass({
-  displayName: 'ActivityFeed',
-
+const ActivityFeed = React.createClass({
   propTypes: {
     endpoint: PropTypes.string,
     query: PropTypes.object,

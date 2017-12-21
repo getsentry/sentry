@@ -4,10 +4,16 @@ import classNames from 'classnames';
 import {t} from '../locale';
 import '../../less/components/similarSpectrum.less';
 
-class SimilarSpectrum extends React.Component {
-  static propTypes = {};
-  static defaultProps = {};
-  state = {};
+const SimilarSpectrum = React.createClass({
+  propTypes: {},
+
+  getDefaultProps() {
+    return {};
+  },
+
+  getInitialState() {
+    return {};
+  },
 
   render() {
     let {className} = this.props;
@@ -24,7 +30,7 @@ class SimilarSpectrum extends React.Component {
         <span>{t('Not Similar')}</span>
       </div>
     );
-  }
-}
+  },
+});
 
 export default SimilarSpectrum;

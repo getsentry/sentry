@@ -2,14 +2,14 @@ import PropTypes from 'prop-types';
 import React from 'react';
 import classNames from 'classnames';
 
-class Pill extends React.Component {
-  static propTypes = {
+const Pill = React.createClass({
+  propTypes: {
     className: PropTypes.string,
     name: PropTypes.string,
     value: PropTypes.any,
-  };
+  },
 
-  renderValue = () => {
+  renderValue() {
     const {value} = this.props;
     if (value === undefined) {
       return [null, null];
@@ -26,7 +26,7 @@ class Pill extends React.Component {
       renderedValue = value.toString();
     }
     return [extraClass, renderedValue];
-  };
+  },
 
   render() {
     const {name, children, className, ...props} = this.props;
@@ -41,7 +41,7 @@ class Pill extends React.Component {
         </span>
       </li>
     );
-  }
-}
+  },
+});
 
 export default Pill;

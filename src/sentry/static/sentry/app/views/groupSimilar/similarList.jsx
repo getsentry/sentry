@@ -17,8 +17,8 @@ const SimilarItemPropType = PropTypes.shape({
   isBelowThreshold: PropTypes.bool,
 });
 
-class SimilarList extends React.Component {
-  static propTypes = {
+const SimilarList = React.createClass({
+  propTypes: {
     orgId: PropTypes.string.isRequired,
     groupId: PropTypes.string.isRequired,
     projectId: PropTypes.string.isRequired,
@@ -26,28 +26,32 @@ class SimilarList extends React.Component {
     pageLinks: PropTypes.string,
     items: PropTypes.arrayOf(SimilarItemPropType),
     filteredItems: PropTypes.arrayOf(SimilarItemPropType),
-  };
+  },
 
-  static defaultProps = {
-    filteredItems: [],
-  };
+  getDefaultProps() {
+    return {
+      filteredItems: [],
+    };
+  },
 
-  state = {
-    showAllItems: false,
-  };
+  getInitialState() {
+    return {
+      showAllItems: false,
+    };
+  },
 
-  renderEmpty = () => {
+  renderEmpty() {
     return (
       <div className="box empty-stream">
         <span className="icon icon-exclamation" />
         <p>{t('There are no similar issues.')}</p>
       </div>
     );
-  };
+  },
 
-  handleShowAll = () => {
+  handleShowAll() {
     this.setState({showAllItems: true});
-  };
+  },
 
   render() {
     let {
@@ -103,7 +107,7 @@ class SimilarList extends React.Component {
         <Pagination pageLinks={pageLinks} />
       </div>
     );
-  }
-}
+  },
+});
 
 export default SimilarList;

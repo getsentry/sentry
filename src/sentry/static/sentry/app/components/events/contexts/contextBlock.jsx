@@ -5,12 +5,12 @@ import _ from 'lodash';
 import KeyValueList from '../interfaces/keyValueList';
 import {defined} from '../../../utils';
 
-class ContextBlock extends React.Component {
-  static propTypes = {
+const ContextBlock = React.createClass({
+  propTypes: {
     alias: PropTypes.string.isRequired,
     data: PropTypes.object.isRequired,
     knownData: PropTypes.array,
-  };
+  },
 
   render() {
     let data = [];
@@ -47,7 +47,7 @@ class ContextBlock extends React.Component {
         <KeyValueList data={data} isSorted={false} />
       </div>
     );
-  }
-}
+  },
+});
 
 export default ContextBlock;

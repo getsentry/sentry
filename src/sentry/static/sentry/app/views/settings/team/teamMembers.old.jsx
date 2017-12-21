@@ -1,7 +1,5 @@
 import React from 'react';
 
-import createReactClass from 'create-react-class';
-
 import ApiMixin from '../../../mixins/apiMixin';
 import Avatar from '../../../components/avatar';
 import LoadingError from '../../../components/loadingError';
@@ -9,8 +7,7 @@ import LoadingIndicator from '../../../components/loadingIndicator';
 import OrganizationState from '../../../mixins/organizationState';
 import {t} from '../../../locale';
 
-const TeamMembers = createReactClass({
-  displayName: 'TeamMembers',
+const TeamMembers = React.createClass({
   mixins: [ApiMixin, OrganizationState],
 
   getInitialState() {

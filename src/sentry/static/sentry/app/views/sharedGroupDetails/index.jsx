@@ -1,6 +1,5 @@
 import DocumentTitle from 'react-document-title';
 import React from 'react';
-import createReactClass from 'create-react-class';
 import jQuery from 'jquery';
 
 import {t} from '../../locale';
@@ -13,9 +12,7 @@ import NotFound from '../../components/errors/notFound';
 import SentryTypes from '../../proptypes';
 import SharedGroupHeader from './sharedGroupHeader';
 
-const SharedGroupDetails = createReactClass({
-  displayName: 'SharedGroupDetails',
-
+const SharedGroupDetails = React.createClass({
   childContextTypes: {
     group: SentryTypes.Group,
   },

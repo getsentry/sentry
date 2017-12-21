@@ -4,10 +4,10 @@ import {Link} from 'react-router';
 import GroupList from '../components/groupList';
 import {t} from '../locale';
 
-class ReleaseNewEvents extends React.Component {
-  static contextTypes = {
+const ReleaseNewEvents = React.createClass({
+  contextTypes: {
     release: PropTypes.object,
-  };
+  },
 
   render() {
     let {orgId, projectId} = this.props.params;
@@ -33,7 +33,7 @@ class ReleaseNewEvents extends React.Component {
         />
       </div>
     );
-  }
-}
+  },
+});
 
 export default ReleaseNewEvents;

@@ -3,14 +3,14 @@ import React from 'react';
 
 import Footer from '../components/footer';
 
-class NarryLayout extends React.Component {
+const NarryLayout = React.createClass({
   componentWillMount() {
     jQuery(document.body).addClass('narrow');
-  }
+  },
 
   componentWillUnmount() {
     jQuery(document.body).removeClass('narrow');
-  }
+  },
 
   render() {
     return (
@@ -29,7 +29,7 @@ class NarryLayout extends React.Component {
         <Footer />
       </div>
     );
-  }
-}
+  },
+});
 
 export default NarryLayout;

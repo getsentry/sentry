@@ -5,13 +5,13 @@ import Checkbox from '../../components/checkbox';
 
 import {t} from '../../locale';
 
-class TeamSelect extends React.Component {
-  static propTypes = {
+const TeamSelect = React.createClass({
+  propTypes: {
     disabled: PropTypes.bool,
     selectedTeams: PropTypes.instanceOf(Set),
     teams: PropTypes.array,
     toggleTeam: PropTypes.func,
-  };
+  },
 
   render() {
     let {disabled, teams, selectedTeams, toggleTeam} = this.props;
@@ -42,7 +42,7 @@ class TeamSelect extends React.Component {
         </div>
       </div>
     );
-  }
-}
+  },
+});
 
 export default TeamSelect;

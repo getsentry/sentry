@@ -1,6 +1,5 @@
 import PropTypes from 'prop-types';
 import React from 'react';
-import createReactClass from 'create-react-class';
 import _ from 'lodash';
 
 import Avatar from './avatar';
@@ -16,9 +15,7 @@ import {t} from '../locale';
 
 import ApiMixin from '../mixins/apiMixin';
 
-const VersionHoverCard = createReactClass({
-  displayName: 'VersionHoverCard',
-
+const VersionHoverCard = React.createClass({
   propTypes: {
     version: PropTypes.string.isRequired,
     orgId: PropTypes.string.isRequired,

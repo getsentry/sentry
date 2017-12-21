@@ -2,18 +2,18 @@ import PropTypes from 'prop-types';
 import React from 'react';
 import {t} from '../../locale';
 
-class Confirmation extends React.Component {
-  static propTypes = {
+const Confirmation = React.createClass({
+  propTypes: {
     onSkip: PropTypes.func.isRequired,
     dismiss: PropTypes.func.isRequired,
-  };
+  },
 
-  skip = e => {
+  skip: function(e) {
     e.preventDefault();
     this.props.onSkip();
-  };
+  },
 
-  render() {
+  render: function() {
     return (
       <div className="ob-confirmation" onClick={this.props.dismiss}>
         <h3>{t('Need help?')}</h3>
@@ -25,7 +25,7 @@ class Confirmation extends React.Component {
         </p>
       </div>
     );
-  }
-}
+  },
+});
 
 export default Confirmation;

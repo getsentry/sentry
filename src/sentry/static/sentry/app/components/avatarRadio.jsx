@@ -1,13 +1,9 @@
 import PropTypes from 'prop-types';
 import React from 'react';
 
-import createReactClass from 'create-react-class';
-
 import {t} from '../locale';
 
-const AvatarRadio = createReactClass({
-  displayName: 'AvatarRadio',
-
+const AvatarRadio = React.createClass({
   propTypes: {
     user: PropTypes.object.isRequired,
     updateUser: PropTypes.func.isRequired,

@@ -1,6 +1,5 @@
 import PropTypes from 'prop-types';
 import React from 'react';
-import createReactClass from 'create-react-class';
 import Reflux from 'reflux';
 import classNames from 'classnames';
 
@@ -20,9 +19,7 @@ import SimilarScoreCard from '../../components/similarScoreCard';
 
 const similarInterfaces = ['exception', 'message'];
 
-const SimilarIssueItem = createReactClass({
-  displayName: 'SimilarIssueItem',
-
+const SimilarIssueItem = React.createClass({
   propTypes: {
     orgId: PropTypes.string.isRequired,
     groupId: PropTypes.string.isRequired,
@@ -53,7 +50,6 @@ const SimilarIssueItem = createReactClass({
       hideLevel: PropTypes.bool,
     }),
   },
-
   mixins: [Reflux.listenTo(GroupingStore, 'onGroupingUpdate')],
 
   getInitialState() {

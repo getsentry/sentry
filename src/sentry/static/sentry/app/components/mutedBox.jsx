@@ -1,15 +1,12 @@
 import PropTypes from 'prop-types';
 import React from 'react';
-import createReactClass from 'create-react-class';
 import PureRenderMixin from 'react-addons-pure-render-mixin';
 
 import DateTime from './dateTime';
 import Duration from './duration';
 import {t} from '../locale';
 
-export default createReactClass({
-  displayName: 'mutedBox',
-
+export default React.createClass({
   propTypes: {
     statusDetails: PropTypes.object.isRequired,
   },

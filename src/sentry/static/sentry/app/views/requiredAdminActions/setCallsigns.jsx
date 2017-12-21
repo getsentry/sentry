@@ -1,5 +1,4 @@
 import React from 'react';
-import createReactClass from 'create-react-class';
 import update from 'react-addons-update';
 import {browserHistory} from 'react-router';
 
@@ -48,8 +47,7 @@ function getProjectInfoForReview(org) {
   };
 }
 
-const SetCallsignsAction = createReactClass({
-  displayName: 'SetCallsignsAction',
+const SetCallsignsAction = React.createClass({
   mixins: [ApiMixin, OrganizationState],
 
   getInitialState() {

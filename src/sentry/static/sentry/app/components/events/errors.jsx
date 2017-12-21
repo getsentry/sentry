@@ -6,30 +6,32 @@ import EventErrorItem from './errorItem';
 import SentryTypes from '../../proptypes';
 import {t, tn} from '../../locale';
 
-class EventErrors extends React.Component {
-  static propTypes = {
+const EventErrors = React.createClass({
+  propTypes: {
     group: SentryTypes.Group.isRequired,
     event: SentryTypes.Event.isRequired,
-  };
+  },
 
-  state = {
-    isOpen: false,
-  };
+  getInitialState() {
+    return {
+      isOpen: false,
+    };
+  },
 
   shouldComponentUpdate(nextProps, nextState) {
     if (this.state.isOpen != nextState.isOpen) {
       return true;
     }
     return this.props.event.id !== nextProps.event.id;
-  }
+  },
 
-  toggle = () => {
+  toggle() {
     this.setState({isOpen: !this.state.isOpen});
-  };
+  },
 
-  uniqueErrors = errors => {
+  uniqueErrors(errors) {
     return _.uniqBy(errors, _.isEqual);
-  };
+  },
 
   render() {
     let errors = this.uniqueErrors(this.props.event.errors);
@@ -60,7 +62,7 @@ class EventErrors extends React.Component {
         </ul>
       </EventDataSection>
     );
-  }
-}
+  },
+});
 
 export default EventErrors;

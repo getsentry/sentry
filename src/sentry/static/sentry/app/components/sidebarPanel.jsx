@@ -2,12 +2,12 @@ import PropTypes from 'prop-types';
 import React from 'react';
 import SidebarPanelItem from './sidebarPanelItem';
 
-class SidebarPanel extends React.Component {
-  static propTypes = {
+const SidebarPanel = React.createClass({
+  propTypes: {
     title: PropTypes.string,
     items: PropTypes.array,
     hidePanel: PropTypes.func,
-  };
+  },
 
   render() {
     return (
@@ -28,7 +28,7 @@ class SidebarPanel extends React.Component {
         </div>
       </div>
     );
-  }
-}
+  },
+});
 
 export default SidebarPanel;

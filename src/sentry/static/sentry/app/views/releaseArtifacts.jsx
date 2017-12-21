@@ -1,8 +1,6 @@
 import PropTypes from 'prop-types';
 import React from 'react';
 
-import createReactClass from 'create-react-class';
-
 import ApiMixin from '../mixins/apiMixin';
 import OrganizationState from '../mixins/organizationState';
 import TooltipMixin from '../mixins/tooltip';
@@ -15,9 +13,7 @@ import LinkWithConfirmation from '../components/linkWithConfirmation';
 
 import {t} from '../locale';
 
-const ReleaseArtifacts = createReactClass({
-  displayName: 'ReleaseArtifacts',
-
+const ReleaseArtifacts = React.createClass({
   contextTypes: {
     release: PropTypes.object,
   },

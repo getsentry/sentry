@@ -32,34 +32,38 @@ Collapsed.propTypes = {
   count: PropTypes.number.isRequired,
 };
 
-class BreadcrumbsInterface extends React.Component {
-  static propTypes = {
+const BreadcrumbsInterface = React.createClass({
+  propTypes: {
     group: SentryTypes.Group.isRequired,
     event: SentryTypes.Event.isRequired,
     type: PropTypes.string.isRequired,
     data: PropTypes.object.isRequired,
     isShare: PropTypes.bool,
-  };
+  },
 
-  static contextTypes = {
+  contextTypes: {
     organization: SentryTypes.Organization,
     project: SentryTypes.Project,
-  };
+  },
 
-  static MAX_CRUMBS_WHEN_COLLAPSED = 10;
+  statics: {
+    MAX_CRUMBS_WHEN_COLLAPSED: 10,
+  },
 
-  state = {
-    collapsed: true,
-    queryValue: '',
-  };
+  getInitialState() {
+    return {
+      collapsed: true,
+      queryValue: '',
+    };
+  },
 
-  onCollapseToggle = () => {
+  onCollapseToggle() {
     this.setState({
       collapsed: !this.state.collapsed,
     });
-  };
+  },
 
-  renderBreadcrumbs = crumbs => {
+  renderBreadcrumbs(crumbs) {
     // reverse array to get consistent idx between collapsed/expanded state
     // (indexes begin and increment from last breadcrumb)
     return crumbs
@@ -68,9 +72,9 @@ class BreadcrumbsInterface extends React.Component {
         return <Breadcrumb key={idx} crumb={item} />;
       })
       .reverse(); // un-reverse rendered result
-  };
+  },
 
-  renderNoMatch = () => {
+  renderNoMatch() {
     return (
       <li className="crumb-empty">
         <p>
@@ -79,9 +83,9 @@ class BreadcrumbsInterface extends React.Component {
         </p>
       </li>
     );
-  };
+  },
 
-  getVirtualCrumb = () => {
+  getVirtualCrumb() {
     let evt = this.props.event;
     let crumb;
 
@@ -116,15 +120,15 @@ class BreadcrumbsInterface extends React.Component {
     }
 
     return crumb;
-  };
+  },
 
-  setQuery = evt => {
+  setQuery(evt) {
     this.setState({
       queryValue: evt.target.value,
     });
-  };
+  },
 
-  filterCrumbs = (crumbs, queryValue) => {
+  filterCrumbs(crumbs, queryValue) {
     return crumbs.filter(item => {
       // return true if any of category, message, or level contain queryValue
       return !!['category', 'message', 'level'].find(prop => {
@@ -132,16 +136,16 @@ class BreadcrumbsInterface extends React.Component {
         return propValue.includes(queryValue);
       });
     });
-  };
+  },
 
-  clearSearch = () => {
+  clearSearch() {
     this.setState({
       queryValue: '',
       collapsed: true,
     });
-  };
+  },
 
-  getSearchField = () => {
+  getSearchField() {
     return (
       <div className="breadcrumb-filter">
         <input
@@ -162,7 +166,7 @@ class BreadcrumbsInterface extends React.Component {
         )}
       </div>
     );
-  };
+  },
 
   render() {
     let group = this.props.group;
@@ -223,7 +227,7 @@ class BreadcrumbsInterface extends React.Component {
         </ul>
       </GroupEventDataSection>
     );
-  }
-}
+  },
+});
 
 export default BreadcrumbsInterface;

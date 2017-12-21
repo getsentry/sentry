@@ -4,15 +4,15 @@ import _ from 'lodash';
 
 import Category from './category';
 
-class CrumbTable extends React.Component {
-  static propTypes = {
+const CrumbTable = React.createClass({
+  propTypes: {
     crumb: PropTypes.object,
     title: PropTypes.string,
     kvData: PropTypes.object,
     summary: PropTypes.object,
-  };
+  },
 
-  renderData = () => {
+  renderData() {
     if (!this.props.kvData) {
       return null;
     }
@@ -26,7 +26,7 @@ class CrumbTable extends React.Component {
         </tr>
       );
     });
-  };
+  },
 
   render() {
     return (
@@ -45,7 +45,7 @@ class CrumbTable extends React.Component {
         </tbody>
       </table>
     );
-  }
-}
+  },
+});
 
 export default CrumbTable;

@@ -1,5 +1,4 @@
 import React from 'react';
-import createReactClass from 'create-react-class';
 import Reflux from 'reflux';
 
 import LatestContextStore from '../stores/latestContextStore';
@@ -10,10 +9,8 @@ import withOrganizations from './withOrganizations';
 // last accessed organization/project
 const withLatestContext = WrappedComponent =>
   withOrganizations(
-    createReactClass({
-      displayName: 'withLatestContext',
+    React.createClass({
       mixins: [Reflux.connect(LatestContextStore, 'latestContext')],
-
       render() {
         let {organizations} = this.props;
         let {latestContext} = this.state;

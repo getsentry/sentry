@@ -5,25 +5,27 @@ import {browserHistory} from 'react-router';
 import utils from '../utils';
 import {t} from '../locale';
 
-class Pagination extends React.Component {
-  static propTypes = {
+export default React.createClass({
+  propTypes: {
     pageLinks: PropTypes.string,
     to: PropTypes.string,
     onCursor: PropTypes.func,
-  };
+  },
 
-  static contextTypes = {
+  contextTypes: {
     location: PropTypes.object,
-  };
+  },
 
-  static defaultProps = {
-    onCursor: (cursor, path, query) => {
-      browserHistory.pushState(null, path, {
-        ...query,
-        cursor,
-      });
-    },
-  };
+  getDefaultProps() {
+    return {
+      onCursor: (cursor, path, query) => {
+        browserHistory.pushState(null, path, {
+          ...query,
+          cursor,
+        });
+      },
+    };
+  },
 
   render() {
     let {onCursor, pageLinks} = this.props;
@@ -71,7 +73,5 @@ class Pagination extends React.Component {
         </div>
       </div>
     );
-  }
-}
-
-export default Pagination;
+  },
+});

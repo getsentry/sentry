@@ -1,6 +1,5 @@
 import PropTypes from 'prop-types';
 import React from 'react';
-import createReactClass from 'create-react-class';
 import {Link} from 'react-router';
 
 import ApiMixin from '../mixins/apiMixin';
@@ -8,9 +7,7 @@ import Count from './count';
 import EventOrGroupTitle from './eventOrGroupTitle';
 import TimeSince from './timeSince';
 
-export default createReactClass({
-  displayName: 'issueLink',
-
+export default React.createClass({
   propTypes: {
     orgId: PropTypes.string.isRequired,
     projectId: PropTypes.string.isRequired,

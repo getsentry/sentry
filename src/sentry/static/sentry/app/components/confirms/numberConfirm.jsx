@@ -4,16 +4,18 @@ import ReactCodeInput from 'react-code-input';
 import Modal from 'react-bootstrap/lib/Modal';
 import {t} from '../../locale';
 
-class NumberConfirm extends React.Component {
-  static propTypes = {
+const NumberConfirm = React.createClass({
+  propTypes: {
     digits: PropTypes.number.isRequired,
     show: PropTypes.bool,
     onFinished: PropTypes.func,
-  };
+  },
 
-  state = {
-    showModal: this.props.show || false,
-  };
+  getInitialState() {
+    return {
+      showModal: this.props.show || false,
+    };
+  },
 
   componentWillReceiveProps(nextProps) {
     if (nextProps.show != this.props.show) {
@@ -21,15 +23,15 @@ class NumberConfirm extends React.Component {
         showModal: nextProps.show,
       });
     }
-  }
+  },
 
-  closeModal = () => {
+  closeModal() {
     this.setState({
       showModal: false,
     });
-  };
+  },
 
-  onChange = number => {
+  onChange(number) {
     if (number === undefined && !Number.isInteger(number)) {
       return;
     }
@@ -39,7 +41,7 @@ class NumberConfirm extends React.Component {
       }
       this.closeModal();
     }
-  };
+  },
 
   render() {
     return (
@@ -63,7 +65,7 @@ class NumberConfirm extends React.Component {
         </Modal.Body>
       </Modal>
     );
-  }
-}
+  },
+});
 
 export default NumberConfirm;

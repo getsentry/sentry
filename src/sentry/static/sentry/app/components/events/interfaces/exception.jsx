@@ -6,23 +6,25 @@ import {isStacktraceNewestFirst} from './stacktrace';
 import CrashHeader from './crashHeader';
 import CrashContent from './crashContent';
 
-class ExceptionInterface extends React.Component {
-  static propTypes = {
+const ExceptionInterface = React.createClass({
+  propTypes: {
     group: SentryTypes.Group.isRequired,
     event: SentryTypes.Event.isRequired,
     type: PropTypes.string.isRequired,
     data: PropTypes.object.isRequired,
-  };
+  },
 
-  state = {
-    stackView: this.props.data.hasSystemFrames ? 'app' : 'full',
-    newestFirst: isStacktraceNewestFirst(),
-    stackType: 'original',
-  };
+  getInitialState() {
+    return {
+      stackView: this.props.data.hasSystemFrames ? 'app' : 'full',
+      newestFirst: isStacktraceNewestFirst(),
+      stackType: 'original',
+    };
+  },
 
-  eventHasThreads = () => {
+  eventHasThreads() {
     return !!this.props.event.entries.find(x => x.type === 'threads');
-  };
+  },
 
   render() {
     let group = this.props.group;
@@ -71,7 +73,7 @@ class ExceptionInterface extends React.Component {
         />
       </GroupEventDataSection>
     );
-  }
-}
+  },
+});
 
 export default ExceptionInterface;

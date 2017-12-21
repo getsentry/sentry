@@ -6,8 +6,8 @@ import SearchBar from './searchBar';
 import SortOptions from './sortOptions';
 import {t} from '../../locale';
 
-class StreamFilters extends React.Component {
-  static propTypes = {
+const StreamFilters = React.createClass({
+  propTypes: {
     orgId: PropTypes.string.isRequired,
     projectId: PropTypes.string.isRequired,
     access: PropTypes.object.isRequired,
@@ -28,21 +28,23 @@ class StreamFilters extends React.Component {
     onSearch: PropTypes.func,
     onSidebarToggle: PropTypes.func,
     onSavedSearchCreate: PropTypes.func.isRequired,
-  };
+  },
 
-  static contextTypes = {
+  contextTypes: {
     location: PropTypes.object,
-  };
+  },
 
-  static defaultProps = {
-    defaultQuery: '',
-    sort: '',
-    filter: '',
-    query: null,
-    onSortChange: function() {},
-    onSearch: function() {},
-    onSidebarToggle: function() {},
-  };
+  getDefaultProps() {
+    return {
+      defaultQuery: '',
+      sort: '',
+      filter: '',
+      query: null,
+      onSortChange: function() {},
+      onSearch: function() {},
+      onSidebarToggle: function() {},
+    };
+  },
 
   render() {
     let {
@@ -109,7 +111,7 @@ class StreamFilters extends React.Component {
         </div>
       </div>
     );
-  }
-}
+  },
+});
 
 export default StreamFilters;

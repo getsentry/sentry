@@ -10,8 +10,8 @@ export const prettyDate = function(x) {
   return moment(x).format('ll');
 };
 
-class AdminUsers extends React.Component {
-  getRow = row => {
+const AdminUsers = React.createClass({
+  getRow(row) {
     return [
       <td>
         <strong>
@@ -23,7 +23,7 @@ class AdminUsers extends React.Component {
       <td style={{textAlign: 'center'}}>{prettyDate(row.dateJoined)}</td>,
       <td style={{textAlign: 'center'}}>{prettyDate(row.lastLogin)}</td>,
     ];
-  };
+  },
 
   render() {
     let columns = [
@@ -54,7 +54,7 @@ class AdminUsers extends React.Component {
         />
       </div>
     );
-  }
-}
+  },
+});
 
 export default AdminUsers;

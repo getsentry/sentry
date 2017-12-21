@@ -10,12 +10,12 @@ import {objectToSortedTupleArray} from './utils';
 import {objectIsEmpty} from '../../../utils';
 import {t} from '../../../locale';
 
-class RichHttpContent extends React.Component {
-  static propTypes = {
+const RichHttpContent = React.createClass({
+  propTypes: {
     data: PropTypes.object.isRequired,
-  };
+  },
 
-  getBodySection = data => {
+  getBodySection(data) {
     // The http interface provides an inferred content type for the data body.
     switch (data.inferredContentType) {
       case 'application/json':
@@ -27,9 +27,9 @@ class RichHttpContent extends React.Component {
       default:
         return <pre>{JSON.stringify(data.data, null, 2)}</pre>;
     }
-  };
+  },
 
-  getQueryStringOrRaw = data => {
+  getQueryStringOrRaw(data) {
     try {
       // Sentry API abbreviates long query string values, sometimes resulting in
       // an un-parsable querystring ... stay safe kids
@@ -42,7 +42,7 @@ class RichHttpContent extends React.Component {
     } catch (e) {
       return <pre>{data}</pre>;
     }
-  };
+  },
 
   render() {
     let data = this.props.data;
@@ -81,7 +81,7 @@ class RichHttpContent extends React.Component {
         )}
       </div>
     );
-  }
-}
+  },
+});
 
 export default RichHttpContent;

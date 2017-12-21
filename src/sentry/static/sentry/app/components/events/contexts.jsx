@@ -30,30 +30,32 @@ function getSourcePlugin(pluginContexts, contextType) {
   return null;
 }
 
-class ContextChunk extends React.Component {
-  static propTypes = {
+const ContextChunk = React.createClass({
+  propTypes: {
     event: PropTypes.object.isRequired,
     group: PropTypes.object.isRequired,
     type: PropTypes.string.isRequired,
     alias: PropTypes.string.isRequired,
     value: PropTypes.object.isRequired,
-  };
+  },
 
-  state = {
-    isLoading: false,
-  };
+  getInitialState() {
+    return {
+      isLoading: false,
+    };
+  },
 
   componentWillMount() {
     this.syncPlugin();
-  }
+  },
 
   componentDidUpdate(prevProps, prevState) {
     if (prevProps.group.id != this.props.group.id || prevProps.type != this.props.type) {
       this.syncPlugin();
     }
-  }
+  },
 
-  syncPlugin = () => {
+  syncPlugin() {
     let sourcePlugin = getSourcePlugin(this.props.group.pluginContexts, this.props.type);
     if (!sourcePlugin) {
       this.setState({
@@ -71,9 +73,9 @@ class ContextChunk extends React.Component {
         }
       );
     }
-  };
+  },
 
-  renderTitle = component => {
+  renderTitle(component) {
     let {value, alias, type} = this.props;
     let title = null;
     if (defined(value.title)) {
@@ -93,7 +95,7 @@ class ContextChunk extends React.Component {
         {alias !== type ? <small>({alias})</small> : null}
       </span>
     );
-  };
+  },
 
   render() {
     // if we are currently loading the plugin, just render nothing for now.
@@ -122,14 +124,14 @@ class ContextChunk extends React.Component {
         <Component alias={alias} data={value} />
       </GroupEventDataSection>
     );
-  }
-}
+  },
+});
 
-class ContextsInterface extends React.Component {
-  static propTypes = {
+const ContextsInterface = React.createClass({
+  propTypes: {
     event: PropTypes.object.isRequired,
     group: PropTypes.object.isRequired,
-  };
+  },
 
   render() {
     let group = this.props.group;
@@ -164,7 +166,7 @@ class ContextsInterface extends React.Component {
     }
 
     return <div>{children}</div>;
-  }
-}
+  },
+});
 
 export default ContextsInterface;

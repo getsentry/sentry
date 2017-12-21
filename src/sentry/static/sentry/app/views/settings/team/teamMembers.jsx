@@ -1,5 +1,4 @@
 import React from 'react';
-import createReactClass from 'create-react-class';
 import {Link} from 'react-router';
 
 import ApiMixin from '../../../mixins/apiMixin';
@@ -10,8 +9,7 @@ import LoadingIndicator from '../../../components/loadingIndicator';
 import OrganizationState from '../../../mixins/organizationState';
 import {t} from '../../../locale';
 
-const TeamMembers = createReactClass({
-  displayName: 'TeamMembers',
+const TeamMembers = React.createClass({
   mixins: [ApiMixin, OrganizationState],
 
   getInitialState() {

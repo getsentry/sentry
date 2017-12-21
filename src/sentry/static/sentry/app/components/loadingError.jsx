@@ -2,19 +2,21 @@ import PropTypes from 'prop-types';
 import React from 'react';
 import {t} from '../locale';
 
-class LoadingError extends React.Component {
-  static propTypes = {
+const LoadingError = React.createClass({
+  propTypes: {
     onRetry: PropTypes.func,
     message: PropTypes.string,
-  };
+  },
 
-  static defaultProps = {
-    message: t('There was an error loading data.'),
-  };
+  getDefaultProps() {
+    return {
+      message: t('There was an error loading data.'),
+    };
+  },
 
   shouldComponentUpdate() {
     return false;
-  }
+  },
 
   render() {
     return (
@@ -33,7 +35,7 @@ class LoadingError extends React.Component {
         </p>
       </div>
     );
-  }
-}
+  },
+});
 
 export default LoadingError;

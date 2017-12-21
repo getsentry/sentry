@@ -1,12 +1,12 @@
 import PropTypes from 'prop-types';
 import React from 'react';
 
-class Category extends React.Component {
-  static propTypes = {
+const Category = React.createClass({
+  propTypes: {
     value: PropTypes.string,
     title: PropTypes.string,
     hideIfEmpty: PropTypes.bool,
-  };
+  },
 
   render() {
     let value = this.props.value;
@@ -27,7 +27,7 @@ class Category extends React.Component {
         {title}
       </span>
     );
-  }
-}
+  },
+});
 
 export default Category;

@@ -1,6 +1,5 @@
 import PropTypes from 'prop-types';
 import React from 'react';
-import createReactClass from 'create-react-class';
 import Reflux from 'reflux';
 
 import ApiMixin from '../mixins/apiMixin';
@@ -12,14 +11,14 @@ import GroupStore from '../stores/groupStore';
 import Link from './link';
 import {t} from '../locale';
 
-class CompactIssueHeader extends React.Component {
-  static propTypes = {
+const CompactIssueHeader = React.createClass({
+  propTypes: {
     data: PropTypes.object.isRequired,
     orgId: PropTypes.string.isRequired,
     projectId: PropTypes.string.isRequired,
-  };
+  },
 
-  getTitle = () => {
+  getTitle() {
     let data = this.props.data;
     let metadata = data.metadata;
     switch (data.type) {
@@ -44,9 +43,9 @@ class CompactIssueHeader extends React.Component {
       default:
         return <span>{data.title}</span>;
     }
-  };
+  },
 
-  getMessage = () => {
+  getMessage() {
     let data = this.props.data;
     let metadata = data.metadata;
     switch (data.type) {
@@ -57,7 +56,7 @@ class CompactIssueHeader extends React.Component {
       default:
         return '';
     }
-  };
+  },
 
   render() {
     let {orgId, projectId, data} = this.props;
@@ -95,12 +94,10 @@ class CompactIssueHeader extends React.Component {
         </div>
       </div>
     );
-  }
-}
+  },
+});
 
-const CompactIssue = createReactClass({
-  displayName: 'CompactIssue',
-
+const CompactIssue = React.createClass({
   propTypes: {
     data: PropTypes.object,
     id: PropTypes.string,

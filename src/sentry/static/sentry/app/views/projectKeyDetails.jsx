@@ -3,7 +3,6 @@ import {isEqual} from 'lodash';
 import DocumentTitle from 'react-document-title';
 import PropTypes from 'prop-types';
 import React from 'react';
-import createReactClass from 'create-react-class';
 import idx from 'idx';
 
 import {
@@ -34,8 +33,7 @@ export const getRateLimitError = (obj, key) => {
   return !!obj.rateLimit.find(errorObj => errorObj[key] && errorObj[key].length);
 };
 
-const KeyStats = createReactClass({
-  displayName: 'KeyStats',
+const KeyStats = React.createClass({
   mixins: [ApiMixin],
 
   getInitialState() {
@@ -144,9 +142,7 @@ const KeyStats = createReactClass({
   },
 });
 
-const KeySettings = createReactClass({
-  displayName: 'KeySettings',
-
+const KeySettings = React.createClass({
   propTypes: {
     organization: PropTypes.object.isRequired,
     project: PropTypes.object.isRequired,
@@ -527,8 +523,7 @@ const KeySettings = createReactClass({
   },
 });
 
-export default createReactClass({
-  displayName: 'projectKeyDetails',
+export default React.createClass({
   mixins: [ApiMixin, ProjectState],
 
   getInitialState() {

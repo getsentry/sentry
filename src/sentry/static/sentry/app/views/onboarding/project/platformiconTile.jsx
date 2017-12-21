@@ -1,12 +1,12 @@
 import PropTypes from 'prop-types';
 import React from 'react';
 
-class PlatformiconTile extends React.Component {
-  static propTypes = {
+const PlatformiconTile = React.createClass({
+  propTypes: {
     platform: PropTypes.string,
     onClick: PropTypes.func,
     className: PropTypes.string,
-  };
+  },
 
   render() {
     let {platform, className, onClick} = this.props;
@@ -21,7 +21,7 @@ class PlatformiconTile extends React.Component {
         <span className={`platformicon platformicon-${platform}`} />
       </li>
     );
-  }
-}
+  },
+});
 
 export default PlatformiconTile;

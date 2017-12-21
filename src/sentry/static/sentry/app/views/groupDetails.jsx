@@ -1,6 +1,5 @@
 import PropTypes from 'prop-types';
 import React from 'react';
-import createReactClass from 'create-react-class';
 import Reflux from 'reflux';
 import {browserHistory} from 'react-router';
 import DocumentTitle from 'react-document-title';
@@ -17,9 +16,7 @@ let ERROR_TYPES = {
   GROUP_NOT_FOUND: 'GROUP_NOT_FOUND',
 };
 
-const GroupDetails = createReactClass({
-  displayName: 'GroupDetails',
-
+const GroupDetails = React.createClass({
   propTypes: {
     setProjectNavSection: PropTypes.func,
     memberList: PropTypes.array,

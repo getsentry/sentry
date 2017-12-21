@@ -1,7 +1,5 @@
 import React from 'react';
 
-import createReactClass from 'create-react-class';
-
 import ApiMixin from '../mixins/apiMixin';
 import HookStore from '../stores/hookStore';
 import LoadingError from '../components/loadingError';
@@ -11,8 +9,7 @@ import ProjectState from '../mixins/projectState';
 import StackedBarChart from '../components/stackedBarChart';
 import {t} from '../locale';
 
-const DataForwardingStats = createReactClass({
-  displayName: 'DataForwardingStats',
+const DataForwardingStats = React.createClass({
   mixins: [ApiMixin],
 
   getInitialState() {
@@ -98,8 +95,7 @@ const DataForwardingStats = createReactClass({
   },
 });
 
-export default createReactClass({
-  displayName: 'projectDataForwarding',
+export default React.createClass({
   mixins: [ApiMixin, ProjectState],
 
   getInitialState() {

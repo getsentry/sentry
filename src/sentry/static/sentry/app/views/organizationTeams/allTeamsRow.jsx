@@ -1,6 +1,5 @@
 import PropTypes from 'prop-types';
 import React from 'react';
-import createReactClass from 'create-react-class';
 import {Link} from 'react-router';
 
 import ApiMixin from '../../mixins/apiMixin';
@@ -10,9 +9,7 @@ import {t} from '../../locale';
 
 // TODO(dcramer): this isnt great UX
 
-const AllTeamsRow = createReactClass({
-  displayName: 'AllTeamsRow',
-
+const AllTeamsRow = React.createClass({
   propTypes: {
     access: PropTypes.object.isRequired,
     organization: PropTypes.object.isRequired,

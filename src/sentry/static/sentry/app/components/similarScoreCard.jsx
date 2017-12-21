@@ -17,14 +17,16 @@ const scoreComponents = {
 // classnames that map to colors to css
 const scoreClassNames = ['low', 'low', 'low-med', 'med', 'med-high', 'high'];
 
-class SimilarScoreCard extends React.Component {
-  static propTypes = {
+const SimilarScoreCard = React.createClass({
+  propTypes: {
     scoreList: PropTypes.arrayOf(PropTypes.array),
-  };
+  },
 
-  static defaultProps = {
-    scoreList: [],
-  };
+  getDefaultProps() {
+    return {
+      scoreList: [],
+    };
+  },
 
   render() {
     let {className, scoreList} = this.props;
@@ -50,7 +52,7 @@ class SimilarScoreCard extends React.Component {
         ))}
       </div>
     );
-  }
-}
+  },
+});
 
 export default SimilarScoreCard;

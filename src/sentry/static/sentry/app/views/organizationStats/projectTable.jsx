@@ -1,6 +1,5 @@
 import PropTypes from 'prop-types';
 import React from 'react';
-import createReactClass from 'create-react-class';
 import {Link} from 'react-router';
 import PureRenderMixin from 'react-addons-pure-render-mixin';
 
@@ -17,9 +16,7 @@ let getPercent = (item, total) => {
   return parseInt(item / total * 100, 10) + '%';
 };
 
-const ProjectTable = createReactClass({
-  displayName: 'ProjectTable',
-
+const ProjectTable = React.createClass({
   propTypes: {
     projectMap: PropTypes.object.isRequired,
     projectTotals: PropTypes.array.isRequired,

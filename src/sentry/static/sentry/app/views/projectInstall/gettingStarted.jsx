@@ -5,11 +5,11 @@ import ProjectContext from '../projects/projectContext';
 import ProjectDocsContext from './docsContext';
 import ProjectSelector from '../../components/projectHeader/projectSelector';
 
-class GettingStartedBody extends React.Component {
-  static contextTypes = {
+const GettingStartedBody = React.createClass({
+  contextTypes: {
     project: PropTypes.object,
     organization: PropTypes.object,
-  };
+  },
 
   render() {
     let {project, organization} = this.context;
@@ -32,10 +32,10 @@ class GettingStartedBody extends React.Component {
         </div>
       </div>
     );
-  }
-}
+  },
+});
 
-class GettingStarted extends React.Component {
+const GettingStarted = React.createClass({
   render() {
     let {projectId, orgId} = this.props.params;
     return (
@@ -43,7 +43,7 @@ class GettingStarted extends React.Component {
         <GettingStartedBody>{this.props.children}</GettingStartedBody>
       </ProjectContext>
     );
-  }
-}
+  },
+});
 
 export default GettingStarted;

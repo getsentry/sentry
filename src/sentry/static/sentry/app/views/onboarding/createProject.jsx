@@ -1,7 +1,6 @@
 import PropTypes from 'prop-types';
 import Raven from 'raven-js';
 import React from 'react';
-import createReactClass from 'create-react-class';
 import {browserHistory, Link} from 'react-router';
 
 import ApiMixin from '../../mixins/apiMixin';
@@ -13,9 +12,7 @@ import OnboardingProject from '../onboarding/project';
 
 import {t} from '../../locale';
 
-const CreateProject = createReactClass({
-  displayName: 'CreateProject',
-
+const CreateProject = React.createClass({
   propTypes: {
     getDocsUrl: PropTypes.func,
   },

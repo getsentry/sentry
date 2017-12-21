@@ -2,8 +2,8 @@ import PropTypes from 'prop-types';
 import React from 'react';
 import StackedBarChart from '../components/stackedBarChart';
 
-class BarChart extends React.Component {
-  static propTypes = {
+const BarChart = React.createClass({
+  propTypes: {
     points: PropTypes.arrayOf(
       PropTypes.shape({
         x: PropTypes.number.isRequired,
@@ -22,11 +22,13 @@ class BarChart extends React.Component {
         label: PropTypes.string,
       })
     ),
-  };
+  },
 
-  static defaultProps = {
-    points: [],
-  };
+  getDefaultProps() {
+    return {
+      points: [],
+    };
+  },
 
   render() {
     let points = this.props.points.map(point => {
@@ -34,7 +36,7 @@ class BarChart extends React.Component {
     });
     let props = Object.assign({}, this.props, {points});
     return <StackedBarChart {...props} />;
-  }
-}
+  },
+});
 
 export default BarChart;

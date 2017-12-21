@@ -4,7 +4,7 @@ import ListLink from '../components/listLink';
 import NarrowLayout from '../components/narrowLayout';
 import {t} from '../locale';
 
-class ApiDashboard extends React.Component {
+const ApiDashboard = React.createClass({
   render() {
     return (
       <NarrowLayout>
@@ -18,7 +18,7 @@ class ApiDashboard extends React.Component {
         {this.props.children}
       </NarrowLayout>
     );
-  }
-}
+  },
+});
 
 export default ApiDashboard;

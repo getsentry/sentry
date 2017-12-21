@@ -10,34 +10,36 @@ const Snooze = {
   '24HOURS': 60 * 24,
 };
 
-class SnoozeAction extends React.Component {
-  static propTypes = {
+const SnoozeAction = React.createClass({
+  propTypes: {
     disabled: PropTypes.bool,
     onSnooze: PropTypes.func.isRequired,
     tooltip: PropTypes.string,
-  };
+  },
 
-  state = {
-    isModalOpen: false,
-  };
+  getInitialState() {
+    return {
+      isModalOpen: false,
+    };
+  },
 
-  toggleModal = () => {
+  toggleModal() {
     if (this.props.disabled) {
       return;
     }
     this.setState({
       isModalOpen: !this.state.isModalOpen,
     });
-  };
+  },
 
-  closeModal = () => {
+  closeModal() {
     this.setState({isModalOpen: false});
-  };
+  },
 
-  onSnooze = duration => {
+  onSnooze(duration) {
     this.props.onSnooze(duration);
     this.closeModal();
-  };
+  },
 
   render() {
     return (
@@ -86,7 +88,7 @@ class SnoozeAction extends React.Component {
         </Modal>
       </a>
     );
-  }
-}
+  },
+});
 
 export default SnoozeAction;

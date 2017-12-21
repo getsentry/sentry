@@ -3,11 +3,11 @@ import PropTypes from 'prop-types';
 import React from 'react';
 import BarChart from '../barChart';
 
-class GroupChart extends React.Component {
-  static propTypes = {
+const GroupChart = React.createClass({
+  propTypes: {
     statsPeriod: PropTypes.string.isRequired,
     data: PropTypes.object.isRequired,
-  };
+  },
 
   shouldComponentUpdate(nextProps) {
     // Sometimes statsPeriod updates before graph data has been
@@ -15,7 +15,7 @@ class GroupChart extends React.Component {
     // don't update until data is available
     let {data, statsPeriod} = nextProps;
     return data.hasOwnProperty(statsPeriod);
-  }
+  },
 
   render() {
     let stats = this.props.statsPeriod
@@ -32,7 +32,7 @@ class GroupChart extends React.Component {
         <BarChart points={chartData} label="events" />
       </LazyLoad>
     );
-  }
-}
+  },
+});
 
 export default GroupChart;

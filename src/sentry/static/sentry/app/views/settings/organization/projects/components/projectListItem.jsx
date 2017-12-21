@@ -2,8 +2,6 @@ import styled from 'react-emotion';
 import LazyLoad from 'react-lazy-load';
 import React from 'react';
 
-import createReactClass from 'create-react-class';
-
 import {update} from '../../../../../actionCreators/projects';
 import ApiMixin from '../../../../../mixins/apiMixin';
 import TooltipMixin from '../../../../../mixins/tooltip';
@@ -18,9 +16,7 @@ const StyledChartCell = styled.td`
   width: 200px;
 `;
 
-const ProjectListItem = createReactClass({
-  displayName: 'ProjectListItem',
-
+const ProjectListItem = React.createClass({
   propTypes: {
     project: SentryTypes.Project,
     organization: SentryTypes.Organization,

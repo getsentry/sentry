@@ -2,7 +2,7 @@ import React from 'react';
 
 import {t} from '../../locale';
 
-class TeamStatsBar extends React.Component {
+const TeamStatsBar = React.createClass({
   render() {
     return (
       <div className="row team-stats">
@@ -24,7 +24,7 @@ class TeamStatsBar extends React.Component {
         </div>
       </div>
     );
-  }
-}
+  },
+});
 
 export default TeamStatsBar;

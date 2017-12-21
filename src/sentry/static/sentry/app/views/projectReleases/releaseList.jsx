@@ -6,12 +6,12 @@ import TimeSince from '../../components/timeSince';
 import Version from '../../components/version';
 import LatestDeployOrReleaseTime from '../../components/latestDeployOrReleaseTime';
 
-class ReleaseList extends React.Component {
-  static propTypes = {
+const ReleaseList = React.createClass({
+  propTypes: {
     orgId: PropTypes.string.isRequired,
     projectId: PropTypes.string.isRequired,
     releaseList: PropTypes.array.isRequired,
-  };
+  },
 
   render() {
     let {orgId, projectId} = this.props;
@@ -51,7 +51,7 @@ class ReleaseList extends React.Component {
         })}
       </ul>
     );
-  }
-}
+  },
+});
 
 export default ReleaseList;

@@ -1,6 +1,5 @@
 import PropTypes from 'prop-types';
 import React from 'react';
-import createReactClass from 'create-react-class';
 import _ from 'lodash';
 import ReactDOMServer from 'react-dom/server';
 import moment from 'moment';
@@ -37,23 +36,25 @@ FilterSwitch.propTypes = {
   size: PropTypes.string.isRequired,
 };
 
-class FilterRow extends React.Component {
-  static propTypes = {
+const FilterRow = React.createClass({
+  propTypes: {
     orgId: PropTypes.string.isRequired,
     projectId: PropTypes.string.isRequired,
     data: PropTypes.object.isRequired,
     onToggle: PropTypes.func.isRequired,
     idx: PropTypes.number.isRequired,
-  };
+  },
 
-  state = {
-    loading: false,
-    error: false,
-  };
+  getInitialState() {
+    return {
+      loading: false,
+      error: false,
+    };
+  },
 
-  onToggleSubfilters = active => {
+  onToggleSubfilters(active) {
     this.props.onToggle(this.props.data.subFilters, active);
-  };
+  },
 
   render() {
     let data = this.props.data;
@@ -84,8 +85,8 @@ class FilterRow extends React.Component {
         </div>
       </div>
     );
-  }
-}
+  },
+});
 
 const LEGACY_BROWSER_SUBFILTERS = {
   ie_pre_9: {
@@ -122,34 +123,32 @@ const LEGACY_BROWSER_SUBFILTERS = {
 
 const LEGACY_BROWSER_KEYS = Object.keys(LEGACY_BROWSER_SUBFILTERS);
 
-class LegacyBrowserFilterRow extends React.Component {
-  static propTypes = {
+const LegacyBrowserFilterRow = React.createClass({
+  propTypes: {
     orgId: PropTypes.string.isRequired,
     projectId: PropTypes.string.isRequired,
     data: PropTypes.object.isRequired,
     onToggle: PropTypes.func.isRequired,
     idx: PropTypes.number.isRequired,
-  };
+  },
 
-  constructor(props) {
-    super(props);
+  getInitialState() {
     let initialSubfilters;
-    if (props.data.active === true) {
+    if (this.props.data.active === true) {
       initialSubfilters = new Set(LEGACY_BROWSER_KEYS);
-    } else if (props.data.active === false) {
+    } else if (this.props.data.active === false) {
       initialSubfilters = new Set();
     } else {
-      initialSubfilters = new Set(props.data.active);
+      initialSubfilters = new Set(this.props.data.active);
     }
-
-    this.state = {
+    return {
       loading: false,
       error: false,
       subfilters: initialSubfilters,
     };
-  }
+  },
 
-  onToggleSubfilters = subfilter => {
+  onToggleSubfilters(subfilter) {
     let {subfilters} = this.state;
 
     if (subfilter === true) {
@@ -170,9 +169,9 @@ class LegacyBrowserFilterRow extends React.Component {
         this.props.onToggle(this.props.data, subfilters);
       }
     );
-  };
+  },
 
-  renderSubfilters = () => {
+  renderSubfilters() {
     let entries = LEGACY_BROWSER_KEYS.map(key => {
       let subfilter = LEGACY_BROWSER_SUBFILTERS[key];
       return (
@@ -199,7 +198,7 @@ class LegacyBrowserFilterRow extends React.Component {
         {row}
       </div>
     ));
-  };
+  },
 
   render() {
     let data = this.props.data;
@@ -237,12 +236,10 @@ class LegacyBrowserFilterRow extends React.Component {
         {this.renderSubfilters()}
       </div>
     );
-  }
-}
+  },
+});
 
-const ProjectFiltersSettingsForm = createReactClass({
-  displayName: 'ProjectFiltersSettingsForm',
-
+const ProjectFiltersSettingsForm = React.createClass({
   propTypes: {
     orgId: PropTypes.string.isRequired,
     projectId: PropTypes.string.isRequired,
@@ -407,8 +404,7 @@ const ProjectFiltersSettingsForm = createReactClass({
   },
 });
 
-const ProjectFilters = createReactClass({
-  displayName: 'ProjectFilters',
+const ProjectFilters = React.createClass({
   mixins: [ApiMixin, ProjectState],
 
   getInitialState() {

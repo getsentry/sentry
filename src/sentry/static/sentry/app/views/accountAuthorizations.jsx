@@ -1,16 +1,12 @@
 import PropTypes from 'prop-types';
 import React from 'react';
 
-import createReactClass from 'create-react-class';
-
 import AsyncView from './asyncView';
 import ApiMixin from '../mixins/apiMixin';
 import IndicatorStore from '../stores/indicatorStore';
 import {t} from '../locale';
 
-const AuthorizationRow = createReactClass({
-  displayName: 'AuthorizationRow',
-
+const AuthorizationRow = React.createClass({
   propTypes: {
     authorization: PropTypes.object.isRequired,
     onRevoke: PropTypes.func.isRequired,

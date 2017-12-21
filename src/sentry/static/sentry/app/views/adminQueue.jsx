@@ -1,16 +1,13 @@
 /*eslint getsentry/jsx-needs-il8n:0*/
 import React from 'react';
 
-import createReactClass from 'create-react-class';
-
 import ApiMixin from '../mixins/apiMixin';
 import LoadingError from '../components/loadingError';
 import LoadingIndicator from '../components/loadingIndicator';
 import InternalStatChart from '../components/internalStatChart';
 import {Select2Field} from '../components/forms';
 
-export default createReactClass({
-  displayName: 'adminQueue',
+export default React.createClass({
   mixins: [ApiMixin],
 
   getInitialState() {

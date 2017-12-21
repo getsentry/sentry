@@ -13,22 +13,26 @@ import Version from '../../components/version';
 
 import {t, tn, tct} from '../../locale';
 
-class ActivityItem extends React.Component {
-  static propTypes = {
+const ActivityItem = React.createClass({
+  propTypes: {
     clipHeight: PropTypes.number,
     defaultClipped: PropTypes.bool,
     item: PropTypes.object.isRequired,
     orgId: PropTypes.string.isRequired,
-  };
+  },
 
-  static defaultProps = {
-    defaultClipped: false,
-    clipHeight: 68,
-  };
+  getDefaultProps() {
+    return {
+      defaultClipped: false,
+      clipHeight: 68,
+    };
+  },
 
-  state = {
-    clipped: this.props.defaultClipped,
-  };
+  getInitialState() {
+    return {
+      clipped: this.props.defaultClipped,
+    };
+  },
 
   componentDidMount() {
     if (this.refs.activityBubble) {
@@ -43,9 +47,9 @@ class ActivityItem extends React.Component {
         });
       }
     }
-  }
+  },
 
-  formatProjectActivity = (author, item) => {
+  formatProjectActivity(author, item) {
     let data = item.data;
     let orgId = this.props.orgId;
     let project = item.project;
@@ -260,7 +264,7 @@ class ActivityItem extends React.Component {
       default:
         return ''; // should never hit (?)
     }
-  };
+  },
 
   render() {
     let item = this.props.item;
@@ -357,7 +361,7 @@ class ActivityItem extends React.Component {
         </li>
       );
     }
-  }
-}
+  },
+});
 
 export default ActivityItem;

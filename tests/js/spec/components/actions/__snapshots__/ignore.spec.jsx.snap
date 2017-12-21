@@ -15,7 +15,7 @@ exports[`IgnoreActions with confirmation step renders 1`] = `
       }
     }
   >
-    <CustomIgnoreDurationModal
+    <customIgnoreDurationModal
       label="Ignore this issue until it occurs after .."
       onCanceled={[Function]}
       onSelected={[Function]}
@@ -69,8 +69,8 @@ exports[`IgnoreActions with confirmation step renders 1`] = `
           show={false}
         />
       </Modal>
-    </CustomIgnoreDurationModal>
-    <CustomIgnoreCountModal
+    </customIgnoreDurationModal>
+    <customIgnoreCountModal
       countLabel="Number of times"
       countName="ignoreCount"
       label="Ignore this issue until it occurs again .. "
@@ -143,8 +143,8 @@ exports[`IgnoreActions with confirmation step renders 1`] = `
           show={false}
         />
       </Modal>
-    </CustomIgnoreCountModal>
-    <CustomIgnoreCountModal
+    </customIgnoreCountModal>
+    <customIgnoreCountModal
       countLabel="Numbers of users"
       countName="ignoreUserCount"
       label="Ignore this issue until it affects an additional .. "
@@ -217,7 +217,7 @@ exports[`IgnoreActions with confirmation step renders 1`] = `
           show={false}
         />
       </Modal>
-    </CustomIgnoreCountModal>
+    </customIgnoreCountModal>
     <div
       className="btn-group"
     >
@@ -4851,7 +4851,7 @@ exports[`IgnoreActions without confirmation renders 1`] = `
       }
     }
   >
-    <CustomIgnoreDurationModal
+    <customIgnoreDurationModal
       label="Ignore this issue until it occurs after .."
       onCanceled={[Function]}
       onSelected={[Function]}
@@ -4905,8 +4905,8 @@ exports[`IgnoreActions without confirmation renders 1`] = `
           show={false}
         />
       </Modal>
-    </CustomIgnoreDurationModal>
-    <CustomIgnoreCountModal
+    </customIgnoreDurationModal>
+    <customIgnoreCountModal
       countLabel="Number of times"
       countName="ignoreCount"
       label="Ignore this issue until it occurs again .. "
@@ -4979,8 +4979,8 @@ exports[`IgnoreActions without confirmation renders 1`] = `
           show={false}
         />
       </Modal>
-    </CustomIgnoreCountModal>
-    <CustomIgnoreCountModal
+    </customIgnoreCountModal>
+    <customIgnoreCountModal
       countLabel="Numbers of users"
       countName="ignoreUserCount"
       label="Ignore this issue until it affects an additional .. "
@@ -5053,7 +5053,7 @@ exports[`IgnoreActions without confirmation renders 1`] = `
           show={false}
         />
       </Modal>
-    </CustomIgnoreCountModal>
+    </customIgnoreCountModal>
     <div
       className="btn-group"
     >

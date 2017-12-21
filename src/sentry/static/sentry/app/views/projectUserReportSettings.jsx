@@ -1,17 +1,13 @@
 import PropTypes from 'prop-types';
 import React from 'react';
 
-import createReactClass from 'create-react-class';
-
 import ApiMixin from '../mixins/apiMixin';
 import IndicatorStore from '../stores/indicatorStore';
 import LoadingIndicator from '../components/loadingIndicator';
 import {FormState, BooleanField} from '../components/forms';
 import {t} from '../locale';
 
-const ProjectFeedbackSettingsForm = createReactClass({
-  displayName: 'ProjectFeedbackSettingsForm',
-
+const ProjectFeedbackSettingsForm = React.createClass({
   propTypes: {
     orgId: PropTypes.string.isRequired,
     projectId: PropTypes.string.isRequired,
@@ -113,9 +109,7 @@ const ProjectFeedbackSettingsForm = createReactClass({
   },
 });
 
-const ProjectUserReportSettings = createReactClass({
-  displayName: 'ProjectUserReportSettings',
-
+const ProjectUserReportSettings = React.createClass({
   propTypes: {
     setProjectNavSection: PropTypes.func,
   },

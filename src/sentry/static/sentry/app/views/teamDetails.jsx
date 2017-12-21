@@ -1,7 +1,6 @@
 import {browserHistory} from 'react-router';
 import PropTypes from 'prop-types';
 import React from 'react';
-import createReactClass from 'create-react-class';
 import Reflux from 'reflux';
 
 import {fetchTeamDetails} from '../actionCreators/teams';
@@ -16,9 +15,7 @@ import OrganizationState from '../mixins/organizationState';
 import TeamStore from '../stores/teamStore';
 import recreateRoute from '../utils/recreateRoute';
 
-const TeamDetails = createReactClass({
-  displayName: 'TeamDetails',
-
+const TeamDetails = React.createClass({
   propTypes: {
     routes: PropTypes.array,
   },

@@ -3,7 +3,7 @@ import React from 'react';
 import ProjectContext from './projects/projectContext';
 import ProjectDetailsLayout from './projectDetailsLayout';
 
-class ProjectDetails extends React.Component {
+const ProjectDetails = React.createClass({
   render() {
     let {projectId, orgId} = this.props.params;
     return (
@@ -11,7 +11,7 @@ class ProjectDetails extends React.Component {
         <ProjectDetailsLayout>{this.props.children}</ProjectDetailsLayout>
       </ProjectContext>
     );
-  }
-}
+  },
+});
 
 export default ProjectDetails;

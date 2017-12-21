@@ -1,5 +1,4 @@
 import React from 'react';
-import createReactClass from 'create-react-class';
 import Reflux from 'reflux';
 import DocumentTitle from 'react-document-title';
 import moment from 'moment';
@@ -26,9 +25,7 @@ function getRequiredAdminActions(org) {
   return [];
 }
 
-const OrganizationContext = createReactClass({
-  displayName: 'OrganizationContext',
-
+const OrganizationContext = React.createClass({
   childContextTypes: {
     organization: SentryTypes.Organization,
   },

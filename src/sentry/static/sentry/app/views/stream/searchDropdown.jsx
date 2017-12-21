@@ -1,14 +1,11 @@
 import PropTypes from 'prop-types';
 import React from 'react';
-import createReactClass from 'create-react-class';
 import PureRenderMixin from 'react-addons-pure-render-mixin';
 import classNames from 'classnames';
 
 import LoadingIndicator from '../../components/loadingIndicator';
 
-const SearchDropdown = createReactClass({
-  displayName: 'SearchDropdown',
-
+const SearchDropdown = React.createClass({
   propTypes: {
     items: PropTypes.array.isRequired,
     searchSubstring: PropTypes.string,

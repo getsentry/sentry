@@ -3,14 +3,14 @@ import React from 'react';
 import OrganizationIssueList from '../../components/organizationIssueList';
 import {t} from '../../locale';
 
-class AssignedToMe extends React.Component {
-  getEndpoint = () => {
+const AssignedToMe = React.createClass({
+  getEndpoint() {
     return `/organizations/${this.props.params.orgId}/members/me/issues/assigned/`;
-  };
+  },
 
-  getTitle = () => {
+  getTitle() {
     return t('Assigned to me');
-  };
+  },
 
   render() {
     return (
@@ -20,7 +20,7 @@ class AssignedToMe extends React.Component {
         {...this.props}
       />
     );
-  }
-}
+  },
+});
 
 export default AssignedToMe;

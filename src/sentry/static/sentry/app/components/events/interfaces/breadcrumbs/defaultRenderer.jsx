@@ -4,13 +4,13 @@ import React from 'react';
 import CrumbTable from './crumbTable';
 import SummaryLine from './summaryLine';
 
-class DefaultRenderer extends React.Component {
-  static propTypes = {
+const DefaultRenderer = React.createClass({
+  propTypes: {
     crumb: PropTypes.object.isRequired,
     kvData: PropTypes.object,
-  };
+  },
 
-  getTitle = () => {
+  getTitle() {
     let crumb = this.props.crumb;
     if (crumb.type === 'default') {
       return null;
@@ -21,9 +21,9 @@ class DefaultRenderer extends React.Component {
         return word.substr(0, 1).toUpperCase() + word.substr(1);
       })
       .join(' ');
-  };
+  },
 
-  renderSummary = () => {
+  renderSummary() {
     let {crumb} = this.props;
 
     return (
@@ -35,7 +35,7 @@ class DefaultRenderer extends React.Component {
         )}
       </SummaryLine>
     );
-  };
+  },
 
   render() {
     return (
@@ -46,7 +46,7 @@ class DefaultRenderer extends React.Component {
         {...this.props}
       />
     );
-  }
-}
+  },
+});
 
 export default DefaultRenderer;

@@ -1,14 +1,11 @@
 import PureRenderMixin from 'react-addons-pure-render-mixin';
 import PropTypes from 'prop-types';
 import React from 'react';
-import createReactClass from 'create-react-class';
 import DropdownLink from '../../components/dropdownLink';
 import MenuItem from '../../components/menuItem';
 import {t} from '../../locale';
 
-const SortOptions = createReactClass({
-  displayName: 'SortOptions',
-
+const SortOptions = React.createClass({
   propTypes: {
     sort: PropTypes.string,
     onSelect: PropTypes.func,

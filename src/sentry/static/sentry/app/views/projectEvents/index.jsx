@@ -1,7 +1,6 @@
 import jQuery from 'jquery';
 import PropTypes from 'prop-types';
 import React from 'react';
-import createReactClass from 'create-react-class';
 import {Link, browserHistory} from 'react-router';
 import ApiMixin from '../../mixins/apiMixin';
 import DateTime from '../../components/dateTime';
@@ -12,9 +11,7 @@ import Pagination from '../../components/pagination';
 import SearchBar from '../../components/searchBar';
 import {t} from '../../locale';
 
-const ProjectEvents = createReactClass({
-  displayName: 'ProjectEvents',
-
+const ProjectEvents = React.createClass({
   propTypes: {
     defaultQuery: PropTypes.string,
     setProjectNavSection: PropTypes.func,

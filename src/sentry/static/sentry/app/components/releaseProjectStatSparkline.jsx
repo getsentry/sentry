@@ -1,6 +1,5 @@
 import PropTypes from 'prop-types';
 import React from 'react';
-import createReactClass from 'create-react-class';
 import {Link} from 'react-router';
 import {Sparklines, SparklinesLine} from 'react-sparklines';
 
@@ -11,9 +10,7 @@ import ApiMixin from '../mixins/apiMixin';
 
 import {t, tn} from '../locale';
 
-const ReleaseProjectStatSparkline = createReactClass({
-  displayName: 'ReleaseProjectStatSparkline',
-
+const ReleaseProjectStatSparkline = React.createClass({
   propTypes: {
     orgId: PropTypes.string,
     project: PropTypes.object,

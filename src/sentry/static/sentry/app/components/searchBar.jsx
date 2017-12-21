@@ -1,12 +1,9 @@
 import PropTypes from 'prop-types';
 import React from 'react';
-import createReactClass from 'create-react-class';
 import ReactDOM from 'react-dom';
 import PureRenderMixin from 'react-addons-pure-render-mixin';
 
-const SearchBar = createReactClass({
-  displayName: 'SearchBar',
-
+const SearchBar = React.createClass({
   propTypes: {
     query: PropTypes.string,
     defaultQuery: PropTypes.string,

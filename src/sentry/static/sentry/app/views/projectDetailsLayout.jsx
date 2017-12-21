@@ -1,13 +1,10 @@
 import React from 'react';
 
-import createReactClass from 'create-react-class';
-
 import DiffModal from '../components/modals/diffModal';
 import ProjectHeader from '../components/projectHeader';
 import ProjectState from '../mixins/projectState';
 
-const ProjectDetailsLayout = createReactClass({
-  displayName: 'ProjectDetailsLayout',
+const ProjectDetailsLayout = React.createClass({
   mixins: [ProjectState],
 
   getInitialState() {

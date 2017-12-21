@@ -1,5 +1,4 @@
 import React from 'react';
-import createReactClass from 'create-react-class';
 import {browserHistory} from 'react-router';
 
 import ApiMixin from '../mixins/apiMixin';
@@ -11,8 +10,7 @@ import SearchBar from '../components/searchBar';
 import EventsTable from '../components/eventsTable/eventsTable';
 import {t} from '../locale';
 
-const GroupEvents = createReactClass({
-  displayName: 'GroupEvents',
+const GroupEvents = React.createClass({
   mixins: [ApiMixin, GroupState],
 
   getInitialState() {

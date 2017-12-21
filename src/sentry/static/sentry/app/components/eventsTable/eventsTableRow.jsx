@@ -10,8 +10,8 @@ import deviceNameMapper from '../../utils/deviceNameMapper';
 
 import '../../../less/components/eventsTableRow.less';
 
-class EventsTableRow extends React.Component {
-  static propTypes = {
+const EventsTableRow = React.createClass({
+  propTypes: {
     hasUser: PropTypes.bool,
     truncate: PropTypes.bool,
     orgId: PropTypes.string.isRequired,
@@ -19,11 +19,13 @@ class EventsTableRow extends React.Component {
     projectId: PropTypes.string.isRequired,
     event: CustomPropTypes.Event.isRequired,
     tagList: PropTypes.arrayOf(CustomPropTypes.Tag),
-  };
+  },
 
-  static defaultProps = {truncate: false};
+  getDefaultProps() {
+    return {truncate: false};
+  },
 
-  getEventTitle = event => {
+  getEventTitle(event) {
     switch (event.type) {
       case 'error':
         if (event.metadata.type && event.metadata.value)
@@ -36,7 +38,7 @@ class EventsTableRow extends React.Component {
       default:
         return event.message.split('\n')[0];
     }
-  };
+  },
 
   render() {
     let {
@@ -92,7 +94,7 @@ class EventsTableRow extends React.Component {
         })}
       </tr>
     );
-  }
-}
+  },
+});
 
 export default EventsTableRow;

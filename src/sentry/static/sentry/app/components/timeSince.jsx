@@ -1,6 +1,5 @@
 import PropTypes from 'prop-types';
 import React from 'react';
-import createReactClass from 'create-react-class';
 import moment from 'moment';
 import _ from 'lodash';
 import PureRenderMixin from 'react-addons-pure-render-mixin';
@@ -8,9 +7,7 @@ import PureRenderMixin from 'react-addons-pure-render-mixin';
 import ConfigStore from '../stores/configStore';
 import {t} from '../locale';
 
-const TimeSince = createReactClass({
-  displayName: 'TimeSince',
-
+const TimeSince = React.createClass({
   propTypes: {
     date: PropTypes.any.isRequired,
     suffix: PropTypes.string,

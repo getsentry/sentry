@@ -6,25 +6,27 @@ import EventDataSection from './eventDataSection';
 import KeyValueList from './interfaces/keyValueList';
 import {t} from '../../locale';
 
-class EventExtraData extends React.Component {
-  static propTypes = {
+const EventExtraData = React.createClass({
+  propTypes: {
     group: SentryTypes.Group.isRequired,
     event: SentryTypes.Event.isRequired,
-  };
+  },
 
-  state = {
-    raw: false,
-  };
+  getInitialState() {
+    return {
+      raw: false,
+    };
+  },
 
   shouldComponentUpdate(nextProps, nextState) {
     return this.props.event.id !== nextProps.event.id || this.state.raw !== nextState.raw;
-  }
+  },
 
-  toggleRaw = shouldBeRaw => {
+  toggleRaw(shouldBeRaw) {
     this.setState({
       raw: shouldBeRaw,
     });
-  };
+  },
 
   render() {
     let extraDataArray = objectToArray(this.props.event.context);
@@ -42,7 +44,7 @@ class EventExtraData extends React.Component {
         </EventDataSection>
       </div>
     );
-  }
-}
+  },
+});
 
 export default EventExtraData;

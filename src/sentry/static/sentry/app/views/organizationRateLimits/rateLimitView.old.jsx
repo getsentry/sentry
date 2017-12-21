@@ -1,20 +1,18 @@
 import PropTypes from 'prop-types';
 import React from 'react';
 
-import createReactClass from 'create-react-class';
-
 import ApiMixin from '../../mixins/apiMixin';
 import IndicatorStore from '../../stores/indicatorStore';
 import {RangeField} from '../../components/forms';
 import {t} from '../../locale';
 
-class AccountLimit extends React.Component {
-  static propTypes = {
+const AccountLimit = React.createClass({
+  propTypes: {
     value: PropTypes.number,
     onChange: PropTypes.func.isRequired,
-  };
+  },
 
-  getRateLimitValues = () => {
+  getRateLimitValues() {
     let steps = [];
     let i = 0;
     while (i <= 1000000) {
@@ -28,7 +26,7 @@ class AccountLimit extends React.Component {
       }
     }
     return steps;
-  };
+  },
 
   render() {
     return (
@@ -47,12 +45,10 @@ class AccountLimit extends React.Component {
         }}
       />
     );
-  }
-}
+  },
+});
 
-const RateLimitView = createReactClass({
-  displayName: 'RateLimitView',
-
+const RateLimitView = React.createClass({
   propTypes: {
     organization: PropTypes.object.isRequired,
   },

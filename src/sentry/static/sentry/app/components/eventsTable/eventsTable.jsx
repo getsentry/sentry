@@ -6,16 +6,18 @@ import {t} from '../../locale';
 import CustomPropTypes from '../../proptypes';
 import EventsTableRow from './eventsTableRow';
 
-class EventsTable extends React.Component {
-  static propTypes = {
+const EventsTable = React.createClass({
+  propTypes: {
     fixedDimensions: PropTypes.bool,
     events: PropTypes.arrayOf(CustomPropTypes.Event),
     tagList: PropTypes.arrayOf(CustomPropTypes.Tag),
-  };
+  },
 
-  static defaultProps = {
-    fixedDimensions: false,
-  };
+  getDefaultProps() {
+    return {
+      fixedDimensions: false,
+    };
+  },
 
   render() {
     let {className, events, fixedDimensions, tagList} = this.props;
@@ -54,7 +56,7 @@ class EventsTable extends React.Component {
         </tbody>
       </table>
     );
-  }
-}
+  },
+});
 
 export default EventsTable;

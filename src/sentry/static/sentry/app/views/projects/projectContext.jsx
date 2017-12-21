@@ -1,6 +1,5 @@
 import PropTypes from 'prop-types';
 import React from 'react';
-import createReactClass from 'create-react-class';
 import Reflux from 'reflux';
 import DocumentTitle from 'react-document-title';
 
@@ -30,9 +29,7 @@ const ERROR_TYPES = {
  * Additionally delays rendering of children until project XHR has finished
  * and context is populated.
  */
-const ProjectContext = createReactClass({
-  displayName: 'ProjectContext',
-
+const ProjectContext = React.createClass({
   propTypes: {
     projectId: PropTypes.string,
     orgId: PropTypes.string,

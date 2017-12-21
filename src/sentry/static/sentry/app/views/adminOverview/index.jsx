@@ -4,11 +4,13 @@ import React from 'react';
 import ApiChart from './apiChart';
 import EventChart from './eventChart';
 
-export default class extends React.Component {
-  state = {
-    since: new Date().getTime() / 1000 - 3600 * 24 * 7,
-    resolution: '1h',
-  };
+export default React.createClass({
+  getInitialState() {
+    return {
+      since: new Date().getTime() / 1000 - 3600 * 24 * 7,
+      resolution: '1h',
+    };
+  },
 
   render() {
     return (
@@ -33,5 +35,5 @@ export default class extends React.Component {
         </div>
       </div>
     );
-  }
-}
+  },
+});

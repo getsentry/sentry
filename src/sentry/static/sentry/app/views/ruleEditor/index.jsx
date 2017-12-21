@@ -1,6 +1,5 @@
 import PropTypes from 'prop-types';
 import React from 'react';
-import createReactClass from 'create-react-class';
 import ReactDOM from 'react-dom';
 import $ from 'jquery';
 import ApiMixin from '../../mixins/apiMixin';
@@ -10,9 +9,7 @@ import {t, tct} from '../../locale';
 
 import RuleNodeList from './ruleNodeList';
 
-const RuleEditor = createReactClass({
-  displayName: 'RuleEditor',
-
+const RuleEditor = React.createClass({
   propTypes: {
     actions: PropTypes.array.isRequired,
     conditions: PropTypes.array.isRequired,

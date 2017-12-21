@@ -1,6 +1,5 @@
 import PropTypes from 'prop-types';
 import React from 'react';
-import createReactClass from 'create-react-class';
 import Link from '../link';
 import SidebarPanel from '../sidebarPanel';
 import LetterAvatar from '../letterAvatar';
@@ -19,9 +18,7 @@ RouterOrBrowserLink.propTypes = {
   path: PropTypes.string.isRequired,
 };
 
-const OrganizationSelector = createReactClass({
-  displayName: 'OrganizationSelector',
-
+const OrganizationSelector = React.createClass({
   propTypes: {
     organization: PropTypes.object,
     showPanel: PropTypes.bool,

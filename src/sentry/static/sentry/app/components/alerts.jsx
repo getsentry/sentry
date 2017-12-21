@@ -1,13 +1,11 @@
 import React from 'react';
-import createReactClass from 'create-react-class';
 import Reflux from 'reflux';
 import PureRenderMixin from 'react-addons-pure-render-mixin';
 
 import AlertStore from '../stores/alertStore';
 import AlertMessage from './alertMessage';
 
-const Alerts = createReactClass({
-  displayName: 'Alerts',
+const Alerts = React.createClass({
   mixins: [PureRenderMixin, Reflux.connect(AlertStore, 'alerts')],
 
   getInitialState() {

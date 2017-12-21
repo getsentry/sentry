@@ -4,8 +4,8 @@ import Modal from 'react-bootstrap/lib/Modal';
 import {Select2Field} from './forms';
 import {t} from '../locale';
 
-class CustomIgnoreCountModal extends React.Component {
-  static propTypes = {
+export default React.createClass({
+  propTypes: {
     onSelected: PropTypes.func,
     onCanceled: PropTypes.func,
     show: PropTypes.bool,
@@ -14,23 +14,25 @@ class CustomIgnoreCountModal extends React.Component {
     countName: PropTypes.string.isRequired,
     windowName: PropTypes.string.isRequired,
     windowChoices: PropTypes.array.isRequired,
-  };
+  },
 
-  state = {
-    count: 100,
-    window: '',
-  };
+  getInitialState() {
+    return {
+      count: 100,
+      window: '',
+    };
+  },
 
-  onSubmit = () => {
+  onSubmit() {
     this.props.onSelected({
       [this.props.countName]: this.state.count,
       [this.props.windowName]: this.state.window,
     });
-  };
+  },
 
-  onChange = (name, value) => {
+  onChange(name, value) {
     this.setState({[name]: value});
-  };
+  },
 
   render() {
     let {count, window} = this.state;
@@ -85,7 +87,5 @@ class CustomIgnoreCountModal extends React.Component {
         </div>
       </Modal>
     );
-  }
-}
-
-export default CustomIgnoreCountModal;
+  },
+});

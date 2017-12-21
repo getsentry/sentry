@@ -1,8 +1,6 @@
 import PropTypes from 'prop-types';
 import React from 'react';
 
-import createReactClass from 'create-react-class';
-
 import ApiMixin from '../mixins/apiMixin';
 import IndicatorStore from '../stores/indicatorStore';
 import LoadingError from '../components/loadingError';
@@ -11,9 +9,7 @@ import Confirm from '../components/confirm';
 import {t} from '../locale';
 import OrganizationState from '../mixins/organizationState';
 
-const SavedSearchRow = createReactClass({
-  displayName: 'SavedSearchRow',
-
+const SavedSearchRow = React.createClass({
   propTypes: {
     orgId: PropTypes.string.isRequired,
     projectId: PropTypes.string.isRequired,
@@ -137,8 +133,7 @@ const SavedSearchRow = createReactClass({
   },
 });
 
-const ProjectSavedSearches = createReactClass({
-  displayName: 'ProjectSavedSearches',
+const ProjectSavedSearches = React.createClass({
   mixins: [ApiMixin, OrganizationState],
 
   getInitialState() {

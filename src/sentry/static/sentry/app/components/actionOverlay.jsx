@@ -1,14 +1,11 @@
 import PropTypes from 'prop-types';
 import React from 'react';
-import createReactClass from 'create-react-class';
 import OrganizationState from '../mixins/organizationState';
 import {t} from '../locale';
 import requiredAdminActions from '../components/requiredAdminActions';
 import LoadingIndicator from '../components/loadingIndicator';
 
-const ActionOverlay = createReactClass({
-  displayName: 'ActionOverlay',
-
+const ActionOverlay = React.createClass({
   propTypes: {
     actionId: PropTypes.string.isRequired,
     isLoading: PropTypes.bool,

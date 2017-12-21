@@ -1,6 +1,5 @@
 import PropTypes from 'prop-types';
 import React from 'react';
-import createReactClass from 'create-react-class';
 import {browserHistory} from 'react-router';
 
 import ApiMixin from '../../mixins/apiMixin';
@@ -27,9 +26,7 @@ const PRODUCTION_ENV_NAMES = new Set([
 
 // TODO(dcramer): this should listen to EnvironmentStore
 // changes
-const GroupReleaseStats = createReactClass({
-  displayName: 'GroupReleaseStats',
-
+const GroupReleaseStats = React.createClass({
   propTypes: {
     defaultEnvironment: PropTypes.string,
     group: PropTypes.object,

@@ -1,10 +1,10 @@
 import PropTypes from 'prop-types';
 import React from 'react';
 
-class SharedGroupHeader extends React.Component {
-  static propTypes = {
+const SharedGroupHeader = React.createClass({
+  propTypes: {
     group: PropTypes.object.isRequired,
-  };
+  },
 
   render() {
     let group = this.props.group;
@@ -19,7 +19,7 @@ class SharedGroupHeader extends React.Component {
         </div>
       </div>
     );
-  }
-}
+  },
+});
 
 export default SharedGroupHeader;

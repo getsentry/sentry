@@ -1,7 +1,5 @@
 import React from 'react';
 
-import createReactClass from 'create-react-class';
-
 import {Link} from 'react-router';
 
 import ApiMixin from '../../mixins/apiMixin';
@@ -11,8 +9,7 @@ import OrganizationState from '../../mixins/organizationState';
 
 import {t} from '../../locale';
 
-const EventsPerHour = createReactClass({
-  displayName: 'EventsPerHour',
+const EventsPerHour = React.createClass({
   mixins: [ApiMixin, OrganizationState],
 
   getInitialState() {

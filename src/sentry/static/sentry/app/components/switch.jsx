@@ -2,15 +2,15 @@ import PropTypes from 'prop-types';
 import React from 'react';
 import classNames from 'classnames';
 
-class Switch extends React.Component {
-  static propTypes = {
+const Switch = React.createClass({
+  propTypes: {
     id: PropTypes.string,
     size: PropTypes.string,
     isActive: PropTypes.bool,
     isLoading: PropTypes.bool,
     isDisabled: PropTypes.bool,
     toggle: PropTypes.func.isRequired,
-  };
+  },
 
   render() {
     let {size, isActive, isLoading, isDisabled, toggle, id} = this.props;
@@ -32,7 +32,7 @@ class Switch extends React.Component {
         <span className="switch-toggle" />
       </div>
     );
-  }
-}
+  },
+});
 
 export default Switch;

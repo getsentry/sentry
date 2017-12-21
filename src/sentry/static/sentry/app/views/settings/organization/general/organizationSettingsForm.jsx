@@ -2,8 +2,6 @@ import {Box} from 'grid-emotion';
 import PropTypes from 'prop-types';
 import React from 'react';
 
-import createReactClass from 'create-react-class';
-
 import {
   addErrorMessage,
   addSuccessMessage,
@@ -15,9 +13,7 @@ import organizationSettingsFields from '../../../../data/forms/organizationGener
 
 const TOAST_DURATION = 10000;
 
-const NewOrganizationSettingsForm = createReactClass({
-  displayName: 'NewOrganizationSettingsForm',
-
+const NewOrganizationSettingsForm = React.createClass({
   propTypes: {
     location: PropTypes.object,
     orgId: PropTypes.string.isRequired,

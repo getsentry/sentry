@@ -2,12 +2,12 @@ import PropTypes from 'prop-types';
 import React from 'react';
 import PluginConfig from '../components/pluginConfig';
 
-class ProjectIssueTracking extends React.Component {
-  static propTypes = {
+const ProjectIssueTracking = React.createClass({
+  propTypes: {
     organization: PropTypes.object.isRequired,
     project: PropTypes.object.isRequired,
     dataList: PropTypes.array.isRequired,
-  };
+  },
 
   render() {
     if (!this.props.dataList.length) {
@@ -21,7 +21,7 @@ class ProjectIssueTracking extends React.Component {
         })}
       </div>
     );
-  }
-}
+  },
+});
 
 export default ProjectIssueTracking;

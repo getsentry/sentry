@@ -6,13 +6,13 @@ import TimeSince from './timeSince';
 
 import {t} from '../locale';
 
-class LastCommit extends React.Component {
-  static propTypes = {
+const LastCommit = React.createClass({
+  propTypes: {
     commit: PropTypes.object.isRequired,
     headerClass: PropTypes.string,
-  };
+  },
 
-  renderMessage = message => {
+  renderMessage(message) {
     if (!message) {
       return t('No message provided');
     }
@@ -29,7 +29,7 @@ class LastCommit extends React.Component {
       return truncated + '...';
     }
     return firstLine;
-  };
+  },
 
   render() {
     let {commit, headerClass} = this.props;
@@ -53,7 +53,7 @@ class LastCommit extends React.Component {
         </div>
       </div>
     );
-  }
-}
+  },
+});
 
 export default LastCommit;

@@ -1,6 +1,5 @@
 import PropTypes from 'prop-types';
 import React from 'react';
-import createReactClass from 'create-react-class';
 import $ from 'jquery';
 
 import ApiMixin from '../../mixins/apiMixin';
@@ -19,14 +18,14 @@ import ConfigStore from '../../stores/configStore';
 
 import {t} from '../../locale';
 
-class OnboardingStatus extends React.Component {
-  static propTypes = {
+const OnboardingStatus = React.createClass({
+  propTypes: {
     org: PropTypes.object.isRequired,
     currentPanel: PropTypes.string,
     onShowPanel: PropTypes.func,
     showPanel: PropTypes.bool,
     hidePanel: PropTypes.func,
-  };
+  },
 
   render() {
     let org = this.props.org;
@@ -68,8 +67,8 @@ class OnboardingStatus extends React.Component {
           )}
       </li>
     );
-  }
-}
+  },
+});
 
 function getFirstRequiredAdminAction(org) {
   for (let key in requiredAdminActions) {
@@ -81,9 +80,7 @@ function getFirstRequiredAdminAction(org) {
   return null;
 }
 
-const Sidebar = createReactClass({
-  displayName: 'Sidebar',
-
+const Sidebar = React.createClass({
   contextTypes: {
     location: PropTypes.object,
   },

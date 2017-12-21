@@ -5,7 +5,7 @@ import OrganizationContext from './organizationContext';
 import Footer from '../components/footer';
 import Sidebar from '../components/sidebar';
 
-class OrganizationDetails extends React.Component {
+const OrganizationDetails = React.createClass({
   render() {
     return (
       <OrganizationContext {...this.props}>
@@ -14,7 +14,7 @@ class OrganizationDetails extends React.Component {
         <Footer />
       </OrganizationContext>
     );
-  }
-}
+  },
+});
 
 export default OrganizationDetails;

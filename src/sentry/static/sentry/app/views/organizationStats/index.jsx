@@ -1,14 +1,12 @@
 import $ from 'jquery';
 import React from 'react';
-import createReactClass from 'create-react-class';
 import ApiMixin from '../../mixins/apiMixin';
 import OrganizationState from '../../mixins/organizationState';
 
 import LazyLoad from '../../components/lazyLoad';
 import getSettingsComponent from '../../utils/getSettingsComponent';
 
-const OrganizationStats = createReactClass({
-  displayName: 'OrganizationStats',
+const OrganizationStats = React.createClass({
   mixins: [ApiMixin, OrganizationState],
 
   getInitialState() {

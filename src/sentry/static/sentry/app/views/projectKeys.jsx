@@ -3,8 +3,6 @@ import DocumentTitle from 'react-document-title';
 import PropTypes from 'prop-types';
 import React from 'react';
 
-import createReactClass from 'create-react-class';
-
 import {t, tct} from '../locale';
 import ApiMixin from '../mixins/apiMixin';
 import AutoSelectText from '../components/autoSelectText';
@@ -18,9 +16,7 @@ import OrganizationState from '../mixins/organizationState';
 import Pagination from '../components/pagination';
 import ProjectState from '../mixins/projectState';
 
-const KeyRow = createReactClass({
-  displayName: 'KeyRow',
-
+const KeyRow = React.createClass({
   propTypes: {
     orgId: PropTypes.string.isRequired,
     projectId: PropTypes.string.isRequired,
@@ -219,8 +215,7 @@ const KeyRow = createReactClass({
   },
 });
 
-export default createReactClass({
-  displayName: 'projectKeys',
+export default React.createClass({
   mixins: [ApiMixin, OrganizationState],
 
   getInitialState() {

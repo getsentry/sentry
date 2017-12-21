@@ -3,11 +3,13 @@ import React from 'react';
 
 import InternalStatChart from '../components/internalStatChart';
 
-class AdminBuffer extends React.Component {
-  state = {
-    since: new Date().getTime() / 1000 - 3600 * 24 * 7,
-    resolution: '1h',
-  };
+const AdminBuffer = React.createClass({
+  getInitialState() {
+    return {
+      since: new Date().getTime() / 1000 - 3600 * 24 * 7,
+      resolution: '1h',
+    };
+  },
 
   render() {
     // TODO(dcramer): show buffer configuration when its moved into option store
@@ -56,7 +58,7 @@ class AdminBuffer extends React.Component {
         </div>
       </div>
     );
-  }
-}
+  },
+});
 
 export default AdminBuffer;

@@ -1,17 +1,13 @@
 import PropTypes from 'prop-types';
 import React from 'react';
 
-import createReactClass from 'create-react-class';
-
 import ApiMixin from '../mixins/apiMixin';
 import InactivePlugins from './inactivePlugins';
 import IndicatorStore from '../stores/indicatorStore';
 import PluginConfig from './pluginConfig';
 import {t} from '../locale';
 
-export default createReactClass({
-  displayName: 'pluginList',
-
+export default React.createClass({
   propTypes: {
     organization: PropTypes.object.isRequired,
     project: PropTypes.object.isRequired,

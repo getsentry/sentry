@@ -3,8 +3,6 @@ import moment from 'moment';
 import PropTypes from 'prop-types';
 import React from 'react';
 
-import createReactClass from 'create-react-class';
-
 import ConfigStore from '../../stores/configStore';
 import SentryTypes from '../../proptypes';
 import DateTime from '../../components/dateTime';
@@ -33,9 +31,7 @@ let formatDateDelta = (reference, observed) => {
   return results.join(', ');
 };
 
-let GroupEventToolbar = createReactClass({
-  displayName: 'GroupEventToolbar',
-
+let GroupEventToolbar = React.createClass({
   propTypes: {
     orgId: PropTypes.string.isRequired,
     projectId: PropTypes.string.isRequired,

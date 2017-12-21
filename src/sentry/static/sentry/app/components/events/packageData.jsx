@@ -7,15 +7,15 @@ import ClippedBox from '../clippedBox';
 import KeyValueList from './interfaces/keyValueList';
 import {t} from '../../locale';
 
-class EventPackageData extends React.Component {
-  static propTypes = {
+const EventPackageData = React.createClass({
+  propTypes: {
     group: SentryTypes.Group.isRequired,
     event: SentryTypes.Event.isRequired,
-  };
+  },
 
   shouldComponentUpdate(nextProps, nextState) {
     return this.props.event.id !== nextProps.event.id;
-  }
+  },
 
   render() {
     let packages = objectToArray(this.props.event.packages);
@@ -32,7 +32,7 @@ class EventPackageData extends React.Component {
         </ClippedBox>
       </EventDataSection>
     );
-  }
-}
+  },
+});
 
 export default EventPackageData;

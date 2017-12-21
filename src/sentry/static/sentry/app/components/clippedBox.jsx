@@ -3,27 +3,31 @@ import React from 'react';
 import ReactDOM from 'react-dom';
 import {t} from '../locale';
 
-class ClippedBox extends React.Component {
-  static propTypes = {
+const ClippedBox = React.createClass({
+  propTypes: {
     title: PropTypes.string,
     defaultClipped: PropTypes.bool,
     clipHeight: PropTypes.number,
     btnClassName: PropTypes.string,
     btnText: PropTypes.string,
-  };
+  },
 
-  static defaultProps = {
-    defaultClipped: false,
-    clipHeight: 200,
-    renderedHeight: null,
-    btnClassName: 'btn btn-primary btn-xs show-more',
-    btnText: t('Show More'),
-  };
+  getDefaultProps() {
+    return {
+      defaultClipped: false,
+      clipHeight: 200,
+      renderedHeight: null,
+      btnClassName: 'btn btn-primary btn-xs show-more',
+      btnText: t('Show More'),
+    };
+  },
 
-  state = {
-    clipped: this.props.defaultClipped,
-    revealed: false, // True once user has clicked "Show More" button
-  };
+  getInitialState() {
+    return {
+      clipped: this.props.defaultClipped,
+      revealed: false, // True once user has clicked "Show More" button
+    };
+  },
 
   componentDidMount() {
     let renderedHeight = ReactDOM.findDOMNode(this).offsetHeight;
@@ -36,16 +40,16 @@ class ClippedBox extends React.Component {
         clipped: true,
       });
     }
-  }
+  },
 
-  reveal = e => {
+  reveal(e) {
     e.stopPropagation();
 
     this.setState({
       clipped: false,
       revealed: true,
     });
-  };
+  },
 
   render() {
     let className = 'box-clippable';
@@ -73,7 +77,7 @@ class ClippedBox extends React.Component {
         )}
       </div>
     );
-  }
-}
+  },
+});
 
 export default ClippedBox;

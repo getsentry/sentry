@@ -3,8 +3,8 @@ import React from 'react';
 import classNames from 'classnames';
 import '../../less/components/scoreBar.less';
 
-class ScoreBar extends React.Component {
-  static propTypes = {
+const ScoreBar = React.createClass({
+  propTypes: {
     vertical: PropTypes.bool,
     score: PropTypes.number.isRequired,
     /** Array of strings */
@@ -14,14 +14,18 @@ class ScoreBar extends React.Component {
     /** Default controlled by CSS */
     size: PropTypes.number,
     thickness: PropTypes.number,
-  };
+  },
 
-  static defaultProps = {
-    palette: [],
-    paletteClassNames: ['low', 'low-med', 'med', 'med-high', 'high'],
-  };
+  getDefaultProps() {
+    return {
+      palette: [],
+      paletteClassNames: ['low', 'low-med', 'med', 'med-high', 'high'],
+    };
+  },
 
-  state = {};
+  getInitialState() {
+    return {};
+  },
 
   render() {
     let {
@@ -78,7 +82,7 @@ class ScoreBar extends React.Component {
         ))}
       </div>
     );
-  }
-}
+  },
+});
 
 export default ScoreBar;

@@ -2,7 +2,6 @@ import {Link} from 'react-router';
 import LazyLoad from 'react-lazy-load';
 import PropTypes from 'prop-types';
 import React from 'react';
-import createReactClass from 'create-react-class';
 import styled from 'react-emotion';
 
 import {sortArray} from '../../../utils';
@@ -32,9 +31,7 @@ const ProjectTitle = styled.h5`
   padding: 2px 0;
 `;
 
-const ExpandedTeamList = createReactClass({
-  displayName: 'ExpandedTeamList',
-
+const ExpandedTeamList = React.createClass({
   propTypes: {
     access: PropTypes.object.isRequired,
     organization: SentryTypes.Organization.isRequired,

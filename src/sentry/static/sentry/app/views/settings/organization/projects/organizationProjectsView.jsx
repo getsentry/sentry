@@ -1,5 +1,4 @@
 import React from 'react';
-import createReactClass from 'create-react-class';
 import Reflux from 'reflux';
 
 import {loadStats} from '../../../../actionCreators/projects';
@@ -49,8 +48,7 @@ class OrganizationProjectsView extends OrganizationSettingsView {
 }
 
 // reflux :(
-const OrganizationProjectsViewContainer = createReactClass({
-  displayName: 'OrganizationProjectsViewContainer',
+const OrganizationProjectsViewContainer = React.createClass({
   mixins: [ApiMixin, Reflux.listenTo(ProjectsStore, 'onProjectUpdate')],
 
   getInitialState() {

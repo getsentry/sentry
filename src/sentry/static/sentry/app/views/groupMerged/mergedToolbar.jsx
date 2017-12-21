@@ -1,6 +1,5 @@
 import PropTypes from 'prop-types';
 import React from 'react';
-import createReactClass from 'create-react-class';
 import Reflux from 'reflux';
 import _ from 'lodash';
 
@@ -12,9 +11,7 @@ import LinkWithConfirmation from '../../components/linkWithConfirmation';
 import Toolbar from '../../components/toolbar';
 import SpreadLayout from '../../components/spreadLayout';
 
-const MergedToolbar = createReactClass({
-  displayName: 'MergedToolbar',
-
+const MergedToolbar = React.createClass({
   propTypes: {
     onUnmerge: PropTypes.func,
     groupId: PropTypes.string,

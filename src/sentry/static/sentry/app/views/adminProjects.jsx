@@ -10,8 +10,8 @@ export const prettyDate = function(x) {
   return moment(x).format('ll');
 };
 
-class AdminProjects extends React.Component {
-  getRow = row => {
+const AdminProjects = React.createClass({
+  getRow(row) {
     return [
       <td>
         <strong>
@@ -23,7 +23,7 @@ class AdminProjects extends React.Component {
       <td style={{textAlign: 'center'}}>{row.status}</td>,
       <td style={{textAlign: 'right'}}>{prettyDate(row.dateCreated)}</td>,
     ];
-  };
+  },
 
   render() {
     let columns = [
@@ -54,7 +54,7 @@ class AdminProjects extends React.Component {
         />
       </div>
     );
-  }
-}
+  },
+});
 
 export default AdminProjects;

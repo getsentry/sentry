@@ -11,13 +11,13 @@ import {t} from '../../locale';
 import Pills from '../pills';
 import Pill from '../pill';
 
-class EventTags extends React.Component {
-  static propTypes = {
+const EventTags = React.createClass({
+  propTypes: {
     group: SentryTypes.Group.isRequired,
     event: SentryTypes.Event.isRequired,
     orgId: PropTypes.string.isRequired,
     projectId: PropTypes.string.isRequired,
-  };
+  },
 
   render() {
     let tags = this.props.event.tags;
@@ -55,7 +55,7 @@ class EventTags extends React.Component {
         </Pills>
       </EventDataSection>
     );
-  }
-}
+  },
+});
 
 export default EventTags;

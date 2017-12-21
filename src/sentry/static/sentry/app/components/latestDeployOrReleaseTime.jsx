@@ -1,14 +1,11 @@
 import PropTypes from 'prop-types';
 import React from 'react';
-import createReactClass from 'create-react-class';
 import ApiMixin from '../mixins/apiMixin';
 import TooltipMixin from '../mixins/tooltip';
 import TimeSince from './timeSince';
 import {t} from '../locale';
 
-const LatestDeployOrReleaseTime = createReactClass({
-  displayName: 'LatestDeployOrReleaseTime',
-
+const LatestDeployOrReleaseTime = React.createClass({
   propTypes: {
     orgId: PropTypes.string.isRequired,
     release: PropTypes.object.isRequired,

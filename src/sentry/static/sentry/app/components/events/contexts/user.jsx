@@ -7,10 +7,10 @@ import _ from 'lodash';
 import Avatar from '../../../components/avatar';
 import KeyValueList from '../interfaces/keyValueList';
 
-class UserContextType extends React.Component {
-  static propTypes = {
+const UserContextType = React.createClass({
+  propTypes: {
     data: PropTypes.object.isRequired,
-  };
+  },
 
   render() {
     let user = this.props.data;
@@ -62,8 +62,8 @@ class UserContextType extends React.Component {
         {children && <KeyValueList data={children} isContextData={true} />}
       </div>
     );
-  }
-}
+  },
+});
 
 UserContextType.getTitle = function(value) {
   return 'User';
