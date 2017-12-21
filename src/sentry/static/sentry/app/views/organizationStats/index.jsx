@@ -89,11 +89,11 @@ const OrganizationStats = createReactClass({
           projectMap[project.id] = project;
         });
 
-        this.setState(state => {
+        this.setState(prevState => {
           return {
             pageLinks: jqxhr.getResponseHeader('Link'),
             projectMap,
-            projectsRequestsPending: state.projectsRequestsPending - 1,
+            projectsRequestsPending: prevState.projectsRequestsPending - 1,
           };
         });
       },
@@ -126,13 +126,13 @@ const OrganizationStats = createReactClass({
           stat: statName,
         },
         success: data => {
-          this.setState(state => {
-            let rawOrgData = this.state;
+          this.setState(prevState => {
+            let rawOrgData = prevState.rawOrgData;
             rawOrgData[statName] = data;
 
             return {
               rawOrgData,
-              statsRequestsPending: state.statsRequestsPending - 1,
+              statsRequestsPending: prevState.statsRequestsPending - 1,
             };
           });
         },
@@ -153,12 +153,13 @@ const OrganizationStats = createReactClass({
           group: 'project',
         },
         success: data => {
-          let rawProjectData = this.state;
-          rawProjectData[statName] = data;
-          this.setState(state => {
+          this.setState(prevState => {
+            let rawProjectData = prevState.rawProjectData;
+            rawProjectData[statName] = data;
+
             return {
               rawProjectData,
-              projectsRequestsPending: this.state.projectsRequestsPending - 1,
+              projectsRequestsPending: prevState.projectsRequestsPending - 1,
             };
           });
         },
