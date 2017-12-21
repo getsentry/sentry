@@ -1,12 +1,16 @@
 import PropTypes from 'prop-types';
 import React from 'react';
 
+import createReactClass from 'create-react-class';
+
 import IndicatorStore from '../stores/indicatorStore';
 import {joinTeam} from '../actionCreators/teams';
 import ApiMixin from '../mixins/apiMixin';
 import {t} from '../locale';
 
-const MissingProjectMembership = React.createClass({
+const MissingProjectMembership = createReactClass({
+  displayName: 'MissingProjectMembership',
+
   propTypes: {
     organization: PropTypes.object.isRequired,
     team: PropTypes.object.isRequired,

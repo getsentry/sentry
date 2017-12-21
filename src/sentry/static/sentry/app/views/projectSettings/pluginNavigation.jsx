@@ -1,10 +1,12 @@
 import React from 'react';
+import createReactClass from 'create-react-class';
 import Reflux from 'reflux';
 import {Link} from 'react-router';
 
 import PluginsStore from '../../stores/pluginsStore';
 
-const PluginNavigation = React.createClass({
+const PluginNavigation = createReactClass({
+  displayName: 'PluginNavigation',
   mixins: [Reflux.connect(PluginsStore, 'store')],
 
   render() {

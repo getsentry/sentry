@@ -1,6 +1,8 @@
 import PropTypes from 'prop-types';
 import React from 'react';
 
+import createReactClass from 'create-react-class';
+
 import AlertActions from '../../../actions/alertActions';
 import ApiMixin from '../../../mixins/apiMixin';
 import AvatarCropper from '../../../components/avatarCropper';
@@ -9,7 +11,9 @@ import LoadingError from '../../../components/loadingError';
 import LoadingIndicator from '../../../components/loadingIndicator';
 import {t} from '../../../locale';
 
-const AvatarSettings = React.createClass({
+const AvatarSettings = createReactClass({
+  displayName: 'AvatarSettings',
+
   propTypes: {
     userId: PropTypes.number,
   },

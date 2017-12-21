@@ -2,6 +2,8 @@ import {browserHistory} from 'react-router';
 import PropTypes from 'prop-types';
 import React from 'react';
 
+import createReactClass from 'create-react-class';
+
 import {t} from '../../locale';
 import ApiMixin from '../../mixins/apiMixin';
 import DropdownLink from '../../components/dropdownLink';
@@ -18,26 +20,24 @@ import TooltipMixin from '../../mixins/tooltip';
 import ResolveActions from '../../components/actions/resolve';
 import IgnoreActions from '../../components/actions/ignore';
 
-const DeleteActions = React.createClass({
-  propTypes: {
+class DeleteActions extends React.Component {
+  static propTypes = {
     organization: PropTypes.object.isRequired,
     project: PropTypes.object.isRequired,
     onDelete: PropTypes.func.isRequired,
     onDiscard: PropTypes.func.isRequired,
-  },
+  };
 
-  getInitialState() {
-    return {
-      hooksDisabled: HookStore.get('project:discard-groups:disabled'),
-    };
-  },
+  state = {
+    hooksDisabled: HookStore.get('project:discard-groups:disabled'),
+  };
 
-  renderDisabledDiscard() {
+  renderDisabledDiscard = () => {
     let {project, organization} = this.props;
     return this.state.hooksDisabled.map(hook => hook(organization, project));
-  },
+  };
 
-  renderDiscard() {
+  renderDiscard = () => {
     return (
       <DropdownLink caret={true} className="group-delete btn btn-default btn-sm">
         <li>
@@ -56,7 +56,7 @@ const DeleteActions = React.createClass({
         </li>
       </DropdownLink>
     );
-  },
+  };
 
   render() {
     let features = new Set(this.props.project.features);
@@ -77,10 +77,12 @@ const DeleteActions = React.createClass({
           : this.renderDisabledDiscard()}
       </div>
     );
-  },
-});
+  }
+}
 
-const GroupDetailsActions = React.createClass({
+const GroupDetailsActions = createReactClass({
+  displayName: 'GroupDetailsActions',
+
   mixins: [
     ApiMixin,
     GroupState,

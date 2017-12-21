@@ -1,5 +1,6 @@
 import {browserHistory} from 'react-router';
 import React from 'react';
+import createReactClass from 'create-react-class';
 import classNames from 'classnames';
 
 import {t} from '../../locale';
@@ -14,7 +15,8 @@ import TeamSelect from './teamSelect';
 import TextField from '../../components/forms/textField';
 import recreateRoute from '../../utils/recreateRoute';
 
-const InviteMember = React.createClass({
+const InviteMember = createReactClass({
+  displayName: 'InviteMember',
   mixins: [ApiMixin, OrganizationState],
 
   getInitialState() {

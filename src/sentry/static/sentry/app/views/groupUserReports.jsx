@@ -1,5 +1,6 @@
 import $ from 'jquery';
 import React from 'react';
+import createReactClass from 'create-react-class';
 import {Link} from 'react-router';
 import ApiMixin from '../mixins/apiMixin';
 import GroupState from '../mixins/groupState';
@@ -8,7 +9,8 @@ import LoadingError from '../components/loadingError';
 import LoadingIndicator from '../components/loadingIndicator';
 import {t} from '../locale';
 
-const GroupUserReports = React.createClass({
+const GroupUserReports = createReactClass({
+  displayName: 'GroupUserReports',
   mixins: [ApiMixin, GroupState],
 
   getInitialState() {

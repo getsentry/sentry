@@ -1,13 +1,16 @@
 import moment from 'moment';
 import PropTypes from 'prop-types';
 import React from 'react';
+import createReactClass from 'create-react-class';
 import classNames from 'classnames';
 import {t, tct} from '../../locale';
 
 import OrganizationState from '../../mixins/organizationState';
 import Confirmation from './confirmation';
 
-const TodoItem = React.createClass({
+const TodoItem = createReactClass({
+  displayName: 'TodoItem',
+
   propTypes: {
     task: PropTypes.object.isRequired,
     onSkip: PropTypes.func.isRequired,

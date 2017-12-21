@@ -5,7 +5,7 @@ import accountNotificationFields from '../../../data/forms/accountNotificationSe
 import Form from '../components/forms/form';
 import JsonForm from '../components/forms/jsonForm';
 
-const AccountNotifications = React.createClass({
+class AccountNotifications extends React.Component {
   render() {
     return (
       <div>
@@ -15,7 +15,7 @@ const AccountNotifications = React.createClass({
         </Form>
       </div>
     );
-  },
-});
+  }
+}
 
 export default AccountNotifications;
