@@ -250,6 +250,7 @@ class Symbolizer(object):
                 sym_addr=parse_addr(symbolserver_match['addr']),
                 instr_addr=parse_addr(instruction_addr),
                 line=None,
+                lang=None,
                 symbol=symbol,
             ), obj, package=symbolserver_match['object_name'])
         ]
