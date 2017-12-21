@@ -79,6 +79,13 @@ const SearchBar = React.createClass({
           value: 'is:',
         },
         {
+          title: t('Time or Count'),
+          desc: t('Time or Count related search'),
+          example: 'firstSeen, lastSeen, event.timestamp, timesSeen',
+          className: 'icon-clock',
+          value: '',
+        },
+        {
           title: t('Assigned'),
           desc: t('team member assigned to an issue'),
           example: 'assigned:[me|user@example.com]',
@@ -332,6 +339,11 @@ const SearchBar = React.createClass({
         case 'assigned':
         case 'bookmarks':
           out.className = 'icon-user';
+          break;
+        case 'firstSeen':
+        case 'lastSeen':
+        case 'event.timestamp':
+          out.className = 'icon-clock';
           break;
         default:
           out.className = 'icon-tag';
