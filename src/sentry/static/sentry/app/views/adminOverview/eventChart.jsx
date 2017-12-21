@@ -49,13 +49,13 @@ export default createReactClass({
           key: statName,
         },
         success: data => {
-          this.state.rawData[statName] = data;
-          this.setState(
-            {
-              rawData: this.state.rawData,
-            },
-            this.requestFinished
-          );
+          this.setState(prevState => {
+            let rawData = prevState.rawData;
+            rawData[statName] = data;
+            return {
+              rawData,
+            };
+          }, this.requestFinished);
         },
         error: data => {
           this.setState({

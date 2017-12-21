@@ -2,6 +2,7 @@ import {browserHistory} from 'react-router';
 import React from 'react';
 import createReactClass from 'create-react-class';
 import classNames from 'classnames';
+import PropTypes from 'prop-types';
 
 import {t} from '../../locale';
 import AlertActions from '../../actions/alertActions';
@@ -17,6 +18,9 @@ import recreateRoute from '../../utils/recreateRoute';
 
 const InviteMember = createReactClass({
   displayName: 'InviteMember',
+  propTypes: {
+    routes: PropTypes.array,
+  },
   mixins: [ApiMixin, OrganizationState],
 
   getInitialState() {

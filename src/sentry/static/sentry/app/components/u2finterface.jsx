@@ -68,6 +68,7 @@ class U2fInterface extends React.Component {
             hasBeenTapped: true,
           },
           () => {
+            //eslint-disable-next-line react/no-direct-mutation-state
             this.state.responseElement.value = JSON.stringify(data);
             if (!this.props.onTap || this.props.onTap()) {
               this.state.formElement.submit();

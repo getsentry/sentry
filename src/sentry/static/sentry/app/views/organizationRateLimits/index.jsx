@@ -1,4 +1,5 @@
 import React from 'react';
+import PropTypes from 'prop-types';
 
 import createReactClass from 'create-react-class';
 
@@ -8,6 +9,9 @@ import getSettingsComponent from '../../utils/getSettingsComponent';
 
 const OrganizationRateLimits = createReactClass({
   displayName: 'OrganizationRateLimits',
+  propTypes: {
+    routes: PropTypes.array,
+  },
   mixins: [OrganizationState],
 
   render() {

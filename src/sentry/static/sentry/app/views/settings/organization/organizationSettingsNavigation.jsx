@@ -12,14 +12,6 @@ const OrganizationSettingsNavigation = createReactClass({
   displayName: 'OrganizationSettingsNavigation',
   mixins: [OrganizationState, Reflux.listenTo(HookStore, 'handleHooks')],
 
-  handleHooks(name, hooks) {
-    let org = this.getOrganization();
-    if (name !== 'settings:organization-navigation-config') return;
-    this.setState(state => ({
-      hookConfigs: [...state.hookConfigs, ...hooks.map(cb => cb(org))],
-    }));
-  },
-
   getInitialState() {
     // Allow injection via getsentry et all
     let org = this.getOrganization();
@@ -30,6 +22,14 @@ const OrganizationSettingsNavigation = createReactClass({
       ),
       hooks: HookStore.get('settings:organization-navigation').map(cb => cb(org)),
     };
+  },
+
+  handleHooks(name, hooks) {
+    let org = this.getOrganization();
+    if (name !== 'settings:organization-navigation-config') return;
+    this.setState(state => ({
+      hookConfigs: [...state.hookConfigs, ...hooks.map(cb => cb(org))],
+    }));
   },
 
   render() {

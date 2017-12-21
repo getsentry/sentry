@@ -2,11 +2,15 @@ import React from 'react';
 import createReactClass from 'create-react-class';
 import Reflux from 'reflux';
 import {Link} from 'react-router';
+import PropTypes from 'prop-types';
 
 import PluginsStore from '../../stores/pluginsStore';
 
 const PluginNavigation = createReactClass({
   displayName: 'PluginNavigation',
+  propTypes: {
+    urlRoot: PropTypes.string,
+  },
   mixins: [Reflux.connect(PluginsStore, 'store')],
 
   render() {
