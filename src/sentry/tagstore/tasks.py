@@ -22,13 +22,8 @@ from sentry.tasks.deletion import MAX_RETRIES
     max_retries=MAX_RETRIES
 )
 @retry(exclude=(DeleteAborted, ))
-def delete_tag_key(object_id, model=None, transaction_id=None, **kwargs):
+def delete_tag_key(object_id, model, transaction_id=None, **kwargs):
     from sentry import deletions
-
-    # TODO(brett): remove this (and make model a normal arg) after deploy
-    if model is None:
-        # if the model wasn't sent we can assume it's from legacy code
-        from sentry.tagstore.legacy.models import TagKey as model
 
     task = deletions.get(
         model=model,
