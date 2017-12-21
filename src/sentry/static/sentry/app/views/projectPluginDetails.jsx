@@ -6,7 +6,7 @@ import PluginConfig from '../components/pluginConfig';
 import ExternalLink from '../components/externalLink';
 import IndicatorStore from '../stores/indicatorStore';
 
-export default class ProjectPlugins extends AsyncView {
+export default class ProjectPluginDetails extends AsyncView {
   getTitle() {
     let {plugin} = this.state;
     if (plugin && plugin.name) {
