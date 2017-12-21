@@ -10,6 +10,7 @@ import ApiMixin from '../../../../mixins/apiMixin';
 import Form from '../../components/forms/form';
 import JsonForm from '../../components/forms/jsonForm';
 import organizationSettingsFields from '../../../../data/forms/organizationGeneralSettings';
+import OrganizationState from '../../../../mixins/organizationState';
 
 const TOAST_DURATION = 10000;
 
@@ -22,10 +23,16 @@ const NewOrganizationSettingsForm = React.createClass({
     onSave: PropTypes.func.isRequired,
   },
 
-  mixins: [ApiMixin],
+  mixins: [ApiMixin, OrganizationState],
 
   render() {
     let {initialData, orgId, onSave} = this.props;
+
+    //Only for adding the Flag to 2FA Enforcement. Please remove when the feature is released to the public.
+    let organizationSettingsFieldsFiltered = organizationSettingsFields.slice();
+    if (!this.getFeatures().has('require-2fa')) {
+      organizationSettingsFieldsFiltered[2].fields.splice(0, 1);
+    }
 
     return (
       <Form
@@ -55,7 +62,10 @@ const NewOrganizationSettingsForm = React.createClass({
         onSubmitError={() => addErrorMessage('Unable to save change', TOAST_DURATION)}
       >
         <Box>
-          <JsonForm location={this.props.location} forms={organizationSettingsFields} />
+          <JsonForm
+            location={this.props.location}
+            forms={organizationSettingsFieldsFiltered}
+          />
         </Box>
       </Form>
     );

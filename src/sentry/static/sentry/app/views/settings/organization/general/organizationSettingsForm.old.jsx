@@ -10,6 +10,7 @@ import IndicatorStore from '../../../../stores/indicatorStore';
 import Select2Field from '../../../../components/forms/select2Field';
 import TextField from '../../../../components/forms/textField';
 import TextareaField from '../../../../components/forms/textareaField';
+import OrganizationState from '../../../../mixins/organizationState';
 
 const OldOrganizationSettingsForm = React.createClass({
   propTypes: {
@@ -19,7 +20,7 @@ const OldOrganizationSettingsForm = React.createClass({
     onSave: PropTypes.func.isRequired,
   },
 
-  mixins: [ApiMixin],
+  mixins: [ApiMixin, OrganizationState],
 
   getInitialState() {
     return {
@@ -44,6 +45,14 @@ const OldOrganizationSettingsForm = React.createClass({
       safeFields: data.safeFields.join('\n'),
       sensitiveFields: data.sensitiveFields.join('\n'),
     };
+
+    //Only for adding the Flag to 2FA Enforcement. Please remove when the feature is released to the public.
+    if (!this.getFeatures().has('require-2fa')) {
+      delete result.require2FA;
+      console.log('deleted');
+    }
+    console.log(this.getFeatures(), result);
+
     if (this.props.access.has('org:admin')) {
       result.defaultRole = data.defaultRole;
     }
@@ -215,17 +224,18 @@ const OldOrganizationSettingsForm = React.createClass({
               />
 
               <legend>{t('Security & Privacy')}</legend>
-
-              <BooleanField
-                key="require2FA"
-                name="require2FA"
-                label={t('Require Two Factor Auth')}
-                value={formData.require2FA}
-                help={t('Require Two Factor Authentication for all members.')}
-                required={false}
-                error={errors.require2FA}
-                onChange={this.onFieldChange.bind(this, 'require2FA')}
-              />
+              {this.getFeatures().has('require-2fa') && (
+                <BooleanField
+                  key="require2FA"
+                  name="require2FA"
+                  label={t('Require Two Factor Auth')}
+                  value={formData.require2FA}
+                  help={t('Require Two Factor Authentication for all members.')}
+                  required={false}
+                  error={errors.require2FA}
+                  onChange={this.onFieldChange.bind(this, 'require2FA')}
+                />
+              )}
 
               <BooleanField
                 key="allowSharedIssues"
