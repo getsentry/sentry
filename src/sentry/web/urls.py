@@ -38,12 +38,9 @@ from sentry.web.frontend.oauth_token import OAuthTokenView
 from sentry.auth.providers.saml2 import SAML2AcceptACSView, SAML2SLSView, SAML2MetadataView
 from sentry.web.frontend.organization_auth_settings import \
     OrganizationAuthSettingsView
-from sentry.web.frontend.organization_member_settings import \
-    OrganizationMemberSettingsView
 from sentry.web.frontend.organization_integration_setup import \
     OrganizationIntegrationSetupView
 from sentry.web.frontend.out import OutView
-from sentry.web.frontend.organization_members import OrganizationMembersView
 from sentry.web.frontend.project_rule_edit import ProjectRuleEditView
 from sentry.web.frontend.react_page import GenericReactPageView, ReactPageView
 from sentry.web.frontend.reactivate_account import ReactivateAccountView
@@ -364,7 +361,7 @@ urlpatterns += patterns(
     ),
     url(
         r'^organizations/(?P<organization_slug>[\w_-]+)/members/$',
-        OrganizationMembersView.as_view(),
+        react_page_view,
         name='sentry-organization-members'
     ),
     url(
@@ -374,7 +371,7 @@ urlpatterns += patterns(
     ),
     url(
         r'^organizations/(?P<organization_slug>[\w_-]+)/members/(?P<member_id>\d+)/$',
-        OrganizationMemberSettingsView.as_view(),
+        react_page_view,
         name='sentry-organization-member-settings'
     ),
     url(

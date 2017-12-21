@@ -33,7 +33,7 @@ const OrgSettingsMenu = ({access, org, features}) => {
       <h6 className="nav-header with-divider">{t('Manage')}</h6>
       <ul className="nav nav-stacked">
         {access.has('org:read') && (
-          <RouterOrBrowserLink isRouter={hasNewSettings} path={`${pathPrefix}/members/`}>
+          <ListLink to={`${pathPrefix}/members/`}>
             {t('Members')}&nbsp;
             {access.has('org:write') &&
               org.pendingAccessRequests > 0 && (
@@ -41,7 +41,7 @@ const OrgSettingsMenu = ({access, org, features}) => {
                   {org.pendingAccessRequests}
                 </span>
               )}
-          </RouterOrBrowserLink>
+          </ListLink>
         )}
         {features.has('sso') &&
           access.has('org:admin') && (
