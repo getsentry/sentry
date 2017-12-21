@@ -565,6 +565,14 @@ class EnsureHasIpTest(BaseAPITest):
         self.validate_and_normalize(out, {'client_ip': '127.0.0.1'})
         assert out['sentry.interfaces.User']['ip_address'] == '127.0.0.1'
 
+        out = {
+            'user': {
+                'ip_address': '{{auto}}',
+            },
+        }
+        self.validate_and_normalize(out, {'client_ip': '127.0.0.1'})
+        assert out['sentry.interfaces.User']['ip_address'] == '127.0.0.1'
+
     def test_without_ip_values(self):
         out = {
             'platform': 'javascript',

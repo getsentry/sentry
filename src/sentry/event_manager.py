@@ -340,8 +340,14 @@ class EventManager(object):
             if get_path(data, ['sentry.interfaces.Http', 'env', 'REMOTE_ADDR']) == '{{auto}}':
                 data['sentry.interfaces.Http']['env']['REMOTE_ADDR'] = client_ip
 
+            if get_path(data, ['request', 'env', 'REMOTE_ADDR']) == '{{auto}}':
+                data['request']['env']['REMOTE_ADDR'] = client_ip
+
             if get_path(data, ['sentry.interfaces.User', 'ip_address']) == '{{auto}}':
                 data['sentry.interfaces.User']['ip_address'] = client_ip
+
+            if get_path(data, ['user', 'ip_address']) == '{{auto}}':
+                data['user']['ip_address'] = client_ip
 
         # Validate main event body and tags against schema
         is_valid, event_errors = validate_and_default_interface(data, 'event')
