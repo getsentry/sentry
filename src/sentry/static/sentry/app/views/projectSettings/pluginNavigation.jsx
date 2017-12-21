@@ -1,5 +1,6 @@
 import React from 'react';
 import Reflux from 'reflux';
+import {Link} from 'react-router';
 
 import PluginsStore from '../../stores/pluginsStore';
 
@@ -19,7 +20,7 @@ const PluginNavigation = React.createClass({
       <div>
         {enabledPlugins.map(({id, name}) => (
           <li key={id}>
-            <a href={`${urlRoot}/plugins/${id}/`}>{name}</a>
+            <Link to={`${urlRoot}/plugins/${id}/`}>{name}</Link>
           </li>
         ))}
       </div>
