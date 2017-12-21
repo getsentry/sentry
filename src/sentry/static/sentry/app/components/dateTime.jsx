@@ -53,7 +53,7 @@ class DateTime extends React.Component {
     }
 
     return (
-      <time {...carriedProps}>{moment.tz(date, options.timezome).format(format)}</time>
+      <time {...carriedProps}>{moment.tz(date, options.timezone).format(format)}</time>
     );
   }
 }
