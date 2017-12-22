@@ -29,9 +29,16 @@ const NewOrganizationSettingsForm = React.createClass({
     let {initialData, orgId, onSave} = this.props;
 
     //Only for adding the Flag to 2FA Enforcement. Please remove when the feature is released to the public.
-    let organizationSettingsFieldsFiltered = organizationSettingsFields.slice();
     if (!this.getFeatures().has('require-2fa')) {
-      organizationSettingsFieldsFiltered[2].fields.splice(0, 1);
+      let security_panel = organizationSettingsFields.find(function(panel) {
+        return panel.title == 'Security & Privacy';
+      });
+      security_panel.fields.splice(
+        security_panel.fields.findIndex(function(field) {
+          return field.name == 'require2FA';
+        }),
+        1
+      );
     }
 
     return (
@@ -62,10 +69,7 @@ const NewOrganizationSettingsForm = React.createClass({
         onSubmitError={() => addErrorMessage('Unable to save change', TOAST_DURATION)}
       >
         <Box>
-          <JsonForm
-            location={this.props.location}
-            forms={organizationSettingsFieldsFiltered}
-          />
+          <JsonForm location={this.props.location} forms={organizationSettingsFields} />
         </Box>
       </Form>
     );

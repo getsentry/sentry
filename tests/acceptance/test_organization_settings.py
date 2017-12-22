@@ -39,10 +39,15 @@ class OrganizationSettingsTest(AcceptanceTestCase):
     def test_renders_2FA_setting_for_owner(self):
         user_owner = self.create_user('owner@example.com')
         organization = self.create_organization(name="Example", owner=user_owner)
+        self.login_as(user_owner)
+        path = '/organizations/%s/settings/' % organization.slug
+
+        self.browser.get(path)
+        self.load_organization_helper("Org Owner No Feature")
+        assert not(self.browser.element_exists(
+            '#id-require2FA') or self.browser.element_exists('#require2FA'))
 
         with self.feature('organizations:require-2fa'):
-            self.login_as(user_owner)
-            path = '/organizations/%s/settings/' % organization.slug
             self.browser.get(path)
             self.load_organization_helper("Org Owner")
             assert self.browser.element_exists(
@@ -53,10 +58,15 @@ class OrganizationSettingsTest(AcceptanceTestCase):
         organization = self.create_organization(
             name="Example", owner=self.create_user('owner@example.com'))
         self.create_member(organization=organization, user=user_manager, role='manager')
+        self.login_as(user_manager)
+        path = '/organizations/%s/settings/' % organization.slug
+
+        self.browser.get(path)
+        self.load_organization_helper("Org Manager No feature")
+        assert not(self.browser.element_exists(
+            '#id-require2FA') or self.browser.element_exists('#require2FA'))
 
         with self.feature('organizations:require-2fa'):
-            self.login_as(user_manager)
-            path = '/organizations/%s/settings/' % organization.slug
             self.browser.get(path)
             self.load_organization_helper("Org Manager")
             assert self.browser.element_exists(
