@@ -93,6 +93,14 @@ class GetOriginsTestCase(TestCase):
             result = get_origins(None)
             self.assertEquals(result, frozenset(['http://example.com']))
 
+    def test_empty_origin_values(self):
+        project = Project.objects.get()
+        project.update_option('sentry:origins', [u'*', None, ''])
+
+        with self.settings(SENTRY_ALLOW_ORIGIN=None):
+            result = get_origins(project)
+            self.assertEquals(result, frozenset([u'*']))
+
 
 class IsValidOriginTestCase(TestCase):
     @fixture

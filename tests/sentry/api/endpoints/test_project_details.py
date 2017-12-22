@@ -376,6 +376,13 @@ class ProjectUpdateTest(APITestCase):
         assert resp.data['allowedDomains'] == [
             'Empty value will block all requests, use * to accept from all domains']
 
+        resp = self.client.put(self.path, data={
+            'allowedDomains': ['*', ''],
+        })
+        assert resp.status_code == 200, resp.content
+        assert self.project.get_option('sentry:origins') == ['*']
+        assert resp.data['allowedDomains'] == ['*']
+
     def test_safe_fields(self):
         resp = self.client.put(self.path, data={
             'safeFields': ['foobar.com', 'https://example.com'],
