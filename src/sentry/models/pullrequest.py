@@ -60,14 +60,14 @@ class PullRequest(Model):
         self.commits.add(*commits)
 
     def fetch_commits(self, user):
-        from sentry.tasks.commits import fetch_pr_commits
+        from sentry.tasks.commits import fetch_pull_request_commits
 
         if not self.synced_commits:
 
-            fetch_pr_commits.apply_async(
+            fetch_pull_request_commits.apply_async(
                 kwargs={
                     'user_id': user.id,
-                    'pull_id': self.pull_id,
+                    'pull_id': self.key,
                 }
             )
 

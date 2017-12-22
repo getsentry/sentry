@@ -191,7 +191,6 @@ def fetch_commits(release_id, user_id, refs, prev_release_id=None, **kwargs):
 )
 @retry(exclude=(User.DoesNotExist, ))
 def fetch_pull_request_commits(pull_id, user_id, **kwargs):
-
     pr = PullRequest.objects.get(id=pull_id)
     user = User.objects.get(id=user_id)
 
@@ -220,7 +219,7 @@ def fetch_pull_request_commits(pull_id, user_id, **kwargs):
         pass
     except Exception as exc:
         logger.exception(
-            'fetch_pr_commits.error',
+            'fetch_pull_request_commits.error',
             exc_info=True,
             extra={
                 'organization_id': pr.organization_id,
@@ -240,7 +239,7 @@ def fetch_pull_request_commits(pull_id, user_id, **kwargs):
             msg.send_async(to=[user.email])
 
     logger.info(
-        'fetch_pr_commits.complete',
+        'fetch_pull_request_commits.complete',
         extra={
             'organization_id': repo.organization_id,
             'user_id': user_id,

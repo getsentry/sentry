@@ -37,3 +37,14 @@ class DummyRepositoryProvider(RepositoryProvider):
                 'repository': repo.name,
             }
         ]
+
+    def get_pr_commits(self, repo, key, actor=None):
+        return [
+            {
+                'sha': '62de626b7c7cfb8e77efb4273b1a3df4123e6216',
+                'repository': repo.name,
+            }, {
+                'sha': '58de626b7c7cfb8e77efb4273b1a3df4123e6345',
+                'repository': repo.name,
+            },
+        ]
