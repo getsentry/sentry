@@ -67,7 +67,7 @@ class PullRequest(Model):
             fetch_pull_request_commits.apply_async(
                 kwargs={
                     'user_id': user.id,
-                    'pull_id': self.key,
+                    'pull_id': self.id,
                 }
             )
 

@@ -304,7 +304,7 @@ class FetchPRCommitsTest(TestCase):
         pull_request = PullRequest.objects.create(
             organization_id=org.id,
             repository_id=repo.id,
-            key="1",
+            key="10",
             title="cool pr",
             message="it does stuff",
         )
