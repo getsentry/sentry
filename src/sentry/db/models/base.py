@@ -76,13 +76,14 @@ class BaseModel(models.Model):
             data = {}
             for f in self._meta.fields:
                 try:
-                    if isinstance(self.__get_field_value(f), BitHandler):
-                        data[f.column] = copy(self.__get_field_value(f))
-                    else:
-                        data[f.column] = self.__get_field_value(f)
+                    v = self.__get_field_value(f)
                 except AttributeError as e:
                     # this case can come up from pickling
                     logging.exception(six.text_type(e))
+                else:
+                    if isinstance(v, BitHandler):
+                        v = copy(v)
+                    data[f.column] = v
             self.__data = data
         else:
             self.__data = UNSAVED
