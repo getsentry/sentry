@@ -6,15 +6,17 @@ from rest_framework import serializers, status
 from rest_framework.response import Response
 
 from sentry.api.bases.user import UserEndpoint
+from sentry.api.decorators import sudo_required
 from sentry.models import UserEmail
 
 
 class UserEmailSerializer(serializers.Serializer):
     email = serializers.EmailField(required=True)
-    primary = serializers.BooleanField(required=False, default=True)
+    primary = serializers.BooleanField(required=False, default=False)
 
 
 class UserEmailsEndpoint(UserEndpoint):
+    @sudo_required
     def post(self, request, user):
         serializer = UserEmailSerializer(data=request.DATA)
 
@@ -27,11 +29,11 @@ class UserEmailsEndpoint(UserEndpoint):
             with transaction.atomic():
                 user_email = UserEmail.objects.create(
                     user=user,
-                    email=result.get('email'),
+                    email=result['email'],
                 )
 
             if result.get('primary'):
-                user.update(email=result.get('email'))
+                user.update(email=result['email'])
 
         except IntegrityError:
             return Response({'detail': 'Email already exists.'}, status=status.HTTP_400_BAD_REQUEST)
