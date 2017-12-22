@@ -93,14 +93,13 @@ class DetailedOrganizationSerializer(OrganizationSerializer):
             feature_list.append('integrations-v3')
         if features.has('organizations:new-settings', obj, actor=user):
             feature_list.append('new-settings')
+        if features.has('organizations:require-2fa', obj, actor=user):
+            feature_list.append('require-2fa')
 
         if getattr(obj.flags, 'allow_joinleave'):
             feature_list.append('open-membership')
         if not getattr(obj.flags, 'disable_shared_issues'):
             feature_list.append('shared-issues')
-        if getattr(obj.flags, 'require_2fa') and features.has(
-                'organizations:require-2fa', obj, actor=user):
-            feature_list.append('require-2fa')
 
         context = super(DetailedOrganizationSerializer, self).serialize(obj, attrs, user)
         max_rate = quotas.get_maximum_quota(obj)
