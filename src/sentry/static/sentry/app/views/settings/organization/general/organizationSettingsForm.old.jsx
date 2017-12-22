@@ -46,11 +46,6 @@ const OldOrganizationSettingsForm = React.createClass({
       sensitiveFields: data.sensitiveFields.join('\n'),
     };
 
-    //Only for adding the Flag to 2FA Enforcement. Please remove when the feature is released to the public.
-    if (!this.getFeatures().has('require-2fa')) {
-      delete result.require2FA;
-    }
-
     if (this.props.access.has('org:admin')) {
       result.defaultRole = data.defaultRole;
     }

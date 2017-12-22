@@ -36,18 +36,35 @@ class OrganizationSettingsTest(AcceptanceTestCase):
         self.browser.get(self.path)
         self.load_organization_helper("Simple")
 
-    def test_renders_2FA_setting_for_owner(self):
+    def test_doesnt_render_2FA_setting_no_feature(self):
         user_owner = self.create_user('owner@example.com')
         organization = self.create_organization(name="Example", owner=user_owner)
         self.login_as(user_owner)
         path = '/organizations/%s/settings/' % organization.slug
 
         self.browser.get(path)
-        self.load_organization_helper("Org Owner No Feature")
-        assert not(self.browser.element_exists(
-            '#id-require2FA') or self.browser.element_exists('#require2FA'))
+        self.load_organization_helper("Org No Feature")
+        with self.feature('organizations:new-settings'):
+            assert not(self.browser.element_exists(
+                '#id-require2FA') or self.browser.element_exists('#require2FA'))
 
-        with self.feature('organizations:require-2fa'):
+        with self.feature('organizations:new-settings'):
+            assert not(self.browser.element_exists(
+                '#id-require2FA') or self.browser.element_exists('#require2FA'))
+
+    def test_renders_2FA_setting_for_owner(self):
+        user_owner = self.create_user('owner@example.com')
+        organization = self.create_organization(name="Example", owner=user_owner)
+        self.login_as(user_owner)
+        path = '/organizations/%s/settings/' % organization.slug
+
+        with self.feature({'organizations:require-2fa': False}):
+            self.browser.get(path)
+            self.load_organization_helper("Org Owner No Feature")
+            assert not(self.browser.element_exists(
+                '#id-require2FA') or self.browser.element_exists('#require2FA'))
+
+        with self.feature({'organizations:require-2fa': True}):
             self.browser.get(path)
             self.load_organization_helper("Org Owner")
             assert self.browser.element_exists(
