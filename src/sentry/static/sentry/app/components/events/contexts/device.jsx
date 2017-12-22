@@ -86,7 +86,7 @@ class DeviceContextType extends React.Component {
         knownData={[
           ['?Name', name],
           ['?Family', family],
-          ['?Model', model + (model_id ? ` (${model_id})` : '')],
+          ['?Model', model + (model_id ? ` (${model_id})` : null)],
           ['?Architecture', arch],
           ['?Battery Level', defined(battery_level) ? `${battery_level}%` : null],
           ['?Orientation', orientation],
