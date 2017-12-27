@@ -328,3 +328,85 @@ class FetchPRCommitsTest(TestCase):
         commits = pull_request.commits.all()
 
         assert len(commits) == 2
+
+    def test_missing_repo(self):
+        self.login_as(user=self.user)
+        org = self.create_organization(owner=self.user, name='baz')
+
+        pull_request = PullRequest.objects.create(
+            organization_id=org.id,
+            repository_id=10,
+            key="10",
+            title="cool pr",
+            message="it does stuff",
+        )
+
+        try:
+            with self.tasks():
+                pull_request.fetch_commits(user=self.user)
+        except Repository.DoesNotExist as e:
+            assert e
+
+    @patch('sentry.plugins.providers.dummy.repository.DummyRepositoryProvider.get_pr_commits')
+    def test_pr_fetch_error(self, mock_get_pr_commits):
+        self.login_as(user=self.user)
+        org = self.create_organization(owner=self.user, name='baz')
+
+        repo = Repository.objects.create(
+            name='example',
+            provider='dummy',
+            organization_id=org.id,
+        )
+
+        pull_request = PullRequest.objects.create(
+            organization_id=org.id,
+            repository_id=repo.id,
+            key="1",
+            title="cool pr",
+            message="it does stuff",
+        )
+
+        mock_get_pr_commits.side_effect = PluginError('You can read me')
+
+        with self.tasks():
+            pull_request.fetch_commits(user=self.user)
+
+        msg = mail.outbox[-1]
+        assert msg.subject == 'Unable to Fetch Commits'
+        assert msg.to == [self.user.email]
+        assert 'You can read me' in msg.body
+        assert 'pull request' in msg.body
+
+    @patch('sentry.tasks.commits.handle_invalid_identity')
+    @patch('sentry.plugins.providers.dummy.repository.DummyRepositoryProvider.get_pr_commits')
+    def test_pr_identity_error(self, mock_get_pr_commits, mock_handle_invalid_identity):
+        self.login_as(user=self.user)
+        org = self.create_organization(owner=self.user, name='baz')
+
+        repo = Repository.objects.create(
+            name='example',
+            provider='dummy',
+            organization_id=org.id,
+        )
+
+        pull_request = PullRequest.objects.create(
+            organization_id=org.id,
+            repository_id=repo.id,
+            key="1",
+            title="cool pr",
+            message="it does stuff",
+        )
+
+        usa = UserSocialAuth.objects.create(
+            user=self.user,
+            provider='dummy',
+        )
+        mock_get_pr_commits.side_effect = InvalidIdentity(identity=usa)
+
+        with self.tasks():
+            pull_request.fetch_commits(user=self.user)
+
+        mock_handle_invalid_identity.assert_called_once_with(
+            identity=usa,
+            commit_failure=True,
+        )
