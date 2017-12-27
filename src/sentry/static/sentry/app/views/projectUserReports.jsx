@@ -54,13 +54,10 @@ const ProjectUserReports = createReactClass({
   },
 
   getQueryStringState(props) {
-    let location = props.location;
-    let status = location.query.hasOwnProperty('status')
-      ? location.query.status
-      : this.props.defaultStatus;
-    let query = location.query.hasOwnProperty('query')
-      ? location.query.query
-      : this.props.defaultQuery;
+    let q = props.location.query;
+    let status = 'status' in q ? q.status : this.props.defaultStatus;
+    let query = 'query' in q ? q.query : this.props.defaultQuery;
+
     return {
       query,
       status,
