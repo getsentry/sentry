@@ -67,10 +67,7 @@ const TeamDetails = React.createClass({
     let team = this.state.team;
     if (data.slug !== team.slug) {
       let orgId = this.props.params.orgId;
-      browserHistory.pushState(
-        null,
-        `/organizations/${orgId}/teams/${data.slug}/settings/`
-      );
+      browserHistory.push(`/organizations/${orgId}/teams/${data.slug}/settings/`);
     } else {
       this.setState({
         team: {
