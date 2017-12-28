@@ -74,10 +74,13 @@ class OrganizationMemberDetailsEndpoint(OrganizationEndpoint):
     def _get_member(self, request, organization, member_id):
         if member_id == 'me':
             queryset = OrganizationMember.objects.filter(
-                organization=organization,
                 user__id=request.user.id,
                 user__is_active=True,
             )
+            if not is_active_superuser(request):
+                # also filter by org when not superusers
+                queryset = queryset.filter(organization=organization)
+
         else:
             queryset = OrganizationMember.objects.filter(
                 Q(user__is_active=True) | Q(user__isnull=True),
