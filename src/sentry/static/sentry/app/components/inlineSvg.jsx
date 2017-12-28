@@ -1,7 +1,7 @@
 import PropTypes from 'prop-types';
 import React from 'react';
 
-const InlineSvg = ({src, size, width, height}) => {
+const InlineSvg = ({src, size, width, height, style}) => {
   const {id, viewBox} = require(`../icons/${src}.svg`).default;
 
   return (
@@ -9,6 +9,7 @@ const InlineSvg = ({src, size, width, height}) => {
       viewBox={viewBox}
       width={width || size || '1em'}
       height={height || size || '1em'}
+      style={style || ''}
     >
       <use href={`#${id}`} xlinkHref={`#${id}`} />
     </svg>

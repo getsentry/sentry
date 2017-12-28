@@ -8,9 +8,7 @@ import TimeSince from '../../components/timeSince';
 import DropdownLink from '../../components/dropdownLink';
 import MenuItem from '../../components/menuItem';
 import ApiMixin from '../../mixins/apiMixin';
-
-import IconGithub from '../../icons/icon-github';
-import IconBitbucket from '../../icons/icon-bitbucket';
+import InlineSvg from '../../components/inlineSvg';
 
 import {t} from '../../locale';
 
@@ -43,10 +41,10 @@ const CommitLink = React.createClass({
         target="_blank"
       >
         {this.props.repository.provider.id == 'github' && (
-          <IconGithub size="16" style={{verticalAlign: 'text-top'}} />
+          <InlineSvg src="icon-github" style={{verticalAlign: 'text-top'}} size="14" />
         )}
         {this.props.repository.provider.id == 'bitbucket' && (
-          <IconBitbucket size="16" style={{verticalAlign: 'text-top'}} />
+          <InlineSvg src="icon-bitbucket" style={{verticalAlign: 'text-top'}} size="14" />
         )}
         &nbsp;
         {this.props.inline ? '' : ' '}
