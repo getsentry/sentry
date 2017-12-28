@@ -2,7 +2,7 @@ import PropTypes from 'prop-types';
 import React from 'react';
 import styled from 'react-emotion';
 
-import IconChevronRight from '../../../icons/icon-chevron-right';
+import InlineSvg from '../../../components/inlineSvg';
 
 const StyledDivider = styled.span`
   display: inline-block;
@@ -31,7 +31,7 @@ class SettingsBreadcrumbDivider extends React.Component {
 
     return (
       <StyledDivider isHover={isHover}>
-        <IconChevronRight size="15" />
+        <InlineSvg src="icon-chevron-right" size="15" />
       </StyledDivider>
     );
   }
