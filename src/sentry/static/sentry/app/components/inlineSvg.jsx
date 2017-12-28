@@ -9,7 +9,7 @@ const InlineSvg = ({src, size, width, height, style}) => {
       viewBox={viewBox}
       width={width || size || '1em'}
       height={height || size || '1em'}
-      style={style || ''}
+      style={style || {}}
     >
       <use href={`#${id}`} xlinkHref={`#${id}`} />
     </svg>

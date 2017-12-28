@@ -8,8 +8,7 @@ import styled from 'react-emotion';
 
 import {defined} from '../../../../utils';
 import FormState from '../../../../components/forms/state';
-import IconCheckmarkSm from '../../../../icons/icon-checkmark-sm';
-import IconWarningSm from '../../../../icons/icon-warning-sm';
+import InlineSvg from '../../../../components/inlineSvg';
 import Spinner from './styled/spinner';
 import {pulse, fadeOut} from './styled/animations';
 
@@ -330,7 +329,7 @@ class FormField extends React.Component {
               } else if (isSaved) {
                 return (
                   <SettingsIsSaved>
-                    <IconCheckmarkSm size="18" />
+                    <InlineSvg src="icon-checkmark-sm" size="18" />
                   </SettingsIsSaved>
                 );
               }
@@ -347,7 +346,7 @@ class FormField extends React.Component {
 
               return (
                 <SettingsError>
-                  <IconWarningSm size="18" />
+                  <InlineSvg src="icon-warning-sm" size="18" />
                 </SettingsError>
               );
             }}
