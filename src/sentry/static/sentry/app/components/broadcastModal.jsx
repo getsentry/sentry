@@ -1,6 +1,6 @@
 import PropTypes from 'prop-types';
 import React from 'react';
-import IconCloseLg from '../icons/icon-close-lg';
+import InlineSvg from '../components/inlineSvg';
 import ConfigStore from '../stores/configStore';
 import ApiMixin from '../mixins/apiMixin';
 import {logAjaxError} from '../utils/logging';
@@ -126,7 +126,7 @@ const BroadcastModal = React.createClass({
                     this.setState({index: this.state.index + 1});
                   }}
                 >
-                  <IconCloseLg />
+                  <InlineSvg src="icon-close-lg" />
                 </span>
               </div>
               {message({close: this.close})}
