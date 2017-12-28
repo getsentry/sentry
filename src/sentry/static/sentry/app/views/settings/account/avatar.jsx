@@ -87,6 +87,12 @@ const AvatarSettings = React.createClass({
     });
   },
 
+  handleChange(id) {
+    let user = {...this.state.user};
+    user.avatar.avatarType = id;
+    this.updateUserState(user);
+  },
+
   render() {
     if (this.state.hasError) {
       return <LoadingError />;
@@ -117,12 +123,7 @@ const AvatarSettings = React.createClass({
               ]}
               value={this.state.user.avatar.avatarType || 'letter_avatar'}
               label="Avatar Type"
-              onChange={(id, e) =>
-                this.updateUserState(
-                  Object.assign({}, this.state.user, {
-                    avatar: Object.assign({}, this.state.user.avatar, {avatarType: id}),
-                  })
-                )}
+              onChange={id => this.handleChange(id)}
             />
 
             <AvatarUploadSection>
