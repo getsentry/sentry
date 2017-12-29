@@ -3,7 +3,9 @@ import React from 'react';
 import {Link} from 'react-router';
 import marked from 'marked';
 
-import {CommitLink} from '../../views/releases/releaseCommits';
+import CommitLink from '../../views/releases/commitLink';
+import PullRequestLink from '../../views/releases/pullRequestLink';
+
 import Duration from '../../components/duration';
 import Avatar from '../../components/avatar';
 import IssueLink from '../../components/issueLink';
@@ -104,6 +106,18 @@ class ActivityItem extends React.Component {
               inline={true}
               commitId={data.commit.id}
               repository={data.commit.repository}
+            />
+          ),
+          issue: issueLink,
+        });
+      case 'set_resolved_in_pull_request':
+        return tct('[author] marked [issue] as fixed in [version]', {
+          author,
+          version: (
+            <PullRequestLink
+              inline={true}
+              pullRequestId={data.pull_request.id}
+              repository={data.pull_request.repository}
             />
           ),
           issue: issueLink,
