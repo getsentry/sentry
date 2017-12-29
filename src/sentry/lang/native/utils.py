@@ -26,6 +26,11 @@ MINIDUMP_OS_TYPES = {
     'Mac OS X': 'macOS',
 }
 
+# Mapping of well-known minidump CPU families to our internal names
+MINIDUMP_CPU_FAMILIES = {
+    'amd64': 'x86_64',
+}
+
 AppInfo = namedtuple('AppInfo', ['id', 'version', 'build', 'name'])
 
 
@@ -168,7 +173,7 @@ def merge_minidump_event(data, minidump_path):
     device = context.setdefault('device', {})
     os['type'] = 'os'  # Required by "get_sdk_from_event"
     os['name'] = MINIDUMP_OS_TYPES.get(info.os_name, info.os_name)
-    device['arch'] = info.cpu_family
+    device['arch'] = MINIDUMP_CPU_FAMILIES.get(info.cpu_family, info.cpu_family)
 
     # Breakpad reports the version and build number always in one string,
     # but a version number is guaranteed even on certain linux distros.
