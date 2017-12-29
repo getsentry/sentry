@@ -4,10 +4,10 @@ import React from 'react';
 import styled from 'react-emotion';
 
 import AutoComplete from '../../../components/autoComplete';
+import InlineSvg from '../../../components/inlineSvg';
 import {searchIndex as orgSearchIndex} from '../../../data/forms/organizationGeneralSettings';
 import {searchIndex as teamSearchIndex} from '../../../data/forms/teamSettingsFields';
 import {t} from '../../../locale';
-import IconSearch from '../../../icons/icon-search';
 import replaceRouterParams from '../../../utils/replaceRouterParams';
 
 const MIN_SEARCH_LENGTH = 2;
@@ -18,7 +18,7 @@ const SearchInputWrapper = styled.div`
   position: relative;
 `;
 
-const SearchInputIcon = styled(IconSearch)`
+const SearchInputIcon = styled(props => <InlineSvg src="icon-search" {...props} />)`
   color: ${p => p.theme.gray2}
   position: absolute;
   left: 10px;
