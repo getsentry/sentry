@@ -5,6 +5,7 @@ import six
 import logging
 
 from collections import namedtuple
+from django.core.files.uploadedfile import InMemoryUploadedFile, TemporaryUploadedFile
 from symbolic import parse_addr, arch_from_macho, arch_is_known, ProcessState
 
 from sentry.interfaces.contexts import DeviceContextType
@@ -156,8 +157,13 @@ def sdk_info_to_sdk_id(sdk_info):
     return rv
 
 
-def merge_minidump_event(data, minidump_path):
-    state = ProcessState.from_minidump(minidump_path)
+def merge_minidump_event(data, minidump):
+    if isinstance(minidump, InMemoryUploadedFile):
+        state = ProcessState.from_minidump_buffer(minidump.read())
+    elif isinstance(minidump, TemporaryUploadedFile):
+        state = ProcessState.from_minidump(minidump.temporary_file_path())
+    else:
+        state = ProcessState.from_minidump(minidump.name)
 
     data['level'] = 'fatal' if state.crashed else 'info'
     data['message'] = 'Assertion Error: %s' % state.assertion if state.assertion \

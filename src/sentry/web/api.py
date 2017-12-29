@@ -586,7 +586,7 @@ class MinidumpView(StoreView):
         except KeyError:
             raise APIError('Missing minidump upload')
 
-        merge_minidump_event(data, minidump.temporary_file_path())
+        merge_minidump_event(data, minidump)
         response_or_event_id = self.process(request, data=data, **kwargs)
         if isinstance(response_or_event_id, HttpResponse):
             return response_or_event_id
