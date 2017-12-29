@@ -7,7 +7,6 @@ import logging
 from collections import namedtuple
 from symbolic import parse_addr, arch_from_macho, arch_is_known, ProcessState
 
-from sentry.constants import LOG_LEVELS_MAP
 from sentry.interfaces.contexts import DeviceContextType
 
 logger = logging.getLogger(__name__)
@@ -155,16 +154,14 @@ def sdk_info_to_sdk_id(sdk_info):
 def merge_minidump_event(data, minidump_path):
     state = ProcessState.from_minidump(minidump_path)
 
-    data['level'] = LOG_LEVELS_MAP['fatal'] if state.crashed else LOG_LEVELS_MAP['info']
+    data['level'] = 'fatal' if state.crashed else 'info'
     data['message'] = 'Assertion Error: %s' % state.assertion if state.assertion \
         else 'Fatal Error: %s' % state.crash_reason
 
     if state.timestamp:
         data['timestamp'] = float(state.timestamp)
 
-    # Extract as much system information as we can. TODO: We should create
-    # a custom context and implement a specific minidump view in the event
-    # UI.
+    # Extract as much context information as we can.
     info = state.system_info
     context = data.setdefault('contexts', {})
     os = context.setdefault('os', {})
@@ -186,7 +183,7 @@ def merge_minidump_event(data, minidump_path):
     # resort to stack scanning which yields low-quality results. If
     # the user provides us with debug symbols, we could reprocess this
     # minidump and add improved stacktraces later.
-    threads = [{
+    data['threads'] = [{
         'id': thread.thread_id,
         'crashed': False,
         'stacktrace': {
@@ -196,24 +193,19 @@ def merge_minidump_event(data, minidump_path):
             } for frame in thread.frames()],
         },
     } for thread in state.threads()]
-    data.setdefault('threads', {})['values'] = threads
 
     # Mark the crashed thread and add its stacktrace to the exception
-    crashed_thread = threads[state.requesting_thread]
+    crashed_thread = data['threads'][state.requesting_thread]
     crashed_thread['crashed'] = True
 
     # Extract the crash reason and infos
-    exception = {
+    data['exception'] = {
         'value': data['message'],
         'thread_id': crashed_thread['id'],
         'type': state.crash_reason,
         # Move stacktrace here from crashed_thread (mutating!)
         'stacktrace': crashed_thread.pop('stacktrace'),
     }
-
-    data.setdefault('sentry.interfaces.Exception', {}) \
-        .setdefault('values', []) \
-        .append(exception)
 
     # Extract referenced (not all loaded) images
     images = [{

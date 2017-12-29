@@ -17,6 +17,7 @@ from django.views.decorators.cache import never_cache, cache_control
 from django.views.decorators.csrf import csrf_exempt
 from django.views.generic.base import View as BaseView
 from functools import wraps
+from querystring_parser import parser
 from raven.contrib.django.models import client as Raven
 
 from sentry import quotas, tsdb
@@ -25,6 +26,7 @@ from sentry.coreapi import (
     MinidumpApiHelper,
 )
 from sentry.interfaces import schemas
+from sentry.lang.native.utils import merge_minidump_event
 from sentry.models import Project, OrganizationOption, Organization
 from sentry.signals import (
     event_accepted, event_dropped, event_filtered, event_received)
@@ -563,12 +565,28 @@ class MinidumpView(StoreView):
         )
 
     def post(self, request, **kwargs):
+        # Minidump request payloads do not have the same structure as
+        # usual events from other SDKs. Most notably, the event needs
+        # to be transfered in the `sentry` form field. All other form
+        # fields are assumed "extra" information. The only exception
+        # to this is `upload_file_minidump`, which contains the minidump.
+        extra = parser.parse(request.POST.urlencode())
+        data = extra.pop('sentry', {})
+        extra.update(data.get('extra', {}))
+        data['extra'] = extra
+        data['platform'] = 'native'
+
+        # At this point, we only extract the bare minimum information
+        # needed to continue processing. This requires to process the
+        # minidump without symbols and CFI to obtain an initial stack
+        # trace (most likely via stack scanning). If all validations
+        # pass, the event will be inserted into the database.
         try:
-            data = request.POST
-            data['upload_file_minidump'] = request.FILES['upload_file_minidump']
+            minidump = request.FILES['upload_file_minidump']
         except KeyError:
             raise APIError('Missing minidump upload')
 
+        merge_minidump_event(data, minidump.temporary_file_path())
         response_or_event_id = self.process(request, data=data, **kwargs)
         if isinstance(response_or_event_id, HttpResponse):
             return response_or_event_id
