@@ -10,6 +10,7 @@ from __future__ import absolute_import, print_function
 import logging
 import re
 import six
+import itertools
 
 from django.db import models, IntegrityError, transaction
 from django.db.models import F
@@ -359,7 +360,7 @@ class Release(Model):
         """
         from sentry.models import (
             Commit, CommitAuthor, Group, GroupLink, GroupResolution, GroupStatus,
-            ReleaseCommit, Repository
+            ReleaseCommit, Repository, PullRequest
         )
         from sentry.plugins.providers.repository import RepositoryProvider
 
@@ -471,17 +472,44 @@ class Release(Model):
                     last_commit_id=latest_commit.id if latest_commit else None,
                 )
 
+        release_commit_ids = ReleaseCommit.objects.filter(
+            release=self).values_list('commit_id', flat=True)
+
         commit_resolutions = list(
             GroupLink.objects.filter(
                 linked_type=GroupLink.LinkedType.commit,
-                linked_id__in=ReleaseCommit.objects.filter(release=self)
-                .values_list('commit_id', flat=True),
+                linked_id__in=release_commit_ids
+            ).values_list('group_id', 'commit_id')
+        )
+
+        commit_group_authors = [
+            (cr[0],  # group_id
+             commit_author_by_commit.get(cr[1])) for cr in commit_resolutions]
+
+        pr_ids_by_merge_commit = PullRequest.filter(
+            merge_commit_sha__in=release_commit_ids,
+        ).values_list('id', flat=True)
+
+        pull_request_resolutions = list(
+            GroupLink.objects.filter(
+                relationshsip=GroupLink.Relationshsip.resolves,
+                linked_type=GroupLink.LinkedType.pull_request,
+                linked_id__in=pr_ids_by_merge_commit
             ).values_list('group_id', 'linked_id')
         )
 
+        pr_authors = dict(PullRequest.filter(
+            id=[prr[1] for prr in pull_request_resolutions],
+        ).values_list('id', 'author'))
+
+        pull_request_group_authors = [
+            (pr[0],
+             pr_authors.get(pr[1])
+             ) for pr in pull_request_resolutions
+        ]
+
         user_by_author = {None: None}
-        for group_id, linked_id in commit_resolutions:
-            author = commit_author_by_commit.get(linked_id)
+        for group_id, author in itertools.chain(commit_group_authors, pull_request_group_authors):
             if author not in user_by_author:
                 try:
                     user_by_author[author] = author.find_users()[0]
