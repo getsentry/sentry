@@ -22,7 +22,7 @@ class PullRequest(Model):
     message = models.TextField(null=True)
     author = FlexibleForeignKey('sentry.CommitAuthor', null=True)
     synced_commits = models.BooleanField(default=False)
-    merge_commit_sha = models.CharField(max_length=64)
+    merge_commit_sha = models.CharField(max_length=64, null=True)
 
     class Meta:
         app_label = 'sentry'
