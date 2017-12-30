@@ -1,13 +1,13 @@
 import PropTypes from 'prop-types';
 import React from 'react';
-import _ from 'lodash';
 
-import ApiMixin from '../mixins/apiMixin';
 import {t, tct} from '../locale';
 import AlertActions from '../actions/alertActions';
-import PluginList from '../components/pluginList';
+import ApiMixin from '../mixins/apiMixin';
 import LoadingError from '../components/loadingError';
 import LoadingIndicator from '../components/loadingIndicator';
+import PluginList from '../components/pluginList';
+import withPlugins from '../utils/withPlugins';
 
 const ProjectReleaseTracking = React.createClass({
   propTypes: {
@@ -33,9 +33,7 @@ const ProjectReleaseTracking = React.createClass({
 
   fetchData() {
     let {orgId, projectId} = this.props.params;
-    let done = _.after(2, () => {
-      this.setState({loading: false});
-    });
+
     this.api.request(`/projects/${orgId}/${projectId}/releases/token/`, {
       method: 'GET',
       success: data =>
@@ -48,52 +46,9 @@ const ProjectReleaseTracking = React.createClass({
           error: true,
         });
       },
-      complete: done,
-    });
-    this.getPluginConfig(done);
-  },
-
-  getPluginConfig(done) {
-    let {orgId, projectId} = this.props.params;
-    this.api.request(`/projects/${orgId}/${projectId}/plugins/`, {
-      success: data => {
-        this.setState({
-          pluginList: data.filter(
-            p => p.type === 'release-tracking' && p.hasConfiguration
-          ),
-        });
+      complete: () => {
+        this.setState({loading: false});
       },
-      error: () => {
-        this.setState({
-          error: true,
-        });
-      },
-      complete: done,
-    });
-  },
-
-  onEnablePlugin(plugin) {
-    this.setState({
-      pluginList: this.state.pluginList.map(p => {
-        if (p.id !== plugin.id) return p;
-        return {
-          ...plugin,
-          enabled: true,
-        };
-      }),
-    });
-    this.getPluginConfig();
-  },
-
-  onDisablePlugin(plugin) {
-    this.setState({
-      pluginList: this.state.pluginList.map(p => {
-        if (p.id !== plugin.id) return p;
-        return {
-          ...plugin,
-          enabled: false,
-        };
-      }),
     });
   },
 
@@ -157,15 +112,19 @@ const ProjectReleaseTracking = React.createClass({
   },
 
   render() {
-    let {organization, project} = this.props;
-    let {pluginList} = this.state;
-    if (this.state.loading)
+    let {organization, project, plugins} = this.props;
+
+    if (this.state.loading || plugins.loading)
       return (
         <div className="box">
           <LoadingIndicator />
         </div>
       );
     else if (this.state.error) return <LoadingError onRetry={this.fetchData} />;
+
+    let pluginList = plugins.plugins.filter(
+      p => p.type === 'release-tracking' && p.hasConfiguration
+    );
 
     return (
       <div>
@@ -259,9 +218,8 @@ const ProjectReleaseTracking = React.createClass({
           organization={organization}
           project={project}
           pluginList={pluginList}
-          onEnablePlugin={this.onEnablePlugin}
-          onDisablePlugin={this.onDisablePlugin}
         />
+
         <div className="box">
           <div className="box-header">
             <h3>{t('API')}</h3>
@@ -287,4 +245,4 @@ const ProjectReleaseTracking = React.createClass({
   },
 });
 
-export default ProjectReleaseTracking;
+export default withPlugins(ProjectReleaseTracking);

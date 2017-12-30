@@ -1,5 +1,7 @@
 import React from 'react';
+import PropTypes from 'prop-types';
 import {mount} from 'enzyme';
+
 import ProjectPlugins from 'app/views/projectPlugins';
 import {fetchPlugins, enablePlugin, disablePlugin} from 'app/actionCreators/plugins';
 
@@ -31,6 +33,12 @@ describe('ProjectPluginsContainer', function() {
       {
         context: {
           router: TestStubs.router(),
+          team: TestStubs.Team(),
+        },
+
+        childContextTypes: {
+          router: PropTypes.object,
+          team: PropTypes.object,
         },
       }
     );

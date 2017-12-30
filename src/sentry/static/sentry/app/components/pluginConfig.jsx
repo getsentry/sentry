@@ -2,11 +2,12 @@ import PropTypes from 'prop-types';
 import React from 'react';
 import _ from 'lodash';
 
+import {disablePlugin} from '../actionCreators/plugins';
+import {t} from '../locale';
 import ApiMixin from '../mixins/apiMixin';
 import IndicatorStore from '../stores/indicatorStore';
 import LoadingIndicator from '../components/loadingIndicator';
 import plugins from '../plugins';
-import {t} from '../locale';
 
 const PluginConfig = React.createClass({
   propTypes: {
@@ -20,9 +21,7 @@ const PluginConfig = React.createClass({
 
   getDefaultProps() {
     return {
-      onDisablePlugin: () => {
-        window.location.reload();
-      },
+      onDisablePlugin: () => {},
     };
   },
 
@@ -66,17 +65,10 @@ const PluginConfig = React.createClass({
   },
 
   disablePlugin() {
-    let loadingIndicator = IndicatorStore.add(t('Saving changes..'));
-    this.api.request(this.getPluginEndpoint(), {
-      method: 'DELETE',
-      success: () => {
-        this.props.onDisablePlugin();
-        IndicatorStore.remove(loadingIndicator);
-      },
-      error: error => {
-        IndicatorStore.add(t('Unable to disable plugin. Please try again.'), 'error');
-      },
-    });
+    let {organization, project, data} = this.props;
+    disablePlugin({projectId: project.slug, orgId: organization.slug, pluginId: data.id});
+
+    this.props.onDisablePlugin(this.props.data);
   },
 
   testPlugin() {
@@ -105,13 +97,16 @@ const PluginConfig = React.createClass({
   },
 
   render() {
-    let data = this.props.data;
+    let {data} = this.props;
+    // If passed via props, use that value instead of from `data`
+    let enabled =
+      typeof this.props.enabled !== 'undefined' ? this.props.enabled : data.enabled;
 
     return (
       <div className={`box ref-plugin-config-${data.id}`}>
         <div className="box-header">
           {data.canDisable &&
-            data.enabled && (
+            enabled && (
               <div className="pull-right">
                 {data.isTestable && (
                   <a onClick={this.testPlugin} className="btn btn-sm btn-default">
@@ -129,7 +124,7 @@ const PluginConfig = React.createClass({
           {data.status === 'beta' ? (
             <div className="alert alert-block alert-warning">
               <strong>
-                Note: This plugin is considered beta and may change in the future.
+                {t('Note: This plugin is considered beta and may change in the future.')}
               </strong>
             </div>
           ) : null}

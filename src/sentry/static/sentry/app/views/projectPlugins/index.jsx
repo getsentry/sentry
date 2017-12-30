@@ -1,41 +1,43 @@
 import React from 'react';
-import Reflux from 'reflux';
 
 import {fetchPlugins, enablePlugin, disablePlugin} from '../../actionCreators/plugins';
-import ApiMixin from '../../mixins/apiMixin';
-import PluginsStore from '../../stores/pluginsStore';
+import withPlugins from '../../utils/withPlugins';
 import ProjectPlugins from './projectPlugins';
+import SentryTypes from '../../proptypes';
 
-const ProjectPluginsContainer = React.createClass({
-  mixins: [ApiMixin, Reflux.connect(PluginsStore, 'store')],
+class ProjectPluginsContainer extends React.Component {
+  static propTypes = {
+    plugins: SentryTypes.PluginsStore,
+  };
+
   componentDidMount() {
     this.fetchData();
-  },
+  }
 
   fetchData() {
-    fetchPlugins(this.api, this.props.params);
-  },
+    fetchPlugins(this.props.params);
+  }
 
-  handleChange(pluginId, shouldEnable) {
+  handleChange = (pluginId, shouldEnable) => {
     let {projectId, orgId} = this.props.params;
     let actionCreator = shouldEnable ? enablePlugin : disablePlugin;
-    actionCreator(this.api, {projectId, orgId, pluginId});
-  },
+    actionCreator({projectId, orgId, pluginId});
+  };
 
   render() {
-    let {store} = this.state;
+    let {loading, error, plugins} = this.props.plugins || {};
 
     return (
       <ProjectPlugins
         {...this.props}
         onError={this.fetchData}
         onChange={this.handleChange}
-        loading={store.loading}
-        error={store.error}
-        plugins={store.plugins}
+        loading={loading}
+        error={error}
+        plugins={plugins}
       />
     );
-  },
-});
+  }
+}
 
-export default ProjectPluginsContainer;
+export default withPlugins(ProjectPluginsContainer);

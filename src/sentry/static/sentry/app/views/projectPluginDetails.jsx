@@ -1,12 +1,24 @@
 import React from 'react';
-import AsyncView from './asyncView';
+
+import {disablePlugin, enablePlugin} from '../actionCreators/plugins';
 import {t} from '../locale';
+import AsyncView from './asyncView';
 import Button from '../components/buttons/button';
-import PluginConfig from '../components/pluginConfig';
 import ExternalLink from '../components/externalLink';
 import IndicatorStore from '../stores/indicatorStore';
+import PluginConfig from '../components/pluginConfig';
+import withPlugins from '../utils/withPlugins';
 
-export default class ProjectPluginDetails extends AsyncView {
+/**
+ * There are currently two sources of truths for plugin details:
+ *
+ * 1) PluginsStore has a list of plugins, and this is where ENABLED state lives
+ * 2) We fetch "plugin details" via API and save it to local state as `pluginDetails`.
+ *    This is because "details" call contains form `config` and the "list" endpoint does not.
+ *    The more correct way would be to pass `config` to PluginConfig and use plugin from
+ *    PluginsStore
+ */
+class ProjectPluginDetails extends AsyncView {
   getTitle() {
     let {plugin} = this.state;
     if (plugin && plugin.name) {
@@ -18,7 +30,7 @@ export default class ProjectPluginDetails extends AsyncView {
 
   getEndpoints() {
     let {projectId, orgId, pluginId} = this.props.params;
-    return [['plugin', `/projects/${orgId}/${projectId}/plugins/${pluginId}/`]];
+    return [['pluginDetails', `/projects/${orgId}/${projectId}/plugins/${pluginId}/`]];
   }
 
   trimSchema(value) {
@@ -31,8 +43,8 @@ export default class ProjectPluginDetails extends AsyncView {
     this.api.request(`/projects/${orgId}/${projectId}/plugins/${pluginId}/`, {
       method: 'POST',
       data: {reset: true},
-      success: plugin => {
-        this.setState({plugin});
+      success: pluginDetails => {
+        this.setState({pluginDetails});
         IndicatorStore.addSuccess(t('Plugin was reset'));
       },
       error: () => {
@@ -42,68 +54,48 @@ export default class ProjectPluginDetails extends AsyncView {
     });
   };
 
-  enable = () => {
-    this.toggleEnable(true);
-  };
-
-  disable = () => {
-    this.toggleEnable(false);
+  handleEnable = () => {
+    enablePlugin(this.props.params);
   };
 
   handleDisable = () => {
-    this.setState(prevState => ({
-      plugin: {
-        ...prevState.plugin,
-        enabled: false,
-      },
-    }));
+    disablePlugin(this.props.params);
   };
 
-  toggleEnable(shouldEnable) {
-    let method = shouldEnable ? 'POST' : 'DELETE';
+  // Enabled state is handled via PluginsStore and not via plugins detail
+  getEnabled() {
+    let {pluginDetails} = this.state;
+    let {plugins} = this.props;
 
-    let {orgId, projectId, pluginId} = this.props.params;
+    let plugin =
+      plugins &&
+      plugins.plugins &&
+      plugins.plugins.find(({slug}) => slug === this.props.params.pluginId);
 
-    let loadingIndicator = IndicatorStore.add(t('Saving changes..'));
-
-    this.api.request(`/projects/${orgId}/${projectId}/plugins/${pluginId}/`, {
-      method,
-      success: () => {
-        this.setState(prevState => ({
-          plugin: {
-            ...prevState.plugin,
-            enabled: shouldEnable,
-          },
-        }));
-        IndicatorStore.addSuccess(t('Plugin was updated'));
-      },
-      error: () => {
-        IndicatorStore.addError(t('An error occurred'));
-      },
-      complete: () => IndicatorStore.remove(loadingIndicator),
-    });
+    return plugin ? plugin.enabled : pluginDetails && pluginDetails.enabled;
   }
 
   renderActions() {
-    let {plugin} = this.state;
+    let {pluginDetails} = this.state;
+    let enabled = this.getEnabled();
 
     let enable = (
-      <Button onClick={this.enable} style={{marginRight: '6px'}}>
+      <Button onClick={this.handleEnable} style={{marginRight: '6px'}}>
         {t('Enable Plugin')}
       </Button>
     );
 
     let disable = (
-      <Button priority="danger" onClick={this.disable} style={{marginRight: '6px'}}>
+      <Button priority="danger" onClick={this.handleDisable} style={{marginRight: '6px'}}>
         {t('Disable Plugin')}
       </Button>
     );
 
-    let toggleEnable = plugin.enabled ? disable : enable;
+    let toggleEnable = enabled ? disable : enable;
 
     return (
       <div className="pull-right">
-        {plugin.canDisable && toggleEnable}
+        {pluginDetails.canDisable && toggleEnable}
         <Button onClick={this.handleReset}>{t('Reset Configuration')}</Button>
       </div>
     );
@@ -111,57 +103,58 @@ export default class ProjectPluginDetails extends AsyncView {
 
   renderBody() {
     let {organization, project} = this.props;
-    let {plugin} = this.state;
+    let {pluginDetails} = this.state;
 
     return (
       <div>
         {this.renderActions()}
-        <h2>{plugin.name}</h2>
+        <h2>{pluginDetails.name}</h2>
         <hr />
         <div className="row">
           <div className="col-md-7">
             <PluginConfig
               organization={organization}
               project={project}
-              data={plugin}
+              data={pluginDetails}
+              enabled={this.getEnabled()}
               onDisablePlugin={this.handleDisable}
             />
           </div>
           <div className="col-md-4 col-md-offset-1">
-            <div className="plugin-meta">
+            <div className="pluginDetails-meta">
               <h4>{t('Plugin Information')}</h4>
 
               <dl className="flat">
                 <dt>{t('Name')}</dt>
-                <dd>{plugin.name}</dd>
+                <dd>{pluginDetails.name}</dd>
                 <dt>{t('Author')}</dt>
-                <dd>{plugin.author.name}</dd>
-                {plugin.author.url && (
+                <dd>{pluginDetails.author.name}</dd>
+                {pluginDetails.author.url && (
                   <div>
                     <dt>{t('URL')}</dt>
                     <dd>
-                      <ExternalLink href={plugin.author.url}>
-                        {this.trimSchema(plugin.author.url)}
+                      <ExternalLink href={pluginDetails.author.url}>
+                        {this.trimSchema(pluginDetails.author.url)}
                       </ExternalLink>
                     </dd>
                   </div>
                 )}
                 <dt>{t('Version')}</dt>
-                <dd>{plugin.version}</dd>
+                <dd>{pluginDetails.version}</dd>
               </dl>
 
-              {plugin.description && (
+              {pluginDetails.description && (
                 <div>
                   <h4>{t('Description')}</h4>
-                  <p className="description">{plugin.description}</p>
+                  <p className="description">{pluginDetails.description}</p>
                 </div>
               )}
 
-              {plugin.resourceLinks && (
+              {pluginDetails.resourceLinks && (
                 <div>
                   <h4>{t('Resources')}</h4>
                   <dl className="flat">
-                    {plugin.resourceLinks.map(({title, url}) => (
+                    {pluginDetails.resourceLinks.map(({title, url}) => (
                       <dd key={url}>
                         <ExternalLink href={url}>{title}</ExternalLink>
                       </dd>
@@ -176,3 +169,7 @@ export default class ProjectPluginDetails extends AsyncView {
     );
   }
 }
+
+export {ProjectPluginDetails};
+
+export default withPlugins(ProjectPluginDetails);

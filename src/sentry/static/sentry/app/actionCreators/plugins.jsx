@@ -1,9 +1,13 @@
+import {t} from '../locale';
 import PluginActions from '../actions/pluginActions';
 import IndicatorStore from '../stores/indicatorStore';
+import {Client} from '../api';
 
-let activeFetch = {};
+const activeFetch = {};
+// PluginsStore always exists, so api client should be independent of component lifecycle
+const api = new Client();
 
-function doUpdate(api, {orgId, projectId, pluginId, update, ...params}) {
+function doUpdate({orgId, projectId, pluginId, update, ...params}) {
   PluginActions.update(pluginId, update);
   let request = api.requestPromise(
     `/projects/${orgId}/${projectId}/plugins/${pluginId}/`,
@@ -27,21 +31,19 @@ function doUpdate(api, {orgId, projectId, pluginId, update, ...params}) {
 /**
  * Fetches list of available plugins for a project
  *
- * @param {Client} api
  * @param {object} params
  * @param {string} params.orgId Organization ID
  * @param {string} params.projectId Project ID
- * @param {string} params.pluginId Plugin ID
  * @param {object} options
- * @param {boolean} options.noReset Reset will set loading state = true
+ * @param {boolean} options.resetLoading Reset will set loading state = true
  * @return Promise
  */
-export function fetchPlugins(api, {orgId, projectId}, options) {
+export function fetchPlugins({orgId, projectId}, options) {
   let path = `/projects/${orgId}/${projectId}/plugins/`;
   if (activeFetch[path]) return activeFetch[path];
 
   PluginActions.fetchAll(options);
-  let request = api.requestPromise(`/projects/${orgId}/${projectId}/plugins/`, {
+  let request = api.requestPromise(path, {
     method: 'GET',
   });
 
@@ -66,32 +68,30 @@ export function fetchPlugins(api, {orgId, projectId}, options) {
 /**
  * Enables a plugin
  *
- * @param {Client} api
  * @param {object} params
  * @param {string} params.orgId Organization ID
  * @param {string} params.projectId Project ID
  * @param {string} params.pluginId Plugin ID
  * @return Promise
  */
-export function enablePlugin(api, params) {
-  IndicatorStore.add('Enabling...');
-  return doUpdate(api, {...params, update: {enabled: true}, method: 'POST'})
-    .then(() => IndicatorStore.addSuccess('Plugin was enabled'))
-    .catch(() => IndicatorStore.addError('Unable to enable plugin'));
+export function enablePlugin(params) {
+  IndicatorStore.add(t('Enabling...'));
+  return doUpdate({...params, update: {enabled: true}, method: 'POST'})
+    .then(() => IndicatorStore.addSuccess(t('Plugin was enabled')))
+    .catch(() => IndicatorStore.addError(t('Unable to enable plugin')));
 }
 
 /**
  * Disables a plugin
  *
- * @param {Client} api
  * @param {object} params
  * @param {string} params.orgId Organization ID
  * @param {string} params.projectId Project ID
  * @param {string} params.pluginId Plugin ID
  */
-export function disablePlugin(api, params) {
-  IndicatorStore.add('Disabling...');
-  return doUpdate(api, {...params, update: {enabled: false}, method: 'DELETE'})
-    .then(() => IndicatorStore.addSuccess('Plugin was disabled'))
-    .catch(() => IndicatorStore.addError('Unable to disable plugin'));
+export function disablePlugin(params) {
+  IndicatorStore.add(t('Disabling...'));
+  return doUpdate({...params, update: {enabled: false}, method: 'DELETE'})
+    .then(() => IndicatorStore.addSuccess(t('Plugin was disabled')))
+    .catch(() => IndicatorStore.addError(t('Unable to disable plugin')));
 }

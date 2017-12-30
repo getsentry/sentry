@@ -1,25 +1,36 @@
 import React from 'react';
-import PropTypes from 'prop-types';
-import AsyncView from './asyncView';
 import PluginList from '../components/pluginList';
+import withPlugins from '../utils/withPlugins';
 
 import {t} from '../locale';
+import {fetchPlugins} from '../actionCreators/plugins';
+import LoadingIndicator from '../components/loadingIndicator';
+import SentryTypes from '../proptypes';
 
-export default class ProjectIssueTracking extends AsyncView {
-  static propTypes = {
-    organization: PropTypes.object,
-    project: PropTypes.object,
+class ProjectIssueTracking extends React.Component {
+  static contextTypes = {
+    organization: SentryTypes.Organization,
+    project: SentryTypes.Project,
   };
 
-  getEndpoints() {
-    let {projectId, orgId} = this.props.params;
-    return [['plugins', `/projects/${orgId}/${projectId}/plugins/`]];
+  static propTypes = {
+    plugins: SentryTypes.PluginsStore,
+  };
+
+  componentDidMount() {
+    let {projectId, orgId} = this.props.params || {};
+    fetchPlugins({projectId, orgId});
   }
 
-  renderBody() {
-    let {organization, project} = this.props;
+  render() {
+    let {organization, project} = this.context;
+    let {loading, plugins} = this.props.plugins || {};
 
-    let issueTrackingPlugins = this.state.plugins.filter(function(plugin) {
+    if (loading || !project || !plugins) {
+      return <LoadingIndicator />;
+    }
+
+    let issueTrackingPlugins = plugins.filter(function(plugin) {
       return plugin.type === 'issue-tracking' && plugin.hasConfiguration;
     });
 
@@ -37,8 +48,8 @@ export default class ProjectIssueTracking extends AsyncView {
             organization={organization}
             project={project}
             pluginList={issueTrackingPlugins}
-            onEnablePlugin={this.fetchData}
-            onDisablePlugin={this.fetchData}
+            onEnablePlugin={this.handleEnablePlugin}
+            onDisablePlugin={this.handleDisablePlugin}
           />
         </div>
       );
@@ -54,3 +65,5 @@ export default class ProjectIssueTracking extends AsyncView {
     }
   }
 }
+
+export default withPlugins(ProjectIssueTracking);
