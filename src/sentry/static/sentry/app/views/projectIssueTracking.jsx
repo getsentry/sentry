@@ -48,8 +48,6 @@ class ProjectIssueTracking extends React.Component {
             organization={organization}
             project={project}
             pluginList={issueTrackingPlugins}
-            onEnablePlugin={this.handleEnablePlugin}
-            onDisablePlugin={this.handleDisablePlugin}
           />
         </div>
       );

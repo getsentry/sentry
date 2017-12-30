@@ -1,18 +1,14 @@
 import React from 'react';
-import Reflux from 'reflux';
 import {Link} from 'react-router';
 
-import PluginsStore from '../../stores/pluginsStore';
+import withPlugins from '../../utils/withPlugins';
 
 const PluginNavigation = React.createClass({
-  mixins: [Reflux.connect(PluginsStore, 'store')],
-
   render() {
-    let {store} = this.state;
-    let {urlRoot} = this.props;
+    let {urlRoot, plugins} = this.props;
 
-    if (!store || !store.plugins) return null;
-    let enabledPlugins = store.plugins.filter(p => p.enabled && p.hasConfiguration);
+    if (!plugins || !plugins.plugins) return null;
+    let enabledPlugins = plugins.plugins.filter(p => p.enabled && p.hasConfiguration);
 
     if (!enabledPlugins.length) return null;
 
@@ -28,4 +24,4 @@ const PluginNavigation = React.createClass({
   },
 });
 
-export default PluginNavigation;
+export default withPlugins(PluginNavigation);

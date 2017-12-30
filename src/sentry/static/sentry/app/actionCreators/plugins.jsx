@@ -40,12 +40,16 @@ function doUpdate({orgId, projectId, pluginId, update, ...params}) {
  */
 export function fetchPlugins({orgId, projectId}, options) {
   let path = `/projects/${orgId}/${projectId}/plugins/`;
+
+  // Make sure we throttle fetches
   if (activeFetch[path]) return activeFetch[path];
 
   PluginActions.fetchAll(options);
   let request = api.requestPromise(path, {
     method: 'GET',
   });
+
+  activeFetch[path] = request;
 
   // This is intentionally not chained because we want the unhandled promise to be returned
   request

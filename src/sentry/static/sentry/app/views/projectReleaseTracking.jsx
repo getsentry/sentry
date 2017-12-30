@@ -21,7 +21,6 @@ const ProjectReleaseTracking = React.createClass({
     return {
       loading: true,
       error: false,
-      pluginList: [],
       webhookUrl: '',
       token: '',
     };
