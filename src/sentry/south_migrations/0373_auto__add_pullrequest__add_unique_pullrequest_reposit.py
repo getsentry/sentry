@@ -12,26 +12,6 @@ class Migration(SchemaMigration):
     is_dangerous = False
 
     def forwards(self, orm):
-        # Adding model 'ServiceHook'
-        db.create_table('sentry_servicehook', (
-            ('id', self.gf('sentry.db.models.fields.bounded.BoundedBigAutoField')(primary_key=True)),
-            ('guid', self.gf('django.db.models.fields.CharField')(max_length=32, unique=True, null=True)),
-            ('application', self.gf('sentry.db.models.fields.foreignkey.FlexibleForeignKey')(
-                to=orm['sentry.ApiApplication'], null=True)),
-            ('actor_id', self.gf('sentry.db.models.fields.bounded.BoundedPositiveIntegerField')(db_index=True)),
-            ('project_id', self.gf('sentry.db.models.fields.bounded.BoundedPositiveIntegerField')(db_index=True)),
-            ('url', self.gf('django.db.models.fields.URLField')(max_length=200)),
-            ('secret', self.gf('sentry.db.models.fields.encrypted.EncryptedTextField')
-             (default='bf894944114c491e84672d736f38ddf2656325f9204e492f835c0e3cde97efb2')),
-            ('events', self.gf('sentry.db.models.fields.array.ArrayField')(
-                of=('django.db.models.fields.TextField', [], {}))),
-            ('status', self.gf('sentry.db.models.fields.bounded.BoundedPositiveIntegerField')(
-                default=0, db_index=True)),
-            ('version', self.gf('sentry.db.models.fields.bounded.BoundedPositiveIntegerField')(default=0)),
-            ('date_added', self.gf('django.db.models.fields.DateTimeField')(default=datetime.datetime.now)),
-        ))
-        db.send_create_signal('sentry', ['ServiceHook'])
-
         # Adding model 'PullRequest'
         db.create_table('sentry_pull_request', (
             ('id', self.gf('sentry.db.models.fields.bounded.BoundedBigAutoField')(primary_key=True)),
@@ -70,9 +50,6 @@ class Migration(SchemaMigration):
 
         # Removing unique constraint on 'PullRequest', fields ['repository_id', 'key']
         db.delete_unique('sentry_pull_request', ['repository_id', 'key'])
-
-        # Deleting model 'ServiceHook'
-        db.delete_table('sentry_servicehook')
 
         # Deleting model 'PullRequest'
         db.delete_table('sentry_pull_request')
