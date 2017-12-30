@@ -472,34 +472,34 @@ class Release(Model):
                     last_commit_id=latest_commit.id if latest_commit else None,
                 )
 
-        release_commit_ids = ReleaseCommit.objects.filter(
-            release=self).values_list('commit_id', flat=True)
+        release_commit_ids = list(ReleaseCommit.objects.filter(
+            release=self).values_list('commit_id', flat=True))
 
         commit_resolutions = list(
             GroupLink.objects.filter(
                 linked_type=GroupLink.LinkedType.commit,
-                linked_id__in=release_commit_ids
-            ).values_list('group_id', 'commit_id')
+                linked_id__in=release_commit_ids,
+            ).values_list('group_id', 'linked_id')
         )
 
         commit_group_authors = [
             (cr[0],  # group_id
              commit_author_by_commit.get(cr[1])) for cr in commit_resolutions]
 
-        pr_ids_by_merge_commit = PullRequest.filter(
+        pr_ids_by_merge_commit = list(PullRequest.objects.filter(
             merge_commit_sha__in=release_commit_ids,
-        ).values_list('id', flat=True)
+        ).values_list('id', flat=True))
 
         pull_request_resolutions = list(
             GroupLink.objects.filter(
-                relationshsip=GroupLink.Relationshsip.resolves,
+                relationship=GroupLink.Relationship.resolves,
                 linked_type=GroupLink.LinkedType.pull_request,
-                linked_id__in=pr_ids_by_merge_commit
+                linked_id__in=pr_ids_by_merge_commit,
             ).values_list('group_id', 'linked_id')
         )
 
-        pr_authors = dict(PullRequest.filter(
-            id=[prr[1] for prr in pull_request_resolutions],
+        pr_authors = dict(PullRequest.objects.filter(
+            id__in=[prr[1] for prr in pull_request_resolutions],
         ).values_list('id', 'author'))
 
         pull_request_group_authors = [
