@@ -37,7 +37,7 @@ python-dateutil>=2.0.0,<3.0.0
 python-memcached>=1.53,<2.0.0
 python-openid>=2.2
 PyYAML>=3.11,<3.12
-raven>=5.29.0,<6.0.0
+raven>=6.2.0,<7.0.0
 redis>=2.10.3,<2.10.6
 requests[security]>=2.18.4,<2.19.0
 selenium==3.8.0
