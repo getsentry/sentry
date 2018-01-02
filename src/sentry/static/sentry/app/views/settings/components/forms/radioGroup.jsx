@@ -31,7 +31,7 @@ const RadioGroup = ({value, choices, label, onChange}) => {
 };
 
 RadioGroup.propTypes = {
-  value: PropTypes.number,
+  value: PropTypes.string,
   choices: PropTypes.arrayOf(PropTypes.array),
   label: PropTypes.string,
   onChange: PropTypes.func,
@@ -62,8 +62,8 @@ const RadioLineItem = styled.div`
 `;
 
 const RadioLineButtonFill = styled.div`
-  width: 54%;
-  height: 54%;
+  width: 1rem;
+  height: 1rem;
   border-radius: 50%;
   background-color: ${p => p.theme.green};
   animation: ${p => (p.animate ? `0.2s ${growIn} ease` : 'none')};

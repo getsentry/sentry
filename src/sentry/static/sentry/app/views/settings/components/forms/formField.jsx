@@ -14,7 +14,7 @@ import Spinner from './styled/spinner';
 import {pulse, fadeOut} from './styled/animations';
 
 const SettingsPanelItemWrapper = styled(({highlighted, ...props}) => <Flex {...props} />)`
-  padding: 15px 20px;
+  padding: 1em 1.25em;
   border-bottom: 1px solid ${p => p.theme.borderLight};
   align-items: center;
   transition: background 0.15s;
