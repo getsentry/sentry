@@ -1,5 +1,6 @@
 import PropTypes from 'prop-types';
 import React from 'react';
+import createReactClass from 'create-react-class';
 import Reflux from 'reflux';
 import {browserHistory} from 'react-router';
 import DocumentTitle from 'react-document-title';
@@ -16,7 +17,9 @@ let ERROR_TYPES = {
   GROUP_NOT_FOUND: 'GROUP_NOT_FOUND',
 };
 
-const GroupDetails = React.createClass({
+const GroupDetails = createReactClass({
+  displayName: 'GroupDetails',
+
   propTypes: {
     setProjectNavSection: PropTypes.func,
     memberList: PropTypes.array,
@@ -83,8 +86,7 @@ const GroupDetails = React.createClass({
         // https://github.com/reactjs/react-router/blob/v2.0.1/modules/index.js#L25
         if (this.props.params.groupId != data.id) {
           let location = this.props.location;
-          return void browserHistory.pushState(
-            null,
+          return void browserHistory.push(
             location.pathname.replace(
               `/issues/${this.props.params.groupId}/`,
               `/issues/${data.id}/`

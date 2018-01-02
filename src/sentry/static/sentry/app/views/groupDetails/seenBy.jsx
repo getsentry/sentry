@@ -1,4 +1,5 @@
 import React from 'react';
+import createReactClass from 'create-react-class';
 import moment from 'moment';
 import _ from 'lodash';
 
@@ -9,7 +10,9 @@ import {userDisplayName} from '../../utils/formatters';
 import TooltipMixin from '../../mixins/tooltip';
 import {t} from '../../locale';
 
-const GroupSeenBy = React.createClass({
+const GroupSeenBy = createReactClass({
+  displayName: 'GroupSeenBy',
+
   mixins: [
     GroupState,
     TooltipMixin({

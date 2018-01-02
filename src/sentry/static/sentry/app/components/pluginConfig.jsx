@@ -1,5 +1,6 @@
 import PropTypes from 'prop-types';
 import React from 'react';
+import createReactClass from 'create-react-class';
 import _ from 'lodash';
 
 import {disablePlugin} from '../actionCreators/plugins';
@@ -9,7 +10,9 @@ import IndicatorStore from '../stores/indicatorStore';
 import LoadingIndicator from '../components/loadingIndicator';
 import plugins from '../plugins';
 
-const PluginConfig = React.createClass({
+const PluginConfig = createReactClass({
+  displayName: 'PluginConfig',
+
   propTypes: {
     organization: PropTypes.object.isRequired,
     project: PropTypes.object.isRequired,

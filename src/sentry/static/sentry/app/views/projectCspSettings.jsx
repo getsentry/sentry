@@ -1,13 +1,17 @@
 import PropTypes from 'prop-types';
 import React from 'react';
 
+import createReactClass from 'create-react-class';
+
 import ApiMixin from '../mixins/apiMixin';
 import IndicatorStore from '../stores/indicatorStore';
 import LoadingIndicator from '../components/loadingIndicator';
 import {FormState, TextareaField, BooleanField} from '../components/forms';
 import {t} from '../locale';
 
-const ProjectCspSettingsForm = React.createClass({
+const ProjectCspSettingsForm = createReactClass({
+  displayName: 'ProjectCspSettingsForm',
+
   propTypes: {
     orgId: PropTypes.string.isRequired,
     projectId: PropTypes.string.isRequired,
@@ -123,7 +127,9 @@ const ProjectCspSettingsForm = React.createClass({
   },
 });
 
-const ProjectCspSettings = React.createClass({
+const ProjectCspSettings = createReactClass({
+  displayName: 'ProjectCspSettings',
+
   propTypes: {
     setProjectNavSection: PropTypes.func,
   },

@@ -1,5 +1,6 @@
 import PropTypes from 'prop-types';
 import React from 'react';
+import createReactClass from 'create-react-class';
 
 import {enablePlugin, disablePlugin} from '../actionCreators/plugins';
 import ApiMixin from '../mixins/apiMixin';
@@ -7,7 +8,10 @@ import InactivePlugins from './inactivePlugins';
 import PluginConfig from './pluginConfig';
 import {t} from '../locale';
 
-const PluginList = React.createClass({
+
+export default createReactClass({
+  displayName: 'pluginList',
+
   propTypes: {
     organization: PropTypes.object.isRequired,
     project: PropTypes.object.isRequired,
@@ -84,5 +88,3 @@ const PluginList = React.createClass({
     );
   },
 });
-
-export default PluginList;

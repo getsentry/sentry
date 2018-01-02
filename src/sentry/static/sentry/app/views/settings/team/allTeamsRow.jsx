@@ -1,5 +1,6 @@
 import PropTypes from 'prop-types';
 import React from 'react';
+import createReactClass from 'create-react-class';
 import {Link} from 'react-router';
 import {Box} from 'grid-emotion';
 
@@ -11,7 +12,9 @@ import {t} from '../../../locale';
 
 // TODO(dcramer): this isnt great UX
 
-const AllTeamsRow = React.createClass({
+const AllTeamsRow = createReactClass({
+  displayName: 'AllTeamsRow',
+
   propTypes: {
     urlPrefix: PropTypes.string.isRequired,
     access: PropTypes.object.isRequired,

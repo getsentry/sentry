@@ -1,5 +1,6 @@
 import PropTypes from 'prop-types';
 import React from 'react';
+import createReactClass from 'create-react-class';
 import marked from 'marked';
 import {MentionsInput, Mention} from 'react-mentions';
 import PureRenderMixin from 'react-addons-pure-render-mixin';
@@ -18,7 +19,9 @@ function makeDefaultErrorJson() {
   return {detail: t('Unknown error. Please try again.')};
 }
 
-const NoteInput = React.createClass({
+const NoteInput = createReactClass({
+  displayName: 'NoteInput',
+
   propTypes: {
     item: PropTypes.object,
     group: PropTypes.object.isRequired,

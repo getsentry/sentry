@@ -1,5 +1,7 @@
 import PropTypes from 'prop-types';
 import React from 'react';
+import createReactClass from 'create-react-class';
+import _ from 'lodash';
 
 import {t, tct} from '../locale';
 import AlertActions from '../actions/alertActions';
@@ -9,7 +11,9 @@ import LoadingIndicator from '../components/loadingIndicator';
 import PluginList from '../components/pluginList';
 import withPlugins from '../utils/withPlugins';
 
-const ProjectReleaseTracking = React.createClass({
+const ProjectReleaseTracking = createReactClass({
+  displayName: 'ProjectReleaseTracking',
+
   propTypes: {
     organization: PropTypes.object,
     project: PropTypes.object,

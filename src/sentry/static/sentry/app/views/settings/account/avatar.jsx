@@ -1,15 +1,22 @@
 import PropTypes from 'prop-types';
 import React from 'react';
+import styled from 'react-emotion';
+import createReactClass from 'create-react-class';
 
+import Panel from '../components/panel';
+import PanelBody from '../components/panelBody';
+import PanelHeader from '../components/panelHeader';
 import AlertActions from '../../../actions/alertActions';
 import ApiMixin from '../../../mixins/apiMixin';
 import AvatarCropper from '../../../components/avatarCropper';
-import AvatarRadio from '../../../components/avatarRadio';
+import RadioGroup from '../components/forms/radioGroup';
 import LoadingError from '../../../components/loadingError';
 import LoadingIndicator from '../../../components/loadingIndicator';
 import {t} from '../../../locale';
 
-const AvatarSettings = React.createClass({
+const AvatarSettings = createReactClass({
+  displayName: 'AvatarSettings',
+
   propTypes: {
     userId: PropTypes.number,
   },
@@ -83,6 +90,12 @@ const AvatarSettings = React.createClass({
     });
   },
 
+  handleChange(id) {
+    let user = {...this.state.user};
+    user.avatar.avatarType = id;
+    this.updateUserState(user);
+  },
+
   render() {
     if (this.state.hasError) {
       return <LoadingError />;
@@ -101,29 +114,56 @@ const AvatarSettings = React.createClass({
     );
 
     return (
-      <div style={{lineHeight: '1.5em'}}>
-        <form>
-          <AvatarRadio user={this.state.user} updateUser={this.updateUserState} />
-
-          {this.state.user.avatar.avatarType === 'gravatar' && gravatarMessage}
-
-          {this.state.user.avatar.avatarType === 'upload' && (
-            <AvatarCropper
-              {...this.props}
-              user={this.state.user}
-              savedDataUrl={this.state.savedDataUrl}
-              updateDataUrlState={this.updateDataUrlState}
+      <Panel>
+        <PanelHeader>Avatar</PanelHeader>
+        <PanelBody>
+          <AvatarForm>
+            <RadioGroup
+              choices={[
+                ['letter_avatar', 'Use my initials'],
+                ['upload', 'Upload a Photo'],
+                ['gravatar', 'Use Gravatar'],
+              ]}
+              value={this.state.user.avatar.avatarType || 'letter_avatar'}
+              label="Avatar Type"
+              onChange={id => this.handleChange(id)}
             />
-          )}
-          <fieldset className="form-actions">
-            <button className="btn btn-primary" onClick={this.saveSettings}>
-              {t('Done')}
-            </button>
-          </fieldset>
-        </form>
-      </div>
+
+            <AvatarUploadSection>
+              {this.state.user.avatar.avatarType === 'gravatar' && gravatarMessage}
+
+              {this.state.user.avatar.avatarType === 'upload' && (
+                <AvatarCropper
+                  {...this.props}
+                  user={this.state.user}
+                  savedDataUrl={this.state.savedDataUrl}
+                  updateDataUrlState={this.updateDataUrlState}
+                />
+              )}
+              <AvatarSubmit className="form-actions">
+                <button className="btn btn-primary" onClick={this.saveSettings}>
+                  {t('Done')}
+                </button>
+              </AvatarSubmit>
+            </AvatarUploadSection>
+          </AvatarForm>
+        </PanelBody>
+      </Panel>
     );
   },
 });
+
+const AvatarForm = styled('form')`
+  line-height: 1.5em;
+  padding: 1em 1.25em;
+`;
+
+const AvatarSubmit = styled('fieldset')`
+  margin-top: 1em;
+`;
+
+const AvatarUploadSection = styled('div')`
+  margin-top: 1em;
+`;
 
 export default AvatarSettings;

@@ -1,9 +1,18 @@
 import React from 'react';
+
+import createReactClass from 'create-react-class';
 import {Link} from 'react-router';
+import PropTypes from 'prop-types';
 
 import withPlugins from '../../utils/withPlugins';
 
-const PluginNavigation = React.createClass({
+
+const PluginNavigation = createReactClass({
+  displayName: 'PluginNavigation',
+  propTypes: {
+    urlRoot: PropTypes.string,
+  },
+
   render() {
     let {urlRoot, plugins} = this.props;
 

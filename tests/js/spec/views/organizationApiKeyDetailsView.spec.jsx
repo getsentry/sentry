@@ -1,3 +1,4 @@
+import PropTypes from 'prop-types';
 import React from 'react';
 import {mount} from 'enzyme';
 
@@ -7,9 +8,9 @@ import OrganizationApiKeyDetailsView from 'app/views/settings/organization/apiKe
 jest.mock('jquery');
 
 const childContextTypes = {
-  organization: React.PropTypes.object,
-  router: React.PropTypes.object,
-  location: React.PropTypes.object,
+  organization: PropTypes.object,
+  router: PropTypes.object,
+  location: PropTypes.object,
 };
 
 describe('OrganizationApiKeyDetailsView', function() {
