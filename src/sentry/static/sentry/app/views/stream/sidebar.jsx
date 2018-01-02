@@ -1,5 +1,6 @@
 import PropTypes from 'prop-types';
 import React from 'react';
+import createReactClass from 'create-react-class';
 import _ from 'lodash';
 import StreamTagFilter from './tagFilter';
 import LoadingIndicator from '../../components/loadingIndicator';
@@ -8,7 +9,9 @@ import {t} from '../../locale';
 
 let TEXT_FILTER_DEBOUNCE_IN_MS = 300;
 
-const StreamSidebar = React.createClass({
+const StreamSidebar = createReactClass({
+  displayName: 'StreamSidebar',
+
   propTypes: {
     orgId: PropTypes.string.isRequired,
     projectId: PropTypes.string.isRequired,

@@ -1,5 +1,6 @@
 import PropTypes from 'prop-types';
 import React from 'react';
+import createReactClass from 'create-react-class';
 import _ from 'lodash';
 
 import ApiMixin from '../mixins/apiMixin';
@@ -9,7 +10,9 @@ import PluginList from '../components/pluginList';
 import LoadingError from '../components/loadingError';
 import LoadingIndicator from '../components/loadingIndicator';
 
-const ProjectReleaseTracking = React.createClass({
+const ProjectReleaseTracking = createReactClass({
+  displayName: 'ProjectReleaseTracking',
+
   propTypes: {
     organization: PropTypes.object,
     project: PropTypes.object,

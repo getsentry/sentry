@@ -1,5 +1,6 @@
 import PropTypes from 'prop-types';
 import React from 'react';
+import createReactClass from 'create-react-class';
 import {browserHistory} from 'react-router';
 import Reflux from 'reflux';
 
@@ -11,7 +12,9 @@ import LoadingIndicator from '../../components/loadingIndicator';
 import ProjectState from '../../mixins/projectState';
 import SimilarList from './similarList';
 
-const GroupGroupingView = React.createClass({
+const GroupGroupingView = createReactClass({
+  displayName: 'GroupGroupingView',
+
   propTypes: {
     query: PropTypes.string,
   },

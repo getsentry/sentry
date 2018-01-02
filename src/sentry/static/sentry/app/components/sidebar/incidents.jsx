@@ -1,5 +1,6 @@
 import PropTypes from 'prop-types';
 import React from 'react';
+import createReactClass from 'create-react-class';
 import Reflux from 'reflux';
 
 import SidebarPanel from '../sidebarPanel';
@@ -7,7 +8,9 @@ import SidebarPanel from '../sidebarPanel';
 import IncidentStore from '../../stores/incidentStore';
 import {t} from '../../locale';
 
-const Incidents = React.createClass({
+const Incidents = createReactClass({
+  displayName: 'Incidents',
+
   propTypes: {
     showPanel: PropTypes.bool,
     currentPanel: PropTypes.string,

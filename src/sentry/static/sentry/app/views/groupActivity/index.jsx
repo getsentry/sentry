@@ -1,6 +1,8 @@
 import PropTypes from 'prop-types';
 import React from 'react';
 
+import createReactClass from 'create-react-class';
+
 import ApiMixin from '../../mixins/apiMixin';
 import GroupState from '../../mixins/groupState';
 
@@ -19,7 +21,9 @@ import MemberListStore from '../../stores/memberListStore';
 
 import {t, tct, tn} from '../../locale';
 
-const GroupActivity = React.createClass({
+const GroupActivity = createReactClass({
+  displayName: 'GroupActivity',
+
   // TODO(dcramer): only re-render on group/activity change
   propTypes: {
     group: PropTypes.object,

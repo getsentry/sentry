@@ -1,5 +1,6 @@
 import PropTypes from 'prop-types';
 import React from 'react';
+import createReactClass from 'create-react-class';
 import {browserHistory} from 'react-router';
 import classNames from 'classnames';
 
@@ -13,7 +14,9 @@ import Link from '../link';
 import {sortArray} from '../../utils';
 import {t} from '../../locale';
 
-const ProjectSelector = React.createClass({
+const ProjectSelector = createReactClass({
+  displayName: 'ProjectSelector',
+
   propTypes: {
     // Accepts a project id (slug) and not a project *object* because ProjectSelector
     // is created from Django templates, and only organization is serialized

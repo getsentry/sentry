@@ -1,5 +1,6 @@
 import PropTypes from 'prop-types';
 import React from 'react';
+import createReactClass from 'create-react-class';
 import _ from 'lodash';
 import classNames from 'classnames';
 
@@ -20,7 +21,9 @@ export function trimPackage(pkg) {
   return (match && match[1]) || rv;
 }
 
-const Frame = React.createClass({
+const Frame = createReactClass({
+  displayName: 'Frame',
+
   propTypes: {
     data: PropTypes.object.isRequired,
     nextFrame: PropTypes.object,

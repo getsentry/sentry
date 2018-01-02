@@ -6,34 +6,32 @@ function isOverflowing(el) {
   return el.offsetHeight < el.scrollHeight - 1;
 }
 
-const SummaryLine = React.createClass({
-  propTypes: {
+class SummaryLine extends React.Component {
+  static propTypes = {
     crumb: PropTypes.object.isRequired,
-  },
+  };
 
-  getInitialState() {
-    return {
-      expanded: false,
-      hasOverflow: false,
-    };
-  },
+  state = {
+    expanded: false,
+    hasOverflow: false,
+  };
 
   componentDidMount() {
     this.domElement = null;
     window.addEventListener('resize', this.respondToLayoutChanges);
-  },
+  }
 
   componentWillUnmount() {
     this.domElement = null;
     window.addEventListener('resize', this.respondToLayoutChanges);
-  },
+  }
 
-  makeSummariesGreatAgain(ref) {
+  makeSummariesGreatAgain = ref => {
     this.domElement = ref;
     this.respondToLayoutChanges();
-  },
+  };
 
-  respondToLayoutChanges() {
+  respondToLayoutChanges = () => {
     if (!this.domElement) {
       return;
     }
@@ -43,13 +41,13 @@ const SummaryLine = React.createClass({
         hasOverflow,
       });
     }
-  },
+  };
 
-  onToggle() {
+  onToggle = () => {
     this.setState({
       expanded: !this.state.expanded,
     });
-  },
+  };
 
   render() {
     let className = 'summary';
@@ -68,7 +66,7 @@ const SummaryLine = React.createClass({
         {this.props.children}
       </div>
     );
-  },
-});
+  }
+}
 
 export default SummaryLine;

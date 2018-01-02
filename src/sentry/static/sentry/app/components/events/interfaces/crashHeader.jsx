@@ -1,10 +1,13 @@
 import PropTypes from 'prop-types';
 import React from 'react';
+import createReactClass from 'create-react-class';
 import SentryTypes from '../../../proptypes';
 import TooltipMixin from '../../../mixins/tooltip';
 import {t} from '../../../locale';
 
-const CrashHeader = React.createClass({
+const CrashHeader = createReactClass({
+  displayName: 'CrashHeader',
+
   propTypes: {
     title: PropTypes.string,
     beforeTitle: PropTypes.any,

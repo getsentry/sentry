@@ -1,5 +1,6 @@
 import PropTypes from 'prop-types';
 import React from 'react';
+import createReactClass from 'create-react-class';
 import {Link} from 'react-router';
 import ApiMixin from '../../mixins/apiMixin';
 import AssigneeSelector from '../../components/assigneeSelector';
@@ -14,7 +15,9 @@ import ProjectState from '../../mixins/projectState';
 import TooltipMixin from '../../mixins/tooltip';
 import {t} from '../../locale';
 
-const GroupHeader = React.createClass({
+const GroupHeader = createReactClass({
+  displayName: 'GroupHeader',
+
   propTypes: {
     group: PropTypes.object.isRequired,
   },

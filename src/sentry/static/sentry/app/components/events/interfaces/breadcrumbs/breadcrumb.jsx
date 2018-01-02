@@ -11,12 +11,12 @@ const CUSTOM_RENDERERS = {
   error: ErrorRenderer,
 };
 
-const Breadcrumb = React.createClass({
-  propTypes: {
+class Breadcrumb extends React.Component {
+  static propTypes = {
     crumb: PropTypes.object.isRequired,
-  },
+  };
 
-  getClassName() {
+  getClassName = () => {
     let {crumb} = this.props;
 
     // use Set to avoid duplicate crumb classes (was previously adding
@@ -37,13 +37,13 @@ const Breadcrumb = React.createClass({
       classes.add('crumb-last');
     }
     return [...classes].join(' ');
-  },
+  };
 
-  renderType() {
+  renderType = () => {
     let {crumb} = this.props;
     let Renderer = CUSTOM_RENDERERS[crumb.type] || DefaultRenderer;
     return <Renderer crumb={crumb} />;
-  },
+  };
 
   render() {
     let {crumb} = this.props;
@@ -58,7 +58,7 @@ const Breadcrumb = React.createClass({
         {this.renderType()}
       </li>
     );
-  },
-});
+  }
+}
 
 export default Breadcrumb;

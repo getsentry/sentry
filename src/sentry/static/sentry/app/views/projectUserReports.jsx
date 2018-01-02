@@ -1,6 +1,7 @@
 import jQuery from 'jquery';
 import PropTypes from 'prop-types';
 import React from 'react';
+import createReactClass from 'create-react-class';
 import {browserHistory, Link} from 'react-router';
 import ApiMixin from '../mixins/apiMixin';
 import GroupStore from '../stores/groupStore';
@@ -11,7 +12,9 @@ import CompactIssue from '../components/compactIssue';
 import EventUserReport from '../components/events/userReport';
 import {t} from '../locale';
 
-const ProjectUserReports = React.createClass({
+const ProjectUserReports = createReactClass({
+  displayName: 'ProjectUserReports',
+
   propTypes: {
     defaultQuery: PropTypes.string,
     defaultStatus: PropTypes.string,

@@ -1,5 +1,6 @@
 import PropTypes from 'prop-types';
 import React from 'react';
+import createReactClass from 'create-react-class';
 import {Link} from 'react-router';
 import ApiMixin from '../../mixins/apiMixin';
 import SentryTypes from '../../proptypes';
@@ -7,7 +8,9 @@ import TooltipMixin from '../../mixins/tooltip';
 import {escape, percent, deviceNameMapper} from '../../utils';
 import {t} from '../../locale';
 
-const TagDistributionMeter = React.createClass({
+const TagDistributionMeter = createReactClass({
+  displayName: 'TagDistributionMeter',
+
   propTypes: {
     group: SentryTypes.Group.isRequired,
     tag: PropTypes.string.isRequired,

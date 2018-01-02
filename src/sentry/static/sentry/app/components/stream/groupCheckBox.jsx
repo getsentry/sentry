@@ -1,11 +1,14 @@
 import PropTypes from 'prop-types';
 import React from 'react';
+import createReactClass from 'create-react-class';
 import Reflux from 'reflux';
 
 import SelectedGroupStore from '../../stores/selectedGroupStore';
 import Checkbox from '../checkbox';
 
-const GroupCheckBox = React.createClass({
+const GroupCheckBox = createReactClass({
+  displayName: 'GroupCheckBox',
+
   propTypes: {
     id: PropTypes.string.isRequired,
   },

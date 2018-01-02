@@ -1,12 +1,16 @@
 import React from 'react';
 
+import createReactClass from 'create-react-class';
+
 import Count from '../../components/count';
 import EventOrGroupExtraDetails from '../../components/eventOrGroupExtraDetails';
 import EventOrGroupHeader from '../../components/eventOrGroupHeader';
 import ProjectState from '../../mixins/projectState';
 import SentryTypes from '../../proptypes';
 
-const EventNode = React.createClass({
+const EventNode = createReactClass({
+  displayName: 'EventNode',
+
   propTypes: {
     group: SentryTypes.Group.isRequired,
   },

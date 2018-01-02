@@ -1,11 +1,14 @@
 import PropTypes from 'prop-types';
 import React from 'react';
+import createReactClass from 'create-react-class';
 //import GroupEventDataSection from "../eventDataSection";
 import Frame from './frame';
 import {t} from '../../../locale';
 import OrganizationState from '../../../mixins/organizationState';
 
-const StacktraceContent = React.createClass({
+const StacktraceContent = createReactClass({
+  displayName: 'StacktraceContent',
+
   propTypes: {
     data: PropTypes.object.isRequired,
     includeSystemFrames: PropTypes.bool,
@@ -13,6 +16,7 @@ const StacktraceContent = React.createClass({
     platform: PropTypes.string,
     newestFirst: PropTypes.bool,
   },
+
   mixins: [OrganizationState],
 
   getDefaultProps() {

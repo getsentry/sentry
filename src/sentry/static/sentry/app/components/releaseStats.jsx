@@ -1,10 +1,13 @@
 import PropTypes from 'prop-types';
 import React from 'react';
+import createReactClass from 'create-react-class';
 import Avatar from './avatar';
 import TooltipMixin from '../mixins/tooltip';
 import {t} from '../locale';
 
-const ReleaseStats = React.createClass({
+const ReleaseStats = createReactClass({
+  displayName: 'ReleaseStats',
+
   propTypes: {
     release: PropTypes.object,
   },

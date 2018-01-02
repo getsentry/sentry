@@ -1,12 +1,16 @@
 import PropTypes from 'prop-types';
 import React from 'react';
 
+import createReactClass from 'create-react-class';
+
 import StackedBarChart from '../stackedBarChart';
 import SentryTypes from '../../proptypes';
 import {t} from '../../locale';
 import {defined, escape, intcomma} from '../../utils';
 
-const GroupReleaseChart = React.createClass({
+const GroupReleaseChart = createReactClass({
+  displayName: 'GroupReleaseChart',
+
   propTypes: {
     group: SentryTypes.Group.isRequired,
     release: PropTypes.shape({

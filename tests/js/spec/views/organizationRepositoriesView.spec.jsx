@@ -1,3 +1,4 @@
+import PropTypes from 'prop-types';
 import React from 'react';
 import {shallow} from 'enzyme';
 
@@ -5,8 +6,8 @@ import {Client} from 'app/api';
 import OrganizationRepositories from 'app/views/organizationRepositoriesView';
 
 const childContextTypes = {
-  organization: React.PropTypes.object,
-  location: React.PropTypes.object,
+  organization: PropTypes.object,
+  location: PropTypes.object,
 };
 
 describe('OrganizationRepositoriesView', function() {

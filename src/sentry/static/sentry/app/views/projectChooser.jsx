@@ -1,4 +1,5 @@
 import React from 'react';
+import createReactClass from 'create-react-class';
 import {browserHistory} from 'react-router';
 import $ from 'jquery';
 import {t} from '../locale';
@@ -6,7 +7,8 @@ import {t} from '../locale';
 import OrganizationState from '../mixins/organizationState';
 import TodoList from '../components/onboardingWizard/todos';
 
-const ProjectChooser = React.createClass({
+const ProjectChooser = createReactClass({
+  displayName: 'ProjectChooser',
   mixins: [OrganizationState],
 
   componentWillMount() {

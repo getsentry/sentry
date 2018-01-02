@@ -1,6 +1,8 @@
 import PropTypes from 'prop-types';
 import React from 'react';
 
+import createReactClass from 'create-react-class';
+
 import {extractMultilineFields} from '../../../../utils';
 import {t} from '../../../../locale';
 import ApiMixin from '../../../../mixins/apiMixin';
@@ -11,7 +13,9 @@ import Select2Field from '../../../../components/forms/select2Field';
 import TextField from '../../../../components/forms/textField';
 import TextareaField from '../../../../components/forms/textareaField';
 
-const OldOrganizationSettingsForm = React.createClass({
+const OldOrganizationSettingsForm = createReactClass({
+  displayName: 'OldOrganizationSettingsForm',
+
   propTypes: {
     orgId: PropTypes.string.isRequired,
     access: PropTypes.object.isRequired,

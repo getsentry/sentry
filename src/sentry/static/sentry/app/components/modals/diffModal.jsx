@@ -1,4 +1,5 @@
 import React from 'react';
+import createReactClass from 'create-react-class';
 import {browserHistory} from 'react-router';
 import Reflux from 'reflux';
 import Modal from 'react-bootstrap/lib/Modal';
@@ -9,7 +10,8 @@ import ProjectModalStore from '../../stores/projectModalStore';
 import ProjectActions from '../../actions/projectActions';
 import '../../../less/components/modals/diffModal.less';
 
-const DiffModal = React.createClass({
+const DiffModal = createReactClass({
+  displayName: 'DiffModal',
   mixins: [Reflux.connect(ProjectModalStore, 'diffModal')],
 
   componentDidMount() {

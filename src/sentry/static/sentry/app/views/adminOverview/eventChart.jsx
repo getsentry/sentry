@@ -1,12 +1,16 @@
 import PropTypes from 'prop-types';
 import React from 'react';
 
+import createReactClass from 'create-react-class';
+
 import ApiMixin from '../../mixins/apiMixin';
 import StackedBarChart from '../../components/stackedBarChart';
 import LoadingError from '../../components/loadingError';
 import LoadingIndicator from '../../components/loadingIndicator';
 
-export default React.createClass({
+export default createReactClass({
+  displayName: 'eventChart',
+
   propTypes: {
     since: PropTypes.number.isRequired,
     resolution: PropTypes.string.isRequired,
@@ -45,13 +49,13 @@ export default React.createClass({
           key: statName,
         },
         success: data => {
-          this.state.rawData[statName] = data;
-          this.setState(
-            {
-              rawData: this.state.rawData,
-            },
-            this.requestFinished
-          );
+          this.setState(prevState => {
+            let rawData = prevState.rawData;
+            rawData[statName] = data;
+            return {
+              rawData,
+            };
+          }, this.requestFinished);
         },
         error: data => {
           this.setState({

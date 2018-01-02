@@ -1,4 +1,5 @@
 import React from 'react';
+import createReactClass from 'create-react-class';
 import Modal from 'react-bootstrap/lib/Modal';
 
 import ApiMixin from '../mixins/apiMixin';
@@ -10,7 +11,8 @@ import FileSize from '../components/fileSize';
 import TimeSince from '../components/timeSince';
 import {t} from '../locale';
 
-const ProjectDebugSymbols = React.createClass({
+const ProjectDebugSymbols = createReactClass({
+  displayName: 'ProjectDebugSymbols',
   mixins: [ApiMixin, OrganizationState],
 
   getInitialState() {

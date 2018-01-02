@@ -4,6 +4,7 @@ import moment from 'moment';
 import Raven from 'raven-js';
 import React from 'react';
 import ReactDOM from 'react-dom';
+import createReactClass from 'create-react-class';
 import {AppContainer} from 'react-hot-loader';
 import PropTypes from 'prop-types';
 import {renderToStaticMarkup} from 'react-dom/server';
@@ -82,6 +83,7 @@ export default {
   ReactDOMServer: {
     renderToStaticMarkup,
   },
+  createReactClass,
   ReactBootstrap: {
     Modal: ReactBootstrapModal,
   },

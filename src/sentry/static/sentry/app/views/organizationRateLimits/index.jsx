@@ -1,10 +1,17 @@
 import React from 'react';
+import PropTypes from 'prop-types';
+
+import createReactClass from 'create-react-class';
 
 import OrganizationState from '../../mixins/organizationState';
 import LazyLoad from '../../components/lazyLoad';
 import getSettingsComponent from '../../utils/getSettingsComponent';
 
-const OrganizationRateLimits = React.createClass({
+const OrganizationRateLimits = createReactClass({
+  displayName: 'OrganizationRateLimits',
+  propTypes: {
+    routes: PropTypes.array,
+  },
   mixins: [OrganizationState],
 
   render() {

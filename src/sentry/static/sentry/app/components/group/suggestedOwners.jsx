@@ -1,5 +1,6 @@
 import PropTypes from 'prop-types';
 import React from 'react';
+import createReactClass from 'create-react-class';
 import ReactDOMServer from 'react-dom/server';
 import moment from 'moment';
 
@@ -9,7 +10,9 @@ import ApiMixin from '../../mixins/apiMixin';
 import GroupState from '../../mixins/groupState';
 import {t} from '../../locale';
 
-const SuggestedOwners = React.createClass({
+const SuggestedOwners = createReactClass({
+  displayName: 'SuggestedOwners',
+
   propTypes: {
     event: PropTypes.object,
   },

@@ -1,6 +1,8 @@
 import PropTypes from 'prop-types';
 import React from 'react';
 
+import createReactClass from 'create-react-class';
+
 import ApiMixin from '../mixins/apiMixin';
 import CompactIssue from './compactIssue';
 import LoadingError from './loadingError';
@@ -8,7 +10,9 @@ import LoadingIndicator from './loadingIndicator';
 import Pagination from './pagination';
 import {t} from '../locale';
 
-const IssueList = React.createClass({
+const IssueList = createReactClass({
+  displayName: 'IssueList',
+
   propTypes: {
     endpoint: PropTypes.string.isRequired,
     query: PropTypes.object,

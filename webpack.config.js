@@ -53,6 +53,7 @@ var appEntry = {
     'bootstrap/js/tab',
     'bootstrap/js/tooltip',
     'bootstrap/js/alert',
+    'create-react-class',
     'crypto-js/md5',
     'jed',
     'jquery',

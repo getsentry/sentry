@@ -1,6 +1,7 @@
 import jQuery from 'jquery';
 import PropTypes from 'prop-types';
 import React from 'react';
+import createReactClass from 'create-react-class';
 import Reflux from 'reflux';
 
 import AssigneeSelector from '../assigneeSelector';
@@ -15,7 +16,9 @@ import EventOrGroupExtraDetails from '../eventOrGroupExtraDetails';
 
 import {valueIsEqual} from '../../utils';
 
-const StreamGroup = React.createClass({
+const StreamGroup = createReactClass({
+  displayName: 'StreamGroup',
+
   propTypes: {
     id: PropTypes.string.isRequired,
     orgId: PropTypes.string.isRequired,

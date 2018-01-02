@@ -1,5 +1,6 @@
 import PropTypes from 'prop-types';
 import React from 'react';
+import createReactClass from 'create-react-class';
 import Reflux from 'reflux';
 import classNames from 'classnames';
 
@@ -12,7 +13,9 @@ import SpreadLayout from '../../components/spreadLayout';
 
 import '../../../less/components/mergedItem.less';
 
-const MergedItem = React.createClass({
+const MergedItem = createReactClass({
+  displayName: 'MergedItem',
+
   propTypes: {
     orgId: PropTypes.string.isRequired,
     projectId: PropTypes.string.isRequired,
