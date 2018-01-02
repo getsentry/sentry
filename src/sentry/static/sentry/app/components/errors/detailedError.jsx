@@ -3,7 +3,7 @@ import React from 'react';
 import classNames from 'classnames';
 
 import {t} from '../../locale';
-import IconCircleExclamation from '../../icons/icon-circle-exclamation';
+import InlineSvg from '../../components/inlineSvg';
 
 class DetailedError extends React.Component {
   static propTypes = {
@@ -31,7 +31,7 @@ class DetailedError extends React.Component {
     return (
       <div className={cx}>
         <div className="detailed-error-icon">
-          <IconCircleExclamation />
+          <InlineSvg src="icon-circle-exclamation" />
         </div>
         <div className="detailed-error-content">
           <h4>{heading}</h4>
