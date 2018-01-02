@@ -1,17 +1,17 @@
 from __future__ import absolute_import
 
-import json
-
 from django.contrib import auth
 from rest_framework.response import Response
+from rest_framework.permissions import IsAuthenticated
 from sudo.utils import grant_sudo_privileges
 
 from sentry.api.base import Endpoint
 from sentry.models import Authenticator
+from sentry.utils import json
 
 
 class SudoEndpoint(Endpoint):
-    permission_classes = ()
+    permission_classes = (IsAuthenticated)
 
     def post(self, request):
         authenticated = False
