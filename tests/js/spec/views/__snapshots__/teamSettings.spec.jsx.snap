@@ -15,7 +15,9 @@ exports[`TeamSettings render() renders 1`] = `
         apiMethod="PUT"
         cancelLabel="Cancel"
         className="form-stacked"
+        errorMessage="Unable to save your changes. Please ensure all fields are valid and try again."
         footerClass="form-actions align-right"
+        hideErrors={false}
         initialData={
           Object {
             "name": "Team Name",
@@ -24,6 +26,7 @@ exports[`TeamSettings render() renders 1`] = `
         }
         onSubmitSuccess={[Function]}
         requireChanges={true}
+        resetOnError={false}
         submitDisabled={false}
         submitLabel="Save Changes"
       >

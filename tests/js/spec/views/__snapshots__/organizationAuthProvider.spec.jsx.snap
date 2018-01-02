@@ -61,7 +61,9 @@ exports[`OrganizationAuthProvider renders 1`] = `
         apiMethod="PUT"
         cancelLabel="Cancel"
         className="form-stacked"
+        errorMessage="Unable to save your changes. Please ensure all fields are valid and try again."
         footerClass="form-actions align-right"
+        hideErrors={false}
         initialData={
           Object {
             "auth_provider": Object {
@@ -78,6 +80,7 @@ exports[`OrganizationAuthProvider renders 1`] = `
         }
         onSubmit={[Function]}
         requireChanges={false}
+        resetOnError={false}
         submitDisabled={false}
         submitLabel="Save Settings"
       >
@@ -311,7 +314,9 @@ exports[`OrganizationAuthProvider renders with Unlinked members  1`] = `
         apiMethod="PUT"
         cancelLabel="Cancel"
         className="form-stacked"
+        errorMessage="Unable to save your changes. Please ensure all fields are valid and try again."
         footerClass="form-actions align-right"
+        hideErrors={false}
         initialData={
           Object {
             "auth_provider": Object {
@@ -328,6 +333,7 @@ exports[`OrganizationAuthProvider renders with Unlinked members  1`] = `
         }
         onSubmit={[Function]}
         requireChanges={false}
+        resetOnError={false}
         submitDisabled={false}
         submitLabel="Save Settings"
       >
@@ -492,7 +498,9 @@ Array [
       apiMethod="PUT"
       cancelLabel="Cancel"
       className="form-stacked"
+      errorMessage="Unable to save your changes. Please ensure all fields are valid and try again."
       footerClass="form-actions align-right"
+      hideErrors={false}
       initialData={
         Object {
           "auth_provider": Object {
@@ -509,6 +517,7 @@ Array [
       }
       onSubmit={[Function]}
       requireChanges={false}
+      resetOnError={false}
       submitDisabled={false}
       submitLabel="Save Settings"
     >

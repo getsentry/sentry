@@ -15,10 +15,10 @@ class U2fSign extends React.Component {
   };
 
   render() {
-    const {displayMode} = this.props;
+    const {displayMode, ...props} = this.props;
     return (
       <U2fInterface
-        challengeData={this.props.challengeData}
+        {...props}
         silentIfUnsupported={displayMode === 'sudo'}
         flowMode={'sign'}
       >
