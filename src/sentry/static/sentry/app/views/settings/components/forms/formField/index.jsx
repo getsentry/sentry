@@ -14,8 +14,7 @@ import FormFieldHelp from './formFieldHelp';
 import FormFieldLabel from './formFieldLabel';
 import FormFieldRequiredBadge from './formFieldRequiredBadge';
 
-import IconCheckmarkSm from '../../../../../icons/icon-checkmark-sm';
-import IconWarningSm from '../../../../../icons/icon-warning-sm';
+import InlineSvg from '../../../../../components/inlineSvg';
 import Spinner from '../styled/spinner';
 import {pulse, fadeOut} from '../styled/animations';
 
@@ -282,7 +281,7 @@ class FormField extends React.Component {
               } else if (isSaved) {
                 return (
                   <FormFieldIsSaved>
-                    <IconCheckmarkSm size="18" />
+                    <InlineSvg src="icon-checkmark-sm" size="18px" />
                   </FormFieldIsSaved>
                 );
               }
@@ -299,7 +298,7 @@ class FormField extends React.Component {
 
               return (
                 <FormFieldError>
-                  <IconWarningSm size="18" />
+                  <InlineSvg src="icon-warning-sm" size="18px" />
                 </FormFieldError>
               );
             }}
