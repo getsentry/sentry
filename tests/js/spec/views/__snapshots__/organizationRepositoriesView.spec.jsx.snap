@@ -10,6 +10,7 @@ exports[`OrganizationRepositoriesView render() without any providers is loading 
     errors={Object {}}
     itemList={Array []}
     loading={false}
+    needsVerification={false}
     onAddRepo={[Function]}
     onCancelDelete={[Function]}
     onDeleteRepo={[Function]}

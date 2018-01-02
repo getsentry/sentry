@@ -2,14 +2,16 @@ from __future__ import absolute_import
 
 from django.contrib.auth import logout
 from django.contrib.auth.models import AnonymousUser
+from rest_framework.authentication import SessionAuthentication
 from rest_framework.response import Response
 
 from sentry.api.authentication import QuietBasicAuthentication
 from sentry.api.base import Endpoint
 from sentry.api.serializers import serialize
-from sentry.auth.superuser import is_active_superuser
+from sentry.api.validators import AuthVerifyValidator
 from sentry.models import Authenticator
 from sentry.utils import auth
+from sentry.utils.functional import extract_lazy_object
 
 
 class AuthIndexEndpoint(Endpoint):
@@ -21,7 +23,10 @@ class AuthIndexEndpoint(Endpoint):
     and simple HTTP authentication.
     """
 
-    authentication_classes = [QuietBasicAuthentication]
+    authentication_classes = [
+        QuietBasicAuthentication,
+        SessionAuthentication,
+    ]
 
     permission_classes = ()
 
@@ -33,8 +38,14 @@ class AuthIndexEndpoint(Endpoint):
         if not request.user.is_authenticated():
             return Response(status=400)
 
-        data = serialize(request.user, request.user)
-        data['isSuperuser'] = is_active_superuser(request)
+        user = extract_lazy_object(request._request.user)
+        data = serialize(user, user)
+        # XXX(dcramer): we dont use is_active_superuser here as we simply
+        # want to tell the UI that we're an authenticated superuser, and
+        # for requests that require an *active* session, they should prompt
+        # on-demand. This ensures things like links to the Sentry admin can
+        # still easily be rendered.
+        data['isSuperuser'] = user.is_superuser
         return Response(data)
 
     def post(self, request):
@@ -77,6 +88,42 @@ class AuthIndexEndpoint(Endpoint):
                 },
                 status=403
             )
+
+        request.user = request._request.user
+
+        return self.get(request)
+
+    def put(self, request):
+        """
+        Verify a User
+        `````````````
+
+        This endpoint verifies the currently authenticated user (for example, to gain superuser).
+
+        :auth: required
+        """
+        if not request.user.is_authenticated():
+            return Response(status=401)
+
+        validator = AuthVerifyValidator(data=request.DATA)
+        if not validator.is_valid():
+            return self.respond(validator.errors, status=400)
+
+        if not request.user.check_password(validator.object['password']):
+            return Response(status=403)
+
+        try:
+            # Must use the real request object that Django knows about
+            auth.login(request._request, request.user)
+        except auth.AuthUserPasswordExpired:
+            return Response(
+                {
+                    'message': 'Cannot sign-in with basic auth because password has expired.',
+                },
+                status=403
+            )
+
+        request.user = request._request.user
 
         return self.get(request)
 

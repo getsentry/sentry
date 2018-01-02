@@ -2,6 +2,7 @@ from __future__ import absolute_import
 
 from rest_framework import permissions
 
+from sentry.api.exceptions import NeedSuperuserUpgrade
 from sentry.auth.superuser import is_active_superuser
 
 
@@ -46,4 +47,6 @@ class SuperuserPermission(permissions.BasePermission):
     def has_permission(self, request, view):
         if is_active_superuser(request):
             return True
+        if request.user.is_authenticated() and request.user.is_superuser:
+            raise NeedSuperuserUpgrade
         return False

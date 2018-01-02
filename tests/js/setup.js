@@ -23,7 +23,7 @@ jest.mock('react-router', () => {
   };
 });
 
-const constantDate = new Date('2017-10-17T04:41:20'); //National Pasta Day
+const constantDate = new Date(1508208080000); //National Pasta Day
 MockDate.set(constantDate);
 
 // We generally use actual jQuery, and jest mocks takes precedence over node_modules

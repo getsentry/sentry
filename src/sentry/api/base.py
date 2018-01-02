@@ -27,6 +27,7 @@ from sentry.utils.http import absolute_uri, is_valid_origin
 from sentry.utils.audit import create_audit_entry
 
 from .authentication import ApiKeyAuthentication, TokenAuthentication
+from .exceptions import NeedSuperuserUpgrade
 from .paginator import Paginator
 from .permissions import NoPermission
 
@@ -84,7 +85,7 @@ class Endpoint(APIView):
 
     def handle_exception(self, request, exc):
         try:
-            return super(Endpoint, self).handle_exception(exc)
+            response = super(Endpoint, self).handle_exception(exc)
         except Exception as exc:
             import sys
             import traceback
@@ -94,7 +95,9 @@ class Endpoint(APIView):
                 'detail': 'Internal Error',
                 'errorId': event_id,
             }
-            return Response(context, status=500)
+            response = Response(context, status=500)
+            response.exception = True
+        return response
 
     def create_audit_entry(self, request, transaction_id=None, **kwargs):
         return create_audit_entry(request, transaction_id, audit_logger, **kwargs)
@@ -166,6 +169,10 @@ class Endpoint(APIView):
                 request.access = access.from_request(request)
 
             response = handler(request, *args, **kwargs)
+
+        except NeedSuperuserUpgrade as exc:
+            response = self.handle_exception(request, exc)
+            response.data['needsSuperuser'] = True
 
         except Exception as exc:
             response = self.handle_exception(request, exc)
