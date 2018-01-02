@@ -5,12 +5,13 @@ import {Link} from 'react-router';
 import PropTypes from 'prop-types';
 
 import withPlugins from '../../utils/withPlugins';
-
+import SentryTypes from '../../proptypes';
 
 const PluginNavigation = createReactClass({
   displayName: 'PluginNavigation',
   propTypes: {
     urlRoot: PropTypes.string,
+    plugins: PropTypes.arrayOf(SentryTypes.PluginShape),
   },
 
   render() {

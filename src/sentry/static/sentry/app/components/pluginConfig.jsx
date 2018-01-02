@@ -18,6 +18,7 @@ const PluginConfig = createReactClass({
     project: PropTypes.object.isRequired,
     data: PropTypes.object.isRequired,
     onDisablePlugin: PropTypes.func,
+    enabled: PropTypes.bool,
   },
 
   mixins: [ApiMixin],

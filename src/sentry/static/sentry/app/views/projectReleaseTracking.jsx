@@ -1,7 +1,6 @@
 import PropTypes from 'prop-types';
 import React from 'react';
 import createReactClass from 'create-react-class';
-import _ from 'lodash';
 
 import {t, tct} from '../locale';
 import AlertActions from '../actions/alertActions';
@@ -10,6 +9,7 @@ import LoadingError from '../components/loadingError';
 import LoadingIndicator from '../components/loadingIndicator';
 import PluginList from '../components/pluginList';
 import withPlugins from '../utils/withPlugins';
+import SentryTypes from '../proptypes';
 
 const ProjectReleaseTracking = createReactClass({
   displayName: 'ProjectReleaseTracking',
@@ -17,6 +17,7 @@ const ProjectReleaseTracking = createReactClass({
   propTypes: {
     organization: PropTypes.object,
     project: PropTypes.object,
+    plugins: PropTypes.arrayOf(SentryTypes.PluginShape),
   },
 
   mixins: [ApiMixin],
