@@ -50,3 +50,21 @@ class UserListTest(APITestCase):
         resp = self.client.get(url, format='json')
 
         assert resp.status_code == 200
+
+    def test_returns_correct_defaults(self):
+        user = self.create_user(email='a@example.com')
+
+        self.login_as(user=user)
+
+        url = reverse(
+            'sentry-api-0-user-notifications', kwargs={
+                'user_id': 'me',
+            }
+        )
+        resp = self.client.get(url, format='json')
+
+        assert resp.data.get('deployNotifications') == 3
+        assert resp.data.get('personalActivityNotifications') is False
+        assert resp.data.get('selfAssignOnResolve') is False
+        assert resp.data.get('subscribeByDefault') is True
+        assert resp.data.get('workflowNotifications') == 0
