@@ -206,6 +206,7 @@ MAX_SYM = 256
 
 # Known dsym mimetypes
 KNOWN_DSYM_TYPES = {
+    'text/x-breakpad': 'breakpad',
     'application/x-mach-binary': 'macho',
     'text/x-proguard+plain': 'proguard',
 }
