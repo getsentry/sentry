@@ -9,6 +9,10 @@ const forms = [
         help: 'Alerts are defined in [Project] » Project Settings » Alerts » Rules.',
       },
     ],
+    fineTuning: {
+      text: 'Fine tune alerts by project',
+      path: 'alerts/',
+    },
   },
 
   {
@@ -22,6 +26,10 @@ const forms = [
         help: 'E.g. changes in issue assignment, resolution status, and comments.',
       },
     ],
+    fineTuning: {
+      text: 'Fine tune workflow notifications by project',
+      path: 'workflow-notifications/',
+    },
   },
 
   {
@@ -34,6 +42,10 @@ const forms = [
         help: "Reports contain a summary of what's happened within your organization.",
       },
     ],
+    fineTuning: {
+      text: 'Fine tune weekly reports by organization',
+      path: 'weekly-reports/',
+    },
   },
 
   {
@@ -47,6 +59,10 @@ const forms = [
         help: 'Deploy emails include release, environment and commit overviews.',
       },
     ],
+    fineTuning: {
+      text: 'Fine tune deploy notifications by organization',
+      path: 'deploy-notifications/',
+    },
   },
 
   {
