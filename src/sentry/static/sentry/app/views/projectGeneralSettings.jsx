@@ -1,3 +1,4 @@
+import PropTypes from 'prop-types';
 import React from 'react';
 
 import {
@@ -27,7 +28,7 @@ class ListAsTextareaField extends TextareaField {
 
 export default class ProjectGeneralSettings extends AsyncView {
   static contextTypes = {
-    organization: React.PropTypes.object.isRequired,
+    organization: PropTypes.object.isRequired,
   };
 
   getEndpoint() {

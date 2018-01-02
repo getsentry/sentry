@@ -1,5 +1,6 @@
 import PropTypes from 'prop-types';
 import React from 'react';
+import createReactClass from 'create-react-class';
 import PureRenderMixin from 'react-addons-pure-render-mixin';
 import Reflux from 'reflux';
 import {capitalize} from 'lodash';
@@ -98,7 +99,9 @@ ExtraDescription.propTypes = {
   query: PropTypes.string,
 };
 
-const StreamActions = React.createClass({
+const StreamActions = createReactClass({
+  displayName: 'StreamActions',
+
   propTypes: {
     allResultsVisible: PropTypes.bool,
     orgId: PropTypes.string.isRequired,

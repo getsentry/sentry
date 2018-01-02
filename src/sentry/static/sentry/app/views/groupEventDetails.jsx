@@ -1,4 +1,5 @@
 import React from 'react';
+import createReactClass from 'create-react-class';
 import ApiMixin from '../mixins/apiMixin';
 import EventEntries from '../components/events/eventEntries';
 import GroupEventToolbar from './groupDetails/eventToolbar';
@@ -9,7 +10,8 @@ import GroupEventDetailsLoadingError from '../components/errors/groupEventDetail
 import LoadingIndicator from '../components/loadingIndicator';
 import ResolutionBox from '../components/resolutionBox';
 
-const GroupEventDetails = React.createClass({
+const GroupEventDetails = createReactClass({
+  displayName: 'GroupEventDetails',
   mixins: [ApiMixin, GroupState],
 
   getInitialState() {

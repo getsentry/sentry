@@ -1,5 +1,6 @@
 import PropTypes from 'prop-types';
 import React from 'react';
+import createReactClass from 'create-react-class';
 import Reflux from 'reflux';
 import {Link} from 'react-router';
 import {Sparklines, SparklinesLine} from 'react-sparklines';
@@ -20,27 +21,27 @@ import OrganizationState from '../mixins/organizationState';
 import {t} from '../locale';
 import {sortArray} from '../utils';
 
-const AssignedIssues = React.createClass({
-  propTypes: {
+class AssignedIssues extends React.Component {
+  static propTypes = {
     statsPeriod: PropTypes.string,
     pageSize: PropTypes.number,
-  },
+  };
 
-  getEndpoint() {
+  getEndpoint = () => {
     return `/organizations/${this.props.params.orgId}/members/me/issues/assigned/?`;
-  },
+  };
 
-  getViewMoreLink() {
+  getViewMoreLink = () => {
     return `/organizations/${this.props.params.orgId}/issues/assigned/`;
-  },
+  };
 
-  renderEmpty() {
+  renderEmpty = () => {
     return <div className="box empty">{t('No issues have been assigned to you.')}</div>;
-  },
+  };
 
-  refresh() {
+  refresh = () => {
     this.refs.issueList.remountComponent();
-  },
+  };
 
   render() {
     return (
@@ -72,30 +73,30 @@ const AssignedIssues = React.createClass({
         />
       </div>
     );
-  },
-});
+  }
+}
 
-const NewIssues = React.createClass({
-  propTypes: {
+class NewIssues extends React.Component {
+  static propTypes = {
     statsPeriod: PropTypes.string,
     pageSize: PropTypes.number,
-  },
+  };
 
-  getEndpoint() {
+  getEndpoint = () => {
     return `/organizations/${this.props.params.orgId}/issues/new/`;
-  },
+  };
 
-  renderEmpty() {
+  renderEmpty = () => {
     return (
       <div className="box empty">
         {t('No new issues have been seen in the last week.')}
       </div>
     );
-  },
+  };
 
-  refresh() {
+  refresh = () => {
     this.refs.issueList.remountComponent();
-  },
+  };
 
   render() {
     return (
@@ -124,8 +125,8 @@ const NewIssues = React.createClass({
         />
       </div>
     );
-  },
-});
+  }
+}
 
 function ProjectSparkline(props) {
   let values = props.data.map(tuple => tuple[1]);
@@ -143,7 +144,9 @@ ProjectSparkline.propTypes = {
   data: PropTypes.array.isRequired,
 };
 
-const ProjectList = React.createClass({
+const ProjectList = createReactClass({
+  displayName: 'ProjectList',
+
   propTypes: {
     teams: PropTypes.array,
     maxProjects: PropTypes.number,
@@ -224,14 +227,14 @@ const ProjectList = React.createClass({
   },
 });
 
-const Activity = React.createClass({
-  getEndpoint() {
+class Activity extends React.Component {
+  getEndpoint = () => {
     return `/organizations/${this.props.params.orgId}/activity/`;
-  },
+  };
 
-  refresh() {
+  refresh = () => {
     this.refs.activityFeed.remountComponent();
-  },
+  };
 
   render() {
     return (
@@ -257,10 +260,11 @@ const Activity = React.createClass({
         />
       </div>
     );
-  },
-});
+  }
+}
 
-const OrganizationDashboard = React.createClass({
+const OrganizationDashboard = createReactClass({
+  displayName: 'OrganizationDashboard',
   mixins: [ApiMixin, Reflux.listenTo(TeamStore, 'onTeamListChange')],
 
   getDefaultProps() {

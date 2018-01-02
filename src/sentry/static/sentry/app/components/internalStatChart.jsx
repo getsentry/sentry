@@ -2,6 +2,7 @@
 import PropTypes from 'prop-types';
 
 import React from 'react';
+import createReactClass from 'create-react-class';
 import _ from 'lodash';
 
 import ApiMixin from '../mixins/apiMixin';
@@ -9,7 +10,9 @@ import BarChart from '../components/barChart';
 import LoadingError from '../components/loadingError';
 import LoadingIndicator from '../components/loadingIndicator';
 
-export default React.createClass({
+export default createReactClass({
+  displayName: 'internalStatChart',
+
   propTypes: {
     since: PropTypes.number.isRequired,
     resolution: PropTypes.string.isRequired,

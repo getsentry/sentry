@@ -1,6 +1,7 @@
 import PropTypes from 'prop-types';
 import React from 'react';
 import styled from 'react-emotion';
+import createReactClass from 'create-react-class';
 
 import Panel from '../components/panel';
 import PanelBody from '../components/panelBody';
@@ -13,7 +14,9 @@ import LoadingError from '../../../components/loadingError';
 import LoadingIndicator from '../../../components/loadingIndicator';
 import {t} from '../../../locale';
 
-const AvatarSettings = React.createClass({
+const AvatarSettings = createReactClass({
+  displayName: 'AvatarSettings',
+
   propTypes: {
     userId: PropTypes.number,
   },

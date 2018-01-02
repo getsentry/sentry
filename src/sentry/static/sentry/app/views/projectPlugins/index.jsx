@@ -1,4 +1,5 @@
 import React from 'react';
+import createReactClass from 'create-react-class';
 import Reflux from 'reflux';
 
 import {fetchPlugins, enablePlugin, disablePlugin} from '../../actionCreators/plugins';
@@ -6,8 +7,10 @@ import ApiMixin from '../../mixins/apiMixin';
 import PluginsStore from '../../stores/pluginsStore';
 import ProjectPlugins from './projectPlugins';
 
-const ProjectPluginsContainer = React.createClass({
+const ProjectPluginsContainer = createReactClass({
+  displayName: 'ProjectPluginsContainer',
   mixins: [ApiMixin, Reflux.connect(PluginsStore, 'store')],
+
   componentDidMount() {
     this.fetchData();
   },

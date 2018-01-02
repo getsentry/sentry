@@ -1,6 +1,8 @@
 import PropTypes from 'prop-types';
 import React from 'react';
 
+import createReactClass from 'create-react-class';
+
 import ApiMixin from '../../mixins/apiMixin';
 import LanguageNav from './languageNav';
 import LoadingError from '../../components/loadingError';
@@ -9,7 +11,9 @@ import NotFound from '../../components/errors/notFound';
 import Link from '../../components/link';
 import {t, tct} from '../../locale';
 
-const ProjectInstallPlatform = React.createClass({
+const ProjectInstallPlatform = createReactClass({
+  displayName: 'ProjectInstallPlatform',
+
   propTypes: {
     platformData: PropTypes.object.isRequired,
     linkPath: PropTypes.func,

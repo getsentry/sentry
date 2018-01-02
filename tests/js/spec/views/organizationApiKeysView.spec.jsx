@@ -1,3 +1,4 @@
+import PropTypes from 'prop-types';
 import React from 'react';
 import {mount} from 'enzyme';
 
@@ -5,9 +6,9 @@ import {Client} from 'app/api';
 import OrganizationApiKeysView from 'app/views/settings/organization/apiKeys/organizationApiKeysView';
 
 const childContextTypes = {
-  organization: React.PropTypes.object,
-  router: React.PropTypes.object,
-  location: React.PropTypes.object,
+  organization: PropTypes.object,
+  router: PropTypes.object,
+  location: PropTypes.object,
 };
 
 const routes = [
