@@ -59,7 +59,10 @@ const ProjectEvents = React.createClass({
     if (query !== '') targetQueryParams.query = query;
 
     let {orgId, projectId} = this.props.params;
-    browserHistory.pushState(null, `/${orgId}/${projectId}/events/`, targetQueryParams);
+    browserHistory.push({
+      pathname: `/${orgId}/${projectId}/events/`,
+      query: targetQueryParams,
+    });
   },
 
   fetchData() {

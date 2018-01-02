@@ -19,7 +19,7 @@ describe('ProjectReleases', function() {
 
     sandbox.stub(Client.prototype, 'request');
     stubReactComponents(sandbox, [SearchBar, Pagination]);
-    sandbox.stub(browserHistory, 'pushState');
+    sandbox.stub(browserHistory, 'push');
 
     props = {
       setProjectNavSection: function() {},
@@ -51,11 +51,9 @@ describe('ProjectReleases', function() {
     it('should change query string with new search parameter', function() {
       projectReleases.instance().onSearch('searchquery');
 
-      expect(browserHistory.pushState.calledOnce).toBeTruthy();
-      expect(browserHistory.pushState.args[0]).toEqual([
-        null,
-        '/123/456/releases/',
-        {query: 'searchquery'},
+      expect(browserHistory.push.calledOnce).toBeTruthy();
+      expect(browserHistory.push.args[0]).toEqual([
+        {pathname: '/123/456/releases/', query: {query: 'searchquery'}},
       ]);
     });
   });

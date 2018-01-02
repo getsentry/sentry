@@ -83,8 +83,7 @@ const GroupDetails = React.createClass({
         // https://github.com/reactjs/react-router/blob/v2.0.1/modules/index.js#L25
         if (this.props.params.groupId != data.id) {
           let location = this.props.location;
-          return void browserHistory.pushState(
-            null,
+          return void browserHistory.push(
             location.pathname.replace(
               `/issues/${this.props.params.groupId}/`,
               `/issues/${data.id}/`
