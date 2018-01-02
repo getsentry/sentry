@@ -27,7 +27,6 @@ from sentry import filters
 from sentry.cache import default_cache
 from sentry.interfaces.csp import Csp
 from sentry.event_manager import EventManager
-from sentry.lang.native.utils import merge_minidump_event
 from sentry.models import ProjectKey
 from sentry.tasks.store import preprocess_event, \
     preprocess_event_from_reprocessing
@@ -381,50 +380,6 @@ class MinidumpApiHelper(ClientApiHelper):
         auth = Auth({'sentry_key': key}, is_public=True)
         auth.client = 'sentry-minidump'
         return auth
-
-    def validate_data(self, data):
-        try:
-            release = data.pop('release')
-        except KeyError:
-            release = None
-
-        # Minidump request payloads do not have the same structure as
-        # usual events from other SDKs. Most importantly, all parameters
-        # passed in the POST body are only "extra" information. The
-        # actual information is in the "upload_file_minidump" field.
-
-        # At this point, we only extract the bare minimum information
-        # needed to continue processing. If all validations pass, the
-        # event will be inserted into the database, at which point we
-        # can process the minidump and extract a little more information.
-
-        validated = {
-            'platform': 'native',
-            'extra': data,
-            'errors': [],
-            'sentry.interfaces.User': {
-                'ip_address': self.context.ip_address,
-            },
-        }
-
-        # Copy/pasted from above in ClientApiHelper.validate_data
-        if release:
-            release = six.text_type(release)
-
-        return validated
-
-    def insert_data_to_database(self, data, start_time=None, from_reprocessing=False):
-        # Seems like the event is valid and we can do some more expensive
-        # work on the minidump. We process the minidump to extract some more
-        # information to populate the initial callstacks and exception
-        # information.
-        minidump = data['extra'].pop('upload_file_minidump')
-        merge_minidump_event(data, minidump.temporary_file_path())
-
-        # Continue with persisting the event in the usual manner and
-        # schedule default preprocessing tasks
-        super(MinidumpApiHelper, self).insert_data_to_database(
-            data, start_time, from_reprocessing)
 
 
 class CspApiHelper(ClientApiHelper):
