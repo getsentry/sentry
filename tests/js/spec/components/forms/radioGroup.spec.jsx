@@ -9,8 +9,12 @@ describe('RadioGroup', function() {
       const wrapper = shallow(
         <RadioGroup
           name="radio"
-          value={0}
-          choices={[[0, 'Choice One'], [1, 'Choice Two'], [2, 'Choice Three']]}
+          value="choice_one"
+          choices={[
+            ['choice_one', 'Choice One'],
+            ['choice_two', 'Choice Two'],
+            ['choice_three', 'Choice Three'],
+          ]}
         />
       );
       expect(wrapper).toMatchSnapshot();
@@ -20,8 +24,12 @@ describe('RadioGroup', function() {
       const wrapper = shallow(
         <RadioGroup
           name="radio"
-          value={2}
-          choices={[[0, 'Choice One'], [1, 'Choice Two'], [2, 'Choice Three']]}
+          value="choice_three"
+          choices={[
+            ['choice_one', 'Choice One'],
+            ['choice_two', 'Choice Two'],
+            ['choice_three', 'Choice Three'],
+          ]}
         />
       );
       expect(wrapper).toMatchSnapshot();
@@ -33,8 +41,12 @@ describe('RadioGroup', function() {
       const wrapper = mount(
         <RadioGroup
           name="radio"
-          value={0}
-          choices={[[0, 'Choice One'], [1, 'Choice Two'], [2, 'Choice Three']]}
+          value="choice_one"
+          choices={[
+            ['choice_one', 'Choice One'],
+            ['choice_two', 'Choice Two'],
+            ['choice_three', 'Choice Three'],
+          ]}
           onChange={mock}
         />
       );
@@ -42,7 +54,7 @@ describe('RadioGroup', function() {
         .find('[role="radio"]')
         .last()
         .simulate('click');
-      expect(mock).toBeCalledWith(expect.any(Number), expect.any(Object));
+      expect(mock).toBeCalledWith(expect.any(String), expect.any(Object));
     });
   });
 });
