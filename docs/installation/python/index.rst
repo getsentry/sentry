@@ -111,7 +111,7 @@ Once your system is prepared, symlink your source into the virtualenv:
 
 .. code-block:: bash
 
-  $ python setup.py develop
+  $ pip install --editable .
 
 .. Note:: This command will install npm dependencies as well as compile
           static assets.
