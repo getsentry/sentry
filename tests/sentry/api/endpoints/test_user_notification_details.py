@@ -5,7 +5,7 @@ from sentry.testutils import APITestCase
 from django.core.urlresolvers import reverse
 
 
-class UserListTest(APITestCase):
+class UserNotificationDetailsTest(APITestCase):
     def test_lookup_self(self):
         user = self.create_user(email='a@example.com')
 
@@ -68,3 +68,43 @@ class UserListTest(APITestCase):
         assert resp.data.get('selfAssignOnResolve') is False
         assert resp.data.get('subscribeByDefault') is True
         assert resp.data.get('workflowNotifications') == 0
+
+    def test_saves_and_returns_values(self):
+        user = self.create_user(email='a@example.com')
+        self.login_as(user=user)
+
+        url = reverse(
+            'sentry-api-0-user-notifications', kwargs={
+                'user_id': 'me',
+            }
+        )
+
+        resp = self.client.put(url, format='json', data={
+            'deployNotifications': 2,
+            'personalActivityNotifications': True,
+            'selfAssignOnResolve': True
+        })
+
+        assert resp.status_code == 200
+
+        assert resp.data.get('deployNotifications') == 2
+        assert resp.data.get('personalActivityNotifications') is True
+        assert resp.data.get('selfAssignOnResolve') is True
+        assert resp.data.get('subscribeByDefault') is True
+        assert resp.data.get('workflowNotifications') == 0
+
+    def test_reject_invalid_values(self):
+        user = self.create_user(email='a@example.com')
+        self.login_as(user=user)
+
+        url = reverse(
+            'sentry-api-0-user-notifications', kwargs={
+                'user_id': 'me',
+            }
+        )
+
+        resp = self.client.put(url, format='json', data={
+            'deployNotifications': 6
+        })
+
+        assert resp.status_code == 400
