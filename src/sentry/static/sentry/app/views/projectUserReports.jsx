@@ -71,11 +71,10 @@ const ProjectUserReports = React.createClass({
       targetQueryParams.status = this.state.status;
 
     let {orgId, projectId} = this.props.params;
-    browserHistory.pushState(
-      null,
-      `/${orgId}/${projectId}/user-feedback/`,
-      targetQueryParams
-    );
+    browserHistory.push({
+      pathname: `/${orgId}/${projectId}/user-feedback/`,
+      query: targetQueryParams,
+    });
   },
 
   fetchData() {
