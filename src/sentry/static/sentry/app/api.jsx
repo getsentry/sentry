@@ -2,6 +2,7 @@ import $ from 'jquery';
 import _ from 'lodash';
 
 import GroupActions from './actions/groupActions';
+import {openSudo} from './actionCreators/sudo';
 
 export class Request {
   constructor(xhr) {
@@ -68,6 +69,31 @@ export class Client {
     }
   }
 
+  handleRequestError({id, path, requestOptions}, response, ...responseArgs) {
+    let isSudoRequired =
+      response && response.responseJSON && response.responseJSON.sudoRequired;
+
+    if (isSudoRequired) {
+      openSudo({
+        retryRequest: () => {
+          return this.requestPromise(path, requestOptions)
+            .then((...args) => {
+              if (typeof requestOptions.success !== 'function') return;
+
+              requestOptions.success(...args);
+            })
+            .catch((...args) => {
+              if (typeof requestOptions.error !== 'function') return;
+              requestOptions.error(...args);
+            });
+        },
+      });
+    } else {
+      // Call normal error callback
+      this.wrapCallback(id, requestOptions.error)(response, ...responseArgs);
+    }
+  }
+
   request(path, options = {}) {
     let query = $.param(options.query || '', true);
     let method = options.method || (options.data ? 'POST' : 'GET');
@@ -102,7 +128,15 @@ export class Client {
           Accept: 'application/json; charset=utf-8',
         },
         success: this.wrapCallback(id, options.success),
-        error: this.wrapCallback(id, options.error),
+        error: (...args) =>
+          this.handleRequestError(
+            {
+              id,
+              path,
+              requestOptions: options,
+            },
+            ...args
+          ),
         complete: this.wrapCallback(id, options.complete, true),
       })
     );
