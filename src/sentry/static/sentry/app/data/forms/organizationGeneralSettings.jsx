@@ -60,8 +60,8 @@ const forms = [
       {
         name: 'require2FA',
         type: 'boolean',
-        label: 'Require 2FA',
-        help: 'Require Two Factor Authentication for all members.',
+        label: 'Require Two-Factor Authentication',
+        help: 'Require two-factor authentication for all members.',
       },
       {
         name: 'allowSharedIssues',

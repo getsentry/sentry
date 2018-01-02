@@ -107,7 +107,7 @@ class Organization(Model):
                 'Enable early adopter status, gaining access to features prior to public release.'
             ), (
                 'require_2fa',
-                'Require and enforce two factor authentication for all members.'
+                'Require and enforce two-factor authentication for all members.'
             ),
         ),
         default=1

@@ -103,7 +103,8 @@ class OrganizationSerializer(serializers.Serializer):
         user = self.context['user']
         has_2fa = Authenticator.objects.user_has_2fa(user)
         if value and not has_2fa:
-            raise serializers.ValidationError('User setting 2FA enforcement without 2FA enabled.')
+            raise serializers.ValidationError(
+                'User setting two-factor authentication enforcement without two-factor authentication enabled.')
         return attrs
 
     def validate(self, attrs):
