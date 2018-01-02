@@ -74,7 +74,7 @@ const SetCallsignsAction = createReactClass({
       method: 'PUT',
       data: {slugs: this.state.slugs},
       success: data => {
-        browserHistory.pushState('refresh', `/${orgId}/`);
+        browserHistory.push({state: 'refresh', pathname: `/${orgId}/`});
       },
       error: error => {
         /*eslint no-console:0*/

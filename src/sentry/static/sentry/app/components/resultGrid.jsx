@@ -264,7 +264,10 @@ const ResultGrid = createReactClass({
 
     e.preventDefault();
 
-    browserHistory.pushState(null, this.props.path, targetQueryParams);
+    browserHistory.push({
+      pathname: this.props.path,
+      query: targetQueryParams,
+    });
   },
 
   onQueryChange(evt) {

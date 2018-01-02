@@ -151,7 +151,7 @@ const ProjectSelector = createReactClass({
       if (this.state.currentIndex > -1) {
         let url = this.getProjectUrlProps(projects[this.state.currentIndex][1]);
         if (url.to) {
-          browserHistory.pushState(null, url.to);
+          browserHistory.push(url.to);
         } else if (url.href) {
           window.location = url.href;
         }

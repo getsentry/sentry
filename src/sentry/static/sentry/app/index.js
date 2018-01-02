@@ -116,7 +116,7 @@ export default {
     Alerts: require('./components/alerts').default,
     AlertActions: require('./actions/alertActions').default,
     // TODO: remove when old personal settings are deprecated
-    AvatarSettings: require('./views/settings/account/avatar').default,
+    AvatarSettings: require('./components/avatarSettings').default,
     mixins: {
       ApiMixin: require('./mixins/apiMixin').default,
       TooltipMixin: require('./mixins/tooltip').default,

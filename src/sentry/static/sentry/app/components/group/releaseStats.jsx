@@ -140,7 +140,10 @@ const GroupReleaseStats = createReactClass({
     let queryParams = Object.assign({}, this.props.location.query);
     queryParams.environment = env;
 
-    browserHistory.pushState(null, this.props.location.pathname, queryParams);
+    browserHistory.push({
+      pathname: this.props.location.pathname,
+      query: queryParams,
+    });
   },
 
   render() {
