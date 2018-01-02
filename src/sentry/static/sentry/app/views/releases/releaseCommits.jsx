@@ -41,10 +41,14 @@ const CommitLink = React.createClass({
         target="_blank"
       >
         {this.props.repository.provider.id == 'github' && (
-          <InlineSvg src="icon-github" style={{verticalAlign: 'text-top'}} size="14" />
+          <InlineSvg src="icon-github" style={{verticalAlign: 'text-top'}} size="14px" />
         )}
         {this.props.repository.provider.id == 'bitbucket' && (
-          <InlineSvg src="icon-bitbucket" style={{verticalAlign: 'text-top'}} size="14" />
+          <InlineSvg
+            src="icon-bitbucket"
+            style={{verticalAlign: 'text-top'}}
+            size="14px"
+          />
         )}
         &nbsp;
         {this.props.inline ? '' : ' '}

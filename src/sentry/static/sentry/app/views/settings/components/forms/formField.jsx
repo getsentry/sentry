@@ -329,7 +329,7 @@ class FormField extends React.Component {
               } else if (isSaved) {
                 return (
                   <SettingsIsSaved>
-                    <InlineSvg src="icon-checkmark-sm" size="18" />
+                    <InlineSvg src="icon-checkmark-sm" size="18px" />
                   </SettingsIsSaved>
                 );
               }
@@ -346,7 +346,7 @@ class FormField extends React.Component {
 
               return (
                 <SettingsError>
-                  <InlineSvg src="icon-warning-sm" size="18" />
+                  <InlineSvg src="icon-warning-sm" size="18px" />
                 </SettingsError>
               );
             }}

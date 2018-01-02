@@ -31,7 +31,7 @@ class SettingsBreadcrumbDivider extends React.Component {
 
     return (
       <StyledDivider isHover={isHover}>
-        <InlineSvg src="icon-chevron-right" size="15" />
+        <InlineSvg src="icon-chevron-right" size="15px" />
       </StyledDivider>
     );
   }
