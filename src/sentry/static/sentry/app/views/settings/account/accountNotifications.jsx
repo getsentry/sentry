@@ -2,12 +2,13 @@ import React from 'react';
 import PropTypes from 'prop-types';
 import {Box} from 'grid-emotion';
 
+import AsyncView from '../../asyncView';
 import Link from '../../../components/link';
 
 import SettingsPageHeader from '../components/settingsPageHeader';
 import accountNotificationFields from '../../../data/forms/accountNotificationSettings';
-import Form from '../components/forms/form';
 
+import ApiForm from '../components/forms/apiForm';
 import FieldFromConfig from '../components/forms/fieldFromConfig';
 import Panel from '../components/panel';
 import PanelBody from '../components/panelBody';
@@ -16,18 +17,26 @@ import PanelFooter from '../components/panelFooter';
 
 import InlineSvg from '../../../components/inlineSvg';
 
-export default class AccountNotifications extends React.Component {
-  render() {
+export default class AccountNotifications extends AsyncView {
+  getEndpoints() {
+    return [['data', '/users/me/notifications/']];
+  }
+
+  renderBody() {
     return (
       <div>
         <SettingsPageHeader label="Notifications" />
-        <Form>
+        <ApiForm
+          initialData={this.state.data}
+          apiMethod="PUT"
+          apiEndpoint={'/users/me/notifications/'}
+        >
           <Box>
             {accountNotificationFields.map(field => {
               return <FormField key={field.title} field={field} />;
             })}
           </Box>
-        </Form>
+        </ApiForm>
       </div>
     );
   }
