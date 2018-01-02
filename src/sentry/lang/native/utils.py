@@ -6,7 +6,7 @@ import logging
 
 from collections import namedtuple
 from django.core.files.uploadedfile import InMemoryUploadedFile, TemporaryUploadedFile
-from symbolic import parse_addr, arch_from_macho, arch_is_known, ProcessState
+from symbolic import parse_addr, arch_from_breakpad, arch_from_macho, arch_is_known, ProcessState
 
 from sentry.interfaces.contexts import DeviceContextType
 
@@ -25,11 +25,6 @@ VERSION_RE = re.compile(r'(\d+\.\d+\.\d+)\s+(.*)')
 # Mapping of well-known minidump OS constants to our internal names
 MINIDUMP_OS_TYPES = {
     'Mac OS X': 'macOS',
-}
-
-# Mapping of well-known minidump CPU families to our internal names
-MINIDUMP_CPU_FAMILIES = {
-    'amd64': 'x86_64',
 }
 
 AppInfo = namedtuple('AppInfo', ['id', 'version', 'build', 'name'])
@@ -179,7 +174,7 @@ def merge_minidump_event(data, minidump):
     device = context.setdefault('device', {})
     os['type'] = 'os'  # Required by "get_sdk_from_event"
     os['name'] = MINIDUMP_OS_TYPES.get(info.os_name, info.os_name)
-    device['arch'] = MINIDUMP_CPU_FAMILIES.get(info.cpu_family, info.cpu_family)
+    device['arch'] = arch_from_breakpad(info.cpu_family)
 
     # Breakpad reports the version and build number always in one string,
     # but a version number is guaranteed even on certain linux distros.
