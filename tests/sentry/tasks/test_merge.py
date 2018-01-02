@@ -127,7 +127,7 @@ class MergeGroupTest(TestCase):
             tagstore.get_group_tag_keys(
                 other.project_id,
                 other.id,
-                environment_id=None)) == 0
+                environment_id=self.environment.id)) == 0
         assert len(
             GroupTagValue.objects.filter(
                 project_id=other.project_id,
@@ -136,13 +136,13 @@ class MergeGroupTest(TestCase):
 
         for key, values_seen in output_group_tag_keys.items():
             assert tagstore.get_group_tag_key(
-                target.project_id, target.id, environment_id=None, key=key).values_seen == values_seen
+                target.project_id, target.id, environment_id=self.environment.id, key=key).values_seen == values_seen
 
         for (key, value), times_seen in output_group_tag_values.items():
             assert tagstore.get_group_tag_value(
                 project_id=target.project_id,
                 group_id=target.id,
-                environment_id=None,
+                environment_id=self.environment.id,
                 key=key,
                 value=value,
             ).times_seen == times_seen

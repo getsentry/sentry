@@ -19,7 +19,6 @@ from operator import or_
 from six.moves import reduce
 
 from sentry import buffer
-from sentry.signals import buffer_incr_complete
 from sentry.tagstore import TagKeyStatus
 from sentry.tagstore.base import TagStorage
 from sentry.utils import db
@@ -35,7 +34,6 @@ class LegacyTagStorage(TagStorage):
 
     def setup(self):
         self.setup_deletions(
-            tagkey_model=TagKey,
             tagvalue_model=TagValue,
             grouptagkey_model=GroupTagKey,
             grouptagvalue_model=GroupTagValue,
@@ -53,14 +51,47 @@ class LegacyTagStorage(TagStorage):
             grouptagvalue_model=GroupTagValue,
         )
 
-        self.setup_tasks(
-            tagkey_model=TagKey,
-        )
-
         self.setup_receivers(
             tagvalue_model=TagValue,
             grouptagvalue_model=GroupTagValue,
         )
+
+    def setup_deletions(self, **kwargs):
+        super(LegacyTagStorage, self).setup_deletions(**kwargs)
+
+        from sentry.deletions import default_manager as deletion_manager
+        from sentry.deletions.base import ModelRelation, ModelDeletionTask
+        from sentry.models import Project
+
+        class TagKeyDeletionTask(ModelDeletionTask):
+            def get_child_relations(self, instance):
+                # in bulk
+                model_list = (GroupTagValue, GroupTagKey, TagValue)
+                relations = [
+                    ModelRelation(m, {
+                        'project_id': instance.project_id,
+                        'key': instance.key,
+                    }) for m in model_list
+                ]
+                return relations
+
+            def mark_deletion_in_progress(self, instance_list):
+                for instance in instance_list:
+                    if instance.status != TagKeyStatus.DELETION_IN_PROGRESS:
+                        instance.update(status=TagKeyStatus.DELETION_IN_PROGRESS)
+
+        deletion_manager.register(TagKey, TagKeyDeletionTask)
+        deletion_manager.add_dependencies(Project, [
+            lambda instance: ModelRelation(TagKey, {'project_id': instance.id}),
+            lambda instance: ModelRelation(TagValue, {'project_id': instance.id}),
+            lambda instance: ModelRelation(GroupTagKey, {'project_id': instance.id}),
+            lambda instance: ModelRelation(GroupTagValue, {'project_id': instance.id}),
+        ])
+
+    def setup_receivers(self, **kwargs):
+        super(LegacyTagStorage, self).setup_receivers(**kwargs)
+
+        from sentry.signals import buffer_incr_complete
 
         # Legacy tag write flow:
         #
@@ -93,29 +124,39 @@ class LegacyTagStorage(TagStorage):
 
         @buffer_incr_complete.connect(sender=TagValue, weak=False)
         def record_project_tag_count(filters, created, **kwargs):
-            from sentry import tagstore
-
             if not created:
                 return
 
             project_id = filters['project_id']
-            environment_id = filters.get('environment_id')
+            key = filters['key']
 
-            tagstore.incr_tag_key_values_seen(project_id, environment_id, filters['key'])
+            buffer.incr(TagKey,
+                        columns={
+                            'values_seen': 1,
+                        },
+                        filters={
+                            'project_id': project_id,
+                            'key': key,
+                        })
 
         @buffer_incr_complete.connect(sender=GroupTagValue, weak=False)
         def record_group_tag_count(filters, created, extra, **kwargs):
-            from sentry import tagstore
-
             if not created:
                 return
 
             project_id = extra['project_id']
             group_id = filters['group_id']
-            environment_id = filters.get('environment_id')
+            key = filters['key']
 
-            tagstore.incr_group_tag_key_values_seen(
-                project_id, group_id, environment_id, filters['key'])
+            buffer.incr(GroupTagKey,
+                        columns={
+                            'values_seen': 1,
+                        },
+                        filters={
+                            'project_id': project_id,
+                            'group_id': group_id,
+                            'key': key,
+                        })
 
     def create_tag_key(self, project_id, environment_id, key, **kwargs):
         return TagKey.objects.create(project_id=project_id, key=key, **kwargs)
@@ -149,6 +190,13 @@ class LegacyTagStorage(TagStorage):
             project_id=project_id, group_id=group_id, key=key, value=value, **kwargs)
 
     def create_event_tags(self, project_id, group_id, environment_id, event_id, tags):
+        tag_ids = []
+        for key, value in tags:
+            tagkey, _ = self.get_or_create_tag_key(project_id, environment_id, key)
+            tagvalue, _ = self.get_or_create_tag_value(
+                project_id, environment_id, key, value)
+            tag_ids.append((tagkey.id, tagvalue.id))
+
         try:
             # don't let a duplicate break the outer transaction
             with transaction.atomic():
@@ -163,7 +211,7 @@ class LegacyTagStorage(TagStorage):
                         key_id=key_id,
                         value_id=value_id,
                     )
-                    for key_id, value_id in tags
+                    for key_id, value_id in tag_ids
                 ])
         except IntegrityError:
             pass
@@ -267,7 +315,7 @@ class LegacyTagStorage(TagStorage):
             ).update(status=TagKeyStatus.PENDING_DELETION)
 
             if updated:
-                delete_tag_key_task.delay(object_id=tagkey.id)
+                delete_tag_key_task.delay(object_id=tagkey.id, model=TagKey)
                 deleted.append(tagkey)
 
         return deleted
@@ -282,16 +330,6 @@ class LegacyTagStorage(TagStorage):
             group_id=group_id,
         ).delete()
 
-    def incr_tag_key_values_seen(self, project_id, environment_id, key, count=1):
-        buffer.incr(TagKey,
-                    columns={
-                        'values_seen': count,
-                    },
-                    filters={
-                        'project_id': project_id,
-                        'key': key,
-                    })
-
     def incr_tag_value_times_seen(self, project_id, environment_id,
                                   key, value, extra=None, count=1):
         buffer.incr(TagValue,
@@ -304,17 +342,6 @@ class LegacyTagStorage(TagStorage):
                         'value': value,
                     },
                     extra=extra)
-
-    def incr_group_tag_key_values_seen(self, project_id, group_id, environment_id, key, count=1):
-        buffer.incr(GroupTagKey,
-                    columns={
-                        'values_seen': count,
-                    },
-                    filters={
-                        'project_id': project_id,
-                        'group_id': group_id,
-                        'key': key,
-                    })
 
     def incr_group_tag_value_times_seen(self, project_id, group_id, environment_id,
                                         key, value, extra=None, count=1):

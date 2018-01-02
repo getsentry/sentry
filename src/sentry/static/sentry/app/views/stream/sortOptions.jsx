@@ -1,31 +1,29 @@
-import PureRenderMixin from 'react-addons-pure-render-mixin';
 import PropTypes from 'prop-types';
 import React from 'react';
 import DropdownLink from '../../components/dropdownLink';
 import MenuItem from '../../components/menuItem';
 import {t} from '../../locale';
 
-const SortOptions = React.createClass({
-  propTypes: {
+class SortOptions extends React.PureComponent {
+  static propTypes = {
     sort: PropTypes.string,
     onSelect: PropTypes.func,
-  },
+  };
 
-  mixins: [PureRenderMixin],
-
-  getInitialState() {
-    return {
+  constructor(...args) {
+    super(...args);
+    this.state = {
       sortKey: this.props.sort || 'date',
     };
-  },
+  }
 
   componentWillReceiveProps(nextProps) {
     this.setState({
       sortKey: nextProps.sort || 'date',
     });
-  },
+  }
 
-  getMenuItem(key) {
+  getMenuItem = key => {
     return (
       <MenuItem
         onSelect={this.onSelect}
@@ -35,16 +33,16 @@ const SortOptions = React.createClass({
         {this.getSortLabel(key)}
       </MenuItem>
     );
-  },
+  };
 
-  onSelect(sort) {
+  onSelect = sort => {
     this.setState({sortKey: sort});
     if (this.props.onSelect) {
       this.props.onSelect(sort);
     }
-  },
+  };
 
-  getSortLabel(key) {
+  getSortLabel = key => {
     switch (key) {
       case 'new':
         return t('First Seen');
@@ -56,7 +54,7 @@ const SortOptions = React.createClass({
       default:
         return t('Last Seen');
     }
-  },
+  };
 
   render() {
     let dropdownTitle = (
@@ -74,7 +72,7 @@ const SortOptions = React.createClass({
         {this.getMenuItem('freq')}
       </DropdownLink>
     );
-  },
-});
+  }
+}
 
 export default SortOptions;

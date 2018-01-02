@@ -7,8 +7,8 @@ import PlatformiconTile from './platformiconTile';
 import SelectInput from '../../../components/selectInput';
 import {t} from '../../../locale';
 
-const OnboardingProject = React.createClass({
-  propTypes: {
+class OnboardingProject extends React.Component {
+  static propTypes = {
     next: PropTypes.func,
     setPlatform: PropTypes.func,
     platform: PropTypes.string,
@@ -17,34 +17,33 @@ const OnboardingProject = React.createClass({
     team: PropTypes.string,
     setTeam: PropTypes.func,
     teams: PropTypes.array,
-  },
+  };
 
-  getDefaultProps() {
-    return {
-      team: '',
-      setTeam: () => {},
-      teams: [],
-    };
-  },
+  static defaultProps = {
+    team: '',
+    setTeam: () => {},
+    teams: [],
+  };
 
-  getInitialState() {
-    return {projectRequired: false};
-  },
+  constructor(...args) {
+    super(...args);
+    this.state = {projectRequired: false};
+  }
 
   componentWillReceiveProps(newProps) {
     this.setWarning(newProps.name);
-  },
+  }
 
-  setWarning(value) {
+  setWarning = value => {
     this.setState({projectRequired: !value});
-  },
+  };
 
-  submit() {
+  submit = () => {
     this.setWarning(this.props.name);
     if (this.props.name) this.props.next();
-  },
+  };
 
-  renderTeamPicker() {
+  renderTeamPicker = () => {
     let {team, teams, setTeam} = this.props;
     if (teams.length < 2) return null;
     return (
@@ -66,7 +65,7 @@ const OnboardingProject = React.createClass({
         </div>
       </div>
     );
-  },
+  };
 
   render() {
     return (
@@ -107,7 +106,7 @@ const OnboardingProject = React.createClass({
         </div>
       </div>
     );
-  },
-});
+  }
+}
 
 export default OnboardingProject;

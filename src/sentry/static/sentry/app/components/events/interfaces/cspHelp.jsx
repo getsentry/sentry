@@ -127,10 +127,10 @@ function getLink(key) {
   );
 }
 
-const CSPHelp = React.createClass({
-  propTypes: {
+class CSPHelp extends React.Component {
+  static propTypes = {
     data: PropTypes.object.isRequired,
-  },
+  };
 
   render() {
     let {data} = this.props;
@@ -144,7 +144,7 @@ const CSPHelp = React.createClass({
         <p style={{textAlign: 'right'}}>— MDN ({getLink(key)})</p>
       </div>
     );
-  },
-});
+  }
+}
 
 export default CSPHelp;

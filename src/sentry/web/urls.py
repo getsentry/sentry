@@ -38,20 +38,10 @@ from sentry.web.frontend.oauth_token import OAuthTokenView
 from sentry.auth.providers.saml2 import SAML2AcceptACSView, SAML2SLSView, SAML2MetadataView
 from sentry.web.frontend.organization_auth_settings import \
     OrganizationAuthSettingsView
-from sentry.web.frontend.organization_member_settings import \
-    OrganizationMemberSettingsView
 from sentry.web.frontend.organization_integration_setup import \
     OrganizationIntegrationSetupView
 from sentry.web.frontend.out import OutView
-from sentry.web.frontend.organization_members import OrganizationMembersView
-from sentry.web.frontend.project_issue_tracking import ProjectIssueTrackingView
-from sentry.web.frontend.project_plugin_configure import \
-    ProjectPluginConfigureView
-from sentry.web.frontend.project_plugin_disable import ProjectPluginDisableView
-from sentry.web.frontend.project_plugin_enable import ProjectPluginEnableView
-from sentry.web.frontend.project_plugin_reset import ProjectPluginResetView
 from sentry.web.frontend.project_rule_edit import ProjectRuleEditView
-from sentry.web.frontend.project_settings import ProjectSettingsView
 from sentry.web.frontend.react_page import GenericReactPageView, ReactPageView
 from sentry.web.frontend.reactivate_account import ReactivateAccountView
 from sentry.web.frontend.release_webhook import ReleaseWebhookView
@@ -344,6 +334,7 @@ urlpatterns += patterns(
         name='sentry-accept-project-transfer'),
 
     url(r'^settings/$', react_page_view),
+    url(r'^settings/account/$', react_page_view),
 
     # Organizations
     url(r'^(?P<organization_slug>[\w_-]+)/$',
@@ -370,7 +361,7 @@ urlpatterns += patterns(
     ),
     url(
         r'^organizations/(?P<organization_slug>[\w_-]+)/members/$',
-        OrganizationMembersView.as_view(),
+        react_page_view,
         name='sentry-organization-members'
     ),
     url(
@@ -380,7 +371,7 @@ urlpatterns += patterns(
     ),
     url(
         r'^organizations/(?P<organization_slug>[\w_-]+)/members/(?P<member_id>\d+)/$',
-        OrganizationMemberSettingsView.as_view(),
+        react_page_view,
         name='sentry-organization-member-settings'
     ),
     url(
@@ -418,33 +409,8 @@ urlpatterns += patterns(
     # Settings - Projects
     url(
         r'^(?P<organization_slug>[\w_-]+)/(?P<project_slug>[\w_-]+)/settings/$',
-        ProjectSettingsView.as_view(),
+        react_page_view,
         name='sentry-manage-project'
-    ),
-    url(
-        r'^(?P<organization_slug>[\w_-]+)/(?P<project_slug>[\w_-]+)/settings/issue-tracking/$',
-        ProjectIssueTrackingView.as_view(),
-        name='sentry-project-issue-tracking'
-    ),
-    url(
-        r'^(?P<organization_slug>[\w_-]+)/(?P<project_slug>[\w_-]+)/settings/plugins/(?P<slug>[\w_-]+)/$',
-        ProjectPluginConfigureView.as_view(),
-        name='sentry-configure-project-plugin'
-    ),
-    url(
-        r'^(?P<organization_slug>[\w_-]+)/(?P<project_slug>[\w_-]+)/settings/plugins/(?P<slug>[\w_-]+)/reset/$',
-        ProjectPluginResetView.as_view(),
-        name='sentry-reset-project-plugin'
-    ),
-    url(
-        r'^(?P<organization_slug>[\w_-]+)/(?P<project_slug>[\w_-]+)/settings/plugins/(?P<slug>[\w_-]+)/disable/$',
-        ProjectPluginDisableView.as_view(),
-        name='sentry-disable-project-plugin'
-    ),
-    url(
-        r'^(?P<organization_slug>[\w_-]+)/(?P<project_slug>[\w_-]+)/settings/plugins/(?P<slug>[\w_-]+)/enable/$',
-        ProjectPluginEnableView.as_view(),
-        name='sentry-enable-project-plugin'
     ),
     url(
         r'^(?P<organization_slug>[\w_-]+)/(?P<project_slug>[\w_-]+)/settings/remove/$',

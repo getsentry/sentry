@@ -3,6 +3,7 @@
 from __future__ import absolute_import
 
 import pytest
+import re
 import responses
 import six
 from symbolic import SourceMapTokenMatch
@@ -191,20 +192,34 @@ class FetchFileTest(TestCase):
     @responses.activate
     def test_with_token(self):
         responses.add(
-            responses.GET, 'http://example.com', body='foo bar', content_type='application/json'
+            responses.GET,
+            re.compile(r'http://example.com/\d+/'),
+            body='foo bar',
+            content_type='application/json'
         )
 
         self.project.update_option('sentry:token', 'foobar')
         self.project.update_option('sentry:origins', ['*'])
 
-        result = fetch_file('http://example.com', project=self.project)
+        default_header_name = 'X-Sentry-Token'
+        header_pairs = [
+            (None, default_header_name),
+            ('', default_header_name),
+            ('X-Custom-Token-Header', 'X-Custom-Token-Header'),
+        ]
 
-        assert len(responses.calls) == 1
-        assert responses.calls[0].request.headers['X-Sentry-Token'] == 'foobar'
+        for i, (header_name_option_value, expected_request_header_name) in enumerate(header_pairs):
+            self.project.update_option('sentry:token_header', header_name_option_value)
 
-        assert result.url == 'http://example.com'
-        assert result.body == 'foo bar'
-        assert result.headers == {'content-type': 'application/json'}
+            url = 'http://example.com/{}/'.format(i)
+            result = fetch_file(url, project=self.project)
+
+            assert result.url == url
+            assert result.body == 'foo bar'
+            assert result.headers == {'content-type': 'application/json'}
+
+            assert len(responses.calls) == i + 1
+            assert responses.calls[i].request.headers[expected_request_header_name] == 'foobar'
 
     @responses.activate
     def test_connection_failure(self):

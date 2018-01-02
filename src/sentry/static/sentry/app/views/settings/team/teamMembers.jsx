@@ -1,4 +1,5 @@
 import React from 'react';
+import createReactClass from 'create-react-class';
 import {Link} from 'react-router';
 
 import ApiMixin from '../../../mixins/apiMixin';
@@ -7,10 +8,10 @@ import Button from '../../../components/buttons/button';
 import LoadingError from '../../../components/loadingError';
 import LoadingIndicator from '../../../components/loadingIndicator';
 import OrganizationState from '../../../mixins/organizationState';
-import recreateRoute from '../../../utils/recreateRoute';
 import {t} from '../../../locale';
 
-const TeamMembers = React.createClass({
+const TeamMembers = createReactClass({
+  displayName: 'TeamMembers',
   mixins: [ApiMixin, OrganizationState],
 
   getInitialState() {
@@ -65,7 +66,7 @@ const TeamMembers = React.createClass({
     if (this.state.loading) return <LoadingIndicator />;
     else if (this.state.error) return <LoadingError onRetry={this.fetchData} />;
 
-    let {params, routes} = this.props;
+    let {params} = this.props;
 
     let access = this.getAccess();
 
@@ -77,7 +78,7 @@ const TeamMembers = React.createClass({
               priority="primary"
               size="small"
               className="pull-right"
-              to={`${recreateRoute('members/new/', {routes, params, stepBack: -2})}`}
+              to={`/settings/organization/${params.orgId}/members/new/`}
             >
               <span className="icon-plus" /> {t('Invite Member')}
             </Button>
@@ -110,11 +111,7 @@ const TeamMembers = React.createClass({
                     <Avatar user={member} size={80} />
                     <h5>
                       <Link
-                        to={`${recreateRoute(`members/${member.id}`, {
-                          routes,
-                          params,
-                          stepBack: -2,
-                        })}`}
+                        to={`/settings/organization/${params.orgId}/members/${member.id}`}
                       >
                         {member.email}
                       </Link>

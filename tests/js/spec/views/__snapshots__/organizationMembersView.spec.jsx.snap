@@ -406,6 +406,7 @@ exports[`OrganizationMembersView No Require Link does not have 2fa warning if us
                     },
                   }
                 }
+                key="1"
                 member={
                   Object {
                     "email": "",
@@ -560,15 +561,19 @@ exports[`OrganizationMembersView No Require Link does not have 2fa warning if us
                             is={null}
                           >
                             <div>
-                              <span
-                                className="icon-exclamation tip"
-                                style={
-                                  Object {
-                                    "color": "#B64236",
-                                  }
-                                }
+                              <Tooltip
                                 title="Two-factor auth not enabled"
-                              />
+                              >
+                                <span
+                                  className="tip icon-exclamation"
+                                  style={
+                                    Object {
+                                      "color": "#B64236",
+                                    }
+                                  }
+                                  title="Two-factor auth not enabled"
+                                />
+                              </Tooltip>
                             </div>
                           </div>
                         </Base>
@@ -660,6 +665,7 @@ exports[`OrganizationMembersView No Require Link does not have 2fa warning if us
                     },
                   }
                 }
+                key="2"
                 member={
                   Object {
                     "email": "",
@@ -913,6 +919,7 @@ exports[`OrganizationMembersView No Require Link does not have 2fa warning if us
                     },
                   }
                 }
+                key="3"
                 member={
                   Object {
                     "email": "",
@@ -1559,6 +1566,7 @@ exports[`OrganizationMembersView Require Link does not have 2fa warning if user 
                     },
                   }
                 }
+                key="1"
                 member={
                   Object {
                     "email": "",
@@ -1848,6 +1856,7 @@ exports[`OrganizationMembersView Require Link does not have 2fa warning if user 
                     },
                   }
                 }
+                key="2"
                 member={
                   Object {
                     "email": "",
@@ -2137,6 +2146,7 @@ exports[`OrganizationMembersView Require Link does not have 2fa warning if user 
                     },
                   }
                 }
+                key="3"
                 member={
                   Object {
                     "email": "",

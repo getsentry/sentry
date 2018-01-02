@@ -19,28 +19,27 @@ Collapsed.propTypes = {
   count: PropTypes.number.isRequired,
 };
 
-const RepositoryFileSummary = React.createClass({
-  propTypes: {
+class RepositoryFileSummary extends React.Component {
+  static propTypes = {
     fileChangeSummary: PropTypes.object,
     repository: PropTypes.string,
-  },
+  };
 
-  statics: {
-    MAX_WHEN_COLLAPSED: 5,
-  },
+  static MAX_WHEN_COLLAPSED = 5;
 
-  getInitialState() {
-    return {
+  constructor(...args) {
+    super(...args);
+    this.state = {
       loading: true,
       collapsed: true,
     };
-  },
+  }
 
-  onCollapseToggle() {
+  onCollapseToggle = () => {
     this.setState({
       collapsed: !this.state.collapsed,
     });
-  },
+  };
 
   render() {
     let {repository, fileChangeSummary} = this.props;
@@ -87,7 +86,7 @@ const RepositoryFileSummary = React.createClass({
         </ul>
       </div>
     );
-  },
-});
+  }
+}
 
 export default RepositoryFileSummary;

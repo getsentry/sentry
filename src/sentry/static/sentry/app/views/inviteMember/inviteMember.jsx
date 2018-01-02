@@ -1,6 +1,8 @@
 import {browserHistory} from 'react-router';
 import React from 'react';
+import createReactClass from 'create-react-class';
 import classNames from 'classnames';
+import PropTypes from 'prop-types';
 
 import {t} from '../../locale';
 import AlertActions from '../../actions/alertActions';
@@ -14,7 +16,11 @@ import TeamSelect from './teamSelect';
 import TextField from '../../components/forms/textField';
 import recreateRoute from '../../utils/recreateRoute';
 
-const InviteMember = React.createClass({
+const InviteMember = createReactClass({
+  displayName: 'InviteMember',
+  propTypes: {
+    routes: PropTypes.array,
+  },
   mixins: [ApiMixin, OrganizationState],
 
   getInitialState() {
@@ -191,6 +197,7 @@ const InviteMember = React.createClass({
             </div>
             {error && error.role && <p className="error alert-error">{error.role}</p>}
             <RoleSelect
+              enforceAllowed
               roleList={roleList}
               selectedRole={selectedRole}
               setRole={slug => this.setState({selectedRole: slug})}

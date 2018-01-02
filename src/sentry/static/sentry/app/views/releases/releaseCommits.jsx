@@ -1,6 +1,8 @@
 import PropTypes from 'prop-types';
 import React from 'react';
 
+import createReactClass from 'create-react-class';
+
 import LoadingIndicator from '../../components/loadingIndicator';
 import LoadingError from '../../components/loadingError';
 import Avatar from '../../components/avatar';
@@ -14,14 +16,14 @@ import IconBitbucket from '../../icons/icon-bitbucket';
 
 import {t} from '../../locale';
 
-const CommitLink = React.createClass({
-  propTypes: {
+class CommitLink extends React.Component {
+  static propTypes = {
     commitId: PropTypes.string,
     repository: PropTypes.object,
     inline: PropTypes.bool,
-  },
+  };
 
-  getCommitUrl() {
+  getCommitUrl = () => {
     // TODO(jess): move this to plugins
     if (this.props.repository.provider.id === 'github') {
       return this.props.repository.url + '/commit/' + this.props.commitId;
@@ -30,7 +32,7 @@ const CommitLink = React.createClass({
       return this.props.repository.url + '/commits/' + this.props.commitId;
     }
     return undefined;
-  },
+  };
 
   render() {
     let commitUrl = this.getCommitUrl();
@@ -55,19 +57,19 @@ const CommitLink = React.createClass({
     ) : (
       <span>{shortId}</span>
     );
-  },
-});
+  }
+}
 
-const ReleaseCommit = React.createClass({
-  propTypes: {
+class ReleaseCommit extends React.Component {
+  static propTypes = {
     commitId: PropTypes.string,
     commitMessage: PropTypes.string,
     commitDateCreated: PropTypes.string,
     author: PropTypes.object,
     repository: PropTypes.object,
-  },
+  };
 
-  renderMessage(message) {
+  renderMessage = message => {
     if (!message) {
       return t('No message provided');
     }
@@ -75,7 +77,7 @@ const ReleaseCommit = React.createClass({
     let firstLine = message.split(/\n/)[0];
 
     return firstLine;
-  },
+  };
 
   render() {
     let {commitMessage} = this.props;
@@ -99,10 +101,11 @@ const ReleaseCommit = React.createClass({
         </div>
       </li>
     );
-  },
-});
+  }
+}
 
-const ReleaseCommits = React.createClass({
+const ReleaseCommits = createReactClass({
+  displayName: 'ReleaseCommits',
   mixins: [ApiMixin],
 
   getInitialState() {

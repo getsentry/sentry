@@ -3,38 +3,35 @@ import React from 'react';
 import ReactDOM from 'react-dom';
 import _ from 'lodash';
 
-const StreamTagFilter = React.createClass({
-  propTypes: {
+class StreamTagFilter extends React.Component {
+  static propTypes = {
     tag: PropTypes.object.isRequired,
     orgId: PropTypes.string.isRequired,
     projectId: PropTypes.string.isRequired,
     value: PropTypes.string,
     onSelect: PropTypes.func,
-  },
+  };
 
-  statics: {
-    tagValueToSelect2Format: key => {
-      return {
-        id: key,
-        text: key,
-      };
-    },
-  },
-
-  getDefaultProps() {
+  static tagValueToSelect2Format = key => {
     return {
-      tag: {},
-      value: '',
+      id: key,
+      text: key,
     };
-  },
+  };
 
-  getInitialState() {
-    return {
+  static defaultProps = {
+    tag: {},
+    value: '',
+  };
+
+  constructor(...args) {
+    super(...args);
+    this.state = {
       query: '',
       loading: false,
       value: this.props.value,
     };
-  },
+  }
 
   componentDidMount() {
     let select = this.refs.select;
@@ -75,7 +72,7 @@ const StreamTagFilter = React.createClass({
       .select2(selectOpts)
       .select2('val', this.state.value)
       .on('change', this.onSelectValue);
-  },
+  }
 
   componentWillReceiveProps(nextProps) {
     if (nextProps.value !== this.state.value) {
@@ -89,26 +86,26 @@ const StreamTagFilter = React.createClass({
         }
       );
     }
-  },
+  }
 
   componentWillUnmount() {
     let select = ReactDOM.findDOMNode(this.refs.select);
     $(select).select2('destroy');
-  },
+  }
 
-  getTagValuesAPIEndpoint() {
+  getTagValuesAPIEndpoint = () => {
     return `/api/0/projects/${this.props.orgId}/${this.props.projectId}/tags/${this.props
       .tag.key}/values/`;
-  },
+  };
 
-  onSelectValue(evt) {
+  onSelectValue = evt => {
     let val = evt.target.value;
     this.setState({
       value: val,
     });
 
     this.props.onSelect && this.props.onSelect(this.props.tag, val);
-  },
+  };
 
   render() {
     // NOTE: need to specify empty onChange handler on <select> - even though this
@@ -131,7 +128,7 @@ const StreamTagFilter = React.createClass({
         )}
       </div>
     );
-  },
-});
+  }
+}
 
 export default StreamTagFilter;

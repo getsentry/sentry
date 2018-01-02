@@ -1,13 +1,17 @@
 import PropTypes from 'prop-types';
 import React from 'react';
 
+import createReactClass from 'create-react-class';
+
 import ApiMixin from '../mixins/apiMixin';
 import InactivePlugins from './inactivePlugins';
 import IndicatorStore from '../stores/indicatorStore';
 import PluginConfig from './pluginConfig';
 import {t} from '../locale';
 
-export default React.createClass({
+export default createReactClass({
+  displayName: 'pluginList',
+
   propTypes: {
     organization: PropTypes.object.isRequired,
     project: PropTypes.object.isRequired,
@@ -25,12 +29,13 @@ export default React.createClass({
       `/projects/${organization.slug}/${project.slug}/plugins/${plugin.id}/`,
       {
         method: 'POST',
-        success: () => this.props.onEnablePlugin(plugin),
-        error: error => {
-          IndicatorStore.add(t('Unable to save changes. Please try again.'), 'error');
-        },
-        complete: () => {
+        success: () => {
           IndicatorStore.remove(loadingIndicator);
+          this.props.onEnablePlugin(plugin);
+        },
+        error: error => {
+          IndicatorStore.remove(loadingIndicator);
+          IndicatorStore.add(t('Unable to save changes. Please try again.'), 'error');
         },
       }
     );

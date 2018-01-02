@@ -5,27 +5,26 @@ import {sprintf} from 'sprintf-js';
 
 import {t} from '../locale';
 
-export default React.createClass({
-  propTypes: {
+export default class CustomIgnoreDurationModal extends React.Component {
+  static propTypes = {
     onSelected: PropTypes.func,
     onCanceled: PropTypes.func,
     show: PropTypes.bool,
     label: PropTypes.string,
-  },
+  };
 
-  getDefaultProps() {
-    return {
-      label: t('Ignore this issue until it occurs after ..'),
-    };
-  },
+  static defaultProps = {
+    label: t('Ignore this issue until it occurs after ..'),
+  };
 
-  getInitialState() {
-    return {
+  constructor(...args) {
+    super(...args);
+    this.state = {
       dateWarning: false,
     };
-  },
+  }
 
-  selectedIgnoreMinutes() {
+  selectedIgnoreMinutes = () => {
     const dateStr = this.refs.snoozeDateInput.value; // YYYY-MM-DD
     const timeStr = this.refs.snoozeTimeInput.value; // HH:MM
     if (dateStr && timeStr) {
@@ -38,9 +37,9 @@ export default React.createClass({
       }
     }
     return 0;
-  },
+  };
 
-  snoozeClicked() {
+  snoozeClicked = () => {
     const minutes = this.selectedIgnoreMinutes();
 
     this.setState({
@@ -50,7 +49,7 @@ export default React.createClass({
     if (minutes > 0) {
       this.props.onSelected({ignoreDuration: minutes});
     }
-  },
+  };
 
   render() {
     // Give the user a sane starting point to select a date
@@ -121,5 +120,5 @@ export default React.createClass({
         </div>
       </Modal>
     );
-  },
-});
+  }
+}

@@ -5,15 +5,16 @@ import Checkbox from '../../components/checkbox';
 
 import {t} from '../../locale';
 
-const TeamSelect = React.createClass({
-  propTypes: {
+class TeamSelect extends React.Component {
+  static propTypes = {
+    disabled: PropTypes.bool,
     selectedTeams: PropTypes.instanceOf(Set),
     teams: PropTypes.array,
     toggleTeam: PropTypes.func,
-  },
+  };
 
   render() {
-    let {teams, selectedTeams, toggleTeam} = this.props;
+    let {disabled, teams, selectedTeams, toggleTeam} = this.props;
     //no need to select a team when there's only one option
     if (teams.length < 2) return null;
     return (
@@ -27,6 +28,7 @@ const TeamSelect = React.createClass({
               <label className="checkbox">
                 <Checkbox
                   id={slug}
+                  disabled={disabled}
                   checked={selectedTeams.has(slug)}
                   onChange={e => {
                     toggleTeam(slug);
@@ -40,7 +42,7 @@ const TeamSelect = React.createClass({
         </div>
       </div>
     );
-  },
-});
+  }
+}
 
 export default TeamSelect;

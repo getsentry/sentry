@@ -1,5 +1,6 @@
 import PropTypes from 'prop-types';
 import React from 'react';
+import createReactClass from 'create-react-class';
 import $ from 'jquery';
 import {browserHistory} from 'react-router';
 
@@ -8,24 +9,24 @@ import DropdownLink from './dropdownLink';
 import MenuItem from './menuItem';
 import Pagination from './pagination';
 
-const Filter = React.createClass({
-  propTypes: {
+class Filter extends React.Component {
+  static propTypes = {
     name: PropTypes.string.isRequired,
     queryKey: PropTypes.string.isRequired,
     options: PropTypes.array.isRequired,
     path: PropTypes.string.isRequired,
     value: PropTypes.any,
-  },
+  };
 
-  getCurrentLabel() {
+  getCurrentLabel = () => {
     let selected = this.props.options.filter(item => {
       return item[0] === (this.props.value || '');
     })[0];
     if (selected) return this.props.name + ': ' + selected[1];
     return this.props.name + ': ' + 'Any';
-  },
+  };
 
-  getDefaultItem() {
+  getDefaultItem = () => {
     let query = $.extend({}, this.props.location.query, {
       cursor: '',
     });
@@ -41,9 +42,9 @@ const Filter = React.createClass({
         Any
       </MenuItem>
     );
-  },
+  };
 
-  getSelector() {
+  getSelector = () => {
     return (
       <DropdownLink title={this.getCurrentLabel()}>
         {this.getDefaultItem()}
@@ -65,7 +66,7 @@ const Filter = React.createClass({
         })}
       </DropdownLink>
     );
-  },
+  };
 
   render() {
     return (
@@ -77,24 +78,24 @@ const Filter = React.createClass({
         )}
       </div>
     );
-  },
-});
+  }
+}
 
-const SortBy = React.createClass({
-  propTypes: {
+class SortBy extends React.Component {
+  static propTypes = {
     options: PropTypes.array.isRequired,
     path: PropTypes.string.isRequired,
     location: PropTypes.string.isRequired,
     value: PropTypes.any,
-  },
+  };
 
-  getCurrentSortLabel() {
+  getCurrentSortLabel = () => {
     return this.props.options.filter(item => {
       return item[0] === this.props.value;
     })[0][1];
-  },
+  };
 
-  getSortBySelector() {
+  getSortBySelector = () => {
     return (
       <DropdownLink title={this.getCurrentSortLabel()} className="sorted-by">
         {this.props.options.map(item => {
@@ -115,7 +116,7 @@ const SortBy = React.createClass({
         })}
       </DropdownLink>
     );
-  },
+  };
 
   render() {
     if (this.props.options.length === 0) return null;
@@ -130,10 +131,12 @@ const SortBy = React.createClass({
         )}
       </div>
     );
-  },
-});
+  }
+}
 
-const ResultGrid = React.createClass({
+const ResultGrid = createReactClass({
+  displayName: 'ResultGrid',
+
   propTypes: {
     columns: PropTypes.array,
     columnsForRow: PropTypes.func,
@@ -261,7 +264,10 @@ const ResultGrid = React.createClass({
 
     e.preventDefault();
 
-    browserHistory.pushState(null, this.props.path, targetQueryParams);
+    browserHistory.push({
+      pathname: this.props.path,
+      query: targetQueryParams,
+    });
   },
 
   onQueryChange(evt) {

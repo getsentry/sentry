@@ -1,63 +1,59 @@
 import PropTypes from 'prop-types';
 import React from 'react';
 import ReactDOM from 'react-dom';
-import PureRenderMixin from 'react-addons-pure-render-mixin';
 
-const SearchBar = React.createClass({
-  propTypes: {
+class SearchBar extends React.PureComponent {
+  static propTypes = {
     query: PropTypes.string,
     defaultQuery: PropTypes.string,
     onSearch: PropTypes.func,
     onQueryChange: PropTypes.func,
     placeholder: PropTypes.string,
-  },
+  };
 
-  mixins: [PureRenderMixin],
+  static defaultProps = {
+    defaultQuery: '',
+    query: '',
+    onSearch: function() {},
+    onQueryChange: function() {},
+  };
 
-  getDefaultProps() {
-    return {
-      defaultQuery: '',
-      query: '',
-      onSearch: function() {},
-      onQueryChange: function() {},
-    };
-  },
-
-  getInitialState() {
-    return {
+  constructor(...args) {
+    super(...args);
+    this.state = {
       query: this.props.query || this.props.defaultQuery,
     };
-  },
+  }
 
-  blur() {
+  blur = () => {
     ReactDOM.findDOMNode(this.refs.searchInput).blur();
-  },
+  };
 
-  onSubmit(evt) {
+  onSubmit = evt => {
     evt.preventDefault();
     this.blur();
     this.props.onSearch(this.state.query);
-  },
+  };
 
-  clearSearch() {
+  clearSearch = () => {
     this.setState({query: this.props.defaultQuery}, () =>
       this.props.onSearch(this.state.query)
     );
-  },
+  };
 
-  onQueryFocus() {
+  onQueryFocus = () => {
     this.setState({
       dropdownVisible: true,
     });
-  },
+  };
 
-  onQueryBlur() {
+  onQueryBlur = () => {
     this.setState({dropdownVisible: false});
-  },
+  };
 
-  onQueryChange(evt) {
+  onQueryChange = evt => {
     this.setState({query: evt.target.value});
-  },
+  };
 
   render() {
     return (
@@ -87,7 +83,7 @@ const SearchBar = React.createClass({
         </form>
       </div>
     );
-  },
-});
+  }
+}
 
 export default SearchBar;

@@ -3,7 +3,7 @@ from __future__ import absolute_import
 import re
 import six
 
-from symbolic import SymbolicError, ObjectLookup, Symbol, parse_addr
+from symbolic import SymbolicError, ObjectLookup, LineInfo, parse_addr
 
 from sentry.utils.safe import trim
 from sentry.utils.compat import implements_to_string
@@ -111,9 +111,11 @@ class Symbolizer(object):
             object_lookup = ObjectLookup(object_lookup)
         self.object_lookup = object_lookup
 
-        self.symcaches = ProjectDSymFile.dsymcache.get_symcaches(
-            project, referenced_images,
-            on_dsym_file_referenced=on_dsym_file_referenced)
+        self.symcaches, self.symcaches_conversion_errors = \
+            ProjectDSymFile.dsymcache.get_symcaches(
+                project, referenced_images,
+                on_dsym_file_referenced=on_dsym_file_referenced,
+                with_conversion_errors=True)
 
     def _process_frame(self, sym, obj, package=None, addr_off=0):
         frame = {
@@ -204,6 +206,14 @@ class Symbolizer(object):
     def _symbolize_app_frame(self, instruction_addr, obj, sdk_info=None):
         symcache = self.symcaches.get(obj.uuid)
         if symcache is None:
+            # In case we know what error happened on symcache conversion
+            # we can report it to the user now.
+            if obj.uuid in self.symcaches_conversion_errors:
+                raise SymbolicationFailed(
+                    message=self.symcaches_conversion_errors[obj.uuid],
+                    type=EventError.NATIVE_BAD_DSYM,
+                    obj=obj
+                )
             if self._is_optional_dsym(obj, sdk_info=sdk_info):
                 type = EventError.NATIVE_MISSING_OPTIONALLY_BUNDLED_DSYM
             else:
@@ -236,10 +246,11 @@ class Symbolizer(object):
             symbol = symbol[1:]
 
         return [
-            self._process_frame(Symbol(
+            self._process_frame(LineInfo(
                 sym_addr=parse_addr(symbolserver_match['addr']),
                 instr_addr=parse_addr(instruction_addr),
                 line=None,
+                lang=None,
                 symbol=symbol,
             ), obj, package=symbolserver_match['object_name'])
         ]

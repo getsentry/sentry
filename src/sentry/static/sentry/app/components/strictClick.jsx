@@ -1,6 +1,5 @@
 import PropTypes from 'prop-types';
 import React from 'react';
-import PureRenderMixin from 'react-addons-pure-render-mixin';
 
 /**
  * Usage:
@@ -8,34 +7,31 @@ import PureRenderMixin from 'react-addons-pure-render-mixin';
  *     <button>Some button</button>
  *   </StrictClick>
  */
-const StrictClick = React.createClass({
-  propTypes: {
+class StrictClick extends React.PureComponent {
+  static propTypes = {
     onClick: PropTypes.func,
-  },
+  };
 
-  mixins: [PureRenderMixin],
+  static MAX_DELTA_X = 10;
+  static MAX_DELTA_Y = 10;
 
-  statics: {
-    MAX_DELTA_X: 10,
-    MAX_DELTA_Y: 10,
-  },
-
-  getInitialState() {
-    return {
+  constructor(...args) {
+    super(...args);
+    this.state = {
       startCoords: null,
     };
-  },
+  }
 
-  handleMouseDown: function(evt) {
+  handleMouseDown = evt => {
     this.setState({
       startCoords: {
         x: evt.screenX,
         y: evt.screenY,
       },
     });
-  },
+  };
 
-  handleMouseClick: function(evt) {
+  handleMouseClick = evt => {
     // Click happens if mouse down/up in same element - click will
     // not fire if either initial mouse down OR final ouse up occurs in
     // different element
@@ -51,7 +47,7 @@ const StrictClick = React.createClass({
     this.setState({
       startCoords: null,
     });
-  },
+  };
 
   render() {
     // Bail out early if there is no onClick handler
@@ -61,7 +57,7 @@ const StrictClick = React.createClass({
       onMouseDown: this.handleMouseDown,
       onClick: this.handleMouseClick,
     });
-  },
-});
+  }
+}
 
 export default StrictClick;

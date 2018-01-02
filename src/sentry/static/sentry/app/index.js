@@ -4,6 +4,7 @@ import moment from 'moment';
 import Raven from 'raven-js';
 import React from 'react';
 import ReactDOM from 'react-dom';
+import createReactClass from 'create-react-class';
 import {AppContainer} from 'react-hot-loader';
 import PropTypes from 'prop-types';
 import {renderToStaticMarkup} from 'react-dom/server';
@@ -82,6 +83,7 @@ export default {
   ReactDOMServer: {
     renderToStaticMarkup,
   },
+  createReactClass,
   ReactBootstrap: {
     Modal: ReactBootstrapModal,
   },
@@ -113,6 +115,7 @@ export default {
 
     Alerts: require('./components/alerts').default,
     AlertActions: require('./actions/alertActions').default,
+    // TODO: remove when old personal settings are deprecated
     AvatarSettings: require('./components/avatarSettings').default,
     mixins: {
       ApiMixin: require('./mixins/apiMixin').default,
@@ -139,6 +142,8 @@ export default {
     OrganizationHomeContainer: require('./components/organizations/homeContainer')
       .default,
     OrganizationsLoader: require('./components/organizations/organizationsLoader')
+      .default,
+    OrganizationMembersView: require('./views/settings/organization/members/organizationMembersView')
       .default,
     Pagination: require('./components/pagination').default,
     PluginConfig: require('./components/pluginConfig').default,

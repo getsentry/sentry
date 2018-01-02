@@ -153,6 +153,7 @@ exports[`Project render() should set required class on empty submit 1`] = `
             activeClassName="active"
             index={false}
             isActive={[Function]}
+            key="Popular"
             onClick={[Function]}
             to=""
           >
@@ -178,6 +179,7 @@ exports[`Project render() should set required class on empty submit 1`] = `
             activeClassName="active"
             index={false}
             isActive={[Function]}
+            key="Frontend"
             onClick={[Function]}
             to=""
           >
@@ -203,6 +205,7 @@ exports[`Project render() should set required class on empty submit 1`] = `
             activeClassName="active"
             index={false}
             isActive={[Function]}
+            key="Mobile"
             onClick={[Function]}
             to=""
           >
@@ -228,6 +231,7 @@ exports[`Project render() should set required class on empty submit 1`] = `
             activeClassName="active"
             index={false}
             isActive={[Function]}
+            key="Backend"
             onClick={[Function]}
             to=""
           >
@@ -253,6 +257,7 @@ exports[`Project render() should set required class on empty submit 1`] = `
             activeClassName="active"
             index={false}
             isActive={[Function]}
+            key="All"
             onClick={[Function]}
             to=""
           >
@@ -280,6 +285,7 @@ exports[`Project render() should set required class on empty submit 1`] = `
         >
           <PlatformCard
             className=""
+            key="csharp"
             onClick={[Function]}
             platform="csharp"
           >
@@ -310,6 +316,7 @@ exports[`Project render() should set required class on empty submit 1`] = `
           </PlatformCard>
           <PlatformCard
             className=""
+            key="java"
             onClick={[Function]}
             platform="java"
           >
@@ -340,6 +347,7 @@ exports[`Project render() should set required class on empty submit 1`] = `
           </PlatformCard>
           <PlatformCard
             className=""
+            key="javascript-angular"
             onClick={[Function]}
             platform="javascript-angular"
           >
@@ -370,6 +378,7 @@ exports[`Project render() should set required class on empty submit 1`] = `
           </PlatformCard>
           <PlatformCard
             className=""
+            key="javascript"
             onClick={[Function]}
             platform="javascript"
           >
@@ -400,6 +409,7 @@ exports[`Project render() should set required class on empty submit 1`] = `
           </PlatformCard>
           <PlatformCard
             className=""
+            key="javascript-react"
             onClick={[Function]}
             platform="javascript-react"
           >
@@ -430,6 +440,7 @@ exports[`Project render() should set required class on empty submit 1`] = `
           </PlatformCard>
           <PlatformCard
             className=""
+            key="node-express"
             onClick={[Function]}
             platform="node-express"
           >
@@ -460,6 +471,7 @@ exports[`Project render() should set required class on empty submit 1`] = `
           </PlatformCard>
           <PlatformCard
             className=""
+            key="node"
             onClick={[Function]}
             platform="node"
           >
@@ -490,6 +502,7 @@ exports[`Project render() should set required class on empty submit 1`] = `
           </PlatformCard>
           <PlatformCard
             className=""
+            key="php-laravel"
             onClick={[Function]}
             platform="php-laravel"
           >
@@ -520,6 +533,7 @@ exports[`Project render() should set required class on empty submit 1`] = `
           </PlatformCard>
           <PlatformCard
             className=""
+            key="php"
             onClick={[Function]}
             platform="php"
           >
@@ -550,6 +564,7 @@ exports[`Project render() should set required class on empty submit 1`] = `
           </PlatformCard>
           <PlatformCard
             className=""
+            key="php-symfony2"
             onClick={[Function]}
             platform="php-symfony2"
           >
@@ -580,6 +595,7 @@ exports[`Project render() should set required class on empty submit 1`] = `
           </PlatformCard>
           <PlatformCard
             className=""
+            key="python-django"
             onClick={[Function]}
             platform="python-django"
           >
@@ -610,6 +626,7 @@ exports[`Project render() should set required class on empty submit 1`] = `
           </PlatformCard>
           <PlatformCard
             className=""
+            key="python-flask"
             onClick={[Function]}
             platform="python-flask"
           >
@@ -640,6 +657,7 @@ exports[`Project render() should set required class on empty submit 1`] = `
           </PlatformCard>
           <PlatformCard
             className=""
+            key="python"
             onClick={[Function]}
             platform="python"
           >
@@ -670,6 +688,7 @@ exports[`Project render() should set required class on empty submit 1`] = `
           </PlatformCard>
           <PlatformCard
             className=""
+            key="cocoa"
             onClick={[Function]}
             platform="cocoa"
           >
@@ -700,6 +719,7 @@ exports[`Project render() should set required class on empty submit 1`] = `
           </PlatformCard>
           <PlatformCard
             className=""
+            key="ruby-rails"
             onClick={[Function]}
             platform="ruby-rails"
           >
@@ -730,6 +750,7 @@ exports[`Project render() should set required class on empty submit 1`] = `
           </PlatformCard>
           <PlatformCard
             className=""
+            key="ruby"
             onClick={[Function]}
             platform="ruby"
           >

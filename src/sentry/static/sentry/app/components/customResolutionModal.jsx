@@ -11,35 +11,36 @@ import Version from './version';
 import {Select2FieldAutocomplete} from './forms';
 import {t} from '../locale';
 
-export default React.createClass({
-  propTypes: {
+export default class CustomResolutionModal extends React.Component {
+  static propTypes = {
     onSelected: PropTypes.func.isRequired,
     onCanceled: PropTypes.func.isRequired,
     orgId: PropTypes.string.isRequired,
     projectId: PropTypes.string.isRequired,
     show: PropTypes.bool,
-  },
+  };
 
-  getInitialState() {
-    return {version: ''};
-  },
+  constructor(...args) {
+    super(...args);
+    this.state = {version: ''};
+  }
 
   componentDidUpdate(prevProps, prevState) {
     if (!prevProps.show && this.props.show) {
       // XXX(cramer): this is incorrect but idgaf
       jQuery('.modal').attr('tabindex', null);
     }
-  },
+  }
 
-  onSubmit() {
+  onSubmit = () => {
     this.props.onSelected({
       inRelease: this.state.version,
     });
-  },
+  };
 
-  onChange(value) {
+  onChange = value => {
     this.setState({version: value});
-  },
+  };
 
   render() {
     let {orgId, projectId} = this.props;
@@ -100,5 +101,5 @@ export default React.createClass({
         </div>
       </Modal>
     );
-  },
-});
+  }
+}

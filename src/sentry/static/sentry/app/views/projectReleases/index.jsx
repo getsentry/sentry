@@ -1,6 +1,7 @@
 import jQuery from 'jquery';
 import PropTypes from 'prop-types';
 import React from 'react';
+import createReactClass from 'create-react-class';
 import {browserHistory} from 'react-router';
 
 import ApiMixin from '../../mixins/apiMixin';
@@ -12,7 +13,9 @@ import {t} from '../../locale';
 
 import ReleaseList from './releaseList';
 
-const ProjectReleases = React.createClass({
+const ProjectReleases = createReactClass({
+  displayName: 'ProjectReleases',
+
   propTypes: {
     defaultQuery: PropTypes.string,
     setProjectNavSection: PropTypes.func,
@@ -60,7 +63,10 @@ const ProjectReleases = React.createClass({
     if (query !== '') targetQueryParams.query = query;
 
     let {orgId, projectId} = this.props.params;
-    browserHistory.pushState(null, `/${orgId}/${projectId}/releases/`, targetQueryParams);
+    browserHistory.push({
+      pathname: `/${orgId}/${projectId}/releases/`,
+      query: targetQueryParams,
+    });
   },
 
   fetchData() {

@@ -7,13 +7,13 @@ import SentryTypes from '../../proptypes';
 import AllTeamsRow from './allTeamsRow';
 import {tct} from '../../locale';
 
-const AllTeamsList = React.createClass({
-  propTypes: {
+class AllTeamsList extends React.Component {
+  static propTypes = {
     access: PropTypes.object,
     organization: SentryTypes.Organization,
     teamList: PropTypes.arrayOf(SentryTypes.Team),
     openMembership: PropTypes.bool,
-  },
+  };
 
   render() {
     let {access, organization, openMembership} = this.props;
@@ -46,7 +46,7 @@ const AllTeamsList = React.createClass({
         link: <Link to={`/organizations/${organization.slug}/teams/new/`} />,
       }
     );
-  },
-});
+  }
+}
 
 export default AllTeamsList;

@@ -2,6 +2,7 @@
 /*eslint no-native-reassign:0 */
 import PropTypes from 'prop-types';
 import React from 'react';
+import createReactClass from 'create-react-class';
 import $ from 'jquery';
 import Cookies from 'js-cookie';
 import {ThemeProvider} from 'emotion-theming';
@@ -30,7 +31,9 @@ function getAlertTypeForProblem(problem) {
   }
 }
 
-const App = React.createClass({
+const App = createReactClass({
+  displayName: 'App',
+
   childContextTypes: {
     location: PropTypes.object,
   },

@@ -53,6 +53,7 @@ var appEntry = {
     'bootstrap/js/tab',
     'bootstrap/js/tooltip',
     'bootstrap/js/alert',
+    'create-react-class',
     'crypto-js/md5',
     'jed',
     'jquery',
@@ -118,6 +119,17 @@ var appConfig = {
         test: /\.json$/,
         loader: 'json-loader',
       },
+      {
+        test: /app\/icons\/.*\.svg$/,
+        use: [
+          {
+            loader: 'svg-sprite-loader',
+          },
+          {
+            loader: 'svgo-loader',
+          },
+        ],
+      },
       // loader for dynamic styles imported into components (embedded as js)
       {
         test: /\.less$/,
@@ -138,6 +150,7 @@ var appConfig = {
       },
       {
         test: /\.(woff|woff2|ttf|eot|svg|png|gif|ico|jpg)($|\?)/,
+        exclude: /app\/icons\/.*\.svg$/,
         loader: 'file-loader?name=' + '[name].[ext]',
       },
     ],

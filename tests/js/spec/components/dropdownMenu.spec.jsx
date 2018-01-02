@@ -50,6 +50,7 @@ describe('DropdownMenu', function() {
     const evt = document.createEvent('HTMLEvents');
     evt.initEvent('click', false, true);
     document.body.dispatchEvent(evt);
+    wrapper.update();
 
     expect(wrapper.find('ul')).toHaveLength(0);
   });

@@ -160,12 +160,12 @@ class GroupManager(BaseManager):
             else:
                 key, value, data = tag_item
 
-            tagstore.incr_tag_value_times_seen(project_id, environment.id, key, value, {
+            tagstore.incr_tag_value_times_seen(project_id, environment.id, key, value, extra={
                 'last_seen': date,
                 'data': data,
             })
 
-            tagstore.incr_group_tag_value_times_seen(project_id, group.id, environment.id, key, value, {
+            tagstore.incr_group_tag_value_times_seen(project_id, group.id, environment.id, key, value, extra={
                 'project_id': project_id,
                 'last_seen': date,
             })
@@ -351,22 +351,6 @@ class Group(Model):
             except IndexError:
                 self._oldest_event = None
         return self._oldest_event
-
-    def get_tags(self):
-        if not hasattr(self, '_tag_cache'):
-            group_tags = set(
-                [gtk.key for gtk in tagstore.get_group_tag_keys(self.project_id, self.id, environment_id=None)])
-
-            results = []
-            for key in group_tags:
-                results.append({
-                    'key': key,
-                    'label': tagstore.get_tag_key_label(key),
-                })
-
-            self._tag_cache = sorted(results, key=lambda x: x['label'])
-
-        return self._tag_cache
 
     def get_first_release(self):
         if self.first_release_id is None:

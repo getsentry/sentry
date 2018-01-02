@@ -3,12 +3,18 @@ import React from 'react';
 
 import AccountAuthorizations from './views/accountAuthorizations';
 import AccountLayout from './views/accountLayout';
+import AccountSettingsLayout from './views/settings/account/accountSettingsLayout';
+import AccountNotifications from './views/settings/account/accountNotifications';
+import AccountEmails from './views/settings/account/accountEmails';
+import AccountAvatar from './views/settings/account/avatar';
+
 import AdminBuffer from './views/adminBuffer';
 import AdminLayout from './views/adminLayout';
 import AdminOrganizations from './views/adminOrganizations';
 import AdminOverview from './views/adminOverview';
 import AdminProjects from './views/adminProjects';
 import AdminQueue from './views/adminQueue';
+import AdminQuotas from './views/adminQuotas';
 import AdminSettings from './views/adminSettings';
 import AdminUsers from './views/adminUsers';
 import ApiApplicationDetails from './views/apiApplicationDetails';
@@ -67,6 +73,7 @@ import ProjectDetails from './views/projectDetails';
 import ProjectDocsContext from './views/projectInstall/docsContext';
 import ProjectEvents from './views/projectEvents';
 import ProjectFilters from './views/projectFilters';
+import ProjectGeneralSettings from './views/projectGeneralSettings';
 import ProjectGettingStarted from './views/projectInstall/gettingStarted';
 import ProjectInstallOverview from './views/projectInstall/overview';
 import ProjectInstallPlatform from './views/projectInstall/platform';
@@ -74,6 +81,7 @@ import ProjectKeyDetails from './views/projectKeyDetails';
 import ProjectKeys from './views/projectKeys';
 import ProjectPicker from './views/settings/components/projectPicker';
 import ProjectProcessingIssues from './views/projectProcessingIssues';
+import ProjectIssueTracking from './views/projectIssueTracking';
 import ProjectReleaseTracking from './views/projectReleaseTracking';
 import ProjectReleases from './views/projectReleases';
 import ProjectSavedSearches from './views/projectSavedSearches';
@@ -82,6 +90,7 @@ import ProjectSettingsLayout from './views/settings/project/projectSettingsLayou
 import ProjectUserReportSettings from './views/projectUserReportSettings';
 import ProjectUserReports from './views/projectUserReports';
 import ProjectPlugins from './views/projectPlugins';
+import ProjectPluginDetails from './views/projectPluginDetails';
 import ReleaseAllEvents from './views/releaseAllEvents';
 import ReleaseArtifacts from './views/releaseArtifacts';
 import ReleaseCommits from './views/releases/releaseCommits';
@@ -107,124 +116,36 @@ function appendTrailingSlash(nextState, replaceState) {
   }
 }
 
-const orgSettingsRoutes = [
-  <IndexRedirect key="index-org-settings" to="settings/" />,
-
+const accountSettingsRoutes = [
+  <IndexRedirect key="account-settings-index" to="notifications/" />,
   <Route
-    key="projects"
-    path="projects/"
-    name="Projects"
-    component={errorHandler(OrganizationProjectsView)}
+    key="notifications/"
+    path="notifications/"
+    name="Notifications"
+    component={errorHandler(AccountNotifications)}
   />,
-
   <Route
-    key="settings"
-    path="settings/"
-    name="General"
-    component={errorHandler(OrganizationGeneralSettingsView)}
+    key="emails/"
+    path="emails/"
+    name="Emails"
+    component={errorHandler(AccountEmails)}
   />,
-
   <Route
-    key="api-keys"
-    path="api-keys/"
-    name="API Key"
-    component={errorHandler(OrganizationApiKeysView)}
-  />,
-
-  <Route
-    key="api-keys-detail"
-    path="api-keys/:apiKey/"
-    component={errorHandler(OrganizationApiKeyDetailsView)}
-  />,
-
-  <Route
-    key="audit-log"
-    path="audit-log/"
-    name="Audit Log"
-    component={errorHandler(OrganizationAuditLogView)}
-  />,
-
-  <Route
-    key="auth"
-    path="auth/"
-    name="Auth Providers"
-    component={errorHandler(OrganizationAuthView)}
-  />,
-
-  <Route
-    key="integrations"
-    path="integrations/"
-    name="Integrations"
-    component={errorHandler(OrganizationIntegrations)}
-  />,
-
-  <Route key="members" path="members/" name="Members">
-    <IndexRoute component={errorHandler(OrganizationMembersView)} />
-    <Route path="new/" name="Invite" component={errorHandler(InviteMember)} />,
-    <Route
-      path=":memberId/"
-      name="Details"
-      component={errorHandler(OrganizationMemberDetail)}
-    />,
-  </Route>,
-
-  <Route
-    key="rate-limits"
-    path="rate-limits/"
-    name="Rate Limits"
-    component={errorHandler(OrganizationRateLimits)}
-  />,
-
-  <Route
-    key="repos"
-    path="repos/"
-    name="Repositories"
-    component={errorHandler(OrganizationRepositoriesView)}
-  />,
-
-  <Route
-    key="settings"
-    path="settings/"
-    component={errorHandler(OrganizationGeneralSettingsView)}
-  />,
-
-  <Route
-    key="team-details"
-    name="Teams"
-    path="teams/:teamId/"
-    component={errorHandler(TeamDetails)}
-  >
-    <IndexRedirect to="settings/" />
-    <Route path="settings/" name="Settings" component={errorHandler(TeamSettings)} />
-    <Route path="members/" name="Members" component={errorHandler(TeamMembers)} />
-  </Route>,
-
-  <Route
-    key="teams"
-    path="teams/"
-    name="Teams"
-    component={errorHandler(OrganizationTeams)}
-  />,
-
-  <Route
-    key="all-teams"
-    path="all-teams/"
-    name="All Teams"
-    allTeams
-    component={errorHandler(OrganizationTeams)}
-  />,
-
-  <Route
-    key="org-stats"
-    name="Stats"
-    path="stats/"
-    component={errorHandler(OrganizationStats)}
+    key="avatar/"
+    path="avatar/"
+    name="Avatar"
+    component={errorHandler(AccountAvatar)}
   />,
 ];
 
 const projectSettingsRoutes = [
-  <IndexRedirect key="projects-index" to="alerts/" />,
-
+  <IndexRedirect key="projects-index" to="settings/" />,
+  <Route
+    key="settings/"
+    path="settings/"
+    name="General"
+    component={errorHandler(ProjectGeneralSettings)}
+  />,
   <Route
     key="alerts/"
     name="Alerts"
@@ -237,6 +158,12 @@ const projectSettingsRoutes = [
     path="alerts/rules/"
     name="Alert Rules"
     component={errorHandler(ProjectAlertRules)}
+  />,
+  <Route
+    key="issue-tracking/"
+    path="issue-tracking/"
+    name="Issue Tracking"
+    component={errorHandler(ProjectIssueTracking)}
   />,
   <Route
     key="release-tracking/"
@@ -305,6 +232,12 @@ const projectSettingsRoutes = [
     component={errorHandler(ProjectPlugins)}
   />,
   <Route
+    key="plugins/:pluginId/"
+    path="plugins/:pluginId/"
+    name="Integration Details"
+    component={errorHandler(ProjectPluginDetails)}
+  />,
+  <Route
     key="install/"
     path="install/"
     name="Basic Configuration"
@@ -331,6 +264,130 @@ function routes() {
     hooksOrgRoutes.push(cb());
   });
 
+  // This is declared in the routes() function because some routes need the
+  // hook store which is not available at import time.
+  const orgSettingsRoutes = [
+    <IndexRedirect key="index-org-settings" to="settings/" />,
+
+    <Route
+      key="projects"
+      path="projects/"
+      name="Projects"
+      component={errorHandler(OrganizationProjectsView)}
+    />,
+
+    <Route
+      key="settings"
+      path="settings/"
+      name="General"
+      component={errorHandler(OrganizationGeneralSettingsView)}
+    />,
+
+    <Route
+      key="api-keys"
+      path="api-keys/"
+      name="API Key"
+      component={errorHandler(OrganizationApiKeysView)}
+    />,
+
+    <Route
+      key="api-keys-detail"
+      path="api-keys/:apiKey/"
+      component={errorHandler(OrganizationApiKeyDetailsView)}
+    />,
+
+    <Route
+      key="audit-log"
+      path="audit-log/"
+      name="Audit Log"
+      component={errorHandler(OrganizationAuditLogView)}
+    />,
+
+    <Route
+      key="auth"
+      path="auth/"
+      name="Auth Providers"
+      component={errorHandler(OrganizationAuthView)}
+    />,
+
+    <Route
+      key="integrations"
+      path="integrations/"
+      name="Integrations"
+      component={errorHandler(OrganizationIntegrations)}
+    />,
+
+    <Route key="members" path="members/" name="Members">
+      <IndexRoute
+        component={
+          HookStore.get('component:org-members-view').length
+            ? HookStore.get('component:org-members-view')[0]()
+            : OrganizationMembersView
+        }
+      />
+      <Route path="new/" name="Invite" component={errorHandler(InviteMember)} />,
+      <Route
+        path=":memberId/"
+        name="Details"
+        component={errorHandler(OrganizationMemberDetail)}
+      />,
+    </Route>,
+
+    <Route
+      key="rate-limits"
+      path="rate-limits/"
+      name="Rate Limits"
+      component={errorHandler(OrganizationRateLimits)}
+    />,
+
+    <Route
+      key="repos"
+      path="repos/"
+      name="Repositories"
+      component={errorHandler(OrganizationRepositoriesView)}
+    />,
+
+    <Route
+      key="settings"
+      path="settings/"
+      component={errorHandler(OrganizationGeneralSettingsView)}
+    />,
+
+    <Route key="teams" name="Project & Teams" path="teams/">
+      <IndexRedirect to="your-teams" />
+      <Route
+        path="all-teams/"
+        name="All Teams"
+        allTeams
+        component={errorHandler(OrganizationTeams)}
+      />
+
+      <Route
+        name="Your Teams"
+        path="your-teams/"
+        component={errorHandler(OrganizationTeams)}
+      />
+
+      <Route
+        key="team-details"
+        name="Team"
+        path=":teamId/"
+        component={errorHandler(TeamDetails)}
+      >
+        <IndexRedirect to="settings/" />
+        <Route path="settings/" name="Settings" component={errorHandler(TeamSettings)} />
+        <Route path="members/" name="Members" component={errorHandler(TeamMembers)} />
+      </Route>
+    </Route>,
+
+    <Route
+      key="org-stats"
+      name="Stats"
+      path="stats/"
+      component={errorHandler(OrganizationStats)}
+    />,
+  ];
+
   return (
     <Route path="/" component={errorHandler(App)}>
       <Route path="/account/" component={errorHandler(AccountLayout)}>
@@ -353,6 +410,9 @@ function routes() {
         component={errorHandler(SettingsWrapper)}
       >
         <IndexRoute component={errorHandler(SettingsIndex)} />
+        <Route path="account/" name="Account" component={AccountSettingsLayout}>
+          {accountSettingsRoutes}
+        </Route>
         <Route path="organization/">
           <IndexRoute component={errorHandler(OrganizationPicker)} />
 
@@ -387,6 +447,7 @@ function routes() {
         <Route path="organizations/" component={errorHandler(AdminOrganizations)} />
         <Route path="projects/" component={errorHandler(AdminProjects)} />
         <Route path="queue/" component={errorHandler(AdminQueue)} />
+        <Route path="quotas/" component={errorHandler(AdminQuotas)} />
         <Route path="settings/" component={errorHandler(AdminSettings)} />
         <Route path="users/" component={errorHandler(AdminUsers)} />
         {hooksAdminRoutes}

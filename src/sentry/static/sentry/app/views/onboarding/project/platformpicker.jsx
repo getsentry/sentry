@@ -9,25 +9,24 @@ import {t} from '../../../locale';
 
 const categoryList = Object.keys(categoryLists).concat('All');
 
-const PlatformPicker = React.createClass({
-  propTypes: {
+class PlatformPicker extends React.Component {
+  static propTypes = {
     setPlatform: PropTypes.func.isRequired,
     platform: PropTypes.string,
     showOther: PropTypes.bool,
-  },
+  };
 
-  getDefaultProps() {
-    return {showOther: true};
-  },
+  static defaultProps = {showOther: true};
 
-  getInitialState() {
-    return {
+  constructor(...args) {
+    super(...args);
+    this.state = {
       tab: categoryList[0],
       filter: (this.props.platform || '').split('-')[0],
     };
-  },
+  }
 
-  renderPlatformList() {
+  renderPlatformList = () => {
     let {tab} = this.state;
 
     const tabSubset = flattenedPlatforms.filter(
@@ -74,7 +73,7 @@ const PlatformPicker = React.createClass({
         })}
       </ul>
     );
-  },
+  };
 
   render() {
     let {filter} = this.state;
@@ -113,7 +112,7 @@ const PlatformPicker = React.createClass({
         {this.renderPlatformList()}
       </div>
     );
-  },
-});
+  }
+}
 
 export default PlatformPicker;

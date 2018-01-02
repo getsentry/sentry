@@ -4,18 +4,19 @@ import HookStore from '../stores/hookStore';
 import {t} from '../locale';
 import DynamicWrapper from './dynamicWrapper';
 
-const Footer = React.createClass({
-  getInitialState() {
+class Footer extends React.Component {
+  constructor(props) {
+    super(props);
     // Allow injection via getsentry et all
     let hooks = [];
     HookStore.get('footer').forEach(cb => {
       hooks.push(cb());
     });
 
-    return {
+    this.state = {
       hooks,
     };
-  },
+  }
 
   render() {
     let config = ConfigStore.getConfig();
@@ -51,7 +52,7 @@ const Footer = React.createClass({
         </div>
       </footer>
     );
-  },
-});
+  }
+}
 
 export default Footer;

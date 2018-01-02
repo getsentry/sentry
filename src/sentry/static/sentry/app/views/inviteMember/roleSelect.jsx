@@ -5,15 +5,20 @@ import Radio from '../../components/radio';
 
 import {t} from '../../locale';
 
-const RoleSelect = React.createClass({
-  propTypes: {
+class RoleSelect extends React.Component {
+  static propTypes = {
+    /**
+     * Whether to disable or not using `allowed` prop from API request
+     */
+    enforceAllowed: PropTypes.bool,
+    disabled: PropTypes.bool,
     selectedRole: PropTypes.string,
     roleList: PropTypes.array,
     setRole: PropTypes.func,
-  },
+  };
 
   render() {
-    let {roleList, selectedRole} = this.props;
+    let {disabled, enforceAllowed, roleList, selectedRole} = this.props;
 
     return (
       <div className="new-invite-team box">
@@ -24,14 +29,15 @@ const RoleSelect = React.createClass({
           <ul className="radio-inputs">
             {roleList.map((role, i) => {
               let {desc, name, id, allowed} = role;
+              let isDisabled = disabled || (enforceAllowed && !allowed);
               return (
                 <li
                   className="radio"
                   key={id}
-                  onClick={() => allowed && this.props.setRole(id)}
-                  style={allowed ? {} : {color: 'grey', cursor: 'default'}}
+                  onClick={() => !isDisabled && this.props.setRole(id)}
+                  style={!isDisabled ? {} : {color: 'grey', cursor: 'default'}}
                 >
-                  <label style={allowed ? {} : {cursor: 'default'}}>
+                  <label style={!isDisabled ? {} : {cursor: 'default'}}>
                     <Radio id={id} value={name} checked={id === selectedRole} readOnly />
                     {name}
                     <div className="help-block">{desc}</div>
@@ -43,7 +49,7 @@ const RoleSelect = React.createClass({
         </div>
       </div>
     );
-  },
-});
+  }
+}
 
 export default RoleSelect;

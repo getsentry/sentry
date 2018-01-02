@@ -2,8 +2,10 @@
 
 from __future__ import absolute_import
 
+from django.conf import settings
+
 from sentry.models import Event, Group
-from sentry.tagstore.legacy.models import GroupTagKey, GroupTagValue, TagValue
+from sentry.tagstore.models import GroupTagKey, GroupTagValue, TagValue
 from sentry.runner.commands.cleanup import cleanup
 from sentry.testutils import CliTestCase
 
@@ -12,6 +14,17 @@ ALL_MODELS = (Event, Group, GroupTagKey, GroupTagValue, TagValue)
 
 class SentryCleanupTest(CliTestCase):
     fixtures = ['tests/fixtures/cleanup.json']
+
+    if settings.SENTRY_TAGSTORE.startswith('sentry.tagstore.legacy.LegacyTagStorage'):
+        fixtures += ['tests/fixtures/cleanup-tagstore-legacy.json']
+    elif settings.SENTRY_TAGSTORE.startswith('sentry.tagstore.v2'):
+        fixtures += ['tests/fixtures/cleanup-tagstore-v2.json']
+    elif settings.SENTRY_TAGSTORE.startswith('sentry.tagstore.multi'):
+        fixtures += ['tests/fixtures/cleanup-tagstore-legacy.json',
+                     'tests/fixtures/cleanup-tagstore-v2.json']
+    else:
+        raise NotImplementedError
+
     command = cleanup
 
     def test_simple(self):

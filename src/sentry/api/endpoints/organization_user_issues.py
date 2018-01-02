@@ -3,13 +3,14 @@ from __future__ import absolute_import
 from rest_framework.response import Response
 
 from sentry import tagstore
+from sentry.api.base import EnvironmentMixin
 from sentry.api.bases.organization import OrganizationEndpoint
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.group import TagBasedStreamGroupSerializer
 from sentry.models import (EventUser, Group, Project)
 
 
-class OrganizationUserIssuesEndpoint(OrganizationEndpoint):
+class OrganizationUserIssuesEndpoint(OrganizationEndpoint, EnvironmentMixin):
     def get(self, request, organization, user_id):
         limit = request.GET.get('limit', 100)
 
@@ -48,6 +49,7 @@ class OrganizationUserIssuesEndpoint(OrganizationEndpoint):
             groups, request.user, TagBasedStreamGroupSerializer(
                 stats_period=None,
                 tags=tags,
+                environment_id_func=self._get_environment_id_func(request, organization.id)
             )
         )
 

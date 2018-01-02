@@ -5,18 +5,19 @@ import EventStore from '../../stores/eventStore';
 import Avatar from '../avatar';
 import TimeSince from '../timeSince';
 
-const EventRow = React.createClass({
-  propTypes: {
+class EventRow extends React.Component {
+  static propTypes = {
     id: PropTypes.string.isRequired,
     orgSlug: PropTypes.string.isRequired,
     projectSlug: PropTypes.string.isRequired,
-  },
+  };
 
-  getInitialState() {
-    return {
+  constructor(...args) {
+    super(...args);
+    this.state = {
       event: EventStore.get(this.props.id),
     };
-  },
+  }
 
   componentWillReceiveProps(nextProps) {
     if (nextProps.id != this.props.id) {
@@ -24,11 +25,11 @@ const EventRow = React.createClass({
         event: EventStore.get(this.props.id),
       });
     }
-  },
+  }
 
   shouldComponentUpdate(nextProps, nextState) {
     return false;
-  },
+  }
 
   render() {
     let event = this.state.event;
@@ -71,7 +72,7 @@ const EventRow = React.createClass({
         </td>
       </tr>
     );
-  },
-});
+  }
+}
 
 export default EventRow;

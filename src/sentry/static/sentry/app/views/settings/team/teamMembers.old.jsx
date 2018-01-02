@@ -1,13 +1,17 @@
+import {Link} from 'react-router';
 import React from 'react';
 
+import createReactClass from 'create-react-class';
+
+import {t} from '../../../locale';
 import ApiMixin from '../../../mixins/apiMixin';
 import Avatar from '../../../components/avatar';
 import LoadingError from '../../../components/loadingError';
 import LoadingIndicator from '../../../components/loadingIndicator';
 import OrganizationState from '../../../mixins/organizationState';
-import {t} from '../../../locale';
 
-const TeamMembers = React.createClass({
+const TeamMembers = createReactClass({
+  displayName: 'TeamMembers',
   mixins: [ApiMixin, OrganizationState],
 
   getInitialState() {
@@ -70,12 +74,12 @@ const TeamMembers = React.createClass({
       <div>
         <div style={{marginBottom: 20}} className="clearfix">
           {access.has('org:write') ? (
-            <a
+            <Link
               className="btn btn-primary btn-sm pull-right"
-              href={`${memberPrefix}/new/`}
+              to={`${memberPrefix}/new/`}
             >
               <span className="icon-plus" /> {t('Invite Member')}
-            </a>
+            </Link>
           ) : (
             <a
               className="btn btn-primary btn-sm btn-disabled tip pull-right"
@@ -104,7 +108,7 @@ const TeamMembers = React.createClass({
                   <td className="table-user-info">
                     <Avatar user={member} size={80} />
                     <h5>
-                      <a href={`${memberPrefix}/${member.id}/`}>{member.email}</a>
+                      <Link to={`${memberPrefix}/${member.id}/`}>{member.email}</Link>
                     </h5>
                     {member.email}
                   </td>

@@ -3,6 +3,7 @@ from __future__ import absolute_import
 import mock
 import six
 
+from django.conf import settings
 from django.core.urlresolvers import reverse
 
 from sentry import tagstore
@@ -15,7 +16,7 @@ class ProjectTagKeyDetailsTest(APITestCase):
         project = self.create_project()
         tagkey = tagstore.create_tag_key(
             project_id=project.id,
-            environment_id=self.environment.id,
+            environment_id=None,
             key='foo',
             values_seen=16
         )
@@ -44,7 +45,7 @@ class ProjectTagKeyDeleteTest(APITestCase):
         project = self.create_project()
         tagkey = tagstore.create_tag_key(
             project_id=project.id,
-            environment_id=self.environment.id,
+            environment_id=None,
             key='foo')
 
         self.login_as(user=self.user)
@@ -62,7 +63,12 @@ class ProjectTagKeyDeleteTest(APITestCase):
 
         assert response.status_code == 204
 
-        mock_delete_tag_key.delay.assert_called_once_with(object_id=tagkey.id)
+        if settings.SENTRY_TAGSTORE.startswith('sentry.tagstore.multi'):
+            backend_count = len(settings.SENTRY_TAGSTORE_OPTIONS.get('backends', []))
+            assert mock_delete_tag_key.delay.call_count == backend_count
+        else:
+            from sentry.tagstore.models import TagKey
+            mock_delete_tag_key.delay.assert_called_once_with(object_id=tagkey.id, model=TagKey)
 
         assert tagstore.get_tag_key(
             project.id,

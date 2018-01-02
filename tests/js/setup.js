@@ -3,6 +3,9 @@ import sinon from 'sinon';
 import ConfigStore from 'app/stores/configStore';
 import MockDate from 'mockdate';
 
+import Enzyme from 'enzyme';
+import Adapter from 'enzyme-adapter-react-15';
+
 jest.mock('app/translations');
 jest.mock('app/api');
 
@@ -11,6 +14,9 @@ MockDate.set(constantDate);
 
 // We generally use actual jQuery, and jest mocks takes precedence over node_modules
 jest.unmock('jquery');
+
+Enzyme.configure({adapter: new Adapter()});
+Enzyme.configure({disableLifecycleMethods: true});
 
 window.$ = window.jQuery = jQuery;
 window.sinon = sinon;
@@ -165,7 +171,7 @@ window.TestStubs = {
       name: 'repo-name',
       provider: 'github',
       url: 'https://github.com/example/repo-name',
-      status: 'visible',
+      status: 'active',
       ...params,
     };
   },
@@ -209,16 +215,22 @@ window.TestStubs = {
   Tags: (...params) => {
     return [{key: 'browser', name: 'Browser'}, {key: 'device', name: 'Device'}];
   },
+  Plugin: (...params) => {
+    return {
+      author: {url: 'https://github.com/getsentry/sentry', name: 'Sentry Team'},
+      enabled: false,
+      id: 'amazon-sqs',
+      name: 'Amazon SQS',
+      slug: 'amazon-sqs',
+      version: '8.23.0.dev0',
+      assets: [],
+      hasConfiguration: true,
+      canDisable: true,
+    };
+  },
   Plugins: (...params) => {
     return [
-      {
-        author: {url: 'https://github.com/getsentry/sentry', name: 'Sentry Team'},
-        enabled: false,
-        id: 'amazon-sqs',
-        name: 'Amazon SQS',
-        slug: 'amazon-sqs',
-        version: '8.23.0.dev0',
-      },
+      TestStubs.Plugin(),
       {
         author: {url: 'https://github.com/getsentry/sentry', name: 'Sentry Team'},
         enabled: true,
@@ -226,6 +238,8 @@ window.TestStubs = {
         name: 'GitHub',
         slug: 'github',
         version: '8.23.0.dev0',
+        assets: [],
+        canDisable: false,
       },
     ];
   },

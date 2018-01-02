@@ -1,6 +1,7 @@
 import {browserHistory} from 'react-router';
 import PropTypes from 'prop-types';
 import React from 'react';
+import createReactClass from 'create-react-class';
 import Reflux from 'reflux';
 
 import {
@@ -24,7 +25,9 @@ import SettingsPageHeader from '../../components/settingsPageHeader';
 import getSettingsComponent from '../../../../utils/getSettingsComponent';
 import recreateRoute from '../../../../utils/recreateRoute';
 
-const OrganizationGeneralSettingsView = React.createClass({
+const OrganizationGeneralSettingsView = createReactClass({
+  displayName: 'OrganizationGeneralSettingsView',
+
   propTypes: {
     routes: PropTypes.arrayOf(PropTypes.object),
   },

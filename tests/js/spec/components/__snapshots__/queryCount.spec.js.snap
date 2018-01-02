@@ -72,4 +72,4 @@ exports[`QueryCount displays max count if count >= max 1`] = `
 </div>
 `;
 
-exports[`QueryCount does not render if count is 0 1`] = `null`;
+exports[`QueryCount does not render if count is 0 1`] = `""`;

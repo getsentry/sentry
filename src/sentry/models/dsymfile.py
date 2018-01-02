@@ -29,12 +29,14 @@ from symbolic import FatObject, SymbolicError, UnsupportedObjectFile, \
     SymCache, SYMCACHE_LATEST_VERSION
 
 from sentry import options
+from sentry.utils.cache import cache
 from sentry.db.models import FlexibleForeignKey, Model, \
     sane_repr, BaseManager, BoundedPositiveIntegerField
 from sentry.models.file import File
 from sentry.utils.zip import safe_extract_zip
 from sentry.constants import KNOWN_DSYM_TYPES
-from sentry.reprocessing import resolve_processing_issue
+from sentry.reprocessing import resolve_processing_issue, \
+    bump_reprocessing_revision
 
 
 logger = logging.getLogger(__name__)
@@ -42,6 +44,11 @@ logger = logging.getLogger(__name__)
 
 ONE_DAY = 60 * 60 * 24
 ONE_DAY_AND_A_HALF = int(ONE_DAY * 1.5)
+
+# How long we cache a conversion failure by checksum in cache.  Currently
+# 10 minutes is assumed to be a reasonable value here.
+CONVERSION_ERROR_TTL = 60 * 10
+
 DSYM_MIMETYPES = dict((v, k) for k, v in KNOWN_DSYM_TYPES.items())
 
 _proguard_file_re = re.compile(r'/proguard/(?:mapping-)?(.*?)\.txt$')
@@ -194,7 +201,7 @@ class ProjectDSymFile(Model):
     @property
     def supports_symcache(self):
         # Only one that supports it so far.
-        return self.dsym_type == 'macho'
+        return self.dsym_type in ('breakpad', 'macho')
 
     def delete(self, *args, **kwargs):
         super(ProjectDSymFile, self).delete(*args, **kwargs)
@@ -232,6 +239,8 @@ def _create_dsym_from_uuid(project, dsym_type, cpu_name, uuid, fileobj, basename
         object_name = 'proguard-mapping'
     elif dsym_type == 'macho':
         object_name = basename
+    elif dsym_type == 'breakpad':
+        object_name = basename[:-4] if basename.endswith('.sym') else basename
     else:
         raise TypeError('unknown dsym type %r' % (dsym_type, ))
 
@@ -352,6 +361,9 @@ def create_files_from_dsym_zip(fileobj, project,
                 symcache_update.delay(project_id=project.id,
                                       uuids=uuids_to_update)
 
+        # Uploading new dsysm changes the reprocessing revision
+        bump_reprocessing_revision(project)
+
         return rv
     finally:
         shutil.rmtree(scratchpad)
@@ -382,11 +394,16 @@ class DSymCache(object):
         """
         self._get_symcaches_impl(project, uuids)
 
-    def get_symcaches(self, project, uuids, on_dsym_file_referenced=None):
+    def get_symcaches(self, project, uuids, on_dsym_file_referenced=None,
+                      with_conversion_errors=False):
         """Given some uuids returns the symcaches loaded for these uuids."""
-        cachefiles = self._get_symcaches_impl(project, uuids,
-                                              on_dsym_file_referenced)
-        return self._load_cachefiles_via_fs(project, cachefiles)
+        cachefiles, conversion_errors = self._get_symcaches_impl(
+            project, uuids, on_dsym_file_referenced)
+        symcaches = self._load_cachefiles_via_fs(project, cachefiles)
+        if with_conversion_errors:
+            return symcaches, dict((uuid.UUID(k), v)
+                                   for k, v in conversion_errors.items())
+        return symcaches
 
     def fetch_dsyms(self, project, uuids):
         """Given some uuids returns a uuid to path mapping for where the
@@ -418,7 +435,7 @@ class DSymCache(object):
             uuid__in=uuid_strings,
         ).select_related('file') if x.supports_symcache]
         if not dsym_files:
-            return {}
+            return {}, {}
 
         dsym_files_by_uuid = {}
         for dsym_file in dsym_files:
@@ -432,6 +449,7 @@ class DSymCache(object):
             dsym_file_id__in=[x.id for x in dsym_files],
         ).select_related('cache_file', 'dsym_file__uuid')
 
+        conversion_errors = {}
         cachefiles = []
         cachefiles_to_update = dict.fromkeys(x.uuid for x in dsym_files)
         for cache_file in q:
@@ -455,23 +473,41 @@ class DSymCache(object):
                     cache_file, dsym_file = it
                     cache_file.delete()
                 to_update.append(dsym_file)
-            cachefiles.extend(self._update_cachefiles(project, to_update))
+            updated_cachefiles, conversion_errors = self._update_cachefiles(
+                project, to_update)
+            cachefiles.extend(updated_cachefiles)
 
-        return cachefiles
+        return cachefiles, conversion_errors
 
     def _update_cachefiles(self, project, dsym_files):
         rv = []
 
+        # Find all the known bad files we could not convert last time
+        # around
+        conversion_errors = {}
+        for dsym_file in dsym_files:
+            cache_key = 'scbe:%s:%s' % (dsym_file.uuid, dsym_file.file.checksum)
+            err = cache.get(cache_key)
+            if err is not None:
+                conversion_errors[dsym_file.uuid] = err
+
         for dsym_file in dsym_files:
             dsym_uuid = dsym_file.uuid
+            if dsym_uuid in conversion_errors:
+                continue
+
             try:
                 with dsym_file.file.getfile(as_tempfile=True) as tf:
                     fo = FatObject.from_path(tf.name)
                     o = fo.get_object(uuid=dsym_file.uuid)
                     if o is None:
                         continue
-                    cache = o.make_symcache()
-            except SymbolicError:
+                    symcache = o.make_symcache()
+            except SymbolicError as e:
+                cache.set('scbe:%s:%s' % (
+                    dsym_uuid, dsym_file.file.checksum), e.message,
+                    CONVERSION_ERROR_TTL)
+                conversion_errors[dsym_uuid] = e.message
                 logger.error('dsymfile.symcache-build-error',
                              exc_info=True, extra=dict(dsym_uuid=dsym_uuid))
                 continue
@@ -480,7 +516,7 @@ class DSymCache(object):
                 name=dsym_file.uuid,
                 type='project.symcache',
             )
-            file.putfile(cache.open_stream())
+            file.putfile(symcache.open_stream())
             try:
                 with transaction.atomic():
                     rv.append((dsym_uuid, ProjectSymCacheFile.objects.get_or_create(
@@ -489,7 +525,7 @@ class DSymCache(object):
                         dsym_file=dsym_file,
                         defaults=dict(
                             checksum=dsym_file.file.checksum,
-                            version=cache.file_format_version,
+                            version=symcache.file_format_version,
                         )
                     )[0]))
             except IntegrityError:
@@ -499,7 +535,7 @@ class DSymCache(object):
                     dsym_file=dsym_file,
                 )))
 
-        return rv
+        return rv, conversion_errors
 
     def _load_cachefiles_via_fs(self, project, cachefiles):
         rv = {}

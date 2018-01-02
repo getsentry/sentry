@@ -2,7 +2,7 @@ import {Observer} from 'mobx-react';
 import PropTypes from 'prop-types';
 import React from 'react';
 import ReactDOM from 'react-dom';
-import styled, {keyframes} from 'react-emotion';
+import styled from 'react-emotion';
 
 import {defined} from '../../../../../utils';
 import FormState from '../../../../../components/forms/state';
@@ -17,6 +17,7 @@ import FormFieldRequiredBadge from './formFieldRequiredBadge';
 import IconCheckmarkSm from '../../../../../icons/icon-checkmark-sm';
 import IconWarningSm from '../../../../../icons/icon-warning-sm';
 import Spinner from '../styled/spinner';
+import {pulse, fadeOut} from '../styled/animations';
 
 const FormFieldErrorReason = styled.div`
   color: ${p => p.theme.redDark};
@@ -29,27 +30,6 @@ const FormFieldErrorReason = styled.div`
   border-radius: 3px;
   box-shadow: 0 0 0 1px rgba(64, 11, 54, 0.15), 0 4px 20px 0 rgba(64, 11, 54, 0.36);
   z-index: 10000;
-`;
-
-const fadeOut = keyframes`
-  0% {
-    opacity: 1;
-  }
-  100% {
-    opacity: 0;
-  }
-`;
-
-const pulse = keyframes`
-  0% {
-    transform: scale(1,1);
-  }
-  50% {
-    transform: scale(1.15, 1.15);
-  }
-  100% {
-    transform: scale(1, 1);
-  }
 `;
 
 const FormFieldError = styled.div`

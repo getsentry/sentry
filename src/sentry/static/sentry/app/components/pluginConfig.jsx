@@ -1,5 +1,6 @@
 import PropTypes from 'prop-types';
 import React from 'react';
+import createReactClass from 'create-react-class';
 import _ from 'lodash';
 
 import ApiMixin from '../mixins/apiMixin';
@@ -8,7 +9,9 @@ import LoadingIndicator from '../components/loadingIndicator';
 import plugins from '../plugins';
 import {t} from '../locale';
 
-const PluginConfig = React.createClass({
+const PluginConfig = createReactClass({
+  displayName: 'PluginConfig',
+
   propTypes: {
     organization: PropTypes.object.isRequired,
     project: PropTypes.object.isRequired,
@@ -38,9 +41,7 @@ const PluginConfig = React.createClass({
   },
 
   componentWillReceiveProps(nextProps) {
-    if (!_.isEqual(nextProps.data, this.props.data)) {
-      this.loadPlugin(nextProps.data);
-    }
+    this.loadPlugin(nextProps.data);
   },
 
   shouldComponentUpdate(nextProps, nextState) {
@@ -50,8 +51,6 @@ const PluginConfig = React.createClass({
   },
 
   loadPlugin(data) {
-    if (plugins.isLoaded(data)) return;
-
     this.setState(
       {
         loading: true,

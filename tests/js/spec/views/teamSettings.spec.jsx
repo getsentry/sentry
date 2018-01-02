@@ -1,12 +1,13 @@
+import PropTypes from 'prop-types';
 import React from 'react';
 import {shallow} from 'enzyme';
 
 import TeamSettings from 'app/views/settings/team/teamSettings.old';
 
 const childContextTypes = {
-  organization: React.PropTypes.object,
-  router: React.PropTypes.object,
-  location: React.PropTypes.object,
+  organization: PropTypes.object,
+  router: PropTypes.object,
+  location: PropTypes.object,
 };
 
 describe('TeamSettings', function() {

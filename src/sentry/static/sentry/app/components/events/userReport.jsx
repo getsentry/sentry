@@ -5,13 +5,13 @@ import TimeSince from '../../components/timeSince';
 import utils from '../../utils';
 import Link from '../link';
 
-const EventUserReport = React.createClass({
-  propTypes: {
+class EventUserReport extends React.Component {
+  static propTypes = {
     report: PropTypes.object.isRequired,
     orgId: PropTypes.string.isRequired,
     projectId: PropTypes.string.isRequired,
     issueId: PropTypes.string.isRequired,
-  },
+  };
 
   render() {
     let {report, orgId, projectId, issueId} = this.props;
@@ -23,34 +23,36 @@ const EventUserReport = React.createClass({
             <li className="activity-note">
               <Avatar user={report} size={64} className="avatar" />
               <div className="activity-bubble">
-                <TimeSince date={report.dateCreated} />
-                <div className="activity-author">
-                  {report.name}
-                  <small>{report.email}</small>
-                  {/* event_id might be undefined for legacy accounts */}
-                  {report.event.id && (
-                    <small>
-                      <Link
-                        to={`/${orgId}/${projectId}/issues/${issueId}/events/${report
-                          .event.id}`}
-                      >
-                        View event
-                      </Link>
-                    </small>
-                  )}
+                <div>
+                  <TimeSince date={report.dateCreated} />
+                  <div className="activity-author">
+                    {report.name}
+                    <small>{report.email}</small>
+                    {/* event_id might be undefined for legacy accounts */}
+                    {report.event.id && (
+                      <small>
+                        <Link
+                          to={`/${orgId}/${projectId}/issues/${issueId}/events/${report
+                            .event.id}`}
+                        >
+                          View event
+                        </Link>
+                      </small>
+                    )}
+                  </div>
+                  <p
+                    dangerouslySetInnerHTML={{
+                      __html: utils.nl2br(utils.urlize(utils.escape(report.comments))),
+                    }}
+                  />
                 </div>
-                <p
-                  dangerouslySetInnerHTML={{
-                    __html: utils.nl2br(utils.urlize(utils.escape(report.comments))),
-                  }}
-                />
               </div>
             </li>
           </ul>
         </div>
       </div>
     );
-  },
-});
+  }
+}
 
 export default EventUserReport;

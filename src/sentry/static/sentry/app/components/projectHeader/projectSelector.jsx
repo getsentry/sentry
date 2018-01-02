@@ -1,5 +1,6 @@
 import PropTypes from 'prop-types';
 import React from 'react';
+import createReactClass from 'create-react-class';
 import {browserHistory} from 'react-router';
 import classNames from 'classnames';
 
@@ -13,7 +14,9 @@ import Link from '../link';
 import {sortArray} from '../../utils';
 import {t} from '../../locale';
 
-const ProjectSelector = React.createClass({
+const ProjectSelector = createReactClass({
+  displayName: 'ProjectSelector',
+
   propTypes: {
     // Accepts a project id (slug) and not a project *object* because ProjectSelector
     // is created from Django templates, and only organization is serialized
@@ -148,7 +151,7 @@ const ProjectSelector = React.createClass({
       if (this.state.currentIndex > -1) {
         let url = this.getProjectUrlProps(projects[this.state.currentIndex][1]);
         if (url.to) {
-          browserHistory.pushState(null, url.to);
+          browserHistory.push(url.to);
         } else if (url.href) {
           window.location = url.href;
         }

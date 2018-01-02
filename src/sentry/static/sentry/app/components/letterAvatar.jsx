@@ -1,12 +1,16 @@
 import PropTypes from 'prop-types';
 import React from 'react';
 
+import createReactClass from 'create-react-class';
+
 /**
  * Also see avatar.py. Anything changed in this file (how colors
  * are selected, the svg, etc) will also need to be changed there.
  */
 
-const LetterAvatar = React.createClass({
+const LetterAvatar = createReactClass({
+  displayName: 'LetterAvatar',
+
   propTypes: {
     identifier: PropTypes.string.isRequired,
     displayName: PropTypes.string.isRequired,

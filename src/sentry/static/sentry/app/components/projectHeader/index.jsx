@@ -7,12 +7,12 @@ import BookmarkToggle from '../projects/bookmarkToggle';
 
 import {t} from '../../locale';
 
-const ProjectHeader = React.createClass({
-  propTypes: {
+class ProjectHeader extends React.Component {
+  static propTypes = {
     project: PropTypes.object.isRequired,
     organization: PropTypes.object.isRequired,
     activeSection: PropTypes.string,
-  },
+  };
 
   render() {
     let navSection = this.props.activeSection;
@@ -67,21 +67,21 @@ const ProjectHeader = React.createClass({
             </a>
           </BookmarkToggle>
           {access.has('project:write') && (
-            <a
+            <Link
               className={
                 navSection == 'settings'
                   ? 'btn btn-sm btn-default active'
                   : 'btn btn-sm btn-default'
               }
-              href={`/${org.slug}/${project.slug}/settings/`}
+              to={`/${org.slug}/${project.slug}/settings/`}
             >
               <span className="icon icon-settings" /> {t('Project Settings')}
-            </a>
+            </Link>
           )}
         </div>
       </div>
     );
-  },
-});
+  }
+}
 
 export default ProjectHeader;

@@ -1,0 +1,52 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`ProjectPluginRow renders 1`] = `
+<tr
+  className="amazon-sqs"
+  key="amazon-sqs"
+>
+  <td
+    colSpan={2}
+  >
+    <div
+      className="icon-integration icon-amazon-sqs"
+    />
+    <h5>
+      Amazon SQS 
+      <span>
+        v8.23.0.dev0
+      </span>
+    </h5>
+    <p>
+      <ExternalLink
+        href="https://github.com/getsentry/sentry"
+        rel="noreferrer noopener"
+        target="_blank"
+      >
+        Sentry Team
+      </ExternalLink>
+      <span>
+         
+        ·
+         
+        <Link
+          onlyActiveOnIndex={false}
+          style={Object {}}
+          to="/org-slug/project-slug/settings/plugins/amazon-sqs"
+        >
+          Configure plugin
+        </Link>
+      </span>
+    </p>
+  </td>
+  <td
+    className="align-right"
+  >
+    <Checkbox
+      checked={false}
+      name="amazon-sqs"
+      onChange={[Function]}
+    />
+  </td>
+</tr>
+`;

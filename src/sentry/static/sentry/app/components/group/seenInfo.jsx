@@ -1,5 +1,6 @@
 import PropTypes from 'prop-types';
 import React from 'react';
+import createReactClass from 'create-react-class';
 import DateTime from '../../components/dateTime';
 import TimeSince from '../../components/timeSince';
 import Version from '../../components/version';
@@ -9,7 +10,9 @@ import {defined, toTitleCase} from '../../utils';
 import componentToString from '../../utils/componentToString';
 import {t} from '../../locale';
 
-const SeenInfo = React.createClass({
+const SeenInfo = createReactClass({
+  displayName: 'SeenInfo',
+
   propTypes: {
     orgId: PropTypes.string.isRequired,
     projectId: PropTypes.string.isRequired,

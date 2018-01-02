@@ -1,19 +1,16 @@
 import PropTypes from 'prop-types';
 import React from 'react';
-import PureRenderMixin from 'react-addons-pure-render-mixin';
 
 import Avatar from './avatar';
 import Version from './version';
 import {t, tct} from '../locale';
 
-export default React.createClass({
-  propTypes: {
+export default class ResolutionBox extends React.Component {
+  static propTypes = {
     statusDetails: PropTypes.object.isRequired,
-  },
+  };
 
-  mixins: [PureRenderMixin],
-
-  renderReason() {
+  renderReason = () => {
     let {params, statusDetails} = this.props;
     let actor = statusDetails.actor ? (
       <strong>
@@ -51,14 +48,14 @@ export default React.createClass({
       });
     }
     return t('This issue has been marked as resolved.');
-  },
+  };
 
-  render() {
+  render = () => {
     return (
       <div className="box">
         <span className="icon icon-checkmark" />
         <p>{this.renderReason()}</p>
       </div>
     );
-  },
-});
+  };
+}

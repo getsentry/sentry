@@ -1,6 +1,8 @@
 import PropTypes from 'prop-types';
 import React from 'react';
 
+import createReactClass from 'create-react-class';
+
 import ListLink from '../listLink';
 import OrganizationState from '../../mixins/organizationState';
 import HookStore from '../../stores/hookStore';
@@ -33,7 +35,7 @@ const OrgSettingsMenu = ({access, org, features}) => {
       <h6 className="nav-header with-divider">{t('Manage')}</h6>
       <ul className="nav nav-stacked">
         {access.has('org:read') && (
-          <RouterOrBrowserLink isRouter={hasNewSettings} path={`${pathPrefix}/members/`}>
+          <ListLink to={`${pathPrefix}/members/`}>
             {t('Members')}&nbsp;
             {access.has('org:write') &&
               org.pendingAccessRequests > 0 && (
@@ -41,7 +43,7 @@ const OrgSettingsMenu = ({access, org, features}) => {
                   {org.pendingAccessRequests}
                 </span>
               )}
-          </RouterOrBrowserLink>
+          </ListLink>
         )}
         {features.has('sso') &&
           access.has('org:admin') && (
@@ -85,7 +87,9 @@ OrgSettingsMenu.propTypes = {
   org: PropTypes.object,
 };
 
-const HomeSidebar = React.createClass({
+const HomeSidebar = createReactClass({
+  displayName: 'HomeSidebar',
+
   contextTypes: {
     location: PropTypes.object,
   },
@@ -129,17 +133,7 @@ const HomeSidebar = React.createClass({
           >
             {t('Dashboard')}
           </ListLink>
-          <ListLink
-            to={`${pathPrefix}/teams/`}
-            isActive={() => {
-              // return true if path matches /organizations/slug-name/teams/ OR /organizations/slug-name/all-teams/
-              return /^\/organizations\/[^\/]+\/(teams|all-teams)\/$/.test(
-                this.context.location.pathname
-              );
-            }}
-          >
-            {t('Projects & Teams')}
-          </ListLink>
+          <ListLink to={`${pathPrefix}/teams/`}>{t('Projects & Teams')}</ListLink>
           {access.has('org:read') && (
             <ListLink to={`${pathPrefix}/stats/`}>{t('Stats')}</ListLink>
           )}

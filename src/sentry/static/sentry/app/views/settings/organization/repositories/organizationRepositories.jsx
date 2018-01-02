@@ -116,7 +116,7 @@ class OrganizationRepositories extends React.Component {
             <PanelBody>
               <Box>
                 {itemList.map(repo => {
-                  let repoIsVisible = repo.status === 'visible';
+                  let repoIsVisible = repo.status === 'active';
                   return (
                     <RepoRow key={repo.id}>
                       <Box p={2} flex="1">

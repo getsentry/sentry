@@ -9,38 +9,39 @@ import {t} from '../../../locale';
 
 import Truncate from '../../../components/truncate';
 
-const RequestInterface = React.createClass({
-  propTypes: {
+class RequestInterface extends React.Component {
+  static propTypes = {
     group: SentryTypes.Group.isRequired,
     event: SentryTypes.Event.isRequired,
     type: PropTypes.string.isRequired,
     data: PropTypes.object.isRequired,
     isShare: PropTypes.bool,
-  },
+  };
 
-  contextTypes: {
+  static contextTypes = {
     organization: SentryTypes.Organization,
     project: SentryTypes.Project,
-  },
+  };
 
-  getInitialState() {
-    return {
+  constructor(...args) {
+    super(...args);
+    this.state = {
       view: 'formatted',
     };
-  },
+  }
 
-  isPartial() {
+  isPartial = () => {
     // We assume we only have a partial interface is we're missing
     // an HTTP method. This means we don't have enough information
     // to reliably construct a full HTTP request.
     return !this.props.data.method;
-  },
+  };
 
-  toggleView(value) {
+  toggleView = value => {
     this.setState({
       view: value,
     });
-  },
+  };
 
   render() {
     let group = this.props.group;
@@ -122,7 +123,7 @@ const RequestInterface = React.createClass({
         )}
       </GroupEventDataSection>
     );
-  },
-});
+  }
+}
 
 export default RequestInterface;

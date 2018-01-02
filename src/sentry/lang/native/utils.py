@@ -5,9 +5,9 @@ import six
 import logging
 
 from collections import namedtuple
-from symbolic import parse_addr, arch_from_macho, arch_is_known, ProcessState
+from django.core.files.uploadedfile import InMemoryUploadedFile, TemporaryUploadedFile
+from symbolic import parse_addr, arch_from_breakpad, arch_from_macho, arch_is_known, ProcessState
 
-from sentry.constants import LOG_LEVELS_MAP
 from sentry.interfaces.contexts import DeviceContextType
 
 logger = logging.getLogger(__name__)
@@ -152,26 +152,29 @@ def sdk_info_to_sdk_id(sdk_info):
     return rv
 
 
-def merge_minidump_event(data, minidump_path):
-    state = ProcessState.from_minidump(minidump_path)
+def merge_minidump_event(data, minidump):
+    if isinstance(minidump, InMemoryUploadedFile):
+        state = ProcessState.from_minidump_buffer(minidump.read())
+    elif isinstance(minidump, TemporaryUploadedFile):
+        state = ProcessState.from_minidump(minidump.temporary_file_path())
+    else:
+        state = ProcessState.from_minidump(minidump.name)
 
-    data['level'] = LOG_LEVELS_MAP['fatal'] if state.crashed else LOG_LEVELS_MAP['info']
+    data['level'] = 'fatal' if state.crashed else 'info'
     data['message'] = 'Assertion Error: %s' % state.assertion if state.assertion \
         else 'Fatal Error: %s' % state.crash_reason
 
     if state.timestamp:
         data['timestamp'] = float(state.timestamp)
 
-    # Extract as much system information as we can. TODO: We should create
-    # a custom context and implement a specific minidump view in the event
-    # UI.
+    # Extract as much context information as we can.
     info = state.system_info
     context = data.setdefault('contexts', {})
     os = context.setdefault('os', {})
     device = context.setdefault('device', {})
     os['type'] = 'os'  # Required by "get_sdk_from_event"
     os['name'] = MINIDUMP_OS_TYPES.get(info.os_name, info.os_name)
-    device['arch'] = info.cpu_family
+    device['arch'] = arch_from_breakpad(info.cpu_family)
 
     # Breakpad reports the version and build number always in one string,
     # but a version number is guaranteed even on certain linux distros.
@@ -186,7 +189,7 @@ def merge_minidump_event(data, minidump_path):
     # resort to stack scanning which yields low-quality results. If
     # the user provides us with debug symbols, we could reprocess this
     # minidump and add improved stacktraces later.
-    threads = [{
+    data['threads'] = [{
         'id': thread.thread_id,
         'crashed': False,
         'stacktrace': {
@@ -196,24 +199,19 @@ def merge_minidump_event(data, minidump_path):
             } for frame in thread.frames()],
         },
     } for thread in state.threads()]
-    data.setdefault('threads', {})['values'] = threads
 
     # Mark the crashed thread and add its stacktrace to the exception
-    crashed_thread = threads[state.requesting_thread]
+    crashed_thread = data['threads'][state.requesting_thread]
     crashed_thread['crashed'] = True
 
     # Extract the crash reason and infos
-    exception = {
+    data['exception'] = {
         'value': data['message'],
         'thread_id': crashed_thread['id'],
         'type': state.crash_reason,
         # Move stacktrace here from crashed_thread (mutating!)
         'stacktrace': crashed_thread.pop('stacktrace'),
     }
-
-    data.setdefault('sentry.interfaces.Exception', {}) \
-        .setdefault('values', []) \
-        .append(exception)
 
     # Extract referenced (not all loaded) images
     images = [{

@@ -16,6 +16,7 @@ from django.conf import settings
 from django.db import IntegrityError, models, transaction
 from django.utils import timezone
 from django.utils.translation import ugettext_lazy as _
+from uuid import uuid1
 
 from sentry.app import locks
 from sentry.constants import ObjectStatus
@@ -314,3 +315,15 @@ class Project(Model):
             return False
         else:
             return True
+
+    def get_security_token(self):
+        lock = locks.get(self.get_lock_key(), duration=5)
+        with TimedRetryPolicy(10)(lock.acquire):
+            security_token = self.get_option('sentry:token', None)
+            if security_token is None:
+                security_token = uuid1().hex
+                self.update_option('sentry:token', security_token)
+            return security_token
+
+    def get_lock_key(self):
+        return 'project_token:%s' % self.id

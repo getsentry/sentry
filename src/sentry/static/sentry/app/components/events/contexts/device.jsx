@@ -4,13 +4,13 @@ import React from 'react';
 import ContextBlock from './contextBlock';
 import {defined, formatBytes} from '../../../utils';
 
-const DeviceContextType = React.createClass({
-  propTypes: {
+class DeviceContextType extends React.Component {
+  static propTypes = {
     alias: PropTypes.string.isRequired,
     data: PropTypes.object.isRequired,
-  },
+  };
 
-  formatMemory(memory_size, free_memory, usable_memory) {
+  formatMemory = (memory_size, free_memory, usable_memory) => {
     if (
       !Number.isInteger(memory_size) ||
       memory_size <= 0 ||
@@ -25,14 +25,14 @@ const DeviceContextType = React.createClass({
       memory += ` / Usable: ${formatBytes(usable_memory)}`;
 
     return memory;
-  },
+  };
 
-  formatStorage(
+  formatStorage = (
     storage_size,
     free_storage,
     external_storage_size,
     external_free_storage
-  ) {
+  ) => {
     if (!Number.isInteger(storage_size) || storage_size <= 0) return null;
 
     let storage = `Total: ${formatBytes(storage_size)}`;
@@ -50,7 +50,7 @@ const DeviceContextType = React.createClass({
       )} / Free: ${formatBytes(external_free_storage)})`;
 
     return storage;
-  },
+  };
 
   render() {
     let {
@@ -85,9 +85,9 @@ const DeviceContextType = React.createClass({
         data={data}
         knownData={[
           ['?Name', name],
-          ['Family', family],
-          ['Model', model + (model_id ? ` (${model_id})` : '')],
-          ['Architecture', arch],
+          ['?Family', family],
+          ['?Model', model + (model_id ? ` (${model_id})` : '')],
+          ['?Architecture', arch],
           ['?Battery Level', defined(battery_level) ? `${battery_level}%` : null],
           ['?Orientation', orientation],
           ['?Memory', memory],
@@ -99,8 +99,8 @@ const DeviceContextType = React.createClass({
         alias={this.props.alias}
       />
     );
-  },
-});
+  }
+}
 
 DeviceContextType.getTitle = function(value) {
   return 'Device';

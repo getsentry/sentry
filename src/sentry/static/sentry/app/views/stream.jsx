@@ -1,5 +1,6 @@
 import PropTypes from 'prop-types';
 import React from 'react';
+import createReactClass from 'create-react-class';
 import Reflux from 'reflux';
 import {Link, browserHistory} from 'react-router';
 import Cookies from 'js-cookie';
@@ -28,7 +29,9 @@ import {t, tn, tct} from '../locale';
 
 const MAX_TAGS = 500;
 
-const Stream = React.createClass({
+const Stream = createReactClass({
+  displayName: 'Stream',
+
   propTypes: {
     defaultSort: PropTypes.string,
     defaultStatsPeriod: PropTypes.string,
@@ -265,7 +268,7 @@ const Stream = React.createClass({
     this.setState({
       savedSearchList,
     });
-    browserHistory.pushState(null, `/${orgId}/${projectId}/searches/${data.id}/`);
+    browserHistory.push(`/${orgId}/${projectId}/searches/${data.id}/`);
   },
 
   getQueryState(props) {
@@ -372,14 +375,12 @@ const Stream = React.createClass({
         // different projects.
         if (jqXHR.getResponseHeader('X-Sentry-Direct-Hit') === '1') {
           if (data[0].matchingEventId) {
-            return void browserHistory.pushState(
-              null,
+            return void browserHistory.push(
               `/${this.props.params.orgId}/${data[0].project.slug}/issues/${data[0]
                 .id}/events/${data[0].matchingEventId}/`
             );
           }
-          return void browserHistory.pushState(
-            null,
+          return void browserHistory.push(
             `/${this.props.params.orgId}/${data[0].project.slug}/issues/${data[0].id}/`
           );
         }
@@ -544,7 +545,10 @@ const Stream = React.createClass({
       ? `/${params.orgId}/${params.projectId}/searches/${this.state.searchId}/`
       : `/${params.orgId}/${params.projectId}/`;
 
-    browserHistory.pushState(null, path, queryParams);
+    browserHistory.push({
+      pathname: path,
+      query: queryParams,
+    });
   },
 
   createSampleEvent() {
@@ -553,8 +557,7 @@ const Stream = React.createClass({
     this.api.request(url, {
       method: 'POST',
       success: data => {
-        browserHistory.pushState(
-          null,
+        browserHistory.push(
           `/${params.orgId}/${params.projectId}/issues/${data.groupID}/`
         );
       },
@@ -625,6 +628,7 @@ const Stream = React.createClass({
       </div>
     );
   },
+
   renderGroupNodes(ids, statsPeriod) {
     let {orgId, projectId} = this.props.params;
     let groupNodes = ids.map(id => {
@@ -644,6 +648,7 @@ const Stream = React.createClass({
       </ul>
     );
   },
+
   renderAwaitingEvents() {
     let org = this.getOrganization();
     let project = this.getProject();
@@ -696,6 +701,7 @@ const Stream = React.createClass({
       </div>
     );
   },
+
   renderEmpty() {
     return (
       <div className="box empty-stream">
@@ -704,6 +710,7 @@ const Stream = React.createClass({
       </div>
     );
   },
+
   renderLoading() {
     return (
       <div className="box">
@@ -711,6 +718,7 @@ const Stream = React.createClass({
       </div>
     );
   },
+
   renderStreamBody() {
     let body;
     let project = this.getProject();
@@ -727,6 +735,7 @@ const Stream = React.createClass({
     }
     return body;
   },
+
   render() {
     // global loading
     if (this.state.loading) {

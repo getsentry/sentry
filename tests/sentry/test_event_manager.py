@@ -622,10 +622,15 @@ class EventManagerTest(TransactionTestCase):
             environment='staging',
         ).exists()
 
-    def test_bad_logger(self):
-        manager = EventManager(self.make_event(logger='foo bar'))
+    def test_logger(self):
+        manager = EventManager(self.make_event(logger="foo\nbar"))
         data = manager.normalize()
         assert data['logger'] == DEFAULT_LOGGER_NAME
+
+        manager = EventManager(self.make_event(logger=""))
+        data = manager.normalize()
+        assert data['logger'] == DEFAULT_LOGGER_NAME
+        assert not any(e.get('name') == 'logger' for e in data['errors'])
 
     def test_tsdb(self):
         project = self.project

@@ -27,7 +27,6 @@ class GroupTagValue(Model):
 
     project_id = BoundedPositiveIntegerField(db_index=True)
     group_id = BoundedPositiveIntegerField(db_index=True)
-    environment_id = BoundedPositiveIntegerField(null=True)
     times_seen = BoundedPositiveIntegerField(default=0)
     _key = FlexibleForeignKey('tagstore.TagKey', db_column='key_id')
     _value = FlexibleForeignKey('tagstore.TagValue', db_column='value_id')
@@ -40,8 +39,7 @@ class GroupTagValue(Model):
 
     class Meta:
         app_label = 'tagstore'
-        unique_together = (('project_id', 'group_id', 'environment_id', '_key', '_value'), )
-        # TODO: environment index(es)
+        unique_together = (('project_id', 'group_id', '_key', '_value'), )
         index_together = (('project_id', '_key', '_value', 'last_seen'), )
 
     __repr__ = sane_repr('project_id', 'group_id', '_key', '_value')
@@ -59,14 +57,13 @@ class GroupTagValue(Model):
             self.first_seen = self.last_seen
         super(GroupTagValue, self).save(*args, **kwargs)
 
-    # TODO: this will have to iterate all of the possible environments a group has?
     def merge_counts(self, new_group):
         try:
             with transaction.atomic(using=router.db_for_write(GroupTagValue)):
                 new_obj = GroupTagValue.objects.get(
                     group_id=new_group.id,
-                    key_id=self.key_id,
-                    value_id=self.value_id,
+                    _key_id=self._key_id,
+                    _value_id=self._value_id,
                 )
                 new_obj.update(
                     first_seen=min(new_obj.first_seen, self.first_seen),

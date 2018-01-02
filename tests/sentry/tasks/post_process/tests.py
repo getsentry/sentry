@@ -8,7 +8,7 @@ from mock import Mock, patch
 
 from sentry import tagstore
 from sentry.tagstore.models import EventTag
-from sentry.models import Group, GroupSnooze, GroupStatus
+from sentry.models import Group, GroupSnooze, GroupStatus, ServiceHook
 from sentry.testutils import TestCase
 from sentry.tasks.merge import merge_group
 from sentry.tasks.post_process import index_event_tags, post_process_group
@@ -110,6 +110,83 @@ class PostProcessGroupTest(TestCase):
             id=snooze.id,
         ).exists()
 
+    @patch('sentry.tasks.servicehooks.process_service_hook')
+    def test_service_hook_fires_on_new_event(self, mock_process_service_hook):
+        group = self.create_group(project=self.project)
+        event = self.create_event(group=group)
+
+        hook = ServiceHook.objects.create(
+            project_id=self.project.id,
+            actor_id=self.user.id,
+            events=['event.created'],
+        )
+
+        with self.feature('projects:servicehooks'):
+            post_process_group(
+                event=event,
+                is_new=True,
+                is_regression=False,
+                is_sample=False,
+            )
+
+        mock_process_service_hook.delay.assert_called_once_with(
+            hook_id=hook.id,
+            event=event,
+        )
+
+    @patch('sentry.tasks.servicehooks.process_service_hook')
+    @patch('sentry.rules.processor.RuleProcessor')
+    def test_service_hook_fires_on_alert(self, mock_processor, mock_process_service_hook):
+        group = self.create_group(project=self.project)
+        event = self.create_event(group=group)
+
+        mock_callback = Mock()
+        mock_futures = [Mock()]
+
+        mock_processor.return_value.apply.return_value = [
+            (mock_callback, mock_futures),
+        ]
+
+        hook = ServiceHook.objects.create(
+            project_id=self.project.id,
+            actor_id=self.user.id,
+            events=['event.alert'],
+        )
+
+        with self.feature('projects:servicehooks'):
+            post_process_group(
+                event=event,
+                is_new=False,
+                is_regression=False,
+                is_sample=False,
+            )
+
+        mock_process_service_hook.delay.assert_called_once_with(
+            hook_id=hook.id,
+            event=event,
+        )
+
+    @patch('sentry.tasks.servicehooks.process_service_hook')
+    def test_service_hook_does_not_fire_without_event(self, mock_process_service_hook):
+        group = self.create_group(project=self.project)
+        event = self.create_event(group=group)
+
+        ServiceHook.objects.create(
+            project_id=self.project.id,
+            actor_id=self.user.id,
+            events=[],
+        )
+
+        with self.feature('projects:servicehooks'):
+            post_process_group(
+                event=event,
+                is_new=True,
+                is_regression=False,
+                is_sample=False,
+            )
+
+        assert not mock_process_service_hook.delay.mock_calls
+
 
 class IndexEventTagsTest(TestCase):
     def test_simple(self):
@@ -133,12 +210,12 @@ class IndexEventTagsTest(TestCase):
 
         tagkey = tagstore.get_tag_key(
             project_id=self.project.id,
-            environment_id=None,
+            environment_id=self.environment.id,
             key='foo',
         )
         tagvalue = tagstore.get_tag_value(
             project_id=self.project.id,
-            environment_id=None,
+            environment_id=self.environment.id,
             key='foo',
             value='bar',
         )
@@ -146,12 +223,12 @@ class IndexEventTagsTest(TestCase):
 
         tagkey = tagstore.get_tag_key(
             project_id=self.project.id,
-            environment_id=None,
+            environment_id=self.environment.id,
             key='biz',
         )
         tagvalue = tagstore.get_tag_value(
             project_id=self.project.id,
-            environment_id=None,
+            environment_id=self.environment.id,
             key='biz',
             value='baz',
         )

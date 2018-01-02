@@ -206,6 +206,7 @@ MAX_SYM = 256
 
 # Known dsym mimetypes
 KNOWN_DSYM_TYPES = {
+    'text/x-breakpad': 'breakpad',
     'application/x-mach-binary': 'macho',
     'text/x-proguard+plain': 'proguard',
 }
@@ -330,11 +331,14 @@ class ObjectStatus(object):
     PENDING_DELETION = 2
     DELETION_IN_PROGRESS = 3
 
+    ACTIVE = 0
+    DISABLED = 1
+
     @classmethod
     def as_choices(cls):
         return (
-            (cls.VISIBLE, 'visible'),
-            (cls.HIDDEN, 'hidden'),
+            (cls.ACTIVE, 'active'),
+            (cls.DISABLED, 'disabled'),
             (cls.PENDING_DELETION, 'pending_deletion'),
             (cls.DELETION_IN_PROGRESS, 'deletion_in_progress'),
         )

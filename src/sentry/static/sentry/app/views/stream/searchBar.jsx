@@ -1,5 +1,6 @@
 import PropTypes from 'prop-types';
 import React from 'react';
+import createReactClass from 'create-react-class';
 import ReactDOM from 'react-dom';
 import PureRenderMixin from 'react-addons-pure-render-mixin';
 import Reflux from 'reflux';
@@ -14,7 +15,9 @@ import {t} from '../../locale';
 
 import SearchDropdown from './searchDropdown';
 
-const SearchBar = React.createClass({
+const SearchBar = createReactClass({
+  displayName: 'SearchBar',
+
   propTypes: {
     orgId: PropTypes.string.isRequired,
     projectId: PropTypes.string.isRequired,
@@ -77,6 +80,13 @@ const SearchBar = React.createClass({
           example: 'is:resolved, unresolved, ignored, assigned, unassigned',
           className: 'icon-toggle',
           value: 'is:',
+        },
+        {
+          title: t('Time or Count'),
+          desc: t('Time or Count related search'),
+          example: 'firstSeen, lastSeen, event.timestamp, timesSeen',
+          className: 'icon-clock',
+          value: '',
         },
         {
           title: t('Assigned'),
@@ -332,6 +342,11 @@ const SearchBar = React.createClass({
         case 'assigned':
         case 'bookmarks':
           out.className = 'icon-user';
+          break;
+        case 'firstSeen':
+        case 'lastSeen':
+        case 'event.timestamp':
+          out.className = 'icon-clock';
           break;
         default:
           out.className = 'icon-tag';

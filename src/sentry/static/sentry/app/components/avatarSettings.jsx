@@ -101,7 +101,7 @@ const AvatarSettings = React.createClass({
     );
 
     return (
-      <div>
+      <div style={{lineHeight: '1.5em'}}>
         <form>
           <AvatarRadio user={this.state.user} updateUser={this.updateUserState} />
 

@@ -4,33 +4,34 @@ import React from 'react';
 import Note from './note';
 import NoteInput from './noteInput';
 
-const NoteContainer = React.createClass({
-  propTypes: {
+class NoteContainer extends React.Component {
+  static propTypes = {
     group: PropTypes.object.isRequired,
     item: PropTypes.object.isRequired,
     author: PropTypes.object.isRequired,
     onDelete: PropTypes.func.isRequired,
     sessionUser: PropTypes.object.isRequired,
     memberList: PropTypes.array.isRequired,
-  },
+  };
 
-  getInitialState() {
-    return {
+  constructor(...args) {
+    super(...args);
+    this.state = {
       editing: false,
     };
-  },
+  }
 
-  onEdit() {
+  onEdit = () => {
     this.setState({editing: true});
-  },
+  };
 
-  onFinish() {
+  onFinish = () => {
     this.setState({editing: false});
-  },
+  };
 
-  onDelete() {
+  onDelete = () => {
     this.props.onDelete(this.props.item);
-  },
+  };
 
   render() {
     let {group, item, author, sessionUser, memberList} = this.props;
@@ -58,7 +59,7 @@ const NoteContainer = React.createClass({
         </div>
       </li>
     );
-  },
-});
+  }
+}
 
 export default NoteContainer;

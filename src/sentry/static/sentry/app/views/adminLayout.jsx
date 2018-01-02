@@ -7,22 +7,23 @@ import Sidebar from '../components/sidebar';
 import HookStore from '../stores/hookStore';
 import ListLink from '../components/listLink';
 
-export default React.createClass({
-  getInitialState() {
+export default class extends React.Component {
+  constructor(props) {
+    super(props);
     // Allow injection via getsentry et all
     let hooksManage = [];
     HookStore.get('admin:sidebar:manage').forEach(cb => {
       hooksManage.push(cb());
     });
 
-    return {
+    this.state = {
       hooksManage,
     };
-  },
+  }
 
-  getTitle() {
+  getTitle = () => {
     return 'Sentry Admin';
-  },
+  };
 
   render() {
     return (
@@ -43,6 +44,9 @@ export default React.createClass({
                     </ListLink>
                     <ListLink index={true} to="/manage/queue/">
                       Queue
+                    </ListLink>
+                    <ListLink index={true} to="/manage/quotas/">
+                      Quotas
                     </ListLink>
                     <li>
                       <a href="/manage/status/environment/">Environment</a>
@@ -75,5 +79,5 @@ export default React.createClass({
         </div>
       </DocumentTitle>
     );
-  },
-});
+  }
+}

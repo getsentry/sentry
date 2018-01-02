@@ -194,7 +194,7 @@ class RegistrationForm(forms.ModelForm):
     subscribe = forms.BooleanField(
         label=_('Subscribe to product updates newsletter'),
         required=False,
-        initial=True,
+        initial=False,
     )
 
     def __init__(self, *args, **kwargs):
@@ -316,6 +316,11 @@ class AccountSettingsForm(forms.Form):
         required=False,
         # help_text=password_validation.password_validators_help_text_html(),
     )
+    verify_new_password = forms.CharField(
+        label=_('Verify new password'),
+        widget=forms.PasswordInput(),
+        required=False,
+    )
     password = forms.CharField(
         label=_('Current password'),
         widget=forms.PasswordInput(),
@@ -340,6 +345,7 @@ class AccountSettingsForm(forms.Form):
                     needs_password = False
 
             del self.fields['new_password']
+            del self.fields['verify_new_password']
 
         # don't show username field if its the same as their email address
         if self.user.email == self.user.username:
@@ -392,6 +398,19 @@ class AccountSettingsForm(forms.Form):
         ):
             raise forms.ValidationError('You must confirm your current password to make changes.')
         return value
+
+    def clean_verify_new_password(self):
+        new_password = self.cleaned_data.get('new_password')
+
+        if new_password:
+            verify_new_password = self.cleaned_data.get('verify_new_password')
+            if verify_new_password is None:
+                raise forms.ValidationError('You must verify your new password.')
+
+            if new_password != verify_new_password:
+                raise forms.ValidationError('Your new password and verify new password must match.')
+
+            return verify_new_password
 
     def clean_new_password(self):
         new_password = self.cleaned_data.get('new_password')
@@ -669,6 +688,12 @@ class NotificationSettingsForm(forms.Form):
             user=self.user,
             key='self_notifications',
             value='1' if self.cleaned_data['self_notifications'] else '0',
+        )
+
+        UserOption.objects.set_value(
+            user=self.user,
+            key='self_assign_issue',
+            value='1' if self.cleaned_data['self_assign_issue'] else '0',
         )
 
         workflow_notifications_value = self.cleaned_data.get('workflow_notifications')

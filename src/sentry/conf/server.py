@@ -433,7 +433,7 @@ CELERY_IMPORTS = (
     'sentry.tasks.options', 'sentry.tasks.ping', 'sentry.tasks.post_process',
     'sentry.tasks.process_buffer', 'sentry.tasks.reports', 'sentry.tasks.reprocessing',
     'sentry.tasks.scheduler', 'sentry.tasks.store', 'sentry.tasks.unmerge',
-    'sentry.tasks.symcache_update',
+    'sentry.tasks.symcache_update', 'sentry.tasks.servicehooks',
 )
 CELERY_QUEUES = [
     Queue('alerts', routing_key='alerts'),
@@ -617,11 +617,25 @@ LOGGING = {
             'filters': ['sentry:internal'],
             'class': 'raven.contrib.django.handlers.SentryHandler',
         },
+        'metrics': {
+            'level': 'WARNING',
+            'filters': ['important_django_request'],
+            'class': 'sentry.logging.handlers.MetricsLogHandler',
+        },
+        'django_internal': {
+            'level': 'WARNING',
+            'filters': ['sentry:internal', 'important_django_request'],
+            'class': 'raven.contrib.django.handlers.SentryHandler',
+        },
     },
     'filters': {
         'sentry:internal': {
             '()': 'sentry.utils.raven.SentryInternalFilter',
         },
+        'important_django_request': {
+            '()': 'sentry.logging.handlers.MessageContainsFilter',
+            'contains': ["CSRF"]
+        }
     },
     'root': {
         'level': 'NOTSET',
@@ -632,7 +646,7 @@ LOGGING = {
     'overridable': ['celery', 'sentry'],
     'loggers': {
         'celery': {
-            'level': 'WARN',
+            'level': 'WARNING',
         },
         'sentry': {
             'level': 'INFO',
@@ -666,8 +680,8 @@ LOGGING = {
             'level': 'INFO',
         },
         'django.request': {
-            'level': 'ERROR',
-            'handlers': ['console'],
+            'level': 'WARNING',
+            'handlers': ['console', 'metrics', 'django_internal'],
             'propagate': False,
         },
         'toronado': {
@@ -914,8 +928,18 @@ SENTRY_NODESTORE = 'sentry.nodestore.django.DjangoNodeStorage'
 SENTRY_NODESTORE_OPTIONS = {}
 
 # Tag storage backend
-SENTRY_TAGSTORE = 'sentry.tagstore.legacy.LegacyTagStorage'
-SENTRY_TAGSTORE_OPTIONS = {}
+_SENTRY_TAGSTORE_DEFAULT_MULTI_OPTIONS = {
+    'backends': [
+        ('sentry.tagstore.legacy.LegacyTagStorage', {}),
+        ('sentry.tagstore.v2.V2TagStorage', {}),
+    ],
+    'runner': 'ImmediateRunner',
+}
+SENTRY_TAGSTORE = os.environ.get('SENTRY_TAGSTORE', 'sentry.tagstore.legacy.LegacyTagStorage')
+SENTRY_TAGSTORE_OPTIONS = (
+    _SENTRY_TAGSTORE_DEFAULT_MULTI_OPTIONS if 'SENTRY_TAGSTORE_DEFAULT_MULTI_OPTIONS' in os.environ
+    else {}
+)
 
 # Search backend
 SENTRY_SEARCH = 'sentry.search.django.DjangoSearchBackend'
