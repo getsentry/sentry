@@ -5,12 +5,7 @@ import styled from 'react-emotion';
 import {t} from '../../locale';
 import ConfigStore from '../../stores/configStore';
 import ExternalLink from '../../components/externalLink';
-import IconDocs from '../../icons/icon-docs';
-import IconLaptop from '../../icons/icon-laptop';
-import IconLock from '../../icons/icon-lock';
-import IconStack from '../../icons/icon-stack';
-import IconSupport from '../../icons/icon-support';
-import IconUser from '../../icons/icon-user';
+import InlineSvg from '../../components/inlineSvg';
 import Link from '../../components/link';
 import LoadingIndicator from '../../components/loadingIndicator';
 import Panel from './components/panel';
@@ -115,7 +110,7 @@ class SettingsIndex extends React.Component {
               <HomePanelHeader>
                 <HomeLink href="/account/settings/">
                   <HomeIcon color="blue">
-                    <IconUser size={44} />
+                    <InlineSvg src="icon-user" size="44px" />
                   </HomeIcon>
                   {t('My Account')}
                 </HomeLink>
@@ -151,7 +146,7 @@ class SettingsIndex extends React.Component {
               <HomePanelHeader>
                 <HomeLink to={organizationSettingsUrl}>
                   <HomeIcon color="green">
-                    <IconStack size={44} />
+                    <InlineSvg src="icon-stack" size="44px" />
                   </HomeIcon>
                   {organization ? organization.name : t('Organization')}
                 </HomeLink>
@@ -184,7 +179,7 @@ class SettingsIndex extends React.Component {
               <HomePanelHeader>
                 <ExternalHomeLink href={LINKS.DOCUMENTATION}>
                   <HomeIcon color="orange">
-                    <IconDocs size={48} />
+                    <InlineSvg src="icon-docs" size="48px" />
                   </HomeIcon>
                 </ExternalHomeLink>
                 <ExternalHomeLink href={LINKS.DOCUMENTATION}>
@@ -220,7 +215,7 @@ class SettingsIndex extends React.Component {
               <HomePanelHeader>
                 <SupportLinkComponent {...supportLinkProps}>
                   <HomeIcon color="purple">
-                    <IconSupport size={48} />
+                    <InlineSvg src="icon-support" size="48px" />
                   </HomeIcon>
                   {t('Support')}
                 </SupportLinkComponent>
@@ -254,7 +249,7 @@ class SettingsIndex extends React.Component {
               <HomePanelHeader>
                 <HomeLink to={LINKS.API}>
                   <HomeIcon>
-                    <IconLock size={48} />
+                    <InlineSvg src="icon-lock" size="48px" />
                   </HomeIcon>
                   {t('API Keys')}
                 </HomeLink>
@@ -285,7 +280,7 @@ class SettingsIndex extends React.Component {
                 <HomePanelHeader>
                   <HomeLink href={LINKS.MANAGE}>
                     <HomeIcon color="red">
-                      <IconLaptop size={48} />
+                      <InlineSvg src="icon-laptop" size="48px" />
                     </HomeIcon>
                     {t('Server Admin')}
                   </HomeLink>

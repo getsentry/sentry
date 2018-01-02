@@ -33,6 +33,17 @@ module.exports = {
         use: ['style-loader', 'css-loader'],
       },
       {
+        test: /app\/icons\/.*\.svg$/,
+        use: [
+          {
+            loader: 'svg-sprite-loader',
+          },
+          {
+            loader: 'svgo-loader',
+          },
+        ],
+      },
+      {
         test: /\.less$/,
         use: [
           {
@@ -48,6 +59,7 @@ module.exports = {
       },
       {
         test: /\.(woff|woff2|ttf|eot|svg|png|gif|ico|jpg)($|\?)/,
+        exclude: /app\/icons\/.*\.svg$/,
         loader: 'file-loader?name=' + '[name].[ext]',
       },
     ],
