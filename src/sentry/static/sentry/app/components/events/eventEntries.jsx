@@ -1,6 +1,8 @@
 import PropTypes from 'prop-types';
 import React from 'react';
 
+import createReactClass from 'create-react-class';
+
 import {logException} from '../../utils/logging';
 import EventContexts from './contexts';
 import EventContextSummary from './contextSummary';
@@ -38,7 +40,9 @@ export const INTERFACES = {
   debugmeta: DebugMetaInterface,
 };
 
-const EventEntries = React.createClass({
+const EventEntries = createReactClass({
+  displayName: 'EventEntries',
+
   propTypes: {
     group: SentryTypes.Group.isRequired,
     event: SentryTypes.Event.isRequired,

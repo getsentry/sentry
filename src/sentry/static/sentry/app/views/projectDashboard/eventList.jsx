@@ -1,5 +1,6 @@
 import PropTypes from 'prop-types';
 import React from 'react';
+import createReactClass from 'create-react-class';
 import ApiMixin from '../../mixins/apiMixin';
 import LoadingError from '../../components/loadingError';
 import LoadingIndicator from '../../components/loadingIndicator';
@@ -7,7 +8,9 @@ import {t} from '../../locale';
 
 import EventNode from './eventNode';
 
-const EventList = React.createClass({
+const EventList = createReactClass({
+  displayName: 'EventList',
+
   propTypes: {
     title: PropTypes.string.isRequired,
     endpoint: PropTypes.string.isRequired,

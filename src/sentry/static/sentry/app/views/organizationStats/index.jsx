@@ -1,12 +1,18 @@
 import $ from 'jquery';
 import React from 'react';
+import createReactClass from 'create-react-class';
+import PropTypes from 'prop-types';
 import ApiMixin from '../../mixins/apiMixin';
 import OrganizationState from '../../mixins/organizationState';
 
 import LazyLoad from '../../components/lazyLoad';
 import getSettingsComponent from '../../utils/getSettingsComponent';
 
-const OrganizationStats = React.createClass({
+const OrganizationStats = createReactClass({
+  displayName: 'OrganizationStats',
+  propTypes: {
+    routes: PropTypes.array,
+  },
   mixins: [ApiMixin, OrganizationState],
 
   getInitialState() {
@@ -83,12 +89,12 @@ const OrganizationStats = React.createClass({
           projectMap[project.id] = project;
         });
 
-        this.state.projectsRequestsPending -= 1;
-
-        this.setState({
-          pageLinks: jqxhr.getResponseHeader('Link'),
-          projectMap,
-          projectsRequestsPending: this.state.projectsRequestsPending,
+        this.setState(prevState => {
+          return {
+            pageLinks: jqxhr.getResponseHeader('Link'),
+            projectMap,
+            projectsRequestsPending: prevState.projectsRequestsPending - 1,
+          };
         });
       },
       error: () => {
@@ -120,11 +126,14 @@ const OrganizationStats = React.createClass({
           stat: statName,
         },
         success: data => {
-          this.state.rawOrgData[statName] = data;
-          this.state.statsRequestsPending -= 1;
-          this.setState({
-            rawOrgData: this.state.rawOrgData,
-            statsRequestsPending: this.state.statsRequestsPending,
+          this.setState(prevState => {
+            let rawOrgData = prevState.rawOrgData;
+            rawOrgData[statName] = data;
+
+            return {
+              rawOrgData,
+              statsRequestsPending: prevState.statsRequestsPending - 1,
+            };
           });
         },
         error: () => {
@@ -144,11 +153,14 @@ const OrganizationStats = React.createClass({
           group: 'project',
         },
         success: data => {
-          this.state.rawProjectData[statName] = data;
-          this.state.projectsRequestsPending -= 1;
-          this.setState({
-            rawProjectData: this.state.rawProjectData,
-            projectsRequestsPending: this.state.projectsRequestsPending,
+          this.setState(prevState => {
+            let rawProjectData = prevState.rawProjectData;
+            rawProjectData[statName] = data;
+
+            return {
+              rawProjectData,
+              projectsRequestsPending: prevState.projectsRequestsPending - 1,
+            };
           });
         },
         error: () => {

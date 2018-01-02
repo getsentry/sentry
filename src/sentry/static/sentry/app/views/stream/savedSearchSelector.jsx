@@ -1,5 +1,6 @@
 import PropTypes from 'prop-types';
 import React from 'react';
+import createReactClass from 'create-react-class';
 import Modal from 'react-bootstrap/lib/Modal';
 import {Link} from 'react-router';
 
@@ -11,7 +12,9 @@ import QueryCount from '../../components/queryCount';
 import MenuItem from '../../components/menuItem';
 import {BooleanField, FormState, TextField} from '../../components/forms';
 
-const SaveSearchButton = React.createClass({
+const SaveSearchButton = createReactClass({
+  displayName: 'SaveSearchButton',
+
   propTypes: {
     orgId: PropTypes.string.isRequired,
     projectId: PropTypes.string.isRequired,
@@ -185,7 +188,9 @@ const SaveSearchButton = React.createClass({
   },
 });
 
-const SavedSearchSelector = React.createClass({
+const SavedSearchSelector = createReactClass({
+  displayName: 'SavedSearchSelector',
+
   propTypes: {
     orgId: PropTypes.string.isRequired,
     projectId: PropTypes.string.isRequired,

@@ -1,6 +1,9 @@
 import React from 'react';
+import createReactClass from 'create-react-class';
 import Reflux from 'reflux';
+import PropTypes from 'prop-types';
 
+import SentryTypes from '../proptypes';
 import LatestContextStore from '../stores/latestContextStore';
 import withOrganizations from './withOrganizations';
 
@@ -9,8 +12,13 @@ import withOrganizations from './withOrganizations';
 // last accessed organization/project
 const withLatestContext = WrappedComponent =>
   withOrganizations(
-    React.createClass({
+    createReactClass({
+      displayName: 'withLatestContext',
+      propTypes: {
+        organizations: PropTypes.arrayOf(SentryTypes.Organization),
+      },
       mixins: [Reflux.connect(LatestContextStore, 'latestContext')],
+
       render() {
         let {organizations} = this.props;
         let {latestContext} = this.state;

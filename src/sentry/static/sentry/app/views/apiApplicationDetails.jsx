@@ -1,5 +1,6 @@
 import PropTypes from 'prop-types';
 import React from 'react';
+import createReactClass from 'create-react-class';
 import DocumentTitle from 'react-document-title';
 
 import ApiMixin from '../mixins/apiMixin';
@@ -11,7 +12,9 @@ import LoadingError from '../components/loadingError';
 import LoadingIndicator from '../components/loadingIndicator';
 import {t} from '../locale';
 
-const ApiApplicationDetails = React.createClass({
+const ApiApplicationDetails = createReactClass({
+  displayName: 'ApiApplicationDetails',
+
   contextTypes: {
     router: PropTypes.object.isRequired,
   },

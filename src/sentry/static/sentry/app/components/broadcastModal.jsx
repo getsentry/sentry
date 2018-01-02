@@ -1,5 +1,7 @@
 import PropTypes from 'prop-types';
 import React from 'react';
+import createReactClass from 'create-react-class';
+
 import InlineSvg from '../components/inlineSvg';
 import ConfigStore from '../stores/configStore';
 import ApiMixin from '../mixins/apiMixin';
@@ -49,10 +51,13 @@ ReleaseAnnouncement.propTypes = {
   close: PropTypes.func.isRequired,
 };
 
-const BroadcastModal = React.createClass({
+const BroadcastModal = createReactClass({
+  displayName: 'BroadcastModal',
+
   propTypes: {
     closeBroadcast: PropTypes.func.isRequired,
   },
+
   mixins: [ApiMixin],
 
   getInitialState() {

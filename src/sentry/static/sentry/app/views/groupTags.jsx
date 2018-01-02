@@ -1,4 +1,5 @@
 import React from 'react';
+import createReactClass from 'create-react-class';
 import {Link} from 'react-router';
 import ApiMixin from '../mixins/apiMixin';
 import Count from '../components/count';
@@ -8,7 +9,8 @@ import LoadingIndicator from '../components/loadingIndicator';
 import {percent, deviceNameMapper} from '../utils';
 import {t} from '../locale';
 
-const GroupTags = React.createClass({
+const GroupTags = createReactClass({
+  displayName: 'GroupTags',
   mixins: [ApiMixin, GroupState],
 
   getInitialState() {

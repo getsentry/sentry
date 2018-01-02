@@ -1,6 +1,8 @@
 import PropTypes from 'prop-types';
 import React from 'react';
 
+import createReactClass from 'create-react-class';
+
 import {t} from '../locale';
 import ApiMixin from '../mixins/apiMixin';
 import Button from '../components/buttons/button';
@@ -12,7 +14,9 @@ import LoadingError from '../components/loadingError';
 import LoadingIndicator from '../components/loadingIndicator';
 import SpreadLayout from '../components/spreadLayout';
 
-const RuleRow = React.createClass({
+const RuleRow = createReactClass({
+  displayName: 'RuleRow',
+
   propTypes: {
     orgId: PropTypes.string.isRequired,
     projectId: PropTypes.string.isRequired,
@@ -124,7 +128,8 @@ const RuleRow = React.createClass({
   },
 });
 
-const ProjectAlertRules = React.createClass({
+const ProjectAlertRules = createReactClass({
+  displayName: 'ProjectAlertRules',
   mixins: [ApiMixin],
 
   getInitialState() {

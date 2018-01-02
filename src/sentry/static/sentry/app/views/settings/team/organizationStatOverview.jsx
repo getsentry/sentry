@@ -1,6 +1,7 @@
 import {Link} from 'react-router';
 import PropTypes from 'prop-types';
 import React from 'react';
+import createReactClass from 'create-react-class';
 import classNames from 'classnames';
 
 import {defined} from '../../../utils';
@@ -8,7 +9,9 @@ import {t} from '../../../locale';
 import ApiMixin from '../../../mixins/apiMixin';
 import OrganizationState from '../../../mixins/organizationState';
 
-const OrganizationStatOverview = React.createClass({
+const OrganizationStatOverview = createReactClass({
+  displayName: 'OrganizationStatOverview',
+
   propTypes: {
     orgId: PropTypes.string,
   },

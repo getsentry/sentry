@@ -1,5 +1,6 @@
 /*eslint react/jsx-key:0*/
 import React from 'react';
+import createReactClass from 'create-react-class';
 import {Link} from 'react-router';
 import jQuery from 'jquery';
 import ApiMixin from '../mixins/apiMixin';
@@ -11,7 +12,8 @@ import TimeSince from '../components/timeSince';
 import {isUrl, percent, deviceNameMapper} from '../utils';
 import {t} from '../locale';
 
-const GroupTagValues = React.createClass({
+const GroupTagValues = createReactClass({
+  displayName: 'GroupTagValues',
   mixins: [ApiMixin],
 
   getInitialState() {
