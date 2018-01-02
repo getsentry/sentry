@@ -14,7 +14,7 @@ import PanelBody from '../components/panelBody';
 import PanelHeader from '../components/panelHeader';
 import PanelFooter from '../components/panelFooter';
 
-import IconChevronRight from '../../../icons/icon-chevron-right';
+import InlineSvg from '../../../components/inlineSvg';
 
 export default class AccountNotifications extends React.Component {
   render() {
@@ -63,7 +63,7 @@ class FormField extends React.Component {
           <PanelFooter>
             <Link to={`${baseUrl}${fineTuning.path}`} style={linkStyle}>
               <span>{fineTuning.text}</span>
-              <IconChevronRight size="15" />
+              <InlineSvg src="icon-chevron-right" size="15px" />
             </Link>
           </PanelFooter>
         )}
