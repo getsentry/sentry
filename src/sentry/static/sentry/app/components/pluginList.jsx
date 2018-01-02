@@ -10,7 +10,7 @@ import {t} from '../locale';
 
 
 export default createReactClass({
-  displayName: 'pluginList',
+  displayName: 'PluginList',
 
   propTypes: {
     organization: PropTypes.object.isRequired,
