@@ -68,6 +68,8 @@ class UserNotificationsSerializer(Serializer):
             elif (uo['type'] == int):
                 data[key] = int(val)
 
+        data['weeklyReports'] = True  # This cannot be overridden
+
         return data
 
 
