@@ -39,7 +39,7 @@ python-memcached>=1.53,<2.0.0
 python-openid>=2.2
 PyYAML>=3.11,<3.12
 querystring_parser>=1.2.3,<2.0.0
-raven>=5.29.0,<6.0.0
+raven>=6.0.0,<=6.4.0
 redis>=2.10.3,<2.10.6
 requests[security]>=2.18.4,<2.19.0
 selenium==3.8.0
