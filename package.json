@@ -48,7 +48,7 @@
     "less-loader": "^4.0.3",
     "lodash": "^4.17.4",
     "lodash-webpack-plugin": "^0.11.4",
-    "marked": "0.3.5",
+    "marked": "0.3.9",
     "mobx": "^3.2.2",
     "mobx-react": "^4.2.2",
     "mockdate": "2.0.2",
