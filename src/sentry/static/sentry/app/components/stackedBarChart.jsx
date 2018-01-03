@@ -1,4 +1,5 @@
 import React from 'react';
+import createReactClass from 'create-react-class';
 import PropTypes from 'prop-types';
 import moment from 'moment';
 import _ from 'lodash';
@@ -7,14 +8,16 @@ import TooltipMixin from '../mixins/tooltip';
 import Count from './count';
 import ConfigStore from '../stores/configStore';
 
-const StackedBarChart = React.createClass({
+const StackedBarChart = createReactClass({
+  displayName: 'StackedBarChart',
+
   propTypes: {
     // TODO(dcramer): DEPRECATED, use series instead
     points: PropTypes.arrayOf(
       PropTypes.shape({
         x: PropTypes.number.isRequired,
         y: PropTypes.array.isRequired,
-        label: PropTypes.string
+        label: PropTypes.string,
       })
     ),
     series: PropTypes.arrayOf(
@@ -22,10 +25,10 @@ const StackedBarChart = React.createClass({
         data: PropTypes.arrayOf(
           PropTypes.shape({
             x: PropTypes.number.isRequired,
-            y: PropTypes.number
+            y: PropTypes.number,
           })
         ),
-        label: PropTypes.string
+        label: PropTypes.string,
       })
     ),
     interval: PropTypes.string,
@@ -36,11 +39,11 @@ const StackedBarChart = React.createClass({
     markers: PropTypes.arrayOf(
       PropTypes.shape({
         x: PropTypes.number.isRequired,
-        label: PropTypes.string
+        label: PropTypes.string,
       })
     ),
     tooltip: PropTypes.func,
-    barClasses: PropTypes.array
+    barClasses: PropTypes.array,
   },
 
   mixins: [
@@ -65,9 +68,9 @@ const StackedBarChart = React.createClass({
           if (pointIdx)
             return tooltipFunc(chart.state.pointIndex[pointIdx], pointIdx, chart);
           else return this.getAttribute('data-title');
-        }
+        },
       };
-    })
+    }),
   ],
 
   statics: {
@@ -102,7 +105,7 @@ const StackedBarChart = React.createClass({
         });
       });
       return points;
-    }
+    },
   },
 
   getDefaultProps() {
@@ -116,7 +119,7 @@ const StackedBarChart = React.createClass({
       markers: [],
       width: null,
       barClasses: ['chart-bar'],
-      tooltip: this.renderTooltip
+      tooltip: this.renderTooltip,
     };
   },
 
@@ -134,7 +137,7 @@ const StackedBarChart = React.createClass({
     return {
       series,
       pointIndex: StackedBarChart.pointIndex(series),
-      interval: StackedBarChart.getInterval(series)
+      interval: StackedBarChart.getInterval(series),
     };
   },
 
@@ -152,7 +155,7 @@ const StackedBarChart = React.createClass({
       this.setState({
         series,
         pointIndex: StackedBarChart.pointIndex(series),
-        interval: StackedBarChart.getInterval(series)
+        interval: StackedBarChart.getInterval(series),
       });
     }
   },
@@ -260,13 +263,14 @@ const StackedBarChart = React.createClass({
       `<div class="time-label">${timeLabel}</div>` +
       '</div>';
     if (this.props.label) {
-      title += `<div class="value-label">${totalY.toLocaleString()} ${this.props.label}</div>`;
+      title += `<div class="value-label">${totalY.toLocaleString()} ${this.props
+        .label}</div>`;
     }
     point.y.forEach((y, i) => {
       let s = this.state.series[i];
       if (s.label) {
-        title += `<div><span style="color:${s.color}">${s.label}:</span> ${(y || 0)
-          .toLocaleString()}</div>`;
+        title += `<div><span style="color:${s.color}">${s.label}:</span> ${(y || 0
+        ).toLocaleString()}</div>`;
       }
     });
     return title;
@@ -285,8 +289,9 @@ const StackedBarChart = React.createClass({
           style={{
             height: pct + '%',
             bottom: prevPct + '%',
-            backgroundColor: this.state.series[i].color || null
-          }}>
+            backgroundColor: this.state.series[i].color || null,
+          }}
+        >
           {y}
         </span>
       );
@@ -298,7 +303,8 @@ const StackedBarChart = React.createClass({
         key={point.x}
         className="chart-column tip"
         data-point-index={point.x}
-        style={{width: pointWidth, height: '100%'}}>
+        style={{width: pointWidth, height: '100%'}}
+      >
         {pts}
       </a>
     );
@@ -321,6 +327,10 @@ const StackedBarChart = React.createClass({
       .sort((a, b) => {
         return a.x - b.x;
       });
+
+    markers.sort((a, b) => {
+      return a.x - b.x;
+    });
 
     let children = [];
     points.forEach(point => {
@@ -347,13 +357,16 @@ const StackedBarChart = React.createClass({
     return (
       <figure
         className={figureClass}
-        style={{height: this.props.height, width: this.props.width}}>
-        <span className="max-y"><Count value={maxval} /></span>
+        style={{height: this.props.height, width: this.props.width}}
+      >
+        <span className="max-y">
+          <Count value={maxval} />
+        </span>
         <span className="min-y">0</span>
         <span>{this.renderChart()}</span>
       </figure>
     );
-  }
+  },
 });
 
 export default StackedBarChart;

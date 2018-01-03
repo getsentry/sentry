@@ -1,3 +1,4 @@
+import PropTypes from 'prop-types';
 import React from 'react';
 import {mount, shallow} from 'enzyme';
 
@@ -5,8 +6,8 @@ import {Client} from 'app/api';
 import OrganizationIntegrations from 'app/views/organizationIntegrations';
 
 const childContextTypes = {
-  organization: React.PropTypes.object,
-  location: React.PropTypes.object
+  organization: PropTypes.object,
+  location: PropTypes.object,
 };
 
 describe('OrganizationIntegrations', function() {
@@ -19,11 +20,11 @@ describe('OrganizationIntegrations', function() {
       beforeEach(function() {
         Client.addMockResponse({
           url: '/organizations/org-slug/integrations/',
-          body: []
+          body: [],
         });
         Client.addMockResponse({
           url: '/organizations/org-slug/config/integrations/',
-          body: {providers: []}
+          body: {providers: []},
         });
       });
 
@@ -32,9 +33,9 @@ describe('OrganizationIntegrations', function() {
           context: {
             router: TestStubs.router(),
             organization: TestStubs.Organization(),
-            location: TestStubs.location()
+            location: TestStubs.location(),
           },
-          childContextTypes
+          childContextTypes,
         });
         expect(wrapper).toMatchSnapshot();
       });
@@ -44,10 +45,11 @@ describe('OrganizationIntegrations', function() {
           context: {
             router: TestStubs.router(),
             organization: TestStubs.Organization(),
-            location: TestStubs.location()
+            location: TestStubs.location(),
           },
-          childContextTypes
+          childContextTypes,
         });
+        wrapper.find('.dropdown-actor').simulate('click');
         expect(wrapper.state('loading')).toBe(false);
         expect(wrapper).toMatchSnapshot();
       });
@@ -57,38 +59,42 @@ describe('OrganizationIntegrations', function() {
       beforeEach(function() {
         Client.addMockResponse({
           url: '/organizations/org-slug/config/integrations/',
-          body: {providers: [TestStubs.GitHubIntegrationProvider()]}
+          body: {providers: [TestStubs.GitHubIntegrationProvider()]},
         });
       });
+
       it('renders', function() {
         Client.addMockResponse({
           url: '/organizations/org-slug/integrations/',
-          body: []
+          body: [],
         });
         let wrapper = mount(<OrganizationIntegrations params={{orgId: 'org-slug'}} />, {
           context: {
             router: TestStubs.router(),
             organization: TestStubs.Organization(),
-            location: TestStubs.location()
+            location: TestStubs.location(),
           },
-          childContextTypes
+          childContextTypes,
         });
+        wrapper.find('.dropdown-actor').simulate('click');
         expect(wrapper.state('loading')).toBe(false);
         expect(wrapper).toMatchSnapshot();
       });
+
       it('renders with a repository', function() {
         Client.addMockResponse({
           url: '/organizations/org-slug/integrations/',
-          body: [TestStubs.Integration()]
+          body: [TestStubs.Integration()],
         });
         let wrapper = mount(<OrganizationIntegrations params={{orgId: 'org-slug'}} />, {
           context: {
             router: TestStubs.router(),
             organization: TestStubs.Organization(),
-            location: TestStubs.location()
+            location: TestStubs.location(),
           },
-          childContextTypes
+          childContextTypes,
         });
+        wrapper.find('.dropdown-actor').simulate('click');
         expect(wrapper.state('loading')).toBe(false);
         expect(wrapper).toMatchSnapshot();
       });

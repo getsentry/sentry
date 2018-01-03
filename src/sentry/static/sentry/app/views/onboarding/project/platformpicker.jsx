@@ -9,25 +9,24 @@ import {t} from '../../../locale';
 
 const categoryList = Object.keys(categoryLists).concat('All');
 
-const PlatformPicker = React.createClass({
-  propTypes: {
+class PlatformPicker extends React.Component {
+  static propTypes = {
     setPlatform: PropTypes.func.isRequired,
     platform: PropTypes.string,
-    showOther: PropTypes.bool
-  },
+    showOther: PropTypes.bool,
+  };
 
-  getDefaultProps() {
-    return {showOther: true};
-  },
+  static defaultProps = {showOther: true};
 
-  getInitialState() {
-    return {
+  constructor(...args) {
+    super(...args);
+    this.state = {
       tab: categoryList[0],
-      filter: (this.props.platform || '').split('-')[0]
+      filter: (this.props.platform || '').split('-')[0],
     };
-  },
+  }
 
-  renderPlatformList() {
+  renderPlatformList = () => {
     let {tab} = this.state;
 
     const tabSubset = flattenedPlatforms.filter(
@@ -63,7 +62,7 @@ const PlatformPicker = React.createClass({
             <PlatformCard
               platform={platform.id}
               className={classnames({
-                selected: this.props.platform === platform.id
+                selected: this.props.platform === platform.id,
               })}
               key={platform.id}
               onClick={() => {
@@ -74,7 +73,7 @@ const PlatformPicker = React.createClass({
         })}
       </ul>
     );
-  },
+  };
 
   render() {
     let {filter} = this.state;
@@ -103,7 +102,8 @@ const PlatformPicker = React.createClass({
                   e.preventDefault();
                 }}
                 to={''}
-                isActive={() => categoryName === (filter ? 'All' : this.state.tab)}>
+                isActive={() => categoryName === (filter ? 'All' : this.state.tab)}
+              >
                 {categoryName}
               </ListLink>
             );
@@ -113,6 +113,6 @@ const PlatformPicker = React.createClass({
       </div>
     );
   }
-});
+}
 
 export default PlatformPicker;

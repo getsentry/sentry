@@ -1,5 +1,6 @@
 import PropTypes from 'prop-types';
 import React from 'react';
+import createReactClass from 'create-react-class';
 import _ from 'lodash';
 
 import ApiMixin from '../mixins/apiMixin';
@@ -8,12 +9,14 @@ import LoadingIndicator from '../components/loadingIndicator';
 import plugins from '../plugins';
 import {t} from '../locale';
 
-const PluginConfig = React.createClass({
+const PluginConfig = createReactClass({
+  displayName: 'PluginConfig',
+
   propTypes: {
     organization: PropTypes.object.isRequired,
     project: PropTypes.object.isRequired,
     data: PropTypes.object.isRequired,
-    onDisablePlugin: PropTypes.func
+    onDisablePlugin: PropTypes.func,
   },
 
   mixins: [ApiMixin],
@@ -22,14 +25,14 @@ const PluginConfig = React.createClass({
     return {
       onDisablePlugin: () => {
         window.location.reload();
-      }
+      },
     };
   },
 
   getInitialState() {
     return {
       loading: !plugins.isLoaded(this.props.data),
-      testResults: ''
+      testResults: '',
     };
   },
 
@@ -38,9 +41,7 @@ const PluginConfig = React.createClass({
   },
 
   componentWillReceiveProps(nextProps) {
-    if (!_.isEqual(nextProps.data, this.props.data)) {
-      this.loadPlugin(nextProps.data);
-    }
+    this.loadPlugin(nextProps.data);
   },
 
   shouldComponentUpdate(nextProps, nextState) {
@@ -50,11 +51,9 @@ const PluginConfig = React.createClass({
   },
 
   loadPlugin(data) {
-    if (plugins.isLoaded(data)) return;
-
     this.setState(
       {
-        loading: true
+        loading: true,
       },
       () => {
         plugins.load(data, () => {
@@ -79,7 +78,7 @@ const PluginConfig = React.createClass({
       },
       error: error => {
         IndicatorStore.add(t('Unable to disable plugin. Please try again.'), 'error');
-      }
+      },
     });
   },
 
@@ -88,7 +87,7 @@ const PluginConfig = React.createClass({
     this.api.request(this.getPluginEndpoint(), {
       method: 'POST',
       data: {
-        test: true
+        test: true,
       },
       success: data => {
         this.setState({testResults: JSON.stringify(data.detail)});
@@ -100,7 +99,7 @@ const PluginConfig = React.createClass({
           t('An unexpected error occurred while testing your plugin. Please try again.'),
           'error'
         );
-      }
+      },
     });
   },
 
@@ -115,45 +114,47 @@ const PluginConfig = React.createClass({
       <div className={`box ref-plugin-config-${data.id}`}>
         <div className="box-header">
           {data.canDisable &&
-            data.enabled &&
-            <div className="pull-right">
-              {data.isTestable &&
-                <a onClick={this.testPlugin} className="btn btn-sm btn-default">
-                  {t('Test Plugin')}
-                </a>}
-              <a className="btn btn-sm btn-default" onClick={this.disablePlugin}>
-                {t('Disable')}
-              </a>
-            </div>}
+            data.enabled && (
+              <div className="pull-right">
+                {data.isTestable && (
+                  <a onClick={this.testPlugin} className="btn btn-sm btn-default">
+                    {t('Test Plugin')}
+                  </a>
+                )}
+                <a className="btn btn-sm btn-default" onClick={this.disablePlugin}>
+                  {t('Disable')}
+                </a>
+              </div>
+            )}
           <h3>{data.name}</h3>
         </div>
         <div className="box-content with-padding">
-          {data.status === 'beta'
-            ? <div className="alert alert-block alert-warning">
-                <strong>
-                  Note: This plugin is considered beta and may change in the future.
-                </strong>
-              </div>
-            : null}
-          {this.state.testResults != ''
-            ? <div className="alert alert-block alert-warning">
-                <strong>
-                  Test Results:{' '}
-                </strong>
-                <p>{this.state.testResults}</p>
-              </div>
-            : null}
+          {data.status === 'beta' ? (
+            <div className="alert alert-block alert-warning">
+              <strong>
+                Note: This plugin is considered beta and may change in the future.
+              </strong>
+            </div>
+          ) : null}
+          {this.state.testResults != '' ? (
+            <div className="alert alert-block alert-warning">
+              <strong>Test Results: </strong>
+              <p>{this.state.testResults}</p>
+            </div>
+          ) : null}
           <div dangerouslySetInnerHTML={this.createMarkup()} />
-          {this.state.loading
-            ? <LoadingIndicator />
-            : plugins.get(data).renderSettings({
-                organization: this.props.organization,
-                project: this.props.project
-              })}
+          {this.state.loading ? (
+            <LoadingIndicator />
+          ) : (
+            plugins.get(data).renderSettings({
+              organization: this.props.organization,
+              project: this.props.project,
+            })
+          )}
         </div>
       </div>
     );
-  }
+  },
 });
 
 export default PluginConfig;

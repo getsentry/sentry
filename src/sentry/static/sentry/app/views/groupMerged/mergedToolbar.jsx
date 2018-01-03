@@ -1,5 +1,6 @@
 import PropTypes from 'prop-types';
 import React from 'react';
+import createReactClass from 'create-react-class';
 import Reflux from 'reflux';
 import _ from 'lodash';
 
@@ -11,11 +12,13 @@ import LinkWithConfirmation from '../../components/linkWithConfirmation';
 import Toolbar from '../../components/toolbar';
 import SpreadLayout from '../../components/spreadLayout';
 
-const MergedToolbar = React.createClass({
+const MergedToolbar = createReactClass({
+  displayName: 'MergedToolbar',
+
   propTypes: {
     onUnmerge: PropTypes.func,
     groupId: PropTypes.string,
-    onToggleCollapse: PropTypes.func
+    onToggleCollapse: PropTypes.func,
   },
 
   mixins: [Reflux.listenTo(GroupingStore, 'onGroupingUpdate')],
@@ -25,14 +28,14 @@ const MergedToolbar = React.createClass({
       unmergeList,
       unmergeLastCollapsed,
       unmergeDisabled,
-      enableFingerprintCompare
+      enableFingerprintCompare,
     } = GroupingStore;
 
     return {
       enableFingerprintCompare,
       unmergeList,
       unmergeLastCollapsed,
-      unmergeDisabled
+      unmergeDisabled,
     };
   },
 
@@ -41,7 +44,7 @@ const MergedToolbar = React.createClass({
       'unmergeLastCollapsed',
       'unmergeDisabled',
       'unmergeList',
-      'enableFingerprintCompare'
+      'enableFingerprintCompare',
     ];
 
     this.setState(_.pick(updateObj, allowedKeys));
@@ -60,7 +63,7 @@ const MergedToolbar = React.createClass({
       baseIssueId: groupId,
       targetIssueId: groupId,
       baseEventId,
-      targetEventId
+      targetEventId,
     });
 
     e.stopPropagation();
@@ -82,7 +85,8 @@ const MergedToolbar = React.createClass({
                   'These events will be unmerged and grouped into a new issue. Are you sure you want to unmerge these events?'
                 )}
                 className="btn btn-sm btn-default"
-                onConfirm={onUnmerge}>
+                onConfirm={onUnmerge}
+              >
                 {t('Unmerge')} ({unmergeCount || 0})
               </LinkWithConfirmation>
 
@@ -90,7 +94,8 @@ const MergedToolbar = React.createClass({
                 style={{marginLeft: 10}}
                 size="small"
                 disabled={!this.state.enableFingerprintCompare}
-                onClick={this.handleShowDiff}>
+                onClick={this.handleShowDiff}
+              >
                 {t('Compare')}
               </Button>
             </div>
@@ -100,7 +105,8 @@ const MergedToolbar = React.createClass({
               <Button
                 className="toggle-collapse-all"
                 size="small"
-                onClick={onToggleCollapse}>
+                onClick={onToggleCollapse}
+              >
                 {this.state.unmergeLastCollapsed ? t('Expand All') : t('Collapse All')}
               </Button>
             </div>
@@ -108,7 +114,7 @@ const MergedToolbar = React.createClass({
         </SpreadLayout>
       </Toolbar>
     );
-  }
+  },
 });
 
 export default MergedToolbar;

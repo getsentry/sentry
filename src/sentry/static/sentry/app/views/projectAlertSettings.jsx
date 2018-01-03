@@ -14,7 +14,7 @@ class DigestSettings extends React.Component {
     orgId: PropTypes.string.isRequired,
     projectId: PropTypes.string.isRequired,
     initialData: PropTypes.object.isRequired,
-    onSave: PropTypes.func.isRequired
+    onSave: PropTypes.func.isRequired,
   };
 
   render() {
@@ -39,7 +39,8 @@ class DigestSettings extends React.Component {
             apiMethod="PUT"
             apiEndpoint={`/projects/${orgId}/${projectId}/`}
             initialData={initialData}
-            requireChanges={true}>
+            requireChanges={true}
+          >
             <div className="row">
               <div className="col-md-6">
                 <RangeField
@@ -78,7 +79,7 @@ class GeneralSettings extends React.Component {
     orgId: PropTypes.string.isRequired,
     projectId: PropTypes.string.isRequired,
     initialData: PropTypes.object,
-    onSave: PropTypes.func.isRequired
+    onSave: PropTypes.func.isRequired,
   };
 
   render() {
@@ -95,7 +96,8 @@ class GeneralSettings extends React.Component {
             apiMethod="PUT"
             apiEndpoint={`/projects/${orgId}/${projectId}/`}
             initialData={initialData}
-            requireChanges={true}>
+            requireChanges={true}
+          >
             <TextField
               name="subjectTemplate"
               label={t('Subject template')}
@@ -118,14 +120,14 @@ export default class ProjectAlertSettings extends AsyncView {
     // not initially defining them (though they are bound before) ever
     // rendered
     organization: PropTypes.object,
-    project: PropTypes.object
+    project: PropTypes.object,
   };
 
   getEndpoints() {
     let {orgId, projectId} = this.props.params;
     return [
       ['project', `/projects/${orgId}/${projectId}/`],
-      ['pluginList', `/projects/${orgId}/${projectId}/plugins/`]
+      ['pluginList', `/projects/${orgId}/${projectId}/plugins/`],
     ];
   }
 
@@ -134,8 +136,8 @@ export default class ProjectAlertSettings extends AsyncView {
     this.setState({
       project: {
         ...this.state.project,
-        ...data
-      }
+        ...data,
+      },
     });
   };
 
@@ -144,8 +146,8 @@ export default class ProjectAlertSettings extends AsyncView {
     this.setState({
       project: {
         ...this.state.project,
-        ...data
-      }
+        ...data,
+      },
     });
   };
 
@@ -155,9 +157,9 @@ export default class ProjectAlertSettings extends AsyncView {
         if (p.id !== plugin.id) return p;
         return {
           ...plugin,
-          enabled: true
+          enabled: true,
         };
-      })
+      }),
     });
   };
 
@@ -167,9 +169,9 @@ export default class ProjectAlertSettings extends AsyncView {
         if (p.id !== plugin.id) return p;
         return {
           ...plugin,
-          enabled: false
+          enabled: false,
         };
-      })
+      }),
     });
   };
 
@@ -188,7 +190,8 @@ export default class ProjectAlertSettings extends AsyncView {
             href={`/${orgId}/${projectId}/settings/alerts/rules/new/`}
             priority="primary"
             size="small"
-            className="pull-right">
+            className="pull-right"
+          >
             <span className="icon-plus" />
             {t('New Alert Rule')}
           </Button>
@@ -209,7 +212,7 @@ export default class ProjectAlertSettings extends AsyncView {
               'looking to change which notifications you receive ' +
               'you may do so from your [link:account settings].',
             {
-              link: <a href="/account/settings/notifications/" />
+              link: <a href="/account/settings/notifications/" />,
             }
           )}
         </div>
@@ -218,7 +221,7 @@ export default class ProjectAlertSettings extends AsyncView {
           orgId={orgId}
           projectId={projectId}
           initialData={{
-            subjectTemplate: this.state.project.subjectTemplate
+            subjectTemplate: this.state.project.subjectTemplate,
           }}
           onSave={this.onGeneralChange}
         />
@@ -228,7 +231,7 @@ export default class ProjectAlertSettings extends AsyncView {
           projectId={projectId}
           initialData={{
             digestsMinDelay: this.state.project.digestsMinDelay,
-            digestsMaxDelay: this.state.project.digestsMaxDelay
+            digestsMaxDelay: this.state.project.digestsMaxDelay,
           }}
           onSave={this.onDigestsChange}
         />
@@ -236,7 +239,9 @@ export default class ProjectAlertSettings extends AsyncView {
         <PluginList
           organization={organization}
           project={this.state.project}
-          pluginList={this.state.pluginList.filter(p => p.type === 'notification')}
+          pluginList={this.state.pluginList.filter(
+            p => p.type === 'notification' && p.hasConfiguration
+          )}
           onEnablePlugin={this.onEnablePlugin}
           onDisablePlugin={this.onDisablePlugin}
         />

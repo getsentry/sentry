@@ -1,4 +1,5 @@
 import React from 'react';
+import createReactClass from 'create-react-class';
 import update from 'react-addons-update';
 import {browserHistory} from 'react-router';
 
@@ -32,7 +33,7 @@ function getProjectInfoForReview(org) {
         requiresReview: false,
         canReview,
         teamName: team.name,
-        callSign: project.callSign || null
+        callSign: project.callSign || null,
       });
     }
   }
@@ -43,18 +44,19 @@ function getProjectInfoForReview(org) {
     projects: memberProjects.concat(nonMemberProjects),
     requiresReview,
     canReviewAnything,
-    hasNonMemberProjects: nonMemberProjects.length > 0
+    hasNonMemberProjects: nonMemberProjects.length > 0,
   };
 }
 
-const SetCallsignsAction = React.createClass({
+const SetCallsignsAction = createReactClass({
+  displayName: 'SetCallsignsAction',
   mixins: [ApiMixin, OrganizationState],
 
   getInitialState() {
     return {
       isLoading: true,
       info: {},
-      slugs: {}
+      slugs: {},
     };
   },
 
@@ -64,7 +66,7 @@ const SetCallsignsAction = React.createClass({
 
   onSubmit(event) {
     this.setState({
-      isLoading: true
+      isLoading: true,
     });
 
     let orgId = this.getOrganization().slug;
@@ -72,7 +74,7 @@ const SetCallsignsAction = React.createClass({
       method: 'PUT',
       data: {slugs: this.state.slugs},
       success: data => {
-        browserHistory.pushState('refresh', `/${orgId}/`);
+        browserHistory.push({state: 'refresh', pathname: `/${orgId}/`});
       },
       error: error => {
         /*eslint no-console:0*/
@@ -82,17 +84,17 @@ const SetCallsignsAction = React.createClass({
       },
       complete: () => {
         this.setState({
-          isLoading: false
+          isLoading: false,
         });
-      }
+      },
     });
   },
 
   onSetShortName(projectId, event) {
     this.setState({
       slugs: update(this.state.slugs, {
-        [projectId]: {$set: event.target.value.toUpperCase().trim()}
-      })
+        [projectId]: {$set: event.target.value.toUpperCase().trim()},
+      }),
     });
   },
 
@@ -106,7 +108,7 @@ const SetCallsignsAction = React.createClass({
     this.setState({
       info,
       slugs,
-      isLoading: false
+      isLoading: false,
     });
   },
 
@@ -146,9 +148,9 @@ const SetCallsignsAction = React.createClass({
             org.name
           )}
         </p>
-        {info.hasNonMemberProjects
-          ? <p>{t('Projects of teams you are not a member of are not shown.')}</p>
-          : null}
+        {info.hasNonMemberProjects ? (
+          <p>{t('Projects of teams you are not a member of are not shown.')}</p>
+        ) : null}
         <p>{t('Projects which have been previously reviewed are shown in green.')}</p>
         <form className="form-horizontal">
           {info.memberProjects.map(project => {
@@ -171,7 +173,8 @@ const SetCallsignsAction = React.createClass({
               <div className={className} key={project.projectId}>
                 <label
                   htmlFor={inputId}
-                  className="col-sm-6 col-sm-offset-2 control-label">
+                  className="col-sm-6 col-sm-offset-2 control-label"
+                >
                   {project.teamName} / {project.projectName}
                 </label>
                 <div className="col-sm-2">
@@ -191,14 +194,15 @@ const SetCallsignsAction = React.createClass({
               type="button"
               onClick={this.onSubmit}
               className="btn btn-primary btn-lg"
-              disabled={!canSubmit}>
+              disabled={!canSubmit}
+            >
               {t('Set Call Signs')}
             </button>
           </div>
         </form>
       </ActionOverlay>
     );
-  }
+  },
 });
 
 SetCallsignsAction.requiresAction = function(org) {

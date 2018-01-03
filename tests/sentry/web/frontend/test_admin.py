@@ -18,7 +18,7 @@ class EnvStatusTest(TestCase):
         self.assertEquals(resp.status_code, 302)
 
     def test_renders_template(self):
-        self.login_as(self.user)
+        self.login_as(self.user, superuser=True)
 
         resp = self.client.get(self.path)
         self.assertEquals(resp.status_code, 200)
@@ -35,7 +35,7 @@ class PackageStatusTest(TestCase):
         self.assertEquals(resp.status_code, 302)
 
     def test_renders_template(self):
-        self.login_as(self.user)
+        self.login_as(self.user, superuser=True)
 
         resp = self.client.get(self.path)
         self.assertEquals(resp.status_code, 200)
@@ -52,7 +52,7 @@ class MailStatusTest(TestCase):
         self.assertEquals(resp.status_code, 302)
 
     def test_renders_template(self):
-        self.login_as(self.user)
+        self.login_as(self.user, superuser=True)
 
         resp = self.client.get(self.path)
         self.assertEquals(resp.status_code, 200)

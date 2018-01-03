@@ -1,17 +1,21 @@
 import PropTypes from 'prop-types';
 import React from 'react';
 
+import createReactClass from 'create-react-class';
+
 import ApiMixin from '../mixins/apiMixin';
 import IndicatorStore from '../stores/indicatorStore';
 import LoadingIndicator from '../components/loadingIndicator';
 import {FormState, BooleanField} from '../components/forms';
 import {t} from '../locale';
 
-const ProjectFeedbackSettingsForm = React.createClass({
+const ProjectFeedbackSettingsForm = createReactClass({
+  displayName: 'ProjectFeedbackSettingsForm',
+
   propTypes: {
     orgId: PropTypes.string.isRequired,
     projectId: PropTypes.string.isRequired,
-    initialData: PropTypes.object.isRequired
+    initialData: PropTypes.object.isRequired,
   },
 
   mixins: [ApiMixin],
@@ -26,7 +30,7 @@ const ProjectFeedbackSettingsForm = React.createClass({
     }
     return {
       formData,
-      errors: {}
+      errors: {},
     };
   },
 
@@ -34,7 +38,7 @@ const ProjectFeedbackSettingsForm = React.createClass({
     let formData = this.state.formData;
     formData[name] = value;
     this.setState({
-      formData
+      formData,
     });
   },
 
@@ -46,7 +50,7 @@ const ProjectFeedbackSettingsForm = React.createClass({
     }
     this.setState(
       {
-        state: FormState.SAVING
+        state: FormState.SAVING,
       },
       () => {
         let loadingIndicator = IndicatorStore.add(t('Saving changes..'));
@@ -57,18 +61,18 @@ const ProjectFeedbackSettingsForm = React.createClass({
           success: data => {
             this.setState({
               state: FormState.READY,
-              errors: {}
+              errors: {},
             });
           },
           error: error => {
             this.setState({
               state: FormState.ERROR,
-              errors: error.responseJSON
+              errors: error.responseJSON,
             });
           },
           complete: () => {
             IndicatorStore.remove(loadingIndicator);
-          }
+          },
         });
       }
     );
@@ -79,12 +83,13 @@ const ProjectFeedbackSettingsForm = React.createClass({
     let errors = this.state.errors;
     return (
       <form onSubmit={this.onSubmit} className="form-stacked">
-        {this.state.state === FormState.ERROR &&
+        {this.state.state === FormState.ERROR && (
           <div className="alert alert-error alert-block">
             {t(
               'Unable to save your changes. Please ensure all fields are valid and try again.'
             )}
-          </div>}
+          </div>
+        )}
         <fieldset>
           <BooleanField
             key="branding"
@@ -105,12 +110,14 @@ const ProjectFeedbackSettingsForm = React.createClass({
         </fieldset>
       </form>
     );
-  }
+  },
 });
 
-const ProjectUserReportSettings = React.createClass({
+const ProjectUserReportSettings = createReactClass({
+  displayName: 'ProjectUserReportSettings',
+
   propTypes: {
-    setProjectNavSection: PropTypes.func
+    setProjectNavSection: PropTypes.func,
   },
 
   mixins: [ApiMixin],
@@ -122,7 +129,7 @@ const ProjectUserReportSettings = React.createClass({
       expected: 2,
 
       keyList: [],
-      projectOptions: {}
+      projectOptions: {},
     };
   },
 
@@ -176,7 +183,7 @@ const ProjectUserReportSettings = React.createClass({
         this.setState({
           expected,
           loading: expected > 0,
-          keyList: data
+          keyList: data,
         });
       },
       error: () => {
@@ -184,9 +191,9 @@ const ProjectUserReportSettings = React.createClass({
         this.setState({
           error: true,
           expected,
-          loading: expected > 0
+          loading: expected > 0,
         });
-      }
+      },
     });
 
     this.api.request(`/projects/${orgId}/${projectId}/`, {
@@ -195,7 +202,7 @@ const ProjectUserReportSettings = React.createClass({
         this.setState({
           expected,
           loading: expected > 0,
-          projectOptions: data.options
+          projectOptions: data.options,
         });
       },
       error: () => {
@@ -203,9 +210,9 @@ const ProjectUserReportSettings = React.createClass({
         this.setState({
           expected,
           error: true,
-          loading: expected > 0
+          loading: expected > 0,
         });
-      }
+      },
     });
   },
 
@@ -266,7 +273,7 @@ const ProjectUserReportSettings = React.createClass({
   handleClick() {
     Raven.showReportDialog({
       // should never make it to the Sentry API, but just in case, use throwaway id
-      eventId: '00000000000000000000000000000000'
+      eventId: '00000000000000000000000000000000',
     });
   },
 
@@ -289,14 +296,19 @@ const ProjectUserReportSettings = React.createClass({
         <h1>{t('User Feedback')}</h1>
 
         <div className="alert alert-block alert-info">
-          Psst! This feature is still a work-in-progress. Thanks for being an early adopter!
+          Psst! This feature is still a work-in-progress. Thanks for being an early
+          adopter!
         </div>
 
         <p>
-          Enabling User Feedback allows you to interact with your users on an unprecedented level. Collect additional details about issues affecting them, and more importantly reach out to them with resolutions.
+          Enabling User Feedback allows you to interact with your users on an
+          unprecedented level. Collect additional details about issues affecting them, and
+          more importantly reach out to them with resolutions.
         </p>
         <p>
-          When configured, your users will be presented with a dialog prompting them for additional information. That information will get attached to the issue in Sentry
+          When configured, your users will be presented with a dialog prompting them for
+          additional information. That information will get attached to the issue in
+          Sentry
         </p>
         <p>
           <a className="btn btn-primary" onClick={this.handleClick}>
@@ -310,11 +322,13 @@ const ProjectUserReportSettings = React.createClass({
           </div>
           <div className="box-content with-padding">
             <p>
-              The following example uses our Django integration. Check the documentation for the SDK you're using for more details.
+              The following example uses our Django integration. Check the documentation
+              for the SDK you're using for more details.
             </p>
             <pre>{this.getInstructions()}</pre>
             <p>
-              If you're capturing an error with our Browser JS SDK, things get even simpler:
+              If you're capturing an error with our Browser JS SDK, things get even
+              simpler:
             </p>
             <pre>{this.getBrowserJSInstructions()}</pre>
           </div>
@@ -332,10 +346,9 @@ const ProjectUserReportSettings = React.createClass({
             />
           </div>
         </div>
-
       </div>
     );
-  }
+  },
 });
 
 export default ProjectUserReportSettings;

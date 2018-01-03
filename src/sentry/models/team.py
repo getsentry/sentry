@@ -27,6 +27,7 @@ class TeamManager(BaseManager):
         """
         Returns a list of all teams a user has some level of access to.
         """
+        from sentry.auth.superuser import is_active_superuser
         from sentry.models import (
             OrganizationMemberTeam,
             Project,
@@ -39,7 +40,7 @@ class TeamManager(BaseManager):
 
         base_team_qs = self.filter(organization=organization, status=TeamStatus.VISIBLE)
 
-        if env.request and env.request.is_superuser() or settings.SENTRY_PUBLIC:
+        if env.request and is_active_superuser(env.request) or settings.SENTRY_PUBLIC:
             team_list = list(base_team_qs)
         else:
             try:
@@ -175,7 +176,7 @@ class Team(Model):
         """
         from sentry.models import (
             OrganizationAccessRequest, OrganizationMember, OrganizationMemberTeam, Project,
-            ReleaseProject
+            ProjectTeam, ReleaseProject
         )
 
         try:
@@ -209,6 +210,12 @@ class Team(Model):
         ).update(
             team=new_team,
             organization=organization,
+        )
+
+        ProjectTeam.objects.filter(
+            project_id__in=project_ids,
+        ).update(
+            team=new_team,
         )
 
         # remove any pending access requests from the old organization

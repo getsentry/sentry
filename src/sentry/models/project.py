@@ -8,15 +8,15 @@ sentry.models.project
 from __future__ import absolute_import, print_function
 
 import logging
-import six
 import warnings
 
+import six
 from bitfield import BitField
 from django.conf import settings
-from django.db import models
-from django.db.models import F
+from django.db import IntegrityError, models, transaction
 from django.utils import timezone
 from django.utils.translation import ugettext_lazy as _
+from uuid import uuid1
 
 from sentry.app import locks
 from sentry.constants import ObjectStatus
@@ -30,6 +30,18 @@ from sentry.utils.retries import TimedRetryPolicy
 
 # TODO(dcramer): pull in enum library
 ProjectStatus = ObjectStatus
+
+
+class ProjectTeam(Model):
+    __core__ = True
+
+    project = FlexibleForeignKey('sentry.Project')
+    team = FlexibleForeignKey('sentry.Team')
+
+    class Meta:
+        app_label = 'sentry'
+        db_table = 'sentry_projectteam'
+        unique_together = (('project', 'team'), )
 
 
 class ProjectManager(BaseManager):
@@ -78,6 +90,9 @@ class Project(Model):
     forced_color = models.CharField(max_length=6, null=True, blank=True)
     organization = FlexibleForeignKey('sentry.Organization')
     team = FlexibleForeignKey('sentry.Team')
+    teams = models.ManyToManyField(
+        'sentry.Team', related_name='teams', through=ProjectTeam
+    )
     public = models.BooleanField(default=False)
     date_added = models.DateTimeField(default=timezone.now)
     status = BoundedPositiveIntegerField(
@@ -128,44 +143,6 @@ class Project(Model):
     def get_absolute_url(self):
         return absolute_uri('/{}/{}/'.format(self.organization.slug, self.slug))
 
-    def merge_to(self, project):
-        from sentry.models import (Group, GroupTagValue, Event, TagValue)
-
-        if not isinstance(project, Project):
-            project = Project.objects.get_from_cache(pk=project)
-
-        for group in Group.objects.filter(project=self):
-            try:
-                other = Group.objects.get(
-                    project=project,
-                )
-            except Group.DoesNotExist:
-                group.update(project=project)
-                GroupTagValue.objects.filter(
-                    project_id=self.id,
-                    group_id=group.id,
-                ).update(project_id=project.id)
-            else:
-                Event.objects.filter(
-                    group_id=group.id,
-                ).update(group_id=other.id)
-
-                for obj in GroupTagValue.objects.filter(group=group):
-                    obj2, created = GroupTagValue.objects.get_or_create(
-                        project_id=project.id,
-                        group_id=group.id,
-                        key=obj.key,
-                        value=obj.value,
-                        defaults={'times_seen': obj.times_seen}
-                    )
-                    if not created:
-                        obj2.update(times_seen=F('times_seen') + obj.times_seen)
-
-        for fv in TagValue.objects.filter(project_id=self.id):
-            TagValue.objects.get_or_create(project_id=project.id, key=fv.key, value=fv.value)
-            fv.delete()
-        self.delete()
-
     def is_internal_project(self):
         for value in (settings.SENTRY_FRONTEND_PROJECT, settings.SENTRY_PROJECT):
             if six.text_type(self.id) == six.text_type(value) or six.text_type(
@@ -173,19 +150,6 @@ class Project(Model):
             ) == six.text_type(value):
                 return True
         return False
-
-    def get_tags(self, with_internal=True):
-        from sentry.models import TagKey
-
-        if not hasattr(self, '_tag_cache'):
-            tags = self.get_option('tags', None)
-            if tags is None:
-                tags = [
-                    t for t in TagKey.objects.all_keys(self)
-                    if with_internal or not t.startswith('sentry:')
-                ]
-            self._tag_cache = tags
-        return self._tag_cache
 
     # TODO: Make these a mixin
     def update_option(self, *args, **kwargs):
@@ -313,12 +277,53 @@ class Project(Model):
             is_enabled = bool(is_enabled)
         return is_enabled
 
-    def is_user_subscribed_to_workflow(self, user):
-        from sentry.models import UserOption, UserOptionValue
+    def transfer_to(self, team):
+        from sentry.models import ReleaseProject
 
-        opt_value = UserOption.objects.get_value(user, 'workflow:notifications', project=self)
-        if opt_value is None:
-            opt_value = UserOption.objects.get_value(
-                user, 'workflow:notifications', UserOptionValue.all_conversations
+        organization = team.organization
+
+        # We only need to delete ReleaseProjects when moving to a different
+        # Organization. Releases are bound to Organization, so it's not realistic
+        # to keep this link unless we say, copied all Releases as well.
+        if self.organization_id != organization.id:
+            ReleaseProject.objects.filter(
+                project_id=self.id,
+            ).delete()
+
+        self.organization = organization
+        self.team = team
+
+        try:
+            with transaction.atomic():
+                self.update(
+                    organization=organization,
+                    team=team,
+                )
+        except IntegrityError:
+            slugify_instance(self, self.name, organization=organization)
+            self.update(
+                slug=self.slug,
+                organization=organization,
+                team=team,
             )
-        return opt_value == UserOptionValue.all_conversations
+
+    def add_team(self, team):
+        try:
+            with transaction.atomic():
+                ProjectTeam.objects.create(project=self, team=team)
+        except IntegrityError:
+            return False
+        else:
+            return True
+
+    def get_security_token(self):
+        lock = locks.get(self.get_lock_key(), duration=5)
+        with TimedRetryPolicy(10)(lock.acquire):
+            security_token = self.get_option('sentry:token', None)
+            if security_token is None:
+                security_token = uuid1().hex
+                self.update_option('sentry:token', security_token)
+            return security_token
+
+    def get_lock_key(self):
+        return 'project_token:%s' % self.id

@@ -30,7 +30,7 @@
         <ul class="dropdown-menu dropdown-menu-right">
           <li><a href="{% absolute_uri '/account/authorizations/' %}">{% trans "Authorized Applications" %}</a></li>
           <li{% if page == 'identities' %} class="active"{% endif %}><a href="{% url 'sentry-account-settings-identities' %}">{% trans "Identities" %}</a></li>
-          <li><a href="{% url 'sentry-remove-account' %}">{% trans "Close Account" %}</a></li>
+          <li{% if page == 'remove_account' %} class="active"{% endif %}><a href="{% url 'sentry-remove-account' %}">{% trans "Close Account" %}</a></li>
         </ul>
       </div>
       <ul class="nav nav-tabs border-bottom">

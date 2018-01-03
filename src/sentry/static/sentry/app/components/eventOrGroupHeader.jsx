@@ -1,7 +1,8 @@
 import PropTypes from 'prop-types';
 import React from 'react';
 import styled, {css} from 'react-emotion';
-import {withTheme} from 'theming';
+import {withTheme} from 'emotion-theming';
+import classNames from 'classnames';
 import {Link} from 'react-router';
 
 import {Metadata} from '../proptypes';
@@ -22,14 +23,15 @@ class EventOrGroupHeader extends React.Component {
       title: PropTypes.string,
       metadata: Metadata,
       groupID: PropTypes.string,
-      culprit: PropTypes.string
+      culprit: PropTypes.string,
     }),
     includeLink: PropTypes.bool,
-    hideIcons: PropTypes.bool
+    hideIcons: PropTypes.bool,
+    hideLevel: PropTypes.bool,
   };
 
   static defaultProps = {
-    includeLink: true
+    includeLink: true,
   };
 
   getMessage() {
@@ -54,7 +56,9 @@ class EventOrGroupHeader extends React.Component {
     let props = {};
     let Wrapper;
     if (includeLink) {
-      props.to = `/${orgId}/${projectId}/issues/${isEvent ? groupID : id}/${isEvent ? `events/${data.id}/` : ''}`;
+      props.to = `/${orgId}/${projectId}/issues/${isEvent ? groupID : id}/${isEvent
+        ? `events/${data.id}/`
+        : ''}`;
       Wrapper = Link;
     } else {
       Wrapper = 'span';
@@ -71,17 +75,17 @@ class EventOrGroupHeader extends React.Component {
 
   render() {
     let {className} = this.props;
+    let cx = classNames('event-issue-header', className);
     let message = this.getMessage();
 
     return (
-      <div className={className}>
-        <Title>
-          {this.getTitle()}
-        </Title>
-        {message &&
+      <div className={cx}>
+        <Title>{this.getTitle()}</Title>
+        {message && (
           <Message>
             <span>{message}</span>
-          </Message>}
+          </Message>
+        )}
       </div>
     );
   }

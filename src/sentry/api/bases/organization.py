@@ -7,6 +7,7 @@ from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.permissions import ScopedPermission
 from sentry.app import raven
 from sentry.auth import access
+from sentry.auth.superuser import is_active_superuser
 from sentry.models import (
     ApiKey, Organization, OrganizationMemberTeam, OrganizationStatus, Project, ReleaseProject, Team
 )
@@ -48,7 +49,7 @@ class OrganizationPermission(ScopedPermission):
 
             if auth.is_user_signed_request(request):
                 # if the user comes from a signed request
-                # we let him pass if sso is enabled
+                # we let them pass if sso is enabled
                 logger.info(
                     'access.signed-sso-passthrough',
                     extra={
@@ -92,6 +93,24 @@ class OrganizationIntegrationsPermission(OrganizationPermission):
     }
 
 
+class OrganizationAdminPermission(OrganizationPermission):
+    scope_map = {
+        'GET': ['org:admin'],
+        'POST': ['org:admin'],
+        'PUT': ['org:admin'],
+        'DELETE': ['org:admin'],
+    }
+
+
+class OrganizationAuthProviderPermission(OrganizationPermission):
+    scope_map = {
+        'GET': ['org:read'],
+        'POST': ['org:admin'],
+        'PUT': ['org:admin'],
+        'DELETE': ['org:admin'],
+    }
+
+
 class OrganizationEndpoint(Endpoint):
     permission_classes = (OrganizationPermission, )
 
@@ -130,7 +149,7 @@ class OrganizationReleasesBaseEndpoint(OrganizationEndpoint):
         if not (has_valid_api_key or request.user.is_authenticated()):
             return []
 
-        if has_valid_api_key or request.is_superuser() or organization.flags.allow_joinleave:
+        if has_valid_api_key or is_active_superuser(request) or organization.flags.allow_joinleave:
             allowed_teams = Team.objects.filter(organization=organization).values_list(
                 'id', flat=True
             )

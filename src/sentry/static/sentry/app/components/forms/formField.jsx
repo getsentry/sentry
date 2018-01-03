@@ -5,7 +5,7 @@ import idx from 'idx';
 
 import {defined} from '../../utils';
 
-export default class FormField extends React.Component {
+export default class FormField extends React.PureComponent {
   static propTypes = {
     name: PropTypes.string.isRequired,
     /** Inline style */
@@ -17,38 +17,48 @@ export default class FormField extends React.Component {
     disabledReason: PropTypes.string,
     help: PropTypes.oneOfType([PropTypes.string, PropTypes.element]),
     required: PropTypes.bool,
+    hideErrorMessage: PropTypes.bool,
 
     // the following should only be used without form context
     onChange: PropTypes.func,
     error: PropTypes.string,
-    value: PropTypes.any
+    value: PropTypes.any,
   };
 
   static defaultProps = {
+    hideErrorMessage: false,
     disabled: false,
-    required: false
+    required: false,
   };
 
   static contextTypes = {
-    form: PropTypes.object
+    form: PropTypes.object,
   };
 
   constructor(props, context) {
-    super(props);
-
+    super(props, context);
     this.state = {
-      value: this.getValue(props, context)
+      error: null,
+      value: this.getValue(props, context),
     };
   }
 
+  componentDidMount() {}
+
   componentWillReceiveProps(nextProps, nextContext) {
-    if (
-      this.props.value !== nextProps.value ||
-      (!defined(this.context.form) && defined(nextContext.form))
-    ) {
-      this.setState({value: this.getValue(nextProps, nextContext)});
+    let newError = this.getError(nextProps, nextContext);
+    if (newError != this.state.error) {
+      this.setState({error: newError});
+    }
+    if (this.props.value !== nextProps.value || defined(nextContext.form)) {
+      let newValue = this.getValue(nextProps, nextContext);
+      if (newValue !== this.state.value) {
+        this.setValue(newValue);
+      }
     }
   }
+
+  componentWillUnmount() {}
 
   getValue(props, context) {
     let form = (context || this.context || {}).form;
@@ -57,7 +67,7 @@ export default class FormField extends React.Component {
       return props.value;
     }
     if (form && form.data.hasOwnProperty(props.name)) {
-      return form.data[props.name];
+      return form.data[props.name] || '';
     }
     return props.defaultValue || '';
   }
@@ -88,7 +98,7 @@ export default class FormField extends React.Component {
     let form = (this.context || {}).form;
     this.setState(
       {
-        value
+        value,
       },
       () => {
         this.props.onChange && this.props.onChange(this.coerceValue(this.state.value));
@@ -102,28 +112,40 @@ export default class FormField extends React.Component {
   }
 
   render() {
-    let {className, required, label, disabled, disabledReason, help, style} = this.props;
-    let error = this.getError();
+    let {
+      className,
+      required,
+      label,
+      disabled,
+      disabledReason,
+      hideErrorMessage,
+      help,
+      style,
+    } = this.props;
+    let {error} = this.state;
     let cx = classNames(className, this.getClassName(), {
       'has-error': !!error,
-      required
+      required,
     });
+    let shouldShowErrorMessage = error && !hideErrorMessage;
 
     return (
       <div style={style} className={cx}>
         <div className="controls">
-          {label &&
+          {label && (
             <label htmlFor={this.getId()} className="control-label">
               {label}
-            </label>}
+            </label>
+          )}
           {this.getField()}
           {disabled &&
-            disabledReason &&
-            <span className="disabled-indicator tip" title={disabledReason}>
-              <span className="icon-question" />
-            </span>}
+            disabledReason && (
+              <span className="disabled-indicator tip" title={disabledReason}>
+                <span className="icon-question" />
+              </span>
+            )}
           {defined(help) && <p className="help-block">{help}</p>}
-          {error && <p className="error">{error}</p>}
+          {shouldShowErrorMessage && <p className="error">{error}</p>}
         </div>
       </div>
     );

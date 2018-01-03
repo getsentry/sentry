@@ -6,16 +6,18 @@ import SearchBar from 'app/views/stream/searchBar';
 import StreamTagStore from 'app/stores/streamTagStore';
 
 describe('SearchBar', function() {
+  let sandbox;
+
   beforeEach(function() {
     StreamTagStore.reset();
 
-    this.sandbox = sinon.sandbox.create();
+    sandbox = sinon.sandbox.create();
 
-    this.sandbox.stub(Client.prototype, 'request');
+    sandbox.stub(Client.prototype, 'request');
   });
 
   afterEach(function() {
-    this.sandbox.restore();
+    sandbox.restore();
   });
 
   describe('getQueryTerms()', function() {
@@ -26,12 +28,12 @@ describe('SearchBar', function() {
       query = 'tagname:derp browser:';
       expect(SearchBar.getQueryTerms(query, query.length)).toEqual([
         'tagname:derp',
-        'browser:'
+        'browser:',
       ]);
 
       query = '   browser:"Chrome 33.0"    ';
       expect(SearchBar.getQueryTerms(query, query.length)).toEqual([
-        'browser:"Chrome 33.0"'
+        'browser:"Chrome 33.0"',
       ]);
     });
   });
@@ -55,7 +57,7 @@ describe('SearchBar', function() {
         orgId: '123',
         projectId: '456',
         query: 'is:unresolved ruby',
-        defaultQuery: 'is:unresolved'
+        defaultQuery: 'is:unresolved',
       };
       let searchBar = shallow(<SearchBar {...props} />).instance();
 
@@ -70,7 +72,7 @@ describe('SearchBar', function() {
         projectId: '456',
         query: 'is:unresolved ruby',
         defaultQuery: 'is:unresolved',
-        onSearch: this.sandbox.spy()
+        onSearch: sandbox.spy(),
       };
       let searchBar = shallow(<SearchBar {...props} />).instance();
 
@@ -99,7 +101,7 @@ describe('SearchBar', function() {
       let searchBar = shallow(<SearchBar orgId="123" projectId="456" />).instance();
       searchBar.state.dropdownVisible = true;
 
-      let clock = this.sandbox.useFakeTimers();
+      let clock = sandbox.useFakeTimers();
       searchBar.onQueryBlur();
       clock.tick(201); // doesn't close until 200ms
 
@@ -114,7 +116,7 @@ describe('SearchBar', function() {
         wrapper.setState({dropdownVisible: true});
 
         let instance = wrapper.instance();
-        this.sandbox.stub(instance, 'blur');
+        sandbox.stub(instance, 'blur');
 
         wrapper.find('input').simulate('keyup', {key: 'Escape', keyCode: '27'});
 
@@ -125,13 +127,13 @@ describe('SearchBar', function() {
 
   describe('render()', function() {
     it('invokes onSearch() when submitting the form', function() {
-      let stubbedOnSearch = this.sandbox.spy();
+      let stubbedOnSearch = sandbox.spy();
       let wrapper = mount(
         <SearchBar onSearch={stubbedOnSearch} orgId="123" projectId="456" />
       );
 
       wrapper.find('form').simulate('submit', {
-        preventDefault() {}
+        preventDefault() {},
       });
 
       expect(stubbedOnSearch.called).toBe(true);
@@ -142,7 +144,7 @@ describe('SearchBar', function() {
         orgId: '123',
         projectId: '456',
         query: 'is:unresolved',
-        onSearch: this.sandbox.spy()
+        onSearch: sandbox.spy(),
       };
       let wrapper = mount(<SearchBar {...props} />);
 
@@ -160,7 +162,7 @@ describe('SearchBar', function() {
       orgId: '123',
       projectId: '456',
       query: '',
-      defaultQuery: 'is:unresolved'
+      defaultQuery: 'is:unresolved',
     };
     let wrapper = mount(<SearchBar {...props} />);
     expect(wrapper.state('query')).toEqual('');
@@ -171,7 +173,7 @@ describe('SearchBar', function() {
       let props = {
         orgId: '123',
         projectId: '456',
-        query: ''
+        query: '',
       };
       let searchBar = mount(<SearchBar {...props} />).instance();
       searchBar.updateAutoCompleteItems();
@@ -184,7 +186,7 @@ describe('SearchBar', function() {
       let props = {
         orgId: '123',
         projectId: '456',
-        query: 'fu'
+        query: 'fu',
       };
       let searchBar = mount(<SearchBar {...props} />).instance();
       searchBar.updateAutoCompleteItems();
@@ -197,7 +199,7 @@ describe('SearchBar', function() {
       let props = {
         orgId: '123',
         projectId: '456',
-        query: 'url:"fu"'
+        query: 'url:"fu"',
       };
       let searchBar = mount(<SearchBar {...props} />).instance();
       searchBar.updateAutoCompleteItems();
@@ -210,7 +212,7 @@ describe('SearchBar', function() {
       let props = {
         orgId: '123',
         projectId: '456',
-        query: 'is:unresolved fu'
+        query: 'is:unresolved fu',
       };
       let searchBar = mount(<SearchBar {...props} />).instance();
       searchBar.getCursorPosition = jest.fn();
@@ -225,7 +227,7 @@ describe('SearchBar', function() {
       let props = {
         orgId: '123',
         projectId: '456',
-        query: 'url:"http://example.com"'
+        query: 'url:"http://example.com"',
       };
       let searchBar = mount(<SearchBar {...props} />).instance();
       searchBar.updateAutoCompleteItems();

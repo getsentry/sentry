@@ -7,22 +7,23 @@ import Sidebar from '../components/sidebar';
 import HookStore from '../stores/hookStore';
 import ListLink from '../components/listLink';
 
-export default React.createClass({
-  getInitialState() {
+export default class extends React.Component {
+  constructor(props) {
+    super(props);
     // Allow injection via getsentry et all
     let hooksManage = [];
     HookStore.get('admin:sidebar:manage').forEach(cb => {
       hooksManage.push(cb());
     });
 
-    return {
-      hooksManage
+    this.state = {
+      hooksManage,
     };
-  },
+  }
 
-  getTitle() {
+  getTitle = () => {
     return 'Sentry Admin';
-  },
+  };
 
   render() {
     return (
@@ -35,14 +36,31 @@ export default React.createClass({
                 <div className="col-md-2">
                   <h6 className="nav-header">System</h6>
                   <ul className="nav nav-stacked">
-                    <ListLink index={true} to="/manage/">Overview</ListLink>
-                    <ListLink index={true} to="/manage/buffer/">Buffer</ListLink>
-                    <ListLink index={true} to="/manage/queue/">Queue</ListLink>
-                    <li><a href="/manage/status/environment/">Environment</a></li>
-                    <li><a href="/manage/status/packages/">Packages</a></li>
-                    <li><a href="/manage/status/mail/">Mail</a></li>
+                    <ListLink index={true} to="/manage/">
+                      Overview
+                    </ListLink>
+                    <ListLink index={true} to="/manage/buffer/">
+                      Buffer
+                    </ListLink>
+                    <ListLink index={true} to="/manage/queue/">
+                      Queue
+                    </ListLink>
+                    <ListLink index={true} to="/manage/quotas/">
+                      Quotas
+                    </ListLink>
+                    <li>
+                      <a href="/manage/status/environment/">Environment</a>
+                    </li>
+                    <li>
+                      <a href="/manage/status/packages/">Packages</a>
+                    </li>
+                    <li>
+                      <a href="/manage/status/mail/">Mail</a>
+                    </li>
                     <ListLink to="/manage/settings/">Settings</ListLink>
-                    <li><a href="/manage/status/warnings/">Warnings</a></li>
+                    <li>
+                      <a href="/manage/status/warnings/">Warnings</a>
+                    </li>
                   </ul>
 
                   <h6 className="nav-header">Manage</h6>
@@ -53,9 +71,7 @@ export default React.createClass({
                     {this.state.hooksManage}
                   </ul>
                 </div>
-                <div className="col-md-10">
-                  {this.props.children}
-                </div>
+                <div className="col-md-10">{this.props.children}</div>
               </div>
             </div>
           </div>
@@ -64,4 +80,4 @@ export default React.createClass({
       </DocumentTitle>
     );
   }
-});
+}

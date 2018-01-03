@@ -4,7 +4,7 @@ import datetime
 import six
 
 from sentry.models import (
-    Commit, CommitAuthor, Group, GroupCommitResolution, GroupRelease, GroupResolution, GroupStatus,
+    Commit, CommitAuthor, Group, GroupRelease, GroupResolution, GroupLink, GroupStatus,
     Release, ReleaseCommit, ReleaseEnvironment, ReleaseProject, Repository
 )
 
@@ -142,7 +142,10 @@ class SetCommitsTestCase(TestCase):
             key='lskfslknsdkcsnlkdflksfdkls',
         )
 
-        assert GroupCommitResolution.objects.filter(group_id=group.id, commit_id=commit.id).exists()
+        assert GroupLink.objects.filter(
+            group_id=group.id,
+            linked_type=GroupLink.LinkedType.commit,
+            linked_id=commit.id).exists()
 
         release = Release.objects.create(version='abcdabc', organization=org)
         release.add_project(project)
@@ -260,12 +263,13 @@ class SetCommitsTestCase(TestCase):
             release=release,
         ).exists()
 
-        assert GroupCommitResolution.objects.filter(
+        assert GroupLink.objects.filter(
             group_id=group.id,
-            commit_id=Commit.objects.get(
+            linked_type=GroupLink.LinkedType.commit,
+            linked_id=Commit.objects.get(
                 key='c' * 40,
                 repository_id=repo.id,
-            ).id,
+            ).id
         ).exists()
 
         assert GroupResolution.objects.filter(group=group, release=release).exists()
@@ -346,7 +350,7 @@ class SetCommitsTestCase(TestCase):
         assert release.last_commit_id == latest_commit.id
 
     def test_resolution_support_full_featured(self):
-        org = self.create_organization()
+        org = self.create_organization(owner=self.user)
         project = self.create_project(organization=org, name='foo')
         group = self.create_group(project=project)
 
@@ -382,7 +386,10 @@ class SetCommitsTestCase(TestCase):
             'repository': repo.name,
         }])
 
-        assert GroupCommitResolution.objects.filter(group_id=group.id, commit_id=commit.id).exists()
+        assert GroupLink.objects.filter(
+            group_id=group.id,
+            linked_type=GroupLink.LinkedType.commit,
+            linked_id=commit.id).exists()
 
         resolution = GroupResolution.objects.get(
             group=group,
@@ -416,7 +423,10 @@ class SetCommitsTestCase(TestCase):
             'repository': repo.name,
         }])
 
-        assert GroupCommitResolution.objects.filter(group_id=group.id, commit_id=commit.id).exists()
+        assert GroupLink.objects.filter(
+            group_id=group.id,
+            linked_type=GroupLink.LinkedType.commit,
+            linked_id=commit.id).exists()
 
         resolution = GroupResolution.objects.get(
             group=group,

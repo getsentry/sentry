@@ -6,8 +6,8 @@ import SearchBar from './searchBar';
 import SortOptions from './sortOptions';
 import {t} from '../../locale';
 
-const StreamFilters = React.createClass({
-  propTypes: {
+class StreamFilters extends React.Component {
+  static propTypes = {
     orgId: PropTypes.string.isRequired,
     projectId: PropTypes.string.isRequired,
     access: PropTypes.object.isRequired,
@@ -27,24 +27,22 @@ const StreamFilters = React.createClass({
     onSortChange: PropTypes.func,
     onSearch: PropTypes.func,
     onSidebarToggle: PropTypes.func,
-    onSavedSearchCreate: PropTypes.func.isRequired
-  },
+    onSavedSearchCreate: PropTypes.func.isRequired,
+  };
 
-  contextTypes: {
-    location: PropTypes.object
-  },
+  static contextTypes = {
+    location: PropTypes.object,
+  };
 
-  getDefaultProps() {
-    return {
-      defaultQuery: '',
-      sort: '',
-      filter: '',
-      query: null,
-      onSortChange: function() {},
-      onSearch: function() {},
-      onSidebarToggle: function() {}
-    };
-  },
+  static defaultProps = {
+    defaultQuery: '',
+    sort: '',
+    filter: '',
+    query: null,
+    onSortChange: function() {},
+    onSearch: function() {},
+    onSidebarToggle: function() {},
+  };
 
   render() {
     let {
@@ -64,7 +62,7 @@ const StreamFilters = React.createClass({
       onSidebarToggle,
       onSearch,
       onSavedSearchCreate,
-      onSortChange
+      onSortChange,
     } = this.props;
 
     return (
@@ -102,7 +100,8 @@ const StreamFilters = React.createClass({
               />
               <a
                 className="btn btn-default toggle-stream-sidebar"
-                onClick={onSidebarToggle}>
+                onClick={onSidebarToggle}
+              >
                 <span className="icon-filter" />
               </a>
             </div>
@@ -111,6 +110,6 @@ const StreamFilters = React.createClass({
       </div>
     );
   }
-});
+}
 
 export default StreamFilters;

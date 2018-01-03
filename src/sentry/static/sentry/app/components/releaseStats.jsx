@@ -1,18 +1,21 @@
 import PropTypes from 'prop-types';
 import React from 'react';
+import createReactClass from 'create-react-class';
 import Avatar from './avatar';
 import TooltipMixin from '../mixins/tooltip';
 import {t} from '../locale';
 
-const ReleaseStats = React.createClass({
+const ReleaseStats = createReactClass({
+  displayName: 'ReleaseStats',
+
   propTypes: {
-    release: PropTypes.object
+    release: PropTypes.object,
   },
 
   mixins: [
     TooltipMixin({
-      selector: '.tip'
-    })
+      selector: '.tip',
+    }),
   ],
 
   render() {
@@ -39,7 +42,8 @@ const ReleaseStats = React.createClass({
               <span
                 key={i}
                 className="avatar-grid-item tip"
-                title={author.name + ' ' + author.email}>
+                title={author.name + ' ' + author.email}
+              >
                 <Avatar user={author} />
               </span>
             );
@@ -47,7 +51,7 @@ const ReleaseStats = React.createClass({
         </div>
       </div>
     );
-  }
+  },
 });
 
 export default ReleaseStats;

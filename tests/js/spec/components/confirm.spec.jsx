@@ -23,7 +23,6 @@ describe('Confirm', function() {
 
     wrapper.find('button').simulate('click');
 
-    wrapper.update();
     expect(wrapper.find('Modal').prop('show')).toBe(true);
   });
 
@@ -35,8 +34,10 @@ describe('Confirm', function() {
       </Confirm>
     );
 
-    wrapper.find('button').simulate('click').simulate('click');
-    wrapper.update();
+    let button = wrapper.find('button');
+
+    button.simulate('click');
+    button.simulate('click');
     expect(wrapper.find('Modal').prop('show')).toBe(false);
   });
 
@@ -54,8 +55,11 @@ describe('Confirm', function() {
     wrapper.update();
 
     // Click "Confirm" button, should be last button
-    wrapper.find('Modal').find('Button').last().simulate('click');
-    wrapper.update();
+    wrapper
+      .find('Modal')
+      .find('Button')
+      .last()
+      .simulate('click');
 
     expect(wrapper.find('Modal').prop('show')).toBe(false);
     expect(mock).toHaveBeenCalled();
@@ -75,8 +79,13 @@ describe('Confirm', function() {
     wrapper.update();
 
     // Click "Confirm" button, should be last button
-    wrapper.find('Modal').find('Button').last().simulate('click').simulate('click');
-    wrapper.update();
+    let confirm = wrapper
+      .find('Modal')
+      .find('Button')
+      .last();
+
+    confirm.simulate('click');
+    confirm.simulate('click');
 
     expect(wrapper.find('Modal').prop('show')).toBe(false);
     expect(mock.mock.calls).toHaveLength(1);

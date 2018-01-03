@@ -1,4 +1,5 @@
 import React from 'react';
+import createReactClass from 'create-react-class';
 import Modal from 'react-bootstrap/lib/Modal';
 
 import ApiMixin from '../mixins/apiMixin';
@@ -10,7 +11,8 @@ import FileSize from '../components/fileSize';
 import TimeSince from '../components/timeSince';
 import {t} from '../locale';
 
-const ProjectDebugSymbols = React.createClass({
+const ProjectDebugSymbols = createReactClass({
+  displayName: 'ProjectDebugSymbols',
   mixins: [ApiMixin, OrganizationState],
 
   getInitialState() {
@@ -25,7 +27,7 @@ const ProjectDebugSymbols = React.createClass({
       activeVersion: null,
       activeBuilds: null,
       activeBuild: null,
-      activeDsyms: null
+      activeDsyms: null,
     };
   },
 
@@ -43,15 +45,15 @@ const ProjectDebugSymbols = React.createClass({
           debugSymbols: data.debugSymbols,
           unreferencedDebugSymbols: data.unreferencedDebugSymbols,
           apps: data.apps,
-          pageLinks: jqXHR.getResponseHeader('Link')
+          pageLinks: jqXHR.getResponseHeader('Link'),
         });
       },
       error: () => {
         this.setState({
           error: true,
-          loading: false
+          loading: false,
         });
-      }
+      },
     });
   },
 
@@ -59,7 +61,7 @@ const ProjectDebugSymbols = React.createClass({
     this.setState({
       activeAppID: appID,
       activeVersion: version,
-      activeBuilds: builds
+      activeBuilds: builds,
     });
   },
 
@@ -67,13 +69,13 @@ const ProjectDebugSymbols = React.createClass({
     this.setState({
       showModal: true,
       activeBuild: build,
-      activeDsyms: dsyms
+      activeDsyms: dsyms,
     });
   },
 
   closeModal() {
     this.setState({
-      showModal: false
+      showModal: false,
     });
   },
 
@@ -175,7 +177,8 @@ const ProjectDebugSymbols = React.createClass({
                   let row = (
                     <li
                       className="group hoverable"
-                      onClick={() => this.setActive(app.id, version, builds)}>
+                      onClick={() => this.setActive(app.id, version, builds)}
+                    >
                       <div>
                         <div className="col-xs-8 event-details">
                           <h3 className="truncate">{version}</h3>
@@ -243,7 +246,8 @@ const ProjectDebugSymbols = React.createClass({
         <li
           className="group hoverable"
           key={build}
-          onClick={() => this.openModal(build, dsyms)}>
+          onClick={() => this.openModal(build, dsyms)}
+        >
           <div>
             <div className="col-xs-8 event-details">
               <div className="event-message">{build}</div>
@@ -292,7 +296,8 @@ const ProjectDebugSymbols = React.createClass({
       if (dsym === undefined || dsym === null) {
         return null;
       }
-      const url = `${this.api.baseUrl}/projects/${orgId}/${projectId}/files/dsyms/?download_id=${dsym.id}`;
+      const url = `${this.api
+        .baseUrl}/projects/${orgId}/${projectId}/files/dsyms/?download_id=${dsym.id}`;
       return (
         <tr key={key}>
           <td>
@@ -315,11 +320,11 @@ const ProjectDebugSymbols = React.createClass({
             <FileSize bytes={dsym.size} />
           </td>
           <td>
-            {access.has('project:write')
-              ? <a href={url} className="btn btn-sm btn-default">
-                  <span className="icon icon-open" />
-                </a>
-              : null}
+            {access.has('project:write') ? (
+              <a href={url} className="btn btn-sm btn-default">
+                <span className="icon icon-open" />
+              </a>
+            ) : null}
           </td>
         </tr>
       );
@@ -387,7 +392,8 @@ const ProjectDebugSymbols = React.createClass({
           animation={false}
           backdrop="static"
           enforceFocus={false}
-          bsSize="lg">
+          bsSize="lg"
+        >
           <Modal.Header closeButton>
             <Modal.Title>
               {this.state.activeVersion} ({this.state.activeBuild})
@@ -410,7 +416,7 @@ const ProjectDebugSymbols = React.createClass({
         </Modal>
       </div>
     );
-  }
+  },
 });
 
 export default ProjectDebugSymbols;

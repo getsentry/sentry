@@ -1,5 +1,6 @@
 import PropTypes from 'prop-types';
 import React from 'react';
+import createReactClass from 'create-react-class';
 import Reflux from 'reflux';
 import {browserHistory} from 'react-router';
 import DocumentTitle from 'react-document-title';
@@ -13,25 +14,27 @@ import SentryTypes from '../proptypes';
 import {t} from '../locale';
 
 let ERROR_TYPES = {
-  GROUP_NOT_FOUND: 'GROUP_NOT_FOUND'
+  GROUP_NOT_FOUND: 'GROUP_NOT_FOUND',
 };
 
-const GroupDetails = React.createClass({
+const GroupDetails = createReactClass({
+  displayName: 'GroupDetails',
+
   propTypes: {
     setProjectNavSection: PropTypes.func,
-    memberList: PropTypes.array
+    memberList: PropTypes.array,
   },
 
   childContextTypes: {
     group: SentryTypes.Group,
-    location: PropTypes.object
+    location: PropTypes.object,
   },
 
   mixins: [ApiMixin, Reflux.listenTo(GroupStore, 'onGroupChange')],
 
   getDefaultProps() {
     return {
-      memberList: []
+      memberList: [],
     };
   },
 
@@ -40,14 +43,14 @@ const GroupDetails = React.createClass({
       group: null,
       loading: true,
       error: false,
-      errorType: null
+      errorType: null,
     };
   },
 
   getChildContext() {
     return {
       group: this.state.group,
-      location: this.props.location
+      location: this.props.location,
     };
   },
 
@@ -83,8 +86,7 @@ const GroupDetails = React.createClass({
         // https://github.com/reactjs/react-router/blob/v2.0.1/modules/index.js#L25
         if (this.props.params.groupId != data.id) {
           let location = this.props.location;
-          return void browserHistory.pushState(
-            null,
+          return void browserHistory.push(
             location.pathname.replace(
               `/issues/${this.props.params.groupId}/`,
               `/issues/${data.id}/`
@@ -97,7 +99,7 @@ const GroupDetails = React.createClass({
         this.setState({
           loading: false,
           error: false,
-          errorType: null
+          errorType: null,
         });
 
         return void GroupStore.loadInitialData([data]);
@@ -113,9 +115,9 @@ const GroupDetails = React.createClass({
         this.setState({
           loading: false,
           error: true,
-          errorType
+          errorType,
         });
-      }
+      },
     });
   },
 
@@ -129,7 +131,7 @@ const GroupDetails = React.createClass({
           return;
         }
         this.setState({
-          group
+          group,
         });
       }
     }
@@ -188,12 +190,12 @@ const GroupDetails = React.createClass({
           />
           {React.cloneElement(this.props.children, {
             memberList: this.props.memberList,
-            group
+            group,
           })}
         </div>
       </DocumentTitle>
     );
-  }
+  },
 });
 
 export default GroupDetails;

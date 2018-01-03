@@ -48,11 +48,11 @@ exports[`CustomResolutionModal render() renders correctly 1`] = `
           ajaxDelay={250}
           allowClear={false}
           allowEmpty={false}
-          className="form-control"
           disabled={false}
           escapeMarkup={false}
           formatResult={[Function]}
           formatSelection={[Function]}
+          hideErrorMessage={false}
           id="version"
           minimumInputLength={null}
           multiple={false}
@@ -62,11 +62,6 @@ exports[`CustomResolutionModal render() renders correctly 1`] = `
           onResults={[Function]}
           placeholder="e.g. 1.0.4"
           required={false}
-          style={
-            Object {
-              "padding": "3px 10px",
-            }
-          }
           url="/api/0/projects/org/project/releases/"
           value=""
         />

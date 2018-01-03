@@ -60,6 +60,10 @@ class SentryInternalClient(DjangoClient):
         if not is_current_event_safe():
             return
 
+        # Force raven-python encoding of this event, so that edge cases like
+        # non JSON-serializable objects are handled.
+        kwargs = self.decode(self.encode(kwargs))
+
         from sentry import tsdb
         from sentry.coreapi import ClientApiHelper
         from sentry.event_manager import EventManager
@@ -96,7 +100,7 @@ class SentryInternalClient(DjangoClient):
             # This in theory is the right way to do it because validate
             # also normalizes currently, but we just send in data already
             # normalised in the raven client now.
-            # data = helper.validate_data(project, kwargs)
+            # data = helper.validate_data(kwargs)
             data = kwargs
             manager = EventManager(data)
             data = manager.normalize()

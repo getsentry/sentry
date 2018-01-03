@@ -1,15 +1,18 @@
 import React from 'react';
 
+import createReactClass from 'create-react-class';
+
 import DiffModal from '../components/modals/diffModal';
 import ProjectHeader from '../components/projectHeader';
 import ProjectState from '../mixins/projectState';
 
-const ProjectDetailsLayout = React.createClass({
+const ProjectDetailsLayout = createReactClass({
+  displayName: 'ProjectDetailsLayout',
   mixins: [ProjectState],
 
   getInitialState() {
     return {
-      projectNavSection: null
+      projectNavSection: null,
     };
   },
 
@@ -20,7 +23,7 @@ const ProjectDetailsLayout = React.createClass({
    */
   setProjectNavSection(section) {
     this.setState({
-      projectNavSection: section
+      projectNavSection: section,
     });
   },
 
@@ -38,7 +41,7 @@ const ProjectDetailsLayout = React.createClass({
           <div className="content">
             {React.cloneElement(this.props.children, {
               setProjectNavSection: this.setProjectNavSection,
-              memberList: this.state.memberList
+              memberList: this.state.memberList,
             })}
           </div>
         </div>
@@ -46,7 +49,7 @@ const ProjectDetailsLayout = React.createClass({
         <DiffModal />
       </div>
     );
-  }
+  },
 });
 
 export default ProjectDetailsLayout;

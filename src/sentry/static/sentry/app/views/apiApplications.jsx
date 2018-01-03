@@ -1,5 +1,6 @@
 import PropTypes from 'prop-types';
 import React from 'react';
+import createReactClass from 'create-react-class';
 import DocumentTitle from 'react-document-title';
 import {Link} from 'react-router';
 
@@ -9,17 +10,19 @@ import LoadingError from '../components/loadingError';
 import LoadingIndicator from '../components/loadingIndicator';
 import {t} from '../locale';
 
-const ApiApplicationRow = React.createClass({
+const ApiApplicationRow = createReactClass({
+  displayName: 'ApiApplicationRow',
+
   propTypes: {
     app: PropTypes.object.isRequired,
-    onRemove: PropTypes.func.isRequired
+    onRemove: PropTypes.func.isRequired,
   },
 
   mixins: [ApiMixin],
 
   getInitialState() {
     return {
-      loading: false
+      loading: false,
     };
   },
 
@@ -30,7 +33,7 @@ const ApiApplicationRow = React.createClass({
 
     this.setState(
       {
-        loading: true
+        loading: true,
       },
       () => {
         let loadingIndicator = IndicatorStore.add(t('Saving changes..'));
@@ -46,10 +49,10 @@ const ApiApplicationRow = React.createClass({
               t('Unable to remove application. Please try again.'),
               'error',
               {
-                duration: 3000
+                duration: 3000,
               }
             );
-          }
+          },
         });
       }
     );
@@ -73,18 +76,21 @@ const ApiApplicationRow = React.createClass({
           <a
             onClick={this.onRemove.bind(this, app)}
             className={btnClassName}
-            disabled={this.state.loading}>
+            disabled={this.state.loading}
+          >
             <span className="icon icon-trash" />
           </a>
         </td>
       </tr>
     );
-  }
+  },
 });
 
-const ApiApplications = React.createClass({
+const ApiApplications = createReactClass({
+  displayName: 'ApiApplications',
+
   contextTypes: {
-    router: PropTypes.object.isRequired
+    router: PropTypes.object.isRequired,
   },
 
   mixins: [ApiMixin],
@@ -93,7 +99,7 @@ const ApiApplications = React.createClass({
     return {
       loading: true,
       error: false,
-      appList: []
+      appList: [],
     };
   },
 
@@ -107,7 +113,7 @@ const ApiApplications = React.createClass({
 
   fetchData() {
     this.setState({
-      loading: true
+      loading: true,
     });
 
     this.api.request('/api-applications/', {
@@ -115,15 +121,15 @@ const ApiApplications = React.createClass({
         this.setState({
           loading: false,
           error: false,
-          appList: data
+          appList: data,
         });
       },
       error: () => {
         this.setState({
           loading: false,
-          error: true
+          error: true,
         });
-      }
+      },
     });
   },
 
@@ -138,13 +144,13 @@ const ApiApplications = React.createClass({
       error: error => {
         IndicatorStore.remove(loadingIndicator);
         IndicatorStore.add(t('Unable to remove application. Please try again.'), 'error');
-      }
+      },
     });
   },
 
   onRemoveApplication(app) {
     this.setState({
-      appList: this.state.appList.filter(a => a.id !== app.id)
+      appList: this.state.appList.filter(a => a.id !== app.id),
     });
   },
 
@@ -180,27 +186,36 @@ const ApiApplications = React.createClass({
         <div>
           <table className="table">
             <tbody>
-              {this.state.loading
-                ? <tr><td colSpan="2"><LoadingIndicator /></td></tr>
-                : this.state.error
-                    ? <tr>
-                        <td colSpan="2"><LoadingError onRetry={this.fetchData} /></td>
-                      </tr>
-                    : this.renderResults()}
+              {this.state.loading ? (
+                <tr>
+                  <td colSpan="2">
+                    <LoadingIndicator />
+                  </td>
+                </tr>
+              ) : this.state.error ? (
+                <tr>
+                  <td colSpan="2">
+                    <LoadingError onRetry={this.fetchData} />
+                  </td>
+                </tr>
+              ) : (
+                this.renderResults()
+              )}
             </tbody>
           </table>
 
           <div className="form-actions" style={{textAlign: 'right'}}>
             <a
               className="btn btn-primary ref-create-application"
-              onClick={this.createApplication}>
+              onClick={this.createApplication}
+            >
               {t('Create New Application')}
             </a>
           </div>
         </div>
       </DocumentTitle>
     );
-  }
+  },
 });
 
 export default ApiApplications;

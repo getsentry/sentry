@@ -269,6 +269,8 @@ class IPlugin2(local, PluginConfigMixin, PluginStatusMixin):
         """
         return self.title
 
+    get_short_title = get_title
+
     def get_description(self):
         """
         Returns the description for this plugin. This is shown on the plugin configuration

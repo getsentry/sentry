@@ -11,565 +11,99 @@ exports[`OrganizationIntegrations render() with a provider renders 1`] = `
   <DocumentTitle
     title="Integrations"
   >
-    <HomeContainer
+    <div
       className="ref-organization-integrations"
     >
       <div
-        className="ref-organization-integrations organization-home"
+        className="pull-right"
       >
-        <div
-          className="sub-header flex flex-container flex-vertically-centered"
+        <DropdownLink
+          alwaysRenderMenu={true}
+          anchorRight={true}
+          caret={true}
+          className="btn btn-primary btn-sm"
+          disabled={false}
+          title="Add Integration"
         >
-          <div>
-            <ProjectSelector
-              organization={
-                Object {
-                  "access": Array [
-                    "org:read",
-                    "org:write",
-                    "org:admin",
-                    "project:read",
-                    "project:write",
-                    "project:admin",
-                    "team:read",
-                    "team:write",
-                    "team:admin",
-                  ],
-                  "features": Array [],
-                  "id": "3",
-                  "name": "Organization Name",
-                  "onboardingTasks": Array [],
-                  "slug": "org-slug",
-                  "teams": Array [],
-                }
-              }
-              projectId={null}
-            >
-              <div
-                className="project-select"
-              >
-                <h3>
-                  <Link
-                    className="home-crumb"
-                    to="/org-slug/"
-                  >
-                    <Link
-                      className="home-crumb"
-                      onlyActiveOnIndex={false}
-                      style={Object {}}
-                      to="/org-slug/"
-                    >
-                      <a
-                        className="home-crumb"
-                        onClick={[Function]}
-                        style={Object {}}
-                      >
-                        <span
-                          className="icon-home"
-                        />
-                      </a>
-                    </Link>
-                  </Link>
-                  Select a project
-                  <DropdownLink
-                    anchorRight={false}
-                    caret={true}
-                    disabled={false}
-                    onClose={[Function]}
-                    onOpen={[Function]}
-                    title=""
-                    topLevelClasses="project-dropdown is-empty"
-                  >
-                    <span
-                      className="project-dropdown is-empty dropdown"
-                    >
-                      <a
-                        className="dropdown-toggle"
-                        data-toggle="dropdown"
-                      >
-                        <i
-                          className="icon-arrow-down"
-                        />
-                      </a>
-                      <ul
-                        className="dropdown-menu"
-                      >
-                        <MenuItem
-                          className="empty-projects-item"
-                          noAnchor={true}
-                        >
-                          <li
-                            className="empty-projects-item"
-                            href={null}
-                            role="presentation"
-                            title={null}
-                          >
-                            <div
-                              className="empty-message"
-                            >
-                              You have no projects.
-                            </div>
-                          </li>
-                        </MenuItem>
-                        <MenuItem
-                          divider={true}
-                        >
-                          <li
-                            className="divider"
-                            href={null}
-                            role="presentation"
-                            title={null}
-                          />
-                        </MenuItem>
-                        <MenuItem
-                          className="empty-projects-item"
-                          noAnchor={true}
-                        >
-                          <li
-                            className="empty-projects-item"
-                            href={null}
-                            role="presentation"
-                            title={null}
-                          >
-                            <a
-                              className="btn btn-primary btn-block"
-                              href="/organizations/org-slug/projects/new/"
-                            >
-                              Create project
-                            </a>
-                          </li>
-                        </MenuItem>
-                      </ul>
-                    </span>
-                  </DropdownLink>
-                </h3>
-              </div>
-            </ProjectSelector>
-          </div>
-          <div
-            className="align-right hidden-xs"
+          <DropdownMenu
+            keepMenuOpen={false}
           >
-            <Button
-              disabled={false}
-              priority="primary"
-              style={
-                Object {
-                  "marginRight": 5,
-                }
-              }
-              to="/organizations/org-slug/projects/new/"
+            <span
+              className="dropdown pull-right anchor-right open"
             >
-              <Link
-                className="button button-primary"
-                disabled={false}
+              <a
+                className="dropdown-actor btn btn-primary btn-sm dropdown-menu-right dropdown-toggle hover"
                 onClick={[Function]}
-                onlyActiveOnIndex={false}
-                role="button"
-                style={
-                  Object {
-                    "marginRight": 5,
-                  }
-                }
-                to="/organizations/org-slug/projects/new/"
-              >
-                <a
-                  className="button button-primary"
-                  disabled={false}
-                  onClick={[Function]}
-                  role="button"
-                  style={
-                    Object {
-                      "marginRight": 5,
-                    }
-                  }
-                >
-                  New Project
-                </a>
-              </Link>
-            </Button>
-            <Button
-              disabled={false}
-              priority="primary"
-              to="/organizations/org-slug/teams/new/"
-            >
-              <Link
-                className="button button-primary"
-                disabled={false}
-                onClick={[Function]}
-                onlyActiveOnIndex={false}
-                role="button"
-                style={Object {}}
-                to="/organizations/org-slug/teams/new/"
-              >
-                <a
-                  className="button button-primary"
-                  disabled={false}
-                  onClick={[Function]}
-                  role="button"
-                  style={Object {}}
-                >
-                  New Team
-                </a>
-              </Link>
-            </Button>
-          </div>
-        </div>
-        <div
-          className="container"
-        >
-          <div
-            className="content row"
-          >
-            <div
-              className="col-md-2 org-sidebar"
-            >
-              <HomeSidebar>
-                <div>
-                  <h6
-                    className="nav-header"
-                  >
-                    Organization
-                  </h6>
-                  <ul
-                    className="nav nav-stacked"
-                  >
-                    <ListLink
-                      activeClassName="active"
-                      index={false}
-                      isActive={[Function]}
-                      to="/org-slug/"
-                    >
-                      <li
-                        className=""
-                      >
-                        <Link
-                          onlyActiveOnIndex={false}
-                          style={Object {}}
-                          to="/org-slug/"
-                        >
-                          <a
-                            onClick={[Function]}
-                            style={Object {}}
-                          >
-                            Dashboard
-                          </a>
-                        </Link>
-                      </li>
-                    </ListLink>
-                    <ListLink
-                      activeClassName="active"
-                      index={false}
-                      isActive={[Function]}
-                      to="/organizations/org-slug/teams/"
-                    >
-                      <li
-                        className=""
-                      >
-                        <Link
-                          onlyActiveOnIndex={false}
-                          style={Object {}}
-                          to="/organizations/org-slug/teams/"
-                        >
-                          <a
-                            onClick={[Function]}
-                            style={Object {}}
-                          >
-                            Projects & Teams
-                          </a>
-                        </Link>
-                      </li>
-                    </ListLink>
-                    <ListLink
-                      activeClassName="active"
-                      index={false}
-                      to="/organizations/org-slug/stats/"
-                    >
-                      <li
-                        className=""
-                      >
-                        <Link
-                          onlyActiveOnIndex={false}
-                          style={Object {}}
-                          to="/organizations/org-slug/stats/"
-                        >
-                          <a
-                            onClick={[Function]}
-                            style={Object {}}
-                          >
-                            Stats
-                          </a>
-                        </Link>
-                      </li>
-                    </ListLink>
-                  </ul>
-                  <div>
-                    <h6
-                      className="nav-header with-divider"
-                    >
-                      Issues
-                    </h6>
-                    <ul
-                      className="nav nav-stacked"
-                    >
-                      <ListLink
-                        activeClassName="active"
-                        index={false}
-                        to="/organizations/org-slug/issues/assigned/"
-                      >
-                        <li
-                          className=""
-                        >
-                          <Link
-                            onlyActiveOnIndex={false}
-                            style={Object {}}
-                            to="/organizations/org-slug/issues/assigned/"
-                          >
-                            <a
-                              onClick={[Function]}
-                              style={Object {}}
-                            >
-                              Assigned to Me
-                            </a>
-                          </Link>
-                        </li>
-                      </ListLink>
-                      <ListLink
-                        activeClassName="active"
-                        index={false}
-                        to="/organizations/org-slug/issues/bookmarks/"
-                      >
-                        <li
-                          className=""
-                        >
-                          <Link
-                            onlyActiveOnIndex={false}
-                            style={Object {}}
-                            to="/organizations/org-slug/issues/bookmarks/"
-                          >
-                            <a
-                              onClick={[Function]}
-                              style={Object {}}
-                            >
-                              Bookmarks
-                            </a>
-                          </Link>
-                        </li>
-                      </ListLink>
-                      <ListLink
-                        activeClassName="active"
-                        index={false}
-                        to="/organizations/org-slug/issues/history/"
-                      >
-                        <li
-                          className=""
-                        >
-                          <Link
-                            onlyActiveOnIndex={false}
-                            style={Object {}}
-                            to="/organizations/org-slug/issues/history/"
-                          >
-                            <a
-                              onClick={[Function]}
-                              style={Object {}}
-                            >
-                              History
-                            </a>
-                          </Link>
-                        </li>
-                      </ListLink>
-                    </ul>
-                  </div>
-                  <div>
-                    <h6
-                      className="nav-header with-divider"
-                    >
-                      Manage
-                    </h6>
-                    <ul
-                      className="nav nav-stacked"
-                    >
-                      <li>
-                        <a
-                          href="/organizations/org-slug/members/"
-                        >
-                          Members
-                           
-                        </a>
-                      </li>
-                      <ListLink
-                        activeClassName="active"
-                        index={false}
-                        to="/organizations/org-slug/audit-log/"
-                      >
-                        <li
-                          className=""
-                        >
-                          <Link
-                            onlyActiveOnIndex={false}
-                            style={Object {}}
-                            to="/organizations/org-slug/audit-log/"
-                          >
-                            <a
-                              onClick={[Function]}
-                              style={Object {}}
-                            >
-                              Audit Log
-                            </a>
-                          </Link>
-                        </li>
-                      </ListLink>
-                      <ListLink
-                        activeClassName="active"
-                        index={false}
-                        to="/organizations/org-slug/rate-limits/"
-                      >
-                        <li
-                          className=""
-                        >
-                          <Link
-                            onlyActiveOnIndex={false}
-                            style={Object {}}
-                            to="/organizations/org-slug/rate-limits/"
-                          >
-                            <a
-                              onClick={[Function]}
-                              style={Object {}}
-                            >
-                              Rate Limits
-                            </a>
-                          </Link>
-                        </li>
-                      </ListLink>
-                      <ListLink
-                        activeClassName="active"
-                        index={false}
-                        to="/organizations/org-slug/repos/"
-                      >
-                        <li
-                          className=""
-                        >
-                          <Link
-                            onlyActiveOnIndex={false}
-                            style={Object {}}
-                            to="/organizations/org-slug/repos/"
-                          >
-                            <a
-                              onClick={[Function]}
-                              style={Object {}}
-                            >
-                              Repositories
-                            </a>
-                          </Link>
-                        </li>
-                      </ListLink>
-                      <ListLink
-                        activeClassName="active"
-                        index={false}
-                        to="/organizations/org-slug/settings/"
-                      >
-                        <li
-                          className=""
-                        >
-                          <Link
-                            onlyActiveOnIndex={false}
-                            style={Object {}}
-                            to="/organizations/org-slug/settings/"
-                          >
-                            <a
-                              onClick={[Function]}
-                              style={Object {}}
-                            >
-                              Settings
-                            </a>
-                          </Link>
-                        </li>
-                      </ListLink>
-                    </ul>
-                  </div>
-                </div>
-              </HomeSidebar>
-            </div>
-            <div
-              className="col-md-10"
-            >
-              <div
-                className="pull-right"
-              >
-                <DropdownLink
-                  anchorRight={true}
-                  caret={true}
-                  className="btn btn-primary btn-sm"
-                  disabled={false}
-                  title="Add Integration"
-                >
-                  <span
-                    className="pull-right anchor-right dropdown"
-                  >
-                    <a
-                      className="btn btn-primary btn-sm dropdown-menu-right dropdown-toggle"
-                      data-toggle="dropdown"
-                    >
-                      Add Integration
-                      <i
-                        className="icon-arrow-down"
-                      />
-                    </a>
-                    <ul
-                      className="dropdown-menu"
-                    >
-                      <MenuItem
-                        noAnchor={true}
-                      >
-                        <li
-                          className=""
-                          href={null}
-                          role="presentation"
-                          title={null}
-                        >
-                          <a
-                            onClick={[Function]}
-                          >
-                            GitHub
-                          </a>
-                        </li>
-                      </MenuItem>
-                    </ul>
-                  </span>
-                </DropdownLink>
-              </div>
-              <h3
-                className="m-b-2"
-              >
-                Integrations
-              </h3>
-              <div
-                className="well blankslate align-center p-x-2 p-y-1"
+                onMouseEnter={[Function]}
+                onMouseLeave={[Function]}
               >
                 <div
-                  className="icon icon-lg icon-git-commit"
-                />
-                <h3>
-                  Sentry is better with friends
-                </h3>
-                <p>
-                  Integrations allow you to pull in things like repository data or sync with an external issue tracker.
-                </p>
-                <p
-                  className="m-b-1"
+                  className="dropdown-actor-title"
                 >
-                  <a
-                    className="btn btn-default"
-                    href="https://docs.sentry.io/learn/integrations/"
+                  <span>
+                    Add Integration
+                  </span>
+                  <i
+                    className="icon-arrow-down"
+                  />
+                </div>
+              </a>
+              <ul
+                className="dropdown-menu"
+                onClick={[Function]}
+                onMouseLeave={[Function]}
+              >
+                <MenuItem
+                  key="github"
+                  noAnchor={true}
+                >
+                  <li
+                    className=""
+                    href={null}
+                    role="presentation"
+                    title={null}
                   >
-                    Learn more
-                  </a>
-                </p>
-              </div>
-            </div>
-          </div>
-        </div>
+                    <a
+                      onClick={[Function]}
+                    >
+                      GitHub
+                    </a>
+                  </li>
+                </MenuItem>
+              </ul>
+            </span>
+          </DropdownMenu>
+        </DropdownLink>
       </div>
-    </HomeContainer>
+      <h3
+        className="m-b-2"
+      >
+        Integrations
+      </h3>
+      <div
+        className="well blankslate align-center p-x-2 p-y-1"
+      >
+        <div
+          className="icon icon-lg icon-git-commit"
+        />
+        <h3>
+          Sentry is better with friends
+        </h3>
+        <p>
+          Integrations allow you to pull in things like repository data or sync with an external issue tracker.
+        </p>
+        <p
+          className="m-b-1"
+        >
+          <a
+            className="btn btn-default"
+            href="https://docs.sentry.io/learn/integrations/"
+          >
+            Learn more
+          </a>
+        </p>
+      </div>
+    </div>
   </DocumentTitle>
 </OrganizationIntegrations>
 `;
@@ -585,656 +119,192 @@ exports[`OrganizationIntegrations render() with a provider renders with a reposi
   <DocumentTitle
     title="Integrations"
   >
-    <HomeContainer
+    <div
       className="ref-organization-integrations"
     >
       <div
-        className="ref-organization-integrations organization-home"
+        className="pull-right"
       >
-        <div
-          className="sub-header flex flex-container flex-vertically-centered"
+        <DropdownLink
+          alwaysRenderMenu={true}
+          anchorRight={true}
+          caret={true}
+          className="btn btn-primary btn-sm"
+          disabled={false}
+          title="Add Integration"
         >
-          <div>
-            <ProjectSelector
-              organization={
-                Object {
-                  "access": Array [
-                    "org:read",
-                    "org:write",
-                    "org:admin",
-                    "project:read",
-                    "project:write",
-                    "project:admin",
-                    "team:read",
-                    "team:write",
-                    "team:admin",
-                  ],
-                  "features": Array [],
-                  "id": "3",
-                  "name": "Organization Name",
-                  "onboardingTasks": Array [],
-                  "slug": "org-slug",
-                  "teams": Array [],
-                }
-              }
-              projectId={null}
-            >
-              <div
-                className="project-select"
-              >
-                <h3>
-                  <Link
-                    className="home-crumb"
-                    to="/org-slug/"
-                  >
-                    <Link
-                      className="home-crumb"
-                      onlyActiveOnIndex={false}
-                      style={Object {}}
-                      to="/org-slug/"
-                    >
-                      <a
-                        className="home-crumb"
-                        onClick={[Function]}
-                        style={Object {}}
-                      >
-                        <span
-                          className="icon-home"
-                        />
-                      </a>
-                    </Link>
-                  </Link>
-                  Select a project
-                  <DropdownLink
-                    anchorRight={false}
-                    caret={true}
-                    disabled={false}
-                    onClose={[Function]}
-                    onOpen={[Function]}
-                    title=""
-                    topLevelClasses="project-dropdown is-empty"
-                  >
-                    <span
-                      className="project-dropdown is-empty dropdown"
-                    >
-                      <a
-                        className="dropdown-toggle"
-                        data-toggle="dropdown"
-                      >
-                        <i
-                          className="icon-arrow-down"
-                        />
-                      </a>
-                      <ul
-                        className="dropdown-menu"
-                      >
-                        <MenuItem
-                          className="empty-projects-item"
-                          noAnchor={true}
-                        >
-                          <li
-                            className="empty-projects-item"
-                            href={null}
-                            role="presentation"
-                            title={null}
-                          >
-                            <div
-                              className="empty-message"
-                            >
-                              You have no projects.
-                            </div>
-                          </li>
-                        </MenuItem>
-                        <MenuItem
-                          divider={true}
-                        >
-                          <li
-                            className="divider"
-                            href={null}
-                            role="presentation"
-                            title={null}
-                          />
-                        </MenuItem>
-                        <MenuItem
-                          className="empty-projects-item"
-                          noAnchor={true}
-                        >
-                          <li
-                            className="empty-projects-item"
-                            href={null}
-                            role="presentation"
-                            title={null}
-                          >
-                            <a
-                              className="btn btn-primary btn-block"
-                              href="/organizations/org-slug/projects/new/"
-                            >
-                              Create project
-                            </a>
-                          </li>
-                        </MenuItem>
-                      </ul>
-                    </span>
-                  </DropdownLink>
-                </h3>
-              </div>
-            </ProjectSelector>
-          </div>
-          <div
-            className="align-right hidden-xs"
+          <DropdownMenu
+            keepMenuOpen={false}
           >
-            <Button
-              disabled={false}
-              priority="primary"
-              style={
-                Object {
-                  "marginRight": 5,
-                }
-              }
-              to="/organizations/org-slug/projects/new/"
+            <span
+              className="dropdown pull-right anchor-right open"
             >
-              <Link
-                className="button button-primary"
-                disabled={false}
+              <a
+                className="dropdown-actor btn btn-primary btn-sm dropdown-menu-right dropdown-toggle hover"
                 onClick={[Function]}
-                onlyActiveOnIndex={false}
-                role="button"
-                style={
-                  Object {
-                    "marginRight": 5,
-                  }
-                }
-                to="/organizations/org-slug/projects/new/"
+                onMouseEnter={[Function]}
+                onMouseLeave={[Function]}
               >
-                <a
-                  className="button button-primary"
-                  disabled={false}
-                  onClick={[Function]}
-                  role="button"
-                  style={
-                    Object {
-                      "marginRight": 5,
-                    }
-                  }
+                <div
+                  className="dropdown-actor-title"
                 >
-                  New Project
-                </a>
-              </Link>
-            </Button>
-            <Button
-              disabled={false}
-              priority="primary"
-              to="/organizations/org-slug/teams/new/"
-            >
-              <Link
-                className="button button-primary"
-                disabled={false}
-                onClick={[Function]}
-                onlyActiveOnIndex={false}
-                role="button"
-                style={Object {}}
-                to="/organizations/org-slug/teams/new/"
-              >
-                <a
-                  className="button button-primary"
-                  disabled={false}
-                  onClick={[Function]}
-                  role="button"
-                  style={Object {}}
-                >
-                  New Team
-                </a>
-              </Link>
-            </Button>
-          </div>
-        </div>
-        <div
-          className="container"
-        >
-          <div
-            className="content row"
-          >
-            <div
-              className="col-md-2 org-sidebar"
-            >
-              <HomeSidebar>
-                <div>
-                  <h6
-                    className="nav-header"
-                  >
-                    Organization
-                  </h6>
-                  <ul
-                    className="nav nav-stacked"
-                  >
-                    <ListLink
-                      activeClassName="active"
-                      index={false}
-                      isActive={[Function]}
-                      to="/org-slug/"
-                    >
-                      <li
-                        className=""
-                      >
-                        <Link
-                          onlyActiveOnIndex={false}
-                          style={Object {}}
-                          to="/org-slug/"
-                        >
-                          <a
-                            onClick={[Function]}
-                            style={Object {}}
-                          >
-                            Dashboard
-                          </a>
-                        </Link>
-                      </li>
-                    </ListLink>
-                    <ListLink
-                      activeClassName="active"
-                      index={false}
-                      isActive={[Function]}
-                      to="/organizations/org-slug/teams/"
-                    >
-                      <li
-                        className=""
-                      >
-                        <Link
-                          onlyActiveOnIndex={false}
-                          style={Object {}}
-                          to="/organizations/org-slug/teams/"
-                        >
-                          <a
-                            onClick={[Function]}
-                            style={Object {}}
-                          >
-                            Projects & Teams
-                          </a>
-                        </Link>
-                      </li>
-                    </ListLink>
-                    <ListLink
-                      activeClassName="active"
-                      index={false}
-                      to="/organizations/org-slug/stats/"
-                    >
-                      <li
-                        className=""
-                      >
-                        <Link
-                          onlyActiveOnIndex={false}
-                          style={Object {}}
-                          to="/organizations/org-slug/stats/"
-                        >
-                          <a
-                            onClick={[Function]}
-                            style={Object {}}
-                          >
-                            Stats
-                          </a>
-                        </Link>
-                      </li>
-                    </ListLink>
-                  </ul>
-                  <div>
-                    <h6
-                      className="nav-header with-divider"
-                    >
-                      Issues
-                    </h6>
-                    <ul
-                      className="nav nav-stacked"
-                    >
-                      <ListLink
-                        activeClassName="active"
-                        index={false}
-                        to="/organizations/org-slug/issues/assigned/"
-                      >
-                        <li
-                          className=""
-                        >
-                          <Link
-                            onlyActiveOnIndex={false}
-                            style={Object {}}
-                            to="/organizations/org-slug/issues/assigned/"
-                          >
-                            <a
-                              onClick={[Function]}
-                              style={Object {}}
-                            >
-                              Assigned to Me
-                            </a>
-                          </Link>
-                        </li>
-                      </ListLink>
-                      <ListLink
-                        activeClassName="active"
-                        index={false}
-                        to="/organizations/org-slug/issues/bookmarks/"
-                      >
-                        <li
-                          className=""
-                        >
-                          <Link
-                            onlyActiveOnIndex={false}
-                            style={Object {}}
-                            to="/organizations/org-slug/issues/bookmarks/"
-                          >
-                            <a
-                              onClick={[Function]}
-                              style={Object {}}
-                            >
-                              Bookmarks
-                            </a>
-                          </Link>
-                        </li>
-                      </ListLink>
-                      <ListLink
-                        activeClassName="active"
-                        index={false}
-                        to="/organizations/org-slug/issues/history/"
-                      >
-                        <li
-                          className=""
-                        >
-                          <Link
-                            onlyActiveOnIndex={false}
-                            style={Object {}}
-                            to="/organizations/org-slug/issues/history/"
-                          >
-                            <a
-                              onClick={[Function]}
-                              style={Object {}}
-                            >
-                              History
-                            </a>
-                          </Link>
-                        </li>
-                      </ListLink>
-                    </ul>
-                  </div>
-                  <div>
-                    <h6
-                      className="nav-header with-divider"
-                    >
-                      Manage
-                    </h6>
-                    <ul
-                      className="nav nav-stacked"
-                    >
-                      <li>
-                        <a
-                          href="/organizations/org-slug/members/"
-                        >
-                          Members
-                           
-                        </a>
-                      </li>
-                      <ListLink
-                        activeClassName="active"
-                        index={false}
-                        to="/organizations/org-slug/audit-log/"
-                      >
-                        <li
-                          className=""
-                        >
-                          <Link
-                            onlyActiveOnIndex={false}
-                            style={Object {}}
-                            to="/organizations/org-slug/audit-log/"
-                          >
-                            <a
-                              onClick={[Function]}
-                              style={Object {}}
-                            >
-                              Audit Log
-                            </a>
-                          </Link>
-                        </li>
-                      </ListLink>
-                      <ListLink
-                        activeClassName="active"
-                        index={false}
-                        to="/organizations/org-slug/rate-limits/"
-                      >
-                        <li
-                          className=""
-                        >
-                          <Link
-                            onlyActiveOnIndex={false}
-                            style={Object {}}
-                            to="/organizations/org-slug/rate-limits/"
-                          >
-                            <a
-                              onClick={[Function]}
-                              style={Object {}}
-                            >
-                              Rate Limits
-                            </a>
-                          </Link>
-                        </li>
-                      </ListLink>
-                      <ListLink
-                        activeClassName="active"
-                        index={false}
-                        to="/organizations/org-slug/repos/"
-                      >
-                        <li
-                          className=""
-                        >
-                          <Link
-                            onlyActiveOnIndex={false}
-                            style={Object {}}
-                            to="/organizations/org-slug/repos/"
-                          >
-                            <a
-                              onClick={[Function]}
-                              style={Object {}}
-                            >
-                              Repositories
-                            </a>
-                          </Link>
-                        </li>
-                      </ListLink>
-                      <ListLink
-                        activeClassName="active"
-                        index={false}
-                        to="/organizations/org-slug/settings/"
-                      >
-                        <li
-                          className=""
-                        >
-                          <Link
-                            onlyActiveOnIndex={false}
-                            style={Object {}}
-                            to="/organizations/org-slug/settings/"
-                          >
-                            <a
-                              onClick={[Function]}
-                              style={Object {}}
-                            >
-                              Settings
-                            </a>
-                          </Link>
-                        </li>
-                      </ListLink>
-                    </ul>
-                  </div>
+                  <span>
+                    Add Integration
+                  </span>
+                  <i
+                    className="icon-arrow-down"
+                  />
                 </div>
-              </HomeSidebar>
-            </div>
-            <div
-              className="col-md-10"
-            >
-              <div
-                className="pull-right"
+              </a>
+              <ul
+                className="dropdown-menu"
+                onClick={[Function]}
+                onMouseLeave={[Function]}
               >
-                <DropdownLink
-                  anchorRight={true}
-                  caret={true}
-                  className="btn btn-primary btn-sm"
-                  disabled={false}
-                  title="Add Integration"
+                <MenuItem
+                  key="github"
+                  noAnchor={true}
                 >
-                  <span
-                    className="pull-right anchor-right dropdown"
+                  <li
+                    className=""
+                    href={null}
+                    role="presentation"
+                    title={null}
                   >
                     <a
-                      className="btn btn-primary btn-sm dropdown-menu-right dropdown-toggle"
-                      data-toggle="dropdown"
+                      onClick={[Function]}
                     >
-                      Add Integration
-                      <i
-                        className="icon-arrow-down"
-                      />
+                      GitHub
                     </a>
-                    <ul
-                      className="dropdown-menu"
-                    >
-                      <MenuItem
-                        noAnchor={true}
-                      >
-                        <li
-                          className=""
-                          href={null}
-                          role="presentation"
-                          title={null}
-                        >
-                          <a
-                            onClick={[Function]}
-                          >
-                            GitHub
-                          </a>
-                        </li>
-                      </MenuItem>
-                    </ul>
-                  </span>
-                </DropdownLink>
-              </div>
-              <h3
-                className="m-b-2"
-              >
-                Integrations
-              </h3>
-              <div
-                className="panel panel-default"
-              >
-                <table
-                  className="table"
-                >
-                  <tbody>
-                    <tr>
-                      <td
-                        style={
-                          Object {
-                            "paddingRight": 0,
-                            "width": 24,
-                          }
-                        }
-                      >
-                        <span
-                          className="icon icon-integration icon-github"
-                          style={
-                            Object {
-                              "display": "inline-block",
-                              "height": 24,
-                              "width": 24,
-                            }
-                          }
-                        />
-                      </td>
-                      <td>
-                        <strong>
-                          repo-name
-                        </strong>
-                         — 
-                        <small>
-                          GitHub
-                        </small>
-                      </td>
-                      <td
-                        style={
-                          Object {
-                            "width": 60,
-                          }
-                        }
-                      >
-                        <Confirm
-                          cancelText="Cancel"
-                          confirmText="Confirm"
-                          message="Are you sure you want to remove this integration?"
-                          onConfirm={[Function]}
-                          priority="primary"
-                        >
-                          <span>
-                            <button
-                              className="btn btn-default btn-xs"
-                              onClick={[Function]}
-                            >
-                              <span
-                                className="icon icon-trash"
-                              />
-                            </button>
-                            <Modal
-                              animation={false}
-                              autoFocus={true}
-                              backdrop={true}
-                              bsClass="modal"
-                              dialogComponentClass={[Function]}
-                              enforceFocus={true}
-                              keyboard={true}
-                              manager={
-                                ModalManager {
-                                  "containers": Array [],
-                                  "data": Array [],
-                                  "handleContainerOverflow": true,
-                                  "hideSiblingNodes": true,
-                                  "modals": Array [],
-                                }
-                              }
-                              onHide={[Function]}
-                              renderBackdrop={[Function]}
-                              restoreFocus={true}
-                              show={false}
-                            >
-                              <Modal
-                                autoFocus={true}
-                                backdrop={true}
-                                backdropClassName="modal-backdrop"
-                                backdropTransitionTimeout={150}
-                                containerClassName="modal-open"
-                                dialogTransitionTimeout={300}
-                                enforceFocus={true}
-                                keyboard={true}
-                                manager={
-                                  ModalManager {
-                                    "containers": Array [],
-                                    "data": Array [],
-                                    "handleContainerOverflow": true,
-                                    "hideSiblingNodes": true,
-                                    "modals": Array [],
-                                  }
-                                }
-                                onEntering={[Function]}
-                                onExited={[Function]}
-                                onHide={[Function]}
-                                renderBackdrop={[Function]}
-                                restoreFocus={true}
-                                show={false}
-                              />
-                            </Modal>
-                          </span>
-                        </Confirm>
-                      </td>
-                    </tr>
-                  </tbody>
-                </table>
-              </div>
-            </div>
-          </div>
-        </div>
+                  </li>
+                </MenuItem>
+              </ul>
+            </span>
+          </DropdownMenu>
+        </DropdownLink>
       </div>
-    </HomeContainer>
+      <h3
+        className="m-b-2"
+      >
+        Integrations
+      </h3>
+      <div
+        className="panel panel-default"
+      >
+        <table
+          className="table"
+        >
+          <tbody>
+            <tr
+              key="4"
+            >
+              <td
+                style={
+                  Object {
+                    "paddingRight": 0,
+                    "width": 24,
+                  }
+                }
+              >
+                <span
+                  className="icon icon-integration icon-github"
+                  style={
+                    Object {
+                      "display": "inline-block",
+                      "height": 24,
+                      "width": 24,
+                    }
+                  }
+                />
+              </td>
+              <td>
+                <strong>
+                  repo-name
+                </strong>
+                 —
+                 
+                <small>
+                  GitHub
+                </small>
+              </td>
+              <td
+                style={
+                  Object {
+                    "width": 60,
+                  }
+                }
+              >
+                <Confirm
+                  cancelText="Cancel"
+                  confirmText="Confirm"
+                  message="Are you sure you want to remove this integration?"
+                  onConfirm={[Function]}
+                  priority="primary"
+                >
+                  <button
+                    className="btn btn-default btn-xs"
+                    onClick={[Function]}
+                  >
+                    <span
+                      className="icon icon-trash"
+                    />
+                    <Modal
+                      animation={false}
+                      autoFocus={true}
+                      backdrop={true}
+                      bsClass="modal"
+                      dialogComponentClass={[Function]}
+                      enforceFocus={true}
+                      key="confirm"
+                      keyboard={true}
+                      manager={
+                        ModalManager {
+                          "containers": Array [],
+                          "data": Array [],
+                          "handleContainerOverflow": true,
+                          "hideSiblingNodes": true,
+                          "modals": Array [],
+                        }
+                      }
+                      onHide={[Function]}
+                      renderBackdrop={[Function]}
+                      restoreFocus={true}
+                      show={false}
+                    >
+                      <Modal
+                        autoFocus={true}
+                        backdrop={true}
+                        backdropClassName="modal-backdrop"
+                        backdropTransitionTimeout={150}
+                        containerClassName="modal-open"
+                        dialogTransitionTimeout={300}
+                        enforceFocus={true}
+                        keyboard={true}
+                        manager={
+                          ModalManager {
+                            "containers": Array [],
+                            "data": Array [],
+                            "handleContainerOverflow": true,
+                            "hideSiblingNodes": true,
+                            "modals": Array [],
+                          }
+                        }
+                        onEntering={[Function]}
+                        onExited={[Function]}
+                        onHide={[Function]}
+                        renderBackdrop={[Function]}
+                        restoreFocus={true}
+                        show={false}
+                      />
+                    </Modal>
+                  </button>
+                </Confirm>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
   </DocumentTitle>
 </OrganizationIntegrations>
 `;
@@ -1243,13 +313,14 @@ exports[`OrganizationIntegrations render() without any providers is loading when
 <DocumentTitle
   title="Integrations"
 >
-  <HomeContainer
+  <div
     className="ref-organization-integrations"
   >
     <div
       className="pull-right"
     >
       <DropdownLink
+        alwaysRenderMenu={true}
         anchorRight={true}
         caret={true}
         className="btn btn-primary btn-sm"
@@ -1285,7 +356,7 @@ exports[`OrganizationIntegrations render() without any providers is loading when
         </a>
       </p>
     </div>
-  </HomeContainer>
+  </div>
 </DocumentTitle>
 `;
 
@@ -1300,548 +371,81 @@ exports[`OrganizationIntegrations render() without any providers renders 1`] = `
   <DocumentTitle
     title="Integrations"
   >
-    <HomeContainer
+    <div
       className="ref-organization-integrations"
     >
       <div
-        className="ref-organization-integrations organization-home"
+        className="pull-right"
       >
-        <div
-          className="sub-header flex flex-container flex-vertically-centered"
+        <DropdownLink
+          alwaysRenderMenu={true}
+          anchorRight={true}
+          caret={true}
+          className="btn btn-primary btn-sm"
+          disabled={false}
+          title="Add Integration"
         >
-          <div>
-            <ProjectSelector
-              organization={
-                Object {
-                  "access": Array [
-                    "org:read",
-                    "org:write",
-                    "org:admin",
-                    "project:read",
-                    "project:write",
-                    "project:admin",
-                    "team:read",
-                    "team:write",
-                    "team:admin",
-                  ],
-                  "features": Array [],
-                  "id": "3",
-                  "name": "Organization Name",
-                  "onboardingTasks": Array [],
-                  "slug": "org-slug",
-                  "teams": Array [],
-                }
-              }
-              projectId={null}
-            >
-              <div
-                className="project-select"
-              >
-                <h3>
-                  <Link
-                    className="home-crumb"
-                    to="/org-slug/"
-                  >
-                    <Link
-                      className="home-crumb"
-                      onlyActiveOnIndex={false}
-                      style={Object {}}
-                      to="/org-slug/"
-                    >
-                      <a
-                        className="home-crumb"
-                        onClick={[Function]}
-                        style={Object {}}
-                      >
-                        <span
-                          className="icon-home"
-                        />
-                      </a>
-                    </Link>
-                  </Link>
-                  Select a project
-                  <DropdownLink
-                    anchorRight={false}
-                    caret={true}
-                    disabled={false}
-                    onClose={[Function]}
-                    onOpen={[Function]}
-                    title=""
-                    topLevelClasses="project-dropdown is-empty"
-                  >
-                    <span
-                      className="project-dropdown is-empty dropdown"
-                    >
-                      <a
-                        className="dropdown-toggle"
-                        data-toggle="dropdown"
-                      >
-                        <i
-                          className="icon-arrow-down"
-                        />
-                      </a>
-                      <ul
-                        className="dropdown-menu"
-                      >
-                        <MenuItem
-                          className="empty-projects-item"
-                          noAnchor={true}
-                        >
-                          <li
-                            className="empty-projects-item"
-                            href={null}
-                            role="presentation"
-                            title={null}
-                          >
-                            <div
-                              className="empty-message"
-                            >
-                              You have no projects.
-                            </div>
-                          </li>
-                        </MenuItem>
-                        <MenuItem
-                          divider={true}
-                        >
-                          <li
-                            className="divider"
-                            href={null}
-                            role="presentation"
-                            title={null}
-                          />
-                        </MenuItem>
-                        <MenuItem
-                          className="empty-projects-item"
-                          noAnchor={true}
-                        >
-                          <li
-                            className="empty-projects-item"
-                            href={null}
-                            role="presentation"
-                            title={null}
-                          >
-                            <a
-                              className="btn btn-primary btn-block"
-                              href="/organizations/org-slug/projects/new/"
-                            >
-                              Create project
-                            </a>
-                          </li>
-                        </MenuItem>
-                      </ul>
-                    </span>
-                  </DropdownLink>
-                </h3>
-              </div>
-            </ProjectSelector>
-          </div>
-          <div
-            className="align-right hidden-xs"
+          <DropdownMenu
+            keepMenuOpen={false}
           >
-            <Button
-              disabled={false}
-              priority="primary"
-              style={
-                Object {
-                  "marginRight": 5,
-                }
-              }
-              to="/organizations/org-slug/projects/new/"
+            <span
+              className="dropdown pull-right anchor-right open"
             >
-              <Link
-                className="button button-primary"
-                disabled={false}
+              <a
+                className="dropdown-actor btn btn-primary btn-sm dropdown-menu-right dropdown-toggle hover"
                 onClick={[Function]}
-                onlyActiveOnIndex={false}
-                role="button"
-                style={
-                  Object {
-                    "marginRight": 5,
-                  }
-                }
-                to="/organizations/org-slug/projects/new/"
-              >
-                <a
-                  className="button button-primary"
-                  disabled={false}
-                  onClick={[Function]}
-                  role="button"
-                  style={
-                    Object {
-                      "marginRight": 5,
-                    }
-                  }
-                >
-                  New Project
-                </a>
-              </Link>
-            </Button>
-            <Button
-              disabled={false}
-              priority="primary"
-              to="/organizations/org-slug/teams/new/"
-            >
-              <Link
-                className="button button-primary"
-                disabled={false}
-                onClick={[Function]}
-                onlyActiveOnIndex={false}
-                role="button"
-                style={Object {}}
-                to="/organizations/org-slug/teams/new/"
-              >
-                <a
-                  className="button button-primary"
-                  disabled={false}
-                  onClick={[Function]}
-                  role="button"
-                  style={Object {}}
-                >
-                  New Team
-                </a>
-              </Link>
-            </Button>
-          </div>
-        </div>
-        <div
-          className="container"
-        >
-          <div
-            className="content row"
-          >
-            <div
-              className="col-md-2 org-sidebar"
-            >
-              <HomeSidebar>
-                <div>
-                  <h6
-                    className="nav-header"
-                  >
-                    Organization
-                  </h6>
-                  <ul
-                    className="nav nav-stacked"
-                  >
-                    <ListLink
-                      activeClassName="active"
-                      index={false}
-                      isActive={[Function]}
-                      to="/org-slug/"
-                    >
-                      <li
-                        className=""
-                      >
-                        <Link
-                          onlyActiveOnIndex={false}
-                          style={Object {}}
-                          to="/org-slug/"
-                        >
-                          <a
-                            onClick={[Function]}
-                            style={Object {}}
-                          >
-                            Dashboard
-                          </a>
-                        </Link>
-                      </li>
-                    </ListLink>
-                    <ListLink
-                      activeClassName="active"
-                      index={false}
-                      isActive={[Function]}
-                      to="/organizations/org-slug/teams/"
-                    >
-                      <li
-                        className=""
-                      >
-                        <Link
-                          onlyActiveOnIndex={false}
-                          style={Object {}}
-                          to="/organizations/org-slug/teams/"
-                        >
-                          <a
-                            onClick={[Function]}
-                            style={Object {}}
-                          >
-                            Projects & Teams
-                          </a>
-                        </Link>
-                      </li>
-                    </ListLink>
-                    <ListLink
-                      activeClassName="active"
-                      index={false}
-                      to="/organizations/org-slug/stats/"
-                    >
-                      <li
-                        className=""
-                      >
-                        <Link
-                          onlyActiveOnIndex={false}
-                          style={Object {}}
-                          to="/organizations/org-slug/stats/"
-                        >
-                          <a
-                            onClick={[Function]}
-                            style={Object {}}
-                          >
-                            Stats
-                          </a>
-                        </Link>
-                      </li>
-                    </ListLink>
-                  </ul>
-                  <div>
-                    <h6
-                      className="nav-header with-divider"
-                    >
-                      Issues
-                    </h6>
-                    <ul
-                      className="nav nav-stacked"
-                    >
-                      <ListLink
-                        activeClassName="active"
-                        index={false}
-                        to="/organizations/org-slug/issues/assigned/"
-                      >
-                        <li
-                          className=""
-                        >
-                          <Link
-                            onlyActiveOnIndex={false}
-                            style={Object {}}
-                            to="/organizations/org-slug/issues/assigned/"
-                          >
-                            <a
-                              onClick={[Function]}
-                              style={Object {}}
-                            >
-                              Assigned to Me
-                            </a>
-                          </Link>
-                        </li>
-                      </ListLink>
-                      <ListLink
-                        activeClassName="active"
-                        index={false}
-                        to="/organizations/org-slug/issues/bookmarks/"
-                      >
-                        <li
-                          className=""
-                        >
-                          <Link
-                            onlyActiveOnIndex={false}
-                            style={Object {}}
-                            to="/organizations/org-slug/issues/bookmarks/"
-                          >
-                            <a
-                              onClick={[Function]}
-                              style={Object {}}
-                            >
-                              Bookmarks
-                            </a>
-                          </Link>
-                        </li>
-                      </ListLink>
-                      <ListLink
-                        activeClassName="active"
-                        index={false}
-                        to="/organizations/org-slug/issues/history/"
-                      >
-                        <li
-                          className=""
-                        >
-                          <Link
-                            onlyActiveOnIndex={false}
-                            style={Object {}}
-                            to="/organizations/org-slug/issues/history/"
-                          >
-                            <a
-                              onClick={[Function]}
-                              style={Object {}}
-                            >
-                              History
-                            </a>
-                          </Link>
-                        </li>
-                      </ListLink>
-                    </ul>
-                  </div>
-                  <div>
-                    <h6
-                      className="nav-header with-divider"
-                    >
-                      Manage
-                    </h6>
-                    <ul
-                      className="nav nav-stacked"
-                    >
-                      <li>
-                        <a
-                          href="/organizations/org-slug/members/"
-                        >
-                          Members
-                           
-                        </a>
-                      </li>
-                      <ListLink
-                        activeClassName="active"
-                        index={false}
-                        to="/organizations/org-slug/audit-log/"
-                      >
-                        <li
-                          className=""
-                        >
-                          <Link
-                            onlyActiveOnIndex={false}
-                            style={Object {}}
-                            to="/organizations/org-slug/audit-log/"
-                          >
-                            <a
-                              onClick={[Function]}
-                              style={Object {}}
-                            >
-                              Audit Log
-                            </a>
-                          </Link>
-                        </li>
-                      </ListLink>
-                      <ListLink
-                        activeClassName="active"
-                        index={false}
-                        to="/organizations/org-slug/rate-limits/"
-                      >
-                        <li
-                          className=""
-                        >
-                          <Link
-                            onlyActiveOnIndex={false}
-                            style={Object {}}
-                            to="/organizations/org-slug/rate-limits/"
-                          >
-                            <a
-                              onClick={[Function]}
-                              style={Object {}}
-                            >
-                              Rate Limits
-                            </a>
-                          </Link>
-                        </li>
-                      </ListLink>
-                      <ListLink
-                        activeClassName="active"
-                        index={false}
-                        to="/organizations/org-slug/repos/"
-                      >
-                        <li
-                          className=""
-                        >
-                          <Link
-                            onlyActiveOnIndex={false}
-                            style={Object {}}
-                            to="/organizations/org-slug/repos/"
-                          >
-                            <a
-                              onClick={[Function]}
-                              style={Object {}}
-                            >
-                              Repositories
-                            </a>
-                          </Link>
-                        </li>
-                      </ListLink>
-                      <ListLink
-                        activeClassName="active"
-                        index={false}
-                        to="/organizations/org-slug/settings/"
-                      >
-                        <li
-                          className=""
-                        >
-                          <Link
-                            onlyActiveOnIndex={false}
-                            style={Object {}}
-                            to="/organizations/org-slug/settings/"
-                          >
-                            <a
-                              onClick={[Function]}
-                              style={Object {}}
-                            >
-                              Settings
-                            </a>
-                          </Link>
-                        </li>
-                      </ListLink>
-                    </ul>
-                  </div>
-                </div>
-              </HomeSidebar>
-            </div>
-            <div
-              className="col-md-10"
-            >
-              <div
-                className="pull-right"
-              >
-                <DropdownLink
-                  anchorRight={true}
-                  caret={true}
-                  className="btn btn-primary btn-sm"
-                  disabled={false}
-                  title="Add Integration"
-                >
-                  <span
-                    className="pull-right anchor-right dropdown"
-                  >
-                    <a
-                      className="btn btn-primary btn-sm dropdown-menu-right dropdown-toggle"
-                      data-toggle="dropdown"
-                    >
-                      Add Integration
-                      <i
-                        className="icon-arrow-down"
-                      />
-                    </a>
-                    <ul
-                      className="dropdown-menu"
-                    />
-                  </span>
-                </DropdownLink>
-              </div>
-              <h3
-                className="m-b-2"
-              >
-                Integrations
-              </h3>
-              <div
-                className="well blankslate align-center p-x-2 p-y-1"
+                onMouseEnter={[Function]}
+                onMouseLeave={[Function]}
               >
                 <div
-                  className="icon icon-lg icon-git-commit"
-                />
-                <h3>
-                  Sentry is better with friends
-                </h3>
-                <p>
-                  Integrations allow you to pull in things like repository data or sync with an external issue tracker.
-                </p>
-                <p
-                  className="m-b-1"
+                  className="dropdown-actor-title"
                 >
-                  <a
-                    className="btn btn-default"
-                    href="https://docs.sentry.io/learn/integrations/"
-                  >
-                    Learn more
-                  </a>
-                </p>
-              </div>
-            </div>
-          </div>
-        </div>
+                  <span>
+                    Add Integration
+                  </span>
+                  <i
+                    className="icon-arrow-down"
+                  />
+                </div>
+              </a>
+              <ul
+                className="dropdown-menu"
+                onClick={[Function]}
+                onMouseLeave={[Function]}
+              />
+            </span>
+          </DropdownMenu>
+        </DropdownLink>
       </div>
-    </HomeContainer>
+      <h3
+        className="m-b-2"
+      >
+        Integrations
+      </h3>
+      <div
+        className="well blankslate align-center p-x-2 p-y-1"
+      >
+        <div
+          className="icon icon-lg icon-git-commit"
+        />
+        <h3>
+          Sentry is better with friends
+        </h3>
+        <p>
+          Integrations allow you to pull in things like repository data or sync with an external issue tracker.
+        </p>
+        <p
+          className="m-b-1"
+        >
+          <a
+            className="btn btn-default"
+            href="https://docs.sentry.io/learn/integrations/"
+          >
+            Learn more
+          </a>
+        </p>
+      </div>
+    </div>
   </DocumentTitle>
 </OrganizationIntegrations>
 `;

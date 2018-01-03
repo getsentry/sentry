@@ -8,8 +8,9 @@ import pytest
 from django.db.models import ProtectedError
 from django.utils import timezone
 
+from sentry import tagstore
 from sentry.models import (
-    Group, GroupRedirect, GroupSnooze, GroupStatus, Release, get_group_with_redirect, GroupTagValue
+    Group, GroupRedirect, GroupSnooze, GroupStatus, Release, get_group_with_redirect
 )
 from sentry.testutils import TestCase
 
@@ -178,8 +179,9 @@ class GroupTest(TestCase):
             first_release=release,
         )
 
-        GroupTagValue.objects.create(
-            project_id=project.id, group_id=group.id, key='sentry:release', value=release.version
+        tagstore.create_group_tag_value(
+            project_id=project.id, group_id=group.id, environment_id=self.environment.id,
+            key='sentry:release', value=release.version
         )
 
         assert group.first_release == release
@@ -198,8 +200,9 @@ class GroupTest(TestCase):
             project=project,
         )
 
-        GroupTagValue.objects.create(
-            project_id=project.id, group_id=group.id, key='sentry:release', value=release.version
+        tagstore.create_group_tag_value(
+            project_id=project.id, group_id=group.id, environment_id=self.environment.id,
+            key='sentry:release', value=release.version
         )
 
         assert group.first_release is None

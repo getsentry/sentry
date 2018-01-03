@@ -1,22 +1,26 @@
 import PropTypes from 'prop-types';
 import React from 'react';
 
+import createReactClass from 'create-react-class';
+
 import ApiMixin from '../../mixins/apiMixin';
 import {t} from '../../locale';
 
 import {update as projectUpdate} from '../../actionCreators/projects';
 
-const BookmarkToggle = React.createClass({
+const BookmarkToggle = createReactClass({
+  displayName: 'BookmarkToggle',
+
   propTypes: {
     orgId: PropTypes.string.isRequired,
-    project: PropTypes.object.isRequired
+    project: PropTypes.object.isRequired,
   },
 
   mixins: [ApiMixin],
 
   getInitialState() {
     return {
-      showMessage: false
+      showMessage: false,
     };
   },
 
@@ -31,8 +35,8 @@ const BookmarkToggle = React.createClass({
       orgId: this.props.orgId,
       projectId: project.slug,
       data: {
-        isBookmarked: !project.isBookmarked
-      }
+        isBookmarked: !project.isBookmarked,
+      },
     });
   },
 
@@ -59,13 +63,8 @@ const BookmarkToggle = React.createClass({
   render() {
     // TODO: can't guarantee that a <span> is appropriate here 100% of the time
     //       if this is to be truly re-usable
-    return (
-      <span onClick={this.handleBookmarkClick}>
-        {this.props.children}
-        {this.renderMessage()}
-      </span>
-    );
-  }
+    return <span onClick={this.handleBookmarkClick}>{this.props.children}</span>;
+  },
 });
 
 export default BookmarkToggle;

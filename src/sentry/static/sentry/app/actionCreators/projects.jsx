@@ -12,7 +12,7 @@ export function update(api, params) {
     },
     error: data => {
       ProjectActions.updateError(data);
-    }
+    },
   });
 }
 
@@ -27,6 +27,10 @@ export function loadStats(api, params) {
     },
     error: data => {
       ProjectActions.loadStatsError(data);
-    }
+    },
   });
+}
+
+export function setActiveProject(project) {
+  ProjectActions.setActive(project);
 }

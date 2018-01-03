@@ -3,7 +3,7 @@ import {t} from '../locale';
 import Toolbar from './toolbar';
 import ToolbarHeader from './toolbarHeader';
 
-const GroupListHeader = React.createClass({
+class GroupListHeader extends React.Component {
   render() {
     return (
       <div className="group-header">
@@ -24,6 +24,6 @@ const GroupListHeader = React.createClass({
       </div>
     );
   }
-});
+}
 
 export default GroupListHeader;

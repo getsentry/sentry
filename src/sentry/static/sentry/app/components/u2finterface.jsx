@@ -6,56 +6,52 @@ import ConfigStore from '../stores/configStore';
 
 import {t, tct} from '../locale';
 
-const U2fInterface = React.createClass({
-  propTypes: {
+class U2fInterface extends React.Component {
+  static propTypes = {
     challengeData: PropTypes.object.isRequired,
     flowMode: PropTypes.string.isRequired,
     onTap: PropTypes.func,
-    silentIfUnsupported: PropTypes.bool
-  },
+    silentIfUnsupported: PropTypes.bool,
+  };
 
-  getDefaultProps() {
-    return {
-      silentIfUnsupported: false
-    };
-  },
+  static defaultProps = {
+    silentIfUnsupported: false,
+  };
 
-  getInitialState() {
-    return {
-      isSupported: null,
-      formElement: null,
-      challengeElement: null,
-      hasBeenTapped: false,
-      deviceFailure: null,
-      responseElement: null
-    };
-  },
+  state = {
+    isSupported: null,
+    formElement: null,
+    challengeElement: null,
+    hasBeenTapped: false,
+    deviceFailure: null,
+    responseElement: null,
+  };
 
   componentDidMount() {
     u2f.isSupported().then(supported => {
       this.setState({
-        isSupported: supported
+        isSupported: supported,
       });
       if (!supported) {
         return;
       }
       this.invokeU2fFlow();
     });
-  },
+  }
 
-  onTryAgain() {
+  onTryAgain = () => {
     this.setState(
       {
         hasBeenTapped: false,
-        deviceFailure: null
+        deviceFailure: null,
       },
       () => {
         this.invokeU2fFlow();
       }
     );
-  },
+  };
 
-  invokeU2fFlow() {
+  invokeU2fFlow = () => {
     let promise;
     if (this.props.flowMode === 'sign') {
       promise = u2f.sign(this.props.challengeData.authenticateRequests);
@@ -69,12 +65,30 @@ const U2fInterface = React.createClass({
       .then(data => {
         this.setState(
           {
-            hasBeenTapped: true
+            hasBeenTapped: true,
           },
           () => {
-            this.state.responseElement.value = JSON.stringify(data);
-            if (!this.props.onTap || this.props.onTap()) {
-              this.state.formElement.submit();
+            let u2fResponse = JSON.stringify(data);
+            let challenge = JSON.stringify(this.props.challengeData);
+
+            // eslint-disable-next-line react/no-direct-mutation-state
+            this.state.responseElement.value = u2fResponse;
+
+            if (!this.props.onTap) {
+              this.state.formElement && this.state.formElement.submit();
+            } else {
+              this.props
+                .onTap({
+                  response: u2fResponse,
+                  challenge,
+                })
+                .catch(err => {
+                  // This is kind of gross but I want to limit the amount of changes to this component
+                  this.setState({
+                    deviceFailure: 'UNKNOWN_ERROR',
+                    hasBeenTapped: false,
+                  });
+                });
             }
           }
         );
@@ -100,26 +114,29 @@ const U2fInterface = React.createClass({
         Raven.captureException(err);
         this.setState({
           deviceFailure: failure,
-          hasBeenTapped: false
+          hasBeenTapped: false,
         });
       });
-  },
+  };
 
-  bindChallengeElement(ref) {
+  bindChallengeElement = ref => {
     this.setState({
       challengeElement: ref,
-      formElement: ref.form
+      formElement: ref && ref.form,
     });
-    ref.value = JSON.stringify(this.props.challengeData);
-  },
 
-  bindResponseElement(ref) {
+    if (ref) {
+      ref.value = JSON.stringify(this.props.challengeData);
+    }
+  };
+
+  bindResponseElement = ref => {
     this.setState({
-      responseElement: ref
+      responseElement: ref,
     });
-  },
+  };
 
-  renderUnsupported() {
+  renderUnsupported = () => {
     if (this.props.silentIfUnsupported) {
       return null;
     }
@@ -138,23 +155,27 @@ const U2fInterface = React.createClass({
         </div>
       </div>
     );
-  },
+  };
 
-  canTryAgain() {
+  canTryAgain = () => {
     return this.state.deviceFailure !== 'BAD_APPID';
-  },
+  };
 
-  renderFailure() {
+  renderFailure = () => {
     let {deviceFailure} = this.state;
     let supportMail = ConfigStore.get('supportEmail');
-    let support = supportMail
-      ? <a href={'mailto:' + supportMail}>{supportMail}</a>
-      : <span>{t('Support')}</span>;
+    let support = supportMail ? (
+      <a href={'mailto:' + supportMail}>{supportMail}</a>
+    ) : (
+      <span>{t('Support')}</span>
+    );
     return (
       <div className="failure-message">
-        <p>
-          <strong>{t('Error: ')}</strong> {
+        <div>
+          <strong>{t('Error: ')}</strong>{' '}
+          {
             {
+              UNKNOWN_ERROR: t('There was an unknown problem, please try again'),
               DEVICE_ERROR: t('Your U2F device reported an error.'),
               DUPLICATE_DEVICE: t('This device is already in use.'),
               UNKNOWN_DEVICE: t('The device you used for sign-in is unknown.'),
@@ -167,36 +188,40 @@ const U2fInterface = React.createClass({
                 {
                   p1: <p />,
                   p2: <p />,
-                  support
+                  support,
                 }
-              )
+              ),
             }[deviceFailure]
           }
-        </p>
-        {this.canTryAgain() &&
-          <p>
-            <a onClick={this.onTryAgain} className="btn btn-primary">{t('Try Again')}</a>
-          </p>}
+        </div>
+        {this.canTryAgain() && (
+          <div style={{marginTop: 18}}>
+            <a onClick={this.onTryAgain} className="btn btn-primary">
+              {t('Try Again')}
+            </a>
+          </div>
+        )}
       </div>
     );
-  },
+  };
 
-  renderBody() {
+  renderBody = () => {
     if (this.state.deviceFailure) {
       return this.renderFailure();
     } else {
       return this.props.children;
     }
-  },
+  };
 
-  renderPrompt() {
+  renderPrompt = () => {
     return (
       <div
         className={
           'u2f-box' +
-            (this.state.hasBeenTapped ? ' tapped' : '') +
-            (this.state.deviceFailure ? ' device-failure' : '')
-        }>
+          (this.state.hasBeenTapped ? ' tapped' : '') +
+          (this.state.deviceFailure ? ' device-failure' : '')
+        }
+      >
         <div className="device-animation-frame">
           <div className="device-failed" />
           <div className="device-animation" />
@@ -208,12 +233,10 @@ const U2fInterface = React.createClass({
         </div>
         <input type="hidden" name="challenge" ref={this.bindChallengeElement} />
         <input type="hidden" name="response" ref={this.bindResponseElement} />
-        <div className="inner">
-          {this.renderBody()}
-        </div>
+        <div className="inner">{this.renderBody()}</div>
       </div>
     );
-  },
+  };
 
   render() {
     let {isSupported} = this.state;
@@ -227,6 +250,6 @@ const U2fInterface = React.createClass({
       return this.renderPrompt();
     }
   }
-});
+}
 
 export default U2fInterface;

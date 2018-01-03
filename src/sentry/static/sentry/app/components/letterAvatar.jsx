@@ -1,15 +1,19 @@
 import PropTypes from 'prop-types';
 import React from 'react';
 
+import createReactClass from 'create-react-class';
+
 /**
  * Also see avatar.py. Anything changed in this file (how colors
  * are selected, the svg, etc) will also need to be changed there.
  */
 
-const LetterAvatar = React.createClass({
+const LetterAvatar = createReactClass({
+  displayName: 'LetterAvatar',
+
   propTypes: {
     identifier: PropTypes.string.isRequired,
-    displayName: PropTypes.string.isRequired
+    displayName: PropTypes.string.isRequired,
   },
 
   COLORS: [
@@ -24,7 +28,7 @@ const LetterAvatar = React.createClass({
     '#6c5fc7', // purple
     '#4e3fb4', // purple_dark
     '#57b1be', // teal
-    '#847a8c' // gray
+    '#847a8c', // gray
   ],
 
   getColor() {
@@ -65,12 +69,13 @@ const LetterAvatar = React.createClass({
           fontSize="65"
           style={{dominantBaseline: 'central'}}
           textAnchor="middle"
-          fill="#FFFFFF">
+          fill="#FFFFFF"
+        >
           {this.getInitials()}
         </text>
       </svg>
     );
-  }
+  },
 });
 
 export default LetterAvatar;

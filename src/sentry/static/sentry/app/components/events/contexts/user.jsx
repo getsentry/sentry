@@ -7,10 +7,10 @@ import _ from 'lodash';
 import Avatar from '../../../components/avatar';
 import KeyValueList from '../interfaces/keyValueList';
 
-const UserContextType = React.createClass({
-  propTypes: {
-    data: PropTypes.object.isRequired
-  },
+class UserContextType extends React.Component {
+  static propTypes = {
+    data: PropTypes.object.isRequired,
+  };
 
   render() {
     let user = this.props.data;
@@ -27,7 +27,7 @@ const UserContextType = React.createClass({
           <a href={`mailto:${user.email}`} target="_blank" className="external-icon">
             <em className="icon-envelope" />
           </a>
-        </pre>
+        </pre>,
       ]);
     user.username && builtins.push(['Username', <pre>{user.username}</pre>]);
     user.ip_address && builtins.push(['IP Address', <pre>{user.ip_address}</pre>]);
@@ -48,8 +48,12 @@ const UserContextType = React.createClass({
             {builtins.map(([key, value]) => {
               return (
                 <tr key={key}>
-                  <td className="key" key="0">{key}</td>
-                  <td className="value" key="1">{value}</td>
+                  <td className="key" key="0">
+                    {key}
+                  </td>
+                  <td className="value" key="1">
+                    {value}
+                  </td>
                 </tr>
               );
             })}
@@ -59,7 +63,7 @@ const UserContextType = React.createClass({
       </div>
     );
   }
-});
+}
 
 UserContextType.getTitle = function(value) {
   return 'User';

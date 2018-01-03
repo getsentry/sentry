@@ -5,25 +5,26 @@ import '../../less/components/flowLayout.less';
 
 // Simple horizontal layout with vertical centering
 // Takes up remaining space of a flexbox container (i.e. "flex: 1")
-const FlowLayout = React.createClass({
-  propTypes: {
+class FlowLayout extends React.Component {
+  static propTypes = {
     /** Centers content via `justify-content` */
     center: PropTypes.bool,
+    /** Changes flex direction to be column */
+    vertical: PropTypes.bool,
     /** Applies "overflow: hidden" to container so that children can be truncated */
-    truncate: PropTypes.bool
-  },
+    truncate: PropTypes.bool,
+  };
 
-  getDefaultProps() {
-    return {
-      truncate: true
-    };
-  },
+  static defaultProps = {
+    truncate: true,
+  };
 
   render() {
-    let {className, children, truncate, center, ...otherProps} = this.props;
+    let {className, children, truncate, vertical, center, ...otherProps} = this.props;
     let cx = classNames('flow-layout', className, {
+      'is-vertical': vertical,
       'is-center': center,
-      'is-truncated': truncate
+      'is-truncated': truncate,
     });
 
     return (
@@ -32,6 +33,6 @@ const FlowLayout = React.createClass({
       </div>
     );
   }
-});
+}
 
 export default FlowLayout;

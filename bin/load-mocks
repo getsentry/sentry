@@ -171,7 +171,7 @@ def create_sample_time_series(event, release=None):
 
     environment = Environment.get_or_create(
         project=project,
-        name=event.get_tag('environment') or ''
+        name=Environment.get_name_or_default(event.get_tag('environment')),
     )
 
     if release:
@@ -194,7 +194,7 @@ def create_sample_time_series(event, release=None):
         tsdb.incr_multi((
             (tsdb.models.project, project.id),
             (tsdb.models.group, group.id),
-        ), now, count)
+        ), now, count, environment_id=environment.id)
         tsdb.incr_multi((
             (tsdb.models.organization_total_received, project.organization_id),
             (tsdb.models.project_total_forwarded, project.id),
@@ -242,7 +242,7 @@ def create_sample_time_series(event, release=None):
         tsdb.incr_multi((
             (tsdb.models.project, group.project.id),
             (tsdb.models.group, group.id),
-        ), now, count)
+        ), now, count, environment_id=environment.id)
         tsdb.incr_multi((
             (tsdb.models.organization_total_received, project.organization_id),
             (tsdb.models.project_total_received, project.id),
@@ -351,6 +351,7 @@ def main(num_events=1, extra_events=False):
                     'flags': Project.flags.has_releases,
                 }
             )
+            project.add_team(team)
             if not project.first_event:
                 project.update(
                     first_event=project.date_added,

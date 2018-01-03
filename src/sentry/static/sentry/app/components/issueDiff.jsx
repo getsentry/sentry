@@ -1,4 +1,5 @@
 import React, {PropTypes} from 'react';
+import createReactClass from 'create-react-class';
 import classNames from 'classnames';
 
 import ApiMixin from '../mixins/apiMixin';
@@ -7,12 +8,14 @@ import rawStacktraceContent from './events/interfaces/rawStacktraceContent';
 
 import '../../less/components/issueDiff.less';
 
-const IssueDiff = React.createClass({
+const IssueDiff = createReactClass({
+  displayName: 'IssueDiff',
+
   propTypes: {
     baseIssueId: PropTypes.string.isRequired,
     targetIssueId: PropTypes.string.isRequired,
     baseEventId: PropTypes.string.isRequired,
-    targetEventId: PropTypes.string.isRequired
+    targetEventId: PropTypes.string.isRequired,
   },
 
   mixins: [ApiMixin],
@@ -20,7 +23,7 @@ const IssueDiff = React.createClass({
   getDefaultProps() {
     return {
       baseEventId: 'latest',
-      targetEventId: 'latest'
+      targetEventId: 'latest',
     };
   },
 
@@ -32,7 +35,7 @@ const IssueDiff = React.createClass({
 
       // `SplitDiffAsync` is an async-loaded component
       // This will eventually contain a reference to the exported component from `./splitDiff`
-      SplitDiffAsync: null
+      SplitDiffAsync: null,
     };
   },
 
@@ -41,15 +44,15 @@ const IssueDiff = React.createClass({
 
     // Fetch component and event data
     Promise.all([
-      import('./splitDiff'),
+      import(/* webpackChunkName: "splitDiff" */ './splitDiff'),
       this.fetchData(baseIssueId, baseEventId),
-      this.fetchData(targetIssueId, targetEventId)
+      this.fetchData(targetIssueId, targetEventId),
     ]).then(([{default: SplitDiffAsync}, baseEvent, targetEvent]) => {
       this.setState({
         SplitDiffAsync,
         baseEvent: this.getException(baseEvent),
         targetEvent: this.getException(targetEvent),
-        loading: false
+        loading: false,
       });
     });
   },
@@ -84,7 +87,7 @@ const IssueDiff = React.createClass({
     return new Promise((resolve, reject) => {
       this.api.request(this.getEndpoint(issueId, eventId), {
         success: data => resolve(data),
-        error: err => reject(err)
+        error: err => reject(err),
       });
     });
   },
@@ -92,7 +95,7 @@ const IssueDiff = React.createClass({
   render() {
     let {className} = this.props;
     let cx = classNames('issue-diff', className, {
-      loading: this.state.loading
+      loading: this.state.loading,
     });
     let DiffComponent = this.state.SplitDiffAsync;
     let diffReady = !this.state.loading && !!DiffComponent;
@@ -111,7 +114,7 @@ const IssueDiff = React.createClass({
           ))}
       </div>
     );
-  }
+  },
 });
 
 export default IssueDiff;

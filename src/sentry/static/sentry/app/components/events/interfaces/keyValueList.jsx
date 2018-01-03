@@ -5,22 +5,20 @@ import _ from 'lodash';
 import ContextData from '../../contextData';
 import {deviceNameMapper} from '../../../utils';
 
-const KeyValueList = React.createClass({
-  propTypes: {
+class KeyValueList extends React.Component {
+  static propTypes = {
     data: PropTypes.any.isRequired,
     isContextData: PropTypes.bool,
     isSorted: PropTypes.bool,
     onClick: PropTypes.func,
-    raw: PropTypes.bool
-  },
+    raw: PropTypes.bool,
+  };
 
-  getDefaultProps() {
-    return {
-      isContextData: false,
-      isSorted: true,
-      raw: false
-    };
-  },
+  static defaultProps = {
+    isContextData: false,
+    isSorted: true,
+    raw: false,
+  };
 
   render() {
     // TODO(dcramer): use non-string keys as reserved words ("unauthorized")
@@ -43,26 +41,20 @@ const KeyValueList = React.createClass({
             if (this.props.isContextData) {
               return [
                 <tr key={key}>
-                  <td className="key">
-                    {key}
-                  </td>
+                  <td className="key">{key}</td>
                   <td className="value">
                     <ContextData data={!raw ? value : JSON.stringify(value)} />
                   </td>
-                </tr>
+                </tr>,
               ];
             } else {
               return [
                 <tr key={key}>
-                  <td className="key">
-                    {key}
-                  </td>
+                  <td className="key">{key}</td>
                   <td className="value">
-                    <pre>
-                      {deviceNameMapper('' + value || ' ')}
-                    </pre>
+                    <pre>{deviceNameMapper('' + value || ' ')}</pre>
                   </td>
-                </tr>
+                </tr>,
               ];
             }
           })}
@@ -70,6 +62,8 @@ const KeyValueList = React.createClass({
       </table>
     );
   }
-});
+}
+
+KeyValueList.displayName = 'KeyValueList';
 
 export default KeyValueList;

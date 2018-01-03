@@ -14,46 +14,43 @@ const SimilarItemPropType = PropTypes.shape({
   issue: Group,
   score: PropTypes.object,
   avgScore: PropTypes.number,
-  isBelowThreshold: PropTypes.bool
+  isBelowThreshold: PropTypes.bool,
 });
 
-const SimilarList = React.createClass({
-  propTypes: {
+class SimilarList extends React.Component {
+  static propTypes = {
     orgId: PropTypes.string.isRequired,
     groupId: PropTypes.string.isRequired,
     projectId: PropTypes.string.isRequired,
     onMerge: PropTypes.func.isRequired,
     pageLinks: PropTypes.string,
     items: PropTypes.arrayOf(SimilarItemPropType),
-    filteredItems: PropTypes.arrayOf(SimilarItemPropType)
-  },
+    filteredItems: PropTypes.arrayOf(SimilarItemPropType),
+  };
 
-  getDefaultProps() {
-    return {
-      filteredItems: []
+  static defaultProps = {
+    filteredItems: [],
+  };
+
+  constructor(...args) {
+    super(...args);
+    this.state = {
+      showAllItems: false,
     };
-  },
+  }
 
-  getInitialState() {
-    return {
-      showAllItems: false
-    };
-  },
-
-  renderEmpty() {
+  renderEmpty = () => {
     return (
       <div className="box empty-stream">
         <span className="icon icon-exclamation" />
-        <p>
-          {t('There are no similar issues.')}
-        </p>
+        <p>{t('There are no similar issues.')}</p>
       </div>
     );
-  },
+  };
 
-  handleShowAll() {
+  handleShowAll = () => {
     this.setState({showAllItems: true});
-  },
+  };
 
   render() {
     let {
@@ -63,7 +60,7 @@ const SimilarList = React.createClass({
       items,
       filteredItems,
       pageLinks,
-      onMerge
+      onMerge,
     } = this.props;
     let hasHiddenItems = !!filteredItems.length;
     let hasResults = items.length > 0 || hasHiddenItems;
@@ -72,11 +69,7 @@ const SimilarList = React.createClass({
     );
 
     if (!hasResults) {
-      return (
-        <div className="similar-list-container">
-          {this.renderEmpty()}
-        </div>
-      );
+      return <div className="similar-list-container">{this.renderEmpty()}</div>;
     }
 
     return (
@@ -102,17 +95,18 @@ const SimilarList = React.createClass({
           ))}
 
           {hasHiddenItems &&
-            !this.state.showAllItems &&
-            <div className="similar-items-footer">
-              <button className="btn btn-default btn-xl" onClick={this.handleShowAll}>
-                Show {filteredItems.length} issues below threshold
-              </button>
-            </div>}
+            !this.state.showAllItems && (
+              <div className="similar-items-footer">
+                <button className="btn btn-default btn-xl" onClick={this.handleShowAll}>
+                  Show {filteredItems.length} issues below threshold
+                </button>
+              </div>
+            )}
         </div>
         <Pagination pageLinks={pageLinks} />
       </div>
     );
   }
-});
+}
 
 export default SimilarList;

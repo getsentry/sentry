@@ -11,35 +11,39 @@ import ConfigStore from 'app/stores/configStore';
 import stubReactComponents from '../../helpers/stubReactComponent';
 
 describe('AssigneeSelector', function() {
+  let sandbox;
+  let assigneeSelector;
+  let assignTo;
+
   const USER_1 = {
     id: 1,
     name: 'Jane Doe',
-    email: 'janedoe@example.com'
+    email: 'janedoe@example.com',
   };
   const USER_2 = {
     id: 2,
     name: 'John Smith',
-    email: 'johnsmith@example.com'
+    email: 'johnsmith@example.com',
   };
   const USER_3 = {
     id: 3,
     name: 'J J',
-    email: 'jj@example.com'
+    email: 'jj@example.com',
   };
 
   beforeEach(function() {
-    this.sandbox = sinon.sandbox.create();
-    stubReactComponents(this.sandbox, [LoadingIndicator]);
+    sandbox = sinon.sandbox.create();
+    stubReactComponents(sandbox, [LoadingIndicator]);
 
-    this.sandbox.stub(MemberListStore, 'getAll').returns([USER_1, USER_2]);
-    this.sandbox.stub(GroupStore, 'get').returns({
+    sandbox.stub(MemberListStore, 'getAll').returns([USER_1, USER_2]);
+    sandbox.stub(GroupStore, 'get').returns({
       id: 1337,
-      assignedTo: null
+      assignedTo: null,
     });
   });
 
   afterEach(function() {
-    this.sandbox.restore();
+    sandbox.restore();
   });
 
   describe('statics', function() {
@@ -54,7 +58,7 @@ describe('AssigneeSelector', function() {
 
       it('should match on email', function() {
         expect(filterMembers([USER_1, USER_2], 'johnsmith@example.com')).toEqual([
-          USER_2
+          USER_2,
         ]);
       });
 
@@ -72,20 +76,26 @@ describe('AssigneeSelector', function() {
 
     describe('putSessionUserFirst()', function() {
       it('should place the session user at the top of the member list if present', function() {
-        this.sandbox.stub(ConfigStore, 'get').withArgs('user').returns({
-          id: 2,
-          name: 'John Smith',
-          email: 'johnsmith@example.com'
-        });
+        sandbox
+          .stub(ConfigStore, 'get')
+          .withArgs('user')
+          .returns({
+            id: 2,
+            name: 'John Smith',
+            email: 'johnsmith@example.com',
+          });
         expect(putSessionUserFirst([USER_1, USER_2])).toEqual([USER_2, USER_1]);
       });
 
       it("should return the same member list if the session user isn't present", function() {
-        this.sandbox.stub(ConfigStore, 'get').withArgs('user').returns({
-          id: 555,
-          name: 'Here Comes a New Challenger',
-          email: 'guile@mail.us.af.mil'
-        });
+        sandbox
+          .stub(ConfigStore, 'get')
+          .withArgs('user')
+          .returns({
+            id: 555,
+            name: 'Here Comes a New Challenger',
+            email: 'guile@mail.us.af.mil',
+          });
 
         expect(putSessionUserFirst([USER_1, USER_2])).toEqual([USER_1, USER_2]);
       });
@@ -93,38 +103,46 @@ describe('AssigneeSelector', function() {
   });
 
   describe('loading', function() {
-    let assigneeSelector;
+    let openMenu;
+
     beforeEach(function() {
       // Reset sandbox because we don't want <LoadingIndicator /> stubbed
-      this.sandbox.restore();
-      this.sandbox = sinon.sandbox.create();
-      this.sandbox.stub(GroupStore, 'get').returns({
+      sandbox.restore();
+      sandbox = sinon.sandbox.create();
+      sandbox.stub(GroupStore, 'get').returns({
         id: 1337,
-        assignedTo: null
+        assignedTo: null,
       });
       MemberListStore.items = [];
       MemberListStore.loaded = false;
       assigneeSelector = mount(<AssigneeSelector id="1337" />);
+      openMenu = () => assigneeSelector.find('a').simulate('click');
     });
 
     it('should initially have loading state', function() {
+      openMenu();
       expect(assigneeSelector.find('LoadingIndicator').exists()).toBe(true);
     });
 
     it('does not have loading state and shows member list after calling MemberListStore.loadInitialData', function() {
+      openMenu();
       MemberListStore.loadInitialData([USER_1, USER_2]);
+      assigneeSelector.update();
 
       expect(assigneeSelector.find('Avatar').length).toBe(2);
       expect(assigneeSelector.find('LoadingIndicator').exists()).toBe(false);
     });
 
     it('does NOT update member list after initial load', function() {
+      openMenu();
       MemberListStore.loadInitialData([USER_1, USER_2]);
+      assigneeSelector.update();
 
       expect(assigneeSelector.find('Avatar').length).toBe(2);
       expect(assigneeSelector.find('LoadingIndicator').exists()).toBe(false);
 
       MemberListStore.loadInitialData([USER_1, USER_2, USER_3]);
+      assigneeSelector.update();
 
       expect(assigneeSelector.find('Avatar').length).toBe(2);
       expect(assigneeSelector.find('LoadingIndicator').exists()).toBe(false);
@@ -134,11 +152,14 @@ describe('AssigneeSelector', function() {
   describe('onFilterKeyDown()', function() {
     beforeEach(function() {
       MemberListStore.loaded = true;
-      let assigneeSelector = (this.assigneeSelector = mount(
-        <AssigneeSelector id="1337" />
-      ));
+      if (assigneeSelector) {
+        assigneeSelector.unmount();
+      }
+      assigneeSelector = mount(<AssigneeSelector id="1337" />);
+      // open menu
+      assigneeSelector.find('a').simulate('click');
 
-      this.assignTo = this.sandbox.stub(assigneeSelector.instance(), 'assignTo');
+      assignTo = sandbox.stub(assigneeSelector.instance(), 'assignTo');
     });
 
     afterEach(function() {
@@ -146,43 +167,44 @@ describe('AssigneeSelector', function() {
     });
 
     it('should assign the first filtered member when the Enter key is pressed and filter is truthy', function() {
-      let assigneeSelector = this.assigneeSelector;
       assigneeSelector.setState({filter: 'Jane'});
 
-      let filterEl = assigneeSelector.instance().filterRef;
-      let filter = assigneeSelector.findWhere(node => node.node === filterEl);
+      let filter = assigneeSelector.find('input');
       filter.simulate('keyDown', {key: 'Enter', keyCode: 13, which: 13});
 
-      expect(this.assignTo.calledOnce).toBeTruthy();
-      expect(this.assignTo.lastCall.args[0]).toHaveProperty('name', 'Jane Doe');
+      expect(assignTo.calledOnce).toBeTruthy();
+      expect(assignTo.lastCall.args[0]).toHaveProperty('name', 'Jane Doe');
     });
 
     it('should do nothing when the Enter key is pressed, but filter is the empty string', function() {
-      let assigneeSelector = this.assigneeSelector;
       assigneeSelector.setState({filter: ''});
 
-      let filterEl = assigneeSelector.instance().filterRef;
-      let filter = assigneeSelector.findWhere(node => node.node === filterEl);
+      let filter = assigneeSelector.find('input');
       filter.simulate('keyDown', {key: 'Enter', keyCode: 13, which: 13});
 
-      expect(this.assignTo.notCalled).toBeTruthy();
+      expect(assignTo.notCalled).toBeTruthy();
     });
 
     it('should do nothing if a non-Enter key is pressed', function() {
-      let assigneeSelector = this.assigneeSelector;
       assigneeSelector.setState({filter: 'Jane'});
 
-      let filterEl = assigneeSelector.instance().filterRef;
-      let filter = assigneeSelector.findWhere(node => node.node === filterEl);
+      let filter = assigneeSelector.find('input');
       filter.simulate('keyDown', {key: 'h', keyCode: 72, which: 72});
-      expect(this.assignTo.notCalled).toBeTruthy();
+      expect(assignTo.notCalled).toBeTruthy();
     });
   });
 
   describe('onFilterKeyUp()', function() {
     beforeEach(function() {
       MemberListStore.loaded = true;
-      this.assigneeSelector = mount(<AssigneeSelector id="1337" />);
+      if (assigneeSelector) {
+        assigneeSelector.unmount();
+      }
+
+      assigneeSelector = mount(<AssigneeSelector id="1337" />);
+
+      // open menu
+      assigneeSelector.find('a').simulate('click');
     });
 
     afterEach(function() {
@@ -190,21 +212,14 @@ describe('AssigneeSelector', function() {
     });
 
     it('should close the dropdown when keyup is triggered with the Escape key', function() {
-      let assigneeSelector = this.assigneeSelector;
-      let closeStub = this.sandbox.stub(assigneeSelector.instance().dropdownRef, 'close');
-
-      let filterEl = assigneeSelector.instance().filterRef;
-      let filter = assigneeSelector.findWhere(node => node.node === filterEl);
+      let filter = assigneeSelector.find('input');
       filter.simulate('keyUp', {key: 'Escape'});
 
-      expect(closeStub.calledOnce).toBeTruthy();
+      expect(assigneeSelector.state('isOpen')).toBe(false);
     });
 
     it('should update the local filter state if any other key is pressed', function() {
-      let assigneeSelector = this.assigneeSelector;
-
-      let filterEl = assigneeSelector.instance().filterRef;
-      let filter = assigneeSelector.findWhere(node => node.node === filterEl);
+      let filter = assigneeSelector.find('input');
       filter.simulate('keyUp', {target: {value: 'foo'}});
       expect(assigneeSelector.state('filter')).toEqual('foo');
     });
@@ -212,15 +227,15 @@ describe('AssigneeSelector', function() {
 
   describe('componentDidUpdate()', function() {
     beforeEach(function() {
-      this.assigneeSelector = mount(<AssigneeSelector id="1337" />);
+      assigneeSelector = mount(<AssigneeSelector id="1337" />);
     });
 
     it('should destroy old assignee tooltip and create a new assignee tooltip', function() {
-      let instance = this.assigneeSelector.instance();
-      this.sandbox.spy(instance, 'attachTooltips');
-      this.sandbox.spy(instance, 'removeTooltips');
+      let instance = assigneeSelector.instance();
+      sandbox.spy(instance, 'attachTooltips');
+      sandbox.spy(instance, 'removeTooltips');
 
-      this.assigneeSelector.setState({assignedTo: USER_1});
+      assigneeSelector.setState({assignedTo: USER_1});
 
       expect(instance.attachTooltips.calledOnce).toBeTruthy();
       expect(instance.removeTooltips.calledOnce).toBeTruthy();

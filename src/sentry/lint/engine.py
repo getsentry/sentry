@@ -1,6 +1,6 @@
 """
 Our linter engine needs to run in 3 different scenarios:
- * Linting all files (python and js)
+ * Linting all files (python, js, less)
  * Linting only python files (--python)
  * Linting only js files (--js)
 
@@ -35,6 +35,19 @@ def register_checks():
 register_checks()
 
 
+def get_project_root():
+    return os.path.join(os.path.dirname(__file__), os.pardir, os.pardir, os.pardir)
+
+
+def get_node_modules_bin(name):
+    return os.path.join(
+        get_project_root(), 'node_modules', '.bin', name)
+
+
+def get_prettier_path():
+    return get_node_modules_bin('prettier')
+
+
 def get_files(path):
     results = []
     for root, _, files in os.walk(path):
@@ -44,8 +57,11 @@ def get_files(path):
 
 
 def get_modified_files(path):
-    return [s for s in check_output(
-        ['git', 'diff-index', '--cached', '--name-only', 'HEAD']).split('\n') if s]
+    return [
+        s
+        for s in check_output(['git', 'diff-index', '--cached', '--name-only', 'HEAD']).split('\n')
+        if s
+    ]
 
 
 def get_files_for_list(file_list):
@@ -71,6 +87,13 @@ def get_js_files(file_list=None):
     ]
 
 
+def get_less_files(file_list=None):
+    if file_list is None:
+        file_list = ['src/sentry/static/sentry/less', 'src/sentry/static/sentry/app']
+    return [x for x in get_files_for_list(file_list) if x.endswith(('.less'))]
+    return file_list
+
+
 def get_python_files(file_list=None):
     if file_list is None:
         file_list = ['src', 'tests']
@@ -80,7 +103,8 @@ def get_python_files(file_list=None):
     ]
 
 
-def py_lint(file_list):
+# parseable is a no-op
+def py_lint(file_list, parseable=False):
     from flake8.engine import get_style_guide
 
     file_list = get_python_files(file_list)
@@ -90,30 +114,28 @@ def py_lint(file_list):
     return report.total_errors != 0
 
 
-def js_lint(file_list=None):
+def js_lint(file_list=None, parseable=False, format=False):
 
-    project_root = os.path.join(os.path.dirname(__file__), os.pardir, os.pardir,
-                                os.pardir)
-    eslint_path = os.path.join(project_root, 'node_modules', '.bin', 'eslint')
+    eslint_path = get_node_modules_bin('eslint')
 
     if not os.path.exists(eslint_path):
         from click import echo
         echo('!! Skipping JavaScript linting because eslint is not installed.')
         return False
 
-    eslint_config = os.path.join(project_root, '.eslintrc')
     js_file_list = get_js_files(file_list)
 
     has_errors = False
     if js_file_list:
-        status = Popen([eslint_path, '--config', eslint_config, '--ext', '.jsx', '--fix']
-                       + js_file_list).wait()
+        cmd = [eslint_path, '--ext', '.js,.jsx']
+        if format:
+            cmd.append('--fix')
+        if parseable:
+            cmd.append('--format=checkstyle')
+        status = Popen(cmd + js_file_list).wait()
         has_errors = status != 0
 
     return has_errors
-
-
-PRETTIER_VERSION = "1.2.2"
 
 
 def yarn_check(file_list):
@@ -141,16 +163,7 @@ $ SKIP_YARN_CHECK=1 git commit [options]""", fg='yellow'))
     return False
 
 
-def js_format(file_list=None):
-    """
-    We only format JavaScript code as part of this pre-commit hook. It is not part
-    of the lint engine.
-    """
-    project_root = os.path.join(os.path.dirname(
-        __file__), os.pardir, os.pardir, os.pardir)
-    prettier_path = os.path.join(
-        project_root, 'node_modules', '.bin', 'prettier')
-
+def is_prettier_valid(project_root, prettier_path):
     if not os.path.exists(prettier_path):
         echo('[sentry.lint] Skipping JavaScript formatting because prettier is not installed.', err=True)
         return False
@@ -176,6 +189,20 @@ def js_format(file_list=None):
             err=True)
         return False
 
+    return True
+
+
+def js_format(file_list=None):
+    """
+    We only format JavaScript code as part of this pre-commit hook. It is not part
+    of the lint engine.
+    """
+    project_root = get_project_root()
+    prettier_path = get_prettier_path()
+
+    if not is_prettier_valid(project_root, prettier_path):
+        return False
+
     js_file_list = get_js_files(file_list)
 
     # manually exclude some bad files
@@ -183,10 +210,7 @@ def js_format(file_list=None):
 
     return run_formatter([prettier_path,
                           '--write',
-                          '--single-quote',
-                          '--bracket-spacing=false',
-                          '--print-width=90',
-                          '--jsx-bracket-same-line=true'],
+                          ],
                          js_file_list)
 
 
@@ -194,9 +218,7 @@ def js_test(file_list=None):
     """
     Run JavaScript unit tests on relevant files ONLY as part of pre-commit hook
     """
-    project_root = os.path.join(os.path.dirname(__file__), os.pardir, os.pardir,
-                                os.pardir)
-    jest_path = os.path.join(project_root, 'node_modules', '.bin', 'jest')
+    jest_path = get_node_modules_bin('jest')
 
     if not os.path.exists(jest_path):
         from click import echo
@@ -211,6 +233,26 @@ def js_test(file_list=None):
         has_errors = status != 0
 
     return has_errors
+
+
+def less_format(file_list=None):
+    """
+    We only format less code as part of this pre-commit hook. It is not part
+    of the lint engine.
+    """
+    project_root = get_project_root()
+    prettier_path = get_prettier_path()
+
+    if not is_prettier_valid(project_root, prettier_path):
+        return False
+
+    less_file_list = get_less_files(file_list)
+    return run_formatter(
+        [
+            prettier_path,
+            '--write',
+        ], less_file_list
+    )
 
 
 def py_format(file_list=None):
@@ -260,7 +302,8 @@ def run_formatter(cmd, file_list, prompt_on_changes=True):
     return has_errors
 
 
-def run(file_list=None, format=True, lint=True, js=True, py=True, yarn=True, test=False):
+def run(file_list=None, format=True, lint=True, js=True, py=True,
+        less=True, yarn=True, test=False, parseable=False):
     # pep8.py uses sys.argv to find setup.cfg
     old_sysargv = sys.argv
 
@@ -284,6 +327,8 @@ def run(file_list=None, format=True, lint=True, js=True, py=True, yarn=True, tes
                 results.append(py_format(file_list))
             if js:
                 results.append(js_format(file_list))
+            if less:
+                results.append(less_format(file_list))
 
         # bail early if a formatter failed
         if any(results):
@@ -291,9 +336,9 @@ def run(file_list=None, format=True, lint=True, js=True, py=True, yarn=True, tes
 
         if lint:
             if py:
-                results.append(py_lint(file_list))
+                results.append(py_lint(file_list, parseable=parseable))
             if js:
-                results.append(js_lint(file_list))
+                results.append(js_lint(file_list, parseable=parseable, format=format))
 
         if test:
             if js:

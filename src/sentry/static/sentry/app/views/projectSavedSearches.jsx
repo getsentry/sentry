@@ -1,6 +1,8 @@
 import PropTypes from 'prop-types';
 import React from 'react';
 
+import createReactClass from 'create-react-class';
+
 import ApiMixin from '../mixins/apiMixin';
 import IndicatorStore from '../stores/indicatorStore';
 import LoadingError from '../components/loadingError';
@@ -9,7 +11,9 @@ import Confirm from '../components/confirm';
 import {t} from '../locale';
 import OrganizationState from '../mixins/organizationState';
 
-const SavedSearchRow = React.createClass({
+const SavedSearchRow = createReactClass({
+  displayName: 'SavedSearchRow',
+
   propTypes: {
     orgId: PropTypes.string.isRequired,
     projectId: PropTypes.string.isRequired,
@@ -17,7 +21,7 @@ const SavedSearchRow = React.createClass({
     access: PropTypes.object.isRequired,
     onDefault: PropTypes.func.isRequired,
     onUserDefault: PropTypes.func.isRequired,
-    onRemove: PropTypes.func.isRequired
+    onRemove: PropTypes.func.isRequired,
   },
 
   mixins: [ApiMixin],
@@ -25,7 +29,7 @@ const SavedSearchRow = React.createClass({
   getInitialState() {
     return {
       loading: false,
-      error: false
+      error: false,
     };
   },
 
@@ -43,10 +47,10 @@ const SavedSearchRow = React.createClass({
       error: () => {
         this.setState({
           error: true,
-          loading: false
+          loading: false,
         });
         IndicatorStore.remove(loadingIndicator);
-      }
+      },
     });
   },
 
@@ -64,17 +68,17 @@ const SavedSearchRow = React.createClass({
       error: () => {
         this.setState({
           error: true,
-          loading: false
+          loading: false,
         });
         IndicatorStore.remove(loadingIndicator);
-      }
+      },
     });
   },
 
   handleDefault() {
     this.handleUpdate(
       {
-        isDefault: true
+        isDefault: true,
       },
       this.props.onDefault
     );
@@ -83,7 +87,7 @@ const SavedSearchRow = React.createClass({
   handleUserDefault() {
     this.handleUpdate(
       {
-        isUserDefault: true
+        isUserDefault: true,
       },
       this.props.onUserDefault
     );
@@ -105,7 +109,7 @@ const SavedSearchRow = React.createClass({
             onChange={this.handleUserDefault}
           />
         </td>
-        {this.props.access.has('project:write') &&
+        {this.props.access.has('project:write') && (
           <td style={{textAlign: 'center'}}>
             <input
               type="radio"
@@ -113,32 +117,35 @@ const SavedSearchRow = React.createClass({
               checked={data.isDefault}
               onChange={this.handleDefault}
             />
-          </td>}
-        {this.props.access.has('project:write') &&
+          </td>
+        )}
+        {this.props.access.has('project:write') && (
           <td style={{textAlign: 'right'}}>
-
             <Confirm
               message={t('Are you sure you want to remove this?')}
               onConfirm={this.handleRemove}
-              disabled={this.state.loading}>
+              disabled={this.state.loading}
+            >
               <a className="btn btn-sm btn-default">
                 <span className="icon icon-trash" /> &nbsp;{t('Remove')}
               </a>
             </Confirm>
-          </td>}
+          </td>
+        )}
       </tr>
     );
-  }
+  },
 });
 
-const ProjectSavedSearches = React.createClass({
+const ProjectSavedSearches = createReactClass({
+  displayName: 'ProjectSavedSearches',
   mixins: [ApiMixin, OrganizationState],
 
   getInitialState() {
     return {
       loading: true,
       error: false,
-      savedSearchList: []
+      savedSearchList: [],
     };
   },
 
@@ -154,15 +161,15 @@ const ProjectSavedSearches = React.createClass({
           error: false,
           loading: false,
           savedSearchList: data,
-          pageLinks: jqXHR.getResponseHeader('Link')
+          pageLinks: jqXHR.getResponseHeader('Link'),
         });
       },
       error: () => {
         this.setState({
           error: true,
-          loading: false
+          loading: false,
         });
-      }
+      },
     });
   },
 
@@ -171,7 +178,7 @@ const ProjectSavedSearches = React.createClass({
     this.setState({
       savedSearchList: savedSearchList.filter(search => {
         return search.id !== data.id;
-      })
+      }),
     });
   },
 
@@ -181,7 +188,7 @@ const ProjectSavedSearches = React.createClass({
       search.isDefault = data.id === search.id;
     });
     this.setState({
-      savedSearchList
+      savedSearchList,
     });
   },
 
@@ -191,7 +198,7 @@ const ProjectSavedSearches = React.createClass({
       search.isUserDefault = data.id === search.id;
     });
     this.setState({
-      savedSearchList
+      savedSearchList,
     });
   },
 
@@ -233,8 +240,9 @@ const ProjectSavedSearches = React.createClass({
             <tr>
               <th>Search</th>
               <th style={{textAlign: 'center', width: 140}}>My Default</th>
-              {access.has('project:write') &&
-                <th style={{textAlign: 'center', width: 140}}>Team Default</th>}
+              {access.has('project:write') && (
+                <th style={{textAlign: 'center', width: 140}}>Team Default</th>
+              )}
               {access.has('project:write') && <th style={{width: 120}} />}
             </tr>
           </thead>
@@ -267,7 +275,7 @@ const ProjectSavedSearches = React.createClass({
         {this.renderBody()}
       </div>
     );
-  }
+  },
 });
 
 export default ProjectSavedSearches;

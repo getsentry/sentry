@@ -20,9 +20,8 @@ from sentry import eventtypes
 from sentry.db.models import (
     BaseManager, BoundedBigIntegerField, BoundedIntegerField, Model, NodeField, sane_repr
 )
-from sentry.interfaces.base import get_interface
+from sentry.interfaces.base import get_interfaces
 from sentry.utils.cache import memoize
-from sentry.utils.safe import safe_execute
 from sentry.utils.strings import truncatechars
 
 
@@ -128,10 +127,6 @@ class Event(Model):
         warnings.warn('Event.message_short is deprecated, use Event.title', DeprecationWarning)
         return self.title
 
-    def has_two_part_message(self):
-        warnings.warn('Event.has_two_part_message is no longer used', DeprecationWarning)
-        return False
-
     @property
     def team(self):
         return self.project.team
@@ -161,33 +156,15 @@ class Event(Model):
         return None
 
     def get_interfaces(self):
-        result = []
-        for key, data in six.iteritems(self.data):
-            try:
-                cls = get_interface(key)
-            except ValueError:
-                continue
-
-            value = safe_execute(cls.to_python, data, _with_transaction=False)
-            if not value:
-                continue
-
-            result.append((key, value))
-
-        return OrderedDict(
-            (k, v) for k, v in sorted(result, key=lambda x: x[1].get_score(), reverse=True)
-        )
+        return get_interfaces(self.data)
 
     @memoize
     def interfaces(self):
         return self.get_interfaces()
 
-    def get_tags(self, with_internal=True):
+    def get_tags(self):
         try:
-            return sorted(
-                (t, v) for t, v in self.data.get('tags') or ()
-                if with_internal or not t.startswith('sentry:')
-            )
+            return sorted((t, v) for t, v in self.data.get('tags') or ())
         except ValueError:
             # at one point Sentry allowed invalid tag sets such as (foo, bar)
             # vs ((tag, foo), (tag, bar))
@@ -219,6 +196,8 @@ class Event(Model):
         data['time_spent'] = self.time_spent
         data['tags'] = self.get_tags()
         for k, v in sorted(six.iteritems(self.data)):
+            if k == 'sdk':
+                v = {v_k: v_v for v_k, v_v in six.iteritems(v) if v_k != 'client_ip'}
             data[k] = v
         return data
 

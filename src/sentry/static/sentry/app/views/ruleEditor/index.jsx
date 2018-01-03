@@ -1,5 +1,6 @@
 import PropTypes from 'prop-types';
 import React from 'react';
+import createReactClass from 'create-react-class';
 import ReactDOM from 'react-dom';
 import $ from 'jquery';
 import ApiMixin from '../../mixins/apiMixin';
@@ -9,13 +10,15 @@ import {t, tct} from '../../locale';
 
 import RuleNodeList from './ruleNodeList';
 
-const RuleEditor = React.createClass({
+const RuleEditor = createReactClass({
+  displayName: 'RuleEditor',
+
   propTypes: {
     actions: PropTypes.array.isRequired,
     conditions: PropTypes.array.isRequired,
     rule: PropTypes.object.isRequired,
     project: PropTypes.object.isRequired,
-    organization: PropTypes.object.isRequired
+    organization: PropTypes.object.isRequired,
   },
 
   mixins: [ApiMixin],
@@ -23,7 +26,7 @@ const RuleEditor = React.createClass({
   getInitialState() {
     return {
       loading: false,
-      error: null
+      error: null,
     };
   },
 
@@ -35,11 +38,13 @@ const RuleEditor = React.createClass({
 
   serializeNode(node) {
     let result = {};
-    $(node).find('input, select').each((_, el) => {
-      if (el.name) {
-        result[el.name] = $(el).val();
-      }
-    });
+    $(node)
+      .find('input, select')
+      .each((_, el) => {
+        if (el.name) {
+          result[el.name] = $(el).val();
+        }
+      });
     return result;
   },
 
@@ -62,7 +67,7 @@ const RuleEditor = React.createClass({
       actions,
       conditions,
       frequency,
-      name
+      name,
     };
     let rule = this.props.rule;
     let project = this.props.project;
@@ -82,12 +87,12 @@ const RuleEditor = React.createClass({
       error: response => {
         this.setState({
           error: response.responseJSON || {__all__: 'Unknown error'},
-          loading: false
+          loading: false,
         });
       },
       complete: () => {
         IndicatorStore.remove(loadingIndicator);
-      }
+      },
     });
   },
 
@@ -106,19 +111,18 @@ const RuleEditor = React.createClass({
       <form onSubmit={this.onSubmit} ref="form">
         <div className="box rule-detail">
           <div className="box-header">
-            <h3>
-              {rule.id ? 'Edit Alert Rule' : 'New Alert Rule'}
-            </h3>
+            <h3>{rule.id ? 'Edit Alert Rule' : 'New Alert Rule'}</h3>
           </div>
           <div className="box-content with-padding">
-            {error &&
+            {error && (
               <div className="alert alert-block alert-error">
                 <p>
                   {t(
                     'There was an error saving your changes. Make sure all fields are valid and try again.'
                   )}
                 </p>
-              </div>}
+              </div>
+            )}
             <h6>{t('Rule name')}:</h6>
             <div className="control-group">
               <input
@@ -142,7 +146,8 @@ const RuleEditor = React.createClass({
                     className={this.hasError('actionMatch') ? ' error' : ''}
                     value={actionMatch}
                     style={{width: 80}}
-                    required={true}>
+                    required={true}
+                  >
                     <option value="all">{t('all')}</option>
                     <option value="any">{t('any')}</option>
                     <option value="none">{t('none')}</option>
@@ -151,12 +156,13 @@ const RuleEditor = React.createClass({
               </h6>
             </div>
 
-            {this.hasError('conditions') &&
+            {this.hasError('conditions') && (
               <p className="error">
                 {t(
                   'Ensure at least one condition is enabled and all required fields are filled in.'
                 )}
-              </p>}
+              </p>
+            )}
 
             <RuleNodeList
               nodes={this.props.conditions}
@@ -169,12 +175,13 @@ const RuleEditor = React.createClass({
 
             <h6>{t('Take these actions:')}</h6>
 
-            {this.hasError('actions') &&
+            {this.hasError('actions') && (
               <p className="error">
                 {t(
                   'Ensure at least one action is enabled and all required fields are filled in.'
                 )}
-              </p>}
+              </p>
+            )}
 
             <RuleNodeList
               nodes={this.props.actions}
@@ -196,7 +203,8 @@ const RuleEditor = React.createClass({
                         className={this.hasError('frequency') ? ' error' : ''}
                         value={frequency}
                         style={{width: 150}}
-                        required={true}>
+                        required={true}
+                      >
                         <option value="5">{t('5 minutes')}</option>
                         <option value="10">{t('10 minutes')}</option>
                         <option value="30">{t('30 minutes')}</option>
@@ -207,7 +215,7 @@ const RuleEditor = React.createClass({
                         <option value="10080">{t('one week')}</option>
                         <option value="43200">{t('30 days')}</option>
                       </SelectInput>
-                    )
+                    ),
                   }
                 )}
               </h6>
@@ -222,7 +230,7 @@ const RuleEditor = React.createClass({
         </div>
       </form>
     );
-  }
+  },
 });
 
 export default RuleEditor;

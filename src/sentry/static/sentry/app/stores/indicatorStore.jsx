@@ -1,9 +1,18 @@
 import Reflux from 'reflux';
+import {t} from '../locale';
 
 const IndicatorStore = Reflux.createStore({
   init() {
     this.items = [];
     this.lastId = 0;
+  },
+
+  addSuccess(message) {
+    return this.add(message, 'success', {duration: 2000});
+  },
+
+  addError(message = t('An error occurred')) {
+    return this.add(message, 'error', {duration: 2000});
   },
 
   add(message, type, options) {
@@ -13,7 +22,7 @@ const IndicatorStore = Reflux.createStore({
       id: this.lastId++,
       message,
       type,
-      options
+      options,
     };
 
     if (options.duration) {
@@ -31,7 +40,7 @@ const IndicatorStore = Reflux.createStore({
       return item !== indicator;
     });
     this.trigger(this.items);
-  }
+  },
 });
 
 export default IndicatorStore;

@@ -1,5 +1,39 @@
-Version 8.21 (Unreleased)
+Version 8.23 (Unreleased)
 -------------------------
+
+Schema Changes
+~~~~~~~~~~~~~~
+
+- Drop index on ``EventTag(project_id, key_id, value_id)``
+- Increased length of ``Release.ref`` and ``Release.version`` to 250
+
+API Changes
+~~~~~~~~~~~
+- Project plugins endpoint returns every configurable plugin, and includes additional information about each one
+
+Version 8.22
+------------
+
+- BREAKING: Members will no longer be automatically granted membership to the
+  default organization. You should use SSO or the invite flows.
+- Add support for SAML2 authentication through identity providers that
+  implement the ``SAML2AuthProvider``. See getsentry/sentry-auth-saml2.
+- BREAKING: Group share urls have all been invalidated and must be regenerated.
+- Added the ability for users to disable workflow notifications on a per-project basis.
+
+Schema Changes
+~~~~~~~~~~~~~~
+
+- Added ``ProjectSymCacheFile`` model.
+- Added index on ``TagValue(project_id, key, last_seen)``
+- Add ``GroupShare`` model.
+
+API Changes
+~~~~~~~~~~~
+- Added API endpoint to list members awaiting access
+
+Version 8.21
+------------
 
 - Ignore querystrings when looking up release artifacts
 - Add Visual Studio authentication provider for plugins.
@@ -12,6 +46,8 @@ Schema Changes
 - Added ``IdentityProvider`` model.
 - Added ``Identity`` model.
 - Added ``UserIdentity`` model.
+- Added ``ProjectTeam`` model
+
 
 Version 8.20
 ------------

@@ -15,13 +15,14 @@ from sentry.models import (
     UserOption,
     UserEmail,
 )
+from sentry.auth.superuser import is_active_superuser
 from sentry.utils.avatar import get_gravatar_url
 
 
 @register(User)
 class UserSerializer(Serializer):
     def _get_identities(self, item_list, user):
-        if not (env.request and env.request.is_superuser()):
+        if not (env.request and is_active_superuser(env.request)):
             item_list = [x for x in item_list if x == user]
 
         queryset = AuthIdentity.objects.filter(

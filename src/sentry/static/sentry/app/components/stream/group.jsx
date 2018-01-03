@@ -1,8 +1,9 @@
 import jQuery from 'jquery';
 import PropTypes from 'prop-types';
 import React from 'react';
+import createReactClass from 'create-react-class';
 import styled from 'react-emotion';
-import {withTheme} from 'theming';
+import {withTheme} from 'emotion-theming';
 import {Flex, Box} from 'grid-emotion';
 import Reflux from 'reflux';
 
@@ -20,13 +21,15 @@ import TimeSince from '../timeSince';
 
 import {valueIsEqual} from '../../utils';
 
-const StreamGroup = React.createClass({
+const StreamGroup = createReactClass({
+  displayName: 'StreamGroup',
+
   propTypes: {
     id: PropTypes.string.isRequired,
     orgId: PropTypes.string.isRequired,
     projectId: PropTypes.string.isRequired,
     statsPeriod: PropTypes.string.isRequired,
-    canSelect: PropTypes.bool
+    canSelect: PropTypes.bool,
   },
 
   mixins: [Reflux.listenTo(GroupStore, 'onGroupChange'), ProjectState],
@@ -35,20 +38,20 @@ const StreamGroup = React.createClass({
     return {
       canSelect: true,
       id: '',
-      statsPeriod: '24h'
+      statsPeriod: '24h',
     };
   },
 
   getInitialState() {
     return {
-      data: GroupStore.get(this.props.id)
+      data: GroupStore.get(this.props.id),
     };
   },
 
   componentWillReceiveProps(nextProps) {
     if (nextProps.id != this.props.id) {
       this.setState({
-        data: GroupStore.get(this.props.id)
+        data: GroupStore.get(this.props.id),
       });
     }
   },
@@ -70,7 +73,7 @@ const StreamGroup = React.createClass({
     let id = this.props.id;
     let data = GroupStore.get(id);
     this.setState({
-      data
+      data,
     });
   },
 
@@ -93,16 +96,18 @@ const StreamGroup = React.createClass({
     return (
       <StreamGroupRow onClick={this.toggleSelect} py={1}>
         <LevelIndicator level={data.level} />
-        {this.props.canSelect &&
+        {this.props.canSelect && (
           <Checkbox>
             <GroupCheckBox id={data.id} />
-          </Checkbox>}
+          </Checkbox>
+        )}
         <Box
           w={[8 / 12, 8 / 12, 6 / 12]}
           pl={[1, 1, 1, 1]}
           pr={[1, 2, 2, 2]}
           flex="1"
-          style={{overflow: 'hidden'}}>
+          style={{overflow: 'hidden'}}
+        >
           <EventOrGroupHeader data={data} orgId={orgId} projectId={projectId} />
           <EventOrGroupExtraDetails
             group
@@ -114,10 +119,11 @@ const StreamGroup = React.createClass({
         </Box>
         <Box w={[100, 120, 160, 200]} px={(1, 2, 2, 3)}>
           {data.shortId && <GroupShortId shortId={data.shortId} />}
-          {data.firstSeen &&
+          {data.firstSeen && (
             <GroupTimeSinceWrapper>
               first seen <TimeSince date={data.firstSeen} suffix="ago" />
-            </GroupTimeSinceWrapper>}
+            </GroupTimeSinceWrapper>
+          )}
         </Box>
         <Box w={[100, 120, 160, 200]} px={(1, 2, 2, 3)}>
           <GroupChart id={data.id} statsPeriod={this.props.statsPeriod} data={data} />
@@ -133,7 +139,7 @@ const StreamGroup = React.createClass({
         </Box>
       </StreamGroupRow>
     );
-  }
+  },
 });
 
 const StreamGroupRow = withTheme(
@@ -171,7 +177,7 @@ const Checkbox = styled(Box)`
   padding-left: 20px;
   align-self: flex-start;
 
-  & input[type="checkbox"] {
+  & input[type='checkbox'] {
     margin: 0;
   }
 `;
@@ -186,21 +192,21 @@ const LevelIndicator = withTheme(
     border-radius: 0 3px 3px 0;
 
     background-color: ${p => {
-    switch (p.level) {
-      case 'sample':
-        return p.theme.purple;
-      case 'info':
-        return p.theme.blue;
-      case 'warning':
-        return p.theme.yellowOrange;
-      case 'error':
-        return p.theme.orange;
-      case 'fatal':
-        return p.theme.red;
-      default:
-        return p.theme.gray2;
-    }
-  }}
+      switch (p.level) {
+        case 'sample':
+          return p.theme.purple;
+        case 'info':
+          return p.theme.blue;
+        case 'warning':
+          return p.theme.yellowOrange;
+        case 'error':
+          return p.theme.orange;
+        case 'fatal':
+          return p.theme.red;
+        default:
+          return p.theme.gray2;
+      }
+    }};
   `
 );
 

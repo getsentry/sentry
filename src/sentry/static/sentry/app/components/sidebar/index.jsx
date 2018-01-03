@@ -1,5 +1,6 @@
 import PropTypes from 'prop-types';
 import React from 'react';
+import createReactClass from 'create-react-class';
 import $ from 'jquery';
 import Cookies from 'js-cookie';
 
@@ -28,48 +29,57 @@ import IconSidebarHistory from '../../icons/icon-sidebar-history';
 import IconSidebarSupport from '../../icons/icon-sidebar-support';
 import IconSidebarCollapse from '../../icons/icon-sidebar-collapse';
 
-const OnboardingStatus = React.createClass({
-  propTypes: {
+class OnboardingStatus extends React.Component {
+  static propTypes = {
     org: PropTypes.object.isRequired,
     currentPanel: PropTypes.string,
     onShowPanel: PropTypes.func,
     showPanel: PropTypes.bool,
-    hidePanel: PropTypes.func
-  },
+    hidePanel: PropTypes.func,
+  };
 
   render() {
     let org = this.props.org;
     if (org.features.indexOf('onboarding') === -1) return null;
 
+    let doneTasks = (org.onboardingTasks || []).filter(
+      task => task.status === 'complete' || task.status === 'skipped'
+    );
+
     let percentage = Math.round(
-      (org.onboardingTasks || [])
-        .filter(task => task.status === 'complete' || task.status === 'skipped').length /
-        TodoList.TASKS.length *
-        100
+      doneTasks.length / TodoList.TASKS.length * 100
     ).toString();
+
     let style = {
-      height: percentage + '%'
+      height: percentage + '%',
     };
+
+    if (doneTasks.length >= TodoList.TASKS.filter(task => task.display).length) {
+      return null;
+    }
 
     return (
       <li
         className={
           this.props.currentPanel == 'todos' ? 'onboarding active' : 'onboarding'
-        }>
+        }
+      >
         <div className="onboarding-progress-bar" onClick={this.props.onShowPanel}>
           <div className="slider" style={style} />
         </div>
         {this.props.showPanel &&
-          this.props.currentPanel == 'todos' &&
-          <SidebarPanel
-            title="Getting Started with Sentry"
-            hidePanel={this.props.hidePanel}>
-            <TodoList />
-          </SidebarPanel>}
+          this.props.currentPanel == 'todos' && (
+            <SidebarPanel
+              title="Getting Started with Sentry"
+              hidePanel={this.props.hidePanel}
+            >
+              <TodoList />
+            </SidebarPanel>
+          )}
       </li>
     );
   }
-});
+}
 
 function getFirstRequiredAdminAction(org) {
   for (let key in requiredAdminActions) {
@@ -83,14 +93,14 @@ function getFirstRequiredAdminAction(org) {
 
 const OldSidebar = React.createClass({
   contextTypes: {
-    location: PropTypes.object
+    location: PropTypes.object,
   },
 
   mixins: [ApiMixin, OrganizationState],
 
   getInitialState: function() {
     return {
-      showTodos: location.hash === '#welcome'
+      showTodos: location.hash === '#welcome',
     };
   },
 
@@ -137,14 +147,14 @@ const OldSidebar = React.createClass({
   hidePanel() {
     this.setState({
       showPanel: false,
-      currentPanel: ''
+      currentPanel: '',
     });
   },
 
   showPanel(panel) {
     this.setState({
       showPanel: true,
-      currentPanel: panel
+      currentPanel: panel,
     });
   },
 
@@ -161,7 +171,11 @@ const OldSidebar = React.createClass({
       // When no organization, just render Sentry logo at top
       return (
         <ul className="navbar-nav">
-          <li><a className="logo" href="/"><span className="icon-sentry-logo" /></a></li>
+          <li>
+            <a className="logo" href="/">
+              <span className="icon-sentry-logo" />
+            </a>
+          </li>
         </ul>
       );
     }
@@ -227,13 +241,13 @@ const OldSidebar = React.createClass({
                 !config.isOnPremise
                   ? `/organizations/${org.slug}/support/`
                   : 'https://forum.sentry.io/'
-              }>
+              }
+            >
               <span className="icon icon-support" />
               <span className="navbar-label">Support</span>
             </a>
           </li>
         </ul>
-
       </div>
     );
   },
@@ -249,7 +263,7 @@ const OldSidebar = React.createClass({
       return (
         <span className="admin-action-message">
           <a href={url}>
-            {t('Required Action:')}{' '}{requiredAction.getActionLinkTitle()}
+            {t('Required Action:')} {requiredAction.getActionLinkTitle()}
           </a>
         </span>
       );
@@ -264,21 +278,20 @@ const OldSidebar = React.createClass({
     // NOTE: this.props.orgId not guaranteed to be specified
     return (
       <nav className="navbar" role="navigation" ref="navbar">
-        <div className="anchor-top">
-          {this.renderBody()}
-        </div>
+        <div className="anchor-top">{this.renderBody()}</div>
 
         {/* Bottom nav links */}
         <div className="anchor-bottom">
           <ul className="navbar-nav">
-            {org &&
+            {org && (
               <OnboardingStatus
                 org={org}
                 showPanel={this.state.showPanel}
                 currentPanel={this.state.currentPanel}
                 onShowPanel={() => this.togglePanel('todos')}
                 hidePanel={() => this.hidePanel()}
-              />}
+              />
+            )}
 
             <li>
               <UserNav className="user-settings" />
@@ -289,7 +302,7 @@ const OldSidebar = React.createClass({
         {this.renderRequiredActions()}
       </nav>
     );
-  }
+  },
 });
 
 const SidebarSection = React.createClass({
@@ -299,7 +312,7 @@ const SidebarSection = React.createClass({
         {this.props.children}
       </div>
     );
-  }
+  },
 });
 
 const UserSummary = React.createClass({
@@ -314,7 +327,7 @@ const UserSummary = React.createClass({
         <div className="sidebar-org-summary-user-name">{this.props.user.name}</div>
       </div>
     );
-  }
+  },
 });
 
 const OrgSummary = React.createClass({
@@ -330,19 +343,19 @@ const OrgSummary = React.createClass({
         </div>
       </div>
     );
-  }
+  },
 });
 
 const SidebarMenuDivider = React.createClass({
   render() {
     return <div className="sidebar-dropdown-menu-divider" />;
-  }
+  },
 });
 
 const SidebarMenuItem = React.createClass({
   getInitialState() {
     return {
-      hover: false
+      hover: false,
     };
   },
 
@@ -372,21 +385,23 @@ const SidebarMenuItem = React.createClass({
         href={href}
         className={cx}
         onMouseOver={this.handleMouseOver}
-        onMouseOut={this.handleMouseOut}>
+        onMouseOut={this.handleMouseOut}
+      >
         <span className="sidebar-dropdown-menu-item-label">{children}</span>
-        {caret &&
+        {caret && (
           <span className="sidebar-dropdown-menu-item-caret">
             <i className="icon-arrow-right" />
-          </span>}
+          </span>
+        )}
         {!!subMenu && shouldShowSubMenu && subMenu}
       </Container>
     );
-  }
+  },
 });
 
 const SidebarDropdownPopup = React.createClass({
   contextTypes: {
-    location: React.PropTypes.object
+    location: React.PropTypes.object,
   },
 
   componentDidMount() {
@@ -431,14 +446,19 @@ const SidebarDropdownPopup = React.createClass({
               <SidebarMenuItem {...to('/${org.slug}/')}>
                 <OrgSummary org={org} />
               </SidebarMenuItem>
-              <SidebarMenuItem><OrgSummary org={org} /></SidebarMenuItem>
-              <SidebarMenuItem><OrgSummary org={org} /></SidebarMenuItem>
+              <SidebarMenuItem>
+                <OrgSummary org={org} />
+              </SidebarMenuItem>
+              <SidebarMenuItem>
+                <OrgSummary org={org} />
+              </SidebarMenuItem>
               <SidebarMenuDivider />
               <SidebarMenuItem href={'/organizations/new/'}>
                 {t('Create a new organization...')}
               </SidebarMenuItem>
             </div>
-          }>
+          }
+        >
           {t('Switch organization')}
         </SidebarMenuItem>
         <SidebarMenuDivider />
@@ -448,19 +468,20 @@ const SidebarDropdownPopup = React.createClass({
             {t('User settings')}
           </SidebarMenuItem>
           <SidebarMenuItem {...to('/api/')}>{t('API keys')}</SidebarMenuItem>
-          {user.isSuperuser &&
-            <SidebarMenuItem {...to('/manage/')}>{t('Admin')}</SidebarMenuItem>}
+          {user.isSuperuser && (
+            <SidebarMenuItem {...to('/manage/')}>{t('Admin')}</SidebarMenuItem>
+          )}
           <SidebarMenuItem href="/auth/logout/">{t('Sign out')}</SidebarMenuItem>
         </div>
       </div>
     );
-  }
+  },
 });
 
 const SidebarDropdown = React.createClass({
   getInitialState: function() {
     return {
-      isOpen: false
+      isOpen: false,
     };
   },
 
@@ -488,31 +509,33 @@ const SidebarDropdown = React.createClass({
       <div className="sidebar-dropdown">
         <div className="sidebar-dropdown-toggle" onClick={() => this.toggleDropdown()}>
           {this.props.collapsed && <div className="org-avatar" />}
-          {!this.props.collapsed &&
+          {!this.props.collapsed && (
             <div>
               <div className="sidebar-dropdown-org-name">
                 {org.name} <i className="icon-arrow-down" />
               </div>
               <div className="sidebar-dropdown-user-name">{user.name}</div>
-            </div>}
+            </div>
+          )}
         </div>
-        {this.state.isOpen &&
-          <SidebarDropdownPopup onHide={this.handleHidePopup} org={org} />}
+        {this.state.isOpen && (
+          <SidebarDropdownPopup onHide={this.handleHidePopup} org={org} />
+        )}
       </div>
     );
-  }
+  },
 });
 
 const Sidebar = React.createClass({
   contextTypes: {
-    location: React.PropTypes.object
+    location: React.PropTypes.object,
   },
 
   mixins: [ApiMixin, OrganizationState],
 
   getInitialState: function() {
     return {
-      collapsed: false
+      collapsed: false,
     };
   },
 
@@ -523,7 +546,7 @@ const Sidebar = React.createClass({
 
     if (initialSidebarState == true) {
       this.setState({
-        collapsed: true
+        collapsed: true,
       });
       jQuery(document.body).addClass('collapsed');
     }
@@ -560,7 +583,7 @@ const Sidebar = React.createClass({
 
   toggleSidebar() {
     this.setState({
-      collapsed: !this.state.collapsed
+      collapsed: !this.state.collapsed,
     });
     if (!this.state.collapsed) {
       Cookies.set('sidebar_collapsed', 1);
@@ -574,14 +597,14 @@ const Sidebar = React.createClass({
   hidePanel() {
     this.setState({
       showPanel: false,
-      currentPanel: ''
+      currentPanel: '',
     });
   },
 
   showPanel(panel) {
     this.setState({
       showPanel: true,
-      currentPanel: panel
+      currentPanel: panel,
     });
   },
 
@@ -612,7 +635,8 @@ const Sidebar = React.createClass({
       <div
         className={classNames}
         ref="sidebar"
-        onDoubleClick={e => this.handleDoubleClick(e)}>
+        onDoubleClick={e => this.handleDoubleClick(e)}
+      >
         <div className="sidebar-top">
           <SidebarSection style={{height: 36}}>
             <SidebarDropdown collapsed={this.state.collapsed} org={org} />
@@ -659,17 +683,19 @@ const Sidebar = React.createClass({
               onShowPanel={() => this.togglePanel('broadcasts')}
               hidePanel={() => this.hidePanel()}
             />
-            {!config.isOnPremise
-              ? <SidebarItem
-                  icon={<IconSidebarSupport size={22} />}
-                  label={t('Support')}
-                  to="/organizations/${org.slug}/support/"
-                />
-              : <SidebarItem
-                  icon={<IconSidebarSupport size={22} />}
-                  label={t('Support forum')}
-                  href="https://forum.sentry.io/"
-                />}
+            {!config.isOnPremise ? (
+              <SidebarItem
+                icon={<IconSidebarSupport size={22} />}
+                label={t('Support')}
+                to="/organizations/${org.slug}/support/"
+              />
+            ) : (
+              <SidebarItem
+                icon={<IconSidebarSupport size={22} />}
+                label={t('Support forum')}
+                href="https://forum.sentry.io/"
+              />
+            )}
             <Incidents
               showPanel={this.state.showPanel}
               currentPanel={this.state.currentPanel}
@@ -691,71 +717,74 @@ const Sidebar = React.createClass({
 
         {/* Panel bodies */}
         {this.state.showPanel &&
-          this.state.currentPanel == 'assigned' &&
-          <SidebarPanel title={t('Assigned to me')} hidePanel={() => this.hidePanel()}>
-            <IssueList
-              endpoint={`/organizations/${org.slug}/members/me/issues/assigned/`}
-              query={{
-                statsPeriod: '24h',
-                per_page: 10,
-                status: 'unresolved'
-              }}
-              pagination={false}
-              renderEmpty={() => (
-                <div className="sidebar-panel-empty" key="none">
-                  {t('No issues have been assigned to you.')}
-                </div>
-              )}
-              ref="issueList"
-              showActions={false}
-              params={{orgId: org.slug}}
-            />
-          </SidebarPanel>}
+          this.state.currentPanel == 'assigned' && (
+            <SidebarPanel title={t('Assigned to me')} hidePanel={() => this.hidePanel()}>
+              <IssueList
+                endpoint={`/organizations/${org.slug}/members/me/issues/assigned/`}
+                query={{
+                  statsPeriod: '24h',
+                  per_page: 10,
+                  status: 'unresolved',
+                }}
+                pagination={false}
+                renderEmpty={() => (
+                  <div className="sidebar-panel-empty" key="none">
+                    {t('No issues have been assigned to you.')}
+                  </div>
+                )}
+                ref="issueList"
+                showActions={false}
+                params={{orgId: org.slug}}
+              />
+            </SidebarPanel>
+          )}
         {this.state.showPanel &&
-          this.state.currentPanel == 'bookmarks' &&
-          <SidebarPanel title={t('My Bookmarks')} hidePanel={() => this.hidePanel()}>
-            <IssueList
-              endpoint={`/organizations/${org.slug}/members/me/issues/bookmarked/`}
-              query={{
-                statsPeriod: '24h',
-                per_page: 10,
-                status: 'unresolved'
-              }}
-              pagination={false}
-              renderEmpty={() => (
-                <div className="sidebar-panel-empty" key="no">
-                  {t('You have no bookmarked issues.')}
-                </div>
-              )}
-              ref="issueList"
-              showActions={false}
-              params={{orgId: org.slug}}
-            />
-          </SidebarPanel>}
+          this.state.currentPanel == 'bookmarks' && (
+            <SidebarPanel title={t('My Bookmarks')} hidePanel={() => this.hidePanel()}>
+              <IssueList
+                endpoint={`/organizations/${org.slug}/members/me/issues/bookmarked/`}
+                query={{
+                  statsPeriod: '24h',
+                  per_page: 10,
+                  status: 'unresolved',
+                }}
+                pagination={false}
+                renderEmpty={() => (
+                  <div className="sidebar-panel-empty" key="no">
+                    {t('You have no bookmarked issues.')}
+                  </div>
+                )}
+                ref="issueList"
+                showActions={false}
+                params={{orgId: org.slug}}
+              />
+            </SidebarPanel>
+          )}
         {this.state.showPanel &&
-          this.state.currentPanel == 'history' &&
-          <SidebarPanel title={t('Recently Viewed')} hidePanel={() => this.hidePanel()}>
-            <IssueList
-              endpoint={`/organizations/${org.slug}/members/me/issues/viewed/`}
-              query={{
-                statsPeriod: '24h',
-                per_page: 10,
-                status: 'unresolved'
-              }}
-              pagination={false}
-              renderEmpty={() => (
-                <div className="sidebar-panel-empty" key="none">
-                  {t('No recently viewed issues.')}
-                </div>
-              )}
-              ref="issueList"
-              showActions={false}
-              params={{orgId: org.slug}}
-            />
-          </SidebarPanel>}
+          this.state.currentPanel == 'history' && (
+            <SidebarPanel title={t('Recently Viewed')} hidePanel={() => this.hidePanel()}>
+              <IssueList
+                endpoint={`/organizations/${org.slug}/members/me/issues/viewed/`}
+                query={{
+                  statsPeriod: '24h',
+                  per_page: 10,
+                  status: 'unresolved',
+                }}
+                pagination={false}
+                renderEmpty={() => (
+                  <div className="sidebar-panel-empty" key="none">
+                    {t('No recently viewed issues.')}
+                  </div>
+                )}
+                ref="issueList"
+                showActions={false}
+                params={{orgId: org.slug}}
+              />
+            </SidebarPanel>
+          )}
       </div>
     );
-  }
+  },
 });
 
 export default Sidebar;

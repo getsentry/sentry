@@ -7,7 +7,7 @@ from exam import fixture
 
 from sentry import options
 from sentry.testutils import TestCase
-from sentry.models import User
+from sentry.models import OrganizationMember, User
 
 
 # TODO(dcramer): need tests for SSO behavior and single org behavior
@@ -61,7 +61,7 @@ class AuthLoginTest(TestCase):
 
     def test_registration_disabled(self):
         options.set('auth.allow-registration', True)
-        with self.feature('auth:register', False):
+        with self.feature({'auth:register': False}):
             resp = self.client.get(self.path)
             assert resp.context['register_form'] is None
 
@@ -81,6 +81,9 @@ class AuthLoginTest(TestCase):
         assert user.email == 'test-a-really-long-email-address@example.com'
         assert user.check_password('foobar')
         assert user.name == 'Foo Bar'
+        assert not OrganizationMember.objects.filter(
+            user=user,
+        ).exists()
 
     def test_register_renders_correct_template(self):
         options.set('auth.allow-registration', True)
@@ -90,14 +93,6 @@ class AuthLoginTest(TestCase):
         assert resp.status_code == 200
         assert resp.context['op'] == 'register'
         self.assertTemplateUsed('sentry/login.html')
-
-    def test_already_logged_in(self):
-        self.login_as(self.user)
-        with self.feature('organizations:create'):
-            resp = self.client.get(self.path)
-
-        assert resp.status_code == 302
-        assert resp['Location'] == 'http://testserver/organizations/new/'
 
     def test_register_prefills_invite_email(self):
         self.session['invite_email'] = 'foo@example.com'
@@ -140,3 +135,19 @@ class AuthLoginTest(TestCase):
         assert resp.status_code == 302
         assert next not in resp['Location']
         assert resp['Location'] == 'http://testserver/auth/login/'
+
+    def test_redirects_already_authed_non_superuser(self):
+        self.user.update(is_superuser=False)
+        self.login_as(self.user)
+        with self.feature('organizations:create'):
+            resp = self.client.get(self.path)
+
+        assert resp.status_code == 302
+        assert resp['Location'] == 'http://testserver/organizations/new/'
+
+    def test_doesnt_redirect_already_authed_superuser(self):
+        self.login_as(self.user, superuser=False)
+
+        resp = self.client.get(self.path)
+
+        assert resp.status_code == 200

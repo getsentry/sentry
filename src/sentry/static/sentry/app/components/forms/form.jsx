@@ -17,7 +17,10 @@ export default class Form extends React.Component {
     footerClass: PropTypes.string,
     extraButton: PropTypes.element,
     initialData: PropTypes.object,
-    requireChanges: PropTypes.bool
+    requireChanges: PropTypes.bool,
+    errorMessage: PropTypes.node,
+    hideErrors: PropTypes.bool,
+    resetOnError: PropTypes.bool,
   };
 
   static defaultProps = {
@@ -26,11 +29,16 @@ export default class Form extends React.Component {
     submitDisabled: false,
     footerClass: 'form-actions align-right',
     className: 'form-stacked',
-    requireChanges: false
+    requireChanges: false,
+    hideErrors: false,
+    resetOnError: false,
+    errorMessage: t(
+      'Unable to save your changes. Please ensure all fields are valid and try again.'
+    ),
   };
 
   static childContextTypes = {
-    form: PropTypes.object.isRequired
+    form: PropTypes.object.isRequired,
   };
 
   constructor(props, context) {
@@ -39,7 +47,7 @@ export default class Form extends React.Component {
       data: {...this.props.initialData},
       errors: {},
       initialData: {...this.props.initialData},
-      state: FormState.READY
+      state: FormState.READY,
     };
   }
 
@@ -49,8 +57,8 @@ export default class Form extends React.Component {
       form: {
         data,
         errors,
-        onFieldChange: this.onFieldChange
-      }
+        onFieldChange: this.onFieldChange,
+      },
     };
   }
 
@@ -62,14 +70,15 @@ export default class Form extends React.Component {
   onSubmitSuccess = data => {
     let curData = this.state.data;
     let newData = {};
-    Object.keys(data).forEach(k => {
-      if (curData.hasOwnProperty(k)) newData[k] = data[k];
+    Object.keys(curData).forEach(k => {
+      if (data.hasOwnProperty(k)) newData[k] = data[k];
+      else newData[k] = curData[k];
     });
 
     this.setState({
       state: FormState.READY,
       errors: {},
-      initialData: newData
+      initialData: newData,
     });
     this.props.onSubmitSuccess && this.props.onSubmitSuccess(data);
   };
@@ -77,52 +86,76 @@ export default class Form extends React.Component {
   onSubmitError = error => {
     this.setState({
       state: FormState.ERROR,
-      errors: error.responseJSON
+      errors: error.responseJSON,
     });
+
+    if (this.props.resetOnError) {
+      this.setState({
+        initialData: {},
+      });
+    }
+
     this.props.onSubmitError && this.props.onSubmitError(error);
   };
 
   onFieldChange = (name, value) => {
-    this.setState({
+    this.setState(state => ({
       data: {
-        ...this.state.data,
-        [name]: value
-      }
-    });
+        ...state.data,
+        [name]: value,
+      },
+    }));
   };
 
   render() {
     let isSaving = this.state.state === FormState.SAVING;
     let {initialData, data} = this.state;
-    let {requireChanges} = this.props;
+    let {errorMessage, hideErrors, requireChanges} = this.props;
     let hasChanges = requireChanges
       ? Object.keys(data).length && !_.isEqual(data, initialData)
       : true;
+    let isError = this.state.state == FormState.ERROR;
+    let nonFieldErrors = this.state.errors && this.state.errors.non_field_errors;
+
     return (
       <form onSubmit={this.onSubmit} className={this.props.className}>
-        {this.state.state === FormState.ERROR &&
-          <div className="alert alert-error alert-block">
-            {t(
-              'Unable to save your changes. Please ensure all fields are valid and try again.'
-            )}
-          </div>}
+        {isError &&
+          !hideErrors && (
+            <div className="alert alert-error alert-block">
+              {nonFieldErrors ? (
+                <div>
+                  <p>
+                    {t(
+                      'Unable to save your changes. Please correct the following errors try again.'
+                    )}
+                  </p>
+                  <ul>{nonFieldErrors.map((e, i) => <li key={i}>{e}</li>)}</ul>
+                </div>
+              ) : (
+                errorMessage
+              )}
+            </div>
+          )}
         {this.props.children}
         <div className={this.props.footerClass} style={{marginTop: 25}}>
           <button
             className="btn btn-primary"
             disabled={isSaving || this.props.submitDisabled || !hasChanges}
-            type="submit">
+            type="submit"
+          >
             {this.props.submitLabel}
           </button>
-          {this.props.onCancel &&
+          {this.props.onCancel && (
             <button
               type="button"
               className="btn btn-default"
               disabled={isSaving}
               onClick={this.props.onCancel}
-              style={{marginLeft: 5}}>
+              style={{marginLeft: 5}}
+            >
               {this.props.cancelLabel}
-            </button>}
+            </button>
+          )}
           {this.props.extraButton}
         </div>
       </form>

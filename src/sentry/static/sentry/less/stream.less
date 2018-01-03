@@ -5,7 +5,7 @@
 
 .sticky {
   // !important because react-sticky uses inline styles w/ hardcoded z-index
-  z-index: 1000 !important;
+  z-index: @zindex-sticky-bar !important;
 
   .group-header .container {
     width: 100% !important;
@@ -16,7 +16,7 @@
   .stream-actions {
     border-top-color: transparent;
     border-bottom-color: transparent;
-    box-shadow: 0 1px 0 rgba(52, 60, 69, 0.15), 0 1px 3px rgba(0,0,0, .08);
+    box-shadow: 0 1px 0 rgba(52, 60, 69, 0.15), 0 1px 3px rgba(0, 0, 0, 0.08);
     background: @white-dark;
     margin: 0 -30px;
     border-left: none;
@@ -38,7 +38,7 @@
   }
 }
 
-.sticky+.group-list {
+.sticky + .group-list {
   margin-top: 64px;
 }
 
@@ -49,7 +49,8 @@
 }
 
 .stream-no-bulk-actions {
-  .stream-actions-left, .event-details {
+  .stream-actions-left,
+  .event-details {
     // padding-left: 20px !important;
   }
   .group-header {
@@ -61,7 +62,15 @@
   }
 }
 
-.stream-actions, .stream-actions.toolbar {
+.stream-actions,
+.stream-actions.toolbar {
+  padding-top: 0;
+  padding-bottom: 0;
+  padding-right: 10px;
+  height: 44px;
+  .flex;
+  .flex.flex-vertically-centered;
+
   .btn-group > .btn {
     color: inherit;
   }
@@ -70,7 +79,7 @@
     margin-right: 5px;
 
     .btn-group {
-      margin-right: 0
+      margin-right: 0;
     }
   }
 
@@ -103,31 +112,61 @@
 
   > .btn {
     color: inherit;
-    background: rgba(255,255,255, .85);
+    background: rgba(255, 255, 255, 0.85);
     &.dropdown-toggle {
       background: none;
+    }
+  }
+
+  .toggle-graph {
+    .list-unstyled();
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 0;
+    font-size: 11px;
+    text-transform: uppercase;
+    font-weight: bold;
+
+    li {
+      margin-right: 5px;
+
+      &:last-child {
+        margin-right: 0;
+      }
+
+      a {
+        color: lighten(@gray, 10);
+        padding: 3px 4px 2px;
+        border-radius: 3px;
+        .transition(background 0.2s linear);
+      }
+      &.active a {
+        background: lighten(@gray, 15);
+        opacity: 1;
+        font-weight: 600;
+        color: #fff;
+      }
     }
   }
 }
 
 .stream-select-all-notice {
   background: @sidebar-bg-color;
-  border: 1px solid #E7D796;
+  border: 1px solid #e7d796;
   margin: 0 0 -1px;
   position: relative;
   z-index: 2;
 
   > div {
-    background-color: #FFFDF7;
+    background-color: #fffdf7;
     text-align: center;
     padding: 3px 10px;
 
-   a {
+    a {
       margin-left: 0.5em;
     }
   }
 }
-
 
 /**
 * Stream / Group List
@@ -142,13 +181,13 @@
 
   // TODO(ckj) make this a component-level option
   &.alert-error {
-    .icon-alert{
+    .icon-alert {
       opacity: 1;
-      color: #F2261E;
+      color: #f2261e;
       margin-top: 1px;
 
       &:before {
-        content: "\E906";
+        content: '\E906';
       }
     }
   }
@@ -197,8 +236,6 @@
       }
     }
 
-
-
     .align-right {
       text-transform: uppercase;
       padding-top: 7px;
@@ -211,58 +248,58 @@
  * ============================================================================
  */
 
- .awaiting-events {
-   border-radius: 0;
-   padding: 60px 40px 60px;
-   #gradient > .vertical(#F8F9FA, #ffffff);
-   box-shadow: inset 0 1px 3px rgba(0,0,0, .08);
-   border-radius: 0 0 3px 3px;
+.awaiting-events {
+  border-radius: 0;
+  padding: 60px 40px 60px;
+  #gradient > .vertical(#F8F9FA, #ffffff);
+  box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.08);
+  border-radius: 0 0 3px 3px;
 
-   .wrap {
-     position: relative;
-     max-width: 740px;
-     margin: 0 auto;
-     padding: 60px 0 50px 260px;
-     font-size: 18px;
-     min-height: 260px;
-   }
+  .wrap {
+    position: relative;
+    max-width: 740px;
+    margin: 0 auto;
+    padding: 60px 0 50px 260px;
+    font-size: 18px;
+    min-height: 260px;
+  }
 
-   .robot {
-     position: absolute;
-     left: 0;
-     top: 0;
-     width: 220px;
-     height: 260px;
-     background: url(../images/sentry-robot.png);
-     background-size: cover;
+  .robot {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 220px;
+    height: 260px;
+    background: url(../images/sentry-robot.png);
+    background-size: cover;
 
-     .eye {
-       display: block;
-       .square(12px);
-       border-radius: 12px;
-       position: absolute;
-       top: 70px;
-       left: 82px;
+    .eye {
+      display: block;
+      .square(12px);
+      border-radius: 12px;
+      position: absolute;
+      top: 70px;
+      left: 82px;
 
-        -webkit-animation: blink-eye .6s infinite;
-        -moz-animation:    blink-eye .6s infinite;
-        -o-animation:      blink-eye .6s infinite;
-        animation:         blink-eye .6s infinite;
-      }
-   }
+      -webkit-animation: blink-eye 0.6s infinite;
+      -moz-animation: blink-eye 0.6s infinite;
+      -o-animation: blink-eye 0.6s infinite;
+      animation: blink-eye 0.6s infinite;
+    }
+  }
 
-   .strikethrough {
-     text-decoration: line-through;
-   }
- }
+  .strikethrough {
+    text-decoration: line-through;
+  }
+}
 
- @-webkit-keyframes blink-eye {
+@-webkit-keyframes blink-eye {
   0% {
     background: @red;
     box-shadow: 0 0 10px @red;
   }
   50% {
-    background: #4A4D67;
+    background: #4a4d67;
     box-shadow: none;
   }
   100% {
@@ -276,7 +313,7 @@
     box-shadow: 0 0 10px @red;
   }
   50% {
-    background: #4A4D67;
+    background: #4a4d67;
     box-shadow: none;
   }
   100% {
@@ -290,7 +327,7 @@
     box-shadow: 0 0 10px @red;
   }
   50% {
-    background: #4A4D67;
+    background: #4a4d67;
     box-shadow: none;
   }
   100% {
@@ -304,7 +341,7 @@
     box-shadow: 0 0 10px @red;
   }
   50% {
-    background: #4A4D67;
+    background: #4a4d67;
     box-shadow: none;
   }
   100% {
@@ -325,7 +362,7 @@
   .list-unstyled;
   border: 1px solid @trim;
   border-radius: 3px;
-  box-shadow: 0 1px 3px rgba(0,0,0, .04);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
 
   .issue {
     padding: 12px 40px 5px 35px;
@@ -333,11 +370,12 @@
     position: relative;
 
     h3 {
-      .icon-star-solid, .icon-soundoff {
+      .icon-star-solid,
+      .icon-soundoff {
         padding-right: 5px;
         font-size: 12px;
         position: relative;
-        .transition(all .2s ease-in-out);
+        .transition(all 0.2s ease-in-out);
         width: auto;
       }
 
@@ -417,14 +455,14 @@
         color: @gray;
         margin-right: 10px;
       }
-    }
 
-    a {
-      color: @gray;
-      font-weight: bold;
+      a {
+        color: @gray;
+        font-weight: bold;
 
-      &:hover {
-        color: darken(@gray, 20);
+        &:hover {
+          color: darken(@gray, 20);
+        }
       }
     }
 
@@ -478,7 +516,7 @@
 
           &:after {
             display: block;
-            content: "";
+            content: '';
             position: absolute;
             top: 12px;
             bottom: 12px;
@@ -549,6 +587,16 @@
       border-bottom: 0;
     }
   }
+
+  .user-report {
+    .activity-container {
+      margin: 10px 0 5px;
+    }
+
+    .activity-note {
+      padding-bottom: 0;
+    }
+  }
 }
 
 // Generate .group positions for animating
@@ -575,7 +623,6 @@
 * Stream Saved Searches
 * ============================================================================
 */
-
 
 .saved-search-selector {
   height: 22px;
@@ -613,7 +660,8 @@
 
     .row {
       margin: 8px 5px 5px;
-      .col-md-5, .col-md-7 {
+      .col-md-5,
+      .col-md-7 {
         padding: 0 5px;
       }
     }
@@ -622,7 +670,8 @@
       a {
         padding: 3px 10px;
       }
-      strong, code {
+      strong,
+      code {
         display: block;
         max-width: 100%;
         text-overflow: ellipsis;
@@ -681,8 +730,12 @@
     left: 1px;
     width: 163px;
 
-    &:before { display: none; }
-    &:after { display: none; }
+    &:before {
+      display: none;
+    }
+    &:after {
+      display: none;
+    }
   }
 
   .dropdown.open .dropdown-toggle {
@@ -724,7 +777,8 @@
     text-align: center;
     padding: 6px;
 
-    &:focus, &:active {
+    &:focus,
+    &:active {
       box-shadow: 0;
     }
 
@@ -733,9 +787,10 @@
     }
   }
 
-  .stream-content, .stream-sidebar {
+  .stream-content,
+  .stream-sidebar {
     float: left;
-    .transition(all .2s ease-in-out);
+    .transition(all 0.2s ease-in-out);
   }
 
   .stream-content {
@@ -773,7 +828,7 @@
   &.show-sidebar {
     .toggle-stream-sidebar {
       .btn-primary;
-      box-shadow: inset 0 2px 0 rgba(0,0,0, .12);
+      box-shadow: inset 0 2px 0 rgba(0, 0, 0, 0.12);
     }
     .stream-content {
       width: 75%;
@@ -801,7 +856,8 @@
 .stream-pagination {
   margin: 20px 0 0 0;
 
-  .icon-arrow-right, .icon-arrow-left {
+  .icon-arrow-right,
+  .icon-arrow-left {
     font-size: 20px !important;
   }
 }
@@ -811,7 +867,8 @@
 * ============================================================================
 */
 
-.alert-box, .empty-stream {
+.alert-box,
+.empty-stream {
   border: 1px solid @trim;
   border-radius: 0 0 2px 2px;
   text-align: center;
@@ -830,36 +887,37 @@
     display: block;
     font-size: 54px;
     color: lighten(@gray, 20);
-    opacity: .45;
+    opacity: 0.45;
     margin-bottom: 20px;
   }
 }
 
 .panel {
-  .alert-box, .empty-stream {
+  .alert-box,
+  .empty-stream {
     border: 0;
   }
 }
-
 
 /**
 * Responsive small screen
 * ============================================================================
 */
 
-@media(max-width:992px) {
+@media (max-width: 992px) {
   .search {
     margin-bottom: -1px;
   }
 
   .stream-actions {
-    .stream-actions-count, .stream-actions-users {
+    .stream-actions-count,
+    .stream-actions-users {
       font-size: 13px;
     }
   }
 }
 
-@media(max-width: 767px) {
+@media (max-width: 767px) {
   .search {
     width: 100% !important;
   }
@@ -895,7 +953,8 @@
     padding-right: 30px;
   }
 
-  .stream-actions .stream-actions-left, .group .event-details {
+  .stream-actions .stream-actions-left,
+  .group .event-details {
     padding-left: 36px;
     .checkbox {
       left: 33px;
@@ -979,10 +1038,10 @@
   }
 }
 
-
-
-@media(max-width:400px) {
-  .stream-sort { display: none; }
+@media (max-width: 400px) {
+  .stream-sort {
+    display: none;
+  }
 
   .search-container {
     padding-left: 0 !important;

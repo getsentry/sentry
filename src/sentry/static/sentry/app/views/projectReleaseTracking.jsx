@@ -1,5 +1,6 @@
 import PropTypes from 'prop-types';
 import React from 'react';
+import createReactClass from 'create-react-class';
 import _ from 'lodash';
 
 import ApiMixin from '../mixins/apiMixin';
@@ -9,10 +10,12 @@ import PluginList from '../components/pluginList';
 import LoadingError from '../components/loadingError';
 import LoadingIndicator from '../components/loadingIndicator';
 
-const ProjectReleaseTracking = React.createClass({
+const ProjectReleaseTracking = createReactClass({
+  displayName: 'ProjectReleaseTracking',
+
   propTypes: {
     organization: PropTypes.object,
-    project: PropTypes.object
+    project: PropTypes.object,
   },
 
   mixins: [ApiMixin],
@@ -23,7 +26,7 @@ const ProjectReleaseTracking = React.createClass({
       error: false,
       pluginList: [],
       webhookUrl: '',
-      token: ''
+      token: '',
     };
   },
 
@@ -41,14 +44,14 @@ const ProjectReleaseTracking = React.createClass({
       success: data =>
         this.setState({
           webhookUrl: data.webhookUrl,
-          token: data.token
+          token: data.token,
         }),
       error: () => {
         this.setState({
-          error: true
+          error: true,
         });
       },
-      complete: done
+      complete: done,
     });
     this.getPluginConfig(done);
   },
@@ -58,15 +61,17 @@ const ProjectReleaseTracking = React.createClass({
     this.api.request(`/projects/${orgId}/${projectId}/plugins/`, {
       success: data => {
         this.setState({
-          pluginList: data.filter(p => p.type === 'release-tracking')
+          pluginList: data.filter(
+            p => p.type === 'release-tracking' && p.hasConfiguration
+          ),
         });
       },
       error: () => {
         this.setState({
-          error: true
+          error: true,
         });
       },
-      complete: done
+      complete: done,
     });
   },
 
@@ -76,9 +81,9 @@ const ProjectReleaseTracking = React.createClass({
         if (p.id !== plugin.id) return p;
         return {
           ...plugin,
-          enabled: true
+          enabled: true,
         };
-      })
+      }),
     });
     this.getPluginConfig();
   },
@@ -89,9 +94,9 @@ const ProjectReleaseTracking = React.createClass({
         if (p.id !== plugin.id) return p;
         return {
           ...plugin,
-          enabled: false
+          enabled: false,
         };
-      })
+      }),
     });
   },
 
@@ -108,21 +113,21 @@ const ProjectReleaseTracking = React.createClass({
       success: data => {
         this.setState({
           token: data.token,
-          webhookUrl: data.webhookUrl
+          webhookUrl: data.webhookUrl,
         });
         this.getPluginConfig();
         AlertActions.addAlert({
           message: t(
             'Your deploy token has been regenerated. You will need to update any pre-existing deploy hooks.'
           ),
-          type: 'success'
+          type: 'success',
         });
       },
       error: () => {
         this.setState({
-          error: true
+          error: true,
         });
-      }
+      },
     });
   },
 
@@ -157,7 +162,12 @@ const ProjectReleaseTracking = React.createClass({
   render() {
     let {organization, project} = this.props;
     let {pluginList} = this.state;
-    if (this.state.loading) return <div className="box"><LoadingIndicator /></div>;
+    if (this.state.loading)
+      return (
+        <div className="box">
+          <LoadingIndicator />
+        </div>
+      );
     else if (this.state.error) return <LoadingError onRetry={this.fetchData} />;
 
     return (
@@ -175,7 +185,7 @@ const ProjectReleaseTracking = React.createClass({
           <div className="box-content with-padding">
             <p>
               {tct('Start by binding the [release] attribute in your application:', {
-                release: <code>release</code>
+                release: <code>release</code>,
               })}
             </p>
             <pre>{this.getReleaseClientConfigurationIntructions()}</pre>
@@ -214,7 +224,8 @@ const ProjectReleaseTracking = React.createClass({
                   className="btn btn-sm btn-danger"
                   name="op"
                   value="regenerate-token"
-                  onClick={this.onSubmit}>
+                  onClick={this.onSubmit}
+                >
                   Regenerate Token
                 </button>
               </p>
@@ -269,15 +280,14 @@ const ProjectReleaseTracking = React.createClass({
               {t('See the ')}
               <a href="https://docs.sentry.io/hosted/api/releases/">
                 {t('Releases API documentation')}
-              </a>
-              {' '}
+              </a>{' '}
               {t('for more information.')}
             </p>
           </div>
         </div>
       </div>
     );
-  }
+  },
 });
 
 export default ProjectReleaseTracking;

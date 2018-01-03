@@ -8,11 +8,11 @@ import six
 from threading import Lock
 
 import rb
+from django.utils.functional import SimpleLazyObject
 from pkg_resources import resource_string
 from redis.client import Script
 from redis.connection import ConnectionPool
 from redis.exceptions import ConnectionError, BusyLoadingError
-from rediscluster.exceptions import RedisClusterException
 from rediscluster import StrictRedisCluster
 
 from sentry import options
@@ -103,13 +103,16 @@ class _RedisCluster(object):
         hosts = config.get('hosts')
         hosts = hosts.values() if isinstance(hosts, dict) else hosts
 
-        # Redis cluster does not wait to attempt to connect, we don't want the
-        # application to fail to boot because of this, raise a KeyError
-        try:
-            return RetryingStrictRedisCluster(startup_nodes=hosts, decode_responses=True)
-        except RedisClusterException:
-            logger.warning('Failed to connect to Redis Cluster', exc_info=True)
-            raise KeyError('Redis Cluster could not be initalized')
+        # Redis cluster does not wait to attempt to connect. We'd prefer to not
+        # make TCP connections on boot. Wrap the client in a lazy proxy object.
+        def cluster_factory():
+            return RetryingStrictRedisCluster(
+                startup_nodes=hosts,
+                decode_responses=True,
+                skip_full_coverage_check=True,
+            )
+
+        return SimpleLazyObject(cluster_factory)
 
     def __str__(self):
         return 'Redis Cluster'

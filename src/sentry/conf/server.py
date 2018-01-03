@@ -203,6 +203,7 @@ TEMPLATE_LOADERS = (
 )
 
 MIDDLEWARE_CLASSES = (
+    'sentry.middleware.proxy.ChunkedMiddleware',
     'sentry.middleware.proxy.ContentLengthHeaderMiddleware',
     'sentry.middleware.security.SecurityHeadersMiddleware',
     'sentry.middleware.maintenance.ServicesUnavailableMiddleware',
@@ -253,7 +254,7 @@ INSTALLED_APPS = (
     'sentry.analytics.events', 'sentry.nodestore', 'sentry.search', 'sentry.lang.java',
     'sentry.lang.javascript', 'sentry.lang.native', 'sentry.plugins.sentry_interface_types',
     'sentry.plugins.sentry_mail', 'sentry.plugins.sentry_urls', 'sentry.plugins.sentry_useragents',
-    'sentry.plugins.sentry_webhooks', 'social_auth', 'sudo',
+    'sentry.plugins.sentry_webhooks', 'social_auth', 'sudo', 'sentry.tagstore',
 )
 
 import django
@@ -262,6 +263,10 @@ if django.VERSION < (1, 7):
 
 STATIC_ROOT = os.path.realpath(os.path.join(PROJECT_ROOT, 'static'))
 STATIC_URL = '/_static/{version}/'
+
+# various middleware will use this to identify resources which should not access
+# cookies
+ANONYMOUS_STATIC_PREFIXES = ('/_static/', '/avatar/')
 
 STATICFILES_FINDERS = (
     "django.contrib.staticfiles.finders.FileSystemFinder",
@@ -424,10 +429,11 @@ CELERY_IMPORTS = (
     'sentry.tasks.auth', 'sentry.tasks.auto_resolve_issues', 'sentry.tasks.beacon',
     'sentry.tasks.check_auth', 'sentry.tasks.clear_expired_snoozes',
     'sentry.tasks.collect_project_platforms', 'sentry.tasks.commits', 'sentry.tasks.deletion',
-    'sentry.tasks.digests', 'sentry.tasks.dsymcache', 'sentry.tasks.email', 'sentry.tasks.merge',
+    'sentry.tasks.digests', 'sentry.tasks.email', 'sentry.tasks.merge',
     'sentry.tasks.options', 'sentry.tasks.ping', 'sentry.tasks.post_process',
     'sentry.tasks.process_buffer', 'sentry.tasks.reports', 'sentry.tasks.reprocessing',
     'sentry.tasks.scheduler', 'sentry.tasks.store', 'sentry.tasks.unmerge',
+    'sentry.tasks.symcache_update', 'sentry.tasks.servicehooks',
 )
 CELERY_QUEUES = [
     Queue('alerts', routing_key='alerts'),
@@ -544,14 +550,6 @@ CELERYBEAT_SCHEDULE = {
             'expires': 300,
         },
     },
-    # Disabled for the time being:
-    # 'clear-old-cached-dsyms': {
-    #     'task': 'sentry.tasks.clear_old_cached_dsyms',
-    #     'schedule': timedelta(minutes=60),
-    #     'options': {
-    #         'expires': 3600,
-    #     },
-    # },
     'collect-project-platforms': {
         'task': 'sentry.tasks.collect_project_platforms',
         'schedule': timedelta(days=1),
@@ -588,6 +586,13 @@ CELERYBEAT_SCHEDULE = {
     },
 }
 
+BGTASKS = {
+    'sentry.bgtasks.clean_dsymcache:clean_dsymcache': {
+        'interval': 5 * 60,
+        'roles': ['worker'],
+    }
+}
+
 # Sentry logs to two major places: stdout, and it's internal project.
 # To disable logging to the internal project, add a logger who's only
 # handler is 'console' and disable propagating upwards.
@@ -612,11 +617,25 @@ LOGGING = {
             'filters': ['sentry:internal'],
             'class': 'raven.contrib.django.handlers.SentryHandler',
         },
+        'metrics': {
+            'level': 'WARNING',
+            'filters': ['important_django_request'],
+            'class': 'sentry.logging.handlers.MetricsLogHandler',
+        },
+        'django_internal': {
+            'level': 'WARNING',
+            'filters': ['sentry:internal', 'important_django_request'],
+            'class': 'raven.contrib.django.handlers.SentryHandler',
+        },
     },
     'filters': {
         'sentry:internal': {
             '()': 'sentry.utils.raven.SentryInternalFilter',
         },
+        'important_django_request': {
+            '()': 'sentry.logging.handlers.MessageContainsFilter',
+            'contains': ["CSRF"]
+        }
     },
     'root': {
         'level': 'NOTSET',
@@ -627,7 +646,7 @@ LOGGING = {
     'overridable': ['celery', 'sentry'],
     'loggers': {
         'celery': {
-            'level': 'WARN',
+            'level': 'WARNING',
         },
         'sentry': {
             'level': 'INFO',
@@ -661,8 +680,8 @@ LOGGING = {
             'level': 'INFO',
         },
         'django.request': {
-            'level': 'ERROR',
-            'handlers': ['console'],
+            'level': 'WARNING',
+            'handlers': ['console', 'metrics', 'django_internal'],
             'propagate': False,
         },
         'toronado': {
@@ -721,17 +740,21 @@ SENTRY_FEATURES = {
     'organizations:api-keys': False,
     'organizations:create': True,
     'organizations:sso': True,
-    'organizations:saml2': False,
+    'organizations:sso-saml2': False,
+    'organizations:sso-rippling': False,
     'organizations:group-unmerge': False,
     'organizations:integrations-v3': False,
+    'organizations:invite-members': True,
+    'organizations:new-settings': False,
     'projects:global-events': False,
     'projects:plugins': True,
     'projects:dsym': False,
     'projects:sample-events': True,
     'projects:data-forwarding': True,
     'projects:rate-limits': True,
-    'projects:custom-filters': False,
+    'projects:discard-groups': False,
     'projects:custom-inbound-filters': False,
+    'projects:minidump': False,
 }
 
 # Default time zone for localization in the UI.
@@ -833,6 +856,7 @@ SENTRY_FILESTORE_ALIASES = {
 
 SENTRY_ANALYTICS_ALIASES = {
     'noop': 'sentry.analytics.Analytics',
+    'pubsub': 'sentry.analytics.pubsub.PubSubAnalytics',
 }
 
 # set of backends that do not support needing SMTP mail.* settings
@@ -852,7 +876,7 @@ SENTRY_SMTP_DISABLED_BACKENDS = frozenset(
 # make projects public
 SENTRY_ALLOW_PUBLIC_PROJECTS = True
 
-# Can users be invited to organizations?
+# Will an invite be sent when a member is added to an organization?
 SENTRY_ENABLE_INVITES = True
 
 # Default to not sending the Access-Control-Allow-Origin header on api/store
@@ -902,6 +926,20 @@ SENTRY_DEFAULT_MAX_EVENTS_PER_MINUTE = '90%'
 # Node storage backend
 SENTRY_NODESTORE = 'sentry.nodestore.django.DjangoNodeStorage'
 SENTRY_NODESTORE_OPTIONS = {}
+
+# Tag storage backend
+_SENTRY_TAGSTORE_DEFAULT_MULTI_OPTIONS = {
+    'backends': [
+        ('sentry.tagstore.legacy.LegacyTagStorage', {}),
+        ('sentry.tagstore.v2.V2TagStorage', {}),
+    ],
+    'runner': 'ImmediateRunner',
+}
+SENTRY_TAGSTORE = os.environ.get('SENTRY_TAGSTORE', 'sentry.tagstore.legacy.LegacyTagStorage')
+SENTRY_TAGSTORE_OPTIONS = (
+    _SENTRY_TAGSTORE_DEFAULT_MULTI_OPTIONS if 'SENTRY_TAGSTORE_DEFAULT_MULTI_OPTIONS' in os.environ
+    else {}
+)
 
 # Search backend
 SENTRY_SEARCH = 'sentry.search.django.DjangoSearchBackend'

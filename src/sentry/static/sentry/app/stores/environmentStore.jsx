@@ -22,7 +22,7 @@ const EnvironmentStore = Reflux.createStore({
 
   getAll() {
     return this.items;
-  }
+  },
 });
 
 export default EnvironmentStore;

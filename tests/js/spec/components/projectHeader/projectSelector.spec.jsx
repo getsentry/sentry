@@ -15,18 +15,23 @@ describe('ProjectSelector', function() {
         projects: [
           {
             slug: 'test-project',
-            name: 'Test Project'
+            name: 'Test Project',
           },
           {
             slug: 'another-project',
-            name: 'Another Project'
-          }
-        ]
-      }
+            name: 'Another Project',
+          },
+        ],
+      },
     ],
-    access: []
+    access: [],
   };
+
   describe('render()', function() {
+    beforeEach(function() {
+      jQuery(document).off('click');
+    });
+
     it('should show empty message with no projects button, when no projects, and has no "project:write" access', function() {
       let wrapper = shallow(
         <ProjectSelector
@@ -34,12 +39,12 @@ describe('ProjectSelector', function() {
             id: 'org',
             slug: 'org-slug',
             teams: [],
-            access: []
+            access: [],
           }}
           projectId=""
         />,
         {
-          context: {router: TestStubs.router()}
+          context: {router: TestStubs.router()},
         }
       );
       expect(wrapper).toMatchSnapshot();
@@ -52,12 +57,12 @@ describe('ProjectSelector', function() {
             id: 'org',
             slug: 'org-slug',
             teams: [],
-            access: ['project:write']
+            access: ['project:write'],
           }}
           projectId=""
         />,
         {
-          context: {router: TestStubs.router()}
+          context: {router: TestStubs.router()},
         }
       );
       expect(wrapper).toMatchSnapshot();
@@ -65,13 +70,14 @@ describe('ProjectSelector', function() {
 
     it('lists projects and has filter', function() {
       let wrapper = shallow(<ProjectSelector organization={mockOrg} projectId="" />, {
-        context: {router: TestStubs.router()}
+        context: {router: TestStubs.router()},
       });
       expect(wrapper).toMatchSnapshot();
     });
 
     it('can filter projects by team name/project name', function() {
       let wrapper = mount(<ProjectSelector organization={mockOrg} projectId="" />, {});
+      wrapper.find('.dropdown-actor').simulate('click');
 
       const input = wrapper.find('.project-filter input');
       // Team name contains test
@@ -83,6 +89,7 @@ describe('ProjectSelector', function() {
 
     it('can filter projects by project name', function() {
       let wrapper = mount(<ProjectSelector organization={mockOrg} projectId="" />, {});
+      wrapper.find('.dropdown-actor').simulate('click');
 
       const input = wrapper.find('.project-filter input');
       input.value = 'another';
@@ -91,8 +98,30 @@ describe('ProjectSelector', function() {
       expect(wrapper).toMatchSnapshot();
     });
 
+    it('does not close dropdown when input is clicked', function() {
+      let wrapper = mount(<ProjectSelector organization={mockOrg} projectId="" />, {});
+      wrapper.find('.dropdown-actor').simulate('click');
+
+      const input = wrapper.find('.project-filter input');
+      input.simulate('click', {target: input});
+
+      expect(wrapper.find('.dropdown-menu').length).toBe(1);
+    });
+
+    it('closes dropdown when project is selected', function() {
+      let wrapper = mount(<ProjectSelector organization={mockOrg} projectId="" />, {});
+      wrapper.find('.dropdown-actor').simulate('click');
+      // Select first project
+      wrapper
+        .find('.dropdown-menu [role="presentation"] a')
+        .first()
+        .simulate('click');
+      expect(wrapper.find('.dropdown-menu').length).toBe(0);
+    });
+
     it('shows empty filter message when filtering has no results', function() {
       let wrapper = mount(<ProjectSelector organization={mockOrg} projectId="" />, {});
+      wrapper.find('.dropdown-actor').simulate('click');
 
       const input = wrapper.find('.project-filter input');
       input.value = 'Foo';

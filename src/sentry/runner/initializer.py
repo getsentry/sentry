@@ -32,7 +32,8 @@ def register_plugins(settings):
         except Exception:
             import traceback
             click.echo(
-                "Failed to load plugin %r:\n%s" % (ep.name, traceback.format_exc()), err=True
+                "Failed to load plugin %r:\n%s" % (ep.name, traceback.format_exc()),
+                err=True
             )
         else:
             plugins.register(plugin)
@@ -43,8 +44,16 @@ def register_plugins(settings):
     from sentry import integrations
     from sentry.utils.imports import import_string
     for integration_path in settings.SENTRY_DEFAULT_INTEGRATIONS:
-        integration_cls = import_string(integration_path)
-        integrations.register(integration_cls)
+        try:
+            integration_cls = import_string(integration_path)
+        except Exception:
+            import traceback
+            click.echo(
+                "Failed to load integration %r:\n%s" % (integration_path, traceback.format_exc()),
+                err=True
+            )
+        else:
+            integrations.register(integration_cls)
 
 
 def init_plugin(plugin):
@@ -309,13 +318,13 @@ def initialize_app(config, skip_service_validation=False):
 
 def setup_services(validate=True):
     from sentry import (
-        analytics, buffer, digests, newsletter, nodestore, quotas, ratelimits, search, tsdb
+        analytics, buffer, digests, newsletter, nodestore, quotas, ratelimits, search, tagstore, tsdb
     )
     from .importer import ConfigurationError
     from sentry.utils.settings import reraise_as
 
     service_list = (
-        analytics, buffer, digests, newsletter, nodestore, quotas, ratelimits, search, tsdb,
+        analytics, buffer, digests, newsletter, nodestore, quotas, ratelimits, search, tagstore, tsdb,
     )
 
     for service in service_list:

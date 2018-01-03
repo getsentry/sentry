@@ -1,4 +1,5 @@
 import React from 'react';
+import createReactClass from 'create-react-class';
 import {browserHistory} from 'react-router';
 import $ from 'jquery';
 import {t} from '../locale';
@@ -6,7 +7,8 @@ import {t} from '../locale';
 import OrganizationState from '../mixins/organizationState';
 import TodoList from '../components/onboardingWizard/todos';
 
-const ProjectChooser = React.createClass({
+const ProjectChooser = createReactClass({
+  displayName: 'ProjectChooser',
   mixins: [OrganizationState],
 
   componentWillMount() {
@@ -70,9 +72,7 @@ const ProjectChooser = React.createClass({
             </div>
             <div className="box-content">
               <table className="table">
-                <tbody>
-                  {projectList}
-                </tbody>
+                <tbody>{projectList}</tbody>
               </table>
             </div>
           </div>
@@ -83,12 +83,10 @@ const ProjectChooser = React.createClass({
     return (
       <div className="container">
         <h3>{t('Choose a project')}</h3>
-        <div className="team-list">
-          {teamProjectList}
-        </div>
+        <div className="team-list">{teamProjectList}</div>
       </div>
     );
-  }
+  },
 });
 
 export default ProjectChooser;

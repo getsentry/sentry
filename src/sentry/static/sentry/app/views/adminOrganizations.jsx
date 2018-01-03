@@ -6,19 +6,18 @@ import {Link} from 'react-router';
 import ResultGrid from '../components/resultGrid';
 import {t} from '../locale';
 
-const AdminOrganizations = React.createClass({
-  getRow(row) {
+class AdminOrganizations extends React.Component {
+  getRow = row => {
     return [
       <td>
         <strong>
-          <Link to={`/${row.slug}/`}>
-            {row.name}
-          </Link>
-        </strong><br />
+          <Link to={`/${row.slug}/`}>{row.name}</Link>
+        </strong>
+        <br />
         <small>{row.slug}</small>
-      </td>
+      </td>,
     ];
-  },
+  };
 
   render() {
     let columns = [<th>Organization</th>];
@@ -38,7 +37,7 @@ const AdminOrganizations = React.createClass({
             ['members', 'Members'],
             ['events', 'Events'],
             ['projects', 'Projects'],
-            ['employees', 'Employees']
+            ['employees', 'Employees'],
           ]}
           defaultSort="date"
           {...this.props}
@@ -46,6 +45,6 @@ const AdminOrganizations = React.createClass({
       </div>
     );
   }
-});
+}
 
 export default AdminOrganizations;

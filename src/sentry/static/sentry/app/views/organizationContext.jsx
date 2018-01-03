@@ -1,4 +1,5 @@
 import React from 'react';
+import createReactClass from 'create-react-class';
 import Reflux from 'reflux';
 import DocumentTitle from 'react-document-title';
 import moment from 'moment';
@@ -10,32 +11,29 @@ import LoadingIndicator from '../components/loadingIndicator';
 import BroadcastModal from '../components/broadcastModal';
 import SentryTypes from '../proptypes';
 import TeamStore from '../stores/teamStore';
-import ProjectStore from '../stores/projectStore';
+import ProjectsStore from '../stores/projectsStore';
 import ProjectActions from '../actions/projectActions';
 import ConfigStore from '../stores/configStore';
-
-import OrganizationState from '../mixins/organizationState';
+import {setActiveOrganization} from '../actionCreators/organizations';
 
 import {t} from '../locale';
 
 let ERROR_TYPES = {
-  ORG_NOT_FOUND: 'ORG_NOT_FOUND'
+  ORG_NOT_FOUND: 'ORG_NOT_FOUND',
 };
 
 function getRequiredAdminActions(org) {
   return [];
 }
 
-const OrganizationContext = React.createClass({
+const OrganizationContext = createReactClass({
+  displayName: 'OrganizationContext',
+
   childContextTypes: {
-    organization: SentryTypes.Organization
+    organization: SentryTypes.Organization,
   },
 
-  mixins: [
-    ApiMixin,
-    OrganizationState,
-    Reflux.listenTo(ProjectActions.createSuccess, 'onProjectCreation')
-  ],
+  mixins: [ApiMixin, Reflux.listenTo(ProjectActions.createSuccess, 'onProjectCreation')],
 
   getInitialState() {
     return {
@@ -43,13 +41,13 @@ const OrganizationContext = React.createClass({
       error: false,
       errorType: null,
       organization: null,
-      showBroadcast: false
+      showBroadcast: false,
     };
   },
 
   getChildContext() {
     return {
-      organization: this.state.organization
+      organization: this.state.organization,
     };
   },
 
@@ -97,11 +95,13 @@ const OrganizationContext = React.createClass({
           error: false,
           errorType: null,
           hooks,
-          showBroadcast: this.shouldShowBroadcast(data)
+          showBroadcast: this.shouldShowBroadcast(data),
         });
 
+        setActiveOrganization(data);
+
         TeamStore.loadInitialData(data.teams);
-        ProjectStore.loadInitialData(
+        ProjectsStore.loadInitialData(
           data.teams.reduce((out, team) => {
             return out.concat(team.projects);
           }, [])
@@ -119,9 +119,9 @@ const OrganizationContext = React.createClass({
         this.setState({
           loading: false,
           error: true,
-          errorType
+          errorType,
         });
-      }
+      },
     });
   },
 
@@ -187,13 +187,14 @@ const OrganizationContext = React.createClass({
       <DocumentTitle title={this.getTitle()}>
         <div className="app">
           {this.state.hooks}
-          {this.state.showBroadcast &&
-            <BroadcastModal closeBroadcast={this.closeBroadcast} />}
+          {this.state.showBroadcast && (
+            <BroadcastModal closeBroadcast={this.closeBroadcast} />
+          )}
           {this.props.children}
         </div>
       </DocumentTitle>
     );
-  }
+  },
 });
 
 export default OrganizationContext;

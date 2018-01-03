@@ -11,7 +11,7 @@ export default class ApiForm extends Form {
     ...Form.propTypes,
     onSubmit: PropTypes.func,
     apiMethod: PropTypes.string.isRequired,
-    apiEndpoint: PropTypes.string.isRequired
+    apiEndpoint: PropTypes.string.isRequired,
   };
 
   constructor(props, context) {
@@ -35,7 +35,7 @@ export default class ApiForm extends Form {
     this.props.onSubmit && this.props.onSubmit(data);
     this.setState(
       {
-        state: FormState.SAVING
+        state: FormState.SAVING,
       },
       () => {
         let loadingIndicator = IndicatorStore.add(t('Saving changes..'));
@@ -43,13 +43,15 @@ export default class ApiForm extends Form {
           method: this.props.apiMethod,
           data,
           success: result => {
-            IndicatorStore.remove(loadingIndicator);
             this.onSubmitSuccess(result);
           },
           error: error => {
-            IndicatorStore.remove(loadingIndicator);
+            IndicatorStore.add(t('There was an error saving your changes.'), 'error');
             this.onSubmitError(error);
-          }
+          },
+          complete: () => {
+            IndicatorStore.remove(loadingIndicator);
+          },
         });
       }
     );

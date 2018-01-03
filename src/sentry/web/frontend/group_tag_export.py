@@ -2,8 +2,10 @@ from __future__ import absolute_import
 
 from django.http import Http404
 
+from sentry import tagstore
+from sentry.api.base import EnvironmentMixin
 from sentry.models import (
-    EventUser, GroupTagValue, TagKey, TagKeyStatus, Group, get_group_with_redirect
+    Environment, EventUser, Group, get_group_with_redirect
 )
 from sentry.web.frontend.base import ProjectView
 from sentry.web.frontend.mixins.csv import CsvMixin
@@ -19,7 +21,7 @@ def attach_eventuser(project_id):
     return wrapped
 
 
-class GroupTagExportView(ProjectView, CsvMixin):
+class GroupTagExportView(ProjectView, CsvMixin, EnvironmentMixin):
     required_scope = 'event:read'
 
     def get_header(self, key):
@@ -67,19 +69,21 @@ class GroupTagExportView(ProjectView, CsvMixin):
         except Group.DoesNotExist:
             raise Http404
 
-        if TagKey.is_reserved_key(key):
+        if tagstore.is_reserved_key(key):
             lookup_key = 'sentry:{0}'.format(key)
         else:
             lookup_key = key
 
+        try:
+            environment_id = self._get_environment_id_from_request(request, project.organization_id)
+        except Environment.DoesNotExist:
+            # if the environment doesn't exist then the tag can't possibly exist
+            raise Http404
+
         # validate existance as it may be deleted
         try:
-            TagKey.objects.get(
-                project_id=group.project_id,
-                key=lookup_key,
-                status=TagKeyStatus.VISIBLE,
-            )
-        except TagKey.DoesNotExist:
+            tagstore.get_tag_key(project.id, environment_id, lookup_key)
+        except tagstore.TagKeyNotFound:
             raise Http404
 
         if key == 'user':
@@ -88,10 +92,7 @@ class GroupTagExportView(ProjectView, CsvMixin):
             callbacks = []
 
         queryset = RangeQuerySetWrapper(
-            GroupTagValue.objects.filter(
-                group_id=group.id,
-                key=lookup_key,
-            ),
+            tagstore.get_group_tag_value_qs(group.project_id, group.id, environment_id, lookup_key),
             callbacks=callbacks,
         )
 

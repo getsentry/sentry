@@ -7,6 +7,7 @@ from .endpoints.api_application_details import ApiApplicationDetailsEndpoint
 from .endpoints.api_authorizations import ApiAuthorizationsEndpoint
 from .endpoints.api_tokens import ApiTokensEndpoint
 from .endpoints.auth_index import AuthIndexEndpoint
+from .endpoints.authenticator_index import AuthenticatorIndexEndpoint
 from .endpoints.broadcast_index import BroadcastIndexEndpoint
 from .endpoints.catchall import CatchallEndpoint
 from .endpoints.event_details import EventDetailsEndpoint
@@ -30,11 +31,17 @@ from .endpoints.group_tombstone import GroupTombstoneEndpoint
 from .endpoints.group_user_reports import GroupUserReportsEndpoint
 from .endpoints.index import IndexEndpoint
 from .endpoints.internal_queue_tasks import InternalQueueTasksEndpoint
+from .endpoints.internal_quotas import InternalQuotasEndpoint
 from .endpoints.internal_stats import InternalStatsEndpoint
 from .endpoints.legacy_project_redirect import LegacyProjectRedirectEndpoint
 from .endpoints.organization_access_request_details import OrganizationAccessRequestDetailsEndpoint
 from .endpoints.organization_activity import OrganizationActivityEndpoint
 from .endpoints.organization_auditlogs import OrganizationAuditLogsEndpoint
+from .endpoints.organization_api_key_index import OrganizationApiKeyIndexEndpoint
+from .endpoints.organization_api_key_details import OrganizationApiKeyDetailsEndpoint
+from .endpoints.organization_auth_providers import OrganizationAuthProvidersEndpoint
+from .endpoints.organization_auth_provider_details import OrganizationAuthProviderDetailsEndpoint
+from .endpoints.organization_auth_provider_send_reminders import OrganizationAuthProviderSendRemindersEndpoint
 from .endpoints.organization_details import OrganizationDetailsEndpoint
 from .endpoints.organization_shortid import ShortIdLookupEndpoint
 from .endpoints.organization_slugs import SlugsUpdateEndpoint
@@ -83,6 +90,10 @@ from .endpoints.project_key_stats import ProjectKeyStatsEndpoint
 from .endpoints.project_member_index import ProjectMemberIndexEndpoint
 from .endpoints.project_plugins import ProjectPluginsEndpoint
 from .endpoints.project_plugin_details import ProjectPluginDetailsEndpoint
+from .endpoints.project_release_details import ProjectReleaseDetailsEndpoint
+from .endpoints.project_release_files import ProjectReleaseFilesEndpoint
+from .endpoints.project_release_file_details import ProjectReleaseFileDetailsEndpoint
+from .endpoints.project_release_commits import ProjectReleaseCommitsEndpoint
 from .endpoints.project_releases import ProjectReleasesEndpoint
 from .endpoints.project_releases_token import ProjectReleasesTokenEndpoint
 from .endpoints.project_rules import ProjectRulesEndpoint
@@ -96,22 +107,21 @@ from .endpoints.project_tagkey_values import ProjectTagKeyValuesEndpoint
 from .endpoints.project_processingissues import ProjectProcessingIssuesEndpoint, \
     ProjectProcessingIssuesFixEndpoint, ProjectProcessingIssuesDiscardEndpoint
 from .endpoints.project_reprocessing import ProjectReprocessingEndpoint
+from .endpoints.project_servicehooks import ProjectServiceHooksEndpoint
+from .endpoints.project_servicehook_details import ProjectServiceHookDetailsEndpoint
 from .endpoints.project_user_details import ProjectUserDetailsEndpoint
 from .endpoints.project_user_reports import ProjectUserReportsEndpoint
 from .endpoints.project_user_stats import ProjectUserStatsEndpoint
 from .endpoints.project_users import ProjectUsersEndpoint
 from .endpoints.filechange import CommitFileChangeEndpoint
 from .endpoints.issues_resolved_in_release import IssuesResolvedInReleaseEndpoint
-from .endpoints.project_release_details import ProjectReleaseDetailsEndpoint
-from .endpoints.project_release_files import ProjectReleaseFilesEndpoint
-from .endpoints.project_release_file_details import ProjectReleaseFileDetailsEndpoint
-from .endpoints.project_release_commits import ProjectReleaseCommitsEndpoint
 from .endpoints.release_deploys import ReleaseDeploysEndpoint
 from .endpoints.dsym_files import DSymFilesEndpoint, \
     UnknownDSymFilesEndpoint, AssociateDSymFilesEndpoint
 from .endpoints.shared_group_details import SharedGroupDetailsEndpoint
 from .endpoints.system_health import SystemHealthEndpoint
 from .endpoints.system_options import SystemOptionsEndpoint
+from .endpoints.sudo import SudoEndpoint
 from .endpoints.team_details import TeamDetailsEndpoint
 from .endpoints.team_groups_new import TeamGroupsNewEndpoint
 from .endpoints.team_groups_trending import TeamGroupsTrendingEndpoint
@@ -124,7 +134,10 @@ from .endpoints.user_identity_details import UserIdentityDetailsEndpoint
 from .endpoints.user_index import UserIndexEndpoint
 from .endpoints.user_details import UserDetailsEndpoint
 from .endpoints.user_organizations import UserOrganizationsEndpoint
+from .endpoints.user_notification_details import UserNotificationDetailsEndpoint
 from .endpoints.event_file_committers import EventFileCommittersEndpoint
+from .endpoints.setup_wizard import SetupWizard
+
 
 urlpatterns = patterns(
     '',
@@ -145,13 +158,23 @@ urlpatterns = patterns(
         ApiAuthorizationsEndpoint.as_view(),
         name='sentry-api-0-api-authorizations'
     ),
-    url(r'^api-tokens/$', ApiTokensEndpoint.as_view(), name='sentry-api-0-api-tokens'),
+    url(r'^api-tokens/$', ApiTokensEndpoint.as_view(),
+        name='sentry-api-0-api-tokens'),
 
     # Auth
     url(r'^auth/$', AuthIndexEndpoint.as_view(), name='sentry-api-0-auth'),
 
+    # List Authentiactors
+    url(r'^authenticators/$',
+        AuthenticatorIndexEndpoint.as_view(),
+        name='sentry-api-0-authenticator-index'),
+
+    # Sudo
+    url(r'^sudo/$', SudoEndpoint.as_view(), name='sentry-api-0-sudo'),
+
     # Broadcasts
-    url(r'^broadcasts/$', BroadcastIndexEndpoint.as_view(), name='sentry-api-0-broadcast-index'),
+    url(r'^broadcasts/$', BroadcastIndexEndpoint.as_view(),
+        name='sentry-api-0-broadcast-index'),
 
     # Users
     url(r'^users/$', UserIndexEndpoint.as_view(), name='sentry-api-0-user-index'),
@@ -180,6 +203,11 @@ urlpatterns = patterns(
         UserOrganizationsEndpoint.as_view(),
         name='sentry-api-0-user-organizations'
     ),
+    url(
+        r'^users/(?P<user_id>[^\/]+)/notifications/$',
+        UserNotificationDetailsEndpoint.as_view(),
+        name='sentry-api-0-user-notifications'
+    ),
 
     # Organizations
     url(
@@ -201,6 +229,11 @@ urlpatterns = patterns(
         name='sentry-api-0-short-ids-update'
     ),
     url(
+        r'^organizations/(?P<organization_slug>[^\/]+)/access-requests/$',
+        OrganizationAccessRequestDetailsEndpoint.as_view(),
+        name='sentry-api-0-organization-access-requests'
+    ),
+    url(
         r'^organizations/(?P<organization_slug>[^\/]+)/access-requests/(?P<request_id>\d+)/$',
         OrganizationAccessRequestDetailsEndpoint.as_view(),
         name='sentry-api-0-organization-access-request-details'
@@ -211,9 +244,34 @@ urlpatterns = patterns(
         name='sentry-api-0-organization-activity'
     ),
     url(
+        r'^organizations/(?P<organization_slug>[^\/]+)/api-keys/$',
+        OrganizationApiKeyIndexEndpoint.as_view(),
+        name='sentry-api-0-organization-api-key-index'
+    ),
+    url(
+        r'^organizations/(?P<organization_slug>[^\/]+)/api-keys/(?P<api_key_id>[^\/]+)/$',
+        OrganizationApiKeyDetailsEndpoint.as_view(),
+        name='sentry-api-0-organization-api-key-details'
+    ),
+    url(
         r'^organizations/(?P<organization_slug>[^\/]+)/audit-logs/$',
         OrganizationAuditLogsEndpoint.as_view(),
         name='sentry-api-0-organization-audit-logs'
+    ),
+    url(
+        r'^organizations/(?P<organization_slug>[^\/]+)/auth-provider/$',
+        OrganizationAuthProviderDetailsEndpoint.as_view(),
+        name='sentry-api-0-organization-auth-provider'
+    ),
+    url(
+        r'^organizations/(?P<organization_slug>[^\/]+)/auth-providers/$',
+        OrganizationAuthProvidersEndpoint.as_view(),
+        name='sentry-api-0-organization-auth-providers'
+    ),
+    url(
+        r'^organizations/(?P<organization_slug>[^\/]+)/auth-provider/send-reminders/$',
+        OrganizationAuthProviderSendRemindersEndpoint.as_view(),
+        name='sentry-api-0-organization-auth-provider-send-reminders'
     ),
     url(
         r'^organizations/(?P<organization_slug>[^\/]+)/config/integrations/$',
@@ -389,7 +447,8 @@ urlpatterns = patterns(
     ),
 
     # Projects
-    url(r'^projects/$', ProjectIndexEndpoint.as_view(), name='sentry-api-0-projects'),
+    url(r'^projects/$', ProjectIndexEndpoint.as_view(),
+        name='sentry-api-0-projects'),
     url(
         r'^projects/(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/$',
         ProjectDetailsEndpoint.as_view(),
@@ -436,6 +495,21 @@ urlpatterns = patterns(
         name='sentry-api-0-event-file-committers'
     ),
     url(
+        r'^projects/(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/files/dsyms/$',
+        DSymFilesEndpoint.as_view(),
+        name='sentry-api-0-dsym-files'
+    ),
+    url(
+        r'^projects/(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/files/dsyms/unknown/$',
+        UnknownDSymFilesEndpoint.as_view(),
+        name='sentry-api-0-unknown-dsym-files'
+    ),
+    url(
+        r'^projects/(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/files/dsyms/associate/$',
+        AssociateDSymFilesEndpoint.as_view(),
+        name='sentry-api-0-associate-dsym-files'
+    ),
+    url(
         r'^projects/(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/filters/$',
         ProjectFiltersEndpoint.as_view(),
         name='sentry-api-0-project-filters'
@@ -444,6 +518,14 @@ urlpatterns = patterns(
         r'^projects/(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/filters/(?P<filter_id>[\w-]+)/$',
         ProjectFilterDetailsEndpoint.as_view(),
         name='sentry-api-0-project-filters'
+    ),
+    url(
+        r'^projects/(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/hooks/$',
+        ProjectServiceHooksEndpoint.as_view(),
+    ),
+    url(
+        r'^projects/(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/hooks/(?P<hook_id>[^\/]+)/$',
+        ProjectServiceHookDetailsEndpoint.as_view(),
     ),
     url(
         r'^projects/(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/(?:issues|groups)/$',
@@ -508,21 +590,6 @@ urlpatterns = patterns(
         r'^projects/(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/releases/(?P<version>[^/]+)/files/(?P<file_id>\d+)/$',
         ProjectReleaseFileDetailsEndpoint.as_view(),
         name='sentry-api-0-project-release-file-details'
-    ),
-    url(
-        r'^projects/(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/files/dsyms/$',
-        DSymFilesEndpoint.as_view(),
-        name='sentry-api-0-dsym-files'
-    ),
-    url(
-        r'^projects/(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/files/dsyms/unknown/$',
-        UnknownDSymFilesEndpoint.as_view(),
-        name='sentry-api-0-unknown-dsym-files'
-    ),
-    url(
-        r'^projects/(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/files/dsyms/associate/$',
-        AssociateDSymFilesEndpoint.as_view(),
-        name='sentry-api-0-associate-dsym-files'
     ),
     url(
         r'^projects/(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/rules/$',
@@ -733,12 +800,30 @@ urlpatterns = patterns(
     ),
 
     # Internal
-    url(r'^internal/health/$', SystemHealthEndpoint.as_view(), name='sentry-api-0-system-health'),
+    url(r'^internal/health/$', SystemHealthEndpoint.as_view(),
+        name='sentry-api-0-system-health'),
     url(
         r'^internal/options/$', SystemOptionsEndpoint.as_view(), name='sentry-api-0-system-options'
     ),
+    url(r'^internal/quotas/$', InternalQuotasEndpoint.as_view()),
     url(r'^internal/queue/tasks/$', InternalQueueTasksEndpoint.as_view()),
-    url(r'^internal/stats/$', InternalStatsEndpoint.as_view(), name='sentry-api-0-internal-stats'),
+    url(r'^internal/stats/$', InternalStatsEndpoint.as_view(),
+        name='sentry-api-0-internal-stats'),
+
+    # Project Wizard
+    url(
+        r'^wizard/$',
+        SetupWizard.as_view(),
+        name='sentry-api-0-project-wizard-new'
+    ),
+
+    url(
+        r'^wizard/(?P<wizard_hash>[^\/]+)/$',
+        SetupWizard.as_view(),
+        name='sentry-api-0-project-wizard'
+    ),
+
+    # Catch all
     url(r'^$', IndexEndpoint.as_view(), name='sentry-api-index'),
     url(r'^', CatchallEndpoint.as_view(), name='sentry-api-catchall'),
 

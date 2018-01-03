@@ -2,8 +2,10 @@ from __future__ import absolute_import
 
 from uuid import uuid4
 
+from sentry import tagstore
+from sentry.tagstore.models import EventTag
 from sentry.models import (
-    Event, EventMapping, EventTag, Group, GroupAssignee, GroupHash, GroupMeta, GroupRedirect,
+    Event, EventMapping, Group, GroupAssignee, GroupHash, GroupMeta, GroupRedirect,
     ScheduledDeletion
 )
 from sentry.tasks.deletion import run_deletion
@@ -22,11 +24,27 @@ class DeleteGroupTest(TestCase):
             event_id='a' * 32,
             group_id=group.id,
         )
-        EventTag.objects.create(
-            event_id=event.id,
+        key = 'key'
+        value = 'value'
+        tk = tagstore.create_tag_key(
             project_id=project.id,
-            key_id=1,
-            value_id=1,
+            environment_id=self.environment.id,
+            key=key
+        )
+        tv = tagstore.create_tag_value(
+            project_id=project.id,
+            environment_id=self.environment.id,
+            key=key,
+            value=value
+        )
+        tagstore.create_event_tags(
+            event_id=event.id,
+            group_id=group.id,
+            project_id=project.id,
+            environment_id=self.environment.id,
+            tags=[
+                (tk.key, tv.value),
+            ],
         )
         GroupAssignee.objects.create(
             group=group,

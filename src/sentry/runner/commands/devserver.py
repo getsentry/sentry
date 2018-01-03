@@ -83,6 +83,10 @@ def devserver(reload, watchers, workers, browser_reload, styleguide, environment
         'worker-reload-mercy': 2,
         # We need stdin to support pdb in devserver
         'honour-stdin': True,
+        # accept ridiculously large files
+        'limit-post': 1 << 30,
+        # do something with chunked
+        'http-chunked-input': True,
     }
 
     if reload:
@@ -90,8 +94,23 @@ def devserver(reload, watchers, workers, browser_reload, styleguide, environment
 
     daemons = []
 
-    if watchers:
+    if watchers and not browser_reload:
         daemons += settings.SENTRY_WATCHERS
+
+    # For javascript dev, if browser reload and watchers, then:
+    # devserver listen on PORT + 1
+    # webpack dev server listen on PORT + 2
+    # proxy listen on PORT
+    if watchers and browser_reload:
+        new_port = port + 1
+        os.environ['WEBPACK_DEV_PROXY'] = '%s' % port
+        os.environ['WEBPACK_DEV_PORT'] = '%s' % (new_port + 1)
+        os.environ['SENTRY_DEVSERVER_PORT'] = '%s' % new_port
+        port = new_port
+
+        daemons += [
+            ('jsproxy', ['yarn', 'dev-proxy']), ('webpack', ['yarn', 'dev-server'])
+        ]
 
     if workers:
         if settings.CELERY_ALWAYS_EAGER:
@@ -140,8 +159,6 @@ def devserver(reload, watchers, workers, browser_reload, styleguide, environment
     from honcho.manager import Manager
 
     os.environ['PYTHONUNBUFFERED'] = 'true'
-    if browser_reload:
-        os.environ['WEBPACK_LIVERELOAD'] = '1'
 
     # Make sure that the environment is prepared before honcho takes over
     # This sets all the appropriate uwsgi env vars, etc

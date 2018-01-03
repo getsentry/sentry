@@ -4,8 +4,12 @@ import _ from 'lodash';
 import StreamTagActions from '../actions/streamTagActions';
 import MemberListStore from './memberListStore';
 
+const getUsername = ({isManaged, username, email}) => {
+  return !isManaged && username ? username : email;
+};
+
 const getMemberListStoreUsernames = () => {
-  return MemberListStore.getAll().map(user => user.username || user.email);
+  return MemberListStore.getAll().map(getUsername);
 };
 
 const StreamTagStore = Reflux.createStore({
@@ -29,28 +33,52 @@ const StreamTagStore = Reflux.createStore({
           // TODO(dcramer): remove muted once data is migrated and 9.0+
           'muted',
           'assigned',
-          'unassigned'
+          'unassigned',
         ],
-        predefined: true
+        predefined: true,
       },
       has: {
         key: 'has',
         name: 'Has Tag',
         values: [],
-        predefined: true
+        predefined: true,
       },
       assigned: {
         key: 'assigned',
         name: 'Assigned To',
         values: getMemberListStoreUsernames(),
-        predefined: true
+        predefined: true,
       },
       bookmarks: {
         key: 'bookmarks',
         name: 'Bookmarked By',
         values: getMemberListStoreUsernames(),
-        predefined: true
-      }
+        predefined: true,
+      },
+      lastSeen: {
+        key: 'lastSeen',
+        name: 'Last Seen',
+        values: ['-1h', '+1d', '-1w'],
+        predefined: true,
+      },
+      firstSeen: {
+        key: 'firstSeen',
+        name: 'First Seen',
+        values: ['-1h', '+1d', '-1w'],
+        predefined: true,
+      },
+      'event.timestamp': {
+        key: 'event.timestamp',
+        name: 'Event Timestamp',
+        values: ['2017-01-02', '>=2017-01-02T01:00:00', '<2017-01-02T02:00:00'],
+        predefined: true,
+      },
+      timesSeen: {
+        key: 'timesSeen',
+        name: 'Times Seen',
+        values: [],
+        predefined: true,
+      },
     };
     this.trigger(this.tags);
   },
@@ -79,7 +107,7 @@ const StreamTagStore = Reflux.createStore({
         (obj, tag) => {
           tag = Object.assign(
             {
-              values: []
+              values: [],
             },
             tag
           );
@@ -104,7 +132,7 @@ const StreamTagStore = Reflux.createStore({
     assignedTag.values.unshift('me');
     this.tags.bookmarks.values = assignedTag.values;
     this.trigger(this.tags);
-  }
+  },
 });
 
 export default StreamTagStore;

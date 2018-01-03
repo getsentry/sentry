@@ -1,0 +1,44 @@
+import React from 'react';
+import createReactClass from 'create-react-class';
+import Reflux from 'reflux';
+
+import {fetchPlugins, enablePlugin, disablePlugin} from '../../actionCreators/plugins';
+import ApiMixin from '../../mixins/apiMixin';
+import PluginsStore from '../../stores/pluginsStore';
+import ProjectPlugins from './projectPlugins';
+
+const ProjectPluginsContainer = createReactClass({
+  displayName: 'ProjectPluginsContainer',
+  mixins: [ApiMixin, Reflux.connect(PluginsStore, 'store')],
+
+  componentDidMount() {
+    this.fetchData();
+  },
+
+  fetchData() {
+    fetchPlugins(this.api, this.props.params);
+  },
+
+  handleChange(pluginId, shouldEnable) {
+    let {projectId, orgId} = this.props.params;
+    let actionCreator = shouldEnable ? enablePlugin : disablePlugin;
+    actionCreator(this.api, {projectId, orgId, pluginId});
+  },
+
+  render() {
+    let {store} = this.state;
+
+    return (
+      <ProjectPlugins
+        {...this.props}
+        onError={this.fetchData}
+        onChange={this.handleChange}
+        loading={store.loading}
+        error={store.error}
+        plugins={store.plugins}
+      />
+    );
+  },
+});
+
+export default ProjectPluginsContainer;

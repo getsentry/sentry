@@ -1,3 +1,4 @@
+import PropTypes from 'prop-types';
 import React from 'react';
 import {shallow, mount} from 'enzyme';
 
@@ -7,25 +8,27 @@ import {categoryLists} from 'app/views/onboarding/utils';
 import sinon from 'sinon';
 
 describe('PlatformPicker', function() {
+  let sandbox;
+
   beforeEach(function() {
-    this.sandbox = sinon.sandbox.create();
-    this.stubbedApiRequest = this.sandbox.stub(Client.prototype, 'request');
+    sandbox = sinon.sandbox.create();
+    this.stubbedApiRequest = sandbox.stub(Client.prototype, 'request');
   });
 
   afterEach(function() {
-    this.sandbox.restore();
+    sandbox.restore();
   });
 
   describe('render()', function() {
     const baseProps = {
       platform: '',
       setPlatform: () => {},
-      location: {query: {}}
+      location: {query: {}},
     };
 
     it('should only render Mobile platforms under Mobile tab', function() {
       let props = {
-        ...baseProps
+        ...baseProps,
       };
 
       let wrapper = shallow(<PlatformPicker {...props} />);
@@ -42,7 +45,7 @@ describe('PlatformPicker', function() {
 
     it('should render renderPlatformList with Python when filtered with py', function() {
       let props = {
-        ...baseProps
+        ...baseProps,
       };
 
       let wrapper = shallow(<PlatformPicker {...props} />);
@@ -60,7 +63,7 @@ describe('PlatformPicker', function() {
 
     it('should render renderPlatformList with community SDKs message if platform not found', function() {
       let props = {
-        ...baseProps
+        ...baseProps,
       };
 
       let wrapper = shallow(<PlatformPicker {...props} />);
@@ -73,19 +76,22 @@ describe('PlatformPicker', function() {
 
     it('should update State.tab onClick when particular tab is clicked', function() {
       let props = {
-        ...baseProps
+        ...baseProps,
       };
 
       let wrapper = mount(<PlatformPicker {...props} />, {
         context: {
-          router: TestStubs.router()
+          router: TestStubs.router(),
         },
         childContextTypes: {
-          router: React.PropTypes.object
-        }
+          router: PropTypes.object,
+        },
       });
 
-      let testListLink = wrapper.find('ListLink').last().find('a');
+      let testListLink = wrapper
+        .find('ListLink')
+        .last()
+        .find('a');
       expect(wrapper.state().tab).toBe('Popular');
       expect(wrapper.state().tab).not.toBe('All');
 

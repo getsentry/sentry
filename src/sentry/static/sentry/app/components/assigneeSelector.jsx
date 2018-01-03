@@ -1,5 +1,6 @@
 import PropTypes from 'prop-types';
 import React from 'react';
+import createReactClass from 'create-react-class';
 import Reflux from 'reflux';
 import classNames from 'classnames';
 
@@ -17,18 +18,20 @@ import MemberListStore from '../stores/memberListStore';
 import MenuItem from './menuItem';
 import TooltipMixin from '../mixins/tooltip';
 
-const AssigneeSelector = React.createClass({
+const AssigneeSelector = createReactClass({
+  displayName: 'AssigneeSelector',
+
   propTypes: {
-    id: PropTypes.string.isRequired
+    id: PropTypes.string.isRequired,
   },
 
   mixins: [
     Reflux.listenTo(GroupStore, 'onGroupChange'),
     Reflux.connect(MemberListStore, 'memberList'),
     TooltipMixin({
-      selector: '.tip'
+      selector: '.tip',
     }),
-    ApiMixin
+    ApiMixin,
   ],
 
   statics: {
@@ -56,7 +59,7 @@ const AssigneeSelector = React.createClass({
       return [members[sessionUserIndex]]
         .concat(members.slice(0, sessionUserIndex))
         .concat(members.slice(sessionUserIndex + 1));
-    }
+    },
   },
 
   getInitialState() {
@@ -66,7 +69,8 @@ const AssigneeSelector = React.createClass({
       assignedTo: group.assignedTo,
       memberList: MemberListStore.loaded ? MemberListStore.getAll() : null,
       filter: '',
-      loading: false
+      isOpen: false,
+      loading: false,
     };
   },
 
@@ -76,16 +80,17 @@ const AssigneeSelector = React.createClass({
       let group = GroupStore.get(this.props.id);
       this.setState({
         assignedTo: group.assignedTo,
-        loading
+        loading,
       });
     }
   },
 
   shouldComponentUpdate(nextProps, nextState) {
-    if (nextState.filter !== this.state.filter) {
-      return true;
-    }
-    if (nextState.loading !== this.state.loading) {
+    if (
+      nextState.isOpen !== this.state.isOpen ||
+      nextState.filter !== this.state.filter ||
+      nextState.loading !== this.state.loading
+    ) {
       return true;
     }
 
@@ -102,12 +107,6 @@ const AssigneeSelector = React.createClass({
   },
 
   componentDidUpdate(prevProps, prevState) {
-    // XXX(dcramer): fix odd dedraw issue as of Chrome 45.0.2454.15 dev (64-bit)
-    if (!this.containerRef) {
-      let node = jQuery(this.containerRef);
-      node.hide().show(0);
-    }
-
     let oldAssignee = prevState.assignedTo && prevState.assignedTo.id;
     let newAssignee = this.state.assignedTo && this.state.assignedTo.id;
     if (oldAssignee !== newAssignee) {
@@ -125,7 +124,7 @@ const AssigneeSelector = React.createClass({
     let group = GroupStore.get(this.props.id);
     this.setState({
       assignedTo: group && group.assignedTo,
-      loading: GroupStore.hasStatus(this.props.id, 'assignTo')
+      loading: GroupStore.hasStatus(this.props.id, 'assignTo'),
     });
   },
 
@@ -141,11 +140,10 @@ const AssigneeSelector = React.createClass({
 
   onFilterKeyUp(evt) {
     if (evt.key === 'Escape') {
-      if (!this.dropdownRef) return;
-      this.dropdownRef.close();
+      this.onDropdownClose();
     } else {
       this.setState({
-        filter: evt.target.value
+        filter: evt.target.value,
       });
     }
   },
@@ -162,15 +160,26 @@ const AssigneeSelector = React.createClass({
     }
   },
 
-  onDropdownOpen() {
-    if (this.filterRef) {
-      this.filterRef.focus();
+  onFilterMount(ref) {
+    if (ref) {
+      // focus filter input
+      ref.focus();
     }
+  },
+
+  onFilterClick(e) {
+    // Prevent dropdown menu from closing when filter input is clicked
+    e.stopPropagation();
+  },
+
+  onDropdownOpen() {
+    this.setState({isOpen: true});
   },
 
   onDropdownClose() {
     this.setState({
-      filter: ''
+      isOpen: false,
+      filter: '',
     });
   },
 
@@ -186,9 +195,7 @@ const AssigneeSelector = React.createClass({
     return (
       <span>
         {text.substr(0, idx)}
-        <strong className="highlight">
-          {text.substr(idx, highlightText.length)}
-        </strong>
+        <strong className="highlight">{text.substr(idx, highlightText.length)}</strong>
         {text.substr(idx + highlightText.length)}
       </span>
     );
@@ -199,77 +206,97 @@ const AssigneeSelector = React.createClass({
     let memberListLoading = this.state.memberList === null;
 
     let className = classNames('assignee-selector anchor-right', {
-      unassigned: !assignedTo
+      unassigned: !assignedTo,
     });
 
     let members = AssigneeSelector.filterMembers(memberList, filter);
     members = AssigneeSelector.putSessionUserFirst(members);
 
-    let memberNodes = members && members.length
-      ? members.map(item => {
+    let memberNodes =
+      members && members.length ? (
+        members.map(item => {
           return (
             <MenuItem
               key={item.id}
               disabled={loading}
-              onSelect={this.assignTo.bind(this, item)}>
+              onSelect={this.assignTo.bind(this, item)}
+            >
               <Avatar user={item} className="avatar" size={48} />
               {this.highlight(item.name || item.email, filter)}
             </MenuItem>
           );
         })
-      : <li className="not-found">
+      ) : (
+        <li className="not-found">
           <span>{t('No matching users found.')}</span>
-        </li>;
+        </li>
+      );
 
     let tooltipTitle = assignedTo ? userDisplayName(assignedTo) : null;
 
+    // Outter div is needed to make tooltip work
     return (
-      <div ref={ref => (this.containerRef = ref)}>
+      <div>
         <div className={classNames(className, 'tip')} title={tooltipTitle}>
-          {loading
-            ? <LoadingIndicator mini />
-            : <DropdownLink
-                ref={ref => (this.dropdownRef = ref)}
-                className="assignee-selector-toggle"
-                onOpen={this.onDropdownOpen}
-                onClose={this.onDropdownClose}
-                title={
-                  assignedTo
-                    ? <Avatar user={assignedTo} className="avatar" size={48} />
-                    : <span className="icon-user" />
-                }>
-                {!memberListLoading &&
-                  <MenuItem noAnchor>
-                    <input
-                      type="text"
-                      className="form-control input-sm"
-                      placeholder={t('Filter people')}
-                      ref={ref => (this.filterRef = ref)}
-                      onKeyDown={this.onFilterKeyDown}
-                      onKeyUp={this.onFilterKeyUp}
-                    />
-                  </MenuItem>}
-                {!memberListLoading &&
-                  assignedTo &&
+          {loading ? (
+            <LoadingIndicator mini />
+          ) : (
+            <DropdownLink
+              className="assignee-selector-toggle"
+              onOpen={this.onDropdownOpen}
+              onClose={this.onDropdownClose}
+              isOpen={this.state.isOpen}
+              alwaysRenderMenu={false}
+              title={
+                assignedTo ? (
+                  <Avatar user={assignedTo} className="avatar" size={48} />
+                ) : (
+                  <span className="icon-user" />
+                )
+              }
+            >
+              {!memberListLoading && (
+                <MenuItem noAnchor>
+                  <input
+                    type="text"
+                    className="form-control input-sm"
+                    placeholder={t('Filter people')}
+                    ref={ref => this.onFilterMount(ref)}
+                    onClick={this.onFilterClick}
+                    onKeyDown={this.onFilterKeyDown}
+                    onKeyUp={this.onFilterKeyUp}
+                  />
+                </MenuItem>
+              )}
+              {!memberListLoading &&
+                assignedTo && (
                   <MenuItem
                     className="clear-assignee"
                     disabled={!loading}
-                    onSelect={this.clearAssignTo}>
+                    onSelect={this.clearAssignTo}
+                  >
                     <span className="icon-circle-cross" /> {t('Clear Assignee')}
-                  </MenuItem>}
-                {!memberListLoading && memberNodes}
+                  </MenuItem>
+                )}
+              {!memberListLoading && (
+                <li>
+                  <ul>{memberNodes}</ul>
+                </li>
+              )}
 
-                {memberListLoading &&
-                  <li>
-                    <FlowLayout center className="list-loading-container">
-                      <LoadingIndicator mini />
-                    </FlowLayout>
-                  </li>}
-              </DropdownLink>}
+              {memberListLoading && (
+                <li>
+                  <FlowLayout center className="list-loading-container">
+                    <LoadingIndicator mini />
+                  </FlowLayout>
+                </li>
+              )}
+            </DropdownLink>
+          )}
         </div>
       </div>
     );
-  }
+  },
 });
 
 export default AssigneeSelector;

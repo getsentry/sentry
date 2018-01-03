@@ -12,37 +12,39 @@
   ],
   "plugins": [
     "emotion",
+    "transform-decorators-legacy",
     "transform-class-properties",
     "transform-object-rest-spread",
     "lodash",
     "syntax-dynamic-import",
+    "react-hot-loader/babel",
     [
       "babel-plugin-transform-builtin-extend",
       {
-        "globals": [
-          "Array"
-        ]
+        "globals": ["Array"]
       }
     ],
     "idx"
   ],
   "env": {
+    "development": {
+      "plugins": [
+        ["emotion", {"sourceMap": true}]
+      ]
+    },
     "test": {
-      "presets": [
-        "react",
-        "latest"
-      ],
+      "presets": ["react", "latest"],
       "plugins": [
         "emotion",
+        "transform-decorators-legacy",
         "transform-class-properties",
         "transform-object-rest-spread",
         "dynamic-import-node",
+        "syntax-dynamic-import",
         [
           "babel-plugin-transform-builtin-extend",
           {
-            "globals": [
-              "Array"
-            ]
+            "globals": ["Array"]
           }
         ],
         "idx"

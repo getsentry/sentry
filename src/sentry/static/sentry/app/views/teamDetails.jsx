@@ -1,6 +1,11 @@
-import React from 'react';
 import {browserHistory} from 'react-router';
+import PropTypes from 'prop-types';
+import React from 'react';
+import createReactClass from 'create-react-class';
+import Reflux from 'reflux';
 
+import {fetchTeamDetails} from '../actionCreators/teams';
+import {t} from '../locale';
 import ApiMixin from '../mixins/apiMixin';
 import DropdownLink from '../components/dropdownLink';
 import ListLink from '../components/listLink';
@@ -8,22 +13,26 @@ import LoadingError from '../components/loadingError';
 import LoadingIndicator from '../components/loadingIndicator';
 import MenuItem from '../components/menuItem';
 import OrganizationState from '../mixins/organizationState';
-import OrganizationHomeContainer from '../components/organizations/homeContainer';
-import {t} from '../locale';
+import TeamStore from '../stores/teamStore';
+import recreateRoute from '../utils/recreateRoute';
 
-const TeamDetails = React.createClass({
-  mixins: [ApiMixin, OrganizationState],
+const TeamDetails = createReactClass({
+  displayName: 'TeamDetails',
 
-  getInitialState() {
-    return {
-      loading: true,
-      error: false,
-      team: null
-    };
+  propTypes: {
+    routes: PropTypes.array,
   },
 
-  componentWillMount() {
-    this.fetchData();
+  mixins: [ApiMixin, OrganizationState, Reflux.listenTo(TeamStore, 'onTeamStoreUpdate')],
+
+  getInitialState() {
+    let team = TeamStore.getBySlug(this.props.params.teamId);
+
+    return {
+      loading: !TeamStore.initialized,
+      error: false,
+      team,
+    };
   },
 
   componentWillReceiveProps(nextProps) {
@@ -35,81 +44,76 @@ const TeamDetails = React.createClass({
       this.setState(
         {
           loading: true,
-          error: false
+          error: false,
         },
         this.fetchData
       );
     }
   },
 
-  fetchData() {
-    let params = this.props.params;
-
-    this.api.request(`/teams/${params.orgId}/${params.teamId}/`, {
-      success: data => {
-        this.setState({
-          team: data,
-          loading: false,
-          error: false
-        });
-      },
-      error: () => {
-        this.setState({
-          loading: false,
-          error: true
-        });
-      }
+  onTeamStoreUpdate(...args) {
+    let team = TeamStore.getBySlug(this.props.params.teamId);
+    let loading = !TeamStore.initialized;
+    let error = !loading && !team;
+    this.setState({
+      team,
+      error,
+      loading,
     });
+  },
+
+  fetchData() {
+    fetchTeamDetails(this.api, this.props.params);
   },
 
   onTeamChange(data) {
     let team = this.state.team;
     if (data.slug !== team.slug) {
       let orgId = this.props.params.orgId;
-      browserHistory.pushState(
-        null,
-        `/organizations/${orgId}/teams/${data.slug}/settings/`
-      );
+      browserHistory.push(`/organizations/${orgId}/teams/${data.slug}/settings/`);
     } else {
       this.setState({
         team: {
           ...team,
-          ...data
-        }
+          ...data,
+        },
       });
     }
   },
 
   render() {
-    if (this.state.loading) return <LoadingIndicator />;
-    else if (this.state.error) return <LoadingError onRetry={this.fetchData} />;
-
+    let {params, routes, children} = this.props;
     let team = this.state.team;
-    let {orgId, teamId} = this.props.params;
-    let routePrefix = `/organizations/${orgId}/teams/${teamId}`;
+
+    if (this.state.loading) return <LoadingIndicator />;
+    else if (!team || this.state.error) return <LoadingError onRetry={this.fetchData} />;
+
+    let routePrefix = recreateRoute('', {routes, params, stepBack: -1}); //`/organizations/${orgId}/teams/${teamId}`;
     let access = this.getAccess();
 
     return (
-      <OrganizationHomeContainer>
+      <div>
         <h3>{team.name}</h3>
 
-        {access.has('team:admin') &&
+        {access.has('team:admin') && (
           <DropdownLink anchorRight title={t('More')}>
-            <MenuItem href={`${routePrefix}/remove/`}>{t('Remove Team')}</MenuItem>
-          </DropdownLink>}
+            <MenuItem href={`${routePrefix}remove/`}>{t('Remove Team')}</MenuItem>
+          </DropdownLink>
+        )}
 
         <ul className="nav nav-tabs border-bottom">
-          <ListLink to={`${routePrefix}/settings/`}>{t('Settings')}</ListLink>
-          <ListLink to={`${routePrefix}/members/`}>{t('Members')}</ListLink>
+          <ListLink to={`${routePrefix}settings/`}>{t('Settings')}</ListLink>
+          <ListLink to={`${routePrefix}members/`}>{t('Members')}</ListLink>
         </ul>
 
-        {React.cloneElement(this.props.children, {
-          team,
-          onTeamChange: this.onTeamChange
-        })}
-      </OrganizationHomeContainer>
+        {children &&
+          React.cloneElement(children, {
+            team,
+            onTeamChange: this.onTeamChange,
+          })}
+      </div>
     );
-  }
+  },
 });
 
 export default TeamDetails;

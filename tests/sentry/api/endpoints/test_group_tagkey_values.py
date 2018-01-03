@@ -1,6 +1,7 @@
 from __future__ import absolute_import
 
-from sentry.models import EventUser, GroupTagValue, TagKey, TagValue
+from sentry import tagstore
+from sentry.models import EventUser
 from sentry.testutils import APITestCase
 
 
@@ -10,15 +11,17 @@ class GroupTagKeyValuesTest(APITestCase):
 
         project = self.create_project()
         group = self.create_group(project=project)
-        TagKey.objects.create(project_id=project.id, key=key)
-        TagValue.objects.create(
+        tagstore.create_tag_key(project_id=project.id, environment_id=None, key=key)
+        tagstore.create_tag_value(
             project_id=project.id,
+            environment_id=None,
             key=key,
             value=value,
         )
-        GroupTagValue.objects.create(
+        tagstore.create_group_tag_value(
             project_id=project.id,
             group_id=group.id,
+            environment_id=None,
             key=key,
             value=value,
         )
@@ -44,18 +47,21 @@ class GroupTagKeyValuesTest(APITestCase):
             username='foo',
             ip_address='127.0.0.1',
         )
-        TagKey.objects.create(
+        tagstore.create_tag_key(
             project_id=project.id,
+            environment_id=None,
             key='sentry:user',
         )
-        TagValue.objects.create(
+        tagstore.create_tag_value(
             project_id=project.id,
+            environment_id=None,
             key='sentry:user',
             value=euser.tag_value,
         )
-        GroupTagValue.objects.create(
+        tagstore.create_group_tag_value(
             project_id=project.id,
             group_id=group.id,
+            environment_id=None,
             key='sentry:user',
             value=euser.tag_value,
         )

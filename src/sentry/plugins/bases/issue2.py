@@ -322,8 +322,6 @@ class IssueTrackingPlugin2(Plugin):
 
             return {
                 'error_type': 'config',
-                'title': self.get_title(),
-                'slug': self.slug,
                 'has_auth_configured': has_auth_configured,
                 'auth_provider': self.auth_provider,
                 'required_auth_settings': required_auth_settings,
@@ -332,7 +330,6 @@ class IssueTrackingPlugin2(Plugin):
         if self.needs_auth(project=group.project, request=request):
             return {
                 'error_type': 'auth',
-                'title': self.get_title(),
                 'auth_url': reverse('socialauth_associate', args=[self.auth_provider])
             }
 
@@ -344,7 +341,10 @@ class IssueTrackingPlugin2(Plugin):
         item = {
             'slug': self.slug,
             'allowed_actions': self.allowed_actions,
-            'title': self.get_title()
+            # TODO(dcramer): remove in Sentry 8.22+
+            'title': self.get_title(),
+            'name': self.get_title(),
+            'shortName': self.get_short_title(),
         }
         if issue_id:
             item['issue'] = {

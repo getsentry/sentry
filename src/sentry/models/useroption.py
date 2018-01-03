@@ -8,8 +8,8 @@ sentry.models.useroption
 from __future__ import absolute_import, print_function
 
 from celery.signals import task_postrun
-from django.core.signals import request_finished
 from django.conf import settings
+from django.core.signals import request_finished
 from django.db import models
 
 from sentry.db.models import FlexibleForeignKey, Model, sane_repr
@@ -21,6 +21,7 @@ class UserOptionValue(object):
     # 'workflow:notifications'
     all_conversations = '0'
     participating_only = '1'
+    no_conversations = '2'
     # 'deploy-emails
     all_deploys = '2'
     committed_deploys_only = '3'

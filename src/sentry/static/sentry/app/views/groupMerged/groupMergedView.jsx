@@ -1,4 +1,5 @@
 import React from 'react';
+import createReactClass from 'create-react-class';
 import Reflux from 'reflux';
 
 import {t} from '../../locale';
@@ -9,7 +10,8 @@ import GroupingStore from '../../stores/groupingStore';
 import LoadingError from '../../components/loadingError';
 import LoadingIndicator from '../../components/loadingIndicator';
 
-const GroupMergedView = React.createClass({
+const GroupMergedView = createReactClass({
+  displayName: 'GroupMergedView',
   mixins: [ApiMixin, Reflux.listenTo(GroupingStore, 'onGroupingUpdate')],
 
   getInitialState() {
@@ -18,7 +20,7 @@ const GroupMergedView = React.createClass({
       mergedItems: [],
       loading: true,
       error: false,
-      query: queryParams.query || ''
+      query: queryParams.query || '',
     };
   },
 
@@ -34,7 +36,7 @@ const GroupMergedView = React.createClass({
       let queryParams = nextProps.location.query;
       this.setState(
         {
-          query: queryParams.query
+          query: queryParams.query,
         },
         this.fetchData
       );
@@ -47,7 +49,7 @@ const GroupMergedView = React.createClass({
         mergedItems,
         mergedLinks,
         loading: typeof loading !== 'undefined' ? loading : false,
-        error: typeof error !== 'undefined' ? error : false
+        error: typeof error !== 'undefined' ? error : false,
       });
     }
   },
@@ -57,7 +59,7 @@ const GroupMergedView = React.createClass({
     let queryParams = {
       ...this.props.location.query,
       limit: 50,
-      query: this.state.query
+      query: this.state.query,
     };
 
     return `/issues/${params.groupId}/${type}/?${jQuery.param(queryParams)}`;
@@ -68,8 +70,8 @@ const GroupMergedView = React.createClass({
       {
         endpoint: this.getEndpoint('hashes'),
         dataKey: 'merged',
-        queryParams: this.props.location.query
-      }
+        queryParams: this.props.location.query,
+      },
     ]);
   },
 
@@ -82,7 +84,7 @@ const GroupMergedView = React.createClass({
       groupId: this.props.params.groupId,
       loadingMessage: `${t('Unmerging events')}...`,
       successMessage: t('Events successfully queued for unmerging.'),
-      errorMessage: t('Unable to queue events for unmerging.')
+      errorMessage: t('Unable to queue events for unmerging.'),
     });
   },
 
@@ -95,21 +97,21 @@ const GroupMergedView = React.createClass({
     return (
       <div>
         <div className="alert alert-block alert-warning">
-          <strong>{t('Warning')}:</strong>
-          {' '}
+          <strong>{t('Warning')}:</strong>{' '}
           {t(
             'This is an experimental feature. Data may not be immediately available while we process unmerges.'
           )}
         </div>
 
         {isLoading && <LoadingIndicator />}
-        {isError &&
+        {isError && (
           <LoadingError
             message="Unable to load merged events, please try again later"
             onRetry={this.fetchData}
-          />}
+          />
+        )}
 
-        {isLoadedSuccessfully &&
+        {isLoadedSuccessfully && (
           <MergedList
             items={this.state.mergedItems}
             orgId={orgId}
@@ -120,10 +122,11 @@ const GroupMergedView = React.createClass({
             hiddenMap={this.state.hidden}
             onUnmerge={this.handleUnmerge}
             onToggleCollapse={GroupingActions.toggleCollapseFingerprints}
-          />}
+          />
+        )}
       </div>
     );
-  }
+  },
 });
 
 export default GroupMergedView;

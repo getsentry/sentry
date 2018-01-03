@@ -10,10 +10,10 @@ class TeamStatsTest(APITestCase):
     def test_simple(self):
         self.login_as(user=self.user)
 
-        team = self.create_team(name='foo')
+        team = self.create_team(members=[self.user])
         project_1 = self.create_project(team=team, name='a')
         project_2 = self.create_project(team=team, name='b')
-        team_2 = self.create_team(name='bar')
+        team_2 = self.create_team(members=[self.user])
         project_3 = self.create_project(team=team_2, name='c')
 
         tsdb.incr(tsdb.models.project, project_1.id, count=3)
@@ -27,7 +27,7 @@ class TeamStatsTest(APITestCase):
                 'team_slug': team.slug,
             }
         )
-        response = self.client.get(url, format='json')
+        response = self.client.get(url)
 
         assert response.status_code == 200, response.content
         assert response.data[-1][1] == 8, response.data

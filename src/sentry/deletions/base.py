@@ -1,9 +1,12 @@
 from __future__ import absolute_import, print_function
 
 import logging
+import re
 
 from sentry.constants import ObjectStatus
 from sentry.utils.query import bulk_delete_objects
+
+_leaf_re = re.compile(r'^(Event|Group)(.+)')
 
 
 class BaseRelation(object):
@@ -60,6 +63,12 @@ class BaseDeletionTask(object):
             # ModelRelation(Model, {'parent_id__in': [i.id for id in instance_list]})
         ]
 
+    def extend_relations(self, child_relations, obj):
+        return child_relations
+
+    def extend_relations_bulk(self, child_relations, obj_list):
+        return child_relations
+
     def filter_relations(self, child_relations):
         if not self.skip_models or not child_relations:
             return child_relations
@@ -77,6 +86,7 @@ class BaseDeletionTask(object):
         self.mark_deletion_in_progress(instance_list)
 
         child_relations = self.get_child_relations_bulk(instance_list)
+        child_relations = self.extend_relations_bulk(child_relations, instance_list)
         child_relations = self.filter_relations(child_relations)
         if child_relations:
             has_more = self.delete_children(child_relations)
@@ -85,6 +95,7 @@ class BaseDeletionTask(object):
 
         for instance in instance_list:
             child_relations = self.get_child_relations(instance)
+            child_relations = self.extend_relations(child_relations, instance)
             child_relations = self.filter_relations(child_relations)
             if child_relations:
                 has_more = self.delete_children(child_relations)
@@ -135,6 +146,17 @@ class ModelDeletionTask(BaseDeletionTask):
             type(self), self.model, self.query, self.order_by, self.transaction_id, self.actor_id,
         )
 
+    def extend_relations(self, child_relations, obj):
+        from sentry.deletions import default_manager
+
+        return child_relations + [rel(obj) for rel in default_manager.dependencies[self.model]]
+
+    def extend_relations_bulk(self, child_relations, obj_list):
+        from sentry.deletions import default_manager
+
+        return child_relations + [rel(obj_list)
+                                  for rel in default_manager.bulk_dependencies[self.model]]
+
     def chunk(self, num_shards=None, shard_id=None):
         """
         Deletes a chunk of this instance's data. Return ``True`` if there is
@@ -177,15 +199,18 @@ class ModelDeletionTask(BaseDeletionTask):
         try:
             instance.delete()
         finally:
-            self.logger.info(
-                'object.delete.executed',
-                extra={
-                    'object_id': instance_id,
-                    'transaction_id': self.transaction_id,
-                    'app_label': instance._meta.app_label,
-                    'model': type(instance).__name__,
-                }
-            )
+            # Don't log Group and Event child object deletions.
+            model_name = type(instance).__name__
+            if not _leaf_re.search(model_name):
+                self.logger.info(
+                    'object.delete.executed',
+                    extra={
+                        'object_id': instance_id,
+                        'transaction_id': self.transaction_id,
+                        'app_label': instance._meta.app_label,
+                        'model': model_name,
+                    }
+                )
 
     def get_actor(self):
         from sentry.models import User
@@ -225,13 +250,16 @@ class BulkModelDeletionTask(ModelDeletionTask):
                 **self.query
             )
         finally:
-            self.logger.info(
-                'object.delete.bulk_executed',
-                extra=dict(
-                    {
-                        'transaction_id': self.transaction_id,
-                        'app_label': self.model._meta.app_label,
-                        'model': self.model.__name__,
-                    }, **self.query
+            # Don't log Group and Event child object deletions.
+            model_name = self.model.__name__
+            if not _leaf_re.search(model_name):
+                self.logger.info(
+                    'object.delete.bulk_executed',
+                    extra=dict(
+                        {
+                            'transaction_id': self.transaction_id,
+                            'app_label': self.model._meta.app_label,
+                            'model': model_name,
+                        }, **self.query
+                    )
                 )
-            )

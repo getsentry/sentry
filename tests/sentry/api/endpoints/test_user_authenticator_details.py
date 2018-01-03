@@ -14,7 +14,7 @@ class DeleteUserAuthenticatorTest(APITestCase):
             user=user,
         )
 
-        self.login_as(user=user)
+        self.login_as(user=user, superuser=True)
 
         url = reverse(
             'sentry-api-0-user-authenticator-details',

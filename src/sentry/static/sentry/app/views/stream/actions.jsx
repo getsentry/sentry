@@ -1,39 +1,76 @@
 import PropTypes from 'prop-types';
 import React from 'react';
+import createReactClass from 'create-react-class';
 import PureRenderMixin from 'react-addons-pure-render-mixin';
 import Reflux from 'reflux';
+import {capitalize} from 'lodash';
 import styled from 'react-emotion';
 import {Flex, Box} from 'grid-emotion';
-import {withTheme} from 'theming';
+import {withTheme} from 'emotion-theming';
 
 import ApiMixin from '../../mixins/apiMixin';
 import TooltipMixin from '../../mixins/tooltip';
-import ActionLink from './actionLink';
 import DropdownLink from '../../components/dropdownLink';
-import Duration from '../../components/duration';
 import IndicatorStore from '../../stores/indicatorStore';
 import MenuItem from '../../components/menuItem';
 import SelectedGroupStore from '../../stores/selectedGroupStore';
 import {t, tct, tn} from '../../locale';
-import {getShortVersion} from '../../utils';
 
-import CustomIgnoreCountModal from '../../components/customIgnoreCountModal';
-import CustomIgnoreDurationModal from '../../components/customIgnoreDurationModal';
-import CustomResolutionModal from '../../components/customResolutionModal';
 import Checkbox from '../../components/checkbox';
 import Toolbar from '../../components/toolbar';
 import ToolbarHeader from '../../components/toolbarHeader';
+import ResolveActions from '../../components/actions/resolve';
+import IgnoreActions from '../../components/actions/ignore';
+import ActionLink from '../../components/actions/actionLink';
 
 const BULK_LIMIT_STR = '1,000';
 
-const getBulkConfirmMessage = action =>
-  tct(
+const getBulkConfirmMessage = action => {
+  return tct(
     'Are you sure you want to [action] the first [bulkNumber] issues that match the search?',
     {
       action,
-      bulkNumber: BULK_LIMIT_STR
+      bulkNumber: BULK_LIMIT_STR,
     }
   );
+};
+
+const getConfirm = (numIssues, allInQuerySelected, query) => {
+  return function(action, canBeUndone, append = '') {
+    let question = allInQuerySelected
+      ? getBulkConfirmMessage(`${action}${append}`)
+      : tn(
+          `Are you sure you want to ${action} this %d issue${append}?`,
+          `Are you sure you want to ${action} these %d issues${append}?`,
+          numIssues
+        );
+
+    return (
+      <div>
+        <p style={{marginBottom: '20px'}}>
+          <strong>{question}</strong>
+        </p>
+        <ExtraDescription all={allInQuerySelected} query={query} />
+        {!canBeUndone && <p>{t('This action cannot be undone.')}</p>}
+      </div>
+    );
+  };
+};
+
+const getLabel = (numIssues, allInQuerySelected) => {
+  return function(action, append = '') {
+    let capitalized = capitalize(action);
+    let text = allInQuerySelected
+      ? t(`Bulk ${action} issues`)
+      : tn(
+          `${capitalized} %d selected issue`,
+          `${capitalized} %d selected issues`,
+          numIssues
+        );
+
+    return text + append;
+  };
+};
 
 const ExtraDescription = ({all, query}) => {
   if (!all) return null;
@@ -52,7 +89,7 @@ const ExtraDescription = ({all, query}) => {
         {tct(
           'This will apply to the first [bulkNumber] issues matched in this project!',
           {
-            bulkNumber: BULK_LIMIT_STR
+            bulkNumber: BULK_LIMIT_STR,
           }
         )}
       </strong>
@@ -62,347 +99,12 @@ const ExtraDescription = ({all, query}) => {
 
 ExtraDescription.propTypes = {
   all: PropTypes.bool,
-  query: PropTypes.string
+  query: PropTypes.string,
 };
 
-const IgnoreActions = React.createClass({
-  propTypes: {
-    anySelected: PropTypes.bool.isRequired,
-    allInQuerySelected: PropTypes.bool.isRequired,
-    pageSelected: PropTypes.bool.isRequired,
-    onUpdate: PropTypes.func.isRequired,
-    query: PropTypes.string
-  },
+const StreamActions = createReactClass({
+  displayName: 'StreamActions',
 
-  getInitialState() {
-    return {
-      modal: false
-    };
-  },
-
-  getIgnoreDurations() {
-    return [30, 120, 360, 60 * 24, 60 * 24 * 7];
-  },
-
-  getIgnoreCounts() {
-    return [100, 1000, 10000, 100000];
-  },
-
-  getIgnoreWindows() {
-    return [[1, 'per hour'], [24, 'per day'], [24 * 7, 'per week']];
-  },
-
-  onCustomIgnore(statusDetails) {
-    this.setState({
-      modal: false
-    });
-    this.onIgnore(statusDetails);
-  },
-
-  onIgnore(statusDetails) {
-    return this.props.onUpdate({
-      status: 'ignored',
-      statusDetails: statusDetails || {}
-    });
-  },
-
-  render() {
-    let {allInQuerySelected, query, anySelected, pageSelected, onUpdate} = this.props;
-    let extraDescription = <ExtraDescription all={allInQuerySelected} query={query} />;
-    let linkClassName = 'group-ignore btn btn-default btn-sm';
-    let actionLinkProps = {
-      onlyIfBulk: true,
-      disabled: !anySelected,
-      selectAllActive: pageSelected,
-      extraDescription,
-      buttonTitle: t('Ignore'),
-      confirmationQuestion: allInQuerySelected
-        ? getBulkConfirmMessage('ignore')
-        : count =>
-            tn(
-              'Are you sure you want to ignore this %d issue?',
-              'Are you sure you want to ignore these %d issues?',
-              count
-            ),
-      confirmLabel: allInQuerySelected
-        ? t('Bulk ignore issues')
-        : count => tn('Ignore %d selected issue', 'Ignore %d selected issues', count)
-    };
-    return (
-      <div style={{display: 'inline-block'}}>
-        <CustomIgnoreDurationModal
-          show={this.state.modal === 'duration'}
-          onSelected={this.onCustomIgnore}
-          onCanceled={() => this.setState({modal: null})}
-          label={t('Ignore the selected issue(s) until they occur after ..')}
-        />
-        <CustomIgnoreCountModal
-          show={this.state.modal === 'count'}
-          onSelected={this.onCustomIgnore}
-          onCanceled={() => this.setState({modal: null})}
-          label={t('Ignore the selected issue(s) until they occur again .. ')}
-          countLabel={t('Number of times')}
-          countName="ignoreCount"
-          windowName="ignoreWindow"
-          windowChoices={this.getIgnoreWindows()}
-        />
-        <CustomIgnoreCountModal
-          show={this.state.modal === 'users'}
-          onSelected={this.onCustomIgnore}
-          onCanceled={() => this.setState({modal: null})}
-          label={t('Ignore the selected issue(s) until they affect an additional .. ')}
-          countLabel={t('Numbers of users')}
-          countName="ignoreUserCount"
-          windowName="ignoreUserWindow"
-          windowChoices={this.getIgnoreWindows()}
-        />
-        <div className="btn-group">
-          <ActionLink
-            onAction={() => onUpdate({status: 'ignored'})}
-            className={linkClassName}
-            {...actionLinkProps}>
-            <span className="icon-ban" style={{marginRight: 5}} />
-            {t('Ignore')}
-          </ActionLink>
-          <DropdownLink
-            caret={true}
-            className={linkClassName}
-            title=""
-            disabled={!anySelected}>
-            <MenuItem header={true}>Ignore Until</MenuItem>
-            <li className="dropdown-submenu">
-              <DropdownLink title="This occurs again after .." caret={false}>
-                {this.getIgnoreDurations().map(duration => {
-                  return (
-                    <MenuItem noAnchor={true} key={duration}>
-                      <ActionLink
-                        onAction={this.onIgnore.bind(this, {
-                          ignoreDuration: duration
-                        })}
-                        {...actionLinkProps}>
-                        <Duration seconds={duration * 60} />
-                      </ActionLink>
-                    </MenuItem>
-                  );
-                })}
-                <MenuItem divider={true} />
-                <MenuItem noAnchor={true}>
-                  <a onClick={() => this.setState({modal: 'duration'})}>
-                    {t('Custom')}
-                  </a>
-                </MenuItem>
-              </DropdownLink>
-            </li>
-            <li className="dropdown-submenu">
-              <DropdownLink title="This occurs again .." caret={false}>
-                {this.getIgnoreCounts().map(count => {
-                  return (
-                    <li className="dropdown-submenu" key={count}>
-                      <DropdownLink
-                        title={t('%s times', count.toLocaleString())}
-                        caret={false}>
-                        <MenuItem noAnchor={true}>
-                          <ActionLink
-                            onAction={this.onIgnore.bind(this, {
-                              ignoreCount: count
-                            })}
-                            {...actionLinkProps}>
-                            {t('from now')}
-                          </ActionLink>
-                        </MenuItem>
-                        {this.getIgnoreWindows().map(([hours, label]) => {
-                          return (
-                            <MenuItem noAnchor={true} key={hours}>
-                              <ActionLink
-                                onAction={this.onIgnore.bind(this, {
-                                  ignoreCount: count,
-                                  ignoreWindow: hours
-                                })}
-                                {...actionLinkProps}>
-                                {label}
-                              </ActionLink>
-                            </MenuItem>
-                          );
-                        })}
-                      </DropdownLink>
-                    </li>
-                  );
-                })}
-                <MenuItem divider={true} />
-                <MenuItem noAnchor={true}>
-                  <a onClick={() => this.setState({modal: 'count'})}>
-                    {t('Custom')}
-                  </a>
-                </MenuItem>
-              </DropdownLink>
-            </li>
-            <li className="dropdown-submenu">
-              <DropdownLink title="This affects an additional .." caret={false}>
-                {this.getIgnoreCounts().map(count => {
-                  return (
-                    <li className="dropdown-submenu" key={count}>
-                      <DropdownLink
-                        title={t('%s users', count.toLocaleString())}
-                        caret={false}>
-                        <MenuItem noAnchor={true}>
-                          <ActionLink
-                            onAction={this.onIgnore.bind(this, {
-                              ignoreUserCount: count
-                            })}
-                            {...actionLinkProps}>
-                            {t('from now')}
-                          </ActionLink>
-                        </MenuItem>
-                        {this.getIgnoreWindows().map(([hours, label]) => {
-                          return (
-                            <MenuItem noAnchor={true} key={hours}>
-                              <ActionLink
-                                onAction={this.onIgnore.bind(this, {
-                                  ignoreUserCount: count,
-                                  ignoreUserWindow: hours
-                                })}
-                                {...actionLinkProps}>
-                                {label}
-                              </ActionLink>
-                            </MenuItem>
-                          );
-                        })}
-                      </DropdownLink>
-                    </li>
-                  );
-                })}
-                <MenuItem divider={true} />
-                <MenuItem noAnchor={true}>
-                  <a onClick={() => this.setState({modal: 'users'})}>
-                    {t('Custom')}
-                  </a>
-                </MenuItem>
-              </DropdownLink>
-            </li>
-          </DropdownLink>
-        </div>
-      </div>
-    );
-  }
-});
-
-const ResolveActions = React.createClass({
-  propTypes: {
-    orgId: PropTypes.string.isRequired,
-    projectId: PropTypes.string.isRequired,
-    hasRelease: PropTypes.bool.isRequired,
-    latestRelease: PropTypes.object,
-    anySelected: PropTypes.bool.isRequired,
-    allInQuerySelected: PropTypes.bool.isRequired,
-    pageSelected: PropTypes.bool.isRequired,
-    onUpdate: PropTypes.func.isRequired,
-    query: PropTypes.string
-  },
-
-  getInitialState() {
-    return {
-      modal: false
-    };
-  },
-
-  onCustomResolution(statusDetails) {
-    this.setState({
-      modal: false
-    });
-    this.props.onUpdate({
-      status: 'resolved',
-      statusDetails
-    });
-  },
-
-  render() {
-    let {
-      hasRelease,
-      latestRelease,
-      projectId,
-      orgId,
-      allInQuerySelected,
-      query
-    } = this.props;
-    let extraDescription = <ExtraDescription all={allInQuerySelected} query={query} />;
-    let linkClassName = 'group-resolve btn btn-default btn-sm';
-    let actionLinkProps = {
-      onlyIfBulk: true,
-      disabled: !this.props.anySelected,
-      selectAllActive: this.props.pageSelected,
-      extraDescription,
-      buttonTitle: t('Resolve'),
-      confirmationQuestion: allInQuerySelected
-        ? getBulkConfirmMessage('resolve')
-        : count =>
-            tn(
-              'Are you sure you want to resolve this %d issue?',
-              'Are you sure you want to resolve these %d issues?',
-              count
-            ),
-      confirmLabel: this.props.allInQuerySelected
-        ? t('Bulk resolve issues')
-        : count => tn('Resolve %d selected issue', 'Resolve %d selected issues', count)
-    };
-    return (
-      <div style={{display: 'inline-block'}}>
-        <CustomResolutionModal
-          show={this.state.modal}
-          onSelected={this.onCustomResolution}
-          onCanceled={() => this.setState({modal: false})}
-          orgId={orgId}
-          projectId={projectId}
-        />
-        <div className="btn-group">
-          <ActionLink
-            onAction={() => this.props.onUpdate({status: 'resolved'})}
-            className={linkClassName}
-            {...actionLinkProps}>
-            <span className="icon-checkmark" style={{marginRight: 5}} />
-            {t('Resolve')}
-          </ActionLink>
-          <DropdownLink
-            key="resolve-dropdown"
-            caret={true}
-            className={linkClassName}
-            title=""
-            disabled={!this.props.anySelected}>
-            <MenuItem header={true}>{t('Resolved In')}</MenuItem>
-            <MenuItem noAnchor={true}>
-              <ActionLink
-                onAction={() =>
-                  this.props.onUpdate({
-                    status: 'resolved',
-                    statusDetails: {inNextRelease: true}
-                  })}
-                {...actionLinkProps}>
-                {t('The next release')}
-              </ActionLink>
-              <ActionLink
-                onAction={() =>
-                  this.props.onUpdate({
-                    status: 'resolved',
-                    statusDetails: {
-                      inRelease: latestRelease ? latestRelease.version : 'latest'
-                    }
-                  })}
-                {...actionLinkProps}>
-                {latestRelease
-                  ? t('The current release (%s)', getShortVersion(latestRelease.version))
-                  : t('The current release')}
-              </ActionLink>
-              <a onClick={() => hasRelease && this.setState({modal: true})}>
-                {t('Another version ...')}
-              </a>
-            </MenuItem>
-          </DropdownLink>
-        </div>
-      </div>
-    );
-  }
-});
-
-const StreamActions = React.createClass({
   propTypes: {
     allResultsVisible: PropTypes.bool,
     orgId: PropTypes.string.isRequired,
@@ -414,7 +116,7 @@ const StreamActions = React.createClass({
     statsPeriod: PropTypes.string.isRequired,
     query: PropTypes.string.isRequired,
     hasReleases: PropTypes.bool,
-    latestRelease: PropTypes.object
+    latestRelease: PropTypes.object,
   },
 
   mixins: [
@@ -425,12 +127,12 @@ const StreamActions = React.createClass({
       container: 'body',
       constraints: [
         {
-          attachment: 'together'
-        }
-      ]
+          attachment: 'together',
+        },
+      ],
     }),
     Reflux.listenTo(SelectedGroupStore, 'onSelectedGroupChange'),
-    PureRenderMixin
+    PureRenderMixin,
   ],
 
   getDefaultProps() {
@@ -444,7 +146,7 @@ const StreamActions = React.createClass({
       anySelected: false,
       multiSelected: false, // more than one selected
       pageSelected: false, // all on current page selected (e.g. 25)
-      allInQuerySelected: false // all in current search query selected (e.g. 1000+)
+      allInQuerySelected: false, // all in current search query selected (e.g. 1000+)
     };
   },
 
@@ -458,7 +160,7 @@ const StreamActions = React.createClass({
 
   selectAll() {
     this.setState({
-      allInQuerySelected: true
+      allInQuerySelected: true,
     });
   },
 
@@ -486,7 +188,7 @@ const StreamActions = React.createClass({
     this.setState({allInQuerySelected: false});
   },
 
-  onUpdate(data, event) {
+  onUpdate(data) {
     this.actionSelectedGroups(itemIds => {
       let loadingIndicator = IndicatorStore.add(t('Saving changes..'));
 
@@ -496,12 +198,12 @@ const StreamActions = React.createClass({
           projectId: this.props.projectId,
           itemIds,
           data,
-          query: this.props.query
+          query: this.props.query,
         },
         {
           complete: () => {
             IndicatorStore.remove(loadingIndicator);
-          }
+          },
         }
       );
     });
@@ -516,12 +218,12 @@ const StreamActions = React.createClass({
           orgId: this.props.orgId,
           projectId: this.props.projectId,
           itemIds,
-          query: this.props.query
+          query: this.props.query,
         },
         {
           complete: () => {
             IndicatorStore.remove(loadingIndicator);
-          }
+          },
         }
       );
     });
@@ -536,12 +238,12 @@ const StreamActions = React.createClass({
           orgId: this.props.orgId,
           projectId: this.props.projectId,
           itemIds,
-          query: this.props.query
+          query: this.props.query,
         },
         {
           complete: () => {
             IndicatorStore.remove(loadingIndicator);
-          }
+          },
         }
       );
     });
@@ -552,7 +254,7 @@ const StreamActions = React.createClass({
       pageSelected: SelectedGroupStore.allSelected(),
       multiSelected: SelectedGroupStore.multiSelected(),
       anySelected: SelectedGroupStore.anySelected(),
-      allInQuerySelected: false // any change resets
+      allInQuerySelected: false, // any change resets
     });
   },
 
@@ -564,12 +266,31 @@ const StreamActions = React.createClass({
     this.props.onRealtimeChange(!this.props.realtimeActive);
   },
 
+  shouldConfirm(action) {
+    let selectedItems = SelectedGroupStore.getSelectedIds();
+    switch (action) {
+      case 'resolve':
+      case 'unresolve':
+      case 'ignore':
+      case 'unbookmark':
+        return this.state.pageSelected && selectedItems.size > 1;
+      case 'bookmark':
+        return selectedItems.size > 1;
+      case 'merge':
+      case 'delete':
+      default:
+        return true; // By default, should confirm ...
+    }
+  },
+
   render() {
     // TODO(mitsuhiko): very unclear how to translate this
-    let numIssues = SelectedGroupStore.getSelectedIds().size;
-    let extraDescription = (
-      <ExtraDescription all={this.state.allInQuerySelected} query={this.props.query} />
-    );
+    let issues = SelectedGroupStore.getSelectedIds();
+    let numIssues = issues.size;
+    let {allInQuerySelected, anySelected} = this.state;
+    let disabled = !anySelected;
+    let confirm = getConfirm(numIssues, allInQuerySelected, this.props.query);
+    let label = getLabel(numIssues, allInQuerySelected);
 
     return (
       <div>
@@ -587,55 +308,36 @@ const StreamActions = React.createClass({
             pr={[1, 2, 2, 2]}
             flex="1"
             style={{overflow: 'hidden'}}
-            className="truncate">
+            className="truncate"
+          >
             <ResolveActions
               hasRelease={this.props.hasReleases}
               latestRelease={this.props.latestRelease}
-              anySelected={this.state.anySelected}
-              onUpdate={this.onUpdate}
-              allInQuerySelected={this.state.allInQuerySelected}
-              pageSelected={this.state.pageSelected}
-              query={this.props.query}
               orgId={this.props.orgId}
               projectId={this.props.projectId}
+              onUpdate={this.onUpdate}
+              shouldConfirm={this.shouldConfirm('resolve')}
+              confirmMessage={confirm('resolve', true)}
+              confirmLabel={label('resolve')}
+              disabled={disabled}
             />
             <IgnoreActions
-              anySelected={this.state.anySelected}
               onUpdate={this.onUpdate}
-              allInQuerySelected={this.state.allInQuerySelected}
-              pageSelected={this.state.pageSelected}
-              query={this.props.query}
+              shouldConfirm={this.shouldConfirm('ignore')}
+              confirmMessage={confirm('ignore', true)}
+              confirmLabel={label('ignore')}
+              disabled={disabled}
             />
             <div className="btn-group">
               <ActionLink
-                className="btn btn-default btn-sm action-bookmark"
-                disabled={!this.state.anySelected}
-                onAction={this.onUpdate.bind(this, {isBookmarked: true})}
-                buttonTitle={t('Bookmark')}
-                extraDescription={extraDescription}
-                confirmationQuestion={
-                  this.state.allInQuerySelected
-                    ? getBulkConfirmMessage('bookmark')
-                    : count =>
-                        tn(
-                          'Are you sure you want to bookmark this %d issue?',
-                          'Are you sure you want to bookmark these %d issues?',
-                          count
-                        )
-                }
-                confirmLabel={
-                  this.state.allInQuerySelected
-                    ? t('Bulk bookmark issues')
-                    : count =>
-                        tn(
-                          'Bookmark %d selected issue',
-                          'Bookmark %d selected issues',
-                          count
-                        )
-                }
-                tooltip={t('Add to Bookmarks')}
-                onlyIfBulk={true}
-                selectAllActive={this.state.pageSelected}>
+                className={'btn btn-default btn-sm action-bookmark'}
+                onAction={() => this.onUpdate({isBookmarked: true})}
+                shouldConfirm={this.shouldConfirm('bookmark')}
+                message={confirm('bookmark', false)}
+                confirmLabel={label('bookmark')}
+                title={t('Add to Bookmarks')}
+                disabled={disabled}
+              >
                 <i aria-hidden="true" className="icon-star-solid" />
               </ActionLink>
             </div>
@@ -645,67 +347,29 @@ const StreamActions = React.createClass({
                 btnGroup={true}
                 caret={false}
                 className="btn btn-sm btn-default hidden-xs action-more"
-                title={<span className="icon-ellipsis" />}>
+                title={<span className="icon-ellipsis" />}
+              >
                 <MenuItem noAnchor={true}>
                   <ActionLink
                     className="action-merge"
-                    disabled={!this.state.anySelected}
+                    disabled={disabled}
                     onAction={this.onMerge}
-                    extraDescription={extraDescription}
-                    confirmationQuestion={
-                      this.state.allInQuerySelected
-                        ? getBulkConfirmMessage('merge')
-                        : count =>
-                            tn(
-                              'Are you sure you want to merge %d issue?',
-                              'Are you sure you want to merge %d issues?',
-                              count
-                            )
-                    }
-                    confirmLabel={
-                      this.state.allInQuerySelected
-                        ? t('Bulk merge issues')
-                        : count =>
-                            tn(
-                              'Merge %d selected issue',
-                              'Merge %d selected issues',
-                              count
-                            )
-                    }
-                    selectAllActive={this.state.pageSelected}>
+                    shouldConfirm={this.shouldConfirm('merge')}
+                    message={confirm('merge', false)}
+                    confirmLabel={label('merge')}
+                  >
                     {t('Merge Issues')}
                   </ActionLink>
                 </MenuItem>
                 <MenuItem noAnchor={true}>
                   <ActionLink
                     className="action-remove-bookmark"
-                    disabled={!this.state.anySelected}
-                    onAction={this.onUpdate.bind(this, {isBookmarked: false})}
-                    extraDescription={extraDescription}
-                    confirmationQuestion={
-                      this.state.allInQuerySelected
-                        ? getBulkConfirmMessage('remove', {
-                            append: ' from your bookmarks'
-                          })
-                        : count =>
-                            tn(
-                              'Are you sure you want to remove this %d issue from your bookmarks?',
-                              'Are you sure you want to remove these %d issues from your bookmarks?',
-                              count
-                            )
-                    }
-                    confirmLabel={
-                      this.state.allInQuerySelected
-                        ? t('Bulk remove issues from bookmarks')
-                        : count =>
-                            tn(
-                              'Remove %d selected issue from bookmarks',
-                              'Remove %d selected issues from bookmarks',
-                              count
-                            )
-                    }
-                    onlyIfBulk={true}
-                    selectAllActive={this.state.pageSelected}>
+                    disabled={disabled}
+                    onAction={() => this.onUpdate({isBookmarked: false})}
+                    shouldConfirm={this.shouldConfirm('unbookmark')}
+                    message={confirm('remove', false, ' from your bookmarks')}
+                    confirmLabel={label('remove', ' from your bookmarks')}
+                  >
                     {t('Remove from Bookmarks')}
                   </ActionLink>
                 </MenuItem>
@@ -713,32 +377,12 @@ const StreamActions = React.createClass({
                 <MenuItem noAnchor={true}>
                   <ActionLink
                     className="action-unresolve"
-                    disabled={!this.state.anySelected}
-                    onAction={this.onUpdate.bind(this, {status: 'unresolved'})}
-                    extraDescription={extraDescription}
-                    confirmationQuestion={
-                      this.state.allInQuerySelected
-                        ? getBulkConfirmMessage('unresolve')
-                        : count =>
-                            tn(
-                              'Are you sure you want to unresolve this %d issue?',
-                              'Are you sure you want to unresolve these %d issues?',
-                              count
-                            )
-                    }
-                    confirmLabel={
-                      this.state.allInQuerySelected
-                        ? t('Bulk unresolve issues')
-                        : count =>
-                            tn(
-                              'Unresolve %d selected issue',
-                              'Unresolve %d selected issues',
-                              count
-                            )
-                    }
-                    onlyIfBulk={true}
-                    selectAllActive={this.state.pageSelected}
-                    groupIds={this.props.groupIds}>
+                    disabled={disabled}
+                    onAction={() => this.onUpdate({status: 'unresolved'})}
+                    shouldConfirm={this.shouldConfirm('unresolve')}
+                    message={confirm('unresolve', true)}
+                    confirmLabel={label('unresolve')}
+                  >
                     {t('Set status to: Unresolved')}
                   </ActionLink>
                 </MenuItem>
@@ -746,18 +390,13 @@ const StreamActions = React.createClass({
                 <MenuItem noAnchor={true}>
                   <ActionLink
                     className="action-delete"
-                    disabled={!this.state.anySelected || this.state.allInQuerySelected}
+                    disabled={disabled || this.state.allInQuerySelected}
                     onAction={this.onDelete}
-                    extraDescription={extraDescription}
-                    confirmationQuestion={count =>
-                      tn(
-                        'Are you sure you want to delete %d issue?',
-                        'Are you sure you want to delete %d issues?',
-                        count
-                      )}
-                    confirmLabel={count =>
-                      tn('Delete %d selected issue', 'Delete %d selected issues', count)}
-                    selectAllActive={this.state.pageSelected}>
+                    shouldConfirm={this.shouldConfirm('delete')}
+                    message={confirm('delete', false)}
+                    confirmLabel={label('delete')}
+                    selectAllActive={this.state.pageSelected}
+                  >
                     {t('Delete Issues')}
                   </ActionLink>
                 </MenuItem>
@@ -767,73 +406,71 @@ const StreamActions = React.createClass({
             {/* <div className="btn-group">
               <a
                 className="btn btn-default btn-sm hidden-xs realtime-control tip"
-                title={`${this.props.realtimeActive ? 'Pause' : 'Enable'} real-time updates`}
-                onClick={this.onRealtimeChange}>
-                {this.props.realtimeActive
-                  ? <span className="icon icon-pause" />
-                  : <span className="icon icon-play" />}
+                title={`${this.props.realtimeActive
+                  ? 'Pause'
+                  : 'Enable'} real-time updates`}
+                onClick={this.onRealtimeChange}
+              >
+                {this.props.realtimeActive ? (
+                  <span className="icon icon-pause" />
+                ) : (
+                  <span className="icon icon-play" />
+                )}
               </a>
                 </div> */}
           </Box>
           <Box w={[100, 120, 160, 200]} px={(1, 2, 2, 3)}>
-            <ToolbarHeader>
-              {t('Issue ID')}
-            </ToolbarHeader>
+            <ToolbarHeader>{t('Issue ID')}</ToolbarHeader>
           </Box>
           <Box w={[100, 120, 160, 200]} px={(1, 2, 2, 3)}>
             <Flex>
               <Box flex="1">
-                <ToolbarHeader>
-                  {t('History:')}
-                </ToolbarHeader>
+                <ToolbarHeader>{t('History:')}</ToolbarHeader>
               </Box>
               <Box>
                 <HistoryToggle
                   active={this.props.statsPeriod === '24h'}
-                  onClick={this.selectStatsPeriod.bind(this, '24h')}>
+                  onClick={this.selectStatsPeriod.bind(this, '24h')}
+                >
                   {t('24h')}
                 </HistoryToggle>
               </Box>
               <Box>
                 <HistoryToggle
                   active={this.props.statsPeriod === '14d'}
-                  onClick={this.selectStatsPeriod.bind(this, '14d')}>
+                  onClick={this.selectStatsPeriod.bind(this, '14d')}
+                >
                   {t('14d')}
                 </HistoryToggle>
               </Box>
             </Flex>
           </Box>
           <Box w={(40, 40, 60, 70)} px={(1, 1, 2, 2)}>
-            <ToolbarHeader>
-              {t('Events')}
-            </ToolbarHeader>
+            <ToolbarHeader>{t('Events')}</ToolbarHeader>
           </Box>
           <Box w={(40, 40, 60, 70)} px={(1, 1, 2, 2)}>
-            <ToolbarHeader>
-              {t('Users')}
-            </ToolbarHeader>
+            <ToolbarHeader>{t('Users')}</ToolbarHeader>
           </Box>
           <Box w={(40, 60, 80, 80)} px={(1, 1, 2, 2)}>
-            <ToolbarHeader>
-              {t('Owner')}
-            </ToolbarHeader>
+            <ToolbarHeader>{t('Owner')}</ToolbarHeader>
           </Box>
         </StreamActionsToolbar>
 
         {!this.props.allResultsVisible &&
-          this.state.pageSelected &&
-          <div className="row stream-select-all-notice">
-            <div className="col-md-12">
-              {this.state.allInQuerySelected
-                ? <strong>
+          this.state.pageSelected && (
+            <div className="row stream-select-all-notice">
+              <div className="col-md-12">
+                {this.state.allInQuerySelected ? (
+                  <strong>
                     {tct(
                       'Selected up to the first [count] issues that match this search query.',
                       {
-                        count: BULK_LIMIT_STR
+                        count: BULK_LIMIT_STR,
                       }
                     )}
                   </strong>
-                : <span>
+                ) : (
+                  <span>
                     {tn(
                       '%d issue on this page selected.',
                       '%d issues on this page selected.',
@@ -843,16 +480,18 @@ const StreamActions = React.createClass({
                       {tct(
                         'Select the first [count] issues that match this search query.',
                         {
-                          count: BULK_LIMIT_STR
+                          count: BULK_LIMIT_STR,
                         }
                       )}
                     </a>
-                  </span>}
+                  </span>
+                )}
+              </div>
             </div>
-          </div>}
+          )}
       </div>
     );
-  }
+  },
 });
 
 const StreamActionsToolbar = styled(Toolbar)`
@@ -866,7 +505,7 @@ const CheckboxWrapper = styled(Box)`
   width: 36px;
   padding-left: 20px;
 
-  & input[type="checkbox"] {
+  & input[type='checkbox'] {
     margin: 0;
   }
 `;

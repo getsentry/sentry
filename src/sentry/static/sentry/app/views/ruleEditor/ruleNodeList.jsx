@@ -4,23 +4,24 @@ import React from 'react';
 import SelectInput from '../../components/selectInput';
 import RuleNode from './ruleNode';
 
-const RuleNodeList = React.createClass({
-  propTypes: {
+class RuleNodeList extends React.Component {
+  static propTypes = {
     initialItems: PropTypes.array,
-    nodes: PropTypes.array.isRequired
-  },
+    nodes: PropTypes.array.isRequired,
+  };
 
-  getInitialState() {
+  constructor(props) {
+    super(props);
     let counter = 0;
-    let initialItems = (this.props.initialItems || []).map(item => {
+    let initialItems = (props.initialItems || []).map(item => {
       return {...item, key_attr: counter++};
     });
 
-    return {
+    this.state = {
       items: initialItems,
-      counter
+      counter,
     };
-  },
+  }
 
   componentWillMount() {
     this._nodesById = {};
@@ -28,9 +29,9 @@ const RuleNodeList = React.createClass({
     this.props.nodes.forEach(node => {
       this._nodesById[node.id] = node;
     });
-  },
+  }
 
-  onAddRow(sel) {
+  onAddRow = sel => {
     let nodeId = sel.val();
     if (!nodeId) return;
 
@@ -42,24 +43,24 @@ const RuleNodeList = React.createClass({
       // need to make sure elements aren't accidentally re-rendered. So, give each
       // row a consistent key using a counter that initializes at 0 when RuleNodeList
       // is mounted.
-      key_attr: this.state.counter
+      key_attr: this.state.counter,
     });
     this.setState({
       items: this.state.items,
-      counter: this.state.counter + 1
+      counter: this.state.counter + 1,
     });
-  },
+  };
 
-  onDeleteRow(idx, e) {
+  onDeleteRow = (idx, e) => {
     this.state.items.splice(idx, 1);
     this.setState({
-      items: this.state.items
+      items: this.state.items,
     });
-  },
+  };
 
-  getNode(id) {
+  getNode = id => {
     return this._nodesById[id];
-  },
+  };
 
   render() {
     return (
@@ -82,13 +83,17 @@ const RuleNodeList = React.createClass({
           <SelectInput onChange={this.onAddRow} style={{width: '100%'}}>
             <option key="blank" />
             {this.props.nodes.map(node => {
-              return <option value={node.id} key={node.id}>{node.label}</option>;
+              return (
+                <option value={node.id} key={node.id}>
+                  {node.label}
+                </option>
+              );
             })}
           </SelectInput>
         </fieldset>
       </div>
     );
   }
-});
+}
 
 export default RuleNodeList;

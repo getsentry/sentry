@@ -24,7 +24,7 @@ export default [
     isSubscribed: true,
     isBookmarked: false,
     project: {name: 'Internal', slug: 'internal'},
-    statusDetails: {}
+    statusDetails: {},
   },
   {
     lastSeen: '2017-07-25T02:20:35Z',
@@ -51,7 +51,7 @@ export default [
     isSubscribed: true,
     isBookmarked: false,
     project: {name: 'Internal', slug: 'internal'},
-    statusDetails: {}
+    statusDetails: {},
   },
   {
     lastSeen: '2017-07-24T23:41:44Z',
@@ -66,9 +66,9 @@ export default [
     annotations: [],
     metadata: {
       type: 'TypeError',
-      value: "Cannot read property 'length' of undefined"
+      value: "Cannot read property 'length' of undefined",
     },
-    status: 'unresolved',
+    status: 'resolved',
     subscriptionDetails: null,
     isPublic: false,
     hasSeen: false,
@@ -81,7 +81,7 @@ export default [
     isSubscribed: true,
     isBookmarked: false,
     project: {name: 'Internal', slug: 'internal'},
-    statusDetails: {}
+    statusDetails: {},
   },
   {
     lastSeen: '2017-07-25T23:21:19Z',
@@ -99,12 +99,13 @@ export default [
       isActive: true,
       has2fa: false,
       name: 'billy@sentry.io',
-      avatarUrl: 'https://secure.gravatar.com/avatar/7b544e8eb9d08ed777be5aa82121155a?s=32&d=mm',
+      avatarUrl:
+        'https://secure.gravatar.com/avatar/7b544e8eb9d08ed777be5aa82121155a?s=32&d=mm',
       dateJoined: '2017-06-26T21:02:13.264Z',
       emails: [{is_verified: false, id: '1', email: 'billy@sentry.io'}],
       avatar: {avatarUuid: null, avatarType: 'letter_avatar'},
       lastLogin: '2017-07-25T01:00:50.473Z',
-      email: 'billy@sentry.io'
+      email: 'billy@sentry.io',
     },
     logger: 'javascript',
     type: 'error',
@@ -123,6 +124,6 @@ export default [
     isSubscribed: true,
     isBookmarked: false,
     project: {name: 'Internal', slug: 'internal'},
-    statusDetails: {}
-  }
+    statusDetails: {},
+  },
 ];

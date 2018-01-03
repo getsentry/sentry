@@ -1,5 +1,6 @@
 import PropTypes from 'prop-types';
 import React from 'react';
+import createReactClass from 'create-react-class';
 import Reflux from 'reflux';
 import {Link, browserHistory} from 'react-router';
 import Cookies from 'js-cookie';
@@ -16,6 +17,7 @@ import Pagination from '../components/pagination';
 import StreamGroup from '../components/stream/group';
 import StreamActions from './stream/actions';
 import StreamTagActions from '../actions/streamTagActions';
+import AlertActions from '../actions/alertActions';
 import StreamTagStore from '../stores/streamTagStore';
 import StreamFilters from './stream/filters';
 import StreamSidebar from './stream/sidebar';
@@ -25,20 +27,24 @@ import {logAjaxError} from '../utils/logging';
 import parseLinkHeader from '../utils/parseLinkHeader';
 import {t, tn, tct} from '../locale';
 
-const Stream = React.createClass({
+const MAX_TAGS = 500;
+
+const Stream = createReactClass({
+  displayName: 'Stream',
+
   propTypes: {
     defaultSort: PropTypes.string,
     defaultStatsPeriod: PropTypes.string,
     defaultQuery: PropTypes.string,
     maxItems: PropTypes.number,
-    setProjectNavSection: PropTypes.func
+    setProjectNavSection: PropTypes.func,
   },
 
   mixins: [
     Reflux.listenTo(GroupStore, 'onGroupChange'),
     Reflux.listenTo(StreamTagStore, 'onStreamTagChange'),
     ApiMixin,
-    ProjectState
+    ProjectState,
   ],
 
   getDefaultProps() {
@@ -46,7 +52,7 @@ const Stream = React.createClass({
       defaultQuery: null,
       defaultSort: 'date',
       defaultStatsPeriod: '24h',
-      maxItems: 25
+      maxItems: 25,
     };
   },
 
@@ -54,9 +60,10 @@ const Stream = React.createClass({
     let searchId = this.props.params.searchId || null;
     let project = this.getProject();
     let realtimeActiveCookie = Cookies.get('realtimeActive');
-    let realtimeActive = typeof realtimeActiveCookie === 'undefined'
-      ? project && !project.firstEvent
-      : realtimeActiveCookie === 'true';
+    let realtimeActive =
+      typeof realtimeActiveCookie === 'undefined'
+        ? project && !project.firstEvent
+        : realtimeActiveCookie === 'true';
 
     return {
       groupIds: [],
@@ -82,7 +89,7 @@ const Stream = React.createClass({
       isSidebarVisible: false,
       isStickyHeader: false,
       processingIssues: null,
-      ...this.getQueryState()
+      ...this.getQueryState(),
     };
   },
 
@@ -91,7 +98,7 @@ const Stream = React.createClass({
 
     this._streamManager = new utils.StreamManager(GroupStore);
     this._poller = new utils.CursorPoller({
-      success: this.onRealtimePoll
+      success: this.onRealtimePoll,
     });
 
     this.fetchSavedSearches();
@@ -140,7 +147,7 @@ const Stream = React.createClass({
 
   fetchSavedSearches() {
     this.setState({
-      savedSearchLoading: true
+      savedSearchLoading: true,
     });
 
     let {orgId, projectId} = this.props.params;
@@ -150,7 +157,7 @@ const Stream = React.createClass({
           isDefaultSearch: false,
           savedSearchLoading: false,
           savedSearchList: data,
-          loading: false
+          loading: false,
         };
         let needsData = this.state.loading;
         let searchId = this.state.searchId;
@@ -166,7 +173,7 @@ const Stream = React.createClass({
                 savedSearchLoading: false,
                 savedSearchList: data,
                 searchId: null,
-                isDefaultSearch: true
+                isDefaultSearch: true,
               },
               this.transitionTo
             );
@@ -197,9 +204,9 @@ const Stream = React.createClass({
           searchId: null,
           savedSearchList: [],
           savedSearchLoading: false,
-          query: ''
+          query: '',
         });
-      }
+      },
     });
   },
 
@@ -209,14 +216,14 @@ const Stream = React.createClass({
       success: data => {
         if (data.hasIssues || data.resolveableIssues > 0 || data.issuesProcessing > 0) {
           this.setState({
-            processingIssues: data
+            processingIssues: data,
           });
         }
       },
       error: error => {
         logAjaxError(error);
         // this is okay. it's just a ui hint
-      }
+      },
     });
   },
 
@@ -225,19 +232,27 @@ const Stream = React.createClass({
     StreamTagActions.loadTags();
 
     this.setState({
-      tagsLoading: true
+      tagsLoading: true,
     });
 
     let params = this.props.params;
     this.api.request(`/projects/${params.orgId}/${params.projectId}/tags/`, {
       success: tags => {
+        let trimmedTags = tags.slice(0, MAX_TAGS);
+
+        if (tags.length > MAX_TAGS) {
+          AlertActions.addAlert({
+            message: t('You have too many unique tags and some have been truncated'),
+            type: 'warn',
+          });
+        }
         this.setState({tagsLoading: false});
-        StreamTagActions.loadTagsSuccess(tags);
+        StreamTagActions.loadTagsSuccess(trimmedTags);
       },
       error: error => {
         this.setState({tagsLoading: false});
         StreamTagActions.loadTagsError();
-      }
+      },
     });
   },
 
@@ -251,9 +266,9 @@ const Stream = React.createClass({
     savedSearchList.push(data);
     // TODO(dcramer): sort
     this.setState({
-      savedSearchList
+      savedSearchList,
     });
-    browserHistory.pushState(null, `/${orgId}/${projectId}/searches/${data.id}/`);
+    browserHistory.push(`/${orgId}/${projectId}/searches/${data.id}/`);
   },
 
   getQueryState(props) {
@@ -283,7 +298,7 @@ const Stream = React.createClass({
       statsPeriod,
       query: hasQuery ? currentQuery.query : '',
       searchId,
-      isDefaultSearch: false
+      isDefaultSearch: false,
     };
 
     // state is not yet defined
@@ -326,7 +341,7 @@ const Stream = React.createClass({
     this.setState({
       dataLoading: true,
       queryCount: null,
-      error: false
+      error: false,
     });
 
     let url = this.getGroupListEndpoint();
@@ -336,7 +351,7 @@ const Stream = React.createClass({
       limit: this.props.maxItems,
       sort: this.state.sort,
       statsPeriod: this.state.statsPeriod,
-      shortIdLookup: '1'
+      shortIdLookup: '1',
     };
 
     let currentQuery = this.props.location.query || {};
@@ -360,13 +375,12 @@ const Stream = React.createClass({
         // different projects.
         if (jqXHR.getResponseHeader('X-Sentry-Direct-Hit') === '1') {
           if (data[0].matchingEventId) {
-            return void browserHistory.pushState(
-              null,
-              `/${this.props.params.orgId}/${data[0].project.slug}/issues/${data[0].id}/events/${data[0].matchingEventId}/`
+            return void browserHistory.push(
+              `/${this.props.params.orgId}/${data[0].project.slug}/issues/${data[0]
+                .id}/events/${data[0].matchingEventId}/`
             );
           }
-          return void browserHistory.pushState(
-            null,
+          return void browserHistory.push(
             `/${this.props.params.orgId}/${data[0].project.slug}/issues/${data[0].id}/`
           );
         }
@@ -379,13 +393,11 @@ const Stream = React.createClass({
         return void this.setState({
           error: false,
           dataLoading: false,
-          queryCount: typeof queryCount !== 'undefined'
-            ? parseInt(queryCount, 10) || 0
-            : 0,
-          queryMaxCount: typeof queryMaxCount !== 'undefined'
-            ? parseInt(queryMaxCount, 10) || 0
-            : 0,
-          pageLinks: jqXHR.getResponseHeader('Link')
+          queryCount:
+            typeof queryCount !== 'undefined' ? parseInt(queryCount, 10) || 0 : 0,
+          queryMaxCount:
+            typeof queryMaxCount !== 'undefined' ? parseInt(queryMaxCount, 10) || 0 : 0,
+          pageLinks: jqXHR.getResponseHeader('Link'),
         });
       },
       error: err => {
@@ -393,14 +405,14 @@ const Stream = React.createClass({
         error = error.detail || true;
         this.setState({
           error,
-          dataLoading: false
+          dataLoading: false,
         });
       },
       complete: jqXHR => {
         this.lastRequest = null;
 
         this.resumePolling();
-      }
+      },
     });
   },
 
@@ -424,7 +436,7 @@ const Stream = React.createClass({
   onRealtimeChange(realtime) {
     Cookies.set('realtimeActive', realtime.toString());
     this.setState({
-      realtimeActive: realtime
+      realtimeActive: realtime,
     });
   },
 
@@ -433,7 +445,7 @@ const Stream = React.createClass({
       // TODO(dcramer): all charts should now suggest "loading"
       this.setState(
         {
-          statsPeriod: period
+          statsPeriod: period,
         },
         function() {
           this.transitionTo();
@@ -446,7 +458,7 @@ const Stream = React.createClass({
     this._streamManager.unshift(data);
     if (!utils.valueIsEqual(this.state.pageLinks, links, true)) {
       this.setState({
-        pageLinks: links
+        pageLinks: links,
       });
     }
   },
@@ -455,7 +467,7 @@ const Stream = React.createClass({
     let groupIds = this._streamManager.getAllItems().map(item => item.id);
     if (!utils.valueIsEqual(groupIds, this.state.groupIds)) {
       this.setState({
-        groupIds
+        groupIds,
       });
     }
   },
@@ -463,7 +475,7 @@ const Stream = React.createClass({
   onStreamTagChange(tags) {
     // new object to trigger state change
     this.setState({
-      tags: {...tags}
+      tags: {...tags},
     });
   },
 
@@ -475,7 +487,7 @@ const Stream = React.createClass({
       this.setState(
         {
           query,
-          searchId: null
+          searchId: null,
         },
         this.transitionTo
       );
@@ -485,7 +497,7 @@ const Stream = React.createClass({
   onSortChange(sort) {
     this.setState(
       {
-        sort
+        sort,
       },
       this.transitionTo
     );
@@ -493,13 +505,13 @@ const Stream = React.createClass({
 
   onSidebarToggle() {
     this.setState({
-      isSidebarVisible: !this.state.isSidebarVisible
+      isSidebarVisible: !this.state.isSidebarVisible,
     });
   },
 
   onStickyStateChange(state) {
     this.setState({
-      isStickyHeader: state
+      isStickyHeader: state,
     });
   },
 
@@ -533,7 +545,10 @@ const Stream = React.createClass({
       ? `/${params.orgId}/${params.projectId}/searches/${this.state.searchId}/`
       : `/${params.orgId}/${params.projectId}/`;
 
-    browserHistory.pushState(null, path, queryParams);
+    browserHistory.push({
+      pathname: path,
+      query: queryParams,
+    });
   },
 
   createSampleEvent() {
@@ -542,11 +557,10 @@ const Stream = React.createClass({
     this.api.request(url, {
       method: 'POST',
       success: data => {
-        browserHistory.pushState(
-          null,
+        browserHistory.push(
           `/${params.orgId}/${params.projectId}/issues/${data.groupID}/`
         );
-      }
+      },
     });
   },
 
@@ -561,7 +575,7 @@ const Stream = React.createClass({
     let showButton = false;
     let className = {
       'processing-issues': true,
-      alert: true
+      alert: true,
     };
     let issues = null;
     let lastEvent = null;
@@ -577,7 +591,7 @@ const Stream = React.createClass({
       lastEvent = (
         <span className="last-seen">
           ({tct('last event from [ago]', {
-            ago: <TimeSince date={pi.lastSeen} />
+            ago: <TimeSince date={pi.lastSeen} />,
           })})
         </span>
       );
@@ -605,19 +619,16 @@ const Stream = React.createClass({
     }
     return (
       <div className={classNames(className)}>
-        {showButton &&
+        {showButton && (
           <Link to={link} className="btn btn-default btn-sm pull-right">
             {t('Show details')}
-          </Link>}
-        {icon}
-        {' '}
-        <strong>{issues}</strong>
-        {' '}
-        {lastEvent}
-        {' '}
+          </Link>
+        )}
+        {icon} <strong>{issues}</strong> {lastEvent}{' '}
       </div>
     );
   },
+
   renderGroupNodes(ids, statsPeriod) {
     let {orgId, projectId} = this.props.params;
     let groupNodes = ids.map(id => {
@@ -631,8 +642,9 @@ const Stream = React.createClass({
         />
       );
     });
-    return <div ref="groupList">{groupNodes}</div>;
+    return <ul ref="groupList">{groupNodes}</ul>;
   },
+
   renderAwaitingEvents() {
     let org = this.getOrganization();
     let project = this.getProject();
@@ -660,20 +672,23 @@ const Stream = React.createClass({
     return (
       <div className="box awaiting-events">
         <div className="wrap">
-          <div className="robot"><span className="eye" /></div>
+          <div className="robot">
+            <span className="eye" />
+          </div>
           <h3>{t('Waiting for events…')}</h3>
           <p>
             {tct(
               'Our error robot is waiting to [cross:devour] receive your first event.',
               {
-                cross: <span className="strikethrough" />
+                cross: <span className="strikethrough" />,
               }
             )}
           </p>
           <p>
             <Link
               to={`/${org.slug}/${project.slug}/getting-started/`}
-              className="btn btn-primary btn-lg">
+              className="btn btn-primary btn-lg"
+            >
               {t('Installation Instructions')}
             </Link>
           </p>
@@ -682,6 +697,7 @@ const Stream = React.createClass({
       </div>
     );
   },
+
   renderEmpty() {
     return (
       <div className="box empty-stream">
@@ -690,6 +706,7 @@ const Stream = React.createClass({
       </div>
     );
   },
+
   renderLoading() {
     return (
       <div className="box">
@@ -697,6 +714,7 @@ const Stream = React.createClass({
       </div>
     );
   },
+
   renderStreamBody() {
     let body;
     let project = this.getProject();
@@ -713,6 +731,7 @@ const Stream = React.createClass({
     }
     return body;
   },
+
   render() {
     // global loading
     if (this.state.loading) {
@@ -781,6 +800,6 @@ const Stream = React.createClass({
         </div>
       </StickyContainer>
     );
-  }
+  },
 });
 export default Stream;

@@ -35,3 +35,6 @@ example/db.sqlite
 Gemfile.lock
 .idea/
 .vscode/tags
+coverage.xml
+junit.xml
+*.codestyle.xml

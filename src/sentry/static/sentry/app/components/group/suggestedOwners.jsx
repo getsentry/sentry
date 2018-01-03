@@ -1,5 +1,6 @@
 import PropTypes from 'prop-types';
 import React from 'react';
+import createReactClass from 'create-react-class';
 import ReactDOMServer from 'react-dom/server';
 import moment from 'moment';
 
@@ -9,9 +10,11 @@ import ApiMixin from '../../mixins/apiMixin';
 import GroupState from '../../mixins/groupState';
 import {t} from '../../locale';
 
-const SuggestedOwners = React.createClass({
+const SuggestedOwners = createReactClass({
+  displayName: 'SuggestedOwners',
+
   propTypes: {
-    event: PropTypes.object
+    event: PropTypes.object,
   },
 
   mixins: [
@@ -21,8 +24,9 @@ const SuggestedOwners = React.createClass({
       selector: '.tip',
       html: true,
       container: 'body',
-      template: '<div class="tooltip" role="tooltip"><div class="tooltip-arrow"></div><div class="tooltip-inner tooltip-owners"></div></div>'
-    })
+      template:
+        '<div class="tooltip" role="tooltip"><div class="tooltip-arrow"></div><div class="tooltip-inner tooltip-owners"></div></div>',
+    }),
   ],
 
   getInitialState() {
@@ -62,14 +66,14 @@ const SuggestedOwners = React.createClass({
       {
         success: (data, _, jqXHR) => {
           this.setState({
-            owners: data.committers
+            owners: data.committers,
           });
         },
         error: error => {
           this.setState({
-            owners: undefined
+            owners: undefined,
           });
-        }
+        },
       }
     );
   },
@@ -80,7 +84,8 @@ const SuggestedOwners = React.createClass({
     }
   },
 
-  renderCommitter({author, commits}) {
+  renderCommitter(owner) {
+    let {author, commits} = owner;
     return (
       <span
         key={author.id || author.email}
@@ -88,34 +93,37 @@ const SuggestedOwners = React.createClass({
         onClick={() => this.assignTo(author)}
         title={ReactDOMServer.renderToStaticMarkup(
           <div>
-            {author.id
-              ? <div className="tooltip-owners-name">
-                  {author.name}
-                </div>
-              : <div className="tooltip-owners-unknown">
-                  <p className="tooltip-owners-unknown-email">
-                    <span className="icon icon-circle-cross" />
-                    <strong>{author.email}</strong>
-                  </p>
-                  <p>
-                    Sorry, we don't recognize this member. Make sure to link alternative emails in Account Settings.
-                  </p>
-                  <hr />
-                </div>}
+            {author.id ? (
+              <div className="tooltip-owners-name">{author.name}</div>
+            ) : (
+              <div className="tooltip-owners-unknown">
+                <p className="tooltip-owners-unknown-email">
+                  <span className="icon icon-circle-cross" />
+                  <strong>{author.email}</strong>
+                </p>
+                <p>
+                  Sorry, we don't recognize this member. Make sure to link alternative
+                  emails in Account Settings.
+                </p>
+                <hr />
+              </div>
+            )}
             <ul className="tooltip-owners-commits">
               {commits.slice(0, 6).map(c => {
                 return (
                   <li key={c.id} className="tooltip-owners-commit">
                     {c.message}
                     <span className="tooltip-owners-date">
-                      {' '}- {moment(c.dateCreated).fromNow()}
+                      {' '}
+                      - {moment(c.dateCreated).fromNow()}
                     </span>
                   </li>
                 );
               })}
             </ul>
           </div>
-        )}>
+        )}
+      >
         <Avatar user={author} />
       </span>
     );
@@ -131,12 +139,10 @@ const SuggestedOwners = React.createClass({
           <span>{t('Suggested Owners')}</span>
           <small style={{background: '#FFFFFF'}}>Click to assign</small>
         </h6>
-        <div className="avatar-grid">
-          {this.state.owners.map(c => this.renderCommitter(c))}
-        </div>
+        <div className="avatar-grid">{this.state.owners.map(this.renderCommitter)}</div>
       </div>
     );
-  }
+  },
 });
 
 export default SuggestedOwners;

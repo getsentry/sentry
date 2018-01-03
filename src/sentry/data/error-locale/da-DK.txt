@@ -1,0 +1,289 @@
+5,Procedurekaldet eller argumentet er ugyldigt
+6,Overløb
+7,Der er ikke mere hukommelse
+9,Indekset er uden for området
+10,Denne matrix er fast eller midlertidigt låst
+11,Division med nul
+13,Typer stemmer ikke overens
+14,Der er ikke mere strengplads
+17,Den ønskede handling kan ikke udføres
+28,Der er ikke mere stakplads
+35,Sub- eller Function-procedure er ikke defineret
+48,Der opstod en fejl under indlæsning af DLL-filen
+51,Der opstod en intern fejl
+52,Forkert filnavn eller -nummer
+53,Filen blev ikke fundet
+54,Forkert filtilstand
+55,Filen er allerede åben
+57,I/O-fejl i forbindelse med enhed
+58,Filen findes allerede
+61,Disken er fuld
+62,Input efter filens slutning
+67,Der er for mange filer
+68,Enheden er ikke tilgængelig
+70,Tilladelse nægtet
+71,Disken er ikke klar
+74,Der kan ikke omdøbes til et navn på et andet drev
+75,Der opstod en fejl ved adgang til sti eller fil
+76,Stien blev ikke fundet
+91,Objektvariablen eller With-blokken er ikke angivet
+92,For-løkken er ikke initialiseret
+94,Null er brugt ugyldigt
+322,Den nødvendige midlertidige fil kan ikke oprettes
+424,Et objekt er obligatorisk
+429,Automation-serveren kan ikke oprette objektet
+430,Klassen understøtter ikke Automation
+432,Fil- eller klassenavnet blev ikke fundet under Automation-handlingen
+438,Objektet understøtter ikke denne egenskab eller metode
+440,Der opstod en Automation-fejl
+445,Objektet understøtter ikke denne handling
+446,Objektet understøtter ikke navngivne argumenter
+447,Objektet understøtter ikke den nuværende indstilling for landekode
+448,Det navngivne argument blev ikke fundet
+449,Argumentet er ikke valgfrit
+450,Antallet af argumenter er forkert, eller egenskabstildelingen er ugyldig
+451,Objektet er ikke en samling
+453,Den angivne DLL-funktion blev ikke fundet
+458,Variablen bruger en Automation-type, der ikke understøttes i JavaScript
+462,Fjernserveren eksisterer ikke eller er ikke tilgængelig
+501,Der kan ikke tildeles til variabel
+502,Objektet er ikke klar til scripting
+503,Objektet er ikke klar til initialisering
+504,Objektet er ikke klar til oprettelse
+507,Der er opstået en undtagelse
+1001,Der er ikke mere hukommelse
+1002,Der er en syntaksfejl
+1003,Tegnet ':' var ventet
+1004,Tegnet ';' var ventet
+1005,Tegnet '(' var ventet
+1006,Tegnet ')' var ventet
+1007,Tegnet ']' var ventet
+1008,Tegnet '{' var ventet
+1009,Tegnet '}' var ventet
+1010,Id var ventet
+1011,Tegnet '=' var ventet
+1012,Tegnet '/' var ventet
+1013,Tallet er ugyldigt
+1014,Tegnet er ugyldigt
+1015,Strengkonstanten er uafsluttet
+1016,Bemærkningen er uafsluttet
+1018,'return'-sætningen uden for funktionen
+1019,'break' kan ikke optræde uden for løkken
+1020,'continue' kan ikke optræde uden for løkken
+1023,Et hexadecimalt ciffer var ventet
+1024,'while' var ventet
+1025,Linjemærket blev defineret igen
+1026,Linjemærket blev ikke fundet
+1027,'default' kan kun optræde én gang i en 'switch'-sætning
+1028,Et id, en streng eller et tal var ventet
+1029,'@end' var ventet
+1030,Betinget kompilering er slået fra
+1031,En konstant var ventet
+1032,'@' var ventet
+1033,Forventede 'catch'
+1034,Forventede 'var'
+1035,'throw' skal følges af et udtryk i samme kildelinje
+1037,'with'-sætninger er ikke tilladt i bundet tilstand
+1038,Identiske formelle parameternavne er ikke tilladt i bundet tilstand
+1039,Oktale numeriske konstanter og escape-tegn er ikke tilladt i bundet tilstand
+1041,'eval' bruges ugyldigt i bundet tilstand
+1042,'arguments' bruges ugyldigt i bundet tilstand
+1045,Kald af delete på udtryk er ikke tilladt i bundet tilstand
+1046,Flere definitioner af en egenskab er ikke tilladt i bundet tilstand
+1047,I bundet tilstand kan funktionserklæringer ikke være indlejret i en sætning eller en blok. De kan kun forekomme på øverste niveau eller direkte i funktionsteksten.
+1048,Brugen af et nøgleord som identifikator er ugyldig
+1049,Brugen af et fremtidigt reserveret ord for en identifikator er ugyldig
+1050,Brugen af et fremtidigt reserveret ord for en identifikator er ugyldig. Identifikatornavnet reserveres i bundet tilstand.
+1051,Setter-funktioner skal have et argument
+4096,Der opstod en JavaScript-kompileringsfejl
+4097,Der opstod en JavaScript-kørselsfejl
+4098,Der opstod en ukendt kørselsfejl
+5000,Der kan ikke tildeles til 'this'
+5001,Et tal var ventet
+5002,En funktion var ventet
+5003,Der kan ikke tildeles til resultatet af en funktion
+5004,Objektet kan ikke indekseres
+5005,En streng var ventet
+5006,Et datoobjekt var ventet
+5007,Et objekt var ventet
+5008,Venstresiden er ugyldig i tildelingen
+5009,Id er ikke defineret
+5010,En boolesk værdi var ventet
+5011,Programkoden kan ikke køres fra et frigjort script
+5012,Et objektmedlem var ventet
+5013,VBArray var ventet
+5014,Et JavaScript-objekt var ventet
+5015,Et enumeratorobjekt var ventet
+5016,Et regulært udtryksobjekt var ventet
+5017,Der er en syntaksfejl i det regulære udtryk
+5018,Uventet kvantor
+5019,Tegnet ']' var ventet i det regulære udtryk
+5020,Tegnet ')' var ventet i det regulære udtryk
+5021,Ugyldigt område i tegnsættet
+5022,Undtagelse opstået og ikke fanget
+5023,Funktionen har ikke et gyldigt prototypeobjekt
+5024,Den URI, der skal kodes, indeholder et ugyldigt tegn
+5025,Den URI, der skal dekodes, er ikke kodet korrekt
+5026,Antallet af brøkdele er uden for området
+5027,Nøjagtigheden er uden for området
+5028,Der blev forventet et objekt af typen Array eller Arguments
+5029,Matrixlængden skal være en endelig positiv værdi
+5030,Matrixlængden skal tildeles en endelig positiv værdi
+5031,Der blev forventet et objekt af typen Array
+5034,Den cirkulære reference i værdiargumentet understøttes ikke
+5035,Erstatningsargumentet er ugyldigt
+5038,Argumentlisten er for stor til at blive anvendt
+5039,Generklæring af egenskaben const
+5041,Objektmedlemmet kan ikke konfigureres
+5042,Variablen er ikke defineret i bundet tilstand
+5043,Der er ikke adgang til 'caller'-egenskaben for et funktions- eller argumentobjekt i bundet tilstand
+5044,Der er ikke adgang til 'callee'-egenskaben for et argumentobjekt i bundet tilstand
+5045,Det er ikke tilladt at tildele til skrivebeskyttede egenskaber i bundet tilstand
+5046,Der kan ikke oprettes en egenskab for et objekt, der ikke kan udvides
+5047,Et objekt var ventet
+5048,Et objekt var ventet
+5049,Et objekt var ventet
+5050,Et objekt var ventet
+5051,En funktion var ventet
+5052,En funktion var ventet
+5053,Egenskaben kan ikke have både accessorer og en værdi
+5054,'this' er null eller er ikke defineret
+5055,Et objekt var ventet
+5056,En funktion var ventet
+5057,En streng var ventet
+5058,En boolesk værdi var ventet
+5059,En dato var ventet
+5060,Et tal var ventet
+5061,VBArray var ventet
+5062,Et JavaScript-objekt var ventet
+5063,Et enumeratorobjekt var ventet
+5064,Et RegExp-objekt var ventet
+5065,Funktionsargumentet var ugyldigt
+5066,Et objekt var ventet
+5067,Et JavaScript-objekt var ventet
+5068,En funktion var ventet
+5069,VBArray var ventet
+5070,Et objekt var ventet
+5071,Et objekt var ventet
+5072,Egenskaben 'length' er ugyldig
+5073,Der blev forventet et objekt af typen Array eller Arguments
+5074,Operanden er ugyldig
+5075,Operanden er ugyldig
+5076,Egenskabsbeskrivelsen er ugyldig
+5077,Egenskaben kan ikke defineres: objektet kan ikke udvides
+5078,En egenskab, der ikke kan konfigureres, kan ikke omdefineres
+5079,En egenskab, der er skrivebeskyttet, kan ikke ændres
+5080,Egenskaben kan ikke ændres: 'length' kan ikke ændres
+5081,Egenskaben kan ikke defineres
+5082,Konstruktørargument for typebestem array er ugyldigt
+5083,'this' er ikke et typebestemt arrayobjekt
+5084,Ugyldig forskydning/længde ved oprettelse af typebestemt array
+5085,Ugyldig værdi begin/end i under-arraymetode  for typebestemt array
+5086,Ugyldig kilde i typebestemt array-sæt
+5087,'this' er ikke et DataView-objekt
+5088,Ugyldige argumenter i DataView
+5089,Adgang til DataView-handling over angivet bufferlængde
+5090,Ugyldige argumenter i DataView
+5091,ugyldig funktion signatur
+5092,ugyldige egenskab signatur
+5093,ugyldig inputparametertype
+5094,ugyldig outputparameter
+5095,Adgang til egenskaben 'arguments' for en funktion er ikke tilladt i bundet tilstand
+5096,Et kontrollérbart objekt var ventet
+5097,Argumentet kunne ikke konverteres til typen 'char'
+5098,Argumentet kunne ikke konverteres til typen 'GUID'
+5099,IInspectable var ventet
+5100,Objektet kunne ikke konverteres til struktur: Objektet mangler forventet egenskab
+5101,Ukendt type
+5102,Funktionen blev kaldt med for få argumenter
+5103,Typen kan ikke konstrueres
+5104,Værdien kunne ikke konverteres til PropertyValue: Typen understøttes ikke af PropertyValue
+5105,Værdien kunne ikke konverteres til IInspectable: Typen understøttes ikke af IInspectable
+5106,Datoen kunne ikke konverteres til Windows.Foundation.DateTime: Værdien er uden for det gyldige interval
+5107,Værdien kunne ikke konverteres til Windows.Foundation.TimeSpan: Værdien er uden for det gyldige interval
+5108,Adgang til allerede frigivet kontrollérbart objekt er ugyldig
+5109,Allerede frigivet kontrollérbart objekt kan ikke frigives
+5110,'dette' er ikke af den forventede type
+5111,Der er angivet ugyldig længde og størrelse for matrixen
+5112,Der opstod en uventet fejl under forsøg på at hente metadataoplysninger
+5200,Status er 'fejl', men getResults returnerede ingen fejl
+5201,Manglende eller ugyldig statusparameter overført til afsluttet handler
+5202,Manglende eller ugyldig afsenderparameter overført til afsluttet handler
+6000,Uendeligt tal
+6001,Negativt uendeligt tal
+10438,Objektet understøtter ikke egenskaben eller metoden '%s'
+10449,Argumentet til funktionen '%s' skal angives
+15001,'%s' er ikke et tal
+15002,'%s' er ikke en funktion
+15004,'%s' er et objekt, der ikke kan indekseres
+15005,'%s' er ikke en streng
+15006,'%s' er ikke et datoobjekt
+15007,'%s' er null eller ikke et objekt
+15008,Der kan ikke tildeles til '%s'
+15009,'%s' er ikke defineret
+15010,'%s' er ikke en boolesk værdi
+15012,'%s' kan ikke slettes
+15013,'%s' er ikke et VBArray
+15014,'%s' er ikke et JavaScript-objekt
+15015,'%s' er ikke et optællerobjekt
+15016,'%s' er ikke et regulært udtryksobjekt
+15028,%s er ikke et objekt af typen Array eller Arguments
+15031,%s er ikke et objekt af typen Array
+15036,'%s'-attributten på egenskabsbeskrivelsen kan ikke sættes til 'true' på dette objekt
+15037,'%s'-attributten på egenskabsbeskrivelsen kan ikke sættes til 'false' på dette objekt
+15039,Generklæring af const '%s'
+15041,Kald af delete på '%s' er ikke tilladt i bundet tilstand
+15047,Egenskaben '%s' kan ikke angives for reference, der er udefineret eller null
+15048,Egenskaben '%s' kan ikke hentes for reference, der er udefineret eller null
+15049,Egenskaben '%s' kan ikke slettes reference, der er udefineret eller null
+15050,Der kan ikke opnås adgang til egenskaben '%s': Typen 'VarDate' understøtter ikke brugerdefinerede egenskaber
+15051,Værdien af egenskaben '%s' er ikke et Function-objekt
+15052,Værdien af egenskaben '%s' er null eller er ikke defineret. Det er ikke et Function-objekt
+15054,%s: 'this' er null eller er ikke defineret
+15055,%s: 'this' er ikke et objekt
+15056,%s: 'this' er ikke et Function-objekt
+15057,%s: 'this' er ikke et String-objekt
+15058,%s: 'this' er ikke et Boolean-objekt
+15059,%s: 'this' er ikke et Date-objekt
+15060,%s: 'this' er ikke et Number-objekt
+15061,%s: 'this' er ikke et VBArray-objekt
+15062,%s: 'this' er ikke et JavaScript-objekt
+15063,%s: 'this' er ikke et Enumerator-objekt
+15064,%s: 'this' er ikke et RegExp-objekt
+15065,%s: Argumentet er ugyldigt
+15066,%s: Argumentet er ikke et objekt
+15067,%s: Argumentet er ikke et JavaScript-objekt
+15068,%s: Argumentet er ikke et Function-objekt
+15069,%s: Argumentet er ikke et VBArray-objekt
+15070,%s: Argumentet er null eller er ikke defineret
+15071,%s: Argumentet er ikke et objekt og er ikke null
+15072,%s: Argumentet har ikke en gyldig 'length'-egenskab
+15073,%s: Matrix eller argumentobjekt var ventet
+15074,Operanden til '%s' er ugyldig: Et objekt var ventet
+15075,Operanden til '%s' er ugyldig: En funktion var ventet
+15076,Beskrivelsen for egenskaben '%s' er ugyldig
+15077,Egenskaben '%s' kan ikke defineres: objektet kan ikke udvides
+15078,Egenskaben '%s' kan ikke omdefineres, da den ikke kan konfigureres
+15079,Egenskaben '%s' kan ikke ændres, da den er skrivebeskyttet
+15080,Egenskaben '%s' kan ikke ændres: 'length' kan ikke ændres
+15081,Egenskaben '%s' kan ikke defineres
+15088,Påkrævet argument i %s i DataView-metode er ikke angivet
+15090,DataView-konstruktørargumentet %s er ugyldigt
+15091,Funktionen '%s' har en ugyldig signatur og kan ikke kaldes
+15092,Egenskaben '%s' har en ugyldig signatur og kan ikke åbnes
+15093,Kørselsklassen %s, der har Windows.Foundation.IPropertyValue, som standardgrænseflade, understøttes ikke som inputparametertype
+15094,Objektet med grænsefladen Windows.Foundation.IPropertyValue, der har navnet for kørselsklasse %s, understøttes ikke som out-parameter
+15096,%s: 'this' er ikke et kontrollérbart objekt
+15097,%s: Argumentet kunne ikke konverteres til typen 'char'
+15098,%s: Argumentet kunne ikke konverteres til typen 'GUID'
+15099,%s: Returværdien kunne ikke konverteres til IInspectable
+15100,Objektet kunne ikke konverteres til struktur: Objektet mangler forventet egenskab '%s'
+15101,Typen '%s' blev ikke fundet
+15102,%s: Funktionen blev kaldt med for få argumenter
+15103,%s: Typen kan ikke konstrueres
+15104,Værdien kunne ikke konverteres til PropertyValue: %s understøttes ikke af PropertyValue
+15105,Værdien kunne ikke konverteres til IInspectable: %s understøttes ikke af IInspectable
+15108,%s: Det kontrollérbare objekt 'this' er frigivet, og der er ingen adgang til det
+15110,'dette' er ikke af den forventede type: %s
+15112,%s: Der opstod en uventet fejl under forsøg på at hente metadataoplysninger
+32812,Den angivne dato findes ikke i kalenderen for den nuværende landekode

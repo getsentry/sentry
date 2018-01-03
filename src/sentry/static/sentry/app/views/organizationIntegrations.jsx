@@ -7,7 +7,6 @@ import Confirm from '../components/confirm';
 import DropdownLink from '../components/dropdownLink';
 import IndicatorStore from '../stores/indicatorStore';
 import MenuItem from '../components/menuItem';
-import OrganizationHomeContainer from '../components/organizations/homeContainer';
 
 export default class OrganizationIntegrations extends AsyncView {
   componentDidMount() {
@@ -36,11 +35,11 @@ export default class OrganizationIntegrations extends AsyncView {
       let itemList = this.state.itemList;
       itemList.push(data);
       this.setState({
-        itemList: sortArray(itemList, item => item.name)
+        itemList: sortArray(itemList, item => item.name),
       });
     } else {
       IndicatorStore.add(data.detail, 'error', {
-        duration: 5000
+        duration: 5000,
       });
     }
     this.dialog = null;
@@ -50,7 +49,7 @@ export default class OrganizationIntegrations extends AsyncView {
     let {orgId} = this.props.params;
     return [
       ['itemList', `/organizations/${orgId}/integrations/`, {query: {status: ''}}],
-      ['config', `/organizations/${orgId}/config/integrations/`]
+      ['config', `/organizations/${orgId}/config/integrations/`],
     ];
   }
 
@@ -62,17 +61,17 @@ export default class OrganizationIntegrations extends AsyncView {
         method: 'DELETE',
         success: () => {
           this.setState({
-            itemList: this.state.itemList.filter(item => item.id !== integration.id)
+            itemList: this.state.itemList.filter(item => item.id !== integration.id),
           });
         },
         error: () => {
           IndicatorStore.add(t('An error occurred.'), 'error', {
-            duration: 3000
+            duration: 3000,
           });
         },
         complete: () => {
           IndicatorStore.remove(indicator);
-        }
+        },
       }
     );
   };
@@ -86,13 +85,13 @@ export default class OrganizationIntegrations extends AsyncView {
     let innerWidth = window.innerWidth
       ? window.innerWidth
       : document.documentElement.clientWidth
-          ? document.documentElement.clientWidth
-          : screen.width;
+        ? document.documentElement.clientWidth
+        : screen.width;
     let innerHeight = window.innerHeight
       ? window.innerHeight
       : document.documentElement.clientHeight
-          ? document.documentElement.clientHeight
-          : screen.height;
+        ? document.documentElement.clientHeight
+        : screen.height;
     let left = innerWidth / 2 - width / 2 + screenLeft;
     let top = innerHeight / 2 - height / 2 + screenTop;
 
@@ -129,16 +128,17 @@ export default class OrganizationIntegrations extends AsyncView {
     let iconStyles = {
       width: 24,
       height: 24,
-      display: 'inline-block'
+      display: 'inline-block',
     };
 
     return (
-      <OrganizationHomeContainer className="ref-organization-integrations">
+      <div className="ref-organization-integrations">
         <div className="pull-right">
           <DropdownLink
             anchorRight
             className="btn btn-primary btn-sm"
-            title={t('Add Integration')}>
+            title={t('Add Integration')}
+          >
             {this.state.config.providers.map(provider => {
               return (
                 <MenuItem noAnchor={true} key={provider.id}>
@@ -150,65 +150,61 @@ export default class OrganizationIntegrations extends AsyncView {
             })}
           </DropdownLink>
         </div>
-        <h3 className="m-b-2">
-          {t('Integrations')}
-        </h3>
-        {itemList.length > 0
-          ? <div className="panel panel-default">
-              <table className="table">
-                <tbody>
-                  {itemList.map(integration => {
-                    return (
-                      <tr key={integration.id}>
-                        <td style={{width: 24, paddingRight: 0}}>
-                          <span
-                            className={`icon icon-integration icon-${integration.provider.id}`}
-                            style={iconStyles}
-                          />
-                        </td>
-                        <td>
-                          <strong>
-                            {integration.name}
-                          </strong> — <small>
-                            {integration.provider.name}
-                          </small>
-                        </td>
-                        <td style={{width: 60}}>
-                          <Confirm
-                            message={t(
-                              'Are you sure you want to remove this integration?'
-                            )}
-                            onConfirm={() => this.deleteIntegration(integration)}>
-                            <button className="btn btn-default btn-xs">
-                              <span className="icon icon-trash" />
-                            </button>
-                          </Confirm>
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </div>
-          : <div className="well blankslate align-center p-x-2 p-y-1">
-              <div className="icon icon-lg icon-git-commit" />
-              <h3>
-                {t('Sentry is better with friends')}
-              </h3>
-              <p>
-                {t(
-                  'Integrations allow you to pull in things like repository data or sync with an external issue tracker.'
-                )}
-              </p>
-              <p className="m-b-1">
-                <a
-                  className="btn btn-default"
-                  href="https://docs.sentry.io/learn/integrations/">
-                  Learn more
-                </a>
-              </p>
-            </div>}
-      </OrganizationHomeContainer>
+        <h3 className="m-b-2">{t('Integrations')}</h3>
+        {itemList.length > 0 ? (
+          <div className="panel panel-default">
+            <table className="table">
+              <tbody>
+                {itemList.map(integration => {
+                  return (
+                    <tr key={integration.id}>
+                      <td style={{width: 24, paddingRight: 0}}>
+                        <span
+                          className={`icon icon-integration icon-${integration.provider
+                            .id}`}
+                          style={iconStyles}
+                        />
+                      </td>
+                      <td>
+                        <strong>{integration.name}</strong> —{' '}
+                        <small>{integration.provider.name}</small>
+                      </td>
+                      <td style={{width: 60}}>
+                        <Confirm
+                          message={t('Are you sure you want to remove this integration?')}
+                          onConfirm={() => this.deleteIntegration(integration)}
+                        >
+                          <button className="btn btn-default btn-xs">
+                            <span className="icon icon-trash" />
+                          </button>
+                        </Confirm>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        ) : (
+          <div className="well blankslate align-center p-x-2 p-y-1">
+            <div className="icon icon-lg icon-git-commit" />
+            <h3>{t('Sentry is better with friends')}</h3>
+            <p>
+              {t(
+                'Integrations allow you to pull in things like repository data or sync with an external issue tracker.'
+              )}
+            </p>
+            <p className="m-b-1">
+              <a
+                className="btn btn-default"
+                href="https://docs.sentry.io/learn/integrations/"
+              >
+                Learn more
+              </a>
+            </p>
+          </div>
+        )}
+      </div>
     );
   }
 }

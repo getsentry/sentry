@@ -16,7 +16,7 @@ const optionsAvailable = [
   'auth.ip-rate-limit',
   'auth.user-rate-limit',
   'api.rate-limit.org-create',
-  'beacon.anonymous'
+  'beacon.anonymous',
 ];
 
 export default class AdminSettings extends AsyncView {
@@ -50,7 +50,8 @@ export default class AdminSettings extends AsyncView {
           apiEndpoint={this.getEndpoint()}
           onSubmit={this.onSubmit}
           initialData={initialData}
-          requireChanges={true}>
+          requireChanges={true}
+        >
           <h4>General</h4>
           {fields['system.url-prefix']}
           {fields['system.admin-email']}

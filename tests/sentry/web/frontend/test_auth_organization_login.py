@@ -2,13 +2,16 @@ from __future__ import absolute_import
 
 from django.core.urlresolvers import reverse
 
-from sentry.models import AuthIdentity, AuthProvider, OrganizationMember, UserEmail
+from sentry.models import (
+    AuthIdentity, AuthProvider, OrganizationMember, UserEmail
+)
 from sentry.testutils import AuthProviderTestCase
 
 
-# TODO(dcramer): this is an integration test
+# TODO(dcramer): this is an integration test and repeats tests from
+# core auth_login
 class OrganizationAuthLoginTest(AuthProviderTestCase):
-    def test_renders_basic_login_form(self):
+    def test_renders_basic(self):
         organization = self.create_organization(name='foo', owner=self.user)
 
         path = reverse('sentry-auth-organization', args=[organization.slug])
@@ -21,9 +24,9 @@ class OrganizationAuthLoginTest(AuthProviderTestCase):
 
         self.assertTemplateUsed(resp, 'sentry/organization-login.html')
 
-        assert resp.context['form']
+        assert resp.context['login_form']
+        assert resp.context['organization'] == organization
         assert 'provider_key' not in resp.context
-        assert resp.context['CAN_REGISTER']
 
     def test_renders_session_expire_message(self):
         organization = self.create_organization(name='foo', owner=self.user)
@@ -649,3 +652,37 @@ class OrganizationAuthLoginTest(AuthProviderTestCase):
         member2 = OrganizationMember.objects.get(id=member2.id)
         assert not getattr(member2.flags, 'sso:linked')
         assert getattr(member2.flags, 'sso:invalid')
+
+    def test_flow_as_unauthenticated_existing_user_legacy_identity_migration(self):
+        organization = self.create_organization(name='foo', owner=self.user)
+        user = self.create_user('bar@example.com')
+        auth_provider = AuthProvider.objects.create(
+            organization=organization,
+            provider='dummy',
+        )
+        user_ident = AuthIdentity.objects.create(
+            auth_provider=auth_provider,
+            user=user,
+            ident='foo@example.com',
+        )
+
+        path = reverse('sentry-auth-organization', args=[organization.slug])
+
+        resp = self.client.post(path, {'init': True})
+
+        assert resp.status_code == 200
+        assert self.provider.TEMPLATE in resp.content.decode('utf-8')
+
+        path = reverse('sentry-auth-sso')
+
+        resp = self.client.post(path, {
+            'email': 'foo@new-domain.com',
+            'legacy_email': 'foo@example.com'
+        })
+
+        # Ensure the ident was migrated from the legacy identity
+        updated_ident = AuthIdentity.objects.get(id=user_ident.id)
+        assert updated_ident.ident == 'foo@new-domain.com'
+
+        assert resp.status_code == 302
+        assert resp['Location'] == 'http://testserver' + reverse('sentry-login')

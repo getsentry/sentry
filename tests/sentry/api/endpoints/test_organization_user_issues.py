@@ -6,7 +6,8 @@ from datetime import timedelta
 from django.core.urlresolvers import reverse
 from django.utils import timezone
 
-from sentry.models import EventUser, GroupTagValue, OrganizationMemberTeam
+from sentry import tagstore
+from sentry.models import EventUser, OrganizationMemberTeam
 from sentry.testutils import APITestCase
 
 
@@ -32,23 +33,26 @@ class OrganizationUserIssuesTest(APITestCase):
         self.euser2 = EventUser.objects.create(email='bar@example.com', project_id=self.project1.id)
         self.euser3 = EventUser.objects.create(email='foo@example.com', project_id=self.project2.id)
 
-        GroupTagValue.objects.create(
+        tagstore.create_group_tag_value(
             key='sentry:user',
             value=self.euser1.tag_value,
             group_id=self.group1.id,
-            project_id=self.project1.id
+            project_id=self.project1.id,
+            environment_id=None,
         )
-        GroupTagValue.objects.create(
+        tagstore.create_group_tag_value(
             key='sentry:user',
             value=self.euser2.tag_value,
             group_id=self.group1.id,
-            project_id=self.project1.id
+            project_id=self.project1.id,
+            environment_id=None,
         )
-        GroupTagValue.objects.create(
+        tagstore.create_group_tag_value(
             key='sentry:user',
             value=self.euser3.tag_value,
             group_id=self.group2.id,
-            project_id=self.project2.id
+            project_id=self.project2.id,
+            environment_id=None,
         )
         self.path = reverse(
             'sentry-api-0-organization-user-issues', args=[

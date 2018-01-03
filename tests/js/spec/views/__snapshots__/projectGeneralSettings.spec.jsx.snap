@@ -1,0 +1,431 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`projectGeneralSettings renders 1`] = `
+<DocumentTitle
+  title="Sentry"
+>
+  <div>
+    <h2>
+      Project Settings
+    </h2>
+    <ApiForm
+      apiEndpoint="/projects/org-slug/project-slug/"
+      apiMethod="PUT"
+      cancelLabel="Cancel"
+      className="form-stacked"
+      errorMessage="Unable to save your changes. Please ensure all fields are valid and try again."
+      footerClass="form-actions align-right"
+      hideErrors={false}
+      initialData={
+        Object {
+          "allowedDomains": undefined,
+          "dataScrubber": undefined,
+          "dataScrubberDefaults": undefined,
+          "defaultEnvironment": undefined,
+          "name": "Project Name",
+          "resolveAge": undefined,
+          "safeFields": undefined,
+          "scrapeJavaScript": undefined,
+          "scrubIPAddresses": undefined,
+          "securityHeader": undefined,
+          "securityToken": undefined,
+          "securityTokenHeader": undefined,
+          "sensitiveFields": undefined,
+          "slug": "project-slug",
+          "subjectPrefix": undefined,
+          "team": undefined,
+          "verifySSL": undefined,
+        }
+      }
+      onSubmitSuccess={[Function]}
+      requireChanges={false}
+      resetOnError={false}
+      submitDisabled={false}
+      submitLabel="Save Changes"
+    >
+      <div
+        className="box"
+      >
+        <div
+          className="box-header"
+        >
+          <h3>
+            Project Details
+          </h3>
+        </div>
+        <div
+          className="box-content with-padding"
+        >
+          <TextField
+            disabled={false}
+            hideErrorMessage={false}
+            label="Project Name"
+            name="name"
+            placeholder="e.g. My Service Name"
+            required={true}
+          />
+          <TextField
+            disabled={false}
+            help="A unique ID used to identify this project."
+            hideErrorMessage={false}
+            label="Short name"
+            name="slug"
+            required={true}
+          />
+        </div>
+      </div>
+      <div
+        className="box"
+      >
+        <div
+          className="box-header"
+        >
+          <h3>
+            Email
+          </h3>
+        </div>
+        <div
+          className="box-content with-padding"
+        >
+          <TextField
+            disabled={false}
+            help="Choose a custom prefix for emails from this project."
+            hideErrorMessage={false}
+            label="Subject prefix"
+            name="subjectPrefix"
+            required={false}
+          />
+        </div>
+      </div>
+      <div
+        className="box"
+      >
+        <div
+          className="box-header"
+        >
+          <h3>
+            Event Settings
+          </h3>
+        </div>
+        <div
+          className="box-content with-padding"
+        >
+          <TextField
+            disabled={false}
+            help="The default selected environment when viewing issues."
+            hideErrorMessage={false}
+            label="Default environment"
+            name="defaultEnvironment"
+            placeholder="e.g. production"
+            required={false}
+          />
+          <RangeField
+            allowedValues={
+              Array [
+                0,
+                1,
+                2,
+                3,
+                4,
+                5,
+                6,
+                7,
+                8,
+                9,
+                10,
+                11,
+                12,
+                15,
+                18,
+                21,
+                24,
+                30,
+                36,
+                48,
+                72,
+                96,
+                120,
+                144,
+                168,
+                192,
+                216,
+                240,
+                264,
+                288,
+                312,
+                336,
+                360,
+                384,
+                408,
+                432,
+                456,
+                480,
+                504,
+                528,
+                552,
+                576,
+                600,
+                624,
+                648,
+                672,
+                696,
+                720,
+              ]
+            }
+            disabled={false}
+            formatLabel={[Function]}
+            help="Automatically resolve an issue if it hasn't been seen for this amount of time."
+            hideErrorMessage={false}
+            label="Auto resolve"
+            max={720}
+            min={0}
+            name="resolveAge"
+            required={false}
+            snap={true}
+            step={1}
+          />
+          <p>
+            <small>
+              <strong>
+                Note: Enabling auto resolve will immediately resolve anything that has not been seen within this period of time. There is no undo!
+              </strong>
+            </small>
+          </p>
+        </div>
+      </div>
+      <div
+        className="box"
+      >
+        <div
+          className="box-header"
+        >
+          <h3>
+            Data Privacy
+          </h3>
+        </div>
+        <div
+          className="box-content with-padding"
+        >
+          <BooleanField
+            disabled={false}
+            disabledReason="This option is enforced by your organization's settings and cannot be customized per-project."
+            help="Enable server-side data scrubbing."
+            hideErrorMessage={false}
+            label="Data scrubber"
+            name="dataScrubber"
+            required={false}
+            value={null}
+          />
+          <BooleanField
+            disabled={false}
+            disabledReason="This option is enforced by your organization's settings and cannot be customized per-project."
+            help="Apply default scrubbers to prevent things like passwords and credit cards from being stored."
+            hideErrorMessage={false}
+            label="Use default scrubbers"
+            name="dataScrubberDefaults"
+            required={false}
+            value={null}
+          />
+          <ListAsTextareaField
+            disabled={false}
+            help="Additional field names to match against when scrubbing data. Separate multiple entries with a newline."
+            hideErrorMessage={false}
+            label="Additional sensitive fields"
+            name="sensitiveFields"
+            placeholder="e.g. email"
+            required={false}
+          />
+          <ListAsTextareaField
+            disabled={false}
+            help="Field names which data scrubbers should ignore. Separate multiple entries with a newline."
+            hideErrorMessage={false}
+            label="Safe fields"
+            name="safeFields"
+            placeholder="e.g. email"
+            required={false}
+          />
+          <BooleanField
+            disabled={false}
+            disabledReason="This option is enforced by your organization's settings and cannot be customized per-project."
+            help="Prevent IP addresses from being stored for new events."
+            hideErrorMessage={false}
+            label="Don't store IP Addresses"
+            name="scrubIPAddresses"
+            required={false}
+            value={null}
+          />
+        </div>
+      </div>
+      <div
+        className="box"
+      >
+        <div
+          className="box-header"
+        >
+          <h3>
+            Client Security
+          </h3>
+        </div>
+        <div
+          className="box-content with-padding"
+        >
+          <p>
+            <span
+              key="4"
+            >
+              <span
+                key="0"
+              >
+                Configure origin URLs which Sentry should accept events from. This is used for communication with clients like 
+              </span>
+              <a
+                href="https://github.com/getsentry/raven-js"
+                key="1"
+              >
+                raven-js
+              </a>
+              <span
+                key="2"
+              >
+                .
+              </span>
+            </span>
+             
+            <span
+              key="6"
+            >
+              <span
+                key="0"
+              >
+                This will restrict requests based on the 
+              </span>
+              <code
+                key="1"
+              >
+                Origin
+              </code>
+              <span
+                key="2"
+              >
+                 and 
+              </span>
+              <code
+                key="3"
+              >
+                Referer
+              </code>
+              <span
+                key="4"
+              >
+                 headers.
+              </span>
+            </span>
+          </p>
+          <ListAsTextareaField
+            disabled={false}
+            help="Separate multiple entries with a newline. Cannot be empty."
+            hideErrorMessage={false}
+            label="Allowed domains"
+            name="allowedDomains"
+            placeholder="e.g. https://example.com or example.com"
+            required={false}
+          />
+          <BooleanField
+            disabled={false}
+            help="Allow Sentry to scrape missing JavaScript source context when possible."
+            hideErrorMessage={false}
+            label="Enable JavaScript source fetching"
+            name="scrapeJavaScript"
+            required={false}
+          />
+          <TextField
+            disabled={false}
+            help="Outbound requests matching Allowed Domains will have the header \\"{token_header}: {token}\\" appended."
+            hideErrorMessage={false}
+            label="Security token"
+            name="securityToken"
+            required={false}
+          />
+          <TextField
+            disabled={false}
+            help="Outbound requests matching Allowed Domains will have the header \\"{token_header}: {token}\\" appended."
+            hideErrorMessage={false}
+            label="Security token header"
+            name="securityTokenHeader"
+            placeholder="e.g. X-Sentry-Token"
+            required={false}
+          />
+          <BooleanField
+            disabled={false}
+            help="Outbound requests will verify TLS (sometimes known as SSL) connections."
+            hideErrorMessage={false}
+            label="Verify TLS/SSL"
+            name="verifySSL"
+            required={false}
+          />
+        </div>
+      </div>
+      <div
+        className="box"
+      >
+        <div
+          className="box-header"
+        >
+          <h3>
+            Remove Project
+          </h3>
+        </div>
+        <div
+          className="box-content with-padding"
+        >
+          <p>
+            <a
+              className="btn btn-danger pull-right"
+              href="/org-slug/project-slug/settings/remove/"
+            >
+              Remove Project
+            </a>
+            Remove the 
+            <strong>
+              project-slug
+            </strong>
+             project and all related data.
+            <br />
+            Careful, this action cannot be undone.
+          </p>
+        </div>
+      </div>
+      <div
+        className="box"
+      >
+        <div
+          className="box-header"
+        >
+          <h3>
+            Transfer Project
+          </h3>
+        </div>
+        <div
+          className="box-content with-padding"
+        >
+          <p>
+            <a
+              className="btn btn-danger pull-right"
+              href="/org-slug/project-slug/settings/transfer/"
+            >
+              Transfer Project
+            </a>
+            Transfer the 
+            <strong>
+              project-slug
+            </strong>
+             project and all related data.
+            <br />
+            Careful, this action cannot be undone.
+          </p>
+        </div>
+      </div>
+    </ApiForm>
+  </div>
+</DocumentTitle>
+`;

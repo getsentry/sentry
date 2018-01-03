@@ -34,6 +34,8 @@ from sentry.utils.samples import load_data
 from sentry.web.decorators import login_required
 from sentry.web.helpers import render_to_response, render_to_string
 
+from six.moves import xrange
+
 logger = logging.getLogger(__name__)
 
 loremipsum = Generator()

@@ -1,6 +1,7 @@
 from __future__ import absolute_import, division, print_function
 
 from datetime import timedelta
+import functools
 import logging
 from uuid import uuid4
 
@@ -11,7 +12,7 @@ from rest_framework import serializers
 from rest_framework.response import Response
 
 from sentry import features, search
-from sentry.api.base import DocSection
+from sentry.api.base import DocSection, EnvironmentMixin
 from sentry.api.bases.project import ProjectEndpoint, ProjectEventPermission
 from sentry.api.fields import UserField
 from sentry.api.serializers import serialize
@@ -20,9 +21,9 @@ from sentry.api.serializers.models.group import (
 from sentry.constants import DEFAULT_SORT_OPTION
 from sentry.db.models.query import create_or_update
 from sentry.models import (
-    Activity, EventMapping, Group, GroupAssignee, GroupBookmark, GroupHash, GroupResolution,
-    GroupSeen, GroupSnooze, GroupStatus, GroupSubscription, GroupSubscriptionReason, GroupTombstone,
-    Release, TagKey, TOMBSTONE_FIELDS_FROM_GROUP, UserOption
+    Activity, Environment, Group, GroupAssignee, GroupBookmark, GroupHash, GroupResolution,
+    GroupSeen, GroupShare, GroupSnooze, GroupStatus, GroupSubscription, GroupSubscriptionReason,
+    GroupTombstone, Release, TOMBSTONE_FIELDS_FROM_GROUP, UserOption
 )
 from sentry.models.event import Event
 from sentry.models.group import looks_like_short_id
@@ -95,11 +96,11 @@ class StatusDetailsValidator(serializers.Serializer):
     inRelease = serializers.CharField()
     ignoreDuration = serializers.IntegerField()
     ignoreCount = serializers.IntegerField()
-    # in hours, max of one week
-    ignoreWindow = serializers.IntegerField(max_value=7 * 24)
+    # in minutes, max of one week
+    ignoreWindow = serializers.IntegerField(max_value=7 * 24 * 60)
     ignoreUserCount = serializers.IntegerField()
-    # in hours, max of one week
-    ignoreUserWindow = serializers.IntegerField(max_value=7 * 24)
+    # in minutes, max of one week
+    ignoreUserWindow = serializers.IntegerField(max_value=7 * 24 * 60)
 
     def validate_inRelease(self, attrs, source):
         value = attrs[source]
@@ -109,7 +110,9 @@ class StatusDetailsValidator(serializers.Serializer):
                 attrs[source] = Release.objects.filter(
                     projects=project,
                     organization_id=project.organization_id,
-                ).order_by('-date_added')[0]
+                ).extra(select={
+                    'sort': 'COALESCE(date_released, date_added)',
+                }).order_by('-sort')[0]
             except IndexError:
                 raise serializers.ValidationError(
                     'No release data present in the system to form a basis for \'Next Release\''
@@ -151,11 +154,11 @@ class GroupValidator(serializers.Serializer):
     discard = serializers.BooleanField()
     ignoreDuration = serializers.IntegerField()
     ignoreCount = serializers.IntegerField()
-    # in hours, max of one week
-    ignoreWindow = serializers.IntegerField(max_value=7 * 24)
+    # in minutes, max of one week
+    ignoreWindow = serializers.IntegerField(max_value=7 * 24 * 60)
     ignoreUserCount = serializers.IntegerField()
-    # in hours, max of one week
-    ignoreUserWindow = serializers.IntegerField(max_value=7 * 24)
+    # in minutes, max of one week
+    ignoreUserWindow = serializers.IntegerField(max_value=7 * 24 * 60)
     assignedTo = UserField()
 
     # TODO(dcramer): remove in 9.0
@@ -176,7 +179,7 @@ class GroupValidator(serializers.Serializer):
         return attrs
 
 
-class ProjectGroupIndexEndpoint(ProjectEndpoint):
+class ProjectGroupIndexEndpoint(ProjectEndpoint, EnvironmentMixin):
     doc_section = DocSection.EVENTS
 
     permission_classes = (ProjectEventPermission, )
@@ -184,32 +187,8 @@ class ProjectGroupIndexEndpoint(ProjectEndpoint):
     def _build_query_params_from_request(self, request, project):
         query_kwargs = {
             'project': project,
+            'sort_by': request.GET.get('sort', DEFAULT_SORT_OPTION),
         }
-
-        if request.GET.get('status'):
-            try:
-                query_kwargs['status'] = STATUS_CHOICES[request.GET['status']]
-            except KeyError:
-                raise ValidationError('invalid status')
-
-        if request.user.is_authenticated() and request.GET.get('bookmarks'):
-            query_kwargs['bookmarked_by'] = request.user
-
-        if request.user.is_authenticated() and request.GET.get('assigned'):
-            query_kwargs['assigned_to'] = request.user
-
-        sort_by = request.GET.get('sort')
-        if sort_by is None:
-            sort_by = DEFAULT_SORT_OPTION
-
-        query_kwargs['sort_by'] = sort_by
-
-        tags = {}
-        for tag_key in TagKey.objects.all_keys(project):
-            if request.GET.get(tag_key):
-                tags[tag_key] = request.GET[tag_key]
-        if tags:
-            query_kwargs['tags'] = tags
 
         limit = request.GET.get('limit')
         if limit:
@@ -248,9 +227,6 @@ class ProjectGroupIndexEndpoint(ProjectEndpoint):
             if self_assign_issue == '1' and not group.assignee_set.exists():
                 result['assignedTo'] = extract_lazy_object(acting_user)
 
-    # bookmarks=0/1
-    # status=<x>
-    # <tag>=<value>
     # statsPeriod=24h
     @attach_scenarios([list_project_issues_scenario])
     def get(self, request, project):
@@ -296,22 +272,23 @@ class ProjectGroupIndexEndpoint(ProjectEndpoint):
             # disable stats
             stats_period = None
 
-        query = request.GET.get('query', '').strip()
+        serializer = functools.partial(
+            StreamGroupSerializer,
+            environment_id_func=self._get_environment_id_func(request, project.organization_id),
+            stats_period=stats_period,
+        )
 
+        query = request.GET.get('query', '').strip()
         if query:
             matching_group = None
             matching_event = None
             if len(query) == 32:
                 # check to see if we've got an event ID
                 try:
-                    mapping = EventMapping.objects.get(
-                        project_id=project.id,
-                        event_id=query,
-                    )
-                except EventMapping.DoesNotExist:
+                    matching_group = Group.objects.from_event_id(project, query)
+                except Group.DoesNotExist:
                     pass
                 else:
-                    matching_group = Group.objects.get(id=mapping.group_id)
                     try:
                         matching_event = Event.objects.get(
                             event_id=query, project_id=project.id)
@@ -333,11 +310,8 @@ class ProjectGroupIndexEndpoint(ProjectEndpoint):
             if matching_group is not None:
                 response = Response(
                     serialize(
-                        [matching_group], request.user,
-                        StreamGroupSerializer(
-                            stats_period=stats_period,
-                            matching_event_id=getattr(
-                                matching_event, 'id', None)
+                        [matching_group], request.user, serializer(
+                            matching_event_id=getattr(matching_event, 'id', None),
                         )
                     )
                 )
@@ -350,13 +324,20 @@ class ProjectGroupIndexEndpoint(ProjectEndpoint):
         except ValidationError as exc:
             return Response({'detail': six.text_type(exc)}, status=400)
 
-        cursor_result = search.query(count_hits=True, **query_kwargs)
+        try:
+            environment_id = self._get_environment_id_from_request(
+                request, project.organization_id)
+        except Environment.DoesNotExist:
+            cursor_result = []
+        else:
+            cursor_result = search.query(
+                count_hits=True,
+                environment_id=environment_id,
+                **query_kwargs)
 
         results = list(cursor_result)
 
-        context = serialize(
-            results, request.user, StreamGroupSerializer(
-                stats_period=stats_period))
+        context = serialize(results, request.user, serializer())
 
         # HACK: remove auto resolved entries
         if query_kwargs.get('status') == GroupStatus.UNRESOLVED:
@@ -406,7 +387,7 @@ class ProjectGroupIndexEndpoint(ProjectEndpoint):
         :pparam string project_slug: the slug of the project the issues
                                      belong to.
         :param string status: the new status for the issues.  Valid values
-                              are ``"resolved"``, ``resolvedInNextRelease``,
+                              are ``"resolved"``, ``"resolvedInNextRelease"``,
                               ``"unresolved"``, and ``"ignored"``.
         :param int ignoreDuration: the number of minutes to ignore this issue.
         :param boolean isPublic: sets the issue to public or private.
@@ -473,7 +454,7 @@ class ProjectGroupIndexEndpoint(ProjectEndpoint):
         discard = result.get('discard')
         if discard:
 
-            if not features.has('projects:custom-filters', project, actor=request.user):
+            if not features.has('projects:discard-groups', project, actor=request.user):
                 return Response({'detail': ['You do not have that feature enabled']}, status=400)
 
             group_list = list(queryset)
@@ -512,7 +493,9 @@ class ProjectGroupIndexEndpoint(ProjectEndpoint):
                 release = Release.objects.filter(
                     projects=project,
                     organization_id=project.organization_id,
-                ).order_by('-date_added')[0]
+                ).extra(select={
+                    'sort': 'COALESCE(date_released, date_added)',
+                }).order_by('-sort')[0]
                 activity_type = Activity.SET_RESOLVED_IN_RELEASE
                 activity_data = {
                     # no version yet
@@ -799,30 +782,35 @@ class ProjectGroupIndexEndpoint(ProjectEndpoint):
                 ),
             }
 
+        if 'isPublic' in result:
+            # We always want to delete an existing share, because triggering
+            # an isPublic=True even when it's already public, should trigger
+            # regenerating.
+            for group in group_list:
+                if GroupShare.objects.filter(group=group).delete():
+                    result['shareId'] = None
+                    Activity.objects.create(
+                        project=group.project,
+                        group=group,
+                        type=Activity.SET_PRIVATE,
+                        user=acting_user,
+                    )
+
         if result.get('isPublic'):
-            queryset.update(is_public=True)
             for group in group_list:
-                if group.is_public:
-                    continue
-                group.is_public = True
-                Activity.objects.create(
+                share, created = GroupShare.objects.get_or_create(
                     project=group.project,
                     group=group,
-                    type=Activity.SET_PUBLIC,
                     user=acting_user,
                 )
-        elif result.get('isPublic') is False:
-            queryset.update(is_public=False)
-            for group in group_list:
-                if not group.is_public:
-                    continue
-                group.is_public = False
-                Activity.objects.create(
-                    project=group.project,
-                    group=group,
-                    type=Activity.SET_PRIVATE,
-                    user=acting_user,
-                )
+                if created:
+                    result['shareId'] = share.uuid
+                    Activity.objects.create(
+                        project=group.project,
+                        group=group,
+                        type=Activity.SET_PUBLIC,
+                        user=acting_user,
+                    )
 
         # XXX(dcramer): this feels a bit shady like it should be its own
         # endpoint

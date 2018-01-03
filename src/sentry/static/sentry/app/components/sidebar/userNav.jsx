@@ -6,14 +6,14 @@ import Avatar from '../avatar';
 import MenuItem from '../menuItem';
 import {t} from '../../locale';
 
-const UserNav = React.createClass({
-  contextTypes: {
-    location: PropTypes.object
-  },
+class UserNav extends React.Component {
+  static contextTypes = {
+    location: PropTypes.object,
+  };
 
   shouldComponentUpdate(nextProps, nextState) {
     return false;
-  },
+  }
 
   render() {
     let user = ConfigStore.get('user');
@@ -38,6 +38,6 @@ const UserNav = React.createClass({
       </DropdownLink>
     );
   }
-});
+}
 
 export default UserNav;

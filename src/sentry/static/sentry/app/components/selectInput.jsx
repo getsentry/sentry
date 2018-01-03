@@ -2,31 +2,29 @@ import PropTypes from 'prop-types';
 import React from 'react';
 import jQuery from 'jquery';
 
-const SelectInput = React.createClass({
-  propTypes: {
+class SelectInput extends React.Component {
+  static propTypes = {
     disabled: PropTypes.bool,
     multiple: PropTypes.bool,
     required: PropTypes.bool,
     placeholder: PropTypes.string,
     value: PropTypes.string,
-    onChange: PropTypes.func
-  },
+    onChange: PropTypes.func,
+  };
 
-  getDefaultProps() {
-    return {
-      // HTML attrs
-      disabled: false,
-      multiple: false,
-      required: false,
+  static defaultProps = {
+    // HTML attrs
+    disabled: false,
+    multiple: false,
+    required: false,
 
-      // Extra options
-      placeholder: 'Select an option...',
+    // Extra options
+    placeholder: 'Select an option...',
 
-      // Component options
-      value: '',
-      onChange: $.noop
-    };
-  },
+    // Component options
+    value: '',
+    onChange: $.noop,
+  };
 
   componentDidMount() {
     this.create();
@@ -43,38 +41,38 @@ const SelectInput = React.createClass({
         options[selectedIndex].selected = true;
       }
     }
-  },
+  }
 
   componentWillUpdate() {
     this.destroy();
-  },
+  }
 
   componentDidUpdate() {
     this.create();
-  },
+  }
 
   componentWillUnmount() {
     this.destroy();
-  },
+  }
 
-  getSelect2Value() {
+  getSelect2Value = () => {
     return this.select2.getValue();
-  },
+  };
 
-  create() {
+  create = () => {
     this.select2 = jQuery(this.refs.select).select2({
-      width: 'element'
+      width: 'element',
     });
     this.select2.on('change', this.onChange);
-  },
+  };
 
-  destroy() {
+  destroy = () => {
     jQuery(this.refs.select).select2('destroy');
-  },
+  };
 
-  onChange(...args) {
+  onChange = (...args) => {
     this.props.onChange.call(this, this.select2, ...args);
-  },
+  };
 
   render() {
     return (
@@ -83,6 +81,6 @@ const SelectInput = React.createClass({
       </select>
     );
   }
-});
+}
 
 export default SelectInput;

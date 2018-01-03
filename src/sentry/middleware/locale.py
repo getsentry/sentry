@@ -10,6 +10,7 @@ from __future__ import absolute_import
 
 import pytz
 
+from django.conf import settings
 from django.middleware.locale import LocaleMiddleware
 
 from sentry.models import UserOption
@@ -22,9 +23,7 @@ class SentryLocaleMiddleware(LocaleMiddleware):
         # This avoids touching user session, which means we avoid
         # setting `Vary: Cookie` as a response header which will
         # break HTTP caching entirely.
-        self.__skip_caching = (
-            request.path_info[:9] == '/_static/' or request.path_info[:8] == '/avatar/'
-        )
+        self.__skip_caching = request.path_info.startswith(settings.ANONYMOUS_STATIC_PREFIXES)
         if self.__skip_caching:
             return
 

@@ -15,11 +15,11 @@ describe('Select2TextField', function() {
         context: {
           form: {
             data: {
-              fieldName: 'fieldValue'
+              fieldName: 'fieldValue',
             },
-            errors: {}
-          }
-        }
+            errors: {},
+          },
+        },
       });
       expect(wrapper).toMatchSnapshot();
     });
@@ -31,11 +31,11 @@ describe('Select2TextField', function() {
           context: {
             form: {
               data: {
-                fieldName: 'fieldValue'
+                fieldName: 'fieldValue',
               },
-              errors: {}
-            }
-          }
+              errors: {},
+            },
+          },
         }
       );
       expect(wrapper).toMatchSnapshot();
@@ -51,11 +51,11 @@ describe('Select2TextField', function() {
           context: {
             form: {
               data: {
-                fieldName: 'fieldValue'
+                fieldName: 'fieldValue',
               },
-              errors: {}
-            }
-          }
+              errors: {},
+            },
+          },
         }
       );
       expect(wrapper).toMatchSnapshot();

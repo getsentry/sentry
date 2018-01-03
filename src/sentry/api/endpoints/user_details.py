@@ -7,6 +7,7 @@ from rest_framework.response import Response
 from sentry.api.bases.user import UserEndpoint
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.user import DetailedUserSerializer
+from sentry.auth.superuser import is_active_superuser
 from sentry.models import User, UserOption
 
 
@@ -69,7 +70,7 @@ class UserDetailsEndpoint(UserEndpoint):
         return Response(data)
 
     def put(self, request, user):
-        if request.is_superuser():
+        if is_active_superuser(request):
             serializer_cls = AdminUserSerializer
         else:
             serializer_cls = UserSerializer

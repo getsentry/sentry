@@ -70,10 +70,11 @@
     line-height: 20px;
     font-weight: bold;
     color: #fff;
-    text-shadow: 0 0 6px rgba(255,255,255, 0);
-    .transition(.15s text-shadow linear);
+    text-shadow: 0 0 6px rgba(255, 255, 255, 0);
+    .transition(0.15s text-shadow linear);
 
-    a, a:active {
+    a,
+    a:active {
       color: inherit;
     }
   }
@@ -82,7 +83,7 @@
     font-size: 14px;
     line-height: 22px;
     margin-bottom: -4px;
-    .transition(.15s color linear);
+    .transition(0.15s color linear);
   }
 
   .dropdown-menu {
@@ -105,7 +106,7 @@
 
   &:hover {
     .sidebar-dropdown-org-name {
-      text-shadow: 0 0 6px rgba(255,255,255, .1);
+      text-shadow: 0 0 6px rgba(255, 255, 255, 0.1);
     }
     .sidebar-dropdown-user-name {
       color: @40;
@@ -191,9 +192,10 @@
   line-height: 32px;
   padding: 0 15px;
   position: relative;
-  .transition(.1s all linear);
+  .transition(0.1s all linear);
 
-  &:hover, &:active {
+  &:hover,
+  &:active {
     background: @white-darker;
     color: @gray-darker;
 
@@ -208,7 +210,7 @@
 
   .sidebar-dropdown-menu-item-caret {
     color: @gray-light;
-    .transition(.1s color linear);
+    .transition(0.1s color linear);
   }
 
   .sidebar-org-summary {
@@ -252,11 +254,11 @@
     width: 100%;
   }
 
-  .transition(.15s color linear);
+  .transition(0.15s color linear);
 
   &:before {
     display: block;
-    content: "";
+    content: '';
     position: absolute;
     top: 5px;
     left: -20px;
@@ -264,10 +266,11 @@
     width: 4px;
     border-radius: 0 3px 3px 0;
     background-color: transparent;
-    .transition(.15s background-color linear);
+    .transition(0.15s background-color linear);
   }
 
-  &:hover, &:focus {
+  &:hover,
+  &:focus {
     color: @30;
   }
 
@@ -280,7 +283,7 @@
 }
 
 .sidebar-item-icon {
-  content: "";
+  content: '';
   display: inline-block;
   width: 30px;
   height: 22px;
@@ -292,7 +295,7 @@
 
   .toggle-collapse-icon {
     transform: rotate(0deg);
-    .transition(.3s transform ease);
+    .transition(0.3s transform ease);
   }
 }
 
@@ -350,19 +353,18 @@
   left: @sidebar-expanded-width;
   bottom: 0;
   background: @white-darker;
-  z-index: 1000;
+  z-index: @zindex-sidebar-panel;
   color: @gray-darker;
   border-right: 1px solid @trim;
-  box-shadow: 1px 0 2px rgba(0,0,0, .06);
+  box-shadow: 1px 0 2px rgba(0, 0, 0, 0.06);
   text-align: left;
   line-height: 24px;
-
 
   .sidebar-panel-header {
     border-bottom: 1px solid @trim;
     padding: 23px 20px 20px;
     background: #fff;
-    box-shadow: 0 1px 2px rgba(0,0,0, .06);
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.06);
     height: @sidebar-panel-header-height;
 
     .close {
@@ -412,7 +414,7 @@
       .issue {
         border-bottom: 1px solid #e2dee6;
         background: #fff;
-        box-shadow: 0 1px 2px rgba(0, 0, 0, 0.06)
+        box-shadow: 0 1px 2px rgba(0, 0, 0, 0.06);
       }
     }
   }
@@ -422,7 +424,7 @@
     line-height: 1.2;
     border-bottom: 1px solid @trim;
     background: #fff;
-    box-shadow: 0 1px 2px rgba(0,0,0, .06);
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.06);
     font-size: 14px;
 
     h3 {
@@ -480,8 +482,10 @@
   padding: 20px 20px 0;
   font-size: 13px;
 
-  h4, p, h6  {
-     margin-bottom: 15px;
+  h4,
+  p,
+  h6 {
+    margin-bottom: 15px;
   }
 
   h4 {
@@ -527,7 +531,7 @@
 
 @media print {
   .navbar {
-      display: none;
+    display: none;
   }
 }
 
@@ -536,7 +540,7 @@
 * ============================================================================
 */
 
-@media(max-width:767px) {
+@media (max-width: 767px) {
   @sidebar-panel-offset: 54px;
 
   body {
@@ -565,7 +569,7 @@
           bottom: -11px;
           left: 50%;
           margin-left: -6px;
-          border-bottom: 7px solid #F7F8F9;
+          border-bottom: 7px solid #f7f8f9;
           border-right: 7px solid transparent;
           border-left: 7px solid transparent;
           border-top: 7px solid transparent;
@@ -599,7 +603,7 @@
           bottom: -10px;
           left: 50%;
           margin-left: -12px;
-          border-bottom: 7px solid #F7F8F9;
+          border-bottom: 7px solid #f7f8f9;
           border-right: 7px solid transparent;
           border-left: 7px solid transparent;
           border-top: 7px solid transparent;

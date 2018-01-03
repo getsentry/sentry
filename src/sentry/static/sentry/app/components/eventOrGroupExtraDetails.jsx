@@ -1,14 +1,17 @@
 import PropTypes from 'prop-types';
 import React from 'react';
+import createReactClass from 'create-react-class';
 import {Link} from 'react-router';
 import styled from 'react-emotion';
-import {withTheme} from 'theming';
+import {withTheme} from 'emotion-theming';
 import {Flex, Box} from 'grid-emotion';
 
 import ProjectState from '../mixins/projectState';
 import TimeSince from './timeSince';
 
-const EventOrGroupExtraDetails = React.createClass({
+const EventOrGroupExtraDetails = createReactClass({
+  displayName: 'EventOrGroupExtraDetails',
+
   propTypes: {
     orgId: PropTypes.string.isRequired,
     projectId: PropTypes.string.isRequired,
@@ -16,11 +19,15 @@ const EventOrGroupExtraDetails = React.createClass({
     lastSeen: PropTypes.string,
     shortId: PropTypes.string,
     subscriptionDetails: PropTypes.shape({
-      reason: PropTypes.string
+      reason: PropTypes.string,
     }),
     numComments: PropTypes.number,
     logger: PropTypes.string,
-    annotations: PropTypes.arrayOf(PropTypes.string)
+    annotations: PropTypes.arrayOf(PropTypes.string),
+    assignedTo: PropTypes.shape({
+      name: PropTypes.string,
+    }),
+    showAssignee: PropTypes.bool,
   },
 
   mixins: [ProjectState],
@@ -34,7 +41,9 @@ const EventOrGroupExtraDetails = React.createClass({
       subscriptionDetails,
       numComments,
       logger,
-      annotations
+      assignedTo,
+      annotations,
+      showAssignee,
     } = this.props;
     let styles = {};
     if (subscriptionDetails && subscriptionDetails.reason === 'mentioned') {
@@ -43,39 +52,44 @@ const EventOrGroupExtraDetails = React.createClass({
 
     return (
       <GroupExtra>
-        {lastSeen &&
+        {lastSeen && (
           <Box>
             <GroupExtraIcon className="icon icon-clock" />
             <TimeSince date={lastSeen} suffix="ago" />
-          </Box>}
-        {numComments > 0 &&
+          </Box>
+        )}
+        {numComments > 0 && (
           <Box>
             <Link
               to={`/${orgId}/${projectId}/issues/${groupId}/activity/`}
-              className="comments">
+              className="comments"
+            >
               <GroupExtraIcon className="icon icon-comments" style={styles} />
               <GroupExtraIcon className="tag-count">{numComments}</GroupExtraIcon>
             </Link>
-          </Box>}
-        {logger &&
+          </Box>
+        )}
+        {logger && (
           <Box className="event-annotation">
             <Link
               to={{
                 pathname: `/${orgId}/${projectId}/`,
                 query: {
-                  query: 'logger:' + logger
-                }
-              }}>
+                  query: 'logger:' + logger,
+                },
+              }}
+            >
               {logger}
             </Link>
-          </Box>}
+          </Box>
+        )}
         {annotations &&
           annotations.map((annotation, key) => {
             return (
               <Box
                 className="event-annotation"
                 dangerouslySetInnerHTML={{
-                  __html: annotation
+                  __html: annotation,
                 }}
                 key={key}
               />
@@ -83,7 +97,7 @@ const EventOrGroupExtraDetails = React.createClass({
           })}
       </GroupExtra>
     );
-  }
+  },
 });
 
 const GroupExtra = withTheme(
@@ -98,7 +112,7 @@ const GroupExtraIcon = withTheme(
     color: ${p => p.theme.gray2};
     font-size: 11px;
     margin-right: 4px;
-    opacity: .5;
+    opacity: 0.5;
   `
 );
 

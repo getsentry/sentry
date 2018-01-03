@@ -138,6 +138,11 @@ class User(BaseModel, AbstractBaseUser):
     def get_short_name(self):
         return self.username
 
+    def get_salutation_name(self):
+        name = self.name or self.username.split('@', 1)[0].split('.', 1)[0]
+        first_name = name.split(' ', 1)[0]
+        return first_name.capitalize()
+
     def get_avatar_type(self):
         avatar = self.avatar.first()
         if avatar:
@@ -183,8 +188,8 @@ class User(BaseModel, AbstractBaseUser):
         from sentry import roles
         from sentry.models import (
             Activity, AuditLogEntry, AuthIdentity, Authenticator, GroupAssignee, GroupBookmark, GroupSeen,
-            GroupSubscription, OrganizationMember, OrganizationMemberTeam, UserAvatar, UserEmail,
-            UserOption
+            GroupShare, GroupSubscription, OrganizationMember, OrganizationMemberTeam, UserAvatar,
+            UserEmail, UserOption,
         )
 
         audit_logger.info(
@@ -220,8 +225,8 @@ class User(BaseModel, AbstractBaseUser):
                     pass
 
         model_list = (
-            Authenticator, GroupAssignee, GroupBookmark, GroupSeen, GroupSubscription, UserAvatar, UserEmail,
-            UserOption
+            Authenticator, GroupAssignee, GroupBookmark, GroupSeen, GroupShare,
+            GroupSubscription, UserAvatar, UserEmail, UserOption,
         )
 
         for model in model_list:

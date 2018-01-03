@@ -10,6 +10,7 @@ from sentry.web.frontend.debug.debug_assigned_email import (
 )
 from sentry.web.frontend.debug.debug_trigger_error import (DebugTriggerErrorView)
 from sentry.web.frontend.debug.debug_error_embed import (DebugErrorPageEmbedView)
+from sentry.web.frontend.debug.debug_invalid_identity_email import DebugInvalidIdentityEmailView
 from sentry.web.frontend.debug.debug_mfa_added_email import (DebugMfaAddedEmailView)
 from sentry.web.frontend.debug.debug_mfa_removed_email import (DebugMfaRemovedEmailView)
 from sentry.web.frontend.debug.debug_new_release_email import (DebugNewReleaseEmailView)
@@ -22,10 +23,17 @@ from sentry.web.frontend.debug.debug_resolved_email import (DebugResolvedEmailVi
 from sentry.web.frontend.debug.debug_resolved_in_release_email import (
     DebugResolvedInReleaseEmailView, DebugResolvedInReleaseUpcomingEmailView
 )
+from sentry.web.frontend.debug.debug_unable_to_delete_repository import DebugUnableToDeleteRepository
+from sentry.web.frontend.debug.debug_unable_to_fetch_commits_email import DebugUnableToFetchCommitsEmailView
 from sentry.web.frontend.debug.debug_unassigned_email import (DebugUnassignedEmailView)
 from sentry.web.frontend.debug.debug_new_processing_issues_email import (
     DebugNewProcessingIssuesEmailView,
     DebugNewProcessingIssuesNoReprocessingEmailView,
+)
+from sentry.web.frontend.debug.debug_sso_link_email import (
+    DebugSsoLinkedEmailView,
+    DebugSsoUnlinkedEmailView,
+    DebugSsoUnlinkedNoPasswordEmailView,
 )
 from sentry.web.frontend.debug import debug_auth_views
 from sentry.web.frontend.debug.debug_oauth_authorize import (
@@ -53,8 +61,11 @@ urlpatterns = patterns(
     url(r'^debug/mail/request-access/$', sentry.web.frontend.debug.mail.request_access),
     url(r'^debug/mail/access-approved/$', sentry.web.frontend.debug.mail.access_approved),
     url(r'^debug/mail/invitation/$', sentry.web.frontend.debug.mail.invitation),
+    url(r'^debug/mail/invalid-identity/$', DebugInvalidIdentityEmailView.as_view()),
     url(r'^debug/mail/confirm-email/$', sentry.web.frontend.debug.mail.confirm_email),
     url(r'^debug/mail/recover-account/$', sentry.web.frontend.debug.mail.recover_account),
+    url(r'^debug/mail/unable-to-delete-repo/$', DebugUnableToDeleteRepository.as_view()),
+    url(r'^debug/mail/unable-to-fetch-commits/$', DebugUnableToFetchCommitsEmailView.as_view()),
     url(r'^debug/mail/unassigned/$', DebugUnassignedEmailView.as_view()),
     url(r'^debug/mail/org-delete-confirm/$', sentry.web.frontend.debug.mail.org_delete_confirm),
     url(r'^debug/mail/mfa-removed/$', DebugMfaRemovedEmailView.as_view()),
@@ -65,6 +76,10 @@ urlpatterns = patterns(
         r'^debug/mail/new-processing-issues-no-reprocessing/$',
         DebugNewProcessingIssuesNoReprocessingEmailView.as_view()
     ),
+    url(r'^debug/mail/sso-linked/$', DebugSsoLinkedEmailView.as_view()),
+    url(r'^debug/mail/sso-unlinked/$', DebugSsoUnlinkedEmailView.as_view()),
+    url(r'^debug/mail/sso-unlinked/no-password$', DebugSsoUnlinkedNoPasswordEmailView.as_view()),
+
     url(r'^debug/embed/error-page/$', DebugErrorPageEmbedView.as_view()),
     url(r'^debug/trigger-error/$', DebugTriggerErrorView.as_view()),
     url(r'^debug/auth-confirm-identity/$', debug_auth_views.DebugAuthConfirmIdentity.as_view()),

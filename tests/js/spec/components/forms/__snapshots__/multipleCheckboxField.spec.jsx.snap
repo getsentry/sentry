@@ -12,6 +12,13 @@ exports[`MultipleCheckboxField render() renders with form context 1`] = `
     >
       <label
         className="control-label"
+        style={
+          Object {
+            "borderBottom": "1px solid #f1eff3",
+            "display": "block",
+            "marginBottom": 10,
+          }
+        }
       />
     </div>
   </div>
@@ -20,6 +27,7 @@ exports[`MultipleCheckboxField render() renders with form context 1`] = `
   >
     <label
       className="checkbox"
+      key="1"
     >
       <input
         checked={true}
@@ -32,6 +40,7 @@ exports[`MultipleCheckboxField render() renders with form context 1`] = `
     </label>
     <label
       className="checkbox"
+      key="2"
     >
       <input
         checked={false}
@@ -58,6 +67,13 @@ exports[`MultipleCheckboxField render() renders without form context 1`] = `
     >
       <label
         className="control-label"
+        style={
+          Object {
+            "borderBottom": "1px solid #f1eff3",
+            "display": "block",
+            "marginBottom": 10,
+          }
+        }
       />
     </div>
   </div>
@@ -66,6 +82,7 @@ exports[`MultipleCheckboxField render() renders without form context 1`] = `
   >
     <label
       className="checkbox"
+      key="1"
     >
       <input
         checked={true}
@@ -78,6 +95,7 @@ exports[`MultipleCheckboxField render() renders without form context 1`] = `
     </label>
     <label
       className="checkbox"
+      key="2"
     >
       <input
         checked={false}

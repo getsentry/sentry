@@ -1,10 +1,12 @@
 from __future__ import absolute_import
 
+import re
 import six
 import logging
 
 from collections import namedtuple
-from symsynd import get_cpu_name, parse_addr
+from django.core.files.uploadedfile import InMemoryUploadedFile, TemporaryUploadedFile
+from symbolic import parse_addr, arch_from_breakpad, arch_from_macho, arch_is_known, ProcessState
 
 from sentry.interfaces.contexts import DeviceContextType
 
@@ -15,6 +17,14 @@ KNOWN_DSYM_TYPES = {
     'tvOS': 'macho',
     'macOS': 'macho',
     'watchOS': 'macho',
+}
+
+# Regular expression to parse OS versions from a minidump OS string
+VERSION_RE = re.compile(r'(\d+\.\d+\.\d+)\s+(.*)')
+
+# Mapping of well-known minidump OS constants to our internal names
+MINIDUMP_OS_TYPES = {
+    'Mac OS X': 'macOS',
 }
 
 AppInfo = namedtuple('AppInfo', ['id', 'version', 'build', 'name'])
@@ -92,7 +102,13 @@ def cpu_name_from_data(data):
     unique_cpu_name = None
     images = (data.get('debug_meta') or {}).get('images') or []
     for img in images:
-        cpu_name = get_cpu_name(img['cpu_type'], img['cpu_subtype'])
+        if img.get('arch') and arch_is_known(img['arch']):
+            cpu_name = img['arch']
+        elif img.get('cpu_type') is not None \
+                and img.get('cpu_subtype') is not None:
+            cpu_name = arch_from_macho(img['cpu_type'], img['cpu_subtype'])
+        else:
+            cpu_name = None
         if unique_cpu_name is None:
             unique_cpu_name = cpu_name
         elif unique_cpu_name != cpu_name:
@@ -119,8 +135,8 @@ def version_build_from_data(data):
     return None
 
 
-def rebase_addr(instr_addr, img):
-    return parse_addr(instr_addr) - parse_addr(img['image_addr'])
+def rebase_addr(instr_addr, obj):
+    return parse_addr(instr_addr) - parse_addr(obj.addr)
 
 
 def sdk_info_to_sdk_id(sdk_info):
@@ -134,3 +150,75 @@ def sdk_info_to_sdk_id(sdk_info):
     if build is not None:
         rv = '%s_%s' % (rv, build)
     return rv
+
+
+def merge_minidump_event(data, minidump):
+    if isinstance(minidump, InMemoryUploadedFile):
+        state = ProcessState.from_minidump_buffer(minidump.read())
+    elif isinstance(minidump, TemporaryUploadedFile):
+        state = ProcessState.from_minidump(minidump.temporary_file_path())
+    else:
+        state = ProcessState.from_minidump(minidump.name)
+
+    data['level'] = 'fatal' if state.crashed else 'info'
+    data['message'] = 'Assertion Error: %s' % state.assertion if state.assertion \
+        else 'Fatal Error: %s' % state.crash_reason
+
+    if state.timestamp:
+        data['timestamp'] = float(state.timestamp)
+
+    # Extract as much context information as we can.
+    info = state.system_info
+    context = data.setdefault('contexts', {})
+    os = context.setdefault('os', {})
+    device = context.setdefault('device', {})
+    os['type'] = 'os'  # Required by "get_sdk_from_event"
+    os['name'] = MINIDUMP_OS_TYPES.get(info.os_name, info.os_name)
+    device['arch'] = arch_from_breakpad(info.cpu_family)
+
+    # Breakpad reports the version and build number always in one string,
+    # but a version number is guaranteed even on certain linux distros.
+    match = VERSION_RE.search(info.os_version)
+    if match is not None:
+        version, build = match.groups()
+        os['version'] = version
+        os['build'] = build
+
+    # We can extract stack traces here already but since CFI is not
+    # available yet (without debug symbols), the stackwalker will
+    # resort to stack scanning which yields low-quality results. If
+    # the user provides us with debug symbols, we could reprocess this
+    # minidump and add improved stacktraces later.
+    data['threads'] = [{
+        'id': thread.thread_id,
+        'crashed': False,
+        'stacktrace': {
+            'frames': [{
+                'instruction_addr': '0x%x' % frame.instruction,
+                'function': '<unknown>',  # Required by interface
+            } for frame in thread.frames()],
+        },
+    } for thread in state.threads()]
+
+    # Mark the crashed thread and add its stacktrace to the exception
+    crashed_thread = data['threads'][state.requesting_thread]
+    crashed_thread['crashed'] = True
+
+    # Extract the crash reason and infos
+    data['exception'] = {
+        'value': data['message'],
+        'thread_id': crashed_thread['id'],
+        'type': state.crash_reason,
+        # Move stacktrace here from crashed_thread (mutating!)
+        'stacktrace': crashed_thread.pop('stacktrace'),
+    }
+
+    # Extract referenced (not all loaded) images
+    images = [{
+        'type': 'apple',  # Required by interface
+        'uuid': six.text_type(module.uuid),
+        'image_addr': '0x%x' % module.addr,
+        'image_size': '0x%x' % module.size,
+        'name': module.name,
+    } for module in state.modules()]
+    data.setdefault('debug_meta', {})['images'] = images

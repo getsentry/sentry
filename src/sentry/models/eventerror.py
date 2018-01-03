@@ -21,6 +21,7 @@ class dontexplodedict(object):
 class EventError(object):
     INVALID_DATA = 'invalid_data'
     INVALID_ATTRIBUTE = 'invalid_attribute'
+    MISSING_ATTRIBUTE = 'missing_attribute'
     VALUE_TOO_LONG = 'value_too_long'
     UNKNOWN_ERROR = 'unknown_error'
     SECURITY_VIOLATION = 'security_violation'
@@ -44,7 +45,6 @@ class EventError(object):
     FETCH_TIMEOUT = 'fetch_timeout'
     NATIVE_NO_CRASHED_THREAD = 'native_no_crashed_thread'
     NATIVE_INTERNAL_FAILURE = 'native_internal_failure'
-    NATIVE_NO_SYMSYND = 'native_no_symsynd'
     NATIVE_BAD_DSYM = 'native_bad_dsym'
     NATIVE_MISSING_OPTIONALLY_BUNDLED_DSYM = 'native_optionally_bundled_dsym'
     NATIVE_MISSING_DSYM = 'native_missing_dsym'
@@ -58,6 +58,7 @@ class EventError(object):
     _messages = {
         INVALID_DATA: u'Discarded invalid value for parameter \'{name}\'',
         INVALID_ATTRIBUTE: u'Discarded invalid parameter \'{name}\'',
+        MISSING_ATTRIBUTE: u'Missing value for required parameter \'{name}\'',
         VALUE_TOO_LONG: u'Discarded value for \'{name}\' due to exceeding maximum length',
         UNKNOWN_ERROR: u'Unknown error',
         SECURITY_VIOLATION: u'Cannot fetch resource due to security violation on {url}',
@@ -84,7 +85,6 @@ class EventError(object):
         FETCH_TIMEOUT: u'Remote file took too long to load: ({timeout}s, {url})',
         NATIVE_NO_CRASHED_THREAD: u'No crashed thread found in crash report',
         NATIVE_INTERNAL_FAILURE: u'Internal failure when attempting to symbolicate: {error}',
-        NATIVE_NO_SYMSYND: u'The symbolizer is not configured for this system.',
         NATIVE_BAD_DSYM: u'The debug symbol file used was broken.',
         NATIVE_MISSING_OPTIONALLY_BUNDLED_DSYM: u'An optional debug symbol file was missing.',
         NATIVE_MISSING_DSYM: u'A required debug symbol file was missing.',

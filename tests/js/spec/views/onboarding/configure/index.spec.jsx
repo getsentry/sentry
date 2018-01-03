@@ -6,13 +6,16 @@ import Configure from 'app/views/onboarding/configure';
 import SentryTypes from '../../../../../../src/sentry/static/sentry/app/proptypes';
 
 describe('Configure should render correctly', function() {
+  let sandbox;
+  let stubbedApiRequest;
+
   beforeEach(function() {
-    this.sandbox = sinon.sandbox.create();
-    this.stubbedApiRequest = this.sandbox.stub(Client.prototype, 'request');
+    sandbox = sinon.sandbox.create();
+    stubbedApiRequest = sandbox.stub(Client.prototype, 'request');
   });
 
   afterEach(function() {
-    this.sandbox.restore();
+    sandbox.restore();
   });
 
   describe('render()', function() {
@@ -20,28 +23,24 @@ describe('Configure should render correctly', function() {
       next: () => {},
       params: {
         projectId: 'testProject',
-        orgId: 'testOrg'
-      }
+        orgId: 'testOrg',
+      },
     };
 
     it("shouldn't redirect for a found platform", function() {
       let props = {
-        ...baseProps
+        ...baseProps,
       };
       props.params.platform = 'node';
 
       let wrapper = shallow(<Configure {...props} />, {
         context: {organization: {id: '1337', slug: 'testOrg', teams: [['testProject']]}},
-        childContextTypes: {organization: SentryTypes.Organization}
+        childContextTypes: {organization: SentryTypes.Organization},
       });
 
       const component = wrapper.instance();
 
-      let handleSubmitStub = this.sandbox.stub(
-        component,
-        'redirectToNeutralDocs',
-        () => {}
-      );
+      let handleSubmitStub = sandbox.stub(component, 'redirectToNeutralDocs', () => {});
 
       wrapper.update();
       expect(wrapper).toMatchSnapshot();
@@ -50,14 +49,11 @@ describe('Configure should render correctly', function() {
 
     it('should redirect to if no matching platform', function() {
       let props = {
-        ...baseProps
+        ...baseProps,
       };
       props.params.platform = 'other';
 
-      let handleSubmitStub = this.sandbox.stub(
-        Configure.prototype,
-        'redirectToNeutralDocs'
-      );
+      let handleSubmitStub = sandbox.stub(Configure.prototype, 'redirectToNeutralDocs');
 
       // 👺 ⚠️ this is a hack to defeat the method auto binding so we can fully stub the method. It would not be neccessary with es6 class components and it relies on react internals so it's fragile - maxbittker
       const index =
@@ -69,9 +65,9 @@ describe('Configure should render correctly', function() {
           organization: {
             id: '1337',
             slug: 'testOrg',
-            teams: [['testProject']]
-          }
-        }
+            teams: [['testProject']],
+          },
+        },
       });
 
       expect(wrapper).toMatchSnapshot();
@@ -80,7 +76,7 @@ describe('Configure should render correctly', function() {
 
     it('should render platform docs', function() {
       let props = {
-        ...baseProps
+        ...baseProps,
       };
       props.params.platform = 'node';
 
@@ -95,18 +91,19 @@ describe('Configure should render correctly', function() {
                 hasAccess: true,
                 projects: [
                   {
+                    name: 'Test Project',
                     slug: 'testProject',
-                    id: 'testProject'
-                  }
-                ]
-              }
-            ]
-          }
+                    id: 'testProject',
+                  },
+                ],
+              },
+            ],
+          },
         },
-        childContextTypes: {organization: SentryTypes.Organization}
+        childContextTypes: {organization: SentryTypes.Organization},
       });
       expect(wrapper).toMatchSnapshot();
-      expect(this.stubbedApiRequest.callCount).toEqual(5);
+      expect(stubbedApiRequest.callCount).toEqual(5);
     });
   });
 });

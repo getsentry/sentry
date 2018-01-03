@@ -3,16 +3,22 @@ import {shallow} from 'enzyme';
 import ToolbarHeader from 'app/components/toolbarHeader';
 
 describe('ToolbarHeader', function() {
+  let sandbox;
+
   beforeEach(function() {
-    this.sandbox = sinon.sandbox.create();
+    sandbox = sinon.sandbox.create();
   });
 
   afterEach(function() {
-    this.sandbox.restore();
+    sandbox.restore();
   });
 
   it('renders', function() {
-    let wrapper = shallow(<ToolbarHeader><div /></ToolbarHeader>);
+    let wrapper = shallow(
+      <ToolbarHeader>
+        <div />
+      </ToolbarHeader>
+    );
     expect(wrapper).toMatchSnapshot();
   });
 });

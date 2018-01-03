@@ -1,4 +1,5 @@
 import React from 'react';
+import createReactClass from 'create-react-class';
 import Reflux from 'reflux';
 import ReactCSSTransitionGroup from 'react-addons-css-transition-group';
 
@@ -7,12 +8,13 @@ import ToastIndicator from '../components/alerts/toastIndicator';
 
 import IndicatorStore from '../stores/indicatorStore';
 
-const Indicators = React.createClass({
+const Indicators = createReactClass({
+  displayName: 'Indicators',
   mixins: [Reflux.connect(IndicatorStore, 'items')],
 
   getInitialState() {
     return {
-      items: []
+      items: [],
     };
   },
 
@@ -22,7 +24,8 @@ const Indicators = React.createClass({
         <ReactCSSTransitionGroup
           transitionName="toast"
           transitionEnter={false}
-          transitionLeaveTimeout={500}>
+          transitionLeaveTimeout={500}
+        >
           {this.state.items.map(indicator => {
             if (indicator.type === 'error' || indicator.type === 'success') {
               return (
@@ -41,7 +44,7 @@ const Indicators = React.createClass({
         </ReactCSSTransitionGroup>
       </div>
     );
-  }
+  },
 });
 
 export default Indicators;

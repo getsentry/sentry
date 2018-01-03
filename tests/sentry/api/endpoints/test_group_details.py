@@ -1,13 +1,15 @@
 from __future__ import absolute_import, print_function
 
+import mock
 import six
 
 from datetime import timedelta
 from django.utils import timezone
 
+from sentry import tagstore
 from sentry.models import (
-    Activity, Group, GroupHash, GroupAssignee, GroupBookmark, GroupResolution, GroupSeen,
-    GroupSnooze, GroupSubscription, GroupStatus, GroupTagValue, GroupTombstone, Release
+    Activity, Environment, Group, GroupHash, GroupAssignee, GroupBookmark, GroupResolution, GroupSeen,
+    GroupSnooze, GroupSubscription, GroupStatus, GroupTombstone, Release
 )
 from sentry.testutils import APITestCase
 
@@ -34,9 +36,10 @@ class GroupDetailsTest(APITestCase):
             version='1.0',
         )
         release.add_project(group.project)
-        GroupTagValue.objects.create(
+        tagstore.create_group_tag_value(
             group_id=group.id,
             project_id=group.project_id,
+            environment_id=self.environment.id,
             key='sentry:release',
             value=release.version,
         )
@@ -75,6 +78,32 @@ class GroupDetailsTest(APITestCase):
         url = '/api/0/issues/{}/'.format(group3.id)
         response = self.client.get(url, format='json')
         assert response.status_code == 404
+
+    def test_environment(self):
+        group = self.create_group()
+        self.login_as(user=self.user)
+
+        environment = Environment.get_or_create(group.project, 'production')
+
+        url = '/api/0/issues/{}/'.format(group.id)
+
+        from sentry.api.endpoints.group_details import tsdb
+
+        with mock.patch(
+                'sentry.api.endpoints.group_details.tsdb.get_range',
+                side_effect=tsdb.get_range) as get_range:
+            response = self.client.get(url, {'environment': 'production'}, format='json')
+            assert response.status_code == 200
+            assert get_range.call_count == 2
+            for args, kwargs in get_range.call_args_list:
+                assert kwargs['environment_id'] == environment.id
+
+        with mock.patch(
+                'sentry.api.endpoints.group_details.tsdb.make_series',
+                side_effect=tsdb.make_series) as make_series:
+            response = self.client.get(url, {'environment': 'invalid'}, format='json')
+            assert response.status_code == 200
+            assert make_series.call_count == 2
 
 
 class GroupUpdateTest(APITestCase):
@@ -265,7 +294,7 @@ class GroupUpdateTest(APITestCase):
 
     def test_mark_seen_as_non_member(self):
         user = self.create_user('foo@example.com', is_superuser=True)
-        self.login_as(user=user)
+        self.login_as(user=user, superuser=True)
 
         group = self.create_group()
 
@@ -324,7 +353,7 @@ class GroupUpdateTest(APITestCase):
         url = '/api/0/issues/{}/'.format(group.id)
 
         with self.tasks():
-            with self.feature('projects:custom-filters', True):
+            with self.feature('projects:discard-groups'):
                 resp = self.client.put(
                     url, data={
                         'discard': True,

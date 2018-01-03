@@ -2,7 +2,10 @@ import Reflux from 'reflux';
 import _ from 'lodash';
 
 let validHookNames = new Set([
+  'component:org-members-view',
   'footer',
+  'settings:organization-navigation',
+  'settings:organization-navigation-config',
   'organization:header',
   'organization:sidebar',
   'organization:dashboard:secondary-column',
@@ -12,7 +15,9 @@ let validHookNames = new Set([
   'project:data-forwarding:disabled',
   'project:rate-limits:disabled',
   'project:custom-inbound-filters:disabled',
-  'issue:secondary-column'
+  'project:discard-groups:disabled',
+  'issue:secondary-column',
+  'analytics:onboarding-complete',
 ]);
 
 const HookStore = Reflux.createStore({
@@ -23,6 +28,7 @@ const HookStore = Reflux.createStore({
   add(hookName, callback) {
     // Gracefully error on invalid hooks, but maintain registration
     if (!validHookNames.has(hookName)) {
+      // eslint-disable-next-line no-console
       console.error('Invalid hook name: ' + hookName);
     }
     if (_.isUndefined(this.hooks[hookName])) {
@@ -44,7 +50,8 @@ const HookStore = Reflux.createStore({
 
   get(hookName) {
     return this.hooks[hookName] || [];
-  }
+  },
 });
 
 export default HookStore;
+window.hook = HookStore;

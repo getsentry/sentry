@@ -11,7 +11,7 @@ export default class Select2Field extends InputField {
     allowClear: PropTypes.bool,
     allowEmpty: PropTypes.bool,
     multiple: PropTypes.bool,
-    escapeMarkup: PropTypes.bool
+    escapeMarkup: PropTypes.bool,
   };
 
   static defaultProps = {
@@ -20,7 +20,7 @@ export default class Select2Field extends InputField {
     allowEmpty: false,
     placeholder: '--',
     escapeMarkup: true,
-    multiple: false
+    multiple: false,
   };
 
   getField() {
@@ -34,7 +34,8 @@ export default class Select2Field extends InputField {
         disabled={this.props.disabled}
         required={this.props.required}
         multiple={this.props.multiple}
-        value={this.state.value}>
+        value={this.state.value}
+      >
         {(this.props.choices || []).map(choice => {
           return (
             <option key={choice[0]} value={choice[0]}>
@@ -66,15 +67,23 @@ export default class Select2Field extends InputField {
       allowClear: this.props.allowClear,
       allowEmpty: this.props.allowEmpty,
       width: 'element',
-      escapeMarkup: !this.props.escapeMarkup ? m => m : undefined
+      escapeMarkup: !this.props.escapeMarkup ? m => m : undefined,
     };
   }
 
+  getClassName() {
+    return '';
+  }
+
   componentDidMount() {
-    jQuery(this.refs.input).select2(this.getSelect2Options()).on('change', this.onChange);
+    super.componentDidMount();
+    jQuery(this.refs.input)
+      .select2(this.getSelect2Options())
+      .on('change', this.onChange);
   }
 
   componentWillUnmount() {
     jQuery(this.refs.select).select2('destroy');
+    super.componentWillUnmount();
   }
 }

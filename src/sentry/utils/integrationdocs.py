@@ -12,7 +12,8 @@ import sentry
 BASE_URL = 'https://docs.sentry.io/_platforms/{}'
 
 # Also see INTEGRATION_DOC_FOLDER in setup.py
-DOC_FOLDER = os.path.abspath(os.path.join(os.path.dirname(sentry.__file__), 'integration-docs'))
+DOC_FOLDER = os.environ.get('INTEGRATION_DOC_FOLDER') or os.path.abspath(
+    os.path.join(os.path.dirname(sentry.__file__), 'integration-docs'))
 
 # We cannot leverage six here, so we need to vendor
 # bits that we need.

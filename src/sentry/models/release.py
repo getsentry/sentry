@@ -23,6 +23,7 @@ from sentry.db.models import (
 
 from sentry.models import CommitFileChange
 
+from sentry.constants import VERSION_LENGTH
 from sentry.utils.cache import cache
 from sentry.utils.hashlib import md5_text
 from sentry.utils.retries import TimedRetryPolicy
@@ -60,9 +61,9 @@ class Release(Model):
     )
     # DEPRECATED
     project_id = BoundedPositiveIntegerField(null=True)
-    version = models.CharField(max_length=64)
+    version = models.CharField(max_length=VERSION_LENGTH)
     # ref might be the branch name being released
-    ref = models.CharField(max_length=64, null=True, blank=True)
+    ref = models.CharField(max_length=VERSION_LENGTH, null=True, blank=True)
     url = models.URLField(null=True, blank=True)
     date_added = models.DateTimeField(default=timezone.now)
     # DEPRECATED - not available in UI or editable from API
@@ -135,7 +136,7 @@ class Release(Model):
         if release in (None, -1):
             # TODO(dcramer): if the cache result is -1 we could attempt a
             # default create here instead of default get
-            project_version = ('%s-%s' % (project.slug, version))[:64]
+            project_version = ('%s-%s' % (project.slug, version))[:VERSION_LENGTH]
             releases = list(
                 cls.objects.filter(
                     organization_id=project.organization_id,
@@ -304,7 +305,9 @@ class Release(Model):
         prev_release = type(self).objects.filter(
             organization_id=self.organization_id,
             projects__in=self.projects.all(),
-        ).exclude(version=self.version).order_by('-date_added').first()
+        ).extra(select={
+            'sort': 'COALESCE(date_released, date_added)',
+        }).exclude(version=self.version).order_by('-sort').first()
 
         names = {r['repository'] for r in refs}
         repos = list(
@@ -355,7 +358,7 @@ class Release(Model):
         commits.
         """
         from sentry.models import (
-            Commit, CommitAuthor, Group, GroupCommitResolution, GroupResolution, GroupStatus,
+            Commit, CommitAuthor, Group, GroupLink, GroupResolution, GroupStatus,
             ReleaseCommit, Repository
         )
         from sentry.plugins.providers.repository import RepositoryProvider
@@ -469,14 +472,16 @@ class Release(Model):
                 )
 
         commit_resolutions = list(
-            GroupCommitResolution.objects.filter(
-                commit_id__in=ReleaseCommit.objects.filter(release=self)
+            GroupLink.objects.filter(
+                linked_type=GroupLink.LinkedType.commit,
+                linked_id__in=ReleaseCommit.objects.filter(release=self)
                 .values_list('commit_id', flat=True),
-            ).values_list('group_id', 'commit_id')
+            ).values_list('group_id', 'linked_id')
         )
+
         user_by_author = {None: None}
-        for group_id, commit_id in commit_resolutions:
-            author = commit_author_by_commit.get(commit_id)
+        for group_id, linked_id in commit_resolutions:
+            author = commit_author_by_commit.get(linked_id)
             if author not in user_by_author:
                 try:
                     user_by_author[author] = author.find_users()[0]

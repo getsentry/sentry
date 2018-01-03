@@ -1,0 +1,309 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`CreateProject render() should render loading 1`] = `
+<div>
+  <h3>
+    Add Member to Organization
+  </h3>
+  <p>
+    Invite a member to join this organization via their email address. If they do not already have an account, they will first be asked to create one. Multiple emails delimited by commas.
+  </p>
+  <LoadingIndicator />
+</div>
+`;
+
+exports[`CreateProject render() should render roles when available and allowed, and handle submitting 1`] = `
+<InviteMember
+  params={
+    Object {
+      "orgId": "testOrg",
+    }
+  }
+>
+  <div>
+    <h3>
+      Add Member to Organization
+    </h3>
+    <p>
+      Invite a member to join this organization via their email address. If they do not already have an account, they will first be asked to create one. Multiple emails delimited by commas.
+    </p>
+    <div>
+      <div
+        className=""
+      >
+        <TextField
+          disabled={false}
+          hideErrorMessage={false}
+          label="Email(s)"
+          name="email"
+          onChange={[Function]}
+          placeholder="e.g. teammate@example.com"
+          required={false}
+          spellCheck="false"
+        >
+          <div
+            className="control-group"
+          >
+            <div
+              className="controls"
+            >
+              <label
+                className="control-label"
+                htmlFor="id-email"
+              >
+                Email(s)
+              </label>
+              <input
+                className="form-control"
+                disabled={false}
+                id="id-email"
+                onChange={[Function]}
+                placeholder="e.g. teammate@example.com"
+                required={false}
+                spellCheck="false"
+                type="text"
+                value=""
+              />
+            </div>
+          </div>
+        </TextField>
+      </div>
+      <RoleSelect
+        enforceAllowed={true}
+        roleList={
+          Array [
+            Object {
+              "allowed": true,
+              "desc": "a normal member",
+              "id": "1",
+              "name": "member",
+            },
+            Object {
+              "allowed": true,
+              "desc": "another role",
+              "id": "2",
+              "name": "bar",
+            },
+          ]
+        }
+        selectedRole="member"
+        setRole={[Function]}
+      >
+        <div
+          className="new-invite-team box"
+        >
+          <div
+            className="box-header"
+          >
+            <h4>
+              Role
+            </h4>
+          </div>
+          <div
+            className="box-content with-padding"
+          >
+            <ul
+              className="radio-inputs"
+            >
+              <li
+                className="radio"
+                key="1"
+                onClick={[Function]}
+                style={Object {}}
+              >
+                <label
+                  style={Object {}}
+                >
+                  <Radio
+                    checked={false}
+                    id="1"
+                    readOnly={true}
+                    value="member"
+                  >
+                    <input
+                      checked={false}
+                      className="radio-select"
+                      id="1"
+                      readOnly={true}
+                      type="radio"
+                      value="member"
+                    />
+                  </Radio>
+                  member
+                  <div
+                    className="help-block"
+                  >
+                    a normal member
+                  </div>
+                </label>
+              </li>
+              <li
+                className="radio"
+                key="2"
+                onClick={[Function]}
+                style={Object {}}
+              >
+                <label
+                  style={Object {}}
+                >
+                  <Radio
+                    checked={false}
+                    id="2"
+                    readOnly={true}
+                    value="bar"
+                  >
+                    <input
+                      checked={false}
+                      className="radio-select"
+                      id="2"
+                      readOnly={true}
+                      type="radio"
+                      value="bar"
+                    />
+                  </Radio>
+                  bar
+                  <div
+                    className="help-block"
+                  >
+                    another role
+                  </div>
+                </label>
+              </li>
+            </ul>
+          </div>
+        </div>
+      </RoleSelect>
+      <TeamSelect
+        selectedTeams={
+          Set {
+            "bar",
+          }
+        }
+        teams={
+          Array [
+            Object {
+              "hasAccess": true,
+              "id": "1",
+              "name": "bar",
+              "slug": "bar",
+            },
+            Object {
+              "hasAccess": false,
+              "id": "2",
+              "name": "foo",
+              "slug": "foo",
+            },
+          ]
+        }
+        toggleTeam={[Function]}
+      >
+        <div
+          className="new-invite-team box"
+        >
+          <div
+            className="box-header"
+          >
+            <h4>
+              Team
+            </h4>
+          </div>
+          <div
+            className="grouping-controls team-choices row box-content with-padding"
+          >
+            <div
+              className="col-md-3"
+              key="bar"
+            >
+              <label
+                className="checkbox"
+              >
+                <Checkbox
+                  checked={false}
+                  id="bar"
+                  onChange={[Function]}
+                >
+                  <input
+                    checked={false}
+                    className="chk-select"
+                    id="bar"
+                    onChange={[Function]}
+                    type="checkbox"
+                  />
+                </Checkbox>
+                bar
+                <span
+                  className="team-slug"
+                >
+                  bar
+                </span>
+              </label>
+            </div>
+            <div
+              className="col-md-3"
+              key="foo"
+            >
+              <label
+                className="checkbox"
+              >
+                <Checkbox
+                  checked={false}
+                  id="foo"
+                  onChange={[Function]}
+                >
+                  <input
+                    checked={false}
+                    className="chk-select"
+                    id="foo"
+                    onChange={[Function]}
+                    type="checkbox"
+                  />
+                </Checkbox>
+                foo
+                <span
+                  className="team-slug"
+                >
+                  foo
+                </span>
+              </label>
+            </div>
+          </div>
+        </div>
+      </TeamSelect>
+      <Button
+        busy={false}
+        className="invite-member-submit"
+        disabled={false}
+        onClick={[Function]}
+        priority="primary"
+      >
+        <button
+          className="invite-member-submit button button-primary"
+          disabled={false}
+          onClick={[Function]}
+          role="button"
+        >
+          <FlowLayout
+            truncate={false}
+          >
+            <div
+              className="flow-layout"
+            >
+              <span
+                className="button-label"
+              >
+                Add Member
+              </span>
+            </div>
+          </FlowLayout>
+        </button>
+      </Button>
+    </div>
+  </div>
+</InviteMember>
+`;
+
+exports[`CreateProject render() should use invite/add language based on config 1`] = `
+<p>
+  You may add a user by their username if they already have an account. Multiple inputs delimited by commas.
+</p>
+`;

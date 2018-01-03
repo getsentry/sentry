@@ -74,6 +74,49 @@ class SAML2LoginView(AuthView):
         return self.redirect(auth.login())
 
 
+# With SAML, the SSO request can be initiated by both the Service Provider
+# (sentry) (the typical case) and the Identity Provider. In the second case,
+# the auth assertion is directly posted to the ACS URL. Because the user will
+# not have initiated their SSO flow we must provide a endpoint similar to
+# auth_provider_login, but with support for initing the auth flow.
+class SAML2AcceptACSView(BaseView):
+    @method_decorator(csrf_exempt)
+    def dispatch(self, request, organization_slug):
+        from sentry.auth.helper import AuthHelper
+        helper = AuthHelper.get_for_request(request)
+
+        # SP initiated authentication, request helper is provided
+        if helper:
+            from sentry.web.frontend.auth_provider_login import AuthProviderLoginView
+            sso_login = AuthProviderLoginView()
+            return sso_login.handle(request)
+
+        # IdP initiated authentication. The organizatio_slug must be valid and
+        # an auth provider must exist for this organization to proceed with
+        # IdP initiated SAML auth.
+        try:
+            organization = Organization.objects.get(slug=organization_slug)
+        except Organization.DoesNotExist:
+            messages.add_message(request, messages.ERROR, ERR_NO_SAML_SSO)
+            return self.redirect(reverse('sentry-login'))
+
+        try:
+            auth_provider = AuthProvider.objects.get(organization=organization)
+        except AuthProvider.DoesNotExist:
+            messages.add_message(request, messages.ERROR, ERR_NO_SAML_SSO)
+            return self.redirect(reverse('sentry-login'))
+
+        helper = AuthHelper(
+            request=request,
+            organization=organization,
+            auth_provider=auth_provider,
+            flow=AuthHelper.FLOW_LOGIN,
+        )
+
+        helper.init_pipeline()
+        return helper.current_step()
+
+
 class SAML2ACSView(AuthView):
     @method_decorator(csrf_exempt)
     def dispatch(self, request, helper):
@@ -118,7 +161,7 @@ class SAML2SLSView(BaseView):
 
         redirect_to = auth.process_slo(
             delete_session_cb=force_logout,
-            keep_local_session=should_logout,
+            keep_local_session=not should_logout,
         )
 
         if not redirect_to:
@@ -166,10 +209,10 @@ class SAML2Provider(Provider):
 
       >>> state.get('idp')
       {
-        'entityId': # Identity Provider entity ID. Usually a URL
-        'x509cert': # Identity Provider x509 public certificate
-        'sso_url:   # Identity Provider Single Sign-On URL
-        'slo_url':  # identity Provider Single Sign-Out URL
+        'entity_id': # Identity Provider entity ID. Usually a URL
+        'x509cert':  # Identity Provider x509 public certificate
+        'sso_url':   # Identity Provider Single Sign-On URL
+        'slo_url':   # identity Provider Single Sign-Out URL
       }
 
       The provider may also bind the `advanced` configuration. This dict
@@ -197,6 +240,7 @@ class SAML2Provider(Provider):
       state during setup. The attribute mapping should map the `Attributes`
       constants to the Identity Provider attribute keys.
     """
+    required_feature = 'organizations:sso-saml2'
 
     def get_auth_pipeline(self):
         return [SAML2LoginView(), SAML2ACSView()]
@@ -284,7 +328,7 @@ def build_saml_config(provider_config, org):
     idp = provider_config['idp']
 
     # TODO(epurkhiser): This is also available in the helper and should probably come from there.
-    acs_url = absolute_uri(reverse('sentry-auth-sso'))
+    acs_url = absolute_uri(reverse('sentry-auth-organization-saml-acs', args=[org]))
     sls_url = absolute_uri(reverse('sentry-auth-organization-saml-sls', args=[org]))
     metadata_url = absolute_uri(reverse('sentry-auth-organization-saml-metadata', args=[org]))
 
@@ -297,14 +341,14 @@ def build_saml_config(provider_config, org):
             'singleLogoutService': {'url': idp['slo_url']},
         },
         'sp': {
-            "entityId": metadata_url,
-            "assertionConsumerService": {
-                "url": acs_url,
-                "binding": OneLogin_Saml2_Constants.BINDING_HTTP_POST,
+            'entityId': metadata_url,
+            'assertionConsumerService': {
+                'url': acs_url,
+                'binding': OneLogin_Saml2_Constants.BINDING_HTTP_POST,
             },
-            "singleLogoutService": {
-                "url": sls_url,
-                "binding": OneLogin_Saml2_Constants.BINDING_HTTP_REDIRECT,
+            'singleLogoutService': {
+                'url': sls_url,
+                'binding': OneLogin_Saml2_Constants.BINDING_HTTP_REDIRECT,
             },
         },
         'security': security_config,

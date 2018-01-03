@@ -1,6 +1,18 @@
+const RealClient = require.requireActual('app/api');
+
 export class Request {}
 
-export class Client {
+const respond = (isAsync, fn, ...args) => {
+  if (fn) {
+    if (isAsync) {
+      setTimeout(() => fn(...args), 1);
+    } else {
+      fn(...args);
+    }
+  }
+};
+
+class Client {
   static mockResponses = [];
 
   static clearMockResponses() {
@@ -12,7 +24,8 @@ export class Client {
       statusCode: 200,
       body: '',
       method: 'GET',
-      ...response
+      callCount: 0,
+      ...response,
     });
   }
 
@@ -22,13 +35,35 @@ export class Client {
     });
   }
 
+  static getCallCount(response) {
+    return Client.findMockResponse(response.url, response).callCount;
+  }
+
+  clear() {}
+
+  static mockAsync = false;
+
   merge(params, options) {
     let path = '/projects/' + params.orgId + '/' + params.projectId + '/issues/';
     return this.request(path, {
       method: 'PUT',
       data: {merge: 1},
-      ...options
+      ...options,
     });
+  }
+
+  wrapCallback(id, error) {
+    return (...args) => respond(Client.mockAsync, error, ...args);
+  }
+
+  requestPromise(url, options) {
+    return new Promise((resolve, reject) =>
+      this.request(url, {
+        ...options,
+        success: resolve,
+        error: reject,
+      })
+    );
   }
 
   request(url, options) {
@@ -40,23 +75,40 @@ export class Client {
         url,
         options.method || 'GET'
       );
-      options.error &&
-        options.error({
-          status: 404,
-          responseText: 'HTTP 404',
-          responseJSON: null
-        });
+      let resp = {
+        status: 404,
+        responseText: 'HTTP 404',
+        responseJSON: null,
+      };
+      respond(Client.mockAsync, options.error, resp);
     } else if (response.statusCode !== 200) {
-      options.error &&
-        options.error({
-          status: response.statusCode,
-          responseText: JSON.stringify(response.body),
-          responseJSON: response.body
-        });
+      response.callCount++;
+      let resp = {
+        status: response.statusCode,
+        responseText: JSON.stringify(response.body),
+        responseJSON: response.body,
+      };
+      this.handleRequestError(
+        {
+          path: url,
+          requestOptions: options,
+        },
+        resp
+      );
     } else {
-      options.success &&
-        options.success(response.body, {}, {getResponseHeader: () => {}});
+      response.callCount++;
+      respond(
+        Client.mockAsync,
+        options.success,
+        response.body,
+        {},
+        {getResponseHeader: () => {}}
+      );
     }
-    options.complete && options.complete();
+    respond(Client.mockAsync, options.complete);
   }
 }
+
+Client.prototype.handleRequestError = RealClient.Client.prototype.handleRequestError;
+
+export {Client};

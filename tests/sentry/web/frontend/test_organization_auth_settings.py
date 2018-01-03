@@ -1,6 +1,7 @@
 from __future__ import absolute_import
 
 from django.core.urlresolvers import reverse
+from mock import patch
 
 from sentry.models import AuthIdentity, AuthProvider, OrganizationMember
 from sentry.testutils import AuthProviderTestCase, PermissionTestCase
@@ -99,7 +100,9 @@ class OrganizationAuthSettingsTest(AuthProviderTestCase):
         assert getattr(member.flags, 'sso:linked')
         assert not getattr(member.flags, 'sso:invalid')
 
-    def test_disable_provider(self):
+    @patch('sentry.web.frontend.organization_auth_settings.email_unlink_notifications')
+    def test_disable_provider(self, email_unlink_notifications):
+        self.user.update(is_managed=True)
         organization = self.create_organization(name='foo', owner=self.user)
 
         auth_provider = AuthProvider.objects.create(
@@ -135,3 +138,6 @@ class OrganizationAuthSettingsTest(AuthProviderTestCase):
         om = OrganizationMember.objects.get(id=om.id)
 
         assert not getattr(om.flags, 'sso:linked')
+        assert not om.user.is_managed
+
+        assert email_unlink_notifications.delay.called

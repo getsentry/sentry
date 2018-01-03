@@ -16,60 +16,62 @@ const DEFAULT_LINKS_HEADER =
   '<http://127.0.0.1:8000/api/0/projects/sentry/ludic-science/issues/?cursor=1443575731:0:0>; rel="next"; results="true"; cursor="1443575731:0:0';
 
 describe('Stream', function() {
+  let sandbox;
+  let stubbedApiRequest;
+  let context;
+  let wrapper;
+
   beforeEach(function() {
-    this.sandbox = sinon.sandbox.create();
+    sandbox = sinon.sandbox.create();
 
-    this.stubbedApiRequest = this.sandbox.stub(
-      Client.prototype,
-      'request',
-      (url, options) => {
-        if (
-          url === 'http://127.0.0.1/api/0/projects/sentry/ludic-science/searches/' &&
-          options.method === 'GET'
-        ) {
-          options.success &&
-            options.success([{id: '789', query: 'is:unresolved', name: 'test'}]);
-        }
-        options.complete && options.complete();
+    stubbedApiRequest = sandbox.stub(Client.prototype, 'request', (url, options) => {
+      if (
+        url === 'http://127.0.0.1/api/0/projects/sentry/ludic-science/searches/' &&
+        options.method === 'GET'
+      ) {
+        options.success &&
+          options.success([{id: '789', query: 'is:unresolved', name: 'test'}]);
       }
-    );
+      options.complete && options.complete();
+    });
 
-    this.context = {
+    context = {
       project: {
         id: '3559',
+        name: 'Foo Project',
         slug: 'foo-project',
-        firstEvent: true
+        firstEvent: true,
       },
       organization: {
         id: '1337',
-        slug: 'foo-org'
+        slug: 'foo-org',
       },
-      team: {id: '2448'}
+      team: {id: '2448'},
     };
 
     let props = {
       setProjectNavSection: function() {},
       location: {query: {query: 'is:unresolved'}, search: 'query=is:unresolved'},
-      params: {orgId: '123', projectId: '456'}
+      params: {orgId: '123', projectId: '456'},
     };
 
-    this.wrapper = shallow(<Stream {...props} />, {
-      context: this.context
+    wrapper = shallow(<Stream {...props} />, {
+      context,
     });
   });
 
   afterEach(function() {
-    this.sandbox.restore();
+    sandbox.restore();
   });
 
   describe('fetchData()', function() {
     describe('complete handler', function() {
       beforeEach(function() {
-        this.sandbox.stub(CursorPoller.prototype, 'setEndpoint');
+        sandbox.stub(CursorPoller.prototype, 'setEndpoint');
       });
 
       it('should reset the poller endpoint and sets cursor URL', function() {
-        let stream = this.wrapper.instance();
+        let stream = wrapper.instance();
         stream.state.pageLinks = DEFAULT_LINKS_HEADER;
         stream.state.realtimeActive = true;
         stream.fetchData();
@@ -82,7 +84,7 @@ describe('Stream', function() {
       });
 
       it('should not enable the poller if realtimeActive is false', function() {
-        let stream = this.wrapper.instance();
+        let stream = wrapper.instance();
         stream.state.pageLinks = DEFAULT_LINKS_HEADER;
         stream.state.realtimeActive = false;
         stream.fetchData();
@@ -91,7 +93,7 @@ describe('Stream', function() {
       });
 
       it("should not enable the poller if the 'previous' link has results", function() {
-        let stream = this.wrapper.instance();
+        let stream = wrapper.instance();
         stream.state.pageLinks =
           '<http://127.0.0.1:8000/api/0/projects/sentry/ludic-science/issues/?cursor=1443575731:0:1>; rel="previous"; results="true"; cursor="1443575731:0:1", ' +
           '<http://127.0.0.1:8000/api/0/projects/sentry/ludic-science/issues/?cursor=1443575731:0:0>; rel="next"; results="true"; cursor="1443575731:0:0';
@@ -104,19 +106,19 @@ describe('Stream', function() {
     }); // complete handler
 
     it('should cancel any previous, unfinished fetches', function() {
-      this.stubbedApiRequest.restore();
+      stubbedApiRequest.restore();
 
-      let requestCancel = this.sandbox.stub();
+      let requestCancel = sandbox.stub();
       let requestOptions;
-      this.sandbox.stub(Client.prototype, 'request', function(url, options) {
+      sandbox.stub(Client.prototype, 'request', function(url, options) {
         requestOptions = options;
         return {
-          cancel: requestCancel
+          cancel: requestCancel,
         };
       });
 
       // NOTE: fetchData called once after render automatically
-      let stream = this.wrapper.instance();
+      let stream = wrapper.instance();
 
       // 2nd fetch should call cancel
       stream.fetchData();
@@ -127,7 +129,7 @@ describe('Stream', function() {
 
       // when request "completes", lastRequest is cleared
       requestOptions.complete({
-        getResponseHeader: () => DEFAULT_LINKS_HEADER
+        getResponseHeader: () => DEFAULT_LINKS_HEADER,
       });
 
       expect(stream.lastRequest).toBeNull();
@@ -136,76 +138,68 @@ describe('Stream', function() {
 
   describe('render()', function() {
     it('displays a loading indicator when component is loading', function() {
-      let wrapper = this.wrapper;
       wrapper.setState({loading: true});
       expect(wrapper.find('.loading')).toBeTruthy();
     });
 
     it('displays a loading indicator when data is loading', function() {
-      let wrapper = this.wrapper;
       wrapper.setState({dataLoading: true});
       expect(wrapper.find('.loading')).toBeTruthy();
     });
 
     it('displays an error when component has errored', function() {
-      let wrapper = this.wrapper;
       wrapper.setState({
         error: 'Something bad happened',
         loading: false,
-        dataLoading: false
+        dataLoading: false,
       });
       expect(wrapper.find(LoadingError).length).toBeTruthy();
     });
 
     it('displays the group list', function() {
-      let wrapper = this.wrapper;
       wrapper.setState({
         error: false,
         groupIds: ['1'],
         loading: false,
-        dataLoading: false
+        dataLoading: false,
       });
       expect(wrapper.find('.group-list').length).toBeTruthy();
     });
 
     it('displays empty with no ids', function() {
-      let wrapper = this.wrapper;
-
       wrapper.setState({
         error: false,
         groupIds: [],
         loading: false,
-        dataLoading: false
+        dataLoading: false,
       });
       expect(wrapper.find('.empty-stream').length).toBeTruthy();
     });
 
     it('shows "awaiting events" message when no events have been sent', function() {
-      let wrapper = this.wrapper;
-
-      this.context.project.firstEvent = false; // Set false for this test only
+      context.project.firstEvent = false; // Set false for this test only
 
       wrapper.setState({
         error: false,
         groupIds: [],
         loading: false,
-        dataLoading: false
+        dataLoading: false,
       });
 
-      expect(this.wrapper.find('.awaiting-events').length).toEqual(1);
+      expect(wrapper.find('.awaiting-events').length).toEqual(1);
 
-      this.context.project.firstEvent = true; // Reset for other tests
+      context.project.firstEvent = true; // Reset for other tests
     });
 
     it('does not have real time event updates when events exist', function() {
-      let wrapper = shallow(<Stream {...this.wrapper.instance().props} />, {
+      wrapper = shallow(<Stream {...wrapper.instance().props} />, {
         context: {
-          ...this.context,
+          ...context,
           project: {
-            ...this.context.project,
-            firstEvent: true
-          }
-        }
+            ...context.project,
+            firstEvent: true,
+          },
+        },
       });
 
       expect(wrapper.state('realtimeActive')).toBe(false);
@@ -213,21 +207,21 @@ describe('Stream', function() {
 
     it('does not have real time event updates enabled when cookie is present (even if there are no events)', function() {
       Cookies.set('realtimeActive', 'false');
-      let wrapper = shallow(<Stream {...this.wrapper.instance().props} />, {
+      wrapper = shallow(<Stream {...wrapper.instance().props} />, {
         context: {
-          ...this.context,
+          ...context,
           project: {
-            ...this.context.project,
-            firstEvent: false
-          }
-        }
+            ...context.project,
+            firstEvent: false,
+          },
+        },
       });
 
       wrapper.setState({
         error: false,
         groupIds: [],
         loading: false,
-        dataLoading: false
+        dataLoading: false,
       });
 
       Cookies.remove('realtimeActive');
@@ -235,21 +229,21 @@ describe('Stream', function() {
     });
 
     it('has real time event updates enabled when there are no events', function() {
-      let wrapper = shallow(<Stream {...this.wrapper.instance().props} />, {
+      wrapper = shallow(<Stream {...wrapper.instance().props} />, {
         context: {
-          ...this.context,
+          ...context,
           project: {
-            ...this.context.project,
-            firstEvent: false
-          }
-        }
+            ...context.project,
+            firstEvent: false,
+          },
+        },
       });
 
       wrapper.setState({
         error: false,
         groupIds: [],
         loading: false,
-        dataLoading: false
+        dataLoading: false,
       });
 
       expect(wrapper.state('realtimeActive')).toBe(true);
@@ -264,21 +258,21 @@ describe('Stream', function() {
     it('reads the realtimeActive state from a cookie', function() {
       Cookies.set('realtimeActive', 'false');
 
-      let stream = this.wrapper.instance();
+      let stream = wrapper.instance();
       expect(stream.getInitialState()).toHaveProperty('realtimeActive', false);
     });
 
     it('reads the true realtimeActive state from a cookie', function() {
       Cookies.set('realtimeActive', 'true');
 
-      let stream = this.wrapper.instance();
+      let stream = wrapper.instance();
       expect(stream.getInitialState()).toHaveProperty('realtimeActive', true);
     });
   });
 
   describe('onRealtimeChange', function() {
     it('sets the realtimeActive state', function() {
-      let stream = this.wrapper.instance();
+      let stream = wrapper.instance();
       stream.state.realtimeActive = false;
       stream.onRealtimeChange(true);
       expect(stream.state.realtimeActive).toEqual(true);
@@ -305,10 +299,10 @@ describe('Stream', function() {
         error: false,
         searchId: null,
         query: 'is:unresolved',
-        sort: 'date'
+        sort: 'date',
       };
 
-      let actual = this.wrapper.instance().getInitialState();
+      let actual = wrapper.instance().getInitialState();
       expect(_.pick(actual, _.keys(expected))).toEqual(expected);
     });
 
@@ -316,7 +310,7 @@ describe('Stream', function() {
       let props = {
         setProjectNavSection: function() {},
         location: {query: {sort: 'freq'}, search: 'sort=freq'},
-        params: {orgId: '123', projectId: '456'}
+        params: {orgId: '123', projectId: '456'},
       };
 
       let expected = {
@@ -332,11 +326,11 @@ describe('Stream', function() {
         error: false,
         query: '',
         sort: 'freq',
-        searchId: null
+        searchId: null,
       };
 
       let stream = shallow(<Stream {...props} />, {
-        context: this.context
+        context,
       }).instance();
 
       let actual = stream.getInitialState();
@@ -347,7 +341,7 @@ describe('Stream', function() {
       let props = {
         setProjectNavSection: function() {},
         location: {query: {sort: 'freq'}, search: 'sort=freq'},
-        params: {orgId: '123', projectId: '456', searchId: '789'}
+        params: {orgId: '123', projectId: '456', searchId: '789'},
       };
 
       let expected = {
@@ -363,15 +357,15 @@ describe('Stream', function() {
         error: false,
         query: 'is:unresolved',
         sort: 'freq',
-        searchId: '789'
+        searchId: '789',
       };
 
-      let wrapper = shallow(<Stream {...props} />, {
-        context: this.context
+      wrapper = shallow(<Stream {...props} />, {
+        context,
       });
 
       wrapper.setState({
-        savedSearchList: [{id: '789', query: 'is:unresolved', name: 'test'}]
+        savedSearchList: [{id: '789', query: 'is:unresolved', name: 'test'}],
       });
 
       let actual = wrapper.instance().getInitialState();
@@ -382,7 +376,7 @@ describe('Stream', function() {
       let props = {
         setProjectNavSection: function() {},
         location: {query: {sort: 'freq'}, search: 'sort=freq'},
-        params: {orgId: '123', projectId: '456', searchId: '799'}
+        params: {orgId: '123', projectId: '456', searchId: '799'},
       };
 
       let expected = {
@@ -398,11 +392,11 @@ describe('Stream', function() {
         error: false,
         query: '',
         sort: 'freq',
-        searchId: null
+        searchId: null,
       };
 
       let stream = shallow(<Stream {...props} />, {
-        context: this.context
+        context,
       }).instance();
 
       let actual = stream.getInitialState();

@@ -27,7 +27,9 @@ exports[`MutedBox render() handles ignoreCount 1`] = `
   <p>
     <span>
       This issue has been ignored until it affects 
-      <strong>
+      <strong
+        key="1"
+      >
         100
       </strong>
        more user(s)
@@ -48,13 +50,17 @@ exports[`MutedBox render() handles ignoreCount with ignoreWindow 1`] = `
   <p>
     <span>
       This issue has been ignored until it occurs 
-      <strong>
+      <strong
+        key="1"
+      >
         100
       </strong>
        time(s) in 
-      <strong>
+      <strong
+        key="3"
+      >
         <Duration
-          seconds={3600}
+          seconds={60}
         />
       </strong>
        — 
@@ -74,7 +80,9 @@ exports[`MutedBox render() handles ignoreUntil 1`] = `
   <p>
     <span>
       This issue has been ignored until 
-      <strong>
+      <strong
+        key="1"
+      >
         <DateTime
           date="2017-06-21T19:45:10Z"
           seconds={true}
@@ -97,7 +105,9 @@ exports[`MutedBox render() handles ignoreUserCount 1`] = `
   <p>
     <span>
       This issue has been ignored until it affects 
-      <strong>
+      <strong
+        key="1"
+      >
         100
       </strong>
        more user(s)
@@ -118,13 +128,17 @@ exports[`MutedBox render() handles ignoreUserCount with ignoreUserWindow 1`] = `
   <p>
     <span>
       This issue has been ignored until it affects 
-      <strong>
+      <strong
+        key="1"
+      >
         100
       </strong>
        user(s) in 
-      <strong>
+      <strong
+        key="3"
+      >
         <Duration
-          seconds={3600}
+          seconds={60}
         />
       </strong>
        — 

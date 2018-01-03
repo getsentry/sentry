@@ -21,7 +21,7 @@ import os
 from django.utils import timezone
 
 from sentry.models import (
-    Activity, Event, EventError, EventMapping, Group, Organization, OrganizationMember,
+    Activity, Environment, Event, EventError, EventMapping, Group, Organization, OrganizationMember,
     OrganizationMemberTeam, Project, Team, User, UserEmail, Release, Commit, ReleaseCommit,
     CommitAuthor, Repository, CommitFileChange
 )
@@ -193,6 +193,13 @@ class Fixtures(object):
         )
 
     @fixture
+    def environment(self):
+        return self.create_environment(
+            name='development',
+            project=self.project,
+        )
+
+    @fixture
     def group(self):
         return self.create_group(message=u'\u3053\u3093\u306b\u3061\u306f')
 
@@ -209,15 +216,11 @@ class Fixtures(object):
             group=self.group, project=self.project, type=Activity.NOTE, user=self.user, data={}
         )
 
-    def create_organization(self, **kwargs):
-        if not kwargs.get('name'):
-            kwargs['name'] = petname.Generate(2, ' ', letters=10).title()
+    def create_organization(self, name=None, owner=None, **kwargs):
+        if not name:
+            name = petname.Generate(2, ' ', letters=10).title()
 
-        owner = kwargs.pop('owner', -1)
-        if owner is -1:
-            owner = self.user
-
-        org = Organization.objects.create(**kwargs)
+        org = Organization.objects.create(name=name, **kwargs)
         if owner:
             self.create_member(
                 organization=org,
@@ -232,12 +235,27 @@ class Fixtures(object):
         om = OrganizationMember.objects.create(**kwargs)
         if teams:
             for team in teams:
-                OrganizationMemberTeam.objects.create(
+                self.create_team_membership(
                     team=team,
-                    organizationmember=om,
-                    is_active=True,
+                    member=om,
                 )
         return om
+
+    def create_team_membership(self, team, member=None, user=None):
+        if member is None:
+            member, _ = OrganizationMember.objects.get_or_create(
+                user=user,
+                organization=team.organization,
+                defaults={
+                    'role': 'member',
+                }
+            )
+
+        return OrganizationMemberTeam.objects.create(
+            team=team,
+            organizationmember=member,
+            is_active=True,
+        )
 
     def create_team(self, **kwargs):
         if not kwargs.get('name'):
@@ -246,8 +264,24 @@ class Fixtures(object):
             kwargs['slug'] = slugify(six.text_type(kwargs['name']))
         if not kwargs.get('organization'):
             kwargs['organization'] = self.organization
+        members = kwargs.pop('members', None)
 
-        return Team.objects.create(**kwargs)
+        team = Team.objects.create(**kwargs)
+        if members:
+            for user in members:
+                self.create_team_membership(team=team, user=user)
+        return team
+
+    def create_environment(self, **kwargs):
+        project = kwargs.get('project', self.project)
+        name = kwargs.get('name', petname.Generate(3, ' ', letters=10)[:64])
+        env = Environment.objects.create(
+            organization_id=project.organization_id,
+            project_id=project.id,
+            name=name,
+        )
+        env.add_project(project)
+        return env
 
     def create_project(self, **kwargs):
         if not kwargs.get('name'):
@@ -259,7 +293,9 @@ class Fixtures(object):
         if not kwargs.get('organization'):
             kwargs['organization'] = kwargs['team'].organization
 
-        return Project.objects.create(**kwargs)
+        project = Project.objects.create(**kwargs)
+        project.add_team(kwargs['team'])
+        return project
 
     def create_project_key(self, project):
         return project.key_set.get_or_create()[0]

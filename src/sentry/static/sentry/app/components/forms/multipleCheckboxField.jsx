@@ -6,20 +6,25 @@ import jQuery from 'jquery';
 
 import FormField from './formField';
 
+import {defined} from '../../utils';
+
 export default class MultipleCheckboxField extends FormField {
   static propTypes = {
     ...FormField.propTypes,
-    choices: PropTypes.array.isRequired
+    hideLabelDivider: PropTypes.bool,
+    choices: PropTypes.array.isRequired,
   };
 
   // XXX(dcramer): this comes from TooltipMixin
   componentDidMount() {
+    super.componentDidMount();
     this.attachTooltips();
   }
 
   componentWillUnmount() {
     this.removeTooltips();
     jQuery(ReactDOM.findDOMNode(this)).unbind();
+    super.componentWillUnmount();
   }
 
   attachTooltips() {
@@ -53,16 +58,17 @@ export default class MultipleCheckboxField extends FormField {
       label,
       help,
       choices,
-      style
+      hideLabelDivider,
+      style,
     } = this.props;
-    let error = this.getError();
+    let {error} = this.state;
     let cx = classNames(className, 'control-group', {
-      'has-error': error
+      'has-error': error,
     });
     // Hacky, but this isn't really a form label vs the checkbox labels, but
     // we want to treat it as one (i.e. for "required" indicator)
     let labelCx = classNames({
-      required
+      required,
     });
     let shouldShowDisabledReason = disabled && disabledReason;
 
@@ -70,12 +76,20 @@ export default class MultipleCheckboxField extends FormField {
       <div style={style} className={cx}>
         <div className={labelCx}>
           <div className="controls">
-            <label className="control-label">
+            <label
+              className="control-label"
+              style={{
+                display: 'block',
+                marginBottom: !hideLabelDivider ? 10 : undefined,
+                borderBottom: !hideLabelDivider ? '1px solid #f1eff3' : undefined,
+              }}
+            >
               {label}
-              {shouldShowDisabledReason &&
+              {shouldShowDisabledReason && (
                 <span className="disabled-indicator tip" title={disabledReason}>
                   <span className="icon-question" />
-                </span>}
+                </span>
+              )}
             </label>
             {help && <p className="help-block">{help}</p>}
             {error && <p className="error">{error}</p>}
@@ -91,7 +105,9 @@ export default class MultipleCheckboxField extends FormField {
                   value={value}
                   onChange={this.onChange.bind(this, value)}
                   disabled={disabled}
-                  checked={this.state.value.indexOf(value) !== -1}
+                  checked={
+                    defined(this.state.value) && this.state.value.indexOf(value) !== -1
+                  }
                 />
                 {choiceLabel}
               </label>

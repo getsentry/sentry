@@ -9,11 +9,14 @@ default_manager.add('auth:register')
 default_manager.add('organizations:api-keys', OrganizationFeature)  # NOQA
 default_manager.add('organizations:create')
 default_manager.add('organizations:sso', OrganizationFeature)  # NOQA
-default_manager.add('organizations:saml2', OrganizationFeature)  # NOQA
+default_manager.add('organizations:sso-saml2', OrganizationFeature)  # NOQA
+default_manager.add('organizations:sso-rippling', OrganizationFeature)  # NOQA
 default_manager.add('organizations:onboarding', OrganizationFeature)  # NOQA
 default_manager.add('organizations:repos', OrganizationFeature)  # NOQA
 default_manager.add('organizations:release-commits', OrganizationFeature)  # NOQA
 default_manager.add('organizations:group-unmerge', OrganizationFeature)  # NOQA
+default_manager.add('organizations:invite-members', OrganizationFeature)  # NOQA
+default_manager.add('organizations:new-settings', OrganizationFeature)  # NOQA
 default_manager.add('organizations:integrations-v3', OrganizationFeature)  # NOQA
 default_manager.add('projects:similarity-view', ProjectFeature)  # NOQA
 default_manager.add('projects:global-events', ProjectFeature)  # NOQA
@@ -22,9 +25,11 @@ default_manager.add('projects:data-forwarding', ProjectFeature)  # NOQA
 default_manager.add('projects:rate-limits', ProjectFeature)  # NOQA
 default_manager.add('workflow:release-emails', ProjectFeature)  # NOQA
 default_manager.add('projects:sample-events', ProjectFeature)  # NOQA
+default_manager.add('projects:servicehooks', ProjectFeature)  # NOQA
 default_manager.add('projects:similarity-indexing', ProjectFeature)  # NOQA
-default_manager.add('projects:custom-filters', ProjectFeature)  # NOQA
+default_manager.add('projects:discard-groups', ProjectFeature)  # NOQA
 default_manager.add('projects:custom-inbound-filters', ProjectFeature)  # NOQA
+default_manager.add('projects:minidump', ProjectFeature)  # NOQA
 
 # expose public api
 add = default_manager.add

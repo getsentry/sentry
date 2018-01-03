@@ -24,24 +24,30 @@ from sentry import eventtypes, features, buffer
 # we need a bunch of unexposed functions from tsdb
 from sentry.tsdb import backend as tsdb
 from sentry.constants import (
-    CLIENT_RESERVED_ATTRS, LOG_LEVELS, DEFAULT_LOGGER_NAME, MAX_CULPRIT_LENGTH
+    CLIENT_RESERVED_ATTRS, LOG_LEVELS, LOG_LEVELS_MAP, DEFAULT_LOG_LEVEL,
+    DEFAULT_LOGGER_NAME, MAX_CULPRIT_LENGTH, VALID_PLATFORMS
 )
-from sentry.interfaces.base import get_interface
+from sentry.interfaces.base import get_interface, InterfaceValidationError
+from sentry.interfaces.schemas import validate_and_default_interface
 from sentry.models import (
-    Activity, Environment, Event, EventMapping, EventUser, Group, GroupHash, GroupRelease,
-    GroupResolution, GroupStatus, Project, Release, ReleaseEnvironment, ReleaseProject, TagKey,
-    UserReport
+    Activity, Environment, Event, EventError, EventMapping, EventUser, Group,
+    GroupHash, GroupRelease, GroupResolution, GroupStatus, Project, Release,
+    ReleaseEnvironment, ReleaseProject, UserReport
 )
 from sentry.plugins import plugins
-from sentry.signals import first_event_received, regression_signal
+from sentry.signals import event_discarded, event_saved, first_event_received, regression_signal
 from sentry.tasks.merge import merge_group
 from sentry.tasks.post_process import post_process_group
+from sentry.utils import metrics
 from sentry.utils.cache import default_cache
 from sentry.utils.db import get_db_engine
-from sentry.utils.safe import safe_execute, trim, trim_dict
+from sentry.utils.safe import safe_execute, trim, trim_dict, get_path
 from sentry.utils.strings import truncatechars
-from sentry.utils.validators import validate_ip
+from sentry.utils.validators import is_float
 from sentry.stacktraces import normalize_in_app
+
+
+DEFAULT_FINGERPRINT_VALUES = frozenset(['{{ default }}', '{{default}}'])
 
 
 def count_limit(count):
@@ -87,7 +93,8 @@ def get_hashes_for_event_with_reason(event):
         if not result:
             continue
         return (interface.get_path(), result)
-    return ('message', [event.message])
+
+    return ('no_interfaces', [''])
 
 
 def get_grouping_behavior(event):
@@ -99,8 +106,7 @@ def get_grouping_behavior(event):
 
 
 def get_hashes_from_fingerprint(event, fingerprint):
-    default_values = set(['{{ default }}', '{{default}}'])
-    if any(d in fingerprint for d in default_values):
+    if any(d in fingerprint for d in DEFAULT_FINGERPRINT_VALUES):
         default_hashes = get_hashes_for_event(event)
         hash_count = len(default_hashes)
     else:
@@ -110,7 +116,7 @@ def get_hashes_from_fingerprint(event, fingerprint):
     for idx in range(hash_count):
         result = []
         for bit in fingerprint:
-            if bit in default_values:
+            if bit in DEFAULT_FINGERPRINT_VALUES:
                 result.extend(default_hashes[idx])
             else:
                 result.append(bit)
@@ -119,8 +125,7 @@ def get_hashes_from_fingerprint(event, fingerprint):
 
 
 def get_hashes_from_fingerprint_with_reason(event, fingerprint):
-    default_values = set(['{{ default }}', '{{default}}'])
-    if any(d in fingerprint for d in default_values):
+    if any(d in fingerprint for d in DEFAULT_FINGERPRINT_VALUES):
         default_hashes = get_hashes_for_event_with_reason(event)
         hash_count = len(default_hashes[1])
     else:
@@ -129,7 +134,7 @@ def get_hashes_from_fingerprint_with_reason(event, fingerprint):
     hashes = OrderedDict((bit, []) for bit in fingerprint)
     for idx in range(hash_count):
         for bit in fingerprint:
-            if bit in default_values:
+            if bit in DEFAULT_FINGERPRINT_VALUES:
                 hashes[bit].append(default_hashes)
             else:
                 hashes[bit] = bit
@@ -192,6 +197,45 @@ def plugin_is_regression(group, event):
     return True
 
 
+def process_timestamp(value, current_datetime=None):
+    if is_float(value):
+        try:
+            value = datetime.fromtimestamp(float(value))
+        except Exception:
+            raise InvalidTimestamp(
+                'Invalid value for timestamp: %r' % value)
+    elif not isinstance(value, datetime):
+        # all timestamps are in UTC, but the marker is optional
+        if value.endswith('Z'):
+            value = value[:-1]
+        if '.' in value:
+            # Python doesn't support long microsecond values
+            # https://github.com/getsentry/sentry/issues/1610
+            ts_bits = value.split('.', 1)
+            value = '%s.%s' % (ts_bits[0], ts_bits[1][:2])
+            fmt = '%Y-%m-%dT%H:%M:%S.%f'
+        else:
+            fmt = '%Y-%m-%dT%H:%M:%S'
+        try:
+            value = datetime.strptime(value, fmt)
+        except Exception:
+            raise InvalidTimestamp(
+                'Invalid value for timestamp: %r' % value)
+
+    if current_datetime is None:
+        current_datetime = datetime.now()
+
+    if value > current_datetime + timedelta(minutes=1):
+        raise InvalidTimestamp(
+            'Invalid value for timestamp (in future): %r' % value)
+
+    if value < current_datetime - timedelta(days=30):
+        raise InvalidTimestamp(
+            'Invalid value for timestamp (too old): %r' % value)
+
+    return float(value.strftime('%s'))
+
+
 class HashDiscarded(Exception):
     pass
 
@@ -228,6 +272,10 @@ class ScoreClause(object):
         return math.log(times_seen) * 600 + float(last_seen.strftime('%s'))
 
 
+class InvalidTimestamp(Exception):
+    pass
+
+
 class EventManager(object):
     logger = logging.getLogger('sentry.events')
 
@@ -235,33 +283,123 @@ class EventManager(object):
         self.data = data
         self.version = version
 
-    def normalize(self):
-        # TODO(dcramer): store http.env.REMOTE_ADDR as user.ip
-        # First we pull out our top-level (non-data attr) kwargs
+    def normalize(self, request_env=None):
+        request_env = request_env or {}
         data = self.data
+        errors = data['errors'] = []
 
-        if not isinstance(data.get('level'), (six.string_types, int)):
-            data['level'] = logging.ERROR
-        elif data['level'] not in LOG_LEVELS:
-            data['level'] = logging.ERROR
+        # Before validating with a schema, attempt to cast values to their desired types
+        # so that the schema doesn't have to take every type variation into account.
+        text = six.text_type
+        fp_types = six.string_types + six.integer_types + (float, )
 
-        if not data.get('logger') or not isinstance(data.get('logger'), six.string_types):
-            data['logger'] = DEFAULT_LOGGER_NAME
-        else:
-            logger = trim(data['logger'].strip(), 64)
-            if TagKey.is_valid_key(logger):
-                data['logger'] = logger
-            else:
-                data['logger'] = DEFAULT_LOGGER_NAME
+        def to_values(v):
+            return {'values': v} if v and isinstance(v, (tuple, list)) else v
 
-        if data.get('platform'):
-            data['platform'] = trim(data['platform'], 64)
+        casts = {
+            'environment': lambda v: text(v) if v is not None else v,
+            'fingerprint': lambda v: list(map(text, v)) if isinstance(v, list) and all(isinstance(f, fp_types) for f in v) else v,
+            'release': lambda v: text(v) if v is not None else v,
+            'dist': lambda v: text(v).strip() if v is not None else v,
+            'time_spent': lambda v: int(v) if v is not None else v,
+            'tags': lambda v: [(text(v_k).replace(' ', '-').strip(), text(v_v).strip()) for (v_k, v_v) in dict(v).items()],
+            'timestamp': lambda v: process_timestamp(v),
+            'platform': lambda v: v if v in VALID_PLATFORMS else 'other',
+            'sentry.interfaces.Message': lambda v: v if isinstance(v, dict) else {'message': v},
 
-        current_timestamp = timezone.now()
+            # These can be sent as lists and need to be converted to {'values': [...]}
+            'exception': to_values,
+            'sentry.interfaces.Exception': to_values,
+            'breadcrumbs': to_values,
+            'sentry.interfaces.Breadcrumbs': to_values,
+            'threads': to_values,
+            'sentry.interfaces.Threads': to_values,
+        }
+
+        for c in casts:
+            if c in data:
+                try:
+                    data[c] = casts[c](data[c])
+                except Exception as e:
+                    errors.append({'type': EventError.INVALID_DATA, 'name': c, 'value': data[c]})
+                    del data[c]
+
+        # raw 'message' is coerced to the Message interface, as its used for pure index of
+        # searchable strings. If both a raw 'message' and a Message interface exist, try and
+        # add the former as the 'formatted' attribute of the latter.
+        # See GH-3248
+        msg_str = data.pop('message', None)
+        if msg_str:
+            msg_if = data.setdefault('sentry.interfaces.Message', {'message': msg_str})
+            if msg_if.get('message') != msg_str:
+                msg_if.setdefault('formatted', msg_str)
+
+        # Fill in ip addresses marked as {{auto}}
+        client_ip = request_env.get('client_ip')
+        if client_ip:
+            if get_path(data, ['sentry.interfaces.Http', 'env', 'REMOTE_ADDR']) == '{{auto}}':
+                data['sentry.interfaces.Http']['env']['REMOTE_ADDR'] = client_ip
+
+            if get_path(data, ['request', 'env', 'REMOTE_ADDR']) == '{{auto}}':
+                data['request']['env']['REMOTE_ADDR'] = client_ip
+
+            if get_path(data, ['sentry.interfaces.User', 'ip_address']) == '{{auto}}':
+                data['sentry.interfaces.User']['ip_address'] = client_ip
+
+            if get_path(data, ['user', 'ip_address']) == '{{auto}}':
+                data['user']['ip_address'] = client_ip
+
+        # Validate main event body and tags against schema
+        is_valid, event_errors = validate_and_default_interface(data, 'event')
+        errors.extend(event_errors)
+        if 'tags' in data:
+            is_valid, tag_errors = validate_and_default_interface(data['tags'], 'tags', name='tags')
+            errors.extend(tag_errors)
+
+        # Validate interfaces
+        for k in list(iter(data)):
+            if k in CLIENT_RESERVED_ATTRS:
+                continue
+
+            value = data.pop(k)
+
+            if not value:
+                self.logger.debug('Ignored empty interface value: %s', k)
+                continue
+
+            try:
+                interface = get_interface(k)
+            except ValueError:
+                self.logger.debug('Ignored unknown attribute: %s', k)
+                errors.append({'type': EventError.INVALID_ATTRIBUTE, 'name': k})
+                continue
+
+            try:
+                inst = interface.to_python(value)
+                data[inst.get_path()] = inst.to_json()
+            except Exception as e:
+                log = self.logger.debug if isinstance(
+                    e, InterfaceValidationError) else self.logger.error
+                log('Discarded invalid value for interface: %s (%r)', k, value, exc_info=True)
+                errors.append({'type': EventError.INVALID_DATA, 'name': k, 'value': value})
+
+        # Additional data coercion and defaulting
+        level = data.get('level') or DEFAULT_LOG_LEVEL
+        if isinstance(level, int) or (isinstance(level, six.string_types) and level.isdigit()):
+            level = LOG_LEVELS.get(int(level), DEFAULT_LOG_LEVEL)
+        data['level'] = LOG_LEVELS_MAP.get(level, LOG_LEVELS_MAP[DEFAULT_LOG_LEVEL])
+
+        if data.get('dist') and not data.get('release'):
+            data['dist'] = None
+
         timestamp = data.get('timestamp')
         if not timestamp:
-            timestamp = current_timestamp
+            timestamp = timezone.now()
 
+        # TODO (alex) can this all be replaced by utcnow?
+        # it looks like the only time that this would even be hit is when timestamp
+        # is not defined, as the earlier process_timestamp already converts existing
+        # timestamps to floats.
         if isinstance(timestamp, datetime):
             # We must convert date to local time so Django doesn't mess it up
             # based on TIME_ZONE
@@ -275,128 +413,64 @@ class EventManager(object):
         data['timestamp'] = timestamp
         data['received'] = float(timezone.now().strftime('%s'))
 
-        if not data.get('event_id'):
-            data['event_id'] = uuid4().hex
-
-        data.setdefault('culprit', None)
-        data.setdefault('server_name', None)
-        data.setdefault('site', None)
         data.setdefault('checksum', None)
-        data.setdefault('fingerprint', None)
-        data.setdefault('platform', None)
+        data.setdefault('culprit', None)
         data.setdefault('dist', None)
         data.setdefault('environment', None)
         data.setdefault('extra', {})
-        data.setdefault('errors', [])
+        data.setdefault('fingerprint', None)
+        data.setdefault('logger', DEFAULT_LOGGER_NAME)
+        data.setdefault('platform', None)
+        data.setdefault('server_name', None)
+        data.setdefault('site', None)
+        data.setdefault('tags', [])
+        data.setdefault('transaction', None)
 
-        tags = data.get('tags')
-        if not tags:
-            tags = []
-        # full support for dict syntax
-        elif isinstance(tags, dict):
-            tags = list(tags.items())
-        # prevent [tag, tag, tag] (invalid) syntax
-        elif not all(len(t) == 2 for t in tags):
-            tags = []
-        else:
-            tags = list(tags)
-
-        data['tags'] = []
-        for key, value in tags:
-            key = six.text_type(key).strip()
-            value = six.text_type(value).strip()
-            if not (key and value):
-                continue
-
-            # XXX(dcramer): many legacy apps are using the environment tag
-            # rather than the key itself
-            if key == 'environment' and not data.get('environment'):
-                data['environment'] = value
-            else:
-                data['tags'].append((key, value))
-
-        if not isinstance(data['extra'], dict):
-            # throw it away
-            data['extra'] = {}
-
-        trim_dict(data['extra'], max_size=settings.SENTRY_MAX_EXTRA_VARIABLE_SIZE)
-
-        # TODO(dcramer): more of validate data needs stuffed into the manager
-        for key in list(iter(data)):
-            if key in CLIENT_RESERVED_ATTRS:
-                continue
-
-            value = data.pop(key)
-
-            try:
-                interface = get_interface(key)()
-            except ValueError:
-                continue
-
-            try:
-                inst = interface.to_python(value)
-                data[inst.get_path()] = inst.to_json()
-            except Exception:
-                # XXX: we should consider logging this.
-                pass
-
-        # TODO(dcramer): this logic is duplicated in ``validate_data`` from
-        # coreapi
-
-        # message is coerced to an interface, as its used for pure
-        # index of searchable strings
-        # See GH-3248
-        message = data.pop('message', None)
-        if message:
-            if 'sentry.interfaces.Message' not in data:
-                interface = get_interface('sentry.interfaces.Message')
-                try:
-                    inst = interface.to_python({
-                        'message': message,
-                    })
-                    data[inst.get_path()] = inst.to_json()
-                except Exception:
-                    pass
-            elif not data['sentry.interfaces.Message'].get('formatted'):
-                interface = get_interface('sentry.interfaces.Message')
-                try:
-                    inst = interface.to_python(
-                        dict(
-                            data['sentry.interfaces.Message'],
-                            formatted=message,
-                        )
-                    )
-                    data[inst.get_path()] = inst.to_json()
-                except Exception:
-                    pass
+        # Fix case where legacy apps pass 'environment' as a tag
+        # instead of a top level key.
+        # TODO (alex) save() just reinserts the environment into the tags
+        if not data.get('environment'):
+            tagsdict = dict(data['tags'])
+            if 'environment' in tagsdict:
+                data['environment'] = tagsdict['environment']
+                del tagsdict['environment']
+                data['tags'] = tagsdict.items()
 
         # the SDKs currently do not describe event types, and we must infer
         # them from available attributes
         data['type'] = eventtypes.infer(data).key
-
         data['version'] = self.version
 
-        # TODO(dcramer): find a better place for this logic
         exception = data.get('sentry.interfaces.Exception')
         stacktrace = data.get('sentry.interfaces.Stacktrace')
         if exception and len(exception['values']) == 1 and stacktrace:
             exception['values'][0]['stacktrace'] = stacktrace
             del data['sentry.interfaces.Stacktrace']
 
-        if 'sentry.interfaces.Http' in data:
-            try:
-                ip_address = validate_ip(
-                    data['sentry.interfaces.Http'].get('env', {}).get('REMOTE_ADDR'),
-                    required=False,
-                )
-            except ValueError:
-                ip_address = None
-            if ip_address:
-                data.setdefault('sentry.interfaces.User', {})
-                data['sentry.interfaces.User'].setdefault('ip_address', ip_address)
+        # If there is no User ip_addres, update it either from the Http interface
+        # or the client_ip of the request.
+        auth = request_env.get('auth')
+        is_public = auth and auth.is_public
+        add_ip_platforms = ('javascript', 'cocoa', 'objc')
+
+        http_ip = data.get('sentry.interfaces.Http', {}).get('env', {}).get('REMOTE_ADDR')
+        if http_ip:
+            data.setdefault('sentry.interfaces.User', {}).setdefault('ip_address', http_ip)
+        elif client_ip and (is_public or data.get('platform') in add_ip_platforms):
+            data.setdefault('sentry.interfaces.User', {}).setdefault('ip_address', client_ip)
+
+        if client_ip and data.get('sdk'):
+            data['sdk']['client_ip'] = client_ip
+
+        # Trim values
+        data['logger'] = trim(data['logger'].strip(), 64)
+        trim_dict(data['extra'], max_size=settings.SENTRY_MAX_EXTRA_VARIABLE_SIZE)
 
         if data['culprit']:
             data['culprit'] = trim(data['culprit'], MAX_CULPRIT_LENGTH)
+
+        if data['transaction']:
+            data['transaction'] = trim(data['transaction'], MAX_CULPRIT_LENGTH)
 
         return data
 
@@ -411,7 +485,9 @@ class EventManager(object):
         event_id = data.pop('event_id')
         level = data.pop('level')
 
-        culprit = data.pop('culprit', None)
+        culprit = data.pop('transaction', None)
+        if not culprit:
+            culprit = data.pop('culprit', None)
         logger_name = data.pop('logger', None)
         server_name = data.pop('server_name', None)
         site = data.pop('site', None)
@@ -434,7 +510,8 @@ class EventManager(object):
         else:
             transaction_name = culprit
 
-        date = datetime.fromtimestamp(data.pop('timestamp'))
+        recorded_timestamp = data.pop('timestamp')
+        date = datetime.fromtimestamp(recorded_timestamp)
         date = date.replace(tzinfo=timezone.utc)
 
         kwargs = {
@@ -449,6 +526,7 @@ class EventManager(object):
             datetime=date,
             **kwargs
         )
+        event._project_cache = project
 
         # convert this to a dict to ensure we're only storing one value per key
         # as most parts of Sentry dont currently play well with multiple values
@@ -565,6 +643,7 @@ class EventManager(object):
         event.message = message
         kwargs['message'] = message
 
+        received_timestamp = event.data.get('received') or float(event.datetime.strftime('%s'))
         group_kwargs = kwargs.copy()
         group_kwargs.update(
             {
@@ -575,8 +654,7 @@ class EventManager(object):
                 'first_seen': date,
                 'active_at': date,
                 'data': {
-                    'last_received':
-                    event.data.get('received') or float(event.datetime.strftime('%s')),
+                    'last_received': received_timestamp,
                     'type':
                     event_type.key,
                     # we cache the events metadata on the group to ensure its
@@ -590,18 +668,63 @@ class EventManager(object):
         if release:
             group_kwargs['first_release'] = release
 
-        group, is_new, is_regression, is_sample = self._save_aggregate(
-            event=event, hashes=hashes, release=release, **group_kwargs
-        )
+        try:
+            group, is_new, is_regression, is_sample = self._save_aggregate(
+                event=event, hashes=hashes, release=release, **group_kwargs
+            )
+        except HashDiscarded:
+            event_discarded.send_robust(
+                project=project,
+                sender=EventManager,
+            )
+
+            metrics.incr(
+                'events.discarded',
+                skip_internal=True,
+                tags={
+                    'organization_id': project.organization_id,
+                    'platform': platform,
+                },
+            )
+            raise
+        else:
+            event_saved.send_robust(
+                project=project,
+                sender=EventManager,
+            )
 
         event.group = group
         # store a reference to the group id to guarantee validation of isolation
         event.data.bind_ref(event)
 
-        try:
-            with transaction.atomic(using=router.db_for_write(EventMapping)):
-                EventMapping.objects.create(project=project, group=group, event_id=event_id)
-        except IntegrityError:
+        # When an event was sampled, the canonical source of truth
+        # is the EventMapping table since we aren't going to be writing out an actual
+        # Event row. Otherwise, if the Event isn't being sampled, we can safely
+        # rely on the Event table itself as the source of truth and ignore
+        # EventMapping since it's redundant information.
+        if is_sample:
+            try:
+                with transaction.atomic(using=router.db_for_write(EventMapping)):
+                    EventMapping.objects.create(project=project, group=group, event_id=event_id)
+            except IntegrityError:
+                self.logger.info(
+                    'duplicate.found',
+                    exc_info=True,
+                    extra={
+                        'event_uuid': event_id,
+                        'project_id': project.id,
+                        'group_id': group.id,
+                        'model': EventMapping.__name__,
+                    }
+                )
+                return event
+
+        # We now always need to check the Event table for dupes
+        # since EventMapping isn't exactly the canonical source of truth.
+        if Event.objects.filter(
+            project_id=project.id,
+            event_id=event_id,
+        ).exists():
             self.logger.info(
                 'duplicate.found',
                 exc_info=True,
@@ -609,7 +732,7 @@ class EventManager(object):
                     'event_uuid': event_id,
                     'project_id': project.id,
                     'group_id': group.id,
-                    'model': EventMapping.__name__,
+                    'model': Event.__name__,
                 }
             )
             return event
@@ -642,7 +765,7 @@ class EventManager(object):
         if release:
             counters.append((tsdb.models.release, release.id))
 
-        tsdb.incr_multi(counters, timestamp=event.datetime)
+        tsdb.incr_multi(counters, timestamp=event.datetime, environment_id=environment.id)
 
         frequencies = [
             # (tsdb.models.frequent_projects_by_organization, {
@@ -700,6 +823,7 @@ class EventManager(object):
                 organization_id=project.organization_id,
                 project_id=project.id,
                 group_id=group.id,
+                environment_id=environment.id,
                 event_id=event.id,
                 tags=tags,
             )
@@ -710,7 +834,8 @@ class EventManager(object):
                     (tsdb.models.users_affected_by_group, group.id, (event_user.tag_value, )),
                     (tsdb.models.users_affected_by_project, project.id, (event_user.tag_value, )),
                 ),
-                timestamp=event.datetime
+                timestamp=event.datetime,
+                environment_id=environment.id,
             )
 
         if is_new and release:
@@ -721,7 +846,7 @@ class EventManager(object):
                 }
             )
 
-        safe_execute(Group.objects.add_tags, group, tags, _with_transaction=False)
+        safe_execute(Group.objects.add_tags, group, environment, tags, _with_transaction=False)
 
         if not raw:
             if not project.first_event:
@@ -741,6 +866,14 @@ class EventManager(object):
         # TODO: move this to the queue
         if is_regression and not raw:
             regression_signal.send_robust(sender=Group, instance=group)
+
+        metrics.timing(
+            'events.latency',
+            received_timestamp - recorded_timestamp,
+            tags={
+                'project_id': project.id,
+            },
+        )
 
         return event
 
@@ -860,20 +993,16 @@ class EventManager(object):
                     **kwargs
                 ), True
 
+            metrics.incr(
+                'group.created',
+                skip_internal=True,
+                tags={'platform': event.platform or 'unknown'}
+            )
+
         else:
             group = Group.objects.get(id=existing_group_id)
 
             group_is_new = False
-
-        # Keep a set of all of the hashes that are relevant for this event and
-        # belong to the destination group so that we can record this as the
-        # last processed event for each. (We can't just update every
-        # ``GroupHash`` instance, since we only want to record this for events
-        # that not only include the hash but were also placed into the
-        # associated group.)
-        relevant_group_hashes = set(
-            [instance for instance in all_hashes if instance.group_id == group.id]
-        )
 
         # If all hashes are brand new we treat this event as new
         is_new = False
@@ -896,11 +1025,6 @@ class EventManager(object):
 
             if group_is_new and len(new_hashes) == len(all_hashes):
                 is_new = True
-
-            # XXX: This can lead to invalid results due to a race condition and
-            # lack of referential integrity enforcement, see above comment(s)
-            # about "hash stealing".
-            relevant_group_hashes.update(new_hashes)
 
         # XXX(dcramer): it's important this gets called **before** the aggregate
         # is processed as otherwise values like last_seen will get mutated
@@ -930,8 +1054,7 @@ class EventManager(object):
 
         if not is_sample:
             GroupHash.record_last_processed_event_id(
-                project.id,
-                [h.id for h in relevant_group_hashes],
+                all_hashes[0].id,
                 event.event_id,
             )
 

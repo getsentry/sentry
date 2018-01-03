@@ -2,14 +2,14 @@ import PropTypes from 'prop-types';
 import React from 'react';
 import {formatBytes} from '../utils';
 
-const FileSize = React.createClass({
-  propTypes: {
-    bytes: PropTypes.number.isRequired
-  },
+class FileSize extends React.Component {
+  static propTypes = {
+    bytes: PropTypes.number.isRequired,
+  };
 
-  render: function() {
+  render() {
     return <span>{formatBytes(this.props.bytes)}</span>;
   }
-});
+}
 
 export default FileSize;

@@ -2,15 +2,17 @@ import {logAjaxError} from 'app/utils/logging';
 import Raven from 'raven-js';
 
 describe('logging', function() {
-  beforeEach(function() {
-    this.sandbox = sinon.sandbox.create();
+  let sandbox;
 
-    this.sandbox.stub(Raven, 'captureMessage');
-    this.sandbox.stub(window.console, 'error');
+  beforeEach(function() {
+    sandbox = sinon.sandbox.create();
+
+    sandbox.stub(Raven, 'captureMessage');
+    sandbox.stub(window.console, 'error');
   });
 
   afterEach(function() {
-    this.sandbox.restore();
+    sandbox.restore();
   });
 
   describe('logAjaxError()', function() {
@@ -18,7 +20,7 @@ describe('logging', function() {
       logAjaxError(
         {
           status: 500,
-          responseJSON: {detail: 'A bad thing happened'}
+          responseJSON: {detail: 'A bad thing happened'},
         },
         {foo: 'bar'} /* context */
       );
@@ -34,7 +36,7 @@ describe('logging', function() {
       logAjaxError(
         {
           status: 401,
-          responseText: 'You are not authenticated'
+          responseText: 'You are not authenticated',
         },
         {foo: 'bar'} /* context */
       );

@@ -2,7 +2,7 @@ from __future__ import absolute_import
 
 import six
 
-from sentry.models import GroupTagKey, GroupTagValue, TagKey, TagValue
+from sentry import tagstore
 from sentry.testutils import APITestCase
 
 
@@ -13,27 +13,30 @@ class GroupTagDetailsTest(APITestCase):
         group.save()
 
         key, value = group.data['tags'][0]
-
-        tagkey = TagKey.objects.create(
+        tagkey = tagstore.create_tag_key(
             project_id=group.project_id,
+            environment_id=None,
             key=key,
-            values_seen=2,
+            values_seen=2
         )
-        TagValue.objects.create(
+        tagstore.create_tag_value(
             project_id=group.project_id,
+            environment_id=None,
             key=key,
             value=value,
-            times_seen=4,
+            times_seen=4
         )
-        GroupTagKey.objects.create(
+        tagstore.create_group_tag_key(
             project_id=group.project_id,
             group_id=group.id,
+            environment_id=None,
             key=key,
             values_seen=1,
         )
-        GroupTagValue.objects.create(
+        tagstore.create_group_tag_value(
             project_id=group.project_id,
             group_id=group.id,
+            environment_id=None,
             key=key,
             value=value,
             times_seen=3,

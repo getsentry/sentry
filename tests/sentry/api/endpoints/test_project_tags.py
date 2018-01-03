@@ -2,7 +2,7 @@ from __future__ import absolute_import
 
 from django.core.urlresolvers import reverse
 
-from sentry.models import TagKey
+from sentry import tagstore
 from sentry.testutils import APITestCase
 
 
@@ -11,8 +11,9 @@ class ProjectTagsTest(APITestCase):
         project = self.create_project()
 
         for key in ('foo', 'bar'):
-            TagKey.objects.create(
+            tagstore.create_tag_key(
                 project_id=project.id,
+                environment_id=None,
                 key=key,
             )
 

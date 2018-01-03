@@ -12,7 +12,7 @@ from django.conf import settings
 from os.path import splitext
 from requests.utils import get_encoding_from_headers
 from six.moves.urllib.parse import urljoin, urlsplit
-from libsourcemap import from_json as view_from_json
+from symbolic import SourceMapView
 
 # In case SSL is unavailable (light builds) we can't import this here.
 try:
@@ -56,7 +56,7 @@ CLEAN_MODULE_RE = re.compile(
 VERSION_RE = re.compile(r'^[a-f0-9]{32}|[a-f0-9]{40}$', re.I)
 NODE_MODULES_RE = re.compile(r'\bnode_modules/')
 SOURCE_MAPPING_URL_RE = re.compile(r'\/\/# sourceMappingURL=(.*)$')
-# the maximum number of remote resources (i.e. sourc eifles) that should be
+# the maximum number of remote resources (i.e. source files) that should be
 # fetched
 MAX_RESOURCE_FETCHES = 100
 
@@ -325,10 +325,7 @@ def fetch_file(url, project=None, release=None, dist=None, allow_scraping=True):
             verify_ssl = bool(project.get_option('sentry:verify_ssl', False))
             token = project.get_option('sentry:token')
             if token:
-                token_header = project.get_option(
-                    'sentry:token_header',
-                    'X-Sentry-Token',
-                )
+                token_header = project.get_option('sentry:token_header') or 'X-Sentry-Token'
                 headers[token_header] = token
 
         with metrics.timer('sourcemaps.fetch'):
@@ -391,7 +388,7 @@ def fetch_sourcemap(url, project=None, release=None, dist=None, allow_scraping=T
         )
         body = result.body
     try:
-        return view_from_json(body)
+        return SourceMapView.from_json_bytes(body)
     except Exception as exc:
         # This is in debug because the product shows an error already.
         logger.debug(six.text_type(exc), exc_info=True)
@@ -498,7 +495,7 @@ class JavaScriptStacktraceProcessor(StacktraceProcessor):
 
     def handles_frame(self, frame, stacktrace_info):
         platform = frame.get('platform') or self.data.get('platform')
-        return (settings.SENTRY_SCRAPE_JAVASCRIPT_CONTEXT and platform == 'javascript')
+        return (settings.SENTRY_SCRAPE_JAVASCRIPT_CONTEXT and platform in ('javascript', 'node'))
 
     def preprocess_frame(self, processable_frame):
         # Stores the resolved token.  This is used to cross refer to other
@@ -520,13 +517,20 @@ class JavaScriptStacktraceProcessor(StacktraceProcessor):
         if not frame.get('abs_path') or not frame.get('lineno'):
             return
 
+        # can't fetch if this is internal node module as well
+        # therefore we only process user-land frames (starting with /)
+        # or those created by bundle/webpack internals
+        if self.data.get('platform') == 'node' and \
+                not frame.get('abs_path').startswith(('/', 'app:', 'webpack:')):
+            return
+
         errors = cache.get_errors(frame['abs_path'])
         if errors:
             all_errors.extend(errors)
 
         # This might fail but that's okay, we try with a different path a
         # bit later down the road.
-        source = self.get_source(frame['abs_path'])
+        source = self.get_sourceview(frame['abs_path'])
 
         in_app = None
         new_frame = dict(frame)
@@ -549,11 +553,20 @@ class JavaScriptStacktraceProcessor(StacktraceProcessor):
 
             sourcemap_label = http.expose_url(sourcemap_label)
 
+            if frame.get('function'):
+                minified_function_name = frame['function']
+                minified_source = self.get_sourceview(frame['abs_path'])
+            else:
+                minified_function_name = minified_source = None
+
             try:
                 # Errors are 1-indexed in the frames, so we need to -1 to get
                 # zero-indexed value from tokens.
                 assert frame['lineno'] > 0, "line numbers are 1-indexed"
-                token = sourcemap_view.lookup_token(frame['lineno'] - 1, frame['colno'] - 1)
+                token = sourcemap_view.lookup(frame['lineno'] - 1,
+                                              frame['colno'] - 1,
+                                              minified_function_name,
+                                              minified_source)
             except Exception:
                 token = None
                 all_errors.append(
@@ -580,9 +593,9 @@ class JavaScriptStacktraceProcessor(StacktraceProcessor):
                 logger.debug(
                     'Mapping compressed source %r to mapping in %r', frame['abs_path'], abs_path
                 )
-                source = self.get_source(abs_path)
+                source = self.get_sourceview(abs_path)
 
-            if not source:
+            if source is None:
                 errors = cache.get_errors(abs_path)
                 if errors:
                     all_errors.extend(errors)
@@ -599,17 +612,12 @@ class JavaScriptStacktraceProcessor(StacktraceProcessor):
                 new_frame['lineno'] = token.src_line + 1
                 new_frame['colno'] = token.src_col + 1
 
-                # Find the original function name with a bit of guessing
-                original_function_name = None
+                # Try to use the function name we got from symbolic
+                original_function_name = token.function_name
 
                 # In the ideal case we can use the function name from the
                 # frame and the location to resolve the original name
                 # through the heuristics in our sourcemap library.
-                if frame.get('function'):
-                    minified_source = self.get_source(frame['abs_path'], raw=True)
-                    original_function_name = sourcemap_view.get_original_function_name(
-                        token.dst_line, token.dst_col, frame['function'],
-                        minified_source)
                 if original_function_name is None:
                     last_token = None
 
@@ -638,9 +646,14 @@ class JavaScriptStacktraceProcessor(StacktraceProcessor):
                     else:
                         filename = filename.split('webpack:///', 1)[-1]
 
-                    # As noted above, '~/' means they're coming from node_modules,
-                    # so these are not app dependencies
-                    if filename.startswith('~/'):
+                    # As noted above:
+                    # * [js/node] '~/' means they're coming from node_modules, so these are not app dependencies
+                    # * [node] sames goes for `./node_modules/`, which is used when bundling node apps
+                    # * [node] and webpack, which includes it's own code to bootstrap all modules and its internals
+                    #   eg. webpack:///webpack/bootstrap, webpack:///external
+                    if filename.startswith('~/') or \
+                            filename.startswith('./node_modules/') or \
+                            not filename.startswith('./'):
                         in_app = False
                     # And conversely, local dependencies start with './'
                     elif filename.startswith('./'):
@@ -650,7 +663,7 @@ class JavaScriptStacktraceProcessor(StacktraceProcessor):
                     new_frame['module'] = generate_module(filename)
 
                 if abs_path.startswith('app:'):
-                    if NODE_MODULES_RE.search(filename):
+                    if filename and NODE_MODULES_RE.search(filename):
                         in_app = False
                     else:
                         in_app = True
@@ -696,7 +709,7 @@ class JavaScriptStacktraceProcessor(StacktraceProcessor):
     def expand_frame(self, frame, source=None):
         if frame.get('lineno') is not None:
             if source is None:
-                source = self.get_source(frame['abs_path'])
+                source = self.get_sourceview(frame['abs_path'])
                 if source is None:
                     logger.debug('No source found for %s', frame['abs_path'])
                     return False
@@ -707,10 +720,10 @@ class JavaScriptStacktraceProcessor(StacktraceProcessor):
             return True
         return False
 
-    def get_source(self, filename, raw=False):
+    def get_sourceview(self, filename):
         if filename not in self.cache:
             self.cache_source(filename)
-        return self.cache.get(filename, raw=raw)
+        return self.cache.get(filename)
 
     def cache_source(self, filename):
         sourcemaps = self.sourcemaps
@@ -766,12 +779,12 @@ class JavaScriptStacktraceProcessor(StacktraceProcessor):
         sourcemaps.add(sourcemap_url, sourcemap_view)
 
         # cache any inlined sources
-        for src_id, source in sourcemap_view.iter_sources():
-            if sourcemap_view.has_source_contents(src_id):
+        for src_id, source_name in sourcemap_view.iter_sources():
+            source_view = sourcemap_view.get_sourceview(src_id)
+            if source_view is not None:
                 self.cache.add(
-                    urljoin(sourcemap_url, source),
-                    lambda view=sourcemap_view, id=src_id: view.get_source_contents(id),
-                    None,
+                    urljoin(sourcemap_url, source_name),
+                    source_view
                 )
 
     def populate_source_cache(self, frames):
@@ -790,6 +803,10 @@ class JavaScriptStacktraceProcessor(StacktraceProcessor):
             # a fetch error that may be confusing.
             if f['abs_path'] == '<anonymous>':
                 continue
+            # we cannot fetch any other files than those uploaded by user
+            if self.data.get('platform') == 'node' and \
+                    not f.get('abs_path').startswith('app:'):
+                continue
             pending_file_list.add(f['abs_path'])
 
         for idx, filename in enumerate(pending_file_list):
@@ -803,5 +820,8 @@ class JavaScriptStacktraceProcessor(StacktraceProcessor):
             metrics.incr(
                 'sourcemaps.processed',
                 amount=len(self.sourcemaps_touched),
-                instance=self.project.id
+                skip_internal=True,
+                tags={
+                    'project_id': self.project.id,
+                },
             )

@@ -8,6 +8,7 @@ sentry.utils.query
 from __future__ import absolute_import
 
 import progressbar
+import re
 import six
 
 from django.db import connections, IntegrityError, router, transaction
@@ -16,6 +17,8 @@ from django.db.models.deletion import Collector
 from django.db.models.signals import pre_delete, pre_save, post_save, post_delete
 
 from sentry.utils import db
+
+_leaf_re = re.compile(r'^(Event|Group)(.+)')
 
 
 class InvalidQuerySetError(ValueError):
@@ -331,7 +334,7 @@ def bulk_delete_objects(model, limit=10000, transaction_id=None, logger=None, **
 
     has_more = cursor.rowcount > 0
 
-    if has_more and logger is not None:
+    if has_more and logger is not None and _leaf_re.search(model.__name__) is None:
         logger.info(
             'object.delete.bulk_executed',
             extra=dict(

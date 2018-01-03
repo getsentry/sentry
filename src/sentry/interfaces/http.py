@@ -18,8 +18,10 @@ from django.utils.translation import ugettext as _
 from six.moves.urllib.parse import parse_qsl, urlencode, urlsplit, urlunsplit
 
 from sentry.interfaces.base import Interface, InterfaceValidationError
+from sentry.interfaces.schemas import validate_and_default_interface
 from sentry.utils.safe import trim, trim_dict, trim_pairs
 from sentry.utils.http import heuristic_decode
+from sentry.utils.validators import validate_ip
 from sentry.web.helpers import render_to_string
 
 # Instead of relying on a list of hardcoded methods, just loosly match
@@ -116,13 +118,15 @@ class Http(Interface):
     """
     display_score = 1000
     score = 800
+    path = 'sentry.interfaces.Http'
 
     FORM_TYPE = 'application/x-www-form-urlencoded'
 
     @classmethod
     def to_python(cls, data):
-        if not data.get('url'):
-            raise InterfaceValidationError("No value for 'url'")
+        is_valid, errors = validate_and_default_interface(data, cls.path)
+        if not is_valid:
+            raise InterfaceValidationError("Invalid interface data")
 
         kwargs = {}
 
@@ -146,7 +150,6 @@ class Http(Interface):
                     [(to_bytes(k), to_bytes(v)) for k, v in query_string.items()]
                 )
             else:
-                query_string = query_string
                 if query_string[0] == '?':
                     # remove '?' prefix
                     query_string = query_string[1:]
@@ -189,9 +192,17 @@ class Http(Interface):
         if body:
             body = trim(body, settings.SENTRY_MAX_HTTP_BODY_SIZE)
 
+        env = data.get('env', {})
+        # TODO (alex) This could also be accomplished with schema (with formats)
+        if 'REMOTE_ADDR' in env:
+            try:
+                validate_ip(env['REMOTE_ADDR'], required=False)
+            except ValueError:
+                del env['REMOTE_ADDR']
+
         kwargs['inferred_content_type'] = inferred_content_type
         kwargs['cookies'] = trim_pairs(format_cookies(cookies))
-        kwargs['env'] = trim_dict(data.get('env') or {})
+        kwargs['env'] = trim_dict(env)
         kwargs['headers'] = trim_pairs(headers)
         kwargs['data'] = fix_broken_encoding(body)
         kwargs['url'] = urlunsplit((scheme, netloc, path, '', ''))
@@ -200,7 +211,7 @@ class Http(Interface):
         return cls(**kwargs)
 
     def get_path(self):
-        return 'sentry.interfaces.Http'
+        return self.path
 
     @property
     def full_url(self):

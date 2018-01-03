@@ -11,29 +11,29 @@ jest.mock('app/api');
 jest.mock('app/mixins/projectState', () => {
   return {
     getFeatures: () => new Set(['callsigns']),
-    getProjectFeatures: () => new Set(['similarity-view'])
+    getProjectFeatures: () => new Set(['similarity-view']),
   };
 });
 
 const scores = [
   {'exception:stacktrace:pairs': 0.375},
-  {'exception:stacktrace:pairs': 0.375},
   {'exception:stacktrace:pairs': 0.01264},
+  {'exception:stacktrace:pairs': 0.875},
   {
     'exception:stacktrace:application-chunks': 0.000235,
-    'exception:stacktrace:pairs': 0.001488
-  }
+    'exception:stacktrace:pairs': 0.001488,
+  },
 ];
 
 const mockData = {
-  similar: issues.map((issue, i) => [issue, scores[i]])
+  similar: issues.map((issue, i) => [issue, scores[i]]),
 };
 
 describe('Issues Similar View', function() {
   beforeAll(function() {
     Client.addMockResponse({
       url: '/issues/groupId/similar/?limit=50',
-      body: mockData.similar
+      body: mockData.similar,
     });
   });
 
@@ -54,6 +54,7 @@ describe('Issues Similar View', function() {
     );
 
     wrapper.instance().componentDidUpdate = jest.fn(() => {
+      wrapper.update();
       if (!wrapper.state('loading')) {
         expect(toJson(wrapper)).toMatchSnapshot();
         done();

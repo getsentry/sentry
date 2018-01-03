@@ -1,12 +1,15 @@
 import React from 'react';
 
+import createReactClass from 'create-react-class';
+
 import ApiMixin from '../../mixins/apiMixin';
 import ProjectState from '../../mixins/projectState';
 
 import LoadingError from '../../components/loadingError';
 import LoadingIndicator from '../../components/loadingIndicator';
 
-const ProjectDocsContext = React.createClass({
+const ProjectDocsContext = createReactClass({
+  displayName: 'ProjectDocsContext',
   mixins: [ApiMixin, ProjectState],
 
   getInitialState() {
@@ -14,7 +17,7 @@ const ProjectDocsContext = React.createClass({
       loading: true,
       platformList: null,
       project: null,
-      team: null
+      team: null,
     };
   },
 
@@ -35,9 +38,9 @@ const ProjectDocsContext = React.createClass({
       success: data => {
         this.setState({
           loading: false,
-          data
+          data,
         });
-      }
+      },
     });
   },
 
@@ -47,9 +50,9 @@ const ProjectDocsContext = React.createClass({
 
     let data = this.state.data;
     return React.cloneElement(this.props.children, {
-      platformData: data
+      platformData: data,
     });
-  }
+  },
 });
 
 export default ProjectDocsContext;

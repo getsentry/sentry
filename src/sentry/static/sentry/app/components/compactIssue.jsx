@@ -1,5 +1,6 @@
 import PropTypes from 'prop-types';
 import React from 'react';
+import createReactClass from 'create-react-class';
 import Reflux from 'reflux';
 
 import ApiMixin from '../mixins/apiMixin';
@@ -11,14 +12,14 @@ import GroupStore from '../stores/groupStore';
 import Link from './link';
 import {t} from '../locale';
 
-const CompactIssueHeader = React.createClass({
-  propTypes: {
+class CompactIssueHeader extends React.Component {
+  static propTypes = {
     data: PropTypes.object.isRequired,
     orgId: PropTypes.string.isRequired,
-    projectId: PropTypes.string.isRequired
-  },
+    projectId: PropTypes.string.isRequired,
+  };
 
-  getTitle() {
+  getTitle = () => {
     let data = this.props.data;
     let metadata = data.metadata;
     switch (data.type) {
@@ -26,14 +27,16 @@ const CompactIssueHeader = React.createClass({
         return (
           <span>
             <span style={{marginRight: 10}}>{metadata.type}</span>
-            <em>{data.culprit}</em><br />
+            <em>{data.culprit}</em>
+            <br />
           </span>
         );
       case 'csp':
         return (
           <span>
             <span style={{marginRight: 10}}>{metadata.directive}</span>
-            <em>{metadata.uri}</em><br />
+            <em>{metadata.uri}</em>
+            <br />
           </span>
         );
       case 'default':
@@ -41,9 +44,9 @@ const CompactIssueHeader = React.createClass({
       default:
         return <span>{data.title}</span>;
     }
-  },
+  };
 
-  getMessage() {
+  getMessage = () => {
     let data = this.props.data;
     let metadata = data.metadata;
     switch (data.type) {
@@ -54,7 +57,7 @@ const CompactIssueHeader = React.createClass({
       default:
         return '';
     }
-  },
+  };
 
   render() {
     let {orgId, projectId, data} = this.props;
@@ -77,43 +80,47 @@ const CompactIssueHeader = React.createClass({
           <span className="project-name">
             <Link to={`/${orgId}/${projectId}/`}>{data.project.name}</Link>
           </span>
-          {data.numComments !== 0 &&
+          {data.numComments !== 0 && (
             <span>
               <Link
                 to={`/${orgId}/${projectId}/issues/${data.id}/activity/`}
-                className="comments">
+                className="comments"
+              >
                 <span className="icon icon-comments" style={styles} />
                 <span className="tag-count">{data.numComments}</span>
               </Link>
-            </span>}
+            </span>
+          )}
           <span className="culprit">{this.getMessage()}</span>
         </div>
       </div>
     );
   }
-});
+}
 
-const CompactIssue = React.createClass({
+const CompactIssue = createReactClass({
+  displayName: 'CompactIssue',
+
   propTypes: {
     data: PropTypes.object,
     id: PropTypes.string,
     orgId: PropTypes.string,
     statsPeriod: PropTypes.string,
-    showActions: PropTypes.bool
+    showActions: PropTypes.bool,
   },
 
   mixins: [ApiMixin, Reflux.listenTo(GroupStore, 'onGroupChange')],
 
   getInitialState() {
     return {
-      issue: this.props.data || GroupStore.get(this.props.id)
+      issue: this.props.data || GroupStore.get(this.props.id),
     };
   },
 
   componentWillReceiveProps(nextProps) {
     if (nextProps.id != this.props.id) {
       this.setState({
-        issue: GroupStore.get(this.props.id)
+        issue: GroupStore.get(this.props.id),
       });
     }
   },
@@ -125,13 +132,13 @@ const CompactIssue = React.createClass({
     let id = this.props.id;
     let issue = GroupStore.get(id);
     this.setState({
-      issue
+      issue,
     });
   },
 
   onSnooze(duration) {
     let data = {
-      status: 'ignored'
+      status: 'ignored',
     };
 
     if (duration) data.ignoreDuration = duration;
@@ -148,12 +155,12 @@ const CompactIssue = React.createClass({
         orgId: this.props.orgId,
         projectId: issue.project.slug,
         itemIds: [issue.id],
-        data
+        data,
       },
       {
         complete: () => {
           IndicatorStore.remove(loadingIndicator);
-        }
+        },
       }
     );
   },
@@ -188,32 +195,36 @@ const CompactIssue = React.createClass({
     return (
       <li className={className} onClick={this.toggleSelect}>
         <CompactIssueHeader data={issue} orgId={orgId} projectId={projectId} />
-        {this.props.statsPeriod &&
+        {this.props.statsPeriod && (
           <div className="event-graph">
             <GroupChart
               id={id}
               statsPeriod={this.props.statsPeriod}
               data={this.props.data}
             />
-          </div>}
-        {this.props.showActions &&
+          </div>
+        )}
+        {this.props.showActions && (
           <div className="more-menu-container align-right">
             <DropdownLink
               topLevelClasses="more-menu"
               className="more-menu-toggle"
               caret={false}
-              title={title}>
+              title={title}
+            >
               <li>
                 <a
                   onClick={this.onUpdate.bind(this, {
-                    status: issue.status !== 'resolved' ? 'resolved' : 'unresolved'
-                  })}>
+                    status: issue.status !== 'resolved' ? 'resolved' : 'unresolved',
+                  })}
+                >
                   <span className="icon-checkmark" />
                 </a>
               </li>
               <li>
                 <a
-                  onClick={this.onUpdate.bind(this, {isBookmarked: !issue.isBookmarked})}>
+                  onClick={this.onUpdate.bind(this, {isBookmarked: !issue.isBookmarked})}
+                >
                   <span className="icon-star-solid" />
                 </a>
               </li>
@@ -225,13 +236,20 @@ const CompactIssue = React.createClass({
                   onSnooze={this.onSnooze}
                 />
               </li>
-              {false && <li><a href="#"><span className="icon-user" /></a></li>}
+              {false && (
+                <li>
+                  <a href="#">
+                    <span className="icon-user" />
+                  </a>
+                </li>
+              )}
             </DropdownLink>
-          </div>}
+          </div>
+        )}
         {this.props.children}
       </li>
     );
-  }
+  },
 });
 
 export default CompactIssue;

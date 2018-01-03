@@ -1,9 +1,22 @@
 import jQuery from 'jquery';
 import sinon from 'sinon';
 import ConfigStore from 'app/stores/configStore';
+import MockDate from 'mockdate';
+
+import Enzyme from 'enzyme';
+import Adapter from 'enzyme-adapter-react-15';
 
 jest.mock('app/translations');
 jest.mock('app/api');
+
+const constantDate = new Date('2017-10-17T04:41:20'); //National Pasta Day
+MockDate.set(constantDate);
+
+// We generally use actual jQuery, and jest mocks takes precedence over node_modules
+jest.unmock('jquery');
+
+Enzyme.configure({adapter: new Adapter()});
+Enzyme.configure({disableLifecycleMethods: true});
 
 window.$ = window.jQuery = jQuery;
 window.sinon = sinon;
@@ -18,20 +31,107 @@ window.TestStubs = {
     goForward: sinon.spy(),
     setRouteLeaveHook: sinon.spy(),
     isActive: sinon.spy(),
-    createHref: sinon.spy()
+    createHref: sinon.spy(),
   }),
   location: () => ({
     query: {},
-    pathame: '/mock-pathname/'
+    pathame: '/mock-pathname/',
   }),
+
+  ApiKey: (...params) => {
+    return {
+      allowed_origins: '',
+      id: 1,
+      key: 'aa624bcc12024702a202cd90be5feda0',
+      label: 'Default',
+      scope_list: ['project:read', 'event:read', 'team:read', 'member:read'],
+      status: 0,
+    };
+  },
+
+  AuthProviders: () => {
+    return [['dummy', 'Dummy']];
+  },
+
+  AuthProvider: () => {
+    return {
+      auth_provider: {
+        id: '1',
+        provider: 'dummy',
+      },
+      require_link: true,
+      default_role: 'member',
+      login_url: 'http://loginUrl',
+      provider_name: 'dummy',
+      pending_links_count: 0,
+      content: '',
+    };
+  },
+
   Team: (...params) => {
     return {
       id: '1',
       slug: 'team-slug',
       name: 'Team Name',
-      ...params
+      ...params,
     };
   },
+
+  Members: (...params) => [
+    {
+      id: '1',
+      email: '',
+      name: '',
+      roleName: '',
+      pending: false,
+      flags: {
+        'sso:linked': false,
+      },
+      user: {
+        id: '1',
+        has2fa: false,
+        name: 'Sentry 1 Name',
+        email: 'sentry1@test.com',
+        username: 'Sentry 1 Username',
+      },
+    },
+    {
+      id: '2',
+      email: '',
+      name: '',
+      roleName: '',
+      pending: false,
+      flags: {
+        'sso:linked': false,
+      },
+      user: {
+        id: '2',
+        has2fa: true,
+        name: 'Sentry 2 Name',
+        email: 'sentry2@test.com',
+        username: 'Sentry 2 Username',
+      },
+    },
+    {
+      id: '3',
+      email: '',
+      name: '',
+      roleName: '',
+      pending: false,
+      flags: {
+        'sso:linked': true,
+      },
+      user: {
+        id: '3',
+        has2fa: true,
+        name: 'Sentry 3 Name',
+        email: 'sentry3@test.com',
+        username: 'Sentry 3 Username',
+      },
+    },
+    ...params,
+  ],
+
   Project: (...params) => {
     return {
       id: '2',
@@ -40,7 +140,7 @@ window.TestStubs = {
       subjectTemplate: '[$project] ${tag:level}: $title',
       digestsMinDelay: 5,
       digestsMaxDelay: 60,
-      ...params
+      ...params,
     };
   },
   Organization: (...params) => {
@@ -57,12 +157,12 @@ window.TestStubs = {
         'project:admin',
         'team:read',
         'team:write',
-        'team:admin'
+        'team:admin',
       ],
       features: [],
       onboardingTasks: [],
       teams: [],
-      ...params
+      ...params,
     };
   },
   Repository: (...params) => {
@@ -71,8 +171,8 @@ window.TestStubs = {
       name: 'repo-name',
       provider: 'github',
       url: 'https://github.com/example/repo-name',
-      status: 'visible',
-      ...params
+      status: 'active',
+      ...params,
     };
   },
   GitHubRepositoryProvider: (...params) => {
@@ -86,10 +186,10 @@ window.TestStubs = {
           type: 'text',
           placeholder: 'e.g. getsentry/sentry',
           help: 'Enter your repository name, including the owner.',
-          required: true
-        }
+          required: true,
+        },
       ],
-      ...params
+      ...params,
     };
   },
   Integration: (...params) => {
@@ -98,9 +198,9 @@ window.TestStubs = {
       name: 'repo-name',
       provider: {
         id: 'github',
-        name: 'GitHub'
+        name: 'GitHub',
       },
-      ...params
+      ...params,
     };
   },
   GitHubIntegrationProvider: (...params) => {
@@ -109,9 +209,40 @@ window.TestStubs = {
       name: 'GitHub',
       config: [],
       setupUri: '/github-integration-setup-uri/',
-      ...params
+      ...params,
     };
-  }
+  },
+  Tags: (...params) => {
+    return [{key: 'browser', name: 'Browser'}, {key: 'device', name: 'Device'}];
+  },
+  Plugin: (...params) => {
+    return {
+      author: {url: 'https://github.com/getsentry/sentry', name: 'Sentry Team'},
+      enabled: false,
+      id: 'amazon-sqs',
+      name: 'Amazon SQS',
+      slug: 'amazon-sqs',
+      version: '8.23.0.dev0',
+      assets: [],
+      hasConfiguration: true,
+      canDisable: true,
+    };
+  },
+  Plugins: (...params) => {
+    return [
+      TestStubs.Plugin(),
+      {
+        author: {url: 'https://github.com/getsentry/sentry', name: 'Sentry Team'},
+        enabled: true,
+        id: 'github',
+        name: 'GitHub',
+        slug: 'github',
+        version: '8.23.0.dev0',
+        assets: [],
+        canDisable: false,
+      },
+    ];
+  },
 };
 
 // this is very commonly used, so expose it globally
@@ -123,7 +254,7 @@ ConfigStore.loadInitialData({
     isAuthenticated: true,
     email: 'foo@example.com',
     options: {
-      timezone: 'UTC'
-    }
-  }
+      timezone: 'UTC',
+    },
+  },
 });

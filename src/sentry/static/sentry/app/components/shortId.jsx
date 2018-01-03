@@ -1,17 +1,19 @@
 import PropTypes from 'prop-types';
 import React from 'react';
 import styled from 'react-emotion';
-import {withTheme} from 'theming';
-
+import {withTheme} from 'emotion-theming';
+import createReactClass from 'create-react-class';
 import PureRenderMixin from 'react-addons-pure-render-mixin';
 import ProjectState from '../mixins/projectState';
 
 import AutoSelectText from './autoSelectText';
 
-const ShortId = React.createClass({
+const ShortId = createReactClass({
+  displayName: 'ShortId',
+
   propTypes: {
     shortId: PropTypes.string,
-    project: PropTypes.object
+    project: PropTypes.object,
   },
 
   mixins: [PureRenderMixin, ProjectState],
@@ -32,7 +34,7 @@ const ShortId = React.createClass({
         <AutoSelectText>{shortId}</AutoSelectText>
       </ShortIdWrapper>
     );
-  }
+  },
 });
 
 const ShortIdWrapper = withTheme(
@@ -41,7 +43,7 @@ const ShortIdWrapper = withTheme(
     font-family: ${p => p.theme.fontFamilyMono};
 
     > span:before {
-      content: "#";
+      content: '#';
       color: ${p => p.theme.gray2};
       padding-right: 2px;
     }

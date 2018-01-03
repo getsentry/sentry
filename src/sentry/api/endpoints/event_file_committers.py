@@ -14,6 +14,7 @@ from django.db.models import Q
 
 from itertools import izip
 from collections import defaultdict
+from six.moves import reduce
 
 
 def tokenize_path(path):
@@ -126,7 +127,7 @@ class EventFileCommittersEndpoint(ProjectEndpoint):
     def get(self, _, project, event_id):
         """
         Retrieve Committer information for an event
-        ```````````````````````````````
+        ```````````````````````````````````````````
 
         Return commiters on an individual event, plus a per-frame breakdown.
 

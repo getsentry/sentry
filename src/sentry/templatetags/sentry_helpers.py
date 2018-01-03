@@ -29,7 +29,6 @@ from sentry import options
 from sentry.api.serializers import serialize as serialize_func
 from sentry.models import Organization
 from sentry.utils import json
-from sentry.utils.javascript import to_json
 from sentry.utils.strings import soft_break as _soft_break
 from sentry.utils.strings import soft_hyphenate, to_unicode, truncatechars
 from six.moves import range
@@ -47,7 +46,10 @@ register = template.Library()
 truncatechars = register.filter(stringfilter(truncatechars))
 truncatechars.is_safe = True
 
-register.filter(to_json)
+
+@register.filter
+def to_json(obj, request=None):
+    return json.dumps_htmlsafe(obj)
 
 
 @register.filter
@@ -198,7 +200,7 @@ def timesince(value, now=None):
         return _('just now')
     if value == _('1 day'):
         return _('yesterday')
-    return value + _(' ago')
+    return _('%s ago') % value
 
 
 @register.filter

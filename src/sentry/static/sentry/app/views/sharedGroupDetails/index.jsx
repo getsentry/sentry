@@ -1,19 +1,23 @@
-import React from 'react';
-import jQuery from 'jquery';
 import DocumentTitle from 'react-document-title';
+import React from 'react';
+import createReactClass from 'create-react-class';
+import jQuery from 'jquery';
 
+import {t} from '../../locale';
 import ApiMixin from '../../mixins/apiMixin';
 import EventEntries from '../../components/events/eventEntries';
 import Footer from '../../components/footer';
 import LoadingError from '../../components/loadingError';
 import LoadingIndicator from '../../components/loadingIndicator';
+import NotFound from '../../components/errors/notFound';
 import SentryTypes from '../../proptypes';
-
 import SharedGroupHeader from './sharedGroupHeader';
 
-const SharedGroupDetails = React.createClass({
+const SharedGroupDetails = createReactClass({
+  displayName: 'SharedGroupDetails',
+
   childContextTypes: {
-    group: SentryTypes.Group
+    group: SentryTypes.Group,
   },
 
   mixins: [ApiMixin],
@@ -22,13 +26,13 @@ const SharedGroupDetails = React.createClass({
     return {
       group: null,
       loading: true,
-      error: false
+      error: false,
     };
   },
 
   getChildContext() {
     return {
-      group: this.state.group
+      group: this.state.group,
     };
   },
 
@@ -49,22 +53,22 @@ const SharedGroupDetails = React.createClass({
   fetchData() {
     this.setState({
       loading: true,
-      error: false
+      error: false,
     });
 
     this.api.request(this.getGroupDetailsEndpoint(), {
       success: data => {
         this.setState({
           loading: false,
-          group: data
+          group: data,
         });
       },
       error: () => {
         this.setState({
           loading: false,
-          error: true
+          error: true,
         });
-      }
+      },
     });
   },
 
@@ -77,8 +81,13 @@ const SharedGroupDetails = React.createClass({
   render() {
     let group = this.state.group;
 
-    if (this.state.loading || !group) return <LoadingIndicator />;
-    else if (this.state.error) return <LoadingError onRetry={this.fetchData} />;
+    if (this.state.loading) {
+      return <LoadingIndicator />;
+    } else if (!group) {
+      return <NotFound />;
+    } else if (this.state.error) {
+      return <LoadingError onRetry={this.fetchData} />;
+    }
 
     let evt = this.state.group.latestEvent;
 
@@ -89,13 +98,14 @@ const SharedGroupDetails = React.createClass({
           <div className="container">
             <div className="box box-modal">
               <div className="box-header">
-                <a href="/">
+                <a className="logo" href="/">
                   <span className="icon-sentry-logo-full" />
                 </a>
-                {this.state.group.permalink &&
-                  <a className="pull-right" href={this.state.group.permalink}>
-                    Details
-                  </a>}
+                {this.state.group.permalink && (
+                  <a className="details" href={this.state.group.permalink}>
+                    {t('Details')}
+                  </a>
+                )}
               </div>
               <div className="box-content">
                 <div className="content">
@@ -119,7 +129,7 @@ const SharedGroupDetails = React.createClass({
         </div>
       </DocumentTitle>
     );
-  }
+  },
 });
 
 export default SharedGroupDetails;

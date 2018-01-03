@@ -12,9 +12,9 @@ from sentry import features, roles
 from sentry.auth import manager
 from sentry.auth.helper import AuthHelper
 from sentry.auth.providers.saml2 import SAML2Provider, HAS_SAML2
-from sentry.models import AuditLogEntryEvent, AuthProvider, OrganizationMember
+from sentry.models import AuditLogEntryEvent, AuthProvider, OrganizationMember, User
 from sentry.plugins import Response
-from sentry.tasks.auth import email_missing_links
+from sentry.tasks.auth import email_missing_links, email_unlink_notifications
 from sentry.utils import db
 from sentry.utils.http import absolute_uri
 from sentry.web.frontend.base import OrganizationView
@@ -73,6 +73,10 @@ class OrganizationAuthSettingsView(OrganizationView):
                 ),
             )
 
+        user_ids = OrganizationMember.objects.filter(organization=organization).values('user')
+        User.objects.filter(id__in=user_ids).update(is_managed=False)
+
+        email_unlink_notifications.delay(organization.id, request.user.id, auth_provider.provider)
         auth_provider.delete()
 
     def handle_existing_provider(self, request, organization, auth_provider):
@@ -92,7 +96,7 @@ class OrganizationAuthSettingsView(OrganizationView):
                 next_uri = reverse('sentry-organization-auth-settings', args=[organization.slug])
                 return self.redirect(next_uri)
             elif op == 'reinvite':
-                email_missing_links.delay(organization_id=organization.id)
+                email_missing_links.delay(organization.id, request.user.id, provider.key)
 
                 messages.add_message(
                     request,
@@ -185,8 +189,15 @@ class OrganizationAuthSettingsView(OrganizationView):
                 flow=AuthHelper.FLOW_SETUP_PROVIDER,
             )
 
+            feature = helper.provider.required_feature
+            if feature and not features.has(feature, organization, actor=request.user):
+                return HttpResponse('Provider is not enabled', status=401)
+
             if request.POST.get('init'):
                 helper.init_pipeline()
+
+            if not helper.pipeline_is_valid():
+                return helper.error('Something unexpected happened during authentication.')
 
             # render first time setup view
             return helper.current_step()
@@ -194,11 +205,13 @@ class OrganizationAuthSettingsView(OrganizationView):
         provider_list = []
 
         for k, v in manager:
-            if issubclass(v, SAML2Provider):
-                if not HAS_SAML2:
-                    continue
-                if not features.has('organizations:saml2', organization, actor=request.user):
-                    continue
+            if issubclass(v, SAML2Provider) and not HAS_SAML2:
+                continue
+
+            feature = v.required_feature
+            if feature and not features.has(feature, organization, actor=request.user):
+                continue
+
             provider_list.append((k, v.name))
 
         context = {

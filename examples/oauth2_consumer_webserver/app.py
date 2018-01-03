@@ -46,14 +46,14 @@ def index():
         return ('<h1>Who are you?</h1>'
                 '<p><a href="{}">Login with Sentry</a></p>').format(
                     url_for('login'),
-                )
+        )
 
     from urllib2 import Request, urlopen, URLError
     headers = {'Authorization': 'Bearer {}'.format(access_token)}
     req = Request('{}/api/0/organizations/'.format(BASE_URL), None, headers)
     try:
         res = urlopen(req)
-    except URLError, e:
+    except URLError as e:
         if e.code == 401:
             # Unauthorized - bad token
             session.pop('access_token', None)
@@ -64,7 +64,7 @@ def index():
             '<pre>{}</pre>').format(
                 json.loads(session['user'])['email'],
                 json.dumps(json.loads(res.read()), indent=2),
-            )
+    )
 
 
 @app.route('/login')
@@ -82,7 +82,7 @@ def authorized(resp):
                 '<p><a href="{}">Try again</a></p>').format(
                     request.args['error'],
                     url_for('login'),
-                )
+        )
     access_token = resp['access_token']
     session['access_token'] = access_token
     session['user'] = json.dumps(resp['user'])

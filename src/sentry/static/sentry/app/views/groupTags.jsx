@@ -1,4 +1,5 @@
 import React from 'react';
+import createReactClass from 'create-react-class';
 import {Link} from 'react-router';
 import ApiMixin from '../mixins/apiMixin';
 import Count from '../components/count';
@@ -8,14 +9,15 @@ import LoadingIndicator from '../components/loadingIndicator';
 import {percent, deviceNameMapper} from '../utils';
 import {t} from '../locale';
 
-const GroupTags = React.createClass({
+const GroupTags = createReactClass({
+  displayName: 'GroupTags',
   mixins: [ApiMixin, GroupState],
 
   getInitialState() {
     return {
       tagList: null,
       loading: true,
-      error: false
+      error: false,
     };
   },
 
@@ -26,7 +28,7 @@ const GroupTags = React.createClass({
   fetchData() {
     this.setState({
       loading: true,
-      error: false
+      error: false,
     });
 
     // TODO(dcramer): each tag should be a separate query as the tags endpoint
@@ -39,7 +41,7 @@ const GroupTags = React.createClass({
         this.setState({
           tagList: data,
           error: false,
-          loading: false
+          loading: false,
         });
       },
       error: error => {
@@ -48,9 +50,9 @@ const GroupTags = React.createClass({
         }
         this.setState({
           error: true,
-          loading: false
+          loading: false,
         });
-      }
+      },
     });
   },
 
@@ -80,12 +82,15 @@ const GroupTags = React.createClass({
               <Link
                 className="tag-bar"
                 to={{
-                  pathname: `/${orgId}/${projectId}/`,
-                  query: {query: tag.key + ':' + '"' + tagValue.value + '"'}
-                }}>
+                  pathname: `/${orgId}/${projectId}/issues/${groupId}/events/`,
+                  query: {query: tag.key + ':' + '"' + tagValue.value + '"'},
+                }}
+              >
                 <span className="tag-bar-background" style={{width: pct + '%'}} />
                 <span className="tag-bar-label">{deviceNameMapper(tagValue.name)}</span>
-                <span className="tag-bar-count"><Count value={tagValue.count} /></span>
+                <span className="tag-bar-count">
+                  <Count value={tagValue.count} />
+                </span>
               </Link>
             </li>
           );
@@ -98,16 +103,15 @@ const GroupTags = React.createClass({
                 <span className="pull-right">
                   <Link
                     className="btn btn-default btn-sm"
-                    to={`/${orgId}/${projectId}/issues/${groupId}/tags/${tag.key}/`}>
+                    to={`/${orgId}/${projectId}/issues/${groupId}/tags/${tag.key}/`}
+                  >
                     {t('More Details')}
                   </Link>
                 </span>
                 <h5>{tag.name}</h5>
               </div>
               <div className="box-content with-padding">
-                <ul className="list-unstyled">
-                  {valueChildren}
-                </ul>
+                <ul className="list-unstyled">{valueChildren}</ul>
               </div>
             </div>
           </div>
@@ -121,13 +125,13 @@ const GroupTags = React.createClass({
 
         <div className="col-md-12">
           <div className="alert alert-block alert-info">
-            Tags are automatically indexed for searching and breakdown charts.
-            Learn how to <a href={this.getTagsDocsUrl()}>add custom tags to issues</a>.
+            Tags are automatically indexed for searching and breakdown charts. Learn how
+            to <a href={this.getTagsDocsUrl()}>add custom tags to issues</a>.
           </div>
         </div>
       </div>
     );
-  }
+  },
 });
 
 export default GroupTags;

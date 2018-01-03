@@ -1,5 +1,6 @@
 import PropTypes from 'prop-types';
 import React from 'react';
+import createReactClass from 'create-react-class';
 import Reflux from 'reflux';
 import DocumentTitle from 'react-document-title';
 
@@ -12,13 +13,14 @@ import MissingProjectMembership from '../../components/missingProjectMembership'
 import OrganizationState from '../../mixins/organizationState';
 import SentryTypes from '../../proptypes';
 import TeamStore from '../../stores/teamStore';
-import ProjectStore from '../../stores/projectStore';
+import ProjectsStore from '../../stores/projectsStore';
+import {setActiveProject} from '../../actionCreators/projects';
 import {t} from '../../locale';
 
 const ERROR_TYPES = {
   MISSING_MEMBERSHIP: 'MISSING_MEMBERSHIP',
   PROJECT_NOT_FOUND: 'PROJECT_NOT_FOUND',
-  UNKNOWN: 'UNKNOWN'
+  UNKNOWN: 'UNKNOWN',
 };
 
 /**
@@ -28,23 +30,25 @@ const ERROR_TYPES = {
  * Additionally delays rendering of children until project XHR has finished
  * and context is populated.
  */
-const ProjectContext = React.createClass({
+const ProjectContext = createReactClass({
+  displayName: 'ProjectContext',
+
   propTypes: {
     projectId: PropTypes.string,
-    orgId: PropTypes.string
+    orgId: PropTypes.string,
   },
 
   childContextTypes: {
     project: SentryTypes.Project,
-    team: SentryTypes.Team
+    team: SentryTypes.Team,
   },
 
   mixins: [
     ApiMixin,
     Reflux.connect(MemberListStore, 'memberList'),
     Reflux.listenTo(TeamStore, 'onTeamChange'),
-    Reflux.listenTo(ProjectStore, 'onProjectChange'),
-    OrganizationState
+    Reflux.listenTo(ProjectsStore, 'onProjectChange'),
+    OrganizationState,
   ],
 
   getInitialState() {
@@ -55,14 +59,14 @@ const ProjectContext = React.createClass({
       memberList: [],
       project: null,
       team: null,
-      projectNavSection: null
+      projectNavSection: null,
     };
   },
 
   getChildContext() {
     return {
       project: this.state.project,
-      team: this.state.team
+      team: this.state.team,
     };
   },
 
@@ -113,7 +117,7 @@ const ProjectContext = React.createClass({
     if (!itemIds.has(this.state.team.id)) return;
 
     this.setState({
-      team: {...TeamStore.getById(this.state.team.id)}
+      team: {...TeamStore.getById(this.state.team.id)},
     });
   },
 
@@ -122,7 +126,7 @@ const ProjectContext = React.createClass({
     if (!projectIds.has(this.state.project.id)) return;
 
     this.setState({
-      project: {...ProjectStore.getById(this.state.project.id)}
+      project: {...ProjectsStore.getById(this.state.project.id)},
     });
   },
 
@@ -153,10 +157,11 @@ const ProjectContext = React.createClass({
       loading: true,
       // we bind project initially, but it'll rebind
       project: activeProject,
-      team: activeTeam
+      team: activeTeam,
     });
 
     if (activeProject && hasAccess) {
+      setActiveProject(null);
       this.api.request(`/projects/${orgId}/${projectId}/`, {
         success: data => {
           this.setState({
@@ -164,45 +169,47 @@ const ProjectContext = React.createClass({
             project: data,
             team: data.team,
             error: false,
-            errorType: null
+            errorType: null,
           });
+          // assuming here that this means the project is considered the active project
+          setActiveProject(data);
         },
         error: error => {
           // TODO(dcramer): this should handle 404 (project not found)
           this.setState({
             loading: false,
             error: false,
-            errorType: ERROR_TYPES.UNKNOWN
+            errorType: ERROR_TYPES.UNKNOWN,
           });
-        }
+        },
       });
       // TODO(dcramer): move member list to organization level
       this.api.request(this.getMemberListEndpoint(), {
         success: data => {
           MemberListStore.loadInitialData(data.filter(m => m.user).map(m => m.user));
-        }
+        },
       });
 
       this.api.request(this.getEnvironmentListEndpoint(), {
         success: data => {
           EnvironmentStore.loadInitialData(data);
-        }
+        },
       });
 
       this.setState({
-        loading: false
+        loading: false,
       });
     } else if (activeTeam && activeTeam.isMember) {
       this.setState({
         loading: false,
         error: true,
-        errorType: ERROR_TYPES.MISSING_MEMBERSHIP
+        errorType: ERROR_TYPES.MISSING_MEMBERSHIP,
       });
     } else {
       this.setState({
         loading: false,
         error: true,
-        errorType: ERROR_TYPES.PROJECT_NOT_FOUND
+        errorType: ERROR_TYPES.PROJECT_NOT_FOUND,
       });
     }
   },
@@ -219,7 +226,7 @@ const ProjectContext = React.createClass({
 
   setProjectNavSection(section) {
     this.setState({
-      projectNavSection: section
+      projectNavSection: section,
     });
   },
 
@@ -259,7 +266,7 @@ const ProjectContext = React.createClass({
         {this.renderBody()}
       </DocumentTitle>
     );
-  }
+  },
 });
 
 export default ProjectContext;

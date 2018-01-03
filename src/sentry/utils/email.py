@@ -315,7 +315,7 @@ class MessageBuilder(object):
             reply_to = headers['X-Sentry-Reply-To']
         else:
             reply_to = set(reply_to or ())
-            reply_to.remove(to)
+            reply_to.discard(to)
             reply_to = ', '.join(reply_to)
 
         if reply_to:
@@ -362,10 +362,11 @@ class MessageBuilder(object):
 
         return msg
 
-    def get_built_messages(self, to=None, bcc=None):
+    def get_built_messages(self, to=None, cc=None, bcc=None):
         send_to = set(to or ())
         send_to.update(self._send_to)
-        results = [self.build(to=email, reply_to=send_to, bcc=bcc) for email in send_to if email]
+        results = [self.build(to=email, reply_to=send_to, cc=cc, bcc=bcc)
+                   for email in send_to if email]
         if not results:
             logger.debug('Did not build any messages, no users to send to.')
         return results
@@ -377,16 +378,16 @@ class MessageBuilder(object):
             to = to[:MAX_RECIPIENTS] + ['and {} more.'.format(len(to[MAX_RECIPIENTS:]))]
         return ', '.join(to)
 
-    def send(self, to=None, bcc=None, fail_silently=False):
+    def send(self, to=None, cc=None, bcc=None, fail_silently=False):
         return send_messages(
-            self.get_built_messages(to, bcc=bcc),
+            self.get_built_messages(to, cc=cc, bcc=bcc),
             fail_silently=fail_silently,
         )
 
-    def send_async(self, to=None, bcc=None):
+    def send_async(self, to=None, cc=None, bcc=None):
         from sentry.tasks.email import send_email
         fmt = options.get('system.logging-format')
-        messages = self.get_built_messages(to, bcc=bcc)
+        messages = self.get_built_messages(to, cc=cc, bcc=bcc)
         extra = {'message_type': self.type}
         loggable = [v for k, v in six.iteritems(self.context) if hasattr(v, 'id')]
         for context in loggable:

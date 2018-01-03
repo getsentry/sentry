@@ -1,12 +1,15 @@
 import React from 'react';
+import createReactClass from 'create-react-class';
 import {t} from '../../locale';
 
 import ApiMixin from '../../mixins/apiMixin';
 import OrganizationState from '../../mixins/organizationState';
 import TodoItem from './toDoItem';
 
-const TodoList = React.createClass({
+const TodoList = createReactClass({
+  displayName: 'TodoList',
   mixins: [ApiMixin, OrganizationState],
+
   statics: {
     TASKS: [
       {
@@ -19,7 +22,8 @@ const TodoList = React.createClass({
         skippable: false,
         prereq: [],
         featureLocation: 'organization',
-        location: 'projects/new/'
+        location: 'projects/new/',
+        display: true,
       },
       {
         task: 2,
@@ -29,7 +33,8 @@ const TodoList = React.createClass({
         skippable: false,
         prereq: [1],
         featureLocation: 'project',
-        location: 'settings/install/'
+        location: 'settings/install/',
+        display: true,
       },
       {
         task: 3,
@@ -42,7 +47,8 @@ const TodoList = React.createClass({
         skippable: true,
         prereq: [],
         featureLocation: 'organization',
-        location: 'members/'
+        location: 'members/',
+        display: true,
       },
       {
         task: 4,
@@ -54,33 +60,36 @@ const TodoList = React.createClass({
         skippable: true,
         prereq: [1, 2],
         featureLocation: 'organization',
-        location: 'projects/new/'
+        location: 'projects/new/',
+        display: true,
       },
       {
         task: 5,
         title: t('Add user context'),
         description: t('Know who is being affected by crashes'),
         detailedDescription: t(
-          `Unlock features that let you 
+          `Unlock features that let you
           drill down into the number of users affected by an issue as well as get a broader sense about the quality of the application.`
         ),
         skippable: true,
         prereq: [1, 2],
         featureLocation: 'absolute',
-        location: 'https://docs.sentry.io/hosted/learn/context/#capturing-the-user'
+        location: 'https://docs.sentry.io/hosted/learn/context/#capturing-the-user',
+        display: true,
       },
       {
         task: 6,
         title: t('Set up release tracking'),
         description: t('See what releases are generating errors'),
         detailedDescription: t(
-          `Set up commits for additional context when determining the cause of an issue 
+          `Set up commits for additional context when determining the cause of an issue
           e.g. suggested owners and resolve issues via commit messages`
         ),
         skippable: true,
         prereq: [1, 2],
         featureLocation: 'project',
-        location: 'settings/release-tracking/'
+        location: 'settings/release-tracking/',
+        display: true,
       },
       {
         task: 7,
@@ -93,17 +102,19 @@ const TodoList = React.createClass({
         skippable: true,
         prereq: [1, 2], // Is one of the platforms javascript?
         featureLocation: 'absolute',
-        location: 'https://docs.sentry.io/hosted/clients/javascript/sourcemaps/'
+        location: 'https://docs.sentry.io/hosted/clients/javascript/sourcemaps/',
+        display: true,
       },
-      // {
-      //   'task': 8,
-      //   'title': 'User crash reports',
-      //   'description': 'Collect user feedback when your application crashes',
-      //   'skippable': false,
-      //   'prereq': [1, 2, 5],
-      //   'featureLocation': 'project',
-      //   'location': 'settings/user-reports/'
-      // },
+      {
+        task: 8,
+        title: 'User crash reports',
+        description: t('Collect user feedback when your application crashes'),
+        skippable: true,
+        prereq: [1, 2, 5],
+        featureLocation: 'project',
+        location: 'settings/user-reports/',
+        display: false,
+      },
       {
         task: 9,
         title: t('Set up issue tracking'),
@@ -111,7 +122,8 @@ const TodoList = React.createClass({
         skippable: true,
         prereq: [1, 2],
         featureLocation: 'project',
-        location: 'settings/issue-tracking/'
+        location: 'settings/issue-tracking/',
+        display: false,
       },
       {
         task: 10,
@@ -120,15 +132,16 @@ const TodoList = React.createClass({
         skippable: true,
         prereq: [1, 2],
         featureLocation: 'project',
-        location: 'settings/alerts/'
-      }
-    ]
+        location: 'settings/alerts/',
+        display: false,
+      },
+    ],
   },
 
   getInitialState() {
     return {
       tasks: [],
-      seeAll: false // Show all tasks, included those completed
+      seeAll: false, // Show all tasks, included those completed
     };
   },
 
@@ -160,7 +173,7 @@ const TodoList = React.createClass({
           return task;
         });
         this.setState({tasks: new_state});
-      }
+      },
     });
     this.getOnboardingTasks();
   },
@@ -170,7 +183,7 @@ const TodoList = React.createClass({
   },
 
   render() {
-    let nextTasks = this.state.tasks.filter(task => task.task < 9);
+    let nextTasks = this.state.tasks.filter(task => task.display);
 
     let todoListTasks = nextTasks.map(task => {
       return <TodoItem key={task.task} task={task} onSkip={this.skipTask} />;
@@ -179,13 +192,11 @@ const TodoList = React.createClass({
     return (
       <div>
         <div onClick={this.click} className="onboarding-wrapper">
-          <ul className="list-unstyled">
-            {todoListTasks}
-          </ul>
+          <ul className="list-unstyled">{todoListTasks}</ul>
         </div>
       </div>
     );
-  }
+  },
 });
 
 export default TodoList;

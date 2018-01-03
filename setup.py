@@ -48,7 +48,7 @@ from sentry.utils.distutils import (
 )
 
 # The version of sentry
-VERSION = '8.21.0.dev0'
+VERSION = '8.23.0.dev0'
 
 # Hack to prevent stupid "TypeError: 'NoneType' object is not callable" error
 # in multiprocessing/util.py _exit_function when running `python
@@ -72,8 +72,8 @@ def get_requirements(env):
 
 install_requires = get_requirements('base')
 dev_requires = get_requirements('dev')
-saml_requires = get_requirements('saml')
 tests_require = get_requirements('test')
+optional_requires = get_requirements('optional')
 
 
 class SentrySDistCommand(SDistCommand):
@@ -124,8 +124,8 @@ setup(
     extras_require={
         'dev': dev_requires,
         'postgres': [],
-        'saml': saml_requires,
         'tests': tests_require,
+        'optional': optional_requires,
     },
     cmdclass=cmdclass,
     license='BSD',
