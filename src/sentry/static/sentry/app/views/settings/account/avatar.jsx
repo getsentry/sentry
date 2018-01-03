@@ -1,76 +1,74 @@
 import PropTypes from 'prop-types';
 import React from 'react';
+import {connect} from 'react-redux';
+
 import styled from 'react-emotion';
-import createReactClass from 'create-react-class';
 
 import Panel from '../components/panel';
 import PanelBody from '../components/panelBody';
 import PanelHeader from '../components/panelHeader';
 import AlertActions from '../../../actions/alertActions';
-import ApiMixin from '../../../mixins/apiMixin';
 import AvatarCropper from '../../../components/avatarCropper';
 import RadioGroup from '../components/forms/radioGroup';
 import LoadingError from '../../../components/loadingError';
 import LoadingIndicator from '../../../components/loadingIndicator';
 import {t} from '../../../locale';
 
-const AvatarSettings = createReactClass({
-  displayName: 'AvatarSettings',
-
-  propTypes: {
+class AvatarSettings extends React.Component {
+  static propTypes = {
     userId: PropTypes.number,
-  },
+    client: PropTypes.object,
+  };
 
-  mixins: [ApiMixin],
-
-  getInitialState() {
-    return {
+  constructor(props) {
+    super(props);
+    this.state = {
       user: null,
       savedDataUrl: null,
       dataUrl: null,
       hasError: false,
     };
-  },
+  }
 
   componentDidMount() {
-    this.api.request(this.getEndpoint(), {
+    this.props.client.request(this.getEndpoint(), {
       method: 'GET',
       success: this.updateUserState,
       error: () => {
         this.setState({hasError: true});
       },
     });
-  },
+  }
 
-  getEndpoint() {
+  getEndpoint = () => {
     return '/users/me/avatar/';
-  },
+  };
 
-  updateUserState(user) {
+  updateUserState = user => {
     this.setState({user});
-  },
+  };
 
-  updateDataUrlState(dataUrlState) {
+  updateDataUrlState = dataUrlState => {
     this.setState(dataUrlState);
-  },
+  };
 
-  handleError(msg) {
+  handleError = msg => {
     AlertActions.addAlert({
       message: t(msg),
       type: 'error',
     });
-  },
+  };
 
-  handleSuccess(user) {
+  handleSuccess = user => {
     this.setState({user});
     AlertActions.addAlert({
       message: t('Successfully saved avatar preferences'),
       type: 'success',
       expireAfrer: 3000,
     });
-  },
+  };
 
-  saveSettings(ev) {
+  saveSettings = ev => {
     ev.preventDefault();
     let avatarPhoto = null;
     if (this.state.dataUrl) {
@@ -88,15 +86,15 @@ const AvatarSettings = createReactClass({
       },
       error: this.handleError.bind(this, 'There was an error saving your preferences.'),
     });
-  },
+  };
 
-  handleChange(id) {
+  handleChange = id => {
     let user = {...this.state.user};
     user.avatar.avatarType = id;
     this.updateUserState(user);
-  },
+  };
 
-  render() {
+  render = () => {
     if (this.state.hasError) {
       return <LoadingError />;
     }
@@ -150,8 +148,8 @@ const AvatarSettings = createReactClass({
         </PanelBody>
       </Panel>
     );
-  },
-});
+  };
+}
 
 const AvatarForm = styled('form')`
   line-height: 1.5em;
@@ -166,4 +164,8 @@ const AvatarUploadSection = styled('div')`
   margin-top: 1em;
 `;
 
-export default AvatarSettings;
+const mapStateToProps = state => {
+  return state.api;
+};
+
+export default connect(mapStateToProps)(AvatarSettings);
