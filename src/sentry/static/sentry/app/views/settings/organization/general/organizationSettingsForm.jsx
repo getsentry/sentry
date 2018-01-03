@@ -28,17 +28,18 @@ const NewOrganizationSettingsForm = React.createClass({
   render() {
     let {initialData, orgId, onSave} = this.props;
 
-    //Only for adding the Flag to 2FA Enforcement. Please remove when the feature is released to the public.
-    if (!this.getFeatures().has('require-2fa')) {
-      let security_panel = organizationSettingsFields.find(function(panel) {
-        return panel.title == 'Security & Privacy';
-      });
-      security_panel.fields.splice(
-        security_panel.fields.findIndex(function(field) {
-          return field.name == 'require2FA';
-        }),
-        1
+    //Only for adding the Flag to 2FA Enforcement.
+    if (this.getFeatures().has('require-2fa')) {
+      let security_panel = organizationSettingsFields.find(
+        panel => panel.title == 'Security & Privacy'
       );
+      if (!security_panel.fields.find(field => field.name == 'require2FA'))
+        security_panel.fields.unshift({
+          name: 'require2FA',
+          type: 'boolean',
+          label: 'Require Two-Factor Authentication',
+          help: 'Require two-factor authentication for all members.',
+        });
     }
 
     return (
@@ -66,7 +67,14 @@ const NewOrganizationSettingsForm = React.createClass({
             onSave(initialData, model.initialData);
           }
         }}
-        onSubmitError={() => addErrorMessage('Unable to save change', TOAST_DURATION)}
+        onSubmitError={error => {
+          if (error.responseJSON && 'require2FA' in error.responseJSON)
+            return addErrorMessage(
+              'Unable to save change. Enable two-factor authentication on your account first.',
+              TOAST_DURATION
+            );
+          return addErrorMessage('Unable to save change', TOAST_DURATION);
+        }}
       >
         <Box>
           <JsonForm location={this.props.location} forms={organizationSettingsFields} />

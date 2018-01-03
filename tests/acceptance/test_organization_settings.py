@@ -32,6 +32,10 @@ class OrganizationSettingsTest(AcceptanceTestCase):
         self.browser.snapshot('organization settings -- ' + snapshot_name)
         assert self.browser.element_exists('.ref-organization-settings')
 
+    def renders_2fa_setting(self):
+        return self.browser.element_exists(
+            '#id-require2FA') or self.browser.element_exists('#require2FA')
+
     def test_simple(self):
         self.browser.get(self.path)
         self.load_organization_helper("Simple")
@@ -44,31 +48,28 @@ class OrganizationSettingsTest(AcceptanceTestCase):
 
         self.browser.get(path)
         self.load_organization_helper("Org No Feature")
-        with self.feature('organizations:new-settings'):
-            assert not(self.browser.element_exists(
-                '#id-require2FA') or self.browser.element_exists('#require2FA'))
+
+        # with old settings
+        assert not self.renders_2fa_setting()
 
         with self.feature('organizations:new-settings'):
-            assert not(self.browser.element_exists(
-                '#id-require2FA') or self.browser.element_exists('#require2FA'))
+            assert not self.renders_2fa_setting()
 
     def test_renders_2FA_setting_for_owner(self):
+        def test_no_feature():
+            with self.feature({'organizations:require-2fa': False}):
+                self.browser.get(path)
+                self.load_organization_helper("Org Owner No Feature")
+                assert not self.renders_2fa_setting()
         user_owner = self.create_user('owner@example.com')
         organization = self.create_organization(name="Example", owner=user_owner)
         self.login_as(user_owner)
         path = '/organizations/%s/settings/' % organization.slug
 
-        with self.feature({'organizations:require-2fa': False}):
-            self.browser.get(path)
-            self.load_organization_helper("Org Owner No Feature")
-            assert not(self.browser.element_exists(
-                '#id-require2FA') or self.browser.element_exists('#require2FA'))
-
         with self.feature({'organizations:require-2fa': True}):
             self.browser.get(path)
             self.load_organization_helper("Org Owner")
-            assert self.browser.element_exists(
-                '#id-require2FA') or self.browser.element_exists('#require2FA')
+            assert self.renders_2fa_setting()
 
     def test_renders_2FA_setting_for_manager(self):
         user_manager = self.create_user('manager@gexample.com')
@@ -80,11 +81,9 @@ class OrganizationSettingsTest(AcceptanceTestCase):
 
         self.browser.get(path)
         self.load_organization_helper("Org Manager No feature")
-        assert not(self.browser.element_exists(
-            '#id-require2FA') or self.browser.element_exists('#require2FA'))
+        assert not self.renders_2fa_setting()
 
         with self.feature('organizations:require-2fa'):
             self.browser.get(path)
             self.load_organization_helper("Org Manager")
-            assert self.browser.element_exists(
-                '#id-require2FA') or self.browser.element_exists('#require2FA')
+            assert self.renders_2fa_setting()

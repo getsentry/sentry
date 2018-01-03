@@ -58,12 +58,6 @@ const forms = [
     title: 'Security & Privacy',
     fields: [
       {
-        name: 'require2FA',
-        type: 'boolean',
-        label: 'Require Two-Factor Authentication',
-        help: 'Require two-factor authentication for all members.',
-      },
-      {
         name: 'allowSharedIssues',
         type: 'boolean',
 
