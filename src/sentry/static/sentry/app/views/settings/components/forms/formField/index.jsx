@@ -1,72 +1,24 @@
-import {Box, Flex} from 'grid-emotion';
 import {Observer} from 'mobx-react';
-import {css} from 'emotion';
 import PropTypes from 'prop-types';
 import React from 'react';
 import ReactDOM from 'react-dom';
 import styled from 'react-emotion';
 
-import {defined} from '../../../../utils';
-import FormState from '../../../../components/forms/state';
-import InlineSvg from '../../../../components/inlineSvg';
-import Spinner from './styled/spinner';
-import {pulse, fadeOut} from './styled/animations';
+import {defined} from '../../../../../utils';
+import FormState from '../../../../../components/forms/state';
+import FormFieldWrapper from './formFieldWrapper';
+import FormFieldDescription from './formFieldDescription';
+import FormFieldControl from './formFieldControl';
+import FormFieldControlState from './formFieldControlState';
+import FormFieldHelp from './formFieldHelp';
+import FormFieldLabel from './formFieldLabel';
+import FormFieldRequiredBadge from './formFieldRequiredBadge';
 
-const SettingsPanelItemWrapper = styled(({highlighted, ...props}) => <Flex {...props} />)`
-  padding: 1em 1.25em;
-  border-bottom: 1px solid ${p => p.theme.borderLight};
-  align-items: center;
-  transition: background 0.15s;
+import InlineSvg from '../../../../../components/inlineSvg';
+import Spinner from '../styled/spinner';
+import {pulse, fadeOut} from '../styled/animations';
 
-  ${p =>
-    p.highlighted
-      ? css`
-          outline: 1px solid ${p.theme.purple};
-        `
-      : ''} &:last-child {
-    border-bottom: none;
-  }
-`;
-
-const SettingsPanelItemLabel = styled.div`
-  color: ${p => p.theme.gray5};
-`;
-
-const SettingsPanelItemCtrl = styled(Box)`
-  color: ${p => p.theme.gray3};
-  width: 50%;
-  padding-left: 10px;
-  position: relative;
-`;
-
-const SettingsPanelItemCtrlState = styled(Box)`
-  width: 36px;
-  text-align: right;
-`;
-
-const SettingsPanelItemDesc = styled(Box)`
-  width: 50%;
-  padding-right: 10px;
-`;
-
-const SettingsRequiredBadge = styled.div`
-  display: inline-block;
-  background: ${p => p.theme.gray2};
-  width: 5px;
-  height: 5px;
-  border-radius: 5px;
-  text-indent: -9999em;
-  vertical-align: super;
-`;
-
-const SettingsPanelItemHelp = styled.div`
-  color: ${p => p.theme.gray2};
-  font-size: 14px;
-  margin-top: 8px;
-  line-height: 1.4;
-`;
-
-const SettingsErrorReason = styled.div`
+const FormFieldErrorReason = styled.div`
   color: ${p => p.theme.redDark};
   position: absolute;
   background: #fff;
@@ -79,14 +31,14 @@ const SettingsErrorReason = styled.div`
   z-index: 10000;
 `;
 
-const SettingsError = styled.div`
+const FormFieldError = styled.div`
   color: ${p => p.theme.redDark};
   animation: ${pulse} 1s ease infinite;
   width: 16px;
   margin-left: auto;
 `;
 
-const SettingsIsSaved = styled.div`
+const FormFieldIsSaved = styled.div`
   color: ${p => p.theme.green};
   animation: ${fadeOut} 0.3s ease 2s 1 forwards;
 `;
@@ -265,20 +217,20 @@ class FormField extends React.Component {
     let model = this.getModel();
 
     return (
-      <SettingsPanelItemWrapper
+      <FormFieldWrapper
         highlighted={highlighted}
         onMouseOver={e => this.handleHover(true, e)}
         onMouseOut={e => this.handleHover(false, e)}
       >
-        <SettingsPanelItemDesc>
+        <FormFieldDescription>
           {label && (
-            <SettingsPanelItemLabel>
-              {label} {required && <SettingsRequiredBadge />}
-            </SettingsPanelItemLabel>
+            <FormFieldLabel>
+              {label} {required && <FormFieldRequiredBadge />}
+            </FormFieldLabel>
           )}
-          {help && <SettingsPanelItemHelp>{help}</SettingsPanelItemHelp>}
-        </SettingsPanelItemDesc>
-        <SettingsPanelItemCtrl>
+          {help && <FormFieldHelp>{help}</FormFieldHelp>}
+        </FormFieldDescription>
+        <FormFieldControl>
           <Observer>
             {() => {
               let error = this.getError();
@@ -314,11 +266,11 @@ class FormField extends React.Component {
               let error = this.getError();
               let shouldShowErrorMessage = error && !hideErrorMessage;
               if (!shouldShowErrorMessage) return null;
-              return <SettingsErrorReason>{error}</SettingsErrorReason>;
+              return <FormFieldErrorReason>{error}</FormFieldErrorReason>;
             }}
           </Observer>
-        </SettingsPanelItemCtrl>
-        <SettingsPanelItemCtrlState>
+        </FormFieldControl>
+        <FormFieldControlState>
           <Observer>
             {() => {
               let isSaving = model.getFieldState(this.props.name, FormState.SAVING);
@@ -328,9 +280,9 @@ class FormField extends React.Component {
                 return <Spinner />;
               } else if (isSaved) {
                 return (
-                  <SettingsIsSaved>
+                  <FormFieldIsSaved>
                     <InlineSvg src="icon-checkmark-sm" size="18px" />
-                  </SettingsIsSaved>
+                  </FormFieldIsSaved>
                 );
               }
 
@@ -345,14 +297,14 @@ class FormField extends React.Component {
               if (!error) return null;
 
               return (
-                <SettingsError>
+                <FormFieldError>
                   <InlineSvg src="icon-warning-sm" size="18px" />
-                </SettingsError>
+                </FormFieldError>
               );
             }}
           </Observer>
-        </SettingsPanelItemCtrlState>
-      </SettingsPanelItemWrapper>
+        </FormFieldControlState>
+      </FormFieldWrapper>
     );
   }
 }
