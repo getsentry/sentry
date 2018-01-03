@@ -25,14 +25,10 @@ export default class FieldFromConfig extends React.Component {
       help: PropTypes.oneOfType([PropTypes.string, PropTypes.func]),
       extraHelp: PropTypes.oneOfType([PropTypes.string, PropTypes.func]),
       visible: PropTypes.oneOfType([PropTypes.bool, PropTypes.func]),
+      disabled: PropTypes.oneOfType([PropTypes.bool, PropTypes.func]),
       getValue: PropTypes.func,
       setValue: PropTypes.func,
     }).isRequired,
-  };
-
-  static defaultProps = {
-    formData: {},
-    formErrors: {},
   };
 
   render() {
@@ -43,21 +39,6 @@ export default class FieldFromConfig extends React.Component {
       ...otherProps,
       ...field,
     };
-
-    // let props = Object.assign(Object.assign({}, field), {
-    // value: this.props.formData[field.name],
-    // onChange: this.props.onChange,
-    // label: field.label + (required ? '*' : ''),
-    // required,
-    // error: (this.props.formErrors || {})[field.name],
-    // disabled: field.readonly,
-    // key: field.name,
-    // formState: this.props.formState,
-    // help:
-    // defined(field.help) && field.help !== '' ? (
-    // <span dangerouslySetInnerHTML={{__html: field.help}} />
-    // ) : null,
-    // });
 
     switch (field.type) {
       case 'secret':
@@ -83,6 +64,7 @@ export default class FieldFromConfig extends React.Component {
         return <TextareaField {...props} />;
       case 'choice':
       case 'select':
+      case 'array':
         // the chrome required tip winds up in weird places
         // for select2 elements, so just make it look like
         // it's required (with *) and rely on server validation
@@ -90,7 +72,7 @@ export default class FieldFromConfig extends React.Component {
         // if (props.has_autocomplete) {
         // return <Select2FieldAutocomplete {...props} />;
         // }
-        return <Select2Field {...props} />;
+        return <Select2Field {...props} noHover={true} />;
       case 'radio':
         return <RadioField {...props} />;
       default:

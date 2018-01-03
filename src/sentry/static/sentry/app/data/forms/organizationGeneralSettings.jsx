@@ -40,9 +40,12 @@ const forms = [
         required: true,
         label: 'Default Role',
         // seems weird to have choices in initial form data
-        choices: ({data}) => data.availableRoles.map(r => [r.id, r.name]),
+        choices: ({initialData} = {}) =>
+          (initialData.availableRoles &&
+            initialData.availableRoles.map(r => [r.id, r.name])) ||
+          [],
         help: 'The default role new members will receive.',
-        getValue: (val, {access}) => (access.has('org:admin') ? val : undefined),
+        disabled: ({access}) => access.has('org:admin'),
       },
       {
         name: 'openMembership',

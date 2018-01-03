@@ -66,12 +66,13 @@ class FormField extends React.Component {
 
     label: PropTypes.string,
     defaultValue: PropTypes.any,
-    disabled: PropTypes.bool,
+    disabled: PropTypes.oneOfType([PropTypes.bool, PropTypes.func]),
     disabledReason: PropTypes.string,
     help: PropTypes.oneOfType([PropTypes.string, PropTypes.element]),
     required: PropTypes.bool,
     hideErrorMessage: PropTypes.bool,
     highlighted: PropTypes.bool,
+    noHover: PropTypes.bool,
 
     // the following should only be used without form context
     onChange: PropTypes.func,
@@ -143,7 +144,10 @@ class FormField extends React.Component {
    * Set field's hover state and propagate callbacks
    */
   handleHover = (mouseOver, ...args) => {
-    let {name, onMouseOver, onMouseOut} = this.props;
+    let {name, onMouseOver, onMouseOut, noHover} = this.props;
+
+    if (noHover) return;
+
     let model = this.getModel();
 
     model.setFieldState(name, FormState.HOVER, mouseOver);
@@ -215,6 +219,7 @@ class FormField extends React.Component {
     } = this.props;
     let id = this.getId();
     let model = this.getModel();
+    let isDisabled = typeof disabled === 'function' ? disabled(this.props) : disabled;
 
     return (
       <FormFieldWrapper
@@ -248,13 +253,15 @@ class FormField extends React.Component {
                     onBlur: this.handleBlur,
                     value,
                     error,
+                    disabled: isDisabled,
                   }}
+                  initialData={model.initialData}
                 />
               );
             }}
           </Observer>
 
-          {disabled &&
+          {isDisabled &&
             disabledReason && (
               <span className="disabled-indicator tip" title={disabledReason}>
                 <span className="icon-question" />

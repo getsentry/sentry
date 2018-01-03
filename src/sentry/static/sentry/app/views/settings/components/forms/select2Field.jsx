@@ -7,7 +7,7 @@ import InputField from './inputField';
 export default class Select2Field extends React.Component {
   static propTypes = {
     ...InputField.propTypes,
-    choices: PropTypes.array.isRequired,
+    choices: PropTypes.oneOfType([PropTypes.array, PropTypes.func]).isRequired,
     allowClear: PropTypes.bool,
     allowEmpty: PropTypes.bool,
     multiple: PropTypes.bool,
@@ -24,11 +24,9 @@ export default class Select2Field extends React.Component {
   };
 
   componentWillUnmount() {
-    if (this.select) {
-      jQuery(this.select)
-        .off('change')
-        .select2('destroy');
-    }
+    if (!this.select) return;
+
+    this.select = null;
   }
 
   onChange = (onBlur, onChange, e) => {
@@ -50,15 +48,23 @@ export default class Select2Field extends React.Component {
     }
   };
 
+  // Note: mouse hovers will trigger re-render, and re-mounts the native `select` element
+  // This will cause an infinite loop because hover state causes re-render, and then we call $.select2, which
+  // genenerates a new element which will then cause a new hover event.
+  //
+  // HOWEVER we need this behavior because we may re-render from an event and during reconciliation we'll have
+  // an additional native `select` (e.g. when we save an org setting field)
+  //
+  // Handle this right now by disabling hover state completely
   handleSelectMount = (onBlur, onChange, ref) => {
-    if (ref) {
+    if (ref && !this.select) {
       jQuery(ref)
         .select2(this.getSelect2Options())
         .on('change', this.onChange.bind(this, onBlur, onChange));
-    } else {
+    } else if (!ref) {
       jQuery(this.select)
-        .select2('destroy')
-        .off('change');
+        .off('change')
+        .select2('destroy');
     }
 
     this.select = ref;
@@ -77,22 +83,31 @@ export default class Select2Field extends React.Component {
     return (
       <InputField
         {...this.props}
-        field={({onChange, onBlur, ...props}) => (
-          <select
-            ref={ref => this.handleSelectMount(onBlur, onChange, ref)}
-            style={{width: '100%'}}
-            onChange={() => {}}
-            value={props.value}
-          >
-            {(props.choices || []).map(choice => {
-              return (
-                <option key={choice[0]} value={choice[0]}>
-                  {choice[1]}
-                </option>
-              );
-            })}
-          </select>
-        )}
+        field={({onChange, onBlur, disabled, ...props}) => {
+          let choices = props.choices || [];
+
+          if (typeof props.choices === 'function') {
+            choices = props.choices(props);
+          }
+
+          return (
+            <select
+              disabled={disabled}
+              ref={ref => this.handleSelectMount(onBlur, onChange, ref)}
+              style={{width: '100%'}}
+              onChange={() => {}}
+              value={props.value}
+            >
+              {choices.map(choice => {
+                return (
+                  <option key={choice[0]} value={choice[0]}>
+                    {choice[1]}
+                  </option>
+                );
+              })}
+            </select>
+          );
+        }}
       />
     );
   }
