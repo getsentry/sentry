@@ -74,6 +74,37 @@ describe('api', function() {
     });
   });
 
+  it('handles error callback', function() {
+    sandbox.stub(api, 'wrapCallback', (id, func) => func);
+    let errorCb = jest.fn();
+    let args = ['test', true, 1];
+    api.handleRequestError(
+      {
+        id: 'test',
+        path: 'test',
+        requestOptions: {error: errorCb},
+      },
+      ...args
+    );
+
+    expect(errorCb).toHaveBeenCalledWith(...args);
+    api.wrapCallback.restore();
+  });
+
+  it('handles undefined error callback', function() {
+    expect(() =>
+      api.handleRequestError(
+        {
+          id: 'test',
+          path: 'test',
+          requestOptions: {},
+        },
+        {},
+        {}
+      )
+    ).not.toThrow();
+  });
+
   describe('bulkUpdate()', function() {
     beforeEach(function() {
       sandbox.stub(api, '_wrapRequest');
