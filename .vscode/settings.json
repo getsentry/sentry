@@ -12,6 +12,7 @@
         "src/sentry/locale": true,
         "src/sentry/static/sentry/dist/": true
     },
+    "search.followSymlinks": false,
     "files.trimTrailingWhitespace": true,
     "files.trimFinalNewlines": true,
     "files.insertFinalNewline": true,
