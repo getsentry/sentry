@@ -45,7 +45,7 @@ const forms = [
             initialData.availableRoles.map(r => [r.id, r.name])) ||
           [],
         help: 'The default role new members will receive.',
-        disabled: ({access}) => access.has('org:admin'),
+        disabled: ({access}) => !access.has('org:admin'),
       },
       {
         name: 'openMembership',
