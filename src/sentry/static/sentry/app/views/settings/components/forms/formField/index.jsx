@@ -72,7 +72,6 @@ class FormField extends React.Component {
     required: PropTypes.bool,
     hideErrorMessage: PropTypes.bool,
     highlighted: PropTypes.bool,
-    noHover: PropTypes.bool,
 
     // the following should only be used without form context
     onChange: PropTypes.func,
@@ -141,25 +140,6 @@ class FormField extends React.Component {
   };
 
   /**
-   * Set field's hover state and propagate callbacks
-   */
-  handleHover = (mouseOver, ...args) => {
-    let {name, onMouseOver, onMouseOut, noHover} = this.props;
-
-    if (noHover) return;
-
-    let model = this.getModel();
-
-    model.setFieldState(name, FormState.HOVER, mouseOver);
-    if (onMouseOver) {
-      onMouseOver(...args);
-    }
-    if (onMouseOut) {
-      onMouseOut(...args);
-    }
-  };
-
-  /**
    * Update field value in form model
    */
   handleChange = (...args) => {
@@ -222,11 +202,7 @@ class FormField extends React.Component {
     let isDisabled = typeof disabled === 'function' ? disabled(this.props) : disabled;
 
     return (
-      <FormFieldWrapper
-        highlighted={highlighted}
-        onMouseOver={e => this.handleHover(true, e)}
-        onMouseOut={e => this.handleHover(false, e)}
-      >
+      <FormFieldWrapper highlighted={highlighted}>
         <FormFieldDescription>
           {label && (
             <FormFieldLabel>
@@ -247,7 +223,6 @@ class FormField extends React.Component {
                   {...{
                     ...this.props,
                     id,
-                    hover: model.getFieldState(this.props.name, FormState.HOVER),
                     onKeyDown: this.handleKeyDown,
                     onChange: this.handleChange,
                     onBlur: this.handleBlur,

@@ -72,7 +72,7 @@ export default class FieldFromConfig extends React.Component {
         // if (props.has_autocomplete) {
         // return <Select2FieldAutocomplete {...props} />;
         // }
-        return <Select2Field {...props} noHover={true} />;
+        return <Select2Field {...props} />;
       case 'radio':
         return <RadioField {...props} />;
       default:
