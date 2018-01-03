@@ -88,10 +88,13 @@ export class Client {
             });
         },
       });
-    } else {
-      // Call normal error callback
-      this.wrapCallback(id, requestOptions.error)(response, ...responseArgs);
+      return;
     }
+
+    // Call normal error callback
+    let errorCb = this.wrapCallback(id, requestOptions.error);
+    if (typeof errorCb !== 'function') return;
+    errorCb(response, ...responseArgs);
   }
 
   request(path, options = {}) {
