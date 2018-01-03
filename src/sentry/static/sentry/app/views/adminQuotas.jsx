@@ -13,7 +13,7 @@ export default class AdminQuotas extends AsyncView {
   getDefaultState() {
     return {
       since: new Date().getTime() / 1000 - 3600 * 24 * 7,
-      resolution: '1h'
+      resolution: '1h',
     };
   }
 

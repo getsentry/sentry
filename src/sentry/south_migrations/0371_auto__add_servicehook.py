@@ -16,23 +16,24 @@ class Migration(SchemaMigration):
         db.create_table('sentry_servicehook', (
             ('id', self.gf('sentry.db.models.fields.bounded.BoundedBigAutoField')(primary_key=True)),
             ('guid', self.gf('django.db.models.fields.CharField')(max_length=32, unique=True, null=True)),
-            ('application', self.gf('sentry.db.models.fields.foreignkey.FlexibleForeignKey')(to=orm['sentry.ApiApplication'], null=True)),
+            ('application', self.gf('sentry.db.models.fields.foreignkey.FlexibleForeignKey')(
+                to=orm['sentry.ApiApplication'], null=True)),
             ('actor_id', self.gf('sentry.db.models.fields.bounded.BoundedPositiveIntegerField')(db_index=True)),
             ('project_id', self.gf('sentry.db.models.fields.bounded.BoundedPositiveIntegerField')(db_index=True)),
             ('url', self.gf('django.db.models.fields.URLField')(max_length=200)),
             ('secret', self.gf('sentry.db.models.fields.encrypted.EncryptedTextField')()),
-            ('events', self.gf('sentry.db.models.fields.array.ArrayField')(of=('django.db.models.fields.TextField', [], {}))),
-            ('status', self.gf('sentry.db.models.fields.bounded.BoundedPositiveIntegerField')(default=0, db_index=True)),
+            ('events', self.gf('sentry.db.models.fields.array.ArrayField')(
+                of=('django.db.models.fields.TextField', [], {}))),
+            ('status', self.gf('sentry.db.models.fields.bounded.BoundedPositiveIntegerField')(
+                default=0, db_index=True)),
             ('version', self.gf('sentry.db.models.fields.bounded.BoundedPositiveIntegerField')(default=0)),
             ('date_added', self.gf('django.db.models.fields.DateTimeField')(default=datetime.datetime.now)),
         ))
         db.send_create_signal('sentry', ['ServiceHook'])
 
-
     def backwards(self, orm):
         # Deleting model 'ServiceHook'
         db.delete_table('sentry_servicehook')
-
 
     models = {
         'sentry.activity': {
