@@ -127,3 +127,9 @@ class OrganizationTest(TestCase):
         user = self.create_user('foo@example.com')
         org = self.create_organization(owner=user)
         assert org.get_default_owner() == user
+
+    def test_flags_have_changed(self):
+        org = self.create_organization()
+        org.flags.early_adopter = True
+        assert org.flag_has_changed('early_adopter')
+        assert org.flag_has_changed('allow_joinleave') is False
