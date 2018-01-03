@@ -38,3 +38,4 @@ Gemfile.lock
 coverage.xml
 junit.xml
 *.codestyle.xml
+bundlesize.txt
