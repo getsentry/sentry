@@ -40,6 +40,7 @@ const forms = [
         type: 'boolean',
         label: 'Send Me Weekly Reports',
         help: "Reports contain a summary of what's happened within your organization.",
+        disabled: true,
       },
     ],
     fineTuning: {
