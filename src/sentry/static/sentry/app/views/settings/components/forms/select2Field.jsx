@@ -93,6 +93,7 @@ export default class Select2Field extends React.Component {
           return (
             <select
               disabled={disabled}
+              className="form-control"
               ref={ref => this.handleSelectMount(onBlur, onChange, ref)}
               style={{width: '100%'}}
               onChange={() => {}}
