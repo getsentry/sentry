@@ -21,7 +21,6 @@ class PullRequest(Model):
     title = models.TextField(null=True)
     message = models.TextField(null=True)
     author = FlexibleForeignKey('sentry.CommitAuthor', null=True)
-    synced_commits = models.BooleanField(default=False)
     merge_commit_sha = models.CharField(max_length=64, null=True)
 
     class Meta:
@@ -35,43 +34,3 @@ class PullRequest(Model):
     def find_referenced_groups(self):
         text = u'{} {}'.format(self.message, self.title)
         return find_referenced_groups(text, self.organization_id)
-
-    def set_commits(self, commit_list):
-        """
-        Bind a list of commits to this PR.
-
-        This will clear any existing commit log and replace it with the given
-        commits.
-        """
-        from sentry.models import Commit
-        from sentry.plugins.providers.repository import RepositoryProvider
-
-        commit_list = [
-            c for c in commit_list
-            if not RepositoryProvider.should_ignore_commit(c.get('message', ''))
-        ]
-
-        self.save()
-        self.commits.clear()
-
-        commits = Commit.objects.filter(
-            key__in=[c['sha'] for c in commit_list]
-        )
-
-        self.commits.add(*commits)
-
-    def fetch_commits(self, user):
-        from sentry.tasks.commits import fetch_pull_request_commits
-
-        if not self.synced_commits:
-
-            fetch_pull_request_commits.apply_async(
-                kwargs={
-                    'user_id': user.id,
-                    'pull_id': self.id,
-                }
-            )
-
-            self.update(
-                synced_commits=True
-            )

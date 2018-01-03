@@ -5,7 +5,7 @@ import logging
 from django.core.urlresolvers import reverse
 
 from sentry.exceptions import InvalidIdentity, PluginError
-from sentry.models import Deploy, Release, ReleaseHeadCommit, Repository, User, PullRequest
+from sentry.models import Deploy, Release, ReleaseHeadCommit, Repository, User
 from sentry.plugins import bindings
 from sentry.tasks.base import instrumented_task, retry
 from sentry.utils.email import MessageBuilder
@@ -181,73 +181,3 @@ def fetch_commits(release_id, user_id, refs, prev_release_id=None, **kwargs):
         )
         for d_id in deploys:
             Deploy.notify_if_ready(d_id, fetch_complete=True)
-
-
-@instrumented_task(
-    name='sentry.tasks.commits.fetch_pull_request_commits',
-    queue='commits',
-    default_retry_delay=60 * 5,
-    max_retries=5
-)
-@retry(exclude=(User.DoesNotExist, ))
-def fetch_pull_request_commits(pull_id, user_id, **kwargs):
-    pr = PullRequest.objects.get(id=pull_id)
-    user = User.objects.get(id=user_id)
-
-    try:
-        repo = Repository.objects.get(
-            id=pr.repository_id,
-        )
-    except Repository.DoesNotExist:
-        logger.info(
-            'repository.missing',
-            extra={
-                'organization_id': pr.organization_id,
-                'repository_id': pr.repository_id,
-                'user_id': user_id,
-            }
-        )
-        raise
-
-    provider_cls = bindings.get('repository.provider').get(repo.provider)
-
-    provider = provider_cls(id=repo.provider)
-    pull_request_commits = []
-    try:
-        pull_request_commits = provider.get_pr_commits(repo, pr.key, actor=user)
-    except NotImplementedError:
-        pass
-    except Exception as exc:
-        logger.exception(
-            'fetch_pull_request_commits.error',
-            exc_info=True,
-            extra={
-                'organization_id': pr.organization_id,
-                'repository_id': pr.repository_id,
-                'user_id': user_id,
-                'num': pr.key,
-            }
-        )
-        if isinstance(exc, InvalidIdentity) and getattr(exc, 'identity', None):
-            handle_invalid_identity(identity=exc.identity, commit_failure=True)
-        elif isinstance(exc, PluginError):
-            msg = generate_fetch_commits_pr_error_email(pr, exc.message)
-            msg.send_async(to=[user.email])
-        else:
-            msg = generate_fetch_commits_pr_error_email(
-                pr, 'An internal system error occurred.')
-            msg.send_async(to=[user.email])
-
-    logger.info(
-        'fetch_pull_request_commits.complete',
-        extra={
-            'organization_id': repo.organization_id,
-            'user_id': user_id,
-            'repository': repo.name,
-            'num': pr.key,
-            'num_commits': len(pull_request_commits),
-        }
-    )
-
-    if pull_request_commits:
-        pr.set_commits(pull_request_commits)
