@@ -79,7 +79,7 @@ class ActivitySerializer(Serializer):
             }
         elif obj.type == Activity.SET_RESOLVED_IN_PULL_REQUEST:
             data = {
-                'pull_request': attrs['pull_request'],
+                'pullRequest': attrs['pull_request'],
             }
         elif obj.type == Activity.UNMERGE_DESTINATION:
             data = {

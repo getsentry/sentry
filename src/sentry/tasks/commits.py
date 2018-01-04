@@ -43,21 +43,7 @@ def generate_fetch_commits_error_email(release, error_message):
     )
 
 
-def generate_fetch_commits_pr_error_email(pr, error_message):
-    new_context = {
-        'pr': pr,
-        'error_message': error_message,
-    }
-
-    return MessageBuilder(
-        subject='Unable to Fetch Commits',
-        context=new_context,
-        template='sentry/emails/unable-to-fetch-commits-pr.txt',
-        html_template='sentry/emails/unable-to-fetch-commits-pr.html',
-    )
-
 # we're future proofing this function a bit so it could be used with other code
-
 
 def handle_invalid_identity(identity, commit_failure=False):
     # email the user

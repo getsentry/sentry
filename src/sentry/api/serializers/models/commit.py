@@ -4,11 +4,13 @@ import six
 
 from sentry.api.serializers import Serializer, register, serialize
 from sentry.models import Commit, Repository
-from sentry.api.serializers.models.release import get_users_for_authors
+from sentry.api.serializers.models.release import get_users_for_authors, CommitAuthor
 
 
 def get_users_for_commits(item_list, user=None):
-    authors = list(i.author for i in item_list if i.author_id)
+    authors = list(
+        CommitAuthor.objects.filter(id__in=[i.author_id for i in item_list if i.author_id])
+    )
 
     if authors:
         org_ids = set(item.organization_id for item in item_list)
@@ -31,9 +33,8 @@ class CommitSerializer(Serializer):
                 id__in=[c.repository_id for c in item_list],
             )), user
         )
-        repository_objs = {}
-        for repository in repositories:
-            repository_objs[repository['id']] = repository
+
+        repository_objs = {repository['id']: repository for repository in repositories}
 
         result = {}
         for item in item_list:

@@ -472,13 +472,13 @@ class Release(Model):
                     last_commit_id=latest_commit.id if latest_commit else None,
                 )
 
-        release_commit_ids = list(ReleaseCommit.objects.filter(
-            release=self).values_list('commit_id', flat=True))
+        release_commits = list(ReleaseCommit.objects.filter(
+            release=self).values('commit_id', 'key'))
 
         commit_resolutions = list(
             GroupLink.objects.filter(
                 linked_type=GroupLink.LinkedType.commit,
-                linked_id__in=release_commit_ids,
+                linked_id__in=[rc['commit_id'] for rc in release_commits],
             ).values_list('group_id', 'linked_id')
         )
 
@@ -487,7 +487,7 @@ class Release(Model):
              commit_author_by_commit.get(cr[1])) for cr in commit_resolutions]
 
         pr_ids_by_merge_commit = list(PullRequest.objects.filter(
-            merge_commit_sha__in=release_commit_ids,
+            merge_commit_sha__in=[rc['key'] for rc in release_commits],
         ).values_list('id', flat=True))
 
         pull_request_resolutions = list(
