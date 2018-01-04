@@ -472,8 +472,8 @@ class Release(Model):
                     last_commit_id=latest_commit.id if latest_commit else None,
                 )
 
-        release_commits = list(ReleaseCommit.objects.filter(
-            release=self).select_related('commit').values('commit_id', 'commit__key'))
+        release_commits = list(ReleaseCommit.objects.filter(release=self)
+                               .select_related('commit').values('commit_id', 'commit__key'))
 
         commit_resolutions = list(
             GroupLink.objects.filter(
@@ -498,17 +498,19 @@ class Release(Model):
             ).values_list('group_id', 'linked_id')
         )
 
-        pr_authors = dict(PullRequest.objects.filter(
+        pr_authors = list(PullRequest.objects.filter(
             id__in=[prr[1] for prr in pull_request_resolutions],
-        ).values_list('id', 'author'))
+        ).select_related('author'))
 
-        pull_request_group_authors = [
-            (pr[0],
-             pr_authors.get(pr[1])
-             ) for pr in pull_request_resolutions
-        ]
+        pr_authors_dict = {
+            pra.id: pra.author for pra in pr_authors
+        }
+
+        pull_request_group_authors = [(prr[0], pr_authors_dict.get(prr[1]))
+                                      for prr in pull_request_resolutions]
 
         user_by_author = {None: None}
+
         for group_id, author in itertools.chain(commit_group_authors, pull_request_group_authors):
             if author not in user_by_author:
                 try:
