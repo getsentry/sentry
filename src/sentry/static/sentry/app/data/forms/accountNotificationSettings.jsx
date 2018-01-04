@@ -11,7 +11,7 @@ const forms = [
     ],
     fineTuning: {
       text: 'Fine tune alerts by project',
-      path: 'alerts/',
+      path: 'project-alerts/',
     },
   },
 
