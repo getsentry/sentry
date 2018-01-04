@@ -2,12 +2,9 @@ import {Redirect, Route, IndexRoute, IndexRedirect} from 'react-router';
 import React from 'react';
 
 import AccountAuthorizations from './views/accountAuthorizations';
-import AccountLayout from './views/accountLayout';
-import AccountSettingsLayout from './views/settings/account/accountSettingsLayout';
-import AccountNotifications from './views/settings/account/accountNotifications';
-import AccountNotificationFineTuning from './views/settings/account/accountNotificationFineTuning';
-import AccountEmails from './views/settings/account/accountEmails';
 import AccountAvatar from './views/settings/account/avatar';
+import AccountEmails from './views/settings/account/accountEmails';
+import AccountLayout from './views/accountLayout';
 
 import AdminBuffer from './views/adminBuffer';
 import AdminLayout from './views/adminLayout';
@@ -36,6 +33,7 @@ import GroupTags from './views/groupTags';
 import GroupUserReports from './views/groupUserReports';
 import HookStore from './stores/hookStore';
 import InviteMember from './views/inviteMember/inviteMember';
+import LazyLoad from './components/lazyLoad';
 import MyIssuesAssignedToMe from './views/myIssues/assignedToMe';
 import MyIssuesBookmarked from './views/myIssues/bookmarked';
 import MyIssuesViewed from './views/myIssues/viewed';
@@ -59,7 +57,6 @@ import OrganizationProjectsView from './views/settings/organization/projects/org
 import OrganizationRateLimits from './views/organizationRateLimits';
 import OrganizationRepositoriesView from './views/organizationRepositoriesView';
 import OrganizationGeneralSettingsView from './views/settings/organization/general/organizationGeneralSettingsView';
-import OrganizationSettingsLayout from './views/settings/organization/organizationSettingsLayout';
 import OrganizationStats from './views/organizationStats';
 import OrganizationTeams from './views/organizationTeams';
 import ProjectAlertRules from './views/projectAlertRules';
@@ -87,7 +84,6 @@ import ProjectReleaseTracking from './views/projectReleaseTracking';
 import ProjectReleases from './views/projectReleases';
 import ProjectSavedSearches from './views/projectSavedSearches';
 import ProjectSettings from './views/projectSettings';
-import ProjectSettingsLayout from './views/settings/project/projectSettingsLayout';
 import ProjectUserReportSettings from './views/projectUserReportSettings';
 import ProjectUserReports from './views/projectUserReports';
 import ProjectPlugins from './views/projectPlugins';
@@ -100,8 +96,6 @@ import ReleaseNewEvents from './views/releaseNewEvents';
 import ReleaseOverview from './views/releases/releaseOverview';
 import RouteNotFound from './views/routeNotFound';
 import SetCallsignsAction from './views/requiredAdminActions/setCallsigns';
-import SettingsIndex from './views/settings/settingsIndex';
-import SettingsWrapper from './views/settings/settingsWrapper';
 import SettingsProjectProvider from './views/settings/settingsProjectProvider';
 import SharedGroupDetails from './views/sharedGroupDetails';
 import Stream from './views/stream';
@@ -118,16 +112,27 @@ function appendTrailingSlash(nextState, replaceState) {
   }
 }
 
+function getDefaultModule(module) {
+  return module.default;
+}
+
 const accountSettingsRoutes = [
   <IndexRedirect key="account-settings-index" to="notifications/" />,
   <Route key="notifications/" path="notifications/" name="Notifications">
-    <IndexRoute component={errorHandler(AccountNotifications)} />,
+    <IndexRoute
+      getComponent={() =>
+        import('./views/settings/account/accountNotifications').then(getDefaultModule)}
+      component={errorHandler(LazyLoad)}
+    />
     <Route
-      key="project-alerts/"
       path="project-alerts/"
       name="Fine Tune Alerts"
-      component={errorHandler(AccountNotificationFineTuning)}
-    />,
+      getComponent={() =>
+        import('./views/settings/account/accountNotificationFineTuning').then(
+          getDefaultModule
+        )}
+      component={errorHandler(LazyLoad)}
+    />
   </Route>,
   <Route
     key="emails/"
@@ -412,12 +417,28 @@ function routes() {
         newnew
         path="/settings/"
         name="Settings"
-        component={errorHandler(SettingsWrapper)}
+        getComponent={() =>
+          import('./views/settings/settingsWrapper').then(getDefaultModule)}
+        component={errorHandler(LazyLoad)}
       >
-        <IndexRoute component={errorHandler(SettingsIndex)} />
-        <Route path="account/" name="Account" component={AccountSettingsLayout}>
+        <IndexRoute
+          getComponent={() =>
+            import('./views/settings/settingsIndex').then(getDefaultModule)}
+          component={errorHandler(LazyLoad)}
+        />
+
+        <Route
+          path="account/"
+          name="Account"
+          getComponent={() =>
+            import('./views/settings/account/accountSettingsLayout').then(
+              getDefaultModule
+            )}
+          component={LazyLoad}
+        >
           {accountSettingsRoutes}
         </Route>
+
         <Route path="organization/">
           <IndexRoute component={errorHandler(OrganizationPicker)} />
 
@@ -426,7 +447,13 @@ function routes() {
             path=":orgId/"
             component={errorHandler(OrganizationContext)}
           >
-            <Route component={errorHandler(OrganizationSettingsLayout)}>
+            <Route
+              getComponent={() =>
+                import('./views/settings/organization/organizationSettingsLayout').then(
+                  getDefaultModule
+                )}
+              component={errorHandler(LazyLoad)}
+            >
               {orgSettingsRoutes}
             </Route>
 
@@ -435,7 +462,11 @@ function routes() {
               <Route
                 name="Project"
                 path=":projectId/"
-                component={errorHandler(ProjectSettingsLayout)}
+                getComponent={() =>
+                  import('./views/settings/project/projectSettingsLayout').then(
+                    getDefaultModule
+                  )}
+                component={errorHandler(LazyLoad)}
               >
                 <Route component={errorHandler(SettingsProjectProvider)}>
                   {projectSettingsRoutes}
