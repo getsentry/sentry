@@ -33,10 +33,10 @@ export default class ActionLink extends React.Component {
       children,
     } = this.props;
 
-    if (shouldConfirm) {
+    if (shouldConfirm && !disabled) {
       return (
         <Confirm message={message} confirmText={confirmLabel} onConfirm={onAction}>
-          <a className={className} title={title} disabled={disabled}>
+          <a className={className} title={title}>
             {' '}
             {children}
           </a>
