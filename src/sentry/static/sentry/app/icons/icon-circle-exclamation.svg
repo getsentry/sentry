@@ -1,7 +1,7 @@
-<svg viewBox="0 0 15 15">
+<svg viewBox="0 0 18 18">
   <g stroke="currentColor" fill="none" stroke-linejoin="round" stroke-linecap="round">
-    <circle cx="7.5" cy="7.5" r="7" />
-    <path d="M7.5,3.5 L7.5,8.5" />
-    <path d="M7.5,10.5 L7.5,11.5" />
+    <circle cx="9" cy="9" r="8"></circle>
+    <path d="M9,5 L9,10"></path>
+    <path d="M9,12 L9,13"></path>
   </g>
 </svg>

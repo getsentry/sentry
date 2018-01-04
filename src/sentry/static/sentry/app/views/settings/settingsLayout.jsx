@@ -11,7 +11,7 @@ import SettingsHeader from './components/settingsHeader';
 import SettingsSearch from './components/settingsSearch';
 
 const StyledIconCircleExclamation = styled(props => (
-  <InlineSvg size="32px" src="icon-circle-exclamation" {...props} />
+  <InlineSvg size="36px" src="icon-circle-exclamation" {...props} />
 ))`
   color: ${p => p.theme.blue};
   opacity: 0.6;
