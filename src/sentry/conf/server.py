@@ -746,6 +746,7 @@ SENTRY_FEATURES = {
     'organizations:integrations-v3': False,
     'organizations:invite-members': True,
     'organizations:new-settings': False,
+    'organizations:require-2fa': False,
     'projects:global-events': False,
     'projects:plugins': True,
     'projects:dsym': False,
