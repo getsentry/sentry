@@ -72,8 +72,8 @@ const GroupActivity = createReactClass({
           version: (
             <PullRequestLink
               inline={true}
-              pullRequestId={data.pull_request.id}
-              repository={data.pull_request.repository}
+              pullRequestId={data.pullRequest.id}
+              repository={data.pullRequest.repository}
             />
           ),
         });
