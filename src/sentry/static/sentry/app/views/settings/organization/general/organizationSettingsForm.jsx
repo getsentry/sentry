@@ -12,6 +12,7 @@ import ApiMixin from '../../../../mixins/apiMixin';
 import Form from '../../components/forms/form';
 import JsonForm from '../../components/forms/jsonForm';
 import organizationSettingsFields from '../../../../data/forms/organizationGeneralSettings';
+import OrganizationState from '../../../../mixins/organizationState';
 
 const TOAST_DURATION = 10000;
 
@@ -26,10 +27,24 @@ const NewOrganizationSettingsForm = createReactClass({
     onSave: PropTypes.func.isRequired,
   },
 
-  mixins: [ApiMixin],
+  mixins: [ApiMixin, OrganizationState],
 
   render() {
     let {initialData, orgId, onSave, access} = this.props;
+
+    //Only for adding the Flag to 2FA Enforcement.
+    if (this.getFeatures().has('require-2fa')) {
+      let security_panel = organizationSettingsFields.find(
+        panel => panel.title == 'Security & Privacy'
+      );
+      if (!security_panel.fields.find(field => field.name == 'require2FA'))
+        security_panel.fields.unshift({
+          name: 'require2FA',
+          type: 'boolean',
+          label: 'Require Two-Factor Authentication',
+          help: 'Require two-factor authentication for all members.',
+        });
+    }
 
     return (
       <Form
@@ -56,7 +71,14 @@ const NewOrganizationSettingsForm = createReactClass({
             onSave(initialData, model.initialData);
           }
         }}
-        onSubmitError={() => addErrorMessage('Unable to save change', TOAST_DURATION)}
+        onSubmitError={error => {
+          if (error.responseJSON && 'require2FA' in error.responseJSON)
+            return addErrorMessage(
+              'Unable to save change. Enable two-factor authentication on your account first.',
+              TOAST_DURATION
+            );
+          return addErrorMessage('Unable to save change', TOAST_DURATION);
+        }}
       >
         <Box>
           <JsonForm

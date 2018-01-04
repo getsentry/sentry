@@ -12,6 +12,7 @@ import IndicatorStore from '../../../../stores/indicatorStore';
 import Select2Field from '../../../../components/forms/select2Field';
 import TextField from '../../../../components/forms/textField';
 import TextareaField from '../../../../components/forms/textareaField';
+import OrganizationState from '../../../../mixins/organizationState';
 
 const OldOrganizationSettingsForm = createReactClass({
   displayName: 'OldOrganizationSettingsForm',
@@ -23,7 +24,7 @@ const OldOrganizationSettingsForm = createReactClass({
     onSave: PropTypes.func.isRequired,
   },
 
-  mixins: [ApiMixin],
+  mixins: [ApiMixin, OrganizationState],
 
   getInitialState() {
     return {
@@ -40,6 +41,7 @@ const OldOrganizationSettingsForm = createReactClass({
       openMembership: data.openMembership,
       allowSharedIssues: data.allowSharedIssues,
       isEarlyAdopter: data.isEarlyAdopter,
+      require2FA: data.require2FA,
       enhancedPrivacy: data.enhancedPrivacy,
       dataScrubber: data.dataScrubber,
       dataScrubberDefaults: data.dataScrubberDefaults,
@@ -47,6 +49,7 @@ const OldOrganizationSettingsForm = createReactClass({
       safeFields: data.safeFields.join('\n'),
       sensitiveFields: data.sensitiveFields.join('\n'),
     };
+
     if (this.props.access.has('org:admin')) {
       result.defaultRole = data.defaultRole;
     }
@@ -218,6 +221,18 @@ const OldOrganizationSettingsForm = createReactClass({
               />
 
               <legend>{t('Security & Privacy')}</legend>
+              {this.getFeatures().has('require-2fa') && (
+                <BooleanField
+                  key="require2FA"
+                  name="require2FA"
+                  label={t('Require Two-Factor Authentication')}
+                  value={formData.require2FA}
+                  help={t('Require two-factor authentication for all members.')}
+                  required={false}
+                  error={errors.require2FA}
+                  onChange={this.onFieldChange.bind(this, 'require2FA')}
+                />
+              )}
 
               <BooleanField
                 key="allowSharedIssues"

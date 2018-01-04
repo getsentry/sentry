@@ -93,6 +93,8 @@ class DetailedOrganizationSerializer(OrganizationSerializer):
             feature_list.append('integrations-v3')
         if features.has('organizations:new-settings', obj, actor=user):
             feature_list.append('new-settings')
+        if features.has('organizations:require-2fa', obj, actor=user):
+            feature_list.append('require-2fa')
 
         if getattr(obj.flags, 'allow_joinleave'):
             feature_list.append('open-membership')
@@ -132,6 +134,7 @@ class DetailedOrganizationSerializer(OrganizationSerializer):
                     'name': r.name,
                 } for r in roles.get_all()],
                 'openMembership': bool(obj.flags.allow_joinleave),
+                'require2FA': bool(obj.flags.require_2fa),
                 'allowSharedIssues': not obj.flags.disable_shared_issues,
                 'enhancedPrivacy': bool(obj.flags.enhanced_privacy),
                 'dataScrubber': bool(obj.get_option('sentry:require_scrub_data', False)),

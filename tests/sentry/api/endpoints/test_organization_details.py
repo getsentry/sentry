@@ -12,7 +12,9 @@ from sentry.models import (
     OrganizationAvatar,
     OrganizationOption,
     OrganizationStatus,
-    DeletedOrganization)
+    DeletedOrganization,
+    Authenticator,
+    TotpInterface)
 from sentry.signals import project_created
 from sentry.testutils import APITestCase
 
@@ -383,3 +385,73 @@ class OrganizationDeleteTest(APITestCase):
             response = self.client.delete(url)
 
         assert response.status_code == 400, response.data
+
+
+class OrganizationSettings2FATest(APITestCase):
+    def enable_user_2fa(self, user):
+        TotpInterface().enroll(user)
+        assert Authenticator.objects.user_has_2fa(user)
+
+    def assert_can_enable_org_2fa(self, organization, user, status_code=200):
+        self.__helper_enable_organization_2fa(organization, user, status_code)
+
+    def assert_cannot_enable_org_2fa(self, organization, user, status_code):
+        self.__helper_enable_organization_2fa(organization, user, status_code)
+
+    def __helper_enable_organization_2fa(self, organization, user, status_code):
+        def enable_org_2fa():
+            self.login_as(user)
+            url = reverse(
+                'sentry-api-0-organization-details', kwargs={
+                    'organization_slug': organization.slug,
+                }
+            )
+            response = self.client.put(
+                url,
+                data={
+                    'require2FA': True,
+                }
+            )
+            return response
+
+        response = enable_org_2fa()
+
+        assert response.status_code == status_code, response.content
+        organization = Organization.objects.get(id=organization.id)
+
+        if status_code in range(200, 300):
+            assert organization.flags.require_2fa
+        else:
+            assert not organization.flags.require_2fa
+
+    def test_cannot_enforce_2fa_without_2fa_enabled(self):
+        owner = self.create_user()
+        organization = self.create_organization(owner=owner)
+
+        assert not Authenticator.objects.user_has_2fa(owner)
+        self.assert_cannot_enable_org_2fa(organization, owner, 400)
+
+    def test_owner_can_set_2fa(self):
+        owner = self.create_user()
+        organization = self.create_organization(owner=owner)
+
+        self.enable_user_2fa(owner)
+        self.assert_can_enable_org_2fa(organization, owner)
+
+    def test_manager_can_set_2fa(self):
+        manager = self.create_user()
+        organization = self.create_organization(owner=self.create_user())
+        self.create_member(organization=organization, user=manager, role="manager")
+
+        self.assert_cannot_enable_org_2fa(organization, manager, 400)
+        self.enable_user_2fa(manager)
+        self.assert_can_enable_org_2fa(organization, manager)
+
+    def test_members_cannot_set_2fa(self):
+        member = self.create_user()
+        organization = self.create_organization(owner=self.create_user())
+        self.create_member(organization=organization, user=member, role="member")
+
+        self.assert_cannot_enable_org_2fa(organization, member, 403)
+        self.enable_user_2fa(member)
+        self.assert_cannot_enable_org_2fa(organization, member, 403)
