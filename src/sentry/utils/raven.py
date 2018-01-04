@@ -8,10 +8,8 @@ import six
 import time
 
 from django.conf import settings
-from django.test import RequestFactory
 from raven.contrib.django.client import DjangoClient
 from raven.utils import get_auth_header
-from sentry.models import ProjectKey
 
 from . import metrics
 
@@ -30,7 +28,7 @@ def is_current_event_safe():
 
 
 class SentryInternalClient(DjangoClient):
-    request_factory = RequestFactory()
+    request_factory = None
 
     def is_enabled(self):
         if getattr(settings, 'DISABLE_RAVEN', False):
@@ -62,6 +60,12 @@ class SentryInternalClient(DjangoClient):
         if not is_current_event_safe():
             return
 
+        # These imports all need to be internal to this function as this class
+        # is set up by django while still parsing LOGGING settings and we
+        # cannot import this stuff until settings are finalized.
+        from sentry.models import ProjectKey
+        from sentry.web.api import StoreView
+        from django.test import RequestFactory
         key = None
         if settings.SENTRY_PROJECT_KEY is not None:
             key = ProjectKey.objects.filter(
@@ -83,13 +87,13 @@ class SentryInternalClient(DjangoClient):
             ),
             'HTTP_CONTENT_ENCODING': self.get_content_encoding(),
         }
+        self.request_factory = self.request_factory or RequestFactory()
         request = self.request_factory.post(
             '/api/store',
             data=self.encode(kwargs),
             content_type='application/octet-stream',
             **headers
         )
-        from sentry.web.api import StoreView
         StoreView.as_view()(
             request,
             project_id=six.text_type(settings.SENTRY_PROJECT),
