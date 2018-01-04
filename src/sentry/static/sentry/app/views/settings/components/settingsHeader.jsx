@@ -13,7 +13,7 @@ const SettingsHeader = styled(Flex)`
     #fcfcfc 80%,
     rgba(255, 255, 255, 0.2) 100%
   );
-  z-index: ${p => p.theme.zIndex.sticky};
+  z-index: ${p => p.theme.zIndex.header};
 `;
 
 export default SettingsHeader;

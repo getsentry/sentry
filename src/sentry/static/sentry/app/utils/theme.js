@@ -50,7 +50,7 @@ const theme = {
 
   zIndex: {
     sidebar: 100,
-    sticky: 1000,
+    header: 1000,
     dropdown: 1001,
     modal: 10000,
   },
