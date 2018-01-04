@@ -17,7 +17,7 @@ export default class FieldFromConfig extends React.Component {
   static propTypes = {
     field: PropTypes.shape({
       name: PropTypes.string,
-      type: PropTypes.oneOf(['string', 'array', 'boolean', 'radio']),
+      type: PropTypes.oneOf(['string', 'array', 'boolean', 'radio', 'select']),
       required: PropTypes.bool,
       multiline: PropTypes.bool,
       label: PropTypes.oneOfType([PropTypes.string, PropTypes.func]),
