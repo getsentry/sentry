@@ -2,10 +2,10 @@ import PropTypes from 'prop-types';
 import React from 'react';
 import createReactClass from 'create-react-class';
 import Reflux from 'reflux';
+import {connect} from 'react-redux';
 import DocumentTitle from 'react-document-title';
 
 import ApiMixin from '../../mixins/apiMixin';
-import EnvironmentStore from '../../stores/environmentStore';
 import MemberListStore from '../../stores/memberListStore';
 import LoadingError from '../../components/loadingError';
 import LoadingIndicator from '../../components/loadingIndicator';
@@ -16,6 +16,8 @@ import TeamStore from '../../stores/teamStore';
 import ProjectsStore from '../../stores/projectsStore';
 import {setActiveProject} from '../../actionCreators/projects';
 import {t} from '../../locale';
+
+import {updateEnvironments} from '../../actionsRedux/actions';
 
 const ERROR_TYPES = {
   MISSING_MEMBERSHIP: 'MISSING_MEMBERSHIP',
@@ -36,6 +38,7 @@ const ProjectContext = createReactClass({
   propTypes: {
     projectId: PropTypes.string,
     orgId: PropTypes.string,
+    updateEnvironments: PropTypes.func,
   },
 
   childContextTypes: {
@@ -192,7 +195,7 @@ const ProjectContext = createReactClass({
 
       this.api.request(this.getEnvironmentListEndpoint(), {
         success: data => {
-          EnvironmentStore.loadInitialData(data);
+          this.props.updateEnvironments(data);
         },
       });
 
@@ -269,4 +272,6 @@ const ProjectContext = createReactClass({
   },
 });
 
-export default ProjectContext;
+export default connect(state => state, {
+  updateEnvironments,
+})(ProjectContext);

@@ -1,11 +1,11 @@
 import PropTypes from 'prop-types';
 import React from 'react';
+import {connect} from 'react-redux';
 import createReactClass from 'create-react-class';
 import {browserHistory} from 'react-router';
 
 import ApiMixin from '../../mixins/apiMixin';
 import DropdownLink from '../dropdownLink';
-import EnvironmentStore from '../../stores/environmentStore';
 import LoadingIndicator from '../loadingIndicator';
 import LoadingError from '../loadingError';
 import GroupState from '../../mixins/groupState';
@@ -25,14 +25,13 @@ const PRODUCTION_ENV_NAMES = new Set([
   'trunk',
 ]);
 
-// TODO(dcramer): this should listen to EnvironmentStore
-// changes
 const GroupReleaseStats = createReactClass({
   displayName: 'GroupReleaseStats',
 
   propTypes: {
     defaultEnvironment: PropTypes.string,
     group: PropTypes.object,
+    envs: PropTypes.array,
   },
 
   mixins: [ApiMixin, GroupState],
@@ -44,7 +43,7 @@ const GroupReleaseStats = createReactClass({
   },
 
   getInitialState() {
-    let envList = EnvironmentStore.getAll();
+    let envList = this.props.envs;
     let queryParams = this.props.location.query;
 
     let selectedEnvironment = queryParams.hasOwnProperty('environment')
@@ -249,4 +248,8 @@ const GroupReleaseStats = createReactClass({
   },
 });
 
-export default GroupReleaseStats;
+const mapStateToProps = state => {
+  return state.environment;
+};
+
+export default connect(mapStateToProps)(GroupReleaseStats);

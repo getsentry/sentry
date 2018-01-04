@@ -152,6 +152,7 @@
     "jest-glamor-react": "^3.1.2",
     "prettier": "1.7.4",
     "react-test-renderer": "15.6.2",
+    "redux-mock-store": "^1.4.0",
     "sinon": "1.17.2",
     "sinon-chai": "2.8.0",
     "webpack-dev-server": "^2.7.1"

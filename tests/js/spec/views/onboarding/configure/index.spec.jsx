@@ -1,6 +1,7 @@
 import React from 'react';
+import {Provider} from 'react-redux';
 import {shallow, mount} from 'enzyme';
-
+import configureStore from 'redux-mock-store';
 import {Client} from 'app/api';
 import Configure from 'app/views/onboarding/configure';
 import SentryTypes from '../../../../../../src/sentry/static/sentry/app/proptypes';
@@ -34,7 +35,9 @@ describe('Configure should render correctly', function() {
       props.params.platform = 'node';
 
       let wrapper = shallow(<Configure {...props} />, {
-        context: {organization: {id: '1337', slug: 'testOrg', teams: [['testProject']]}},
+        context: {
+          organization: {id: '1337', slug: 'testOrg', teams: [['testProject']]},
+        },
         childContextTypes: {organization: SentryTypes.Organization},
       });
 
@@ -80,28 +83,33 @@ describe('Configure should render correctly', function() {
       };
       props.params.platform = 'node';
 
-      let wrapper = mount(<Configure {...props} />, {
-        context: {
-          organization: {
-            id: '1337',
-            slug: 'testOrg',
-            teams: [
-              {
-                id: 'coolteam',
-                hasAccess: true,
-                projects: [
-                  {
-                    name: 'Test Project',
-                    slug: 'testProject',
-                    id: 'testProject',
-                  },
-                ],
-              },
-            ],
+      let wrapper = mount(
+        <Provider store={configureStore([])({})}>
+          <Configure {...props} />
+        </Provider>,
+        {
+          context: {
+            organization: {
+              id: '1337',
+              slug: 'testOrg',
+              teams: [
+                {
+                  id: 'coolteam',
+                  hasAccess: true,
+                  projects: [
+                    {
+                      name: 'Test Project',
+                      slug: 'testProject',
+                      id: 'testProject',
+                    },
+                  ],
+                },
+              ],
+            },
           },
-        },
-        childContextTypes: {organization: SentryTypes.Organization},
-      });
+          childContextTypes: {organization: SentryTypes.Organization},
+        }
+      );
       expect(wrapper).toMatchSnapshot();
       expect(stubbedApiRequest.callCount).toEqual(5);
     });
