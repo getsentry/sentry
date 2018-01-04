@@ -66,7 +66,7 @@ class FormField extends React.Component {
 
     label: PropTypes.string,
     defaultValue: PropTypes.any,
-    disabled: PropTypes.bool,
+    disabled: PropTypes.oneOfType([PropTypes.bool, PropTypes.func]),
     disabledReason: PropTypes.string,
     help: PropTypes.oneOfType([PropTypes.string, PropTypes.element]),
     required: PropTypes.bool,
@@ -140,22 +140,6 @@ class FormField extends React.Component {
   };
 
   /**
-   * Set field's hover state and propagate callbacks
-   */
-  handleHover = (mouseOver, ...args) => {
-    let {name, onMouseOver, onMouseOut} = this.props;
-    let model = this.getModel();
-
-    model.setFieldState(name, FormState.HOVER, mouseOver);
-    if (onMouseOver) {
-      onMouseOver(...args);
-    }
-    if (onMouseOut) {
-      onMouseOut(...args);
-    }
-  };
-
-  /**
    * Update field value in form model
    */
   handleChange = (...args) => {
@@ -215,13 +199,10 @@ class FormField extends React.Component {
     } = this.props;
     let id = this.getId();
     let model = this.getModel();
+    let isDisabled = typeof disabled === 'function' ? disabled(this.props) : disabled;
 
     return (
-      <FormFieldWrapper
-        highlighted={highlighted}
-        onMouseOver={e => this.handleHover(true, e)}
-        onMouseOut={e => this.handleHover(false, e)}
-      >
+      <FormFieldWrapper highlighted={highlighted}>
         <FormFieldDescription>
           {label && (
             <FormFieldLabel>
@@ -242,19 +223,20 @@ class FormField extends React.Component {
                   {...{
                     ...this.props,
                     id,
-                    hover: model.getFieldState(this.props.name, FormState.HOVER),
                     onKeyDown: this.handleKeyDown,
                     onChange: this.handleChange,
                     onBlur: this.handleBlur,
                     value,
                     error,
+                    disabled: isDisabled,
                   }}
+                  initialData={model.initialData}
                 />
               );
             }}
           </Observer>
 
-          {disabled &&
+          {isDisabled &&
             disabledReason && (
               <span className="disabled-indicator tip" title={disabledReason}>
                 <span className="icon-question" />
