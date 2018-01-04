@@ -33,33 +33,21 @@ class OrganizationSettingsTest(AcceptanceTestCase):
         assert self.browser.element_exists('.ref-organization-settings')
 
     def renders_2fa_setting(self):
-        return self.browser.element_exists(
-            '#id-require2FA') or self.browser.element_exists('#require2FA')
+        return self.browser.element_exists('#id-require2FA')
 
     def test_simple(self):
         self.browser.get(self.path)
         self.load_organization_helper("Simple")
 
-    def test_disabled_2fa_feature_old_settings(self):
+    def test_disabled_2fa_feature(self):
         user_owner = self.create_user('owner@example.com')
         organization = self.create_organization(name="Example", owner=user_owner)
         self.login_as(user_owner)
         path = '/organizations/%s/settings/' % organization.slug
 
         self.browser.get(path)
-        self.load_organization_helper("old settings disabled 2fa feature")
+        self.load_organization_helper("disabled 2fa feature")
         assert not self.renders_2fa_setting()
-
-    def test_disabled_2fa_feature_new_settings(self):
-        user_owner = self.create_user('owner@example.com')
-        organization = self.create_organization(name="Example", owner=user_owner)
-        self.login_as(user_owner)
-        path = '/organizations/%s/settings/' % organization.slug
-
-        with self.feature('organizations:new-settings'):
-            self.browser.get(path)
-            self.load_organization_helper("new settings disabled 2fa feature")
-            assert not self.renders_2fa_setting()
 
     def test_renders_2fa_setting_for_owner(self):
         user_owner = self.create_user('owner@example.com')
