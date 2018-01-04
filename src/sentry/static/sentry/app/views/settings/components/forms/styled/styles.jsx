@@ -17,23 +17,16 @@ const inputStyles = props => css`
   }
 
   ${p => {
-    if (props.hover) {
+    if (props.error) {
       return css`
-        background: ${props.error ? '#fff' : props.theme.offWhite};
-      `;
-    }
-    return '';
-  }} ${p => {
-      if (props.error) {
-        return css`
     background: #f7f7f9;
     &:hover, &:focus {
       background: #f7f7f9};
     }
     `;
-      }
-      return '';
-    }} &::placeholder {
+    }
+    return '';
+  }} &::placeholder {
     color: ${props.theme.gray2};
   }
 `;

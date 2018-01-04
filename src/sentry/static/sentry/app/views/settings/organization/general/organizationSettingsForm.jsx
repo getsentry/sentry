@@ -29,7 +29,7 @@ const NewOrganizationSettingsForm = createReactClass({
   mixins: [ApiMixin],
 
   render() {
-    let {initialData, orgId, onSave} = this.props;
+    let {initialData, orgId, onSave, access} = this.props;
 
     return (
       <Form
@@ -59,7 +59,11 @@ const NewOrganizationSettingsForm = createReactClass({
         onSubmitError={() => addErrorMessage('Unable to save change', TOAST_DURATION)}
       >
         <Box>
-          <JsonForm location={this.props.location} forms={organizationSettingsFields} />
+          <JsonForm
+            access={access}
+            location={this.props.location}
+            forms={organizationSettingsFields}
+          />
         </Box>
       </Form>
     );

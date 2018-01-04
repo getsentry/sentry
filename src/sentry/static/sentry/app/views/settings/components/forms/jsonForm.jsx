@@ -19,6 +19,7 @@ class JsonForm extends React.Component {
         fields: PropTypes.arrayOf(FieldFromConfig.propTypes.field),
       })
     ).isRequired,
+    access: PropTypes.object,
   };
 
   static contextTypes = {
@@ -53,7 +54,7 @@ class JsonForm extends React.Component {
   }
 
   render() {
-    let {forms, ...otherProps} = this.props;
+    let {forms, access, ...otherProps} = this.props;
 
     return (
       <Box>
@@ -64,6 +65,7 @@ class JsonForm extends React.Component {
               <PanelBody>
                 {fields.map(field => (
                   <FieldFromConfig
+                    access={access}
                     key={field.name}
                     {...otherProps}
                     field={field}
