@@ -4,7 +4,6 @@ import {Box} from 'grid-emotion';
 const FormFieldControl = styled(Box)`
   color: ${p => p.theme.gray3};
   position: relative;
-  overflow: hidden;
 `;
 
 export default FormFieldControl;
