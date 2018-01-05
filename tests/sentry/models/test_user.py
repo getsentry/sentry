@@ -2,6 +2,7 @@ from __future__ import absolute_import
 
 from sentry.models import Authenticator, OrganizationMember, User, UserEmail
 from sentry.testutils import TestCase
+from django.core import mail
 
 
 class UserDetailsTest(TestCase):
@@ -14,6 +15,18 @@ class UserDetailsTest(TestCase):
         assert user.name == 'hello world'
         assert user.email == 'b@example.com'
         assert user.get_salutation_name() == 'Hello'
+
+    def test_send_setup_2fa_email(self):
+        user = self.create_user()
+
+        with self.options({'system.url-prefix': 'http://example.com'}), self.tasks():
+            user.send_setup_2fa_email()
+
+        assert len(mail.outbox) == 1
+
+        msg = mail.outbox[0]
+
+        assert msg.to == [user.email]
 
 
 class UserMergeToTest(TestCase):

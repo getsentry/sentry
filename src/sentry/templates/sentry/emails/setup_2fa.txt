@@ -1,0 +1,14 @@
+{% if is_new_user %}
+Thanks for signing up for Sentry!
+{% endif %}
+
+Please setup your account's two-factor authentication by clicking the button below:
+
+{{ url|safe }}
+
+
+{% if is_new_user %}
+If you did not sign up, you may simply ignore this email.
+{% else %}
+If you did not make this request, you may simply ignore this email.
+{% endif %}

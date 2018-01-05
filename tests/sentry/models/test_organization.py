@@ -2,9 +2,10 @@ from __future__ import absolute_import
 
 from sentry.models import (
     Commit, File, OrganizationMember, OrganizationMemberTeam, Project, Release, ReleaseCommit,
-    ReleaseEnvironment, ReleaseFile, Team
+    ReleaseEnvironment, ReleaseFile, Team, TotpInterface
 )
 from sentry.testutils import TestCase
+from django.core import mail
 
 
 class OrganizationTest(TestCase):
@@ -133,3 +134,24 @@ class OrganizationTest(TestCase):
         org.flags.early_adopter = True
         assert org.flag_has_changed('early_adopter')
         assert org.flag_has_changed('allow_joinleave') is False
+
+    def test_send_setup_2fa_emails(self):
+        owner = self.create_user('foo@example.com')
+        TotpInterface().enroll(owner)
+        org = self.create_organization(owner=owner)
+        non_compliant_members = []
+        for num in range(0, 10):
+            user = self.create_user('foo_%s@example.com' % num)
+            self.create_member(organization=org, user=user)
+            if num % 2:
+                TotpInterface().enroll(user)
+            else:
+                non_compliant_members.append(user.email)
+
+        org.flags.require_2fa = True
+
+        with self.options({'system.url-prefix': 'http://example.com'}), self.tasks():
+            org.send_setup_2fa_emails()
+
+        assert len(mail.outbox) == len(non_compliant_members)
+        assert sorted([email.to[0] for email in mail.outbox]) == sorted(non_compliant_members)

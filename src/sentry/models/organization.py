@@ -24,9 +24,11 @@ from sentry.db.models import (BaseManager, BoundedPositiveIntegerField, Model, s
 from sentry.db.models.utils import slugify_instance
 from sentry.utils.http import absolute_uri
 from sentry.utils.retries import TimedRetryPolicy
-
+from sentry.models import Authenticator
 
 # TODO(dcramer): pull in enum library
+
+
 class OrganizationStatus(object):
     VISIBLE = 0
     PENDING_DELETION = 1
@@ -328,3 +330,9 @@ class Organization(Model):
     def flag_has_changed(self, flag_name):
         "Returns ``True`` if ``flag`` has changed since initialization."
         return getattr(self.old_value('flags'), flag_name, None) != getattr(self.flags, flag_name)
+
+    def send_setup_2fa_emails(self):
+        for member in self.member_set.all():
+            user = member.user
+            if not Authenticator.objects.user_has_2fa(user):
+                user.send_setup_2fa_email()

@@ -1,0 +1,12 @@
+{% extends "sentry/emails/base.html" %}
+
+{% load i18n %}
+
+{% block main %}
+    <h3>Setup Two-Factor Authentication</h3>
+    {% if is_new_user %}
+        <p>Thanks for signing up for Sentry!</p>
+    {% endif %}
+    <p>Please setup your account's two-factor authentication by clicking the button below.</p>
+    <a href="{{ url }}" class="btn">Confirm</a>
+{% endblock %}
