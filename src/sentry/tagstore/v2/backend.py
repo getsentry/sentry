@@ -232,6 +232,8 @@ class V2TagStorage(TagStorage):
                 project_id, environment_id, key, value, key_id=tagkey.id)
             tag_ids.append((tagkey.id, tagvalue.id))
 
+        date_added = timezone.now()
+
         try:
             # don't let a duplicate break the outer transaction
             with transaction.atomic():
@@ -245,6 +247,7 @@ class V2TagStorage(TagStorage):
                         event_id=event_id,
                         key_id=key_id,
                         value_id=value_id,
+                        date_added=date_added,
                     )
                     for key_id, value_id in tag_ids
                 ])
