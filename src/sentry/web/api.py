@@ -640,8 +640,10 @@ class SecurityReportView(StoreView):
         )
 
     def post(self, request, project, helper, **kwargs):
-        report_type = kwargs['report_type']
         json_body = helper.safely_load_json_string(request.body)
+        report_type = self.security_report_type(json_body)
+        if report_type is None:
+            raise APIError('Unrecognized security report type')
         interface = get_interface(report_type)
 
         try:
@@ -668,6 +670,18 @@ class SecurityReportView(StoreView):
         if isinstance(response_or_event_id, HttpResponse):
             return response_or_event_id
         return HttpResponse(status=201)
+
+    def security_report_type(self, body):
+        report_type_for_key = {
+            'csp-report': 'sentry.interfaces.Csp',
+            'expect-ct-report': 'expectct',
+            'expect-staple-report': 'expectstaple',
+        }
+        if isinstance(body, dict):
+            for k in report_type_for_key:
+                if k in body:
+                    return report_type_for_key[k]
+        return None
 
 
 @cache_control(max_age=3600, public=True)

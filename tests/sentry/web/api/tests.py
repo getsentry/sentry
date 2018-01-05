@@ -18,7 +18,7 @@ from sentry.utils.data_filters import FilterTypes
 class SecurityReportCspTest(TestCase):
     @fixture
     def path(self):
-        path = reverse('sentry-api-csp-report', kwargs={'project_id': self.project.id})
+        path = reverse('sentry-api-security-report', kwargs={'project_id': self.project.id})
         return path + '?sentry_key=%s' % self.projectkey.public_key
 
     def test_get_response(self):
@@ -76,7 +76,7 @@ class SecurityReportCspTest(TestCase):
 class SecurityReportExpectCTTest(TestCase):
     @fixture
     def path(self):
-        path = reverse('sentry-api-expectct-report', kwargs={'project_id': self.project.id})
+        path = reverse('sentry-api-security-report', kwargs={'project_id': self.project.id})
         return path + '?sentry_key=%s' % self.projectkey.public_key
 
     @mock.patch('sentry.web.api.is_valid_origin', mock.Mock(return_value=True))
@@ -112,7 +112,7 @@ class SecurityReportExpectCTTest(TestCase):
 class SecurityReportExpectStapleTest(TestCase):
     @fixture
     def path(self):
-        path = reverse('sentry-api-expectstaple-report', kwargs={'project_id': self.project.id})
+        path = reverse('sentry-api-security-report', kwargs={'project_id': self.project.id})
         return path + '?sentry_key=%s' % self.projectkey.public_key
 
     @mock.patch('sentry.web.api.is_valid_origin', mock.Mock(return_value=True))

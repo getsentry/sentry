@@ -103,22 +103,14 @@ urlpatterns += patterns(
         name='sentry-api-minidump'
     ),
     url(
+        r'^api/(?P<project_id>\d+)/security/$',
+        api.SecurityReportView.as_view(),
+        name='sentry-api-security-report'
+    ),
+    url(  # This URL to be deprecated
         r'^api/(?P<project_id>\d+)/csp-report/$',
         api.SecurityReportView.as_view(),
-        kwargs={'report_type': 'sentry.interfaces.Csp'},
         name='sentry-api-csp-report'
-    ),
-    url(
-        r'^api/(?P<project_id>\d+)/expectct-report/$',
-        api.SecurityReportView.as_view(),
-        kwargs={'report_type': 'expectct'},
-        name='sentry-api-expectct-report'
-    ),
-    url(
-        r'^api/(?P<project_id>\d+)/expectstaple-report/$',
-        api.SecurityReportView.as_view(),
-        kwargs={'report_type': 'expectstaple'},
-        name='sentry-api-expectstaple-report'
     ),
     url(
         r'^api/(?P<project_id>[\w_-]+)/crossdomain\.xml$',
