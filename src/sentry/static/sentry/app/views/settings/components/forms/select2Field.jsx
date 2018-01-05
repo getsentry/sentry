@@ -1,8 +1,23 @@
 import PropTypes from 'prop-types';
 import React from 'react';
 import jQuery from 'jquery';
+import cx from 'classnames';
+import {css} from 'react-emotion';
 
 import InputField from './inputField';
+
+const selectCss = css`
+  width: 100%;
+  font-size: 1.1rem;
+  font-weight: bold;
+  padding: 0.33em 0.75em;
+
+  .select2-arrow:after {
+    font-size: 1.4rem;
+    color: #ccc;
+    margin-top: 0.125em;
+  }
+`;
 
 export default class Select2Field extends React.Component {
   static propTypes = {
@@ -76,6 +91,7 @@ export default class Select2Field extends React.Component {
       allowEmpty: this.props.allowEmpty,
       width: 'element',
       escapeMarkup: !this.props.escapeMarkup ? m => m : undefined,
+      minimumResultsForSearch: 5,
     };
   }
 
@@ -93,9 +109,8 @@ export default class Select2Field extends React.Component {
           return (
             <select
               disabled={disabled}
-              className="form-control"
+              className={cx(selectCss, 'form-control')}
               ref={ref => this.handleSelectMount(onBlur, onChange, ref)}
-              style={{width: '100%'}}
               onChange={() => {}}
               value={props.value}
             >
