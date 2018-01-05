@@ -148,10 +148,23 @@ class OrganizationTest(TestCase):
             else:
                 non_compliant_members.append(user.email)
 
-        org.flags.require_2fa = True
-
         with self.options({'system.url-prefix': 'http://example.com'}), self.tasks():
             org.send_setup_2fa_emails()
 
         assert len(mail.outbox) == len(non_compliant_members)
         assert sorted([email.to[0] for email in mail.outbox]) == sorted(non_compliant_members)
+
+    def test_send_setup_2fa_emails_no_non_compliant_members(self):
+        owner = self.create_user('foo@example.com')
+        TotpInterface().enroll(owner)
+        org = self.create_organization(owner=owner)
+
+        for num in range(0, 10):
+            user = self.create_user('foo_%s@example.com' % num)
+            self.create_member(organization=org, user=user)
+            TotpInterface().enroll(user)
+
+        with self.options({'system.url-prefix': 'http://example.com'}), self.tasks():
+            org.send_setup_2fa_emails()
+
+        assert len(mail.outbox) == 0

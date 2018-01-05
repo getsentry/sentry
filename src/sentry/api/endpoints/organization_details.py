@@ -226,6 +226,10 @@ class OrganizationDetailsEndpoint(OrganizationEndpoint):
                 data=organization.get_audit_log_data(),
             )
 
+            result = serializer.object
+            if result.get('require2FA'):
+                organization.send_setup_2fa_emails()
+
             return Response(
                 serialize(
                     organization,

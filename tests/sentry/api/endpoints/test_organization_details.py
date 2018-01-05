@@ -398,23 +398,23 @@ class OrganizationSettings2FATest(APITestCase):
     def assert_cannot_enable_org_2fa(self, organization, user, status_code):
         self.__helper_enable_organization_2fa(organization, user, status_code)
 
-    def __helper_enable_organization_2fa(self, organization, user, status_code):
-        def enable_org_2fa():
-            self.login_as(user)
-            url = reverse(
-                'sentry-api-0-organization-details', kwargs={
-                    'organization_slug': organization.slug,
-                }
-            )
-            response = self.client.put(
-                url,
-                data={
-                    'require2FA': True,
-                }
-            )
-            return response
+    def enable_org_2fa(self, organization, user):
+        self.login_as(user)
+        url = reverse(
+            'sentry-api-0-organization-details', kwargs={
+                'organization_slug': organization.slug,
+            }
+        )
+        response = self.client.put(
+            url,
+            data={
+                'require2FA': True,
+            }
+        )
+        return response
 
-        response = enable_org_2fa()
+    def __helper_enable_organization_2fa(self, organization, user, status_code):
+        response = self.enable_org_2fa(organization, user)
 
         assert response.status_code == status_code, response.content
         organization = Organization.objects.get(id=organization.id)
@@ -436,16 +436,23 @@ class OrganizationSettings2FATest(APITestCase):
         organization = self.create_organization(owner=owner)
 
         self.enable_user_2fa(owner)
-        self.assert_can_enable_org_2fa(organization, owner)
+        with self.options({'system.url-prefix': 'http://example.com'}), self.tasks():
+            self.assert_can_enable_org_2fa(organization, owner)
+        assert len(mail.outbox) == 0
 
     def test_manager_can_set_2fa(self):
         manager = self.create_user()
-        organization = self.create_organization(owner=self.create_user())
+        owner = self.create_user()
+        organization = self.create_organization(owner=owner)
         self.create_member(organization=organization, user=manager, role="manager")
 
         self.assert_cannot_enable_org_2fa(organization, manager, 400)
         self.enable_user_2fa(manager)
-        self.assert_can_enable_org_2fa(organization, manager)
+        with self.options({'system.url-prefix': 'http://example.com'}), self.tasks():
+            self.assert_can_enable_org_2fa(organization, manager)
+
+        assert len(mail.outbox) == 1
+        assert mail.outbox[0].to[0] == owner.email
 
     def test_members_cannot_set_2fa(self):
         member = self.create_user()
