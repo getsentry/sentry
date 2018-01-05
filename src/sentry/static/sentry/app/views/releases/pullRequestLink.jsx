@@ -5,21 +5,22 @@ import InlineSvg from '../../components/inlineSvg';
 
 class PullRequestLink extends React.Component {
   static propTypes = {
-    pullRequestId: PropTypes.string,
+    pullRequest: PropTypes.object,
     repository: PropTypes.object,
     inline: PropTypes.bool,
   };
 
   getUrl = () => {
     if (this.props.repository.provider.id === 'github') {
-      return this.props.repository.url + '/pull/' + this.props.pullRequestId;
+      return this.props.repository.url + '/pull/' + this.props.pullRequest.id;
     }
     return undefined;
   };
 
   render() {
     let url = this.getUrl();
-    let displayId = `#${this.props.pullRequestId}`;
+    let displayId = `${this.props.repository.name} #${this.props.pullRequest.id}: ${this
+      .props.pullRequest.title}`;
 
     return url ? (
       <a

@@ -116,7 +116,7 @@ class ActivityItem extends React.Component {
           version: (
             <PullRequestLink
               inline={true}
-              pullRequestId={data.pullRequest.id}
+              pullRequest={data.pullRequest}
               repository={data.pullRequest.repository}
             />
           ),
