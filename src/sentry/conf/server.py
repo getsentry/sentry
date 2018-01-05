@@ -782,6 +782,7 @@ SENTRY_LOGIN_URL = None
 
 # Default project ID (for internal errors)
 SENTRY_PROJECT = 1
+SENTRY_PROJECT_KEY = None
 
 # Project ID for recording frontend (javascript) exceptions
 SENTRY_FRONTEND_PROJECT = None
