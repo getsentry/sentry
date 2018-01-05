@@ -4,6 +4,8 @@ from sentry.models import User
 from sentry.testutils import TestCase
 from sentry.utils.query import merge_into, RangeQuerySetWrapper
 
+from six.moves import xrange
+
 
 class MergeIntoTest(TestCase):
     def test_all_the_things(self):
