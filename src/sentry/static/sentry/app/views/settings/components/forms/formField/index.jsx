@@ -18,6 +18,9 @@ import FormState from '../../../../../components/forms/state';
 import InlineSvg from '../../../../../components/inlineSvg';
 import Spinner from '../styled/spinner';
 
+// This wraps Control + ControlError message
+// * can NOT be a flex box have because of position: absolute on "control error message"
+// * can NOT have overflow hidden because "control error message" overflows
 const FormFieldControlErrorWrapper = styled(Box)`
   width: 50%;
   padding-left: 10px;
