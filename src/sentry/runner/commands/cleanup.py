@@ -332,7 +332,7 @@ def cleanup(days, project, concurrency, max_procs, silent, model, router, timed)
         BulkDeleteQuery(
             model=models.EventMapping,
             dtfield='date_added',
-            days=min(days, 7),
+            days=days,
             project_id=project_id,
             order_by='-date_added'
         ).execute()
