@@ -1,9 +1,7 @@
 import PropTypes from 'prop-types';
 import React from 'react';
-
 import createReactClass from 'create-react-class';
 
-import {fetchPlugins} from '../../actionCreators/plugins';
 import {t} from '../../locale';
 import ApiMixin from '../../mixins/apiMixin';
 import Badge from '../../components/badge';
@@ -36,15 +34,10 @@ const ProjectSettings = createReactClass({
   },
 
   componentWillMount() {
-    let {params, setProjectNavSection} = this.props;
-    let {projectId, orgId} = params || {};
+    let {setProjectNavSection} = this.props;
 
     setProjectNavSection('settings');
     this.fetchData();
-
-    // fetch list of plugins, we will also fetch everytime we are routed
-    // to plugins view (e.g. "All Integrations")
-    fetchPlugins(this.api, {projectId, orgId});
   },
 
   componentWillReceiveProps(nextProps) {

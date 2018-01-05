@@ -170,6 +170,13 @@ export const Plugin = {
 
 export const PluginShape = PropTypes.shape(Plugin);
 
+export const PluginsStore = PropTypes.shape({
+  loading: PropTypes.bool,
+  plugins: PropTypes.arrayOf(PluginShape),
+  error: PropTypes.object,
+  pageLinks: PropTypes.any,
+});
+
 let SentryTypes = {
   AnyModel: PropTypes.shape({
     id: PropTypes.string.isRequired,
@@ -191,6 +198,7 @@ let SentryTypes = {
   Member,
   Plugin,
   PluginShape,
+  PluginsStore,
   User,
 };
 
