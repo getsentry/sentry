@@ -30,7 +30,7 @@ const organizationNavigation = [
 
           return `${organization.pendingAccessRequests}`;
         },
-        show: ({access}) => access.has('org:read'),
+        show: ({access}) => access.has('member:read'),
       },
       {
         path: `${pathPrefix}/auth/`,
