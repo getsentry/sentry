@@ -1,4 +1,4 @@
-import {Flex, Box} from 'grid-emotion';
+import {Box} from 'grid-emotion';
 import PropTypes from 'prop-types';
 import React from 'react';
 import styled from 'react-emotion';
@@ -8,9 +8,10 @@ import Avatar from '../../../../components/avatar';
 import Button from '../../../../components/buttons/button';
 import Confirm from '../../../../components/confirm';
 import Link from '../../../../components/link';
-import Tooltip from '../../../../components/tooltip';
 import LoadingIndicator from '../../../../components/loadingIndicator';
+import Row from '../../components/row';
 import SentryTypes from '../../../../proptypes';
+import Tooltip from '../../../../components/tooltip';
 import recreateRoute from '../../../../utils/recreateRoute';
 
 const UserName = styled(Link)`
@@ -20,14 +21,6 @@ const UserName = styled(Link)`
 const Email = styled.div`
   color: ${p => p.theme.gray3};
   font-size: 14px;
-`;
-
-const Row = styled(Flex)`
-  border-bottom: 1px solid ${p => p.theme.borderLight};
-
-  &:last-child {
-    border: 0;
-  }
 `;
 
 export default class OrganizationMemberRow extends React.PureComponent {
