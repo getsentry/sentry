@@ -1,4 +1,5 @@
 import React from 'react';
+import PropTypes from 'prop-types';
 import {mount} from 'enzyme';
 import ProjectPlugins from 'app/views/projectPlugins';
 import PluginNavigation from 'app/views/projectSettings/pluginNavigation';
@@ -35,7 +36,7 @@ describe('PluginNavigation Integration', function() {
   });
 
   // Integration test with PluginNavigation
-  describe.only('with PluginNavigation', function() {
+  describe('with PluginNavigation', function() {
     beforeEach(async function() {
       let params = {orgId: org.slug, projectId: project.slug};
 
@@ -46,7 +47,12 @@ describe('PluginNavigation Integration', function() {
         </div>,
         {
           context: {
+            team: TestStubs.Team(),
             router: TestStubs.router(),
+          },
+          childContextTypes: {
+            team: PropTypes.object,
+            router: PropTypes.object,
           },
         }
       );
@@ -61,38 +67,32 @@ describe('PluginNavigation Integration', function() {
      */
     it('has Amazon in <PluginNavigation /> after enabling', function(done) {
       let hasEnabled = false;
+      let originalDidUpdate =
+        ProjectPlugins.prototype.componentDidUpdate || function() {};
 
       // Yuck, not sure of a better way to test these
       ProjectPlugins.prototype.componentDidUpdate = function() {
-        try {
-          wrapper.update();
-          if (!hasEnabled && wrapper.find('Checkbox').length) {
-            hasEnabled = true;
-            // Enable first plugin, should be amazon
-            wrapper
-              .find('Checkbox')
-              .first()
-              .simulate('change');
+        wrapper.update();
+        if (!hasEnabled && wrapper.find('Checkbox').length) {
+          hasEnabled = true;
+          // Enable first plugin, should be amazon
+          wrapper
+            .find('Checkbox')
+            .first()
+            .simulate('change');
 
-            wrapper.update();
-          }
-        } catch (err) {
-          // eslint-disable-next-line no-console
-          console.error(err);
+          wrapper.update();
         }
+        originalDidUpdate();
       };
 
       PluginNavigation.prototype.componentDidUpdate = function() {
-        try {
-          wrapper.update();
-          if (wrapper.find('PluginNavigation a').length) {
-            expect(wrapper.find('PluginNavigation').find('a')).toHaveLength(1);
-            done();
-          }
-        } catch (err) {
-          // eslint-disable-next-line no-console
-          console.error(err);
+        wrapper.update();
+        if (wrapper.find('PluginNavigation a').length) {
+          expect(wrapper.find('PluginNavigation').find('a')).toHaveLength(1);
+          done();
         }
+        originalDidUpdate();
       };
     });
   });

@@ -3,7 +3,7 @@ import React from 'react';
 
 import {t} from '../locale';
 
-export default class extends React.Component {
+class InactivePlugins extends React.Component {
   static propTypes = {
     plugins: PropTypes.array.isRequired,
     onEnablePlugin: PropTypes.func.isRequired,
@@ -42,3 +42,5 @@ export default class extends React.Component {
     );
   }
 }
+
+export default InactivePlugins;

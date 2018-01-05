@@ -108,7 +108,7 @@ exports[`ProjectAlertSettings render() renders 1`] = `
       orgId="org-slug"
       projectId="project-slug"
     />
-    <pluginList
+    <PluginList
       onDisablePlugin={[Function]}
       onEnablePlugin={[Function]}
       organization={

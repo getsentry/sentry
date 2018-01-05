@@ -102,6 +102,7 @@ import RouteNotFound from './views/routeNotFound';
 import SetCallsignsAction from './views/requiredAdminActions/setCallsigns';
 import SettingsIndex from './views/settings/settingsIndex';
 import SettingsWrapper from './views/settings/settingsWrapper';
+import SettingsProjectProvider from './views/settings/settingsProjectProvider';
 import SharedGroupDetails from './views/sharedGroupDetails';
 import Stream from './views/stream';
 import TeamCreate from './views/teamCreate';
@@ -436,7 +437,9 @@ function routes() {
                 path=":projectId/"
                 component={errorHandler(ProjectSettingsLayout)}
               >
-                {projectSettingsRoutes}
+                <Route component={errorHandler(SettingsProjectProvider)}>
+                  {projectSettingsRoutes}
+                </Route>
               </Route>
             </Route>
           </Route>
