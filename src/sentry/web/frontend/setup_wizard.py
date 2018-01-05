@@ -37,6 +37,8 @@ class SetupWizardView(BaseView):
                 'organization_slug': org.get('slug')
             }), request=request)
             for project in projects.data:
+                if project.get('status') == 'deleted':
+                    continue  # skip if project has been deleted
                 enriched_project = project
                 enriched_project['organization'] = org
                 keys = client.get(reverse('sentry-api-0-project-keys', kwargs={
