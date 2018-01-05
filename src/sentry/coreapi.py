@@ -26,7 +26,6 @@ from time import time
 
 from sentry import filters
 from sentry.cache import default_cache
-from sentry.constants import VERSION_LENGTH
 from sentry.interfaces.base import get_interface
 from sentry.event_manager import EventManager
 from sentry.models import ProjectKey
