@@ -5,7 +5,7 @@ import six
 from collections import defaultdict
 
 from sentry.api.bases.user import UserEndpoint
-from sentry.models import UserOption, UserOptionValue
+from sentry.models import UserOption, UserOptionValue, Project
 
 from sentry.api.serializers import serialize, Serializer
 
@@ -41,12 +41,20 @@ USER_OPTION_SETTINGS = {
     }
 }
 
+KEY_MAP = {v['key']: k for k, v in six.iteritems(USER_OPTION_SETTINGS)}
+
+DISABLED_REPORTS_KEY = 'reports:disabled-organizations'
+
 
 class UserNotificationsSerializer(Serializer):
     def get_attrs(self, item_list, user, *args, **kwargs):
+
+        all_keys = [key for key in KEY_MAP] + [DISABLED_REPORTS_KEY]
+
         data = list(UserOption.objects.filter(
-            user__in=item_list,
-            project=None).select_related('user'))
+            key__in=all_keys,
+            user__in=item_list
+        ).select_related('user', 'project'))
 
         results = defaultdict(list)
 
@@ -55,20 +63,44 @@ class UserNotificationsSerializer(Serializer):
 
         return results
 
+    def convert_type(self, val, external_type):
+        if (external_type == bool):
+            return bool(int(val))  # '1' is true, '0' is false
+        elif (external_type == int):
+            return int(val)
+        else:
+            return val
+
     def serialize(self, obj, attrs, user, *args, **kwargs):
 
-        raw_data = {option.key: option.value for option in attrs}
+        data = defaultdict(lambda: {})
 
-        data = {}
+        # Set all the defaults first
         for key in USER_OPTION_SETTINGS:
-            uo = USER_OPTION_SETTINGS[key]
-            val = raw_data.get(uo['key'], uo['default'])
-            if (uo['type'] == bool):
-                data[key] = bool(int(val))  # '1' is true, '0' is false
-            elif (uo['type'] == int):
-                data[key] = int(val)
+            setting = USER_OPTION_SETTINGS[key]
+            data[key]['default'] = self.convert_type(setting['default'], setting['type'])
+            data[key]['projects'] = {}
 
-        data['weeklyReports'] = True  # This cannot be overridden
+        data['weeklyReports']['default'] = True  # This cannot be overridden
+
+        # Then go through the retreived options
+        for option in attrs:
+            if option.key == DISABLED_REPORTS_KEY:
+                slugs = [
+                    project.slug for project in Project.objects.filter(
+                        id__in=option.value or [])]
+
+                data['weeklyReports']['projects'] = dict.fromkeys(slugs, True)
+
+            else:
+                key = KEY_MAP[option.key]
+                external_type = USER_OPTION_SETTINGS[key]['type']
+
+                if option.project:
+                    data[key]['projects'][option.project.slug] = self.convert_type(
+                        option.value, external_type)
+                else:
+                    data[key]['default'] = self.convert_type(option.value, external_type)
 
         return data
 
@@ -93,7 +125,8 @@ class UserNotificationDetailsEndpoint(UserEndpoint):
             for key in serializer.object:
                 db_key = USER_OPTION_SETTINGS[key]['key']
                 val = six.text_type(int(serializer.object[key]))
-                (uo, created) = UserOption.objects.get_or_create(user=user, key=db_key, project=None)
+                (uo, created) = UserOption.objects.get_or_create(
+                    user=user, key=db_key, project=None)
                 uo.update(value=val)
 
             return self.get(request, user)
