@@ -332,7 +332,23 @@ class Organization(Model):
         return getattr(self.old_value('flags'), flag_name, None) != getattr(self.flags, flag_name)
 
     def send_setup_2fa_emails(self):
+        from sentry import options
+        from sentry.utils.email import MessageBuilder
+
         for member in self.member_set.all():
             user = member.user
             if not Authenticator.objects.user_has_2fa(user):
-                user.send_setup_2fa_email()
+                context = {
+                    'user': user,
+                    'url': absolute_uri(reverse('sentry-account-settings-2fa')),
+                    'organization': self
+                }
+                message = MessageBuilder(
+                    subject='%s %s Mandatory: Enable Two-Factor Authentication' % (
+                        options.get('mail.subject-prefix'), self.name),
+                    template='sentry/emails/setup_2fa.txt',
+                    html_template='sentry/emails/setup_2fa.html',
+                    type='user.setup_2fa',
+                    context=context,
+                )
+                message.send_async([user.email])

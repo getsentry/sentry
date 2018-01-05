@@ -183,22 +183,6 @@ class User(BaseModel, AbstractBaseUser):
         for email in email_list:
             self.send_confirm_email_singular(email, is_new_user)
 
-    def send_setup_2fa_email(self):
-        from sentry import options
-        from sentry.utils.email import MessageBuilder
-        context = {
-            'user': self,
-            'url': absolute_uri(reverse('sentry-account-settings-2fa')),
-        }
-        message = MessageBuilder(
-            subject='%sSetup Two-Factor Authentication' % (options.get('mail.subject-prefix'), ),
-            template='sentry/emails/setup_2fa.txt',
-            html_template='sentry/emails/setup_2fa.html',
-            type='user.setup_2fa',
-            context=context,
-        )
-        message.send_async([self.email])
-
     def merge_to(from_user, to_user):
         # TODO: we could discover relations automatically and make this useful
         from sentry import roles

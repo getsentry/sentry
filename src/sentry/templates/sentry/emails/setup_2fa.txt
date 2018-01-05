@@ -1,14 +1,11 @@
-{% if is_new_user %}
-Thanks for signing up for Sentry!
-{% endif %}
+Setup Two-Factor Authentication
 
-Please setup your account's two-factor authentication by clicking the button below:
+    Hello {{ user.name }},
 
-{{ url|safe }}
+    The {{ organization.name }} organization now requires that all members enable
+    two-factor authentication. Effective immediately, you will be unable to access
+    projects under the {{ organization.name }} organization unless you enable at
+    least one form of two-factor authentication.
 
-
-{% if is_new_user %}
-If you did not sign up, you may simply ignore this email.
-{% else %}
-If you did not make this request, you may simply ignore this email.
-{% endif %}
+    Click the link below to enable two-factor authentication.
+    {{ url }}
