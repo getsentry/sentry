@@ -4,7 +4,7 @@ import styled from 'react-emotion';
 
 const FormFieldDescription = styled(({inline, ...props}) => <Box {...props} />)`
   ${p =>
-    p.line
+    p.inline
       ? `
   width: 50%;
   padding-right: 10px;
