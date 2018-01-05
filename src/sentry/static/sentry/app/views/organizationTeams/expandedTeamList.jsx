@@ -187,7 +187,8 @@ const ExpandedTeamList = createReactClass({
                 {
                   joinLink: (
                     <Link
-                      to={`/organizations/${this.props.organization.slug}/all-teams/`}
+                      to={`/organizations/${this.props.organization
+                        .slug}/teams/all-teams/`}
                     />
                   ),
                   createLink: <Link to={this.urlPrefix() + '/teams/new/'} />,
@@ -196,7 +197,7 @@ const ExpandedTeamList = createReactClass({
             : tct('You are not a member of any teams. [joinLink:Join a team].', {
                 joinLink: (
                   <Link
-                    to={`/organizations/${this.props.organization.slug}/all-teams/`}
+                    to={`/organizations/${this.props.organization.slug}/teams/all-teams/`}
                   />
                 ),
               })}
