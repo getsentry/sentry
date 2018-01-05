@@ -6,7 +6,7 @@ import SettingsInputField from '../styled/input';
 import SettingsTextAreaField from '../styled/textarea';
 
 const FormFieldWrapper = styled(({highlighted, ...props}) => <Flex {...props} />)`
-  padding: 15px 20px;
+  padding: 15px 0 15px 20px;
   border-bottom: 1px solid ${p => p.theme.borderLight};
   align-items: center;
   transition: background 0.15s;

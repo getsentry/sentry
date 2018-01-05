@@ -1,3 +1,4 @@
+import {Box, Flex} from 'grid-emotion';
 import {Observer} from 'mobx-react';
 import PropTypes from 'prop-types';
 import React from 'react';
@@ -5,24 +6,34 @@ import ReactDOM from 'react-dom';
 import styled from 'react-emotion';
 
 import {defined} from '../../../../../utils';
-import FormState from '../../../../../components/forms/state';
-import FormFieldWrapper from './formFieldWrapper';
-import FormFieldDescription from './formFieldDescription';
+import {pulse, fadeOut} from '../styled/animations';
 import FormFieldControl from './formFieldControl';
 import FormFieldControlState from './formFieldControlState';
+import FormFieldDescription from './formFieldDescription';
 import FormFieldHelp from './formFieldHelp';
 import FormFieldLabel from './formFieldLabel';
 import FormFieldRequiredBadge from './formFieldRequiredBadge';
-
+import FormFieldWrapper from './formFieldWrapper';
+import FormState from '../../../../../components/forms/state';
 import InlineSvg from '../../../../../components/inlineSvg';
 import Spinner from '../styled/spinner';
-import {pulse, fadeOut} from '../styled/animations';
+
+// This wraps Control + ControlError message
+// * can NOT be a flex box have because of position: absolute on "control error message"
+// * can NOT have overflow hidden because "control error message" overflows
+const FormFieldControlErrorWrapper = styled(Box)`
+  width: 50%;
+  padding-left: 10px;
+`;
+
+const FormFieldControlWrapper = styled(Flex)`
+  overflow: hidden;
+`;
 
 const FormFieldErrorReason = styled.div`
   color: ${p => p.theme.redDark};
   position: absolute;
   background: #fff;
-  left: 10px;
   padding: 6px 8px;
   font-weight: 600;
   font-size: 12px;
@@ -34,13 +45,23 @@ const FormFieldErrorReason = styled.div`
 const FormFieldError = styled.div`
   color: ${p => p.theme.redDark};
   animation: ${pulse} 1s ease infinite;
-  width: 16px;
-  margin-left: auto;
 `;
 
 const FormFieldIsSaved = styled.div`
   color: ${p => p.theme.green};
   animation: ${fadeOut} 0.3s ease 2s 1 forwards;
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+`;
+
+const FormSpinner = styled(Spinner)`
+  margin-left: 0;
 `;
 
 /**
@@ -211,37 +232,77 @@ class FormField extends React.Component {
           )}
           {help && <FormFieldHelp>{help}</FormFieldHelp>}
         </FormFieldDescription>
-        <FormFieldControl>
-          <Observer>
-            {() => {
-              let error = this.getError();
-              let value = model.getValue(this.props.name);
 
-              return (
-                <this.props.children
-                  innerRef={this.handleInputMount}
-                  {...{
-                    ...this.props,
-                    id,
-                    onKeyDown: this.handleKeyDown,
-                    onChange: this.handleChange,
-                    onBlur: this.handleBlur,
-                    value,
-                    error,
-                    disabled: isDisabled,
-                  }}
-                  initialData={model.initialData}
-                />
-              );
-            }}
-          </Observer>
+        <FormFieldControlErrorWrapper>
+          <FormFieldControlWrapper shrink="0">
+            <FormFieldControl flex="1">
+              <Observer>
+                {() => {
+                  let error = this.getError();
+                  let value = model.getValue(this.props.name);
 
-          {isDisabled &&
-            disabledReason && (
-              <span className="disabled-indicator tip" title={disabledReason}>
-                <span className="icon-question" />
-              </span>
-            )}
+                  return (
+                    <this.props.children
+                      innerRef={this.handleInputMount}
+                      {...{
+                        ...this.props,
+                        id,
+                        onKeyDown: this.handleKeyDown,
+                        onChange: this.handleChange,
+                        onBlur: this.handleBlur,
+                        value,
+                        error,
+                        disabled: isDisabled,
+                      }}
+                      initialData={model.initialData}
+                    />
+                  );
+                }}
+              </Observer>
+
+              {isDisabled &&
+                disabledReason && (
+                  <span className="disabled-indicator tip" title={disabledReason}>
+                    <span className="icon-question" />
+                  </span>
+                )}
+            </FormFieldControl>
+
+            <FormFieldControlState justify="center" align="center">
+              <Observer>
+                {() => {
+                  let isSaving = model.getFieldState(this.props.name, FormState.SAVING);
+                  let isSaved = model.getFieldState(this.props.name, FormState.READY);
+
+                  if (isSaving) {
+                    return <FormSpinner />;
+                  } else if (isSaved) {
+                    return (
+                      <FormFieldIsSaved>
+                        <InlineSvg src="icon-checkmark-sm" size="18px" />
+                      </FormFieldIsSaved>
+                    );
+                  }
+
+                  return null;
+                }}
+              </Observer>
+
+              <Observer>
+                {() => {
+                  let error = this.getError();
+
+                  if (!error) return null;
+
+                  return (
+                    <FormFieldError>
+                      <InlineSvg src="icon-warning-sm" size="18px" />
+                    </FormFieldError>
+                  );
+                }}
+              </Observer>
+            </FormFieldControlState>
+          </FormFieldControlWrapper>
 
           <Observer>
             {() => {
@@ -251,41 +312,7 @@ class FormField extends React.Component {
               return <FormFieldErrorReason>{error}</FormFieldErrorReason>;
             }}
           </Observer>
-        </FormFieldControl>
-        <FormFieldControlState>
-          <Observer>
-            {() => {
-              let isSaving = model.getFieldState(this.props.name, FormState.SAVING);
-              let isSaved = model.getFieldState(this.props.name, FormState.READY);
-
-              if (isSaving) {
-                return <Spinner />;
-              } else if (isSaved) {
-                return (
-                  <FormFieldIsSaved>
-                    <InlineSvg src="icon-checkmark-sm" size="18px" />
-                  </FormFieldIsSaved>
-                );
-              }
-
-              return null;
-            }}
-          </Observer>
-
-          <Observer>
-            {() => {
-              let error = this.getError();
-
-              if (!error) return null;
-
-              return (
-                <FormFieldError>
-                  <InlineSvg src="icon-warning-sm" size="18px" />
-                </FormFieldError>
-              );
-            }}
-          </Observer>
-        </FormFieldControlState>
+        </FormFieldControlErrorWrapper>
       </FormFieldWrapper>
     );
   }

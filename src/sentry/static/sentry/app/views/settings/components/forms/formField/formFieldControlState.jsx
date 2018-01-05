@@ -1,9 +1,10 @@
 import styled from 'react-emotion';
-import {Box} from 'grid-emotion';
+import {Flex} from 'grid-emotion';
 
-const FormFieldControlState = styled(Box)`
+const FormFieldControlState = styled(Flex)`
+  position: relative;
   width: 36px;
-  text-align: right;
+  flex-shrink: 0;
 `;
 
 export default FormFieldControlState;
