@@ -25,9 +25,7 @@ const FormFieldControlErrorWrapper = styled(Box)`
   ${p => (p.inline ? 'width: 50%; padding-left: 10px;' : '')};
 `;
 
-const FormFieldControlWrapper = styled(Flex)`
-  overflow: hidden;
-`;
+const FormFieldControlWrapper = styled(Flex)``;
 
 const FormFieldErrorReason = styled.div`
   color: ${p => p.theme.redDark};
