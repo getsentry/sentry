@@ -6,6 +6,7 @@ import Cookies from 'js-cookie';
 import {ThemeProvider} from 'emotion-theming';
 import PropTypes from 'prop-types';
 import React from 'react';
+import {connect} from 'react-redux';
 
 import {t} from '../locale';
 import AlertActions from '../actions/alertActions';
@@ -19,6 +20,7 @@ import OrganizationsLoader from '../components/organizations/organizationsLoader
 import OrganizationsStore from '../stores/organizationsStore';
 import SudoModal from '../components/modals/sudoModal';
 import theme from '../utils/theme';
+import {loadOrganizations} from '../actionsRedux/organization';
 
 if (window.globalStaticUrl) __webpack_public_path__ = window.globalStaticUrl; // defined in layout.html
 
@@ -34,6 +36,9 @@ function getAlertTypeForProblem(problem) {
 const App = createReactClass({
   displayName: 'App',
 
+  propTypes: {
+    loadOrganizations: PropTypes.func.isRequired,
+  },
   childContextTypes: {
     location: PropTypes.object,
   },
@@ -60,7 +65,9 @@ const App = createReactClass({
         member: '1',
       },
       success: data => {
+        // Load both redux and reflux stores for now
         OrganizationsStore.load(data);
+        this.props.loadOrganizations(data); // redux
         this.setState({
           loading: false,
         });
@@ -116,7 +123,8 @@ const App = createReactClass({
   },
 
   componentWillUnmount() {
-    OrganizationsStore.load([]);
+    OrganizationsStore.load([]); // reflux
+    this.props.loadOrganizations([]); // redux
   },
 
   onConfigured() {
@@ -157,4 +165,4 @@ const App = createReactClass({
   },
 });
 
-export default App;
+export default connect(state => state, {loadOrganizations})(App);

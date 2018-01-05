@@ -1,4 +1,5 @@
 import ProjectActions from '../actions/projectActions';
+import * as ReduxProjectActions from '../actionsRedux/project';
 
 export function update(api, params) {
   ProjectActions.update(params.projectId, params.data);
@@ -32,5 +33,7 @@ export function loadStats(api, params) {
 }
 
 export function setActiveProject(project) {
+  // Populate both reflux and redux stores for now
   ProjectActions.setActive(project);
+  ReduxProjectActions.setActive(project);
 }

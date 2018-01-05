@@ -17,7 +17,7 @@ import ProjectsStore from '../../stores/projectsStore';
 import {setActiveProject} from '../../actionCreators/projects';
 import {t} from '../../locale';
 
-import {updateEnvironments} from '../../actionsRedux/actions';
+import {updateEnvironments} from '../../actionsRedux/environment';
 
 const ERROR_TYPES = {
   MISSING_MEMBERSHIP: 'MISSING_MEMBERSHIP',

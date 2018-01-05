@@ -4,6 +4,8 @@ import IndicatorStore from '../stores/indicatorStore';
 import OrganizationsStore from '../stores/organizationsStore';
 import OrganizationsActions from '../actions/organizationsActions';
 
+import * as ReduxOrganizationActions from '../actionsRedux/organization';
+
 export function redirectToRemainingOrganization({orgId}) {
   // Remove queued, should redirect
   let allOrgs = OrganizationsStore.getAll().filter(org => org.slug !== orgId);
@@ -44,7 +46,9 @@ export function removeAndRedirectToRemainingOrganization(api, params) {
 }
 
 export function setActiveOrganization(org) {
+  // Create both reflux and redux actions for now
   OrganizationsActions.setActive(org);
+  ReduxOrganizationActions.setActive(org);
 }
 
 export function changeOrganizationSlug(prev, next) {
@@ -52,5 +56,7 @@ export function changeOrganizationSlug(prev, next) {
 }
 
 export function updateOrganization(org) {
+  // Create both reflux and redux actions for now
   OrganizationsActions.update(org);
+  ReduxOrganizationActions.update(org);
 }

@@ -1,11 +1,11 @@
 import {Link} from 'react-router';
 import React from 'react';
 import styled from 'react-emotion';
+import {connect} from 'react-redux';
 
 import SentryIcon from '../../../icons/sentryIcon';
 import SentryTypes from '../../../proptypes';
 import replaceRouterParams from '../../../utils/replaceRouterParams';
-import withLatestContext from '../../../utils/withLatestContext';
 
 const BackButtonWrapper = styled(Link)`
   color: ${p => p.theme.gray3};
@@ -45,6 +45,4 @@ class BackButton extends React.Component {
   }
 }
 
-const SettingsBackButton = withLatestContext(BackButton);
-
-export default SettingsBackButton;
+export default connect(state => state.latestContext)(BackButton);
