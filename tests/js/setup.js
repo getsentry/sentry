@@ -71,6 +71,14 @@ window.TestStubs = {
     };
   },
 
+  ApiToken: () => {
+    return {
+      token: 'apitoken123',
+      dateCreated: new Date(),
+      scopes: ['scope1', 'scope2'],
+    };
+  },
+
   AuthProviders: () => {
     return [['dummy', 'Dummy']];
   },

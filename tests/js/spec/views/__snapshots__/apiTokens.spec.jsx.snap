@@ -1,0 +1,638 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`ApiTokens renders empty result 1`] = `
+<DocumentTitle
+  title="API Tokens - Sentry"
+>
+  <div>
+    <SettingsPageHeading
+      action={
+        <Button
+          className="ref-create-token"
+          disabled={false}
+          priority="primary"
+          size="small"
+          to="/settings/account/api/auth-tokens/new-token/"
+        >
+          Create New Token
+        </Button>
+      }
+      title="Auth Tokens"
+    />
+    <Styled(div)>
+      Authentication tokens allow you to perform actions against the Sentry API on behalf of your account. They're the easiest way to get started using the API.
+    </Styled(div)>
+    <Styled(div)>
+      <span
+        key="5"
+      >
+        <span
+          key="0"
+        >
+          For more information on how to use the web API, see our 
+        </span>
+        <a
+          href="https://docs.sentry.io/hosted/api/"
+          key="2"
+        >
+          <span
+            key="1"
+          >
+            documentation
+          </span>
+        </a>
+        <span
+          key="3"
+        >
+          .
+        </span>
+      </span>
+    </Styled(div)>
+    <Styled(div)>
+      <small>
+        psst. Looking for the 
+        <strong>
+          DSN
+        </strong>
+         for an SDK? You'll find that under
+         
+        <strong>
+          [Project] » Settings » Client Keys
+        </strong>
+        .
+      </small>
+    </Styled(div)>
+    <Styled(div)>
+      <PanelHeader
+        disablePadding={true}
+      >
+        <Flex
+          align="center"
+        >
+          <Box
+            flex="1"
+            px={2}
+          >
+            Auth Token
+          </Box>
+        </Flex>
+      </PanelHeader>
+      <Styled(div)>
+        <Styled(div)>
+          You haven't created any authentication tokens yet.
+        </Styled(div)>
+      </Styled(div)>
+    </Styled(div)>
+  </div>
+</DocumentTitle>
+`;
+
+exports[`ApiTokens renders with result 1`] = `
+.glamor-4 {
+  font-size: 14px;
+  box-shadow: inset 0 -1px 0;
+  margin: -20px 0 30px;
+}
+
+.glamor-2 {
+  box-sizing: border-box;
+  display: -webkit-box;
+  display: -webkit-flex;
+  display: -ms-flexbox;
+  display: flex;
+  -webkit-align-items: center;
+  -webkit-box-align: center;
+  -ms-flex-align: center;
+  align-items: center;
+}
+
+.glamor-0 {
+  font-size: 20px;
+  font-weight: bold;
+  margin: 20px 0;
+  -webkit-flex: 1;
+  -ms-flex: 1;
+  flex: 1;
+}
+
+.glamor-6 {
+  line-height: 1.5;
+  margin-bottom: 30px;
+}
+
+.glamor-51 {
+  background: #fff;
+  border: 1px solid;
+  margin-bottom: 30px;
+  position: relative;
+}
+
+.glamor-23 {
+  border-bottom: 1px solid;
+  border-radius: 0 0;
+  background: padding:15px 0;
+  text-transform: uppercase;
+  font-size: 13px;
+}
+
+.glamor-19 {
+  font-size: inherit;
+  text-transform: inherit;
+  margin: 0;
+}
+
+.glamor-17 {
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  margin-bottom: 20px;
+  font-size: inherit;
+  text-transform: inherit;
+  margin: 0;
+}
+
+.glamor-12 {
+  box-sizing: border-box;
+  padding-left: 16px;
+  padding-right: 16px;
+  -webkit-flex: 1;
+  -ms-flex: 1;
+  flex: 1;
+}
+
+.glamor-45 {
+  box-sizing: border-box;
+  padding-left: 16px;
+  padding-right: 16px;
+  padding-top: 16px;
+  padding-bottom: 16px;
+  display: -webkit-box;
+  display: -webkit-flex;
+  display: -ms-flexbox;
+  display: flex;
+  -webkit-box-pack: justify;
+  -webkit-justify-content: space-between;
+  -ms-flex-pack: justify;
+  justify-content: space-between;
+  border-bottom: 1px solid;
+}
+
+.glamor-45:last-child {
+  border: 0;
+}
+
+.glamor-39 {
+  box-sizing: border-box;
+  -webkit-flex: 1;
+  -ms-flex: 1;
+  flex: 1;
+}
+
+.glamor-31 {
+  box-sizing: border-box;
+  display: -webkit-box;
+  display: -webkit-flex;
+  display: -ms-flexbox;
+  display: flex;
+  overflow: hidden;
+}
+
+.glamor-27 {
+  box-sizing: border-box;
+  display: -webkit-box;
+  display: -webkit-flex;
+  display: -ms-flexbox;
+  display: flex;
+}
+
+.glamor-35 {
+  font-size: 0.9em;
+}
+
+.glamor-37 {
+  font-size: 0.9em;
+  color: #999;
+}
+
+.glamor-41 {
+  box-sizing: border-box;
+  padding-left: 16px;
+}
+
+<ApiTokens>
+  <DocumentTitle
+    title="API Tokens - Sentry"
+  >
+    <div>
+      <SettingsPageHeading
+        action={
+          <Button
+            className="ref-create-token"
+            disabled={false}
+            priority="primary"
+            size="small"
+            to="/settings/account/api/auth-tokens/new-token/"
+          >
+            Create New Token
+          </Button>
+        }
+        title="Auth Tokens"
+      >
+        <Styled(div)>
+          <div
+            className="glamor-4 glamor-5"
+          >
+            <Flex
+              align="center"
+            >
+              <Base
+                align="center"
+                className="glamor-2"
+              >
+                <div
+                  className="glamor-2"
+                  is={null}
+                >
+                  <Styled(div)>
+                    <div
+                      className="glamor-0 glamor-1"
+                    >
+                      Auth Tokens
+                    </div>
+                  </Styled(div)>
+                  <div>
+                    <Button
+                      className="ref-create-token"
+                      disabled={false}
+                      priority="primary"
+                      size="small"
+                      to="/settings/account/api/auth-tokens/new-token/"
+                    >
+                      <Link
+                        className="ref-create-token button button-primary button-sm"
+                        disabled={false}
+                        onClick={[Function]}
+                        onlyActiveOnIndex={false}
+                        role="button"
+                        style={Object {}}
+                        to="/settings/account/api/auth-tokens/new-token/"
+                      >
+                        <a
+                          className="ref-create-token button button-primary button-sm"
+                          disabled={false}
+                          onClick={[Function]}
+                          role="button"
+                          style={Object {}}
+                        >
+                          <FlowLayout
+                            truncate={false}
+                          >
+                            <div
+                              className="flow-layout"
+                            >
+                              <span
+                                className="button-label"
+                              >
+                                Create New Token
+                              </span>
+                            </div>
+                          </FlowLayout>
+                        </a>
+                      </Link>
+                    </Button>
+                  </div>
+                </div>
+              </Base>
+            </Flex>
+          </div>
+        </Styled(div)>
+      </SettingsPageHeading>
+      <Styled(div)>
+        <div
+          className="glamor-6 glamor-7"
+        >
+          Authentication tokens allow you to perform actions against the Sentry API on behalf of your account. They're the easiest way to get started using the API.
+        </div>
+      </Styled(div)>
+      <Styled(div)>
+        <div
+          className="glamor-6 glamor-7"
+        >
+          <span
+            key="5"
+          >
+            <span
+              key="0"
+            >
+              For more information on how to use the web API, see our 
+            </span>
+            <a
+              href="https://docs.sentry.io/hosted/api/"
+              key="2"
+            >
+              <span
+                key="1"
+              >
+                documentation
+              </span>
+            </a>
+            <span
+              key="3"
+            >
+              .
+            </span>
+          </span>
+        </div>
+      </Styled(div)>
+      <Styled(div)>
+        <div
+          className="glamor-6 glamor-7"
+        >
+          <small>
+            psst. Looking for the 
+            <strong>
+              DSN
+            </strong>
+             for an SDK? You'll find that under
+             
+            <strong>
+              [Project] » Settings » Client Keys
+            </strong>
+            .
+          </small>
+        </div>
+      </Styled(div)>
+      <Styled(div)>
+        <div
+          className="glamor-51 glamor-52"
+        >
+          <PanelHeader
+            disablePadding={true}
+          >
+            <Styled(div)
+              disablePadding={true}
+            >
+              <div
+                className="glamor-23 glamor-24"
+              >
+                <Styled(Component)>
+                  <Component
+                    className="glamor-19 glamor-16"
+                  >
+                    <Styled(div)
+                      className="glamor-19 glamor-16"
+                    >
+                      <div
+                        className="glamor-16 glamor-17 glamor-18"
+                      >
+                        <Flex
+                          align="center"
+                        >
+                          <Base
+                            align="center"
+                            className="glamor-2"
+                          >
+                            <div
+                              className="glamor-2"
+                              is={null}
+                            >
+                              <Box
+                                flex="1"
+                                px={2}
+                              >
+                                <Base
+                                  className="glamor-12"
+                                  flex="1"
+                                  px={2}
+                                >
+                                  <div
+                                    className="glamor-12"
+                                    is={null}
+                                  >
+                                    Auth Token
+                                  </div>
+                                </Base>
+                              </Box>
+                            </div>
+                          </Base>
+                        </Flex>
+                      </div>
+                    </Styled(div)>
+                  </Component>
+                </Styled(Component)>
+              </div>
+            </Styled(div)>
+          </PanelHeader>
+          <Styled(div)>
+            <div
+              className="glamor-49 glamor-50"
+            >
+              <ApiTokenRow
+                key="apitoken123"
+                onRemove={[Function]}
+                token={
+                  Object {
+                    "dateCreated": 2017-10-17T11:41:20.000Z,
+                    "scopes": Array [
+                      "scope1",
+                      "scope2",
+                    ],
+                    "token": "apitoken123",
+                  }
+                }
+              >
+                <Styled(Base)
+                  justify="space-between"
+                  px={2}
+                  py={2}
+                >
+                  <Base
+                    className="glamor-45 glamor-46"
+                    justify="space-between"
+                    px={2}
+                    py={2}
+                  >
+                    <div
+                      className="glamor-45 glamor-46"
+                      is={null}
+                    >
+                      <Box
+                        flex="1"
+                      >
+                        <Base
+                          className="glamor-39"
+                          flex="1"
+                        >
+                          <div
+                            className="glamor-39"
+                            is={null}
+                          >
+                            <div
+                              style={
+                                Object {
+                                  "marginBottom": 5,
+                                }
+                              }
+                            >
+                              <small>
+                                <TextCopyInput
+                                  flexValueContainer={false}
+                                  onCopy={[Function]}
+                                  renderer={[Function]}
+                                >
+                                  <Styled(Base)>
+                                    <Base
+                                      className="glamor-31 glamor-32"
+                                    >
+                                      <div
+                                        className="glamor-31 glamor-32"
+                                        is={null}
+                                      >
+                                        <Styled(Base)
+                                          flex=""
+                                          onClick={[Function]}
+                                        >
+                                          <Base
+                                            className="glamor-27 glamor-28"
+                                            flex=""
+                                            onClick={[Function]}
+                                          >
+                                            <div
+                                              className="glamor-27 glamor-28"
+                                              is={null}
+                                              onClick={[Function]}
+                                            >
+                                              <Flex
+                                                align="center"
+                                              >
+                                                <Base
+                                                  align="center"
+                                                  className="glamor-2"
+                                                >
+                                                  <div
+                                                    className="glamor-2"
+                                                    is={null}
+                                                  >
+                                                    apitoken123
+                                                  </div>
+                                                </Base>
+                                              </Flex>
+                                            </div>
+                                          </Base>
+                                        </Styled(Base)>
+                                        <Clipboard
+                                          errorMessage="Error copying to clipboard"
+                                          hideMessages={false}
+                                          hideUnsupported={true}
+                                          successMessage="Copied to clipboard"
+                                          value="apitoken123"
+                                        />
+                                      </div>
+                                    </Base>
+                                  </Styled(Base)>
+                                </TextCopyInput>
+                              </small>
+                            </div>
+                            <div
+                              style={
+                                Object {
+                                  "marginBottom": 5,
+                                }
+                              }
+                            >
+                              <Styled(div)>
+                                <div
+                                  className="glamor-35 glamor-36"
+                                >
+                                  Created
+                                   
+                                  <DateTime
+                                    date={2017-10-17T11:41:20.000Z}
+                                    seconds={true}
+                                  >
+                                    <time>
+                                      Oct 17, 2017 11:41:20 AM UTC
+                                    </time>
+                                  </DateTime>
+                                </div>
+                              </Styled(div)>
+                            </div>
+                            <div>
+                              <Styled(div)>
+                                <div
+                                  className="glamor-37 glamor-38"
+                                >
+                                  scope1, scope2
+                                </div>
+                              </Styled(div)>
+                            </div>
+                          </div>
+                        </Base>
+                      </Box>
+                      <Flex
+                        align="center"
+                      >
+                        <Base
+                          align="center"
+                          className="glamor-2"
+                        >
+                          <div
+                            className="glamor-2"
+                            is={null}
+                          >
+                            <Box
+                              pl={2}
+                            >
+                              <Base
+                                className="glamor-41"
+                                pl={2}
+                              >
+                                <div
+                                  className="glamor-41"
+                                  is={null}
+                                >
+                                  <Button
+                                    disabled={false}
+                                    onClick={[Function]}
+                                  >
+                                    <button
+                                      className="button button-default"
+                                      disabled={false}
+                                      onClick={[Function]}
+                                      role="button"
+                                    >
+                                      <FlowLayout
+                                        truncate={false}
+                                      >
+                                        <div
+                                          className="flow-layout"
+                                        >
+                                          <span
+                                            className="button-label"
+                                          >
+                                            <span
+                                              className="icon icon-trash"
+                                            />
+                                          </span>
+                                        </div>
+                                      </FlowLayout>
+                                    </button>
+                                  </Button>
+                                </div>
+                              </Base>
+                            </Box>
+                          </div>
+                        </Base>
+                      </Flex>
+                    </div>
+                  </Base>
+                </Styled(Base)>
+              </ApiTokenRow>
+            </div>
+          </Styled(div)>
+        </div>
+      </Styled(div)>
+    </div>
+  </DocumentTitle>
+</ApiTokens>
+`;

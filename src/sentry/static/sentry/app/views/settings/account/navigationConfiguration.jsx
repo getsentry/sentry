@@ -39,6 +39,10 @@ const accountNavigation = [
         path: `${pathPrefix}/api/applications/`,
         title: t('Applications'),
       },
+      {
+        path: `${pathPrefix}/api/auth-tokens/`,
+        title: t('Auth Tokens'),
+      },
     ],
   },
 ];
