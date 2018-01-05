@@ -6,6 +6,7 @@
         "esbenp.prettier-vscode",
         "ms-python.python",
         "dbaeumer.vscode-eslint",
-        "lextudio.restructuredtext"
+        "lextudio.restructuredtext",
+        "ziyasal.vscode-open-in-github"
     ]
 }
