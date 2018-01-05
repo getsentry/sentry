@@ -72,7 +72,7 @@ class RangeQuerySetWrapper(object):
             queryset = queryset.order_by(self.order_by)
 
         # we implement basic cursor pagination for columns that are not unique
-        last_object = None
+        last_object_pk = None
         has_results = True
         while has_results:
             if (max_value and cur_value >= max_value) or (limit and num >= limit):
@@ -93,14 +93,19 @@ class RangeQuerySetWrapper(object):
                 cb(results)
 
             for result in results:
-                if result == last_object:
+                if last_object_pk is not None and result.pk == last_object_pk:
                     continue
 
-                yield result
-
+                # Need to bind value before yielding, because the caller
+                # may mutate the value and we're left with a bad value.
+                # This is commonly the case if iterating over and
+                # deleting, because a Model.delete() mutates the `id`
+                # to `None` causing the loop to exit early.
                 num += 1
+                last_object_pk = result.pk
                 cur_value = getattr(result, self.order_by)
-                last_object = result
+
+                yield result
 
             if cur_value is None:
                 break
