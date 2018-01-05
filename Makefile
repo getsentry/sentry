@@ -154,7 +154,7 @@ test-acceptance: build-platform-assets
 	py.test tests/acceptance --cov . --cov-report="xml:coverage.xml" --junit-xml="junit.xml" --html="pytest.html"
 	@echo ""
 
-lint: lint-python lint-js
+lint: lint-python lint-js measure-js-bundle
 
 lint-python:
 	@echo "--> Linting python"
@@ -165,6 +165,9 @@ lint-js:
 	@echo "--> Linting javascript"
 	bash -eo pipefail -c "bin/lint --js --parseable | tee eslint.codestyle.xml"
 	@echo ""
+
+measure-js-bundle:
+	bash -eo pipefail -c "./node_modules/bundlesize/index.js -f \"static/dist/*(app|vendor).js.gz\" | tee bundlesize.txt"
 
 coverage: develop
 	$(MAKE) test-python
@@ -178,7 +181,7 @@ extract-api-docs:
 	cd api-docs; python generator.py
 
 
-.PHONY: develop dev-postgres dev-docs setup-git build clean locale update-transifex update-submodules test testloop test-cli test-js test-styleguide test-python test-acceptance lint lint-python lint-js coverage publish
+.PHONY: develop dev-postgres dev-docs setup-git build clean locale update-transifex update-submodules test testloop test-cli test-js test-styleguide test-python test-acceptance lint lint-python lint-js measure-js-bundle coverage publish
 
 
 ############################

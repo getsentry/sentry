@@ -22,6 +22,7 @@
     "babel-preset-latest": "^6.16.0",
     "babel-preset-react": "^6.16.0",
     "bootstrap": "3.3.5",
+    "bundlesize": "^0.15.3",
     "classnames": "2.2.0",
     "clipboard": "^1.7.1",
     "compression-webpack-plugin": "^1.0.0",

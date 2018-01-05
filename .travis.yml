@@ -48,6 +48,7 @@ after_success:
   - zeus upload -t "text/html+pytest" pytest.html
   - zeus upload -t "text/plain+pycodestyle" flake8.pycodestyle.log
   - zeus upload -t "text/xml+checkstyle" eslint.checkstyle.xml
+  - zeus upload -t "text/plain+bundlesize" bundlesize.txt
 after_failure:
   - dmesg | tail -n 100
   - npm install -g @zeus-ci/cli
