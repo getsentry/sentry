@@ -22,8 +22,7 @@ import Spinner from '../styled/spinner';
 // * can NOT be a flex box have because of position: absolute on "control error message"
 // * can NOT have overflow hidden because "control error message" overflows
 const FormFieldControlErrorWrapper = styled(Box)`
-  width: 50%;
-  padding-left: 10px;
+  ${p => (p.inline ? 'width: 50%; padding-left: 10px;' : '')};
 `;
 
 const FormFieldControlWrapper = styled(Flex)`
@@ -94,6 +93,11 @@ class FormField extends React.Component {
     hideErrorMessage: PropTypes.bool,
     highlighted: PropTypes.bool,
 
+    /**
+     * Should control be inline with field label
+     */
+    inline: PropTypes.bool,
+
     // the following should only be used without form context
     onChange: PropTypes.func,
     onBlur: PropTypes.func,
@@ -106,6 +110,7 @@ class FormField extends React.Component {
 
   static defaultProps = {
     hideErrorMessage: false,
+    inline: true,
     disabled: false,
     required: false,
   };
@@ -213,6 +218,7 @@ class FormField extends React.Component {
       highlighted,
       required,
       label,
+      inline,
       disabled,
       disabledReason,
       hideErrorMessage,
@@ -223,8 +229,8 @@ class FormField extends React.Component {
     let isDisabled = typeof disabled === 'function' ? disabled(this.props) : disabled;
 
     return (
-      <FormFieldWrapper highlighted={highlighted}>
-        <FormFieldDescription>
+      <FormFieldWrapper inline={inline} highlighted={highlighted}>
+        <FormFieldDescription inline={inline}>
           {label && (
             <FormFieldLabel>
               {label} {required && <FormFieldRequiredBadge />}
@@ -233,7 +239,7 @@ class FormField extends React.Component {
           {help && <FormFieldHelp>{help}</FormFieldHelp>}
         </FormFieldDescription>
 
-        <FormFieldControlErrorWrapper>
+        <FormFieldControlErrorWrapper inline={inline}>
           <FormFieldControlWrapper shrink="0">
             <FormFieldControl flex="1">
               <Observer>
