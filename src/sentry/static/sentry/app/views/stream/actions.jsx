@@ -139,11 +139,11 @@ const StreamActions = createReactClass({
   getInitialState() {
     return {
       datePickerActive: false,
-
       anySelected: false,
       multiSelected: false, // more than one selected
       pageSelected: false, // all on current page selected (e.g. 25)
       allInQuerySelected: false, // all in current search query selected (e.g. 1000+)
+      selectedIds: new Set(),
     };
   },
 
@@ -252,6 +252,7 @@ const StreamActions = createReactClass({
       multiSelected: SelectedGroupStore.multiSelected(),
       anySelected: SelectedGroupStore.anySelected(),
       allInQuerySelected: false, // any change resets
+      selectedIds: SelectedGroupStore.getSelectedIds(),
     });
   },
 
@@ -282,7 +283,7 @@ const StreamActions = createReactClass({
 
   render() {
     // TODO(mitsuhiko): very unclear how to translate this
-    let issues = SelectedGroupStore.getSelectedIds();
+    let issues = this.state.selectedIds;
     let numIssues = issues.size;
     let {allInQuerySelected, anySelected} = this.state;
     let disabled = !anySelected;
