@@ -13,6 +13,7 @@ import * as Router from 'react-router';
 import ReactBootstrapModal from 'react-bootstrap/lib/Modal';
 import JsCookie from 'js-cookie';
 
+import './utils/emotion-setup';
 import * as api from './api';
 import * as il8n from './locale';
 import plugins from './plugins';
