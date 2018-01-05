@@ -28,35 +28,13 @@ class ApiApplicationDetails extends AsyncView {
       loading: true,
       error: false,
       app: null,
-      formData: null,
       errors: {},
-    };
-  }
-
-  getFormData(app) {
-    return {
-      name: app.name,
-      homepageUrl: app.homepageUrl,
-      privacyUrl: app.privacyUrl,
-      termsUrl: app.termsUrl,
-      allowedOrigins: app.allowedOrigins.join('\n'),
-      redirectUris: app.redirectUris.join('\n'),
     };
   }
 
   getEndpoints() {
     return [['app', `/api-applications/${this.props.params.appId}/`]];
   }
-
-  onFieldChange(name, value) {
-    let formData = this.state.formData;
-    formData[name] = value;
-    this.setState({
-      formData,
-    });
-  }
-
-  onRemoveApplication(app) {}
 
   getTitle() {
     return 'Application Details - Sentry';
@@ -82,7 +60,6 @@ class ApiApplicationDetails extends AsyncView {
 
   renderBody() {
     let urlPrefix = ConfigStore.get('urlPrefix');
-    console.log(this.props);
 
     return (
       <div>
@@ -152,45 +129,3 @@ class ApiApplicationDetails extends AsyncView {
 }
 
 export default ApiApplicationDetails;
-/*
-          <form onSubmit={this.onSubmit} className="form-stacked">
-            <h4>Application Details</h4>
-            <fieldset>
-              <legend>Credentials</legend>
-              <div className="control-group">
-                <label htmlFor="api-key">Client ID</label>
-                <div className="form-control disabled">
-                  <TextCopyInput>{app.clientID}</TextCopyInput>
-                </div>
-              </div>
-              <div className="control-group">
-                <label htmlFor="api-key">Client Secret</label>
-                <div className="form-control disabled">
-                  {app.clientSecret ? (
-                    <TextCopyInput>{app.clientSecret}</TextCopyInput>
-                  ) : (
-                    <em>hidden</em>
-                  )}
-                </div>
-                <p className="help-block">
-                  Your secret is only available briefly after application creation. Make
-                  sure to save this value!
-                </p>
-              </div>
-
-              <div className="control-group">
-                <label htmlFor="api-key">Authorization URL</label>
-                <div className="form-control disabled">
-                  <TextCopyInput>{`${urlPrefix}/oauth/authorize/`}</TextCopyInput>
-                </div>
-              </div>
-
-              <div className="control-group">
-                <label htmlFor="api-key">Token URL</label>
-                <div className="form-control disabled">
-                  <TextCopyInput>{`${urlPrefix}/oauth/token/`}</TextCopyInput>
-                </div>
-              </div>
-            </fieldset>
-          </form>
-          */
