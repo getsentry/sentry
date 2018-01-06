@@ -230,7 +230,7 @@ const GroupActivity = createReactClass({
           <NoteContainer
             group={group}
             item={item}
-            key={itemIdx}
+            key={'note' + itemIdx}
             author={author}
             onDelete={this.onNoteDelete}
             sessionUser={me}

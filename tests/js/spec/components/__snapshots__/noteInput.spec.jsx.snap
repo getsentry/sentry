@@ -3,6 +3,7 @@
 exports[`NoteInput renders 1`] = `
 <form
   className="activity-field"
+  noValidate={true}
   onSubmit={[Function]}
 >
   <div

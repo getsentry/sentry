@@ -252,7 +252,7 @@ const NoteInput = createReactClass({
     let btnText = updating ? t('Save Comment') : t('Post Comment');
 
     return (
-      <form className={classNames} onSubmit={this.onSubmit}>
+      <form noValidate className={classNames} onSubmit={this.onSubmit}>
         <div className="activity-notes">
           <ul className="nav nav-tabs">
             <li className={!preview ? 'active' : ''}>
