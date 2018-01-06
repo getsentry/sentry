@@ -7,7 +7,7 @@ import {css} from 'react-emotion';
 import InputField from './inputField';
 
 const selectCss = css`
-  width: 100%;
+  width: 50%;
   font-size: 1.1rem;
   font-weight: bold;
   padding: 0.33em 0.75em;
@@ -99,6 +99,7 @@ export default class Select2Field extends React.Component {
     return (
       <InputField
         {...this.props}
+        alignRight={true}
         field={({onChange, onBlur, disabled, ...props}) => {
           let choices = props.choices || [];
 

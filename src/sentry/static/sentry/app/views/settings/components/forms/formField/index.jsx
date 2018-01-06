@@ -25,6 +25,10 @@ const FormFieldControlErrorWrapper = styled(Box)`
   ${p => (p.inline ? 'width: 50%; padding-left: 10px;' : '')};
 `;
 
+const FormFieldControlWithAlignmentSettings = styled(FormFieldControl)`
+  ${p => (p.alignRight ? 'display: flex; justify-content: flex-end;' : '')};
+`;
+
 const FormFieldControlWrapper = styled(Flex)``;
 
 const FormFieldErrorReason = styled.div`
@@ -90,6 +94,7 @@ class FormField extends React.Component {
     required: PropTypes.bool,
     hideErrorMessage: PropTypes.bool,
     highlighted: PropTypes.bool,
+    alignRight: PropTypes.bool,
 
     /**
      * Should control be inline with field label
@@ -217,6 +222,7 @@ class FormField extends React.Component {
       required,
       label,
       inline,
+      alignRight,
       disabled,
       disabledReason,
       hideErrorMessage,
@@ -239,7 +245,7 @@ class FormField extends React.Component {
 
         <FormFieldControlErrorWrapper inline={inline}>
           <FormFieldControlWrapper>
-            <FormFieldControl flex="1">
+            <FormFieldControlWithAlignmentSettings flex="1">
               <Observer>
                 {() => {
                   let error = this.getError();
@@ -270,7 +276,7 @@ class FormField extends React.Component {
                     <span className="icon-question" />
                   </span>
                 )}
-            </FormFieldControl>
+            </FormFieldControlWithAlignmentSettings>
 
             <FormFieldControlState justify="center" align="center">
               <Observer>
