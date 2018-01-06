@@ -112,25 +112,27 @@ function appendTrailingSlash(nextState, replaceState) {
   }
 }
 
-function getDefaultModule(module) {
-  return module.default;
-}
+/**
+ * Use react-router to lazy load a route. Use this for codesplitting containers (e.g. SettingsLayout)
+ *
+ * The method for lazy loading a route leaf node is using the <LazyLoad> component + `componentPromise`.
+ * The reason for this is because react-router handles the route tree better and if we use <LazyLoad> it will end
+ * up having to re-render more components than necesssary.
+ */
+const lazyLoad = cb => m => cb(null, m.default);
 
 const accountSettingsRoutes = [
   <IndexRedirect key="account-settings-index" to="notifications/" />,
   <Route key="notifications/" path="notifications/" name="Notifications">
     <IndexRoute
-      getComponent={() =>
-        import('./views/settings/account/accountNotifications').then(getDefaultModule)}
+      componentPromise={() => import('./views/settings/account/accountNotifications')}
       component={errorHandler(LazyLoad)}
     />
     <Route
       path="project-alerts/"
       name="Fine Tune Alerts"
-      getComponent={() =>
-        import('./views/settings/account/accountNotificationFineTuning').then(
-          getDefaultModule
-        )}
+      componentPromise={() =>
+        import('./views/settings/account/accountNotificationFineTuning')}
       component={errorHandler(LazyLoad)}
     />
   </Route>,
@@ -417,24 +419,19 @@ function routes() {
         newnew
         path="/settings/"
         name="Settings"
-        getComponent={() =>
-          import('./views/settings/settingsWrapper').then(getDefaultModule)}
-        component={errorHandler(LazyLoad)}
+        getComponent={(loc, cb) =>
+          import('./views/settings/settingsWrapper').then(lazyLoad(cb))}
       >
         <IndexRoute
-          getComponent={() =>
-            import('./views/settings/settingsIndex').then(getDefaultModule)}
-          component={errorHandler(LazyLoad)}
+          getComponent={(loc, cb) =>
+            import('./views/settings/settingsIndex').then(lazyLoad(cb))}
         />
 
         <Route
           path="account/"
           name="Account"
-          getComponent={() =>
-            import('./views/settings/account/accountSettingsLayout').then(
-              getDefaultModule
-            )}
-          component={LazyLoad}
+          getComponent={(loc, cb) =>
+            import('./views/settings/account/accountSettingsLayout').then(lazyLoad(cb))}
         >
           {accountSettingsRoutes}
         </Route>
@@ -448,11 +445,10 @@ function routes() {
             component={errorHandler(OrganizationContext)}
           >
             <Route
-              getComponent={() =>
+              getComponent={(loc, cb) =>
                 import('./views/settings/organization/organizationSettingsLayout').then(
-                  getDefaultModule
+                  lazyLoad(cb)
                 )}
-              component={errorHandler(LazyLoad)}
             >
               {orgSettingsRoutes}
             </Route>
@@ -462,11 +458,10 @@ function routes() {
               <Route
                 name="Project"
                 path=":projectId/"
-                getComponent={() =>
+                getComponent={(loc, cb) =>
                   import('./views/settings/project/projectSettingsLayout').then(
-                    getDefaultModule
+                    lazyLoad(cb)
                   )}
-                component={errorHandler(LazyLoad)}
               >
                 <Route component={errorHandler(SettingsProjectProvider)}>
                   {projectSettingsRoutes}

@@ -12,21 +12,15 @@ class LazyLoad extends React.Component {
     hideError: PropTypes.bool,
     /**
      * Function that returns a promise of a React.Component
-     * Alias property for `getComponent` to maintain compatibility w/ existing components
      */
     component: PropTypes.func,
 
     /**
-     * Function that returns a promise of a React.Component
-     */
-    getComponent: PropTypes.func,
-
-    /**
-     * Also accepts a route object from react-router that has a `getComponent` property
+     * Also accepts a route object from react-router that has a `componentPromise` property
      */
     route: PropTypes.shape({
       path: PropTypes.string,
-      getComponent: PropTypes.func,
+      componentPromise: PropTypes.func,
     }),
   };
 
@@ -45,13 +39,13 @@ class LazyLoad extends React.Component {
   componentWillReceiveProps(nextProps, nextState) {
     // This is to handle the following case:
     // <Route path="a/">
-    //   <Route path="b/" component={LazyLoad} getComponent={...} />
-    //   <Route path="c/" component={LazyLoad} getComponent={...} />
+    //   <Route path="b/" component={LazyLoad} componentPromise={...} />
+    //   <Route path="c/" component={LazyLoad} componentPromise={...} />
     // </Route>
     //
     // `LazyLoad` will get not fully remount when we switch between `b` and `c`,
     // instead will just re-render.  Refetch if route paths are different
-    if (nextProps.route && nextProps.route.path === this.props.route.path) return;
+    if (nextProps.route && nextProps.route === this.props.route) return;
 
     // If `this.fetchComponent` is not in callback,
     // then there's no guarantee that new Component will be rendered
@@ -63,8 +57,7 @@ class LazyLoad extends React.Component {
     );
   }
 
-  getComponentGetter = () =>
-    this.props.component || this.props.getComponent || this.props.route.getComponent;
+  getComponentGetter = () => this.props.component || this.props.route.componentPromise;
 
   fetchComponent = () => {
     let getComponent = this.getComponentGetter();
@@ -72,8 +65,9 @@ class LazyLoad extends React.Component {
     getComponent()
       .then(
         Component => {
+          // Always load default export if available
           this.setState({
-            Component,
+            Component: Component.default || Component,
           });
         },
         err => {
@@ -104,7 +98,7 @@ class LazyLoad extends React.Component {
   render() {
     let {Component, error} = this.state;
     // eslint-disable-next-line no-unused-vars
-    let {hideBusy, hideError, component, getComponent, ...otherProps} = this.props;
+    let {hideBusy, hideError, component, ...otherProps} = this.props;
 
     if (error && !hideError) {
       return (
