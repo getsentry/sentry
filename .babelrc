@@ -29,7 +29,7 @@
   "env": {
     "development": {
       "plugins": [
-        ["emotion", {"sourceMap": true}]
+        ["emotion", {"sourceMap": true, "autoLabel": true}]
       ]
     },
     "test": {
