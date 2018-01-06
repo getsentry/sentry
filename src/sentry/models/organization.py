@@ -26,9 +26,8 @@ from sentry.utils.http import absolute_uri
 from sentry.utils.retries import TimedRetryPolicy
 from sentry.models import Authenticator
 
+
 # TODO(dcramer): pull in enum library
-
-
 class OrganizationStatus(object):
     VISIBLE = 0
     PENDING_DELETION = 1
@@ -334,9 +333,12 @@ class Organization(Model):
     def send_setup_2fa_emails(self):
         from sentry import options
         from sentry.utils.email import MessageBuilder
+        from sentry.models import User
 
-        for member in self.member_set.all():
-            user = member.user
+        for user in User.objects.filter(
+            is_active=True,
+            sentry_orgmember_set__organization=self,
+        ):
             if not Authenticator.objects.user_has_2fa(user):
                 context = {
                     'user': user,

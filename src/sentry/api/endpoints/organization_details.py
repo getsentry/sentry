@@ -153,6 +153,8 @@ class OrganizationSerializer(serializers.Serializer):
                 avatar=self.init_data.get('avatar'),
                 filename='{}.png'.format(org.slug),
             )
+        if 'require2FA' in self.init_data:
+            org.send_setup_2fa_emails()
         return org
 
 
@@ -225,10 +227,6 @@ class OrganizationDetailsEndpoint(OrganizationEndpoint):
                 event=AuditLogEntryEvent.ORG_EDIT,
                 data=organization.get_audit_log_data(),
             )
-
-            result = serializer.object
-            if result.get('require2FA'):
-                organization.send_setup_2fa_emails()
 
             return Response(
                 serialize(
