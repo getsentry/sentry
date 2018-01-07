@@ -286,6 +286,8 @@ class EventSubjectTemplateData(object):
             return six.text_type(value)
         elif name == 'project':
             return self.event.project.get_full_name()
+        elif name == 'shortID':
+            return self.event.qualified_short_id
         elif name == 'projectID':
             return self.event.project.slug
         elif name == 'orgID':
@@ -295,4 +297,4 @@ class EventSubjectTemplateData(object):
         raise KeyError
 
 
-DEFAULT_SUBJECT_TEMPLATE = EventSubjectTemplate('[$project] ${tag:level}: $title')
+DEFAULT_SUBJECT_TEMPLATE = EventSubjectTemplate('[$shortID] ${tag:level}: $title')

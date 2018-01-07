@@ -102,9 +102,9 @@ class ActivityEmail(object):
     def get_subject(self):
         group = self.group
 
-        return u'[%s] %s: %s - [%s]' % (
-            self.project.get_full_name(), group.get_level_display(),
-            group.title, group.qualified_short_id
+        return u'[%s] %s: %s' % (
+            group.qualified_short_id, group.get_level_display(),
+            group.title
         )
 
     def get_subject_with_prefix(self):
