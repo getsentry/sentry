@@ -66,7 +66,7 @@ export default class Select2Field extends InputField {
     return {
       allowClear: this.props.allowClear,
       allowEmpty: this.props.allowEmpty,
-      width: 'element',
+      width: this.props.width,
       escapeMarkup: !this.props.escapeMarkup ? m => m : undefined,
     };
   }
