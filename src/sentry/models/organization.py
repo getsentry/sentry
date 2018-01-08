@@ -53,7 +53,7 @@ class OrganizationStatus(IntEnum):
             # realistically Enum shouldn't even creating these, but alas
             if name.startswith('_'):
                 continue
-            result.append((member, member.label))
+            result.append((member.value, member.label))
         return tuple(result)
 
 
