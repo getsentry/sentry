@@ -45,5 +45,11 @@ class OrganizationIntegrationSetupTest(TestCase):
     def test_basic_flow(self):
         with self.feature('organizations:integrations-v3'):
             resp = self.client.get(self.path)
-            assert resp.status_code == 302
-            assert resp['Location'] == 'http://testserver/extensions/example/setup/'
+            assert resp.status_code == 200
+
+            resp = self.client.post(self.path, data={'name': 'morty'})
+            assert resp.status_code == 200
+
+            # Check that we're binding the state back to the opening window
+            # through the dialog's window.postMessage.
+            assert 'morty' in resp.content

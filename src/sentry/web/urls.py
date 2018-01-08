@@ -50,6 +50,7 @@ from sentry.web.frontend.remove_organization import RemoveOrganizationView
 from sentry.web.frontend.restore_organization import RestoreOrganizationView
 from sentry.web.frontend.remove_project import RemoveProjectView
 from sentry.web.frontend.transfer_project import TransferProjectView
+from sentry.web.frontend.account_identity import AccountIdentityAssociateView, AccountIdentityLinkView
 from sentry.web.frontend.accept_project_transfer import AcceptProjectTransferView
 from sentry.web.frontend.remove_team import RemoveTeamView
 from sentry.web.frontend.sudo import SudoView
@@ -242,6 +243,16 @@ urlpatterns += patterns(
         r'^account/settings/identities/(?P<identity_id>[^\/]+)/disconnect/$',
         accounts.disconnect_identity,
         name='sentry-account-disconnect-identity'
+    ),
+    url(
+        r'^account/settings/identities/associate/(?P<organization_slug>[^\/]+)/(?P<provider_key>[^\/]+)/$',
+        AccountIdentityAssociateView.as_view(),
+        name='sentry-account-associate-identity'
+    ),
+    url(
+        r'^account/settings/identities/associate/$',
+        AccountIdentityLinkView.as_view(),
+        name='sentry-account-link-identity'
     ),
     url(
         r'^account/settings/notifications/$',
