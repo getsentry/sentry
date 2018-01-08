@@ -38,7 +38,7 @@ window.TestStubs = {
     pathame: '/mock-pathname/',
   }),
 
-  ApiKey: (...params) => {
+  ApiKey: params => {
     return {
       allowed_origins: '',
       id: 1,
@@ -68,7 +68,7 @@ window.TestStubs = {
     };
   },
 
-  Team: (...params) => {
+  Team: params => {
     return {
       id: '1',
       slug: 'team-slug',
@@ -77,7 +77,7 @@ window.TestStubs = {
     };
   },
 
-  Members: (...params) => [
+  Members: () => [
     {
       id: '1',
       email: '',
@@ -129,10 +129,9 @@ window.TestStubs = {
         username: 'Sentry 3 Username',
       },
     },
-    ...params,
   ],
 
-  Project: (...params) => {
+  Project: params => {
     return {
       id: '2',
       slug: 'project-slug',
@@ -143,7 +142,7 @@ window.TestStubs = {
       ...params,
     };
   },
-  Organization: (...params) => {
+  Organization: params => {
     return {
       id: '3',
       slug: 'org-slug',
@@ -159,13 +158,17 @@ window.TestStubs = {
         'team:write',
         'team:admin',
       ],
+      status: {
+        id: 'active',
+        name: 'active',
+      },
       features: [],
       onboardingTasks: [],
       teams: [],
       ...params,
     };
   },
-  Repository: (...params) => {
+  Repository: params => {
     return {
       id: '4',
       name: 'repo-name',
@@ -175,7 +178,7 @@ window.TestStubs = {
       ...params,
     };
   },
-  GitHubRepositoryProvider: (...params) => {
+  GitHubRepositoryProvider: params => {
     return {
       id: 'github',
       name: 'GitHub',
@@ -192,7 +195,7 @@ window.TestStubs = {
       ...params,
     };
   },
-  Integration: (...params) => {
+  Integration: params => {
     return {
       id: '4',
       name: 'repo-name',
@@ -203,7 +206,7 @@ window.TestStubs = {
       ...params,
     };
   },
-  GitHubIntegrationProvider: (...params) => {
+  GitHubIntegrationProvider: params => {
     return {
       key: 'github',
       name: 'GitHub',
@@ -212,10 +215,10 @@ window.TestStubs = {
       ...params,
     };
   },
-  Tags: (...params) => {
+  Tags: () => {
     return [{key: 'browser', name: 'Browser'}, {key: 'device', name: 'Device'}];
   },
-  Plugin: (...params) => {
+  Plugin: params => {
     return {
       author: {url: 'https://github.com/getsentry/sentry', name: 'Sentry Team'},
       enabled: false,
@@ -226,9 +229,10 @@ window.TestStubs = {
       assets: [],
       hasConfiguration: true,
       canDisable: true,
+      ...params,
     };
   },
-  Plugins: (...params) => {
+  Plugins: () => {
     return [
       {
         author: {url: 'https://github.com/getsentry/sentry', name: 'Sentry Team'},

@@ -26,6 +26,10 @@ exports[`ProjectPluginDetails renders 1`] = `
       "name": "Organization Name",
       "onboardingTasks": Array [],
       "slug": "org-slug",
+      "status": Object {
+        "id": "active",
+        "name": "active",
+      },
       "teams": Array [],
     }
   }
@@ -72,6 +76,10 @@ exports[`ProjectPluginDetails renders 1`] = `
         "name": "Organization Name",
         "onboardingTasks": Array [],
         "slug": "org-slug",
+        "status": Object {
+          "id": "active",
+          "name": "active",
+        },
         "teams": Array [],
       }
     }
@@ -216,6 +224,10 @@ exports[`ProjectPluginDetails renders 1`] = `
                   "name": "Organization Name",
                   "onboardingTasks": Array [],
                   "slug": "org-slug",
+                  "status": Object {
+                    "id": "active",
+                    "name": "active",
+                  },
                   "teams": Array [],
                 }
               }
@@ -269,6 +281,10 @@ exports[`ProjectPluginDetails renders 1`] = `
                         "name": "Organization Name",
                         "onboardingTasks": Array [],
                         "slug": "org-slug",
+                        "status": Object {
+                          "id": "active",
+                          "name": "active",
+                        },
                         "teams": Array [],
                       }
                     }

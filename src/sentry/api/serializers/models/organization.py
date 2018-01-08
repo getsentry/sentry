@@ -44,7 +44,7 @@ class OrganizationSerializer(Serializer):
             'id': six.text_type(obj.id),
             'slug': obj.slug,
             'status': {
-                'id': status.name,
+                'id': status.name.lower(),
                 'name': status.label,
             },
             'name': obj.name or obj.slug,
