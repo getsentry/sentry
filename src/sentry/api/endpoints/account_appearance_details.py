@@ -45,6 +45,15 @@ class AccountAppearanceDetailsEndpoint(Endpoint):
     permission_classes = (IsAuthenticated, )
 
     def get(self, request):
+        """
+        Retrieve Account "Appearance" options
+        `````````````````````````````````````
+
+        Return details for an account's appearance options such as: timezone, 24hr times, language,
+        stacktrace_order.
+
+        :auth: required
+        """
         options = UserOption.objects.get_all_values(user=request.user, project=None)
 
         return Response({
@@ -55,6 +64,18 @@ class AccountAppearanceDetailsEndpoint(Endpoint):
         })
 
     def put(self, request):
+        """
+        Update Account Appearance options
+        `````````````````````````````````
+
+        Update account appearance options. Only supplied values are updated.
+
+        :param string language: language preference
+        :param string stacktrace_order: One of -1 (default), 1 (most recent call last), 2 (most recent call first).
+        :param string timezone: timezone option
+        :param clock_24_hours boolean: use 24 hour clock
+        :auth: required
+        """
         serializer = AccountAppearanceSerializer(data=request.DATA, partial=True)
 
         if not serializer.is_valid():
