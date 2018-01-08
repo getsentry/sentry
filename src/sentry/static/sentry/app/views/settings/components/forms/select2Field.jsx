@@ -1,12 +1,12 @@
 import PropTypes from 'prop-types';
 import React from 'react';
 import jQuery from 'jquery';
-import cx from 'classnames';
+import classnames from 'classnames';
 import {css} from 'react-emotion';
 
 import InputField from './inputField';
 
-const selectCss = css`
+const formControlSmall = css`
   width: 50%;
   font-weight: bold;
   font-size: 1.1rem;
@@ -110,7 +110,7 @@ export default class Select2Field extends React.Component {
           return (
             <select
               disabled={disabled}
-              className={cx(selectCss, 'form-control')}
+              className={classnames('form-control', {[formControlSmall]: true})}
               ref={ref => this.handleSelectMount(onBlur, onChange, ref)}
               onChange={() => {}}
               value={props.value}

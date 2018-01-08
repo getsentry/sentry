@@ -1,5 +1,5 @@
 import React from 'react';
-import {css} from 'react-emotion';
+import styled from 'react-emotion';
 
 import AsyncView from '../../asyncView';
 import ApiForm from '../components/forms/apiForm';
@@ -19,9 +19,9 @@ const ACCOUNT_NOTIFICATION_FIELDS = {
   },
 };
 
-const lineCss = css`
+const PanelBodyLineItem = styled(PanelBody)`
   font-size: 1.4rem;
-  border-bottom: 1px solid #ccc;
+  border-bottom: 1px solid ${p => p.theme.borderLight};
 `;
 
 export default class AccountNotificationDetails extends AsyncView {
@@ -69,13 +69,13 @@ export default class AccountNotificationDetails extends AsyncView {
                   <PanelHeader>{org.name}</PanelHeader>
                   {org.projects.map((project, idx) => {
                     return (
-                      <PanelBody key={idx} className={lineCss}>
+                      <PanelBodyLineItem key={idx}>
                         <Select2Field
                           name={project.name}
                           choices={project.choices}
                           label={project.label}
                         />
-                      </PanelBody>
+                      </PanelBodyLineItem>
                     );
                   })}
                 </div>

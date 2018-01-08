@@ -6,19 +6,20 @@ import SettingsInputField from '../styled/input';
 import SettingsTextAreaField from '../styled/textarea';
 
 const FormFieldWrapper = styled(({highlighted, inline, ...props}) => <Flex {...props} />)`
-  padding: 15px 0 15px 20px;
+  padding: 0.9em 0 0.9em 1.3em;
   border-bottom: 1px solid ${p => p.theme.borderLight};
   transition: background 0.15s;
 
-  ${p =>
-    p.inline
-      ? `
-  align-items: center;
-  `
-      : `
-  flex-direction: column;
-  align-items: stretch;
-  `} &:hover {
+  ${p => {
+    if (p.inline) {
+      return `align-items: center;`;
+    } else {
+      return `
+        flex-direction: column;
+        align-items: stretch;
+      `;
+    }
+  }} &:hover {
     ${SettingsInputField}, ${SettingsTextAreaField} {
       ${p => css`
         background: ${p.error ? '#fff' : p.theme.offWhite};
@@ -26,12 +27,15 @@ const FormFieldWrapper = styled(({highlighted, inline, ...props}) => <Flex {...p
     }
   }
 
-  ${p =>
-    p.highlighted
-      ? css`
-          outline: 1px solid ${p.theme.purple};
-        `
-      : ''} &:last-child {
+  ${p => {
+    if (p.highlighted) {
+      return css`
+        outline: 1px solid ${p.theme.purple};
+      `;
+    } else {
+      return '';
+    }
+  }} &:last-child {
     border-bottom: none;
   }
 `;
