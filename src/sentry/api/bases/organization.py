@@ -9,7 +9,7 @@ from sentry.app import raven
 from sentry.auth import access
 from sentry.auth.superuser import is_active_superuser
 from sentry.models import (
-    ApiKey, Organization, OrganizationMemberTeam, OrganizationStatus, Project, ReleaseProject, Team
+    ApiKey, Organization, OrganizationMemberTeam, Project, ReleaseProject, Team
 )
 from sentry.utils import auth
 
@@ -120,9 +120,6 @@ class OrganizationEndpoint(Endpoint):
                 slug=organization_slug,
             )
         except Organization.DoesNotExist:
-            raise ResourceDoesNotExist
-
-        if organization.status != OrganizationStatus.VISIBLE:
             raise ResourceDoesNotExist
 
         self.check_object_permissions(request, organization)
