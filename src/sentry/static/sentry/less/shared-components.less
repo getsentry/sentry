@@ -1386,9 +1386,6 @@ table.integrations {
   position: static;
 
   .dropdown-toggle {
-    border: 1px solid @gray-lighter;
-    box-shadow: 0 1px 1px rgba(0, 0, 0, 0.08);
-    border-radius: 50%;
     height: 21px;
     width: 21px;
     line-height: 21px;
@@ -1396,14 +1393,9 @@ table.integrations {
     position: relative;
     top: -1px;
 
-    margin-left: 10px;
+    margin-left: 2px;
     display: inline-block;
     vertical-align: middle;
-
-    &:hover {
-      background: @white-darker;
-      border-color: @gray-light;
-    }
 
     .icon-arrow-down {
       position: relative;
@@ -1527,14 +1519,6 @@ table.integrations {
           }
         }
       }
-    }
-  }
-
-  &.open .dropdown-toggle {
-    border-color: darken(@purple, 15);
-    background-color: @purple;
-    .icon-arrow-down {
-      color: #fff;
     }
   }
 }
