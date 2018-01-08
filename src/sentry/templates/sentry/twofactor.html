@@ -30,7 +30,7 @@
             {{ field|as_crispy_field }}
           {% endfor %}
           {% if interface.interface_id == "sms" %}
-            <a class="info" onclick="location.reload(true)" >Resend Code</a>
+            <a class="info" href="" >Resend Code</a>
           {% endif %}
         {% endblock %}
 
