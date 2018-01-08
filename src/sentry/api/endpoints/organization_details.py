@@ -155,6 +155,8 @@ class OrganizationSerializer(serializers.Serializer):
                 avatar=self.init_data.get('avatar'),
                 filename='{}.png'.format(org.slug),
             )
+        if 'require2FA' in self.init_data and self.init_data['require2FA'] is True:
+            org.send_setup_2fa_emails()
         return org
 
 
