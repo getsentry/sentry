@@ -56,9 +56,7 @@ class OrganizationIndexEndpoint(Endpoint):
         """
         member_only = request.GET.get('member') in ('1', 'true')
 
-        queryset = Organization.objects.filter(
-            status=OrganizationStatus.VISIBLE,
-        )
+        queryset = Organization.objects.all()
 
         if request.auth and not request.user.is_authenticated():
             if hasattr(request.auth, 'project'):
@@ -94,6 +92,15 @@ class OrganizationIndexEndpoint(Endpoint):
                     )
                 elif key == 'id':
                     queryset = queryset.filter(id__in=value)
+                elif key == 'status':
+                    try:
+                        queryset = queryset.filter(status__in=[
+                            OrganizationStatus[v.upper()] for v in value
+                        ])
+                    except KeyError:
+                        queryset = queryset.none()
+                else:
+                    queryset = queryset.none()
 
         sort_by = request.GET.get('sortBy')
         if sort_by == 'members':

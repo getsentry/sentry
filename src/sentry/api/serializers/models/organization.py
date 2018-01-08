@@ -8,7 +8,7 @@ from sentry.api.serializers import Serializer, register, serialize
 from sentry.auth import access
 from sentry.models import (
     ApiKey, Organization, OrganizationAccessRequest, OrganizationAvatar, OrganizationOnboardingTask,
-    OrganizationOption, Team, TeamStatus
+    OrganizationOption, OrganizationStatus, Team, TeamStatus
 )
 
 
@@ -38,9 +38,15 @@ class OrganizationSerializer(Serializer):
                 'avatarUuid': None,
             }
 
+        status = OrganizationStatus(obj.status)
+
         return {
             'id': six.text_type(obj.id),
             'slug': obj.slug,
+            'status': {
+                'id': status.name,
+                'name': status.label,
+            },
             'name': obj.name or obj.slug,
             'dateCreated': obj.date_added,
             'isEarlyAdopter': bool(obj.flags.early_adopter),
@@ -104,20 +110,16 @@ class DetailedOrganizationSerializer(OrganizationSerializer):
         context = super(DetailedOrganizationSerializer, self).serialize(obj, attrs, user)
         max_rate = quotas.get_maximum_quota(obj)
         context['quota'] = {
-            'maxRate':
-            max_rate[0],
-            'maxRateInterval':
-            max_rate[1],
-            'accountLimit':
-            int(
+            'maxRate': max_rate[0],
+            'maxRateInterval': max_rate[1],
+            'accountLimit': int(
                 OrganizationOption.objects.get_value(
                     organization=obj,
                     key='sentry:account-rate-limit',
                     default=0,
                 )
             ),
-            'projectLimit':
-            int(
+            'projectLimit': int(
                 OrganizationOption.objects.get_value(
                     organization=obj,
                     key='sentry:project-rate-limit',
@@ -125,26 +127,24 @@ class DetailedOrganizationSerializer(OrganizationSerializer):
                 )
             ),
         }
-        context.update(
-            {
-                'isDefault': obj.is_default,
-                'defaultRole': obj.default_role,
-                'availableRoles': [{
-                    'id': r.id,
-                    'name': r.name,
-                } for r in roles.get_all()],
-                'openMembership': bool(obj.flags.allow_joinleave),
-                'require2FA': bool(obj.flags.require_2fa),
-                'allowSharedIssues': not obj.flags.disable_shared_issues,
-                'enhancedPrivacy': bool(obj.flags.enhanced_privacy),
-                'dataScrubber': bool(obj.get_option('sentry:require_scrub_data', False)),
-                'dataScrubberDefaults':
-                bool(obj.get_option('sentry:require_scrub_defaults', False)),
-                'sensitiveFields': obj.get_option('sentry:sensitive_fields', None) or [],
-                'safeFields': obj.get_option('sentry:safe_fields', None) or [],
-                'scrubIPAddresses': bool(obj.get_option('sentry:require_scrub_ip_address', False)),
-            }
-        )
+
+        context.update({
+            'isDefault': obj.is_default,
+            'defaultRole': obj.default_role,
+            'availableRoles': [{
+                'id': r.id,
+                'name': r.name,
+            } for r in roles.get_all()],
+            'openMembership': bool(obj.flags.allow_joinleave),
+            'require2FA': bool(obj.flags.require_2fa),
+            'allowSharedIssues': not obj.flags.disable_shared_issues,
+            'enhancedPrivacy': bool(obj.flags.enhanced_privacy),
+            'dataScrubber': bool(obj.get_option('sentry:require_scrub_data', False)),
+            'dataScrubberDefaults': bool(obj.get_option('sentry:require_scrub_defaults', False)),
+            'sensitiveFields': obj.get_option('sentry:sensitive_fields', None) or [],
+            'safeFields': obj.get_option('sentry:safe_fields', None) or [],
+            'scrubIPAddresses': bool(obj.get_option('sentry:require_scrub_ip_address', False)),
+        })
         context['teams'] = serialize(team_list, user, TeamWithProjectsSerializer())
         if env.request:
             context['access'] = access.from_request(env.request, obj).scopes

@@ -7,7 +7,10 @@ sentry.models.organization
 """
 from __future__ import absolute_import, print_function
 
+import six
+
 from datetime import timedelta
+from enum import IntEnum
 
 from bitfield import BitField
 from django.conf import settings
@@ -15,7 +18,6 @@ from django.core.urlresolvers import reverse
 from django.db import IntegrityError, models, transaction
 from django.utils import timezone
 from django.utils.functional import cached_property
-from django.utils.translation import ugettext_lazy as _
 
 from sentry import roles
 from sentry.app import locks
@@ -26,11 +28,40 @@ from sentry.utils.http import absolute_uri
 from sentry.utils.retries import TimedRetryPolicy
 
 
-# TODO(dcramer): pull in enum library
-class OrganizationStatus(object):
-    VISIBLE = 0
+class OrganizationStatus(IntEnum):
+    ACTIVE = 0
     PENDING_DELETION = 1
     DELETION_IN_PROGRESS = 2
+
+    # alias
+    VISIBLE = 0
+
+    def __str__(self):
+        return self.name
+
+    @property
+    def label(self):
+        return OrganizationStatus._labels[self]
+
+    @classmethod
+    def as_choices(cls):
+        result = []
+        for name, member in six.iteritems(cls.__members__):
+            # an alias
+            if name != member.name:
+                continue
+            # realistically Enum shouldn't even creating these, but alas
+            if name.startswith('_'):
+                continue
+            result.append((member, member.label))
+        return tuple(result)
+
+
+OrganizationStatus._labels = {
+    OrganizationStatus.ACTIVE: 'active',
+    OrganizationStatus.PENDING_DELETION: 'pending deletion',
+    OrganizationStatus.DELETION_IN_PROGRESS: 'deletion in progress',
+}
 
 
 class OrganizationManager(BaseManager):
@@ -48,13 +79,13 @@ class OrganizationManager(BaseManager):
 
         if settings.SENTRY_PUBLIC and scope is None:
             if only_visible:
-                return list(self.filter(status=OrganizationStatus.VISIBLE))
+                return list(self.filter(status=OrganizationStatus.ACTIVE))
             else:
                 return list(self.filter())
 
         qs = OrganizationMember.objects.filter(user=user).select_related('organization')
         if only_visible:
-            qs = qs.filter(organization__status=OrganizationStatus.VISIBLE)
+            qs = qs.filter(organization__status=OrganizationStatus.ACTIVE)
 
         results = list(qs)
 
@@ -72,12 +103,8 @@ class Organization(Model):
     name = models.CharField(max_length=64)
     slug = models.SlugField(unique=True)
     status = BoundedPositiveIntegerField(
-        choices=(
-            (OrganizationStatus.VISIBLE,
-             _('Visible')), (OrganizationStatus.PENDING_DELETION, _('Pending Deletion')),
-            (OrganizationStatus.DELETION_IN_PROGRESS, _('Deletion in Progress')),
-        ),
-        default=OrganizationStatus.VISIBLE
+        choices=OrganizationStatus.as_choices(),
+        default=OrganizationStatus.ACTIVE
     )
     date_added = models.DateTimeField(default=timezone.now)
     members = models.ManyToManyField(
@@ -127,7 +154,7 @@ class Organization(Model):
         Return the organization used in single organization mode.
         """
         return cls.objects.filter(
-            status=OrganizationStatus.VISIBLE,
+            status=OrganizationStatus.ACTIVE,
         )[0]
 
     def __unicode__(self):

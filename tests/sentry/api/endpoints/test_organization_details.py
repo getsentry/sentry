@@ -284,6 +284,23 @@ class OrganizationUpdateTest(APITestCase):
 
         assert not options.get('sentry:sensitive_fields')
 
+    def test_cancel_delete(self):
+        org = self.create_organization(owner=self.user, status=OrganizationStatus.PENDING_DELETION)
+        self.login_as(user=self.user)
+        url = reverse(
+            'sentry-api-0-organization-details', kwargs={
+                'organization_slug': org.slug,
+            }
+        )
+        response = self.client.put(
+            url, data={
+                'cancelDeletion': True,
+            }
+        )
+        assert response.status_code == 200, (response.status_code, response.content)
+        org = Organization.objects.get(id=org.id)
+        assert org.status == OrganizationStatus.VISIBLE
+
 
 class OrganizationDeleteTest(APITestCase):
     @patch('sentry.api.endpoints.organization_details.uuid4')
