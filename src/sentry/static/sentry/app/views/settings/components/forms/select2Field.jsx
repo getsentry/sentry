@@ -8,8 +8,8 @@ import InputField from './inputField';
 
 const selectCss = css`
   width: 50%;
-  font-size: 1.1rem;
   font-weight: bold;
+  font-size: 1.1rem;
   padding: 0.33em 0.75em;
 
   .select2-arrow:after {
