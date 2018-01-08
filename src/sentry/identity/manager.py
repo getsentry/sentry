@@ -1,15 +1,13 @@
 from __future__ import absolute_import, print_function
 
-__all__ = ['IntegrationManager']
+__all__ = ['IdentityManager']
 
 import six
 
 from sentry.exceptions import NotRegistered
 
 
-# Ideally this and PluginManager abstracted from the same base, but
-# InstanceManager has become convulated and wasteful
-class IntegrationManager(object):
+class IdentityManager(object):
     def __init__(self):
         self.__values = {}
 

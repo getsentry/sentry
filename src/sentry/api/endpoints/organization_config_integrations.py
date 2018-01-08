@@ -12,13 +12,13 @@ class OrganizationConfigIntegrationsEndpoint(OrganizationEndpoint):
         for provider in integrations.all():
             providers.append(
                 {
-                    'id': provider.id,
+                    'key': provider.key,
                     'name': provider.name,
                     'config': provider.get_config(),
                     'setupDialog': dict(
                         url='/organizations/{}/integrations/{}/setup/'.format(
                             organization.slug,
-                            provider.id,
+                            provider.key,
                         ),
                         **provider.setup_dialog_config
                     )

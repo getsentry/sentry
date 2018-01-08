@@ -1,67 +1,69 @@
 from __future__ import absolute_import, print_function
 
-__all__ = ['OAuth2Integration', 'OAuth2CallbackView', 'OAuth2LoginView']
+__all__ = ['OAuth2Provider', 'OAuth2CallbackView', 'OAuth2LoginView']
 
 from six.moves.urllib.parse import parse_qsl, urlencode
 from uuid import uuid4
+from time import time
 
 from sentry.http import safe_urlopen, safe_urlread
 from sentry.utils import json
 from sentry.utils.http import absolute_uri
+from sentry.utils.pipeline import PipelineView
 
-from .base import Integration
-from .view import PipelineView
+from .base import Provider
 
 ERR_INVALID_STATE = 'An error occurred while validating your request.'
 
 
-class OAuth2Integration(Integration):
+class OAuth2Provider(Provider):
+    """
+    The OAuth2Provider is a generic way to implement an identity provider that
+    uses the OAuth 2.0 protocol as a means for authenticating a user.
+
+    OAuth scopes are configured through the oauth_scopes class property,
+    however may be overriden using the ``config['oauth_scopes']`` object.
+    """
     oauth_access_token_url = ''
     oauth_authorize_url = ''
-    oauth_client_id = ''
-    oauth_client_secret = ''
-    oauth_refresh_token_url = ''
+    refresh_token_url = ''
+
     oauth_scopes = ()
 
-    def is_configured(self):
-        return (
-            self.get_oauth_client_id() and
-            self.get_oauth_client_secret() and
-            self.get_oauth_access_token_url() and
-            self.get_oauth_authorize_url()
-        )
-
     def get_oauth_client_id(self):
-        return self.oauth_client_id
+        raise NotImplementedError
 
     def get_oauth_client_secret(self):
-        return self.oauth_client_secret
-
-    def get_oauth_access_token_url(self):
-        return self.oauth_access_token_url
-
-    def get_oauth_authorize_url(self):
-        return self.oauth_authorize_url
-
-    def get_oauth_refresh_token_url(self):
-        return self.oauth_refresh_token_url
+        raise NotImplementedError
 
     def get_oauth_scopes(self):
-        return self.oauth_scopes
+        return self.config.get('oauth_scopes', self.oauth_scopes)
 
-    def get_pipeline(self):
+    def get_pipeline_views(self):
         return [
             OAuth2LoginView(
-                authorize_url=self.get_oauth_authorize_url(),
+                authorize_url=self.oauth_authorize_url,
                 client_id=self.get_oauth_client_id(),
                 scope=' '.join(self.get_oauth_scopes()),
             ),
             OAuth2CallbackView(
-                access_token_url=self.get_oauth_access_token_url(),
+                access_token_url=self.oauth_access_token_url,
                 client_id=self.get_oauth_client_id(),
                 client_secret=self.get_oauth_client_secret(),
             ),
         ]
+
+    def get_oauth_data(self, payload):
+        data = {'access_token': payload['access_token']}
+
+        if 'expires_in' in payload:
+            data['expires'] = int(time()) + payload['expires_in']
+        if 'refresh_token' in payload:
+            data['refresh_token'] = payload['refresh_token']
+        if 'token_type' in payload:
+            data['token_type'] = payload['token_type']
+
+        return data
 
 
 class OAuth2LoginView(PipelineView):
@@ -93,19 +95,19 @@ class OAuth2LoginView(PipelineView):
             'redirect_uri': redirect_uri,
         }
 
-    def dispatch(self, request, helper):
+    def dispatch(self, request, pipeline):
         if 'code' in request.GET:
-            return helper.next_step()
+            return pipeline.next_step()
 
         state = uuid4().hex
 
         params = self.get_authorize_params(
             state=state,
-            redirect_uri=absolute_uri(helper.get_redirect_url()),
+            redirect_uri=absolute_uri(pipeline.redirect_url()),
         )
         redirect_uri = '{}?{}'.format(self.get_authorize_url(), urlencode(params))
 
-        helper.bind_state('state', state)
+        pipeline.bind_state('state', state)
 
         return self.redirect(redirect_uri)
 
@@ -133,11 +135,11 @@ class OAuth2CallbackView(PipelineView):
             'client_secret': self.client_secret,
         }
 
-    def exchange_token(self, request, helper, code):
+    def exchange_token(self, request, pipeline, code):
         # TODO: this needs the auth yet
         data = self.get_token_params(
             code=code,
-            redirect_uri=absolute_uri(helper.get_redirect_url()),
+            redirect_uri=absolute_uri(pipeline.redirect_url()),
         )
         req = safe_urlopen(self.access_token_url, data=data)
         body = safe_urlread(req)
@@ -145,41 +147,33 @@ class OAuth2CallbackView(PipelineView):
             return dict(parse_qsl(body))
         return json.loads(body)
 
-    def dispatch(self, request, helper):
+    def dispatch(self, request, pipeline):
         error = request.GET.get('error')
         state = request.GET.get('state')
         code = request.GET.get('code')
 
         if error:
-            helper.logger.info('auth.token-exchange-error', extra={
-                'error': error,
-            })
-            return helper.error(error)
+            pipeline.logger.info('identity.token-exchange-error', extra={'error': error})
+            return pipeline.error(error)
 
-        if state != helper.fetch_state('state'):
-            helper.logger.info('auth.token-exchange-error', extra={
-                'error': 'invalid_state',
-            })
-            return helper.error(ERR_INVALID_STATE)
+        if state != pipeline.fetch_state('state'):
+            pipeline.logger.info('identity.token-exchange-error', extra={'error': 'invalid_state'})
+            return pipeline.error(ERR_INVALID_STATE)
 
-        data = self.exchange_token(request, helper, code)
+        data = self.exchange_token(request, pipeline, code)
 
         if 'error_description' in data:
-            helper.logger.info('auth.token-exchange-error', extra={
-                'error': data.get('error'),
-            })
-            return helper.error(data['error_description'])
+            error = data.get('error')
+            pipeline.logger.info('identity.token-exchange-error', extra={'error': error})
+            return pipeline.error(data['error_description'])
 
         if 'error' in data:
-            helper.logger.info('auth.token-exchange-error', extra={
-                'error': data['error'],
-            })
-            return helper.error(
-                'There was an error when retrieving a token from the upstream service.')
+            pipeline.logger.info('identity.token-exchange-error', extra={'error': data['error']})
+            return pipeline.error('Failed to retrieve toek from the upstream service.')
 
         # we can either expect the API to be implicit and say "im looking for
         # blah within state data" or we need to pass implementation + call a
         # hook here
-        helper.bind_state('data', data)
+        pipeline.bind_state('data', data)
 
-        return helper.next_step()
+        return pipeline.next_step()

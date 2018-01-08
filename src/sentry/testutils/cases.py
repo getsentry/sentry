@@ -544,21 +544,23 @@ class IntegrationTestCase(TestCase):
     provider = None
 
     def setUp(self):
-        from sentry.integrations.helper import PipelineHelper
+        from sentry.integrations.pipeline import IntegrationPipeline
 
         super(IntegrationTestCase, self).setUp()
 
         self.organization = self.create_organization(name='foo', owner=self.user)
         self.login_as(self.user)
-        self.path = '/extensions/{}/setup/'.format(self.provider.id)
+        self.path = '/extensions/{}/setup/'.format(self.provider.key)
         self.request = self.make_request(self.user)
         # XXX(dcramer): this is a bit of a hack, but it helps contain this test
-        self.helper = PipelineHelper.initialize(
+        self.pipeline = IntegrationPipeline(
             request=self.request,
             organization=self.organization,
-            provider_id=self.provider.id,
-            dialog=True,
+            provider_key=self.provider.key,
         )
+
+        self.pipeline.initialize()
+
         self.save_session()
 
         feature = Feature('organizations:integrations-v3')

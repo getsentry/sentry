@@ -197,7 +197,7 @@ window.TestStubs = {
       id: '4',
       name: 'repo-name',
       provider: {
-        id: 'github',
+        key: 'github',
         name: 'GitHub',
       },
       ...params,
@@ -205,7 +205,7 @@ window.TestStubs = {
   },
   GitHubIntegrationProvider: (...params) => {
     return {
-      id: 'github',
+      key: 'github',
       name: 'GitHub',
       config: [],
       setupUri: '/github-integration-setup-uri/',
