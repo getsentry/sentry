@@ -311,6 +311,31 @@ window.TestStubs = {
       },
     ];
   },
+
+  Subscriptions: () => {
+    return [
+      {
+        subscribed_date: '2018-01-08T05:14:59.102Z',
+        subscribed: true,
+        list_description:
+          'Everything you need to know about Sentry features, integrations, partnerships, and launches.',
+        list_id: 2,
+        unsubscribed_date: null,
+        list_name: 'Product & Feature Updates',
+        email: 'test@sentry.io',
+      },
+      {
+        subscribed_date: null,
+        subscribed: false,
+        list_description:
+          "Our monthly update on what's new with Sentry and the community.",
+        list_id: 1,
+        unsubscribed_date: '2018-01-08T19:31:42.546Z',
+        list_name: 'Sentry Newsletter',
+        email: 'test@sentry.io',
+      },
+    ];
+  },
 };
 
 // this is very commonly used, so expose it globally
