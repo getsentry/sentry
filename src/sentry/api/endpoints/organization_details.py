@@ -35,6 +35,8 @@ ORG_OPTIONS = (
 
 delete_logger = logging.getLogger('sentry.deletions.api')
 
+DELETION_STATUSES = frozenset([OrganizationStatus.PENDING_DELETION, OrganizationStatus.DELETION_IN_PROGRESS])
+
 
 @scenario('RetrieveOrganization')
 def retrieve_organization_scenario(runner):
@@ -158,11 +160,15 @@ class OrganizationSerializer(serializers.Serializer):
 
 class OwnerOrganizationSerializer(OrganizationSerializer):
     defaultRole = serializers.ChoiceField(choices=roles.get_choices())
+    cancelDeletion = serializers.BooleanField(required=False)
 
     def save(self, *args, **kwargs):
         org = self.context['organization']
+        cancel_deletion = 'cancelDeletion' in self.init_data and org.status in DELETION_STATUSES
         if 'defaultRole' in self.init_data:
             org.default_role = self.init_data['defaultRole']
+        if cancel_deletion:
+            org.status = OrganizationStatus.VISIBLE
         return super(OwnerOrganizationSerializer, self).save(*args, **kwargs)
 
 
@@ -210,6 +216,8 @@ class OrganizationDetailsEndpoint(OrganizationEndpoint):
         else:
             serializer_cls = OrganizationSerializer
 
+        was_pending_deletion = organization.status in DELETION_STATUSES
+
         serializer = serializer_cls(
             data=request.DATA,
             partial=True,
@@ -217,6 +225,22 @@ class OrganizationDetailsEndpoint(OrganizationEndpoint):
         )
         if serializer.is_valid():
             organization = serializer.save()
+
+            if was_pending_deletion and organization.status == OrganizationStatus.VISIBLE:
+                self.create_audit_entry(
+                    request=request,
+                    organization=organization,
+                    target_object=organization.id,
+                    event=AuditLogEntryEvent.ORG_RESTORE,
+                    data=organization.get_audit_log_data(),
+                )
+                delete_logger.info(
+                    'object.delete.canceled',
+                    extra={
+                        'object_id': organization.id,
+                        'model': Organization.__name__,
+                    }
+                )
 
             self.create_audit_entry(
                 request=request,
