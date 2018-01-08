@@ -415,23 +415,37 @@ class OrganizationSettings2FATest(APITestCase):
     def assert_cannot_enable_org_2fa(self, organization, user, status_code):
         self.__helper_enable_organization_2fa(organization, user, status_code)
 
-    def __helper_enable_organization_2fa(self, organization, user, status_code):
-        def enable_org_2fa():
-            self.login_as(user)
-            url = reverse(
-                'sentry-api-0-organization-details', kwargs={
-                    'organization_slug': organization.slug,
-                }
-            )
-            response = self.client.put(
-                url,
-                data={
-                    'require2FA': True,
-                }
-            )
-            return response
+    def enable_org_2fa(self, organization, user):
+        self.login_as(user)
+        url = reverse(
+            'sentry-api-0-organization-details', kwargs={
+                'organization_slug': organization.slug,
+            }
+        )
+        response = self.client.put(
+            url,
+            data={
+                'require2FA': True,
+            }
+        )
+        return response
 
-        response = enable_org_2fa()
+    def disable_org_2fa(self, organization, user):
+        url = reverse(
+            'sentry-api-0-organization-details', kwargs={
+                'organization_slug': organization.slug,
+            }
+        )
+        response = self.client.put(
+            url,
+            data={
+                'require2FA': False,
+            }
+        )
+        return response
+
+    def __helper_enable_organization_2fa(self, organization, user, status_code):
+        response = self.enable_org_2fa(organization, user)
 
         assert response.status_code == status_code, response.content
         organization = Organization.objects.get(id=organization.id)
@@ -440,6 +454,17 @@ class OrganizationSettings2FATest(APITestCase):
             assert organization.flags.require_2fa
         else:
             assert not organization.flags.require_2fa
+
+    def add_2fa_users_to_org(self, organization, num_of_users, num_with_2fa):
+        non_compliant_members = []
+        for num in range(0, num_of_users):
+            user = self.create_user('foo_%s@example.com' % num)
+            self.create_member(organization=organization, user=user)
+            if num % num_with_2fa:
+                TotpInterface().enroll(user)
+            else:
+                non_compliant_members.append(user.email)
+        return non_compliant_members
 
     def test_cannot_enforce_2fa_without_2fa_enabled(self):
         owner = self.create_user()
@@ -453,16 +478,23 @@ class OrganizationSettings2FATest(APITestCase):
         organization = self.create_organization(owner=owner)
 
         self.enable_user_2fa(owner)
-        self.assert_can_enable_org_2fa(organization, owner)
+        with self.options({'system.url-prefix': 'http://example.com'}), self.tasks():
+            self.assert_can_enable_org_2fa(organization, owner)
+        assert len(mail.outbox) == 0
 
     def test_manager_can_set_2fa(self):
         manager = self.create_user()
-        organization = self.create_organization(owner=self.create_user())
+        owner = self.create_user()
+        organization = self.create_organization(owner=owner)
         self.create_member(organization=organization, user=manager, role="manager")
 
         self.assert_cannot_enable_org_2fa(organization, manager, 400)
         self.enable_user_2fa(manager)
-        self.assert_can_enable_org_2fa(organization, manager)
+        with self.options({'system.url-prefix': 'http://example.com'}), self.tasks():
+            self.assert_can_enable_org_2fa(organization, manager)
+
+        assert len(mail.outbox) == 1
+        assert mail.outbox[0].to[0] == owner.email
 
     def test_members_cannot_set_2fa(self):
         member = self.create_user()
@@ -472,3 +504,24 @@ class OrganizationSettings2FATest(APITestCase):
         self.assert_cannot_enable_org_2fa(organization, member, 403)
         self.enable_user_2fa(member)
         self.assert_cannot_enable_org_2fa(organization, member, 403)
+
+    def test_owner_can_disable_org_2fa(self):
+        owner = self.create_user()
+        organization = self.create_organization(owner=owner)
+        user_emails_without_2fa = self.add_2fa_users_to_org(organization, 10, 2)
+        self.enable_user_2fa(owner)
+        with self.options({'system.url-prefix': 'http://example.com'}), self.tasks():
+            self.assert_can_enable_org_2fa(organization, owner)
+        assert len(mail.outbox) == 5
+        assert sorted([email.to[0] for email in mail.outbox]) == sorted(user_emails_without_2fa)
+
+        # Empty the test outbox
+        mail.outbox = []
+
+        with self.options({'system.url-prefix': 'http://example.com'}), self.tasks():
+            response = self.disable_org_2fa(organization, owner)
+
+        assert response.status_code == 200
+        org_disabled_2fa = Organization.objects.get(id=organization.id)
+        assert not org_disabled_2fa.flags.require_2fa
+        assert len(mail.outbox) == 0

@@ -36,6 +36,7 @@ from sentry.web.frontend.debug.debug_sso_link_email import (
     DebugSsoUnlinkedEmailView,
     DebugSsoUnlinkedNoPasswordEmailView,
 )
+from sentry.web.frontend.debug.debug_setup_2fa_email import DebugSetup2faEmailView
 from sentry.web.frontend.debug import debug_auth_views
 from sentry.web.frontend.debug.debug_oauth_authorize import (
     DebugOAuthAuthorizeView,
@@ -81,6 +82,8 @@ urlpatterns = patterns(
     url(r'^debug/mail/sso-linked/$', DebugSsoLinkedEmailView.as_view()),
     url(r'^debug/mail/sso-unlinked/$', DebugSsoUnlinkedEmailView.as_view()),
     url(r'^debug/mail/sso-unlinked/no-password$', DebugSsoUnlinkedNoPasswordEmailView.as_view()),
+
+    url(r'^debug/mail/setup-2fa/$', DebugSetup2faEmailView.as_view()),
 
     url(r'^debug/embed/error-page/$', DebugErrorPageEmbedView.as_view()),
     url(r'^debug/trigger-error/$', DebugTriggerErrorView.as_view()),
