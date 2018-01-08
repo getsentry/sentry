@@ -2,6 +2,7 @@ from __future__ import absolute_import, print_function
 
 from django.conf.urls import include, patterns, url
 
+from .endpoints.account_appearance_details import AccountAppearanceDetailsEndpoint
 from .endpoints.api_applications import ApiApplicationsEndpoint
 from .endpoints.api_application_details import ApiApplicationDetailsEndpoint
 from .endpoints.api_authorizations import ApiAuthorizationsEndpoint
@@ -175,6 +176,10 @@ urlpatterns = patterns(
     # Broadcasts
     url(r'^broadcasts/$', BroadcastIndexEndpoint.as_view(),
         name='sentry-api-0-broadcast-index'),
+
+    # Account
+    url(r'^account/appearance/$', AccountAppearanceDetailsEndpoint.as_view(),
+        name='sentry-api-0-account-appearance-details'),
 
     # Users
     url(r'^users/$', UserIndexEndpoint.as_view(), name='sentry-api-0-user-index'),

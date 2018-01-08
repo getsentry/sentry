@@ -38,6 +38,15 @@ window.TestStubs = {
     pathame: '/mock-pathname/',
   }),
 
+  AccountAppearance: () => {
+    return {
+      stacktrace_order: '2',
+      timezone: 'US/Pacific',
+      language: 'en',
+      clock_24_hours: true,
+    };
+  },
+
   ApiKey: params => {
     return {
       allowed_origins: '',
