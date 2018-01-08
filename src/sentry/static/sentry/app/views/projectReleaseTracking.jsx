@@ -71,7 +71,6 @@ const ProjectReleaseTracking = createReactClass({
           token: data.token,
           webhookUrl: data.webhookUrl,
         });
-        this.getPluginConfig();
         AlertActions.addAlert({
           message: t(
             'Your deploy token has been regenerated. You will need to update any pre-existing deploy hooks.'
