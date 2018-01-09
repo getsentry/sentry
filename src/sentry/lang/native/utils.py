@@ -196,7 +196,8 @@ def merge_minidump_event(data, minidump):
             'frames': [{
                 'instruction_addr': '0x%x' % frame.instruction,
                 'function': '<unknown>',  # Required by interface
-            } for frame in thread.frames()],
+                'package': frame.module.name if frame.module else None,
+            } for frame in reversed(list(thread.frames()))],
         },
     } for thread in state.threads()]
 
