@@ -68,6 +68,7 @@ class SecurityReportCspTest(TestCase):
                 'source-file': 'http://example.com',
                 'effective-directive': 'style-src',
                 'violated-directive': 'style-src',
+                'disposition': 'enforce',
             }
         )
         assert resp.status_code == 201, resp.content

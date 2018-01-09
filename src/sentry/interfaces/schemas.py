@@ -439,9 +439,12 @@ CSP_SCHEMA = {
                 'line-number': {'type': 'number'},
                 'column-number': {'type': 'number'},
                 'script-sample': {'type': 'number'},  # Firefox specific key.
+                'disposition': {'type': 'string'},
             },
             'required': ['effective-directive'],
-            'additionalProperties': False,  # Don't allow any other keys.
+            # Allow additional keys as browser vendors are still changing CSP
+            # implementations fairly frequently
+            'additionalProperties': True,
         }
     },
     'required': ['csp-report'],
