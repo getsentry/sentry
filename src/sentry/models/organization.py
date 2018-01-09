@@ -104,7 +104,8 @@ class Organization(Model):
     slug = models.SlugField(unique=True)
     status = BoundedPositiveIntegerField(
         choices=OrganizationStatus.as_choices(),
-        # this only needs to use `.value` because of south
+        # south will generate a default value of `'<OrganizationStatus.ACTIVE: 0>'`
+        # if `.value` is ommited
         default=OrganizationStatus.ACTIVE.value
     )
     date_added = models.DateTimeField(default=timezone.now)
