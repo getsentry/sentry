@@ -227,6 +227,26 @@ class CspTest(TestCase):
         )
         assert result.get_message() == "Blocked 'script' from 'data:'"
 
+    def test_real_report(self):
+        raw_report = {
+            "csp-report": {
+                "document-uri": "https://sentry.io/sentry/csp/issues/88513416/",
+                "referrer": "https://sentry.io/sentry/sentry/releases/7329107476ff14cfa19cf013acd8ce47781bb93a/",
+                "violated-directive": "script-src",
+                "effective-directive": "script-src",
+                "original-policy": "default-src *; script-src 'self' 'unsafe-eval' 'unsafe-inline' e90d271df3e973c7.global.ssl.fastly.net cdn.ravenjs.com assets.zendesk.com ajax.googleapis.com ssl.google-analytics.com www.googleadservices.com analytics.twitter.com platform.twitter.com *.pingdom.net js.stripe.com api.stripe.com statuspage-production.s3.amazonaws.com s3.amazonaws.com *.google.com www.gstatic.com aui-cdn.atlassian.com www.hipchat.com *.atlassian.net *.jira.com *.zopim.com; font-src * data:; connect-src * wss://*.zopim.com; style-src 'self' 'unsafe-inline' e90d271df3e973c7.global.ssl.fastly.net s3.amazonaws.com aui-cdn.atlassian.com www.hipchat.com fonts.googleapis.com; img-src * data: blob:; report-uri https://sentry.io/api/54785/csp-report/?sentry_key=f724a8a027db45f5b21507e7142ff78e&sentry_release=39662eb9734f68e56b7f202260bb706be2f4cee7",
+                "disposition": "enforce",
+                "blocked-uri": "http://baddomain.com/test.js?_=1515535030116",
+                "line-number": 24,
+                "column-number": 66270,
+                "source-file": "https://e90d271df3e973c7.global.ssl.fastly.net/_static/f0c7c026a4b2a3d2b287ae2d012c9924/sentry/dist/vendor.js",
+                "status-code": 0,
+                "script-sample": ""
+            }
+        }
+        interface = Csp.from_raw(raw_report)
+        assert interface.effective_directive == 'script-src'
+
 
 class ExpectCTTest(TestCase):
 
