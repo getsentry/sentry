@@ -36,14 +36,14 @@ exports[`OrganizationApiKeysList renders 1`] = `
   line-height: 1.8;
 }
 
-.glamor-38 {
+.glamor-43 {
   background: #fff;
   border: 1px solid;
   margin-bottom: 30px;
   position: relative;
 }
 
-.glamor-22 {
+.glamor-27 {
   border-bottom: 1px solid;
   border-radius: 0 0;
   background: padding:15px 0;
@@ -51,7 +51,13 @@ exports[`OrganizationApiKeysList renders 1`] = `
   font-size: 13px;
 }
 
-.glamor-20 {
+.glamor-23 {
+  font-size: inherit;
+  text-transform: inherit;
+  margin: 0;
+}
+
+.glamor-21 {
   font-size: 12px;
   font-weight: 600;
   text-transform: uppercase;
@@ -101,7 +107,7 @@ exports[`OrganizationApiKeysList renders 1`] = `
   padding-right: 16px;
 }
 
-.glamor-32 {
+.glamor-37 {
   box-sizing: border-box;
   padding-top: 8px;
   padding-bottom: 8px;
@@ -116,7 +122,7 @@ exports[`OrganizationApiKeysList renders 1`] = `
   border-bottom: 1px solid;
 }
 
-.glamor-32:last-child {
+.glamor-37:last-child {
   border: 0;
 }
 
@@ -316,7 +322,7 @@ exports[`OrganizationApiKeysList renders 1`] = `
     </div>
     <Styled(div)>
       <div
-        className="glamor-38 glamor-39"
+        className="glamor-43 glamor-44"
       >
         <PanelHeader
           disablePadding={true}
@@ -325,101 +331,109 @@ exports[`OrganizationApiKeysList renders 1`] = `
             disablePadding={true}
           >
             <div
-              className="glamor-22 glamor-23"
+              className="glamor-27 glamor-28"
             >
-              <Styled(div)>
-                <div
-                  className="glamor-20 glamor-21"
+              <Styled(Component)>
+                <Component
+                  className="glamor-23 glamor-20"
                 >
-                  <Flex
-                    align="center"
+                  <Styled(div)
+                    className="glamor-23 glamor-20"
                   >
-                    <Base
-                      align="center"
-                      className="glamor-4"
+                    <div
+                      className="glamor-20 glamor-21 glamor-22"
                     >
-                      <div
-                        className="glamor-4"
-                        is={null}
+                      <Flex
+                        align="center"
                       >
-                        <Flex
+                        <Base
                           align="center"
-                          flex="1"
+                          className="glamor-4"
                         >
-                          <Base
-                            align="center"
-                            className="glamor-14"
-                            flex="1"
+                          <div
+                            className="glamor-4"
+                            is={null}
                           >
-                            <div
-                              className="glamor-14"
-                              is={null}
+                            <Flex
+                              align="center"
+                              flex="1"
                             >
-                              <Box
+                              <Base
+                                align="center"
+                                className="glamor-14"
                                 flex="1"
-                                px={2}
                               >
-                                <Base
-                                  className="glamor-10"
-                                  flex="1"
-                                  px={2}
+                                <div
+                                  className="glamor-14"
+                                  is={null}
                                 >
-                                  <div
-                                    className="glamor-10"
-                                    is={null}
+                                  <Box
+                                    flex="1"
+                                    px={2}
                                   >
-                                    Name
-                                  </div>
-                                </Base>
-                              </Box>
-                              <Box
-                                flex="2"
-                                px={2}
-                              >
-                                <Base
-                                  className="glamor-12"
-                                  flex="2"
-                                  px={2}
-                                >
-                                  <div
-                                    className="glamor-12"
-                                    is={null}
+                                    <Base
+                                      className="glamor-10"
+                                      flex="1"
+                                      px={2}
+                                    >
+                                      <div
+                                        className="glamor-10"
+                                        is={null}
+                                      >
+                                        Name
+                                      </div>
+                                    </Base>
+                                  </Box>
+                                  <Box
+                                    flex="2"
+                                    px={2}
                                   >
-                                    Key
-                                  </div>
-                                </Base>
-                              </Box>
-                            </div>
-                          </Base>
-                        </Flex>
-                        <Box
-                          px={2}
-                          w={100}
-                        >
-                          <Base
-                            className="glamor-16"
-                            px={2}
-                            w={100}
-                          >
-                            <div
-                              className="glamor-16"
-                              is={null}
+                                    <Base
+                                      className="glamor-12"
+                                      flex="2"
+                                      px={2}
+                                    >
+                                      <div
+                                        className="glamor-12"
+                                        is={null}
+                                      >
+                                        Key
+                                      </div>
+                                    </Base>
+                                  </Box>
+                                </div>
+                              </Base>
+                            </Flex>
+                            <Box
+                              px={2}
+                              w={100}
                             >
-                              Actions
-                            </div>
-                          </Base>
-                        </Box>
-                      </div>
-                    </Base>
-                  </Flex>
-                </div>
-              </Styled(div)>
+                              <Base
+                                className="glamor-16"
+                                px={2}
+                                w={100}
+                              >
+                                <div
+                                  className="glamor-16"
+                                  is={null}
+                                >
+                                  Actions
+                                </div>
+                              </Base>
+                            </Box>
+                          </div>
+                        </Base>
+                      </Flex>
+                    </div>
+                  </Styled(div)>
+                </Component>
+              </Styled(Component)>
             </div>
           </Styled(div)>
         </PanelHeader>
         <Styled(div)>
           <div
-            className="glamor-36 glamor-37"
+            className="glamor-41 glamor-42"
           >
             <Styled(Base)
               align="center"
@@ -428,11 +442,11 @@ exports[`OrganizationApiKeysList renders 1`] = `
             >
               <Base
                 align="center"
-                className="glamor-32 glamor-33"
+                className="glamor-37 glamor-38"
                 py={1}
               >
                 <div
-                  className="glamor-32 glamor-33"
+                  className="glamor-37 glamor-38"
                   is={null}
                 >
                   <Flex
