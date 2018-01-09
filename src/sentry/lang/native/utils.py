@@ -77,7 +77,8 @@ def get_sdk_from_os(data):
     if 'name' not in data or 'version' not in data:
         return
     try:
-        system_version = tuple(int(x) for x in (data['version'] + '.0' * 3).split('.')[:3])
+        version = data['version'].split('-', 1)[0] + '.0' * 3
+        system_version = tuple(int(x) for x in version.split('.')[:3])
     except ValueError:
         return
 
@@ -174,15 +175,9 @@ def merge_minidump_event(data, minidump):
     device = context.setdefault('device', {})
     os['type'] = 'os'  # Required by "get_sdk_from_event"
     os['name'] = MINIDUMP_OS_TYPES.get(info.os_name, info.os_name)
+    os['version'] = info.os_version
+    os['build'] = info.os_build
     device['arch'] = arch_from_breakpad(info.cpu_family)
-
-    # Breakpad reports the version and build number always in one string,
-    # but a version number is guaranteed even on certain linux distros.
-    match = VERSION_RE.search(info.os_version)
-    if match is not None:
-        version, build = match.groups()
-        os['version'] = version
-        os['build'] = build
 
     # We can extract stack traces here already but since CFI is not
     # available yet (without debug symbols), the stackwalker will
