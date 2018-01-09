@@ -5,8 +5,8 @@ import six
 from django.core.urlresolvers import reverse
 from exam import fixture
 
-from sentry.models import Organization, OrganizationStatus
-from sentry.testutils import APITestCase
+from sentry.models import Organization
+from sentry.testutils import APITestCase, Authenticator
 
 
 class OrganizationsListTest(APITestCase):
@@ -80,3 +80,72 @@ class OrganizationsCreateTest(APITestCase):
         assert resp.status_code == 201, resp.content
         org = Organization.objects.get(id=resp.data['id'])
         assert org.slug == 'hello-world'
+
+
+class OrganizationIndex2faTest(APITestCase):
+
+    def test_preexisting_members_must_enable_2fa(self):
+        organization = self.create_organization(owner=self.create_user())
+        user = self.create_user()
+        self.create_member(organization=organization, user=user, role="member")
+        self.login_as(user)
+
+        url = reverse('sentry-api-0-organization-details', kwargs={
+            'organization_slug': organization.slug,
+        })
+
+        response = self.client.get(url)
+        assert response.status_code == 200
+
+        organization.flags.require_2fa = True
+        organization.save()
+
+        response = self.client.get(url)
+        assert response.status_code == 403
+
+        self.enable_user_2fa(user)
+
+        response = self.client.get(url)
+        assert response.status_code == 200
+
+    def test_new_member_must_enable_2fa(self):
+        organization = self.create_organization(owner=self.create_user())
+        organization.flags.require_2fa = True
+        organization.save()
+
+        user = self.create_user()
+        self.create_member(organization=organization, user=user, role="member")
+
+        self.login_as(user)
+        url = reverse('sentry-api-0-organization-home', kwargs={
+            'organization_slug': organization.slug,
+        })
+        response = self.client.get(url)
+        assert response.status_code == 403
+
+        self.enable_user_2fa(user)
+
+        response = self.client.get(url)
+        assert response.status_code == 200
+
+    def test_member_disable_all_2fa_blocked(self):
+        organization = self.create_organization(owner=self.create_user())
+        organization.flags.require_2fa = True
+        organization.save()
+
+        user = self.create_user()
+        self.create_member(organization=organization, user=user, role="member")
+        self.enable_user_2fa(user)
+
+        self.login_as(user)
+        url = reverse('sentry-api-0-organization-home', kwargs={
+            'organization_slug': organization.slug,
+        })
+        response = self.client.get(url)
+        assert response.status_code == 200
+
+        # delete the user's 2fa
+        Authenticator.objects.get(user=user).delete()
+
+        response = self.client.get(url)
+        assert response.status_code == 403

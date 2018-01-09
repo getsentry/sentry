@@ -106,6 +106,8 @@ class DetailedOrganizationSerializer(OrganizationSerializer):
             feature_list.append('open-membership')
         if not getattr(obj.flags, 'disable_shared_issues'):
             feature_list.append('shared-issues')
+        if getattr(obj.flags, 'require_2fa'):
+            feature_list.append('require-2fa')
 
         context = super(DetailedOrganizationSerializer, self).serialize(obj, attrs, user)
         max_rate = quotas.get_maximum_quota(obj)
