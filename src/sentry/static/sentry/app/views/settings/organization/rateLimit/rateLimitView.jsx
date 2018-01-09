@@ -150,7 +150,7 @@ const RateLimitView = createReactClass({
 
     return (
       <div>
-        <SettingsPageHeader label={t('Rate Limits')} />
+        <SettingsPageHeader title={t('Rate Limits')} />
 
         <Panel>
           <PanelHeader disablePadding>
