@@ -59,7 +59,7 @@ export default class AccountNotificationDetails extends AsyncView {
       <div>
         <ApiForm apiMethod="PUT" apiEndpoint={'/users/me/notifications/'}>
           <Panel>
-            <PanelHeader>{this.props.route.name}</PanelHeader>
+            <PanelHeader lightText={true}>{this.props.route.name}</PanelHeader>
 
             {data.map(org => {
               return (
