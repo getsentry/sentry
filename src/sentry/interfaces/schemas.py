@@ -438,7 +438,7 @@ CSP_SCHEMA = {
                 'source-file': {'type': 'string'},
                 'line-number': {'type': 'number'},
                 'column-number': {'type': 'number'},
-                'script-sample': {'type': 'number'},  # Firefox specific key.
+                'script-sample': {},
                 'disposition': {'type': 'string'},
             },
             'required': ['effective-directive'],
