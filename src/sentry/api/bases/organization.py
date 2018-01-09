@@ -9,7 +9,7 @@ from sentry.app import raven
 from sentry.auth import access
 from sentry.auth.superuser import is_active_superuser
 from sentry.models import (
-    ApiKey, Authenticator, Organization, OrganizationMemberTeam, OrganizationStatus, Project, ReleaseProject, Team
+    ApiKey, Authenticator, Organization, OrganizationMemberTeam, Project, ReleaseProject, Team
 )
 from sentry.utils import auth
 
