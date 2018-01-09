@@ -864,6 +864,7 @@ class EventManager(object):
                 is_new=is_new,
                 is_sample=is_sample,
                 is_regression=is_regression,
+                is_new_group_environment=is_new_group_environment,
             )
         else:
             self.logger.info('post_process.skip.raw_event', extra={'event_id': event.id})
