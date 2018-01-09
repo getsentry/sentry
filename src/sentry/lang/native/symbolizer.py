@@ -143,14 +143,23 @@ class Symbolizer(object):
         fn = obj.name
         if not fn:
             return False
-        is_mac_platform = (
-            sdk_info is not None and sdk_info['sdk_name'].lower() == 'macos')
-        if not (
-            fn.startswith(APP_BUNDLE_PATHS) or (SIM_PATH in fn and SIM_APP_PATH in fn) or
-            (is_mac_platform and MAC_OS_PATH in fn)
-        ):
-            return False
-        return True
+
+        if fn.startswith(APP_BUNDLE_PATHS):
+            return True
+
+        if SIM_PATH in fn and SIM_APP_PATH in fn:
+            return True
+
+        sdk_name = sdk_info['sdk_name'].lower() if sdk_info else ''
+        if sdk_name == 'macos' and MAC_OS_PATH in fn:
+            return True
+
+        # For now, consider all linux objects in_app
+        # TODO(ja): Fix in_app using file paths
+        if sdk_name == 'linux':
+            return True
+
+        return False
 
     def _is_support_framework(self, obj):
         """True if the frame is from a framework that is known and app
