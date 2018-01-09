@@ -238,7 +238,7 @@ class FormField extends React.Component {
         </FormFieldDescription>
 
         <FormFieldControlErrorWrapper inline={inline}>
-          <FormFieldControlWrapper shrink="0">
+          <FormFieldControlWrapper>
             <FormFieldControl flex="1">
               <Observer>
                 {() => {
