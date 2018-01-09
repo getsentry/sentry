@@ -105,7 +105,7 @@ class Organization(Model):
     status = BoundedPositiveIntegerField(
         choices=OrganizationStatus.as_choices(),
         # south will generate a default value of `'<OrganizationStatus.ACTIVE: 0>'`
-        # if `.value` is ommited
+        # if `.value` is omitted
         default=OrganizationStatus.ACTIVE.value
     )
     date_added = models.DateTimeField(default=timezone.now)
