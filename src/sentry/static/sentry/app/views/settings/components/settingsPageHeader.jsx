@@ -11,7 +11,6 @@ class SettingsPageHeading extends React.Component {
   };
 
   render() {
-    // Todo(ckj) support tabs
     return (
       <Wrapper tabs={this.props.tabs}>
         <Flex align="center">
@@ -31,7 +30,6 @@ const Wrapper = styled.div`
   margin: -20px 0 30px;
 `;
 
-// Label w/ border
 const Title = styled.div`
   font-size: 20px;
   font-weight: bold;
