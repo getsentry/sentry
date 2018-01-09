@@ -7,6 +7,7 @@ import ExpandedTeamList from './expandedTeamList';
 import AllTeamsList from './allTeamsList';
 import ListLink from '../../../components/listLink';
 import recreateRoute from '../../../utils/recreateRoute';
+import SettingsPageHeader from '../components/settingsPageHeader';
 
 class OrganizationTeamsView extends React.Component {
   static propTypes = {
@@ -40,14 +41,18 @@ class OrganizationTeamsView extends React.Component {
     let teamRoute = routes.find(({path}) => path === 'teams/');
     let urlPrefix = recreateRoute(teamRoute, {routes, params, stepBack: -1});
 
+    let tabs = (
+      <ul className="nav nav-tabs border-bottom">
+        <ListLink to={`${urlPrefix}teams/your-teams/`}>{t('Your Teams')}</ListLink>
+        <ListLink to={`${urlPrefix}teams/all-teams/`}>
+          {t('All Teams')} <span className="badge badge-soft">{allTeams.length}</span>
+        </ListLink>
+      </ul>
+    );
+
     return (
       <div className="team-list">
-        <ul className="nav nav-tabs border-bottom">
-          <ListLink to={`${urlPrefix}teams/your-teams/`}>{t('Your Teams')}</ListLink>
-          <ListLink to={`${urlPrefix}teams/all-teams/`}>
-            {t('All Teams')} <span className="badge badge-soft">{allTeams.length}</span>
-          </ListLink>
-        </ul>
+        <SettingsPageHeader title={t('Projects & Teams')} tabs={tabs} />
         {route.allTeams /* should be AllTeamsList */ ? (
           <AllTeamsList
             urlPrefix={urlPrefix}

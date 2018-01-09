@@ -38,7 +38,7 @@ exports[`OrganizationRepositories renders with a repository 1`] = `
         </MenuItem>
       </DropdownLink>
     }
-    label="Repositories"
+    title="Repositories"
   />
   <Styled(div)>
     <PanelHeader
@@ -151,7 +151,7 @@ exports[`OrganizationRepositories renders with github provider 1`] = `
         </MenuItem>
       </DropdownLink>
     }
-    label="Repositories"
+    title="Repositories"
   />
   <div
     className="m-b-2"
@@ -224,7 +224,7 @@ exports[`OrganizationRepositories renders without providers 1`] = `
         title="Add Repository"
       />
     }
-    label="Repositories"
+    title="Repositories"
   />
   <div
     className="m-b-2"
