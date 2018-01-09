@@ -5,8 +5,8 @@ import six
 from django.core.urlresolvers import reverse
 from exam import fixture
 
-from sentry.models import Organization
-from sentry.testutils import APITestCase, Authenticator
+from sentry.models import Authenticator, Organization, OrganizationStatus, TotpInterface
+from sentry.testutils import APITestCase
 
 
 class OrganizationsListTest(APITestCase):
@@ -101,9 +101,9 @@ class OrganizationIndex2faTest(APITestCase):
         organization.save()
 
         response = self.client.get(url)
-        assert response.status_code == 403
+        assert response.status_code == 401
 
-        self.enable_user_2fa(user)
+        TotpInterface().enroll(user)
 
         response = self.client.get(url)
         assert response.status_code == 200
@@ -117,13 +117,14 @@ class OrganizationIndex2faTest(APITestCase):
         self.create_member(organization=organization, user=user, role="member")
 
         self.login_as(user)
-        url = reverse('sentry-api-0-organization-home', kwargs={
+        url = reverse('sentry-organization-home', kwargs={
             'organization_slug': organization.slug,
         })
         response = self.client.get(url)
-        assert response.status_code == 403
+        assert response.status_code == 302
+        assert reverse('sentry-account-settings-2fa') in response.url
 
-        self.enable_user_2fa(user)
+        TotpInterface().enroll(user)
 
         response = self.client.get(url)
         assert response.status_code == 200
@@ -135,10 +136,10 @@ class OrganizationIndex2faTest(APITestCase):
 
         user = self.create_user()
         self.create_member(organization=organization, user=user, role="member")
-        self.enable_user_2fa(user)
+        TotpInterface().enroll(user)
 
         self.login_as(user)
-        url = reverse('sentry-api-0-organization-home', kwargs={
+        url = reverse('sentry-organization-home', kwargs={
             'organization_slug': organization.slug,
         })
         response = self.client.get(url)
@@ -148,4 +149,6 @@ class OrganizationIndex2faTest(APITestCase):
         Authenticator.objects.get(user=user).delete()
 
         response = self.client.get(url)
-        assert response.status_code == 403
+
+        assert response.status_code == 302
+        assert reverse('sentry-account-settings-2fa') in response.url

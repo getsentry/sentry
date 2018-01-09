@@ -405,9 +405,6 @@ class OrganizationDeleteTest(APITestCase):
 
 
 class OrganizationSettings2FATest(APITestCase):
-    def enable_user_2fa(self, user):
-        TotpInterface().enroll(user)
-        assert Authenticator.objects.user_has_2fa(user)
 
     def assert_can_enable_org_2fa(self, organization, user, status_code=200):
         self.__helper_enable_organization_2fa(organization, user, status_code)
@@ -477,7 +474,7 @@ class OrganizationSettings2FATest(APITestCase):
         owner = self.create_user()
         organization = self.create_organization(owner=owner)
 
-        self.enable_user_2fa(owner)
+        TotpInterface().enroll(owner)
         with self.options({'system.url-prefix': 'http://example.com'}), self.tasks():
             self.assert_can_enable_org_2fa(organization, owner)
         assert len(mail.outbox) == 0
@@ -489,7 +486,7 @@ class OrganizationSettings2FATest(APITestCase):
         self.create_member(organization=organization, user=manager, role="manager")
 
         self.assert_cannot_enable_org_2fa(organization, manager, 400)
-        self.enable_user_2fa(manager)
+        TotpInterface().enroll(manager)
         with self.options({'system.url-prefix': 'http://example.com'}), self.tasks():
             self.assert_can_enable_org_2fa(organization, manager)
 
@@ -502,14 +499,14 @@ class OrganizationSettings2FATest(APITestCase):
         self.create_member(organization=organization, user=member, role="member")
 
         self.assert_cannot_enable_org_2fa(organization, member, 403)
-        self.enable_user_2fa(member)
+        TotpInterface().enroll(member)
         self.assert_cannot_enable_org_2fa(organization, member, 403)
 
     def test_owner_can_disable_org_2fa(self):
         owner = self.create_user()
         organization = self.create_organization(owner=owner)
         user_emails_without_2fa = self.add_2fa_users_to_org(organization, 10, 2)
-        self.enable_user_2fa(owner)
+        TotpInterface().enroll(owner)
         with self.options({'system.url-prefix': 'http://example.com'}), self.tasks():
             self.assert_can_enable_org_2fa(organization, owner)
         assert len(mail.outbox) == 5
@@ -525,6 +522,7 @@ class OrganizationSettings2FATest(APITestCase):
         org_disabled_2fa = Organization.objects.get(id=organization.id)
         assert not org_disabled_2fa.flags.require_2fa
         assert len(mail.outbox) == 0
+
     def test_preexisting_members_must_enable_2fa(self):
         organization = self.create_organization(owner=self.create_user())
         user = self.create_user()
@@ -542,9 +540,9 @@ class OrganizationSettings2FATest(APITestCase):
         organization.save()
 
         response = self.client.get(url)
-        assert response.status_code == 403
+        assert response.status_code == 401
 
-        self.enable_user_2fa(user)
+        TotpInterface().enroll(user)
 
         response = self.client.get(url)
         assert response.status_code == 200
@@ -562,9 +560,9 @@ class OrganizationSettings2FATest(APITestCase):
             'organization_slug': organization.slug,
         })
         response = self.client.get(url)
-        assert response.status_code == 403
+        assert response.status_code == 401
 
-        self.enable_user_2fa(user)
+        TotpInterface().enroll(user)
 
         response = self.client.get(url)
         assert response.status_code == 200
@@ -576,7 +574,7 @@ class OrganizationSettings2FATest(APITestCase):
 
         user = self.create_user()
         self.create_member(organization=organization, user=user, role="member")
-        self.enable_user_2fa(user)
+        TotpInterface().enroll(user)
 
         self.login_as(user)
         url = reverse('sentry-api-0-organization-details', kwargs={
@@ -589,4 +587,4 @@ class OrganizationSettings2FATest(APITestCase):
         Authenticator.objects.get(user=user).delete()
 
         response = self.client.get(url)
-        assert response.status_code == 403
+        assert response.status_code == 401
