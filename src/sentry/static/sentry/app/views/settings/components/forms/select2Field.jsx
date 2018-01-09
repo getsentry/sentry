@@ -13,7 +13,7 @@ const formControlSmall = css`
   padding: 0.33em 0.75em;
 
   .select2-arrow:after {
-    font-size: 1.4rem;
+    font-size: 1.4em;
     color: #ccc;
     margin-top: 0.125em;
   }
@@ -27,6 +27,7 @@ export default class Select2Field extends React.Component {
     allowEmpty: PropTypes.bool,
     multiple: PropTypes.bool,
     escapeMarkup: PropTypes.bool,
+    small: PropTypes.bool,
   };
 
   static defaultProps = {
@@ -36,6 +37,7 @@ export default class Select2Field extends React.Component {
     placeholder: '--',
     escapeMarkup: true,
     multiple: false,
+    small: false,
   };
 
   componentWillUnmount() {
@@ -110,7 +112,9 @@ export default class Select2Field extends React.Component {
           return (
             <select
               disabled={disabled}
-              className={classnames('form-control', {[formControlSmall]: true})}
+              className={classnames('form-control', {
+                [formControlSmall]: this.props.small,
+              })}
               ref={ref => this.handleSelectMount(onBlur, onChange, ref)}
               onChange={() => {}}
               value={props.value}
