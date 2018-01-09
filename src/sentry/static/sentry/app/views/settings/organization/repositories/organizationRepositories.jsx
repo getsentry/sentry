@@ -14,6 +14,7 @@ import Panel from '../../components/panel';
 import PanelBody from '../../components/panelBody';
 import PanelHeader from '../../components/panelHeader';
 import SettingsPageHeader from '../../components/settingsPageHeader';
+import TextBlock from '../../components/text/textBlock';
 import AddRepositoryLink from './addRepositoryLink';
 
 const RepoRow = withTheme(styled(SpreadLayout)`
@@ -92,7 +93,7 @@ class OrganizationRepositories extends React.Component {
 
         {!hasItemList && (
           <div className="m-b-2">
-            <p>
+            <TextBlock>
               {t(
                 'Connecting a repository allows Sentry to capture commit data via webhooks. ' +
                   'This enables features like suggested assignees and resolving issues via commit message. ' +
@@ -102,7 +103,7 @@ class OrganizationRepositories extends React.Component {
               {tct('See our [link:documentation] for more details.', {
                 link: <a href="https://docs.sentry.io/learn/releases/" />,
               })}
-            </p>
+            </TextBlock>
           </div>
         )}
 
@@ -168,11 +169,11 @@ class OrganizationRepositories extends React.Component {
           <div className="well blankslate align-center p-x-2 p-y-1">
             <div className="icon icon-lg icon-git-commit" />
             <h3>{t('Sentry is better with commit data')}</h3>
-            <p>
+            <TextBlock>
               {t(
                 'Adding one or more repositories will enable enhanced releases and the ability to resolve Sentry Issues via git message.'
               )}
-            </p>
+            </TextBlock>
             <p className="m-b-1">
               <a
                 className="btn btn-default"
