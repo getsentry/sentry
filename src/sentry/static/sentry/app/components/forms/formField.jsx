@@ -12,7 +12,11 @@ export default class FormField extends React.PureComponent {
     style: PropTypes.object,
 
     label: PropTypes.string,
+
+    // This is actually used but eslint doesn't parse it correctly
+    // eslint-disable-next-line react/no-unused-prop-types
     defaultValue: PropTypes.any,
+
     disabled: PropTypes.bool,
     disabledReason: PropTypes.string,
     help: PropTypes.oneOfType([PropTypes.string, PropTypes.element]),
@@ -67,9 +71,9 @@ export default class FormField extends React.PureComponent {
       return props.value;
     }
     if (form && form.data.hasOwnProperty(props.name)) {
-      return form.data[props.name] || '';
+      return defined(form.data[props.name]) ? form.data[props.name] : '';
     }
-    return props.defaultValue || '';
+    return defined(props.defaultValue) ? props.defaultValue : '';
   }
 
   getError(props, context) {
