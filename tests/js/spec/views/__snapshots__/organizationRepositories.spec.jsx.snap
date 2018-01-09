@@ -185,8 +185,8 @@ exports[`OrganizationRepositories renders with github provider 1`] = `
       </span>
     </Styled(div)>
   </div>
-  <div
-    className="well blankslate align-center p-x-2 p-y-1"
+  <Styled(div)
+    className="blankslate align-center p-x-2 p-y-1"
   >
     <div
       className="icon icon-lg icon-git-commit"
@@ -207,7 +207,7 @@ exports[`OrganizationRepositories renders with github provider 1`] = `
         Learn more
       </a>
     </p>
-  </div>
+  </Styled(div)>
 </div>
 `;
 
@@ -258,8 +258,8 @@ exports[`OrganizationRepositories renders without providers 1`] = `
       </span>
     </Styled(div)>
   </div>
-  <div
-    className="well blankslate align-center p-x-2 p-y-1"
+  <Styled(div)
+    className="blankslate align-center p-x-2 p-y-1"
   >
     <div
       className="icon icon-lg icon-git-commit"
@@ -280,6 +280,6 @@ exports[`OrganizationRepositories renders without providers 1`] = `
         Learn more
       </a>
     </p>
-  </div>
+  </Styled(div)>
 </div>
 `;

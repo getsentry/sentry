@@ -166,7 +166,7 @@ class OrganizationRepositories extends React.Component {
             </PanelBody>
           </Panel>
         ) : (
-          <div className="well blankslate align-center p-x-2 p-y-1">
+          <Panel className="blankslate align-center p-x-2 p-y-1">
             <div className="icon icon-lg icon-git-commit" />
             <h3>{t('Sentry is better with commit data')}</h3>
             <TextBlock>
@@ -182,7 +182,7 @@ class OrganizationRepositories extends React.Component {
                 Learn more
               </a>
             </p>
-          </div>
+          </Panel>
         )}
       </div>
     );
