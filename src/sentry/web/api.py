@@ -4,6 +4,7 @@ import base64
 import logging
 import six
 import traceback
+import uuid
 
 from time import time
 
@@ -591,9 +592,12 @@ class MinidumpView(StoreView):
         if isinstance(response_or_event_id, HttpResponse):
             return response_or_event_id
 
+        # Return the formatted UUID of the generated event. This is
+        # expected by the Electron http uploader on Linux and doesn't
+        # break the default Breakpad client library.
         return HttpResponse(
-            json.dumps({'id': response_or_event_id}),
-            content_type='application/json'
+            six.text_type(uuid.UUID(response_or_event_id)),
+            content_type='text/plain'
         )
 
 
