@@ -12,7 +12,7 @@ const FormFieldWrapper = styled(({highlighted, inline, ...props}) => <Flex {...p
 
   ${p => {
     if (p.inline) {
-      return `align-items: center;`;
+      return 'align-items: center;';
     } else {
       return `
         flex-direction: column;
