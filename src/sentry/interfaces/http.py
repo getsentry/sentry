@@ -21,7 +21,6 @@ from sentry.interfaces.base import Interface, InterfaceValidationError
 from sentry.interfaces.schemas import validate_and_default_interface
 from sentry.utils.safe import trim, trim_dict, trim_pairs
 from sentry.utils.http import heuristic_decode
-from sentry.utils.validators import validate_ip
 from sentry.web.helpers import render_to_string
 
 # Instead of relying on a list of hardcoded methods, just loosly match
@@ -192,17 +191,9 @@ class Http(Interface):
         if body:
             body = trim(body, settings.SENTRY_MAX_HTTP_BODY_SIZE)
 
-        env = data.get('env', {})
-        # TODO (alex) This could also be accomplished with schema (with formats)
-        if 'REMOTE_ADDR' in env:
-            try:
-                validate_ip(env['REMOTE_ADDR'], required=False)
-            except ValueError:
-                del env['REMOTE_ADDR']
-
         kwargs['inferred_content_type'] = inferred_content_type
         kwargs['cookies'] = trim_pairs(format_cookies(cookies))
-        kwargs['env'] = trim_dict(env)
+        kwargs['env'] = trim_dict(data.get('env', {}))
         kwargs['headers'] = trim_pairs(headers)
         kwargs['data'] = fix_broken_encoding(body)
         kwargs['url'] = urlunsplit((scheme, netloc, path, '', ''))
