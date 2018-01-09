@@ -66,7 +66,7 @@ class OrganizationRepositories extends React.Component {
     return (
       <div>
         <SettingsPageHeader
-          label={t('Repositories')}
+          title={t('Repositories')}
           action={
             <DropdownLink
               anchorRight

@@ -133,7 +133,7 @@ const OrganizationGeneralSettingsView = createReactClass({
         {!this.state.loading &&
           this.state.Form && (
             <div>
-              <SettingsPageHeader label={t('Organization Settings')} />
+              <SettingsPageHeader title={t('Organization Settings')} />
               <this.state.Form
                 {...this.props}
                 initialData={data}

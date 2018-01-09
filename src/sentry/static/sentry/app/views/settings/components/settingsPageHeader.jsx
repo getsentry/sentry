@@ -1,54 +1,40 @@
 import PropTypes from 'prop-types';
 import React from 'react';
 import styled from 'react-emotion';
+import {Flex} from 'grid-emotion';
 
 class SettingsPageHeading extends React.Component {
   static propTypes = {
-    label: PropTypes.string,
+    title: PropTypes.string,
     action: PropTypes.node,
+    tabs: PropTypes.node,
   };
 
   render() {
-    // Todo(ckj) support tabs
     return (
-      <Wrapper>
-        {this.props.label && (
-          <LabelContainer>
-            <Label>
-              <LabelText>{this.props.label}</LabelText>
-            </Label>
-          </LabelContainer>
-        )}
-        {this.props.action && <div>{this.props.action}</div>}
+      <Wrapper tabs={this.props.tabs}>
+        <Flex align="center">
+          {this.props.title && <Title>{this.props.title}</Title>}
+          {this.props.action && <div>{this.props.action}</div>}
+        </Flex>
+
+        {this.props.tabs && <div>{this.props.tabs}</div>}
       </Wrapper>
     );
   }
 }
 
 const Wrapper = styled.div`
-  display: flex;
-  align-items: top;
   font-size: 14px;
   box-shadow: inset 0 -1px 0 ${p => p.theme.borderLight};
-  margin-bottom: 30px;
+  margin: -20px 0 30px;
 `;
 
-const LabelContainer = styled.div`
-  display: flex;
-  flex: 1;
-`;
-
-// Label w/ border
-const Label = styled.div`
-  display: flex;
-  align-items: center;
+const Title = styled.div`
+  font-size: 20px;
   font-weight: bold;
-  border-bottom: 3px solid ${p => p.theme.purple};
-`;
-
-// Label text only
-const LabelText = styled.span`
-  padding: 0 0 15px;
+  margin: 20px 0;
+  flex: 1;
 `;
 
 export default SettingsPageHeading;

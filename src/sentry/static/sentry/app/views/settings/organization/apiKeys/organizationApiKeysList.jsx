@@ -51,7 +51,7 @@ class OrganizationApiKeysList extends React.Component {
     );
     return (
       <div>
-        <SettingsPageHeader label={t('API Keys')} action={action} />
+        <SettingsPageHeader title={t('API Keys')} action={action} />
 
         <TextBlock>
           {tct(

@@ -217,7 +217,8 @@ class OrganizationMembersView extends OrganizationSettingsView {
 
     let action = (
       <Button
-        priority="link"
+        priority="primary"
+        size="small"
         disabled={!canAddMembers}
         title={
           !canAddMembers
@@ -232,7 +233,7 @@ class OrganizationMembersView extends OrganizationSettingsView {
 
     return (
       <div>
-        <SettingsPageHeader label="Members" action={action} />
+        <SettingsPageHeader title="Members" action={action} />
 
         <OrganizationAccessRequests
           onApprove={this.handleApprove}

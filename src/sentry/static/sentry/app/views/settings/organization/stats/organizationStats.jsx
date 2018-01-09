@@ -64,7 +64,7 @@ class OrganizationStats extends React.Component {
 
     return (
       <div>
-        <SettingsPageHeader label={t('Organization Stats')} />
+        <SettingsPageHeader title={t('Organization Stats')} />
         <div className="row">
           <div className="col-md-9">
             <p>

@@ -67,7 +67,7 @@ class AuditLogList extends React.Component {
 
     return (
       <div>
-        <SettingsPageHeader label={t('Audit Log')} />
+        <SettingsPageHeader title={t('Audit Log')} />
 
         <SpreadLayout>
           <p>{t('Sentry keeps track of important events within your organization.')}</p>

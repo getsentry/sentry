@@ -25,7 +25,7 @@ export default class AccountNotifications extends AsyncView {
   renderBody() {
     return (
       <div>
-        <SettingsPageHeader label="Notifications" />
+        <SettingsPageHeader title="Notifications" />
         <ApiForm
           initialData={this.state.data}
           apiMethod="PUT"
