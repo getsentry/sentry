@@ -5,9 +5,10 @@ from __future__ import absolute_import
 import datetime
 import uuid
 
-from sentry.utils import json
+from enum import Enum
 
 from sentry.testutils import TestCase
+from sentry.utils import json
 
 
 class JSONTest(TestCase):
@@ -40,3 +41,8 @@ class JSONTest(TestCase):
     def test_inf(self):
         res = float('inf')
         self.assertEquals(json.dumps(res), 'null')
+
+    def test_enum(self):
+        enum = Enum('foo', 'a b c')
+        res = enum.a
+        self.assertEquals(json.dumps(res), '1')
