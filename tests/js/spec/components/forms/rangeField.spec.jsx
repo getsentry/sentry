@@ -54,7 +54,8 @@ describe('RangeField', function() {
           },
         },
       });
-      expect(wrapper).toMatchSnapshot();
+
+      expect(wrapper.find('input').prop('value')).toBe(0);
     });
   });
 });

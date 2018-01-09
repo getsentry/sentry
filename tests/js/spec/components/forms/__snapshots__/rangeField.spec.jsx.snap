@@ -91,26 +91,3 @@ exports[`RangeField render() renders with value 1`] = `
   </div>
 </div>
 `;
-
-exports[`RangeField render() renders with value=0 in form context 1`] = `
-<div
-  className="control-group"
->
-  <div
-    className="controls"
-  >
-    <input
-      className="form-control"
-      disabled={false}
-      id="id-fieldName"
-      max={100}
-      min={0}
-      onChange={[Function]}
-      required={false}
-      step={1}
-      type="range"
-      value={0}
-    />
-  </div>
-</div>
-`;
