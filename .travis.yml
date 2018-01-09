@@ -30,6 +30,7 @@ env:
     - TRAVIS_NODE_VERSION=8.9.1
     - CXX=g++-4.8
     - SOUTH_TESTS_MIGRATE=1
+    - JEST_JUNIT_OUTPUT=jest.junit.xml
 install:
   - 'export PATH=$PATH:~/.bin'
   - nvm install $TRAVIS_NODE_VERSION
@@ -44,7 +45,9 @@ after_success:
   - codecov -e TEST_SUITE
   - npm install -g @zeus-ci/cli
   - zeus upload -t "text/xml+xunit" junit.xml
+  - zeus upload -t "text/xml+xunit" jest.junit.xml
   - zeus upload -t "text/xml+coverage" coverage.xml
+  - zeus upload -t "text/xml+coverage" coverage/cobertura-coverage.xml
   - zeus upload -t "text/html+pytest" pytest.html
   - zeus upload -t "text/plain+pycodestyle" flake8.pycodestyle.log
   - zeus upload -t "text/xml+checkstyle" eslint.checkstyle.xml
@@ -52,7 +55,9 @@ after_failure:
   - dmesg | tail -n 100
   - npm install -g @zeus-ci/cli
   - zeus upload -t "text/xml+xunit" junit.xml
+  - zeus upload -t "text/xml+xunit" jest.junit.xml
   - zeus upload -t "text/xml+coverage" coverage.xml
+  - zeus upload -t "text/xml+coverage" coverage/cobertura-coverage.xml
   - zeus upload -t "text/html+pytest" pytest.html
   - zeus upload -t "text/plain+pycodestyle" flake8.pycodestyle.log
   - zeus upload -t "text/xml+checkstyle" eslint.checkstyle.xml

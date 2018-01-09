@@ -176,9 +176,9 @@ exports[`CreateProject render() should render roles when available and allowed, 
       </RoleSelect>
       <TeamSelect
         selectedTeams={
-          Set {
+          Array [
             "bar",
-          }
+          ]
         }
         teams={
           Array [

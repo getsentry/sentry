@@ -18,6 +18,7 @@
     "babel-plugin-transform-class-properties": "^6.24.1",
     "babel-plugin-transform-decorators-legacy": "^1.3.4",
     "babel-plugin-transform-object-rest-spread": "^6.20.2",
+    "babel-plugin-transform-runtime": "^6.23.0",
     "babel-polyfill": "6.20.0",
     "babel-preset-latest": "^6.16.0",
     "babel-preset-react": "^6.16.0",
@@ -92,11 +93,11 @@
   "APIMethod": "stub",
   "proxyURL": "http://localhost:8000",
   "scripts": {
-    "test": "npm run jest -- tests/js/spec",
-    "test-ci": "npm run test -- --runInBand",
+    "test": "node scripts/test.js",
+    "test-ci": "npm run test -- --runInBand --ci --coverage --testResultsProcessor=jest-junit",
     "test-watch": "npm run test -- --watch",
-    "jest": "NODE_ENV=test node_modules/.bin/jest",
-    "jest-debug": "NODE_ENV=test node --inspect-brk node_modules/.bin/jest --runInBand",
+    "jest": "node scripts/test.js",
+    "jest-debug": "node --inspect-brk scripts/test.js --runInBand",
     "lint": "node_modules/.bin/eslint tests/js src/sentry/static/sentry/app --ext .jsx",
     "dev-proxy": "node scripts/devproxy.js",
     "dev-server": "webpack-dev-server",
@@ -105,6 +106,14 @@
     "webpack-profile": "yarn -s webpack --profile --json > stats.json"
   },
   "jest": {
+    "collectCoverageFrom": [
+      "tests/js/spec/**/*.{js,jsx}",
+      "src/sentry/static/sentry/app/**/*.{js,jsx}"
+    ],
+    "coverageReporters": [
+      "lcov",
+      "cobertura"
+    ],
     "snapshotSerializers": [
       "enzyme-to-json/serializer"
     ],
@@ -121,8 +130,15 @@
       "<rootDir>/tests/js/setup.js"
     ],
     "setupTestFrameworkScriptFile": "<rootDir>/tests/js/setupFramework.js",
+    "testEnvironment": "jsdom",
+    "testMatch": [
+      "<rootDir>/tests/js/**/?(*.)(spec|test).js?(x)"
+    ],
     "testPathIgnorePatterns": [
       "<rootDir>/tests/sentry/lang/javascript/"
+    ],
+    "transformIgnorePatterns": [
+      "<rootDir>/node_modules/"
     ],
     "unmockedModulePathPatterns": [
       "<rootDir>/node_modules/react",
@@ -148,6 +164,7 @@
     "eslint-plugin-react": "7.4.0",
     "jest": "22.1.2",
     "jest-glamor-react": "^3.1.2",
+    "jest-junit": "^3.4.1",
     "prettier": "1.7.4",
     "react-test-renderer": "15.6.2",
     "sinon": "1.17.2",

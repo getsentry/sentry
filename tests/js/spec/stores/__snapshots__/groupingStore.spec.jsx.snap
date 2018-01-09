@@ -31,7 +31,7 @@ Object {
     },
   ],
   "loading": false,
-  "mergeState": Map {},
+  "mergeState": Array [],
   "mergedItems": Array [],
   "mergedLinks": "",
   "similarItems": Array [
@@ -128,6 +128,6 @@ Object {
     },
   ],
   "similarLinks": undefined,
-  "unmergeState": Map {},
+  "unmergeState": Array [],
 }
 `;
