@@ -11,7 +11,7 @@ const PluginNavigation = createReactClass({
   displayName: 'PluginNavigation',
   propTypes: {
     urlRoot: PropTypes.string,
-    plugins: PropTypes.arrayOf(SentryTypes.PluginShape),
+    plugins: SentryTypes.PluginsStore,
   },
 
   render() {
