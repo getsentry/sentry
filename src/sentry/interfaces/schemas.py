@@ -393,6 +393,189 @@ EVENT_SCHEMA = {
     'required': ['platform', 'event_id'],
     'additionalProperties': True,
 }
+
+CSP_SCHEMA = {
+    'type': 'object',
+    'properties': {
+        'csp-report': {
+            'type': 'object',
+            'properties': {
+                'effective-directive': {
+                    'type': 'string',
+                    'enum': [
+                        'base-uri',
+                        'child-src',
+                        'connect-src',
+                        'default-src',
+                        'font-src',
+                        'form-action',
+                        'frame-ancestors',
+                        'img-src',
+                        'manifest-src',
+                        'media-src',
+                        'object-src',
+                        'plugin-types',
+                        'referrer',
+                        'script-src',
+                        'style-src',
+                        'upgrade-insecure-requests',
+                        # 'frame-src', # Deprecated (https://developer.mozilla.org/en-US/docs/Web/Security/CSP/CSP_policy_directives#frame-src)
+                        # 'sandbox', # Unsupported
+                    ],
+                },
+                'blocked-uri': {
+                    'type': 'string',
+                    'default': 'self',
+                },
+                'document-uri': {
+                    'type': 'string',
+                    'not': {'enum': ['about:blank']}
+                },
+                'original-policy': {'type': 'string'},
+                'referrer': {'type': 'string', 'default': ''},
+                'status-code': {'type': 'number'},
+                'violated-directive': {'type': 'string', 'default': ''},
+                'source-file': {'type': 'string'},
+                'line-number': {'type': 'number'},
+                'column-number': {'type': 'number'},
+                'script-sample': {'type': 'number'},  # Firefox specific key.
+            },
+            'required': ['effective-directive'],
+            'additionalProperties': False,  # Don't allow any other keys.
+        }
+    },
+    'required': ['csp-report'],
+    'additionalProperties': False,
+}
+
+CSP_INTERFACE_SCHEMA = {
+    'type': 'object',
+    'properties': {k.replace('-', '_'): v for k, v in six.iteritems(CSP_SCHEMA['properties']['csp-report']['properties'])},
+    'required': ['effective_directive', 'violated_directive', 'blocked_uri'],
+    'additionalProperties': False,  # Don't allow any other keys.
+}
+
+EXPECT_CT_SCHEMA = {
+    'type': 'object',
+    'properties': {
+        'expect-ct-report': {
+            'type': 'object',
+            'properties': {
+                'date-time': {
+                    'type': 'string',
+                    'format': 'date-time',
+                },
+                'hostname': {'type': 'string'},
+                'port': {'type': 'number'},
+                'effective-expiration-date': {
+                    'type': 'string',
+                    'format': 'date-time',
+                },
+                'served-certificate-chain': {
+                    'type': 'array',
+                    'items': {'type': 'string'}
+                },
+                'validated-certificate-chain': {
+                    'type': 'array',
+                    'items': {'type': 'string'}
+                },
+                'scts': {
+                    'type': 'array',
+                    'items': {
+                        'type': 'object',
+                        'properties': {
+                            'version': {'type': 'number'},
+                            'status': {
+                                'type': 'string',
+                                'enum': ['unknown', 'valid', 'invalid'],
+                            },
+                            'source': {
+                                'type': 'string',
+                                'enum': ['tls-extension', 'ocsp', 'embedded'],
+                            },
+                            'serialized_sct': {'type': 'string'},  # Base64
+                        },
+                        'additionalProperties': False,
+                    },
+                },
+            },
+            'required': ['hostname'],
+            'additionalProperties': False,
+        },
+    },
+    'additionalProperties': False,
+}
+
+EXPECT_CT_INTERFACE_SCHEMA = {
+    'type': 'object',
+    'properties': {k.replace('-', '_'): v for k, v in
+                   six.iteritems(EXPECT_CT_SCHEMA['properties']['expect-ct-report']['properties'])},
+    'required': ['hostname'],
+    'additionalProperties': False,
+}
+
+EXPECT_STAPLE_SCHEMA = {
+    'type': 'object',
+    'properties': {
+        'expect-staple-report': {
+            'type': 'object',
+            'properties': {
+                'date-time': {
+                    'type': 'string',
+                    'format': 'date-time',
+                },
+                'hostname': {'type': 'string'},
+                'port': {'type': 'number'},
+                'effective-expiration-date': {
+                    'type': 'string',
+                    'format': 'date-time',
+                },
+                'response-status': {
+                    'type': 'string',
+                    'enum': [
+                        'MISSING',
+                        'PROVIDED',
+                        'ERROR_RESPONSE',
+                        'BAD_PRODUCED_AT',
+                        'NO_MATCHING_RESPONSE',
+                        'INVALID_DATE',
+                        'PARSE_RESPONSE_ERROR',
+                        'PARSE_RESPONSE_DATA_ERROR',
+                    ],
+                },
+                'ocsp-response': {},
+                'cert-status': {
+                    'type': 'string',
+                    'enum': [
+                        'GOOD',
+                        'REVOKED',
+                        'UNKNOWN',
+                    ],
+                },
+                'served-certificate-chain': {
+                    'type': 'array',
+                    'items': {'type': 'string'}
+                },
+                'validated-certificate-chain': {
+                    'type': 'array',
+                    'items': {'type': 'string'}
+                },
+            },
+            'required': ['hostname'],
+            'additionalProperties': False,
+        },
+    },
+    'additionalProperties': False,
+}
+
+EXPECT_STAPLE_INTERFACE_SCHEMA = {
+    'type': 'object',
+    'properties': {k.replace('-', '_'): v for k, v in
+                   six.iteritems(EXPECT_STAPLE_SCHEMA['properties']['expect-staple-report']['properties'])},
+    'required': ['hostname'],
+    'additionalProperties': False,
+}
+
 """
 Schemas for raw request data.
 
@@ -400,6 +583,9 @@ This is to validate input data at the very first stage of ingestion. It can
 then be transformed into the requisite interface.
 """
 INPUT_SCHEMAS = {
+    'sentry.interfaces.Csp': CSP_SCHEMA,
+    'expectct': EXPECT_CT_SCHEMA,
+    'expectstaple': EXPECT_STAPLE_SCHEMA,
 }
 
 """
@@ -409,7 +595,7 @@ Data returned by interface.to_json() or passed into interface.to_python()
 should conform to these schemas. Currently this is not enforced everywhere yet.
 """
 INTERFACE_SCHEMAS = {
-    # These should match SENTRY_INTERFACES keys
+    # Sentry interfaces
     'sentry.interfaces.Http': HTTP_INTERFACE_SCHEMA,
     'request': HTTP_INTERFACE_SCHEMA,
     'exception': EXCEPTION_INTERFACE_SCHEMA,
@@ -423,6 +609,11 @@ INTERFACE_SCHEMAS = {
     'sentry.interfaces.Template': TEMPLATE_INTERFACE_SCHEMA,
     'device': DEVICE_INTERFACE_SCHEMA,
 
+    # Security reports
+    'sentry.interfaces.Csp': CSP_INTERFACE_SCHEMA,
+    'expectct': EXPECT_CT_INTERFACE_SCHEMA,
+    'expectstaple': EXPECT_STAPLE_INTERFACE_SCHEMA,
+
     # Not interfaces per se, but looked up as if they were.
     'event': EVENT_SCHEMA,
     'tags': TAGS_TUPLES_SCHEMA,
@@ -433,7 +624,11 @@ INTERFACE_SCHEMAS = {
 def validator_for_interface(name):
     if name not in INTERFACE_SCHEMAS:
         return None
-    return jsonschema.Draft4Validator(INTERFACE_SCHEMAS[name], types={'array': (list, tuple)})
+    return jsonschema.Draft4Validator(
+        INTERFACE_SCHEMAS[name],
+        types={'array': (list, tuple)},
+        format_checker=jsonschema.FormatChecker()
+    )
 
 
 def validate_and_default_interface(data, interface, name=None,
