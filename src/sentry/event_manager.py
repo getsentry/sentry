@@ -31,8 +31,8 @@ from sentry.interfaces.base import get_interface, InterfaceValidationError
 from sentry.interfaces.schemas import validate_and_default_interface
 from sentry.models import (
     Activity, Environment, Event, EventError, EventMapping, EventUser, Group,
-    GroupHash, GroupRelease, GroupResolution, GroupStatus, Project, Release,
-    ReleaseEnvironment, ReleaseProject, UserReport
+    GroupEnvironment, GroupHash, GroupRelease, GroupResolution, GroupStatus,
+    Project, Release, ReleaseEnvironment, ReleaseProject, UserReport
 )
 from sentry.plugins import plugins
 from sentry.signals import event_discarded, event_saved, first_event_received, regression_signal
@@ -740,6 +740,11 @@ class EventManager(object):
         environment = Environment.get_or_create(
             project=project,
             name=environment,
+        )
+
+        group_environment, is_new_group_environment = GroupEnvironment.get_or_create(
+            group_id=group.id,
+            environment_id=environment.id,
         )
 
         if release:
