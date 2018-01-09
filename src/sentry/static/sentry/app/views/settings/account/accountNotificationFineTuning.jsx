@@ -75,6 +75,7 @@ export default class AccountNotificationDetails extends AsyncView {
                           choices={project.choices}
                           label={project.label}
                           small={true}
+                          alignRight={true}
                         />
                       </PanelBodyLineItem>
                     );

@@ -101,7 +101,6 @@ export default class Select2Field extends React.Component {
     return (
       <InputField
         {...this.props}
-        alignRight={true}
         field={({onChange, onBlur, disabled, ...props}) => {
           let choices = props.choices || [];
 
