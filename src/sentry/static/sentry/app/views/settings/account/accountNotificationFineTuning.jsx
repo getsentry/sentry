@@ -59,9 +59,7 @@ export default class AccountNotificationDetails extends AsyncView {
       <div>
         <ApiForm apiMethod="PUT" apiEndpoint={'/users/me/notifications/'}>
           <Panel>
-            <PanelHeader>
-              <div className="text-light">{this.props.route.name}</div>
-            </PanelHeader>
+            <PanelHeader>{this.props.route.name}</PanelHeader>
 
             {data.map(org => {
               return (
@@ -75,7 +73,6 @@ export default class AccountNotificationDetails extends AsyncView {
                           choices={project.choices}
                           label={project.label}
                           small={true}
-                          alignRight={true}
                         />
                       </PanelBodyLineItem>
                     );
