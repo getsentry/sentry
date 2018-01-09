@@ -25,6 +25,12 @@ const FormFieldControlErrorWrapper = styled(Box)`
   ${p => (p.inline ? 'width: 50%; padding-left: 10px;' : '')};
 `;
 
+const FormFieldControlStyled = styled(FormFieldControl)`
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+`;
+
 const FormFieldControlWrapper = styled(Flex)``;
 
 const FormFieldErrorReason = styled.div`
@@ -238,8 +244,8 @@ class FormField extends React.Component {
         </FormFieldDescription>
 
         <FormFieldControlErrorWrapper inline={inline}>
-          <FormFieldControlWrapper>
-            <FormFieldControl flex="1">
+          <FormFieldControlWrapper shrink="0">
+            <FormFieldControlStyled flex="1">
               <Observer>
                 {() => {
                   let error = this.getError();
@@ -270,7 +276,7 @@ class FormField extends React.Component {
                     <span className="icon-question" />
                   </span>
                 )}
-            </FormFieldControl>
+            </FormFieldControlStyled>
 
             <FormFieldControlState justify="center" align="center">
               <Observer>

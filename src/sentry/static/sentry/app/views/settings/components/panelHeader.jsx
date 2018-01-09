@@ -13,17 +13,20 @@ const StyledPanelHeader = styled.div`
   font-size: 13px;
 `;
 
-const StyledPanelHeaderHeading = styled(PanelHeading)`
+const StyledPanelHeading = styled(({lightText, ...props}) => <PanelHeading {...props} />)`
   font-size: inherit;
   text-transform: inherit;
   margin: 0;
+  ${p => (p.lightText ? `color: ${p.theme.gray2}` : '')};
 `;
 
 class PanelHeader extends React.Component {
   render() {
     return (
       <StyledPanelHeader disablePadding={this.props.disablePadding} {...this.props}>
-        <StyledPanelHeaderHeading>{this.props.children}</StyledPanelHeaderHeading>
+        <StyledPanelHeading lightText={this.props.lightText}>
+          {this.props.children}
+        </StyledPanelHeading>
       </StyledPanelHeader>
     );
   }
@@ -31,6 +34,7 @@ class PanelHeader extends React.Component {
 
 PanelHeader.propTypes = {
   disablePadding: PropTypes.bool,
+  lightText: PropTypes.bool,
 };
 
 export default PanelHeader;

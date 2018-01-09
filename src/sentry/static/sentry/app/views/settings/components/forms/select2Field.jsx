@@ -1,8 +1,23 @@
 import PropTypes from 'prop-types';
 import React from 'react';
 import jQuery from 'jquery';
+import classnames from 'classnames';
+import {css} from 'react-emotion';
 
 import InputField from './inputField';
+
+const formControlSmall = css`
+  width: 50%;
+  font-weight: bold;
+  font-size: 1.1rem;
+  padding: 0.33em 0.75em;
+
+  .select2-arrow:after {
+    font-size: 1.4em;
+    color: #ccc;
+    margin-top: 0.125em;
+  }
+`;
 
 export default class Select2Field extends React.Component {
   static propTypes = {
@@ -12,6 +27,7 @@ export default class Select2Field extends React.Component {
     allowEmpty: PropTypes.bool,
     multiple: PropTypes.bool,
     escapeMarkup: PropTypes.bool,
+    small: PropTypes.bool,
   };
 
   static defaultProps = {
@@ -21,6 +37,7 @@ export default class Select2Field extends React.Component {
     placeholder: '--',
     escapeMarkup: true,
     multiple: false,
+    small: false,
   };
 
   componentWillUnmount() {
@@ -76,6 +93,7 @@ export default class Select2Field extends React.Component {
       allowEmpty: this.props.allowEmpty,
       width: 'element',
       escapeMarkup: !this.props.escapeMarkup ? m => m : undefined,
+      minimumResultsForSearch: 5,
     };
   }
 
@@ -93,9 +111,10 @@ export default class Select2Field extends React.Component {
           return (
             <select
               disabled={disabled}
-              className="form-control"
+              className={classnames('form-control', {
+                [formControlSmall]: this.props.small,
+              })}
               ref={ref => this.handleSelectMount(onBlur, onChange, ref)}
-              style={{width: '100%'}}
               onChange={() => {}}
               value={props.value}
             >
