@@ -101,6 +101,8 @@ class DetailedOrganizationSerializer(OrganizationSerializer):
             feature_list.append('new-settings')
         if features.has('organizations:require-2fa', obj, actor=user):
             feature_list.append('require-2fa')
+        if features.has('organizations:environments', obj, actor=user):
+            feature_list.append('environments')
 
         if getattr(obj.flags, 'allow_joinleave'):
             feature_list.append('open-membership')
