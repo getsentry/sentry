@@ -1,0 +1,76 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`AccountIdentities renders empty 1`] = `
+<DocumentTitle
+  title="Sentry"
+>
+  <div>
+    <SettingsPageHeading
+      label="Identities"
+    />
+    <Styled(div)>
+      <PanelHeader
+        disablePadding={true}
+      >
+        <Box
+          px={2}
+        >
+          Identities
+        </Box>
+      </PanelHeader>
+      <Styled(div)>
+        <Styled(div)>
+          There are no identities associated with this account
+        </Styled(div)>
+      </Styled(div)>
+    </Styled(div)>
+  </div>
+</DocumentTitle>
+`;
+
+exports[`AccountIdentities renders list 1`] = `
+<DocumentTitle
+  title="Sentry"
+>
+  <div>
+    <SettingsPageHeading
+      label="Identities"
+    />
+    <Styled(div)>
+      <PanelHeader
+        disablePadding={true}
+      >
+        <Box
+          px={2}
+        >
+          Identities
+        </Box>
+      </PanelHeader>
+      <Styled(div)>
+        <Styled(Base)
+          align="center"
+          key="1"
+        >
+          <Box
+            flex="1"
+            p={2}
+          >
+            Github
+          </Box>
+          <Box
+            p={2}
+          >
+            <Button
+              disabled={false}
+              onClick={[Function]}
+              size="small"
+            >
+              Disconnect
+            </Button>
+          </Box>
+        </Styled(Base)>
+      </Styled(div)>
+    </Styled(div)>
+  </div>
+</DocumentTitle>
+`;
