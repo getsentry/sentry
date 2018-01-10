@@ -34,7 +34,7 @@ class PostProcessGroupTest(TestCase):
             is_sample=False,
         )
 
-        mock_processor.assert_called_once_with(event, True, False, False)
+        mock_processor.assert_called_once_with(event, True, False)
         mock_processor.return_value.apply.assert_called_once_with()
 
         mock_callback.assert_called_once_with(event, mock_futures)

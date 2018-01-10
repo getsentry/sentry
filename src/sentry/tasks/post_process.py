@@ -83,7 +83,7 @@ def post_process_group(event, is_new, is_regression, is_sample, **kwargs):
     # we process snoozes before rules as it might create a regression
     process_snoozes(event.group)
 
-    rp = RuleProcessor(event, is_new, is_regression, is_sample)
+    rp = RuleProcessor(event, is_new, is_regression)
     has_alert = False
     # TODO(dcramer): ideally this would fanout, but serializing giant
     # objects back and forth isn't super efficient
