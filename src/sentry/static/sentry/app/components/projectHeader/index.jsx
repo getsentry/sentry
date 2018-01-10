@@ -1,6 +1,7 @@
 import PropTypes from 'prop-types';
 import React from 'react';
 import {Link} from 'react-router';
+import classNames from 'classnames';
 
 import ProjectSelector from './projectSelector';
 import BookmarkToggle from '../projects/bookmarkToggle';
@@ -21,10 +22,19 @@ class ProjectHeader extends React.Component {
     let features = new Set(project.features);
     let access = new Set(org.access);
 
+    let projectIconClass = classNames('project-select-bookmark icon icon-star-solid', {
+      active: project.isBookmarked,
+    });
+
     return (
       <div className="sub-header flex flex-container flex-vertically-centered">
         <div className="p-t-1">
-          <ProjectSelector organization={org} projectId={project.slug} />
+          <div className="project-select-wrapper">
+            <ProjectSelector organization={org} projectId={project.slug} />
+            <BookmarkToggle orgId={org.slug} project={project}>
+              <a className={projectIconClass} />
+            </BookmarkToggle>
+          </div>
 
           <ul className="nav nav-tabs">
             <li className={navSection == 'stream' ? 'active' : ''}>
@@ -46,38 +56,12 @@ class ProjectHeader extends React.Component {
             <li className={navSection == 'releases' ? 'active' : ''}>
               <Link to={`/${org.slug}/${project.slug}/releases/`}>{t('Releases')}</Link>
             </li>
+            {access.has('project:write') && (
+              <li className={navSection == 'settings' ? 'active' : ''}>
+                <Link to={`/${org.slug}/${project.slug}/settings/`}>{t('Settings')}</Link>
+              </li>
+            )}
           </ul>
-        </div>
-
-        <div className="align-right project-actions">
-          <BookmarkToggle orgId={org.slug} project={project}>
-            <a className="btn btn-sm btn-default">
-              <span
-                className={
-                  project.isBookmarked
-                    ? 'icon icon-star-solid active'
-                    : 'icon icon-star-solid'
-                }
-              />
-              {project.isBookmarked ? (
-                <span>{t('Unstar Project')}</span>
-              ) : (
-                <span>{t('Star Project')}</span>
-              )}
-            </a>
-          </BookmarkToggle>
-          {access.has('project:write') && (
-            <Link
-              className={
-                navSection == 'settings'
-                  ? 'btn btn-sm btn-default active'
-                  : 'btn btn-sm btn-default'
-              }
-              to={`/${org.slug}/${project.slug}/settings/`}
-            >
-              <span className="icon icon-settings" /> {t('Project Settings')}
-            </Link>
-          )}
         </div>
       </div>
     );
