@@ -28,7 +28,6 @@ const FormFieldControlErrorWrapper = styled(Box)`
 const FormFieldControlStyled = styled(FormFieldControl)`
   display: flex;
   flex-direction: column;
-  align-items: flex-end;
 `;
 
 const FormFieldControlWrapper = styled(Flex)``;
