@@ -1267,7 +1267,7 @@
       "usable_memory": 2095349760
     }
   },
-  "sdk": {"name": "sentry-cocoa", "version": "3.3.3"},
+  "sdk": {"name": "sentry-cocoa", "version": "3.11.1"},
   "debug_meta": {
     "images": [
       {
