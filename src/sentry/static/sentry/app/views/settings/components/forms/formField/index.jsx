@@ -28,6 +28,7 @@ const FormFieldControlErrorWrapper = styled(Box)`
 const FormFieldControlStyled = styled(FormFieldControl)`
   display: flex;
   flex-direction: column;
+  ${p => (p.alignRight ? 'align-items: flex-end;' : '')};
 `;
 
 const FormFieldControlWrapper = styled(Flex)``;
@@ -95,6 +96,7 @@ class FormField extends React.Component {
     required: PropTypes.bool,
     hideErrorMessage: PropTypes.bool,
     highlighted: PropTypes.bool,
+    alignRight: PropTypes.bool,
 
     /**
      * Should control be inline with field label
@@ -226,6 +228,7 @@ class FormField extends React.Component {
       disabledReason,
       hideErrorMessage,
       help,
+      alignRight,
     } = this.props;
     let id = this.getId();
     let model = this.getModel();
@@ -244,7 +247,7 @@ class FormField extends React.Component {
 
         <FormFieldControlErrorWrapper inline={inline}>
           <FormFieldControlWrapper shrink="0">
-            <FormFieldControlStyled flex="1">
+            <FormFieldControlStyled flex="1" alignRight={alignRight}>
               <Observer>
                 {() => {
                   let error = this.getError();
