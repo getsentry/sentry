@@ -1,0 +1,80 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`AccountEmails renders with emails 1`] = `
+<DocumentTitle
+  title="Sentry"
+>
+  <div>
+    <SettingsPageHeading
+      title="Emails"
+    />
+    <Styled(Component)
+      icon="icon-stack"
+      to="/settings/account/notifications"
+    >
+      Wanna change how many emails you get? Use the notifications panel.
+    </Styled(Component)>
+    <Styled(div)>
+      <PanelHeader>
+        <Box>
+          Emails
+        </Box>
+      </PanelHeader>
+      <Styled(div)>
+        <EmailRow
+          email="primary@example.com"
+          isPrimary={true}
+          isVerified={true}
+          onRemove={[Function]}
+        />
+        <EmailRow
+          email="secondary1@example.com"
+          isPrimary={false}
+          isVerified={true}
+          key="secondary1@example.com"
+          onRemove={[Function]}
+        />
+        <EmailRow
+          email="secondary2@example.com"
+          isPrimary={false}
+          isVerified={false}
+          key="secondary2@example.com"
+          onRemove={[Function]}
+        />
+      </Styled(div)>
+    </Styled(div)>
+    <Form
+      allowUndo={false}
+      apiEndpoint="/account/emails/"
+      apiMethod="POST"
+      cancelLabel="Cancel"
+      className="form-stacked"
+      footerClass="form-actions align-right"
+      onSubmitSuccess={[Function]}
+      requireChanges={false}
+      saveOnBlur={true}
+      submitDisabled={false}
+      submitLabel="Save Changes"
+    >
+      <JsonForm
+        forms={
+          Array [
+            Object {
+              "fields": Array [
+                Object {
+                  "help": "Designate an alternative email for this account",
+                  "label": "Additional Email",
+                  "name": "email",
+                  "placeholder": "e.g. secondary@example.com",
+                  "type": "string",
+                },
+              ],
+              "title": "Add Secondary Emails",
+            },
+          ]
+        }
+      />
+    </Form>
+  </div>
+</DocumentTitle>
+`;
