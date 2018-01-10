@@ -42,8 +42,8 @@ def generate_fetch_commits_error_email(release, error_message):
         html_template='sentry/emails/unable-to-fetch-commits.html',
     )
 
-# we're future proofing this function a bit so it could be used with other code
 
+# we're future proofing this function a bit so it could be used with other code
 
 def handle_invalid_identity(identity, commit_failure=False):
     # email the user

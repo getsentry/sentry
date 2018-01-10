@@ -65,6 +65,7 @@ def load_defaults():
     default_manager.register(models.Project, defaults.ProjectDeletionTask)
     default_manager.register(models.ProjectBookmark, BulkModelDeletionTask)
     default_manager.register(models.ProjectKey, BulkModelDeletionTask)
+    default_manager.register(models.PullRequest, BulkModelDeletionTask)
     default_manager.register(models.Repository, defaults.RepositoryDeletionTask)
     default_manager.register(models.SavedSearch, BulkModelDeletionTask)
     default_manager.register(models.SavedSearchUserDefault, BulkModelDeletionTask)

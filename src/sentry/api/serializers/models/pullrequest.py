@@ -3,11 +3,11 @@ from __future__ import absolute_import
 import six
 
 from sentry.api.serializers import Serializer, register, serialize
-from sentry.models import Commit, Repository
-from sentry.api.serializers.models.release import get_users_for_authors, CommitAuthor
+from sentry.models import PullRequest, Repository, CommitAuthor
+from sentry.api.serializers.models.release import get_users_for_authors
 
 
-def get_users_for_commits(item_list, user=None):
+def get_users_for_pull_requests(item_list, user=None):
     authors = list(
         CommitAuthor.objects.filter(id__in=[i.author_id for i in item_list if i.author_id])
     )
@@ -23,10 +23,10 @@ def get_users_for_commits(item_list, user=None):
     return {}
 
 
-@register(Commit)
-class CommitSerializer(Serializer):
+@register(PullRequest)
+class PullRequestSerializer(Serializer):
     def get_attrs(self, item_list, user):
-        users_by_author = get_users_for_commits(item_list, user)
+        users_by_author = get_users_for_pull_requests(item_list, user)
 
         repositories = serialize(
             list(Repository.objects.filter(
@@ -49,6 +49,7 @@ class CommitSerializer(Serializer):
     def serialize(self, obj, attrs, user):
         d = {
             'id': obj.key,
+            'title': obj.title,
             'message': obj.message,
             'dateCreated': obj.date_added,
             'repository': attrs['repository'],
