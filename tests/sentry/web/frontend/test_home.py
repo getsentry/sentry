@@ -4,7 +4,6 @@ from django.core.urlresolvers import reverse
 from exam import fixture
 
 from sentry.testutils import TestCase
-from sentry.models import TotpInterface, Authenticator
 
 
 class HomeTest(TestCase):
@@ -45,27 +44,3 @@ class HomeTest(TestCase):
 
         assert resp.status_code == 302
         assert resp['Location'] == 'http://testserver/{}/'.format(org.slug)
-
-    def test_blocks_2fa_noncompliant_members(self):
-        def redirected_to_2fa_page(response):
-            assert response.status_code == 302
-            assert reverse('sentry-account-settings-2fa') in response.url
-
-        organization = self.create_organization(owner=self.create_user())
-        organization.flags.require_2fa = True
-        organization.save()
-
-        user = self.create_user()
-        self.create_member(organization=organization, user=user, role="member")
-        self.login_as(user)
-
-        response = self.client.get(self.path)
-        redirected_to_2fa_page(response)
-
-        TotpInterface().enroll(user)
-        response = self.client.get(self.path)
-        assert response.status_code == 200
-
-        Authenticator.objects.get(user=user).delete()
-        response = self.client.get(self.path)
-        redirected_to_2fa_page(response)
