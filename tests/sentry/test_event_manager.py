@@ -5,6 +5,7 @@ from __future__ import absolute_import, print_function
 import logging
 import mock
 import pytest
+import uuid
 
 from datetime import datetime, timedelta
 from django.conf import settings
@@ -19,7 +20,7 @@ from sentry.event_manager import (
     md5_from_hash, process_timestamp
 )
 from sentry.models import (
-    Activity, Environment, Event, Group, GroupHash, GroupRelease, GroupResolution,
+    Activity, Environment, Event, Group, GroupEnvironment, GroupHash, GroupRelease, GroupResolution,
     GroupStatus, GroupTombstone, EventMapping, Release
 )
 from sentry.signals import event_discarded, event_saved
@@ -773,6 +774,51 @@ class EventManagerTest(TransactionTestCase):
         event = manager.save(self.project.id)
 
         assert dict(event.tags).get('environment') == 'beta'
+
+    @mock.patch('sentry.event_manager.post_process_group.delay')
+    def test_group_environment(self, mock_post_process_group_delay):
+        def save_event():
+            manager = EventManager(self.make_event(**{
+                'event_id': uuid.uuid1().hex,  # don't deduplicate
+                'environment': 'beta',
+            }))
+            manager.normalize()
+            return manager.save(self.project.id)
+
+        event = save_event()
+
+        # Ensure the `GroupEnvironment` record was created.
+        GroupEnvironment.objects.get(
+            group_id=event.group_id,
+            environment_id=Environment.objects.get(
+                organization_id=self.project.organization_id,
+                name=event.get_tag('environment'),
+            ).id,
+        )
+
+        # Ensure that the first event in the (group, environment) pair is
+        # marked as being part of a new environment.
+        mock_post_process_group_delay.assert_called_with(
+            group=event.group,
+            event=event,
+            is_new=True,
+            is_sample=False,
+            is_regression=False,
+            is_new_group_environment=True,
+        )
+
+        event = save_event()
+
+        # Ensure that the next event in the (group, environment) pair is *not*
+        # marked as being part of a new environment.
+        mock_post_process_group_delay.assert_called_with(
+            group=event.group,
+            event=event,
+            is_new=False,
+            is_sample=False,
+            is_regression=None,  # XXX: wut
+            is_new_group_environment=False,
+        )
 
     def test_default_fingerprint(self):
         manager = EventManager(self.make_event())
