@@ -57,6 +57,7 @@ exports[`CreateProject render() should render roles when available and allowed, 
                 className="form-control"
                 disabled={false}
                 id="id-email"
+                name="email"
                 onChange={[Function]}
                 placeholder="e.g. teammate@example.com"
                 required={false}
