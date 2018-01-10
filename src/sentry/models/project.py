@@ -35,7 +35,11 @@ ProjectStatus = ObjectStatus
 class ProjectTeam(Model):
     __core__ = True
 
-    project = FlexibleForeignKey('sentry.Project')
+    # TODO(jess): this unique index is temporary and should be
+    # removed when the UI is updated to handle multiple teams
+    # per project. This is just to prevent wonky behavior in
+    # the mean time.
+    project = FlexibleForeignKey('sentry.Project', unique=True)
     team = FlexibleForeignKey('sentry.Team')
 
     class Meta:
