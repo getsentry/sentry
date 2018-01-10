@@ -46,7 +46,7 @@ if (process.env.SENTRY_EXTRACT_TRANSLATIONS === '1') {
 var appEntry = {
   app: ['app'],
   vendor: [
-    'babel-polyfill',
+    '@babel/polyfill',
     // Yes this is included in prod builds, but has no effect on render and build size in prod
     'react-hot-loader/patch',
     'bootstrap/js/dropdown',

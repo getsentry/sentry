@@ -1,7 +1,6 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 import {uniq} from 'lodash';
-import idx from 'idx';
 
 import {t} from 'app/locale';
 import AsyncComponent from 'app/components/asyncComponent';
@@ -47,11 +46,9 @@ class ProjectOwnershipModal extends AsyncComponent {
 
     // pull frame data out of exception or the stacktrace
     let frames =
-      idx(
-        eventData.entries.find(({type}) => type == 'exception'),
-        _ => _.data.values[0].stacktrace.frames
-      ) ||
-      idx(eventData.entries.find(({type}) => type == 'stacktrace'), _ => _.data.frames) ||
+      eventData?.entries?.find(({type}) => type == 'exception')?.data?.values[0]
+        ?.stacktrace?.frames ||
+      eventData?.entries?.find(({type}) => type == 'stacktrace')?.data?.frames ||
       [];
 
     //filter frames by inApp unless there would be 0

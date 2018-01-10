@@ -1,6 +1,5 @@
 import $ from 'jquery';
 import {isUndefined, isNil} from 'lodash';
-import idx from 'idx';
 
 import {
   PROJECT_MOVED,
@@ -63,13 +62,13 @@ export class Client {
    * If so, redirect user to new project slug
    */
   hasProjectBeenRenamed(response) {
-    let code = response && idx(response, _ => _.responseJSON.detail.code);
+    let code = response?.responseJSON?.detail?.code;
 
     // XXX(billy): This actually will never happen because we can't intercept the 302
     // jQuery ajax will follow the redirect by default...
     if (code !== PROJECT_MOVED) return false;
 
-    let slug = response && idx(response, _ => _.responseJSON.detail.extra.slug);
+    let slug = response?.responseJSON?.detail?.extra?.slug;
 
     redirectToProject(slug);
     return true;
@@ -107,7 +106,7 @@ export class Client {
   }
 
   handleRequestError({id, path, requestOptions}, response, ...responseArgs) {
-    let code = response && idx(response, _ => _.responseJSON.detail.code);
+    let code = response?.responseJSON?.detail?.code;
     let isSudoRequired = code === SUDO_REQUIRED || code === SUPERUSER_REQUIRED;
 
     if (isSudoRequired) {

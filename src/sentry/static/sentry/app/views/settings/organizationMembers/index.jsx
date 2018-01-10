@@ -1,7 +1,6 @@
 import PropTypes from 'prop-types';
 import React from 'react';
 import {debounce} from 'lodash';
-import idx from 'idx';
 
 import {Panel, PanelBody, PanelHeader} from 'app/components/panels';
 import {addErrorMessage, addSuccessMessage} from 'app/actionCreators/indicator';
@@ -32,8 +31,8 @@ class OrganizationMembersView extends AsyncView {
 
   componentWillReceiveProps(nextProps, nextContext) {
     super.componentWillReceiveProps(nextProps, nextContext);
-    let searchQuery = idx(nextProps, _ => _.location.query.query);
-    if (searchQuery !== idx(this.props, _ => _.location.query.query)) {
+    let searchQuery = nextProps?.location?.query?.query;
+    if (searchQuery !== this.props?.location?.query?.query) {
       this.setState({searchQuery});
     }
   }
@@ -47,7 +46,7 @@ class OrganizationMembersView extends AsyncView {
       members: [],
       invited: new Map(),
       accessRequestBusy: new Map(),
-      searchQuery: idx(this.props, _ => _.location.query.query) || '',
+      searchQuery: this.props?.location?.query?.query || '',
     };
   }
 
@@ -58,7 +57,7 @@ class OrganizationMembersView extends AsyncView {
         `/organizations/${this.props.params.orgId}/members/`,
         {
           query: {
-            query: idx(this.props, _ => _.location.query.query),
+            query: this.props?.location?.query?.query,
           },
         },
         {paginate: true},
