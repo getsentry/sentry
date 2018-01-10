@@ -197,8 +197,8 @@ class AuditLogEntry(Model):
         elif self.event == AuditLogEntryEvent.ORG_ADD:
             return 'created the organization'
         elif self.event == AuditLogEntryEvent.ORG_EDIT:
-            # TODO(kelly): Better way to display the key
-            return 'edited the organization setting(s): %s' % ', '.join(self.data.keys())
+            return 'edited the organization setting(s): ' + (', '.join('{} to {}'.format(k, v)
+                                                                       for k, v in self.data.items()))
         elif self.event == AuditLogEntryEvent.ORG_REMOVE:
             return 'removed the organization'
         elif self.event == AuditLogEntryEvent.ORG_RESTORE:
