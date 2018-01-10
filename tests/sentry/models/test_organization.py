@@ -1,13 +1,7 @@
 from __future__ import absolute_import
 
 from sentry.models import (
-    << << << < HEAD
-    Commit, File, OrganizationMember, OrganizationMemberTeam, Project, Release, ReleaseCommit,
-    ReleaseEnvironment, ReleaseFile, Team, TotpInterface
-    == == == =
-    Commit, File, OrganizationMember, OrganizationMemberTeam, OrganizationOption, Project, Release, ReleaseCommit,
-    ReleaseEnvironment, ReleaseFile, Team
-    >> >>>> > add check for org settings changes, display the changed setting, add tests
+    Commit, File, OrganizationMember, OrganizationMemberTeam, OrganizationOption, Project, Release, ReleaseCommit, ReleaseEnvironment, ReleaseFile, Team, TotpInterface
 )
 from sentry.testutils import TestCase
 from django.core import mail
