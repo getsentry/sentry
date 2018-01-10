@@ -107,14 +107,17 @@ const Stream = createReactClass({
   },
 
   componentWillReceiveProps(nextProps) {
-    // you cannot apply both a query and a saved search (our routes do not
-    // support it), so the searchId takes priority
     if (this.state.loading) {
       return;
     }
 
-    this.fetchData();
+    // Do not make new API request if props haven't actually changed
+    if (!_.isEqual(this.props, nextProps)) {
+      this.fetchData();
+    }
 
+    // you cannot apply both a query and a saved search (our routes do not
+    // support it), so the searchId takes priority
     let searchIdChanged = this.state.isDefaultSearch
       ? nextProps.params.searchId
       : nextProps.params.searchId !== this.state.searchId;
@@ -126,7 +129,7 @@ const Stream = createReactClass({
   },
 
   shouldComponentUpdate(nextProps, nextState) {
-    return !_.isEqual(this.state, nextState, true);
+    return !_.isEqual(this.state, nextState);
   },
 
   componentDidUpdate(prevProps, prevState) {
