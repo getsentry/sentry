@@ -16,9 +16,7 @@ class StreamFilters extends React.Component {
     searchId: PropTypes.string,
     savedSearchList: PropTypes.array.isRequired,
 
-    defaultQuery: PropTypes.string,
     sort: PropTypes.string,
-    filter: PropTypes.string,
     query: PropTypes.string,
     isSearchDisabled: PropTypes.bool,
     queryCount: PropTypes.number,
@@ -35,9 +33,7 @@ class StreamFilters extends React.Component {
   };
 
   static defaultProps = {
-    defaultQuery: '',
     sort: '',
-    filter: '',
     query: null,
     onSortChange: function() {},
     onSearch: function() {},
@@ -55,7 +51,6 @@ class StreamFilters extends React.Component {
       query,
       savedSearchList,
       tags,
-      defaultQuery,
       isSearchDisabled,
       sort,
 
@@ -92,7 +87,6 @@ class StreamFilters extends React.Component {
                 projectId={projectId}
                 ref="searchBar"
                 tags={tags}
-                defaultQuery={defaultQuery || ''}
                 placeholder={t('Search for events, users, tags, and everything else.')}
                 query={query || ''}
                 onSearch={onSearch}
