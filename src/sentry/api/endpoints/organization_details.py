@@ -144,6 +144,22 @@ class OrganizationSerializer(serializers.Serializer):
 
     def save(self):
         org = self.context['organization']
+        changed_data = {}
+
+        for key, option, type_ in ORG_OPTIONS:
+            options = OrganizationOption.objects.get(
+                organization=org, key=option)
+            if key in self.init_data:
+                options.value = self.init_data[key]
+                OrganizationOption.objects.set_value(
+                    organization=org,
+                    key=option,
+                    value=type_(self.init_data[key]),
+                )
+            # check if ORG_OPTIONS changed
+            if options.has_changed('value'):
+                changed_data[key] = options.value
+
         if 'openMembership' in self.init_data:
             org.flags.allow_joinleave = self.init_data['openMembership']
         if 'allowSharedIssues' in self.init_data:
@@ -159,35 +175,30 @@ class OrganizationSerializer(serializers.Serializer):
         if 'slug' in self.init_data:
             org.slug = self.init_data['slug']
 
-        org_changed_data = {}
-
         fields = {
             'name': org.name,
             'slug': org.slug,
-            'default_role': org.default_role
+            'default_role': org.default_role,
+            'flag_fields': {
+                'allow_joinleave': org.flags.allow_joinleave.is_set,
+                'enhanced_privacy': org.flags.enhanced_privacy.is_set,
+                'disable_shared_issues': org.flags.disable_shared_issues.is_set,
+                'early_adopter': org.flags.early_adopter.is_set
+            }
         }
 
-        flag_fields = ['openMembership',
-                       'enhancedPrivacy', 'allowSharedIssues', 'isEarlyAdopter']
-
-        for field, value in six.iteritems(fields):
-            if org.has_changed(field):
-                org_changed_data[field.title().replace('_', ' ')] = value
-
-        # TODO(kelly): Need to figure out how to check if a bitfield has changed
-        for flag_field in flag_fields:
-            if org.has_changed('flags'):
-                org_changed_data[flag_field] = flag_field
+        # check if fields changed
+        for f, v in six.iteritems(fields):
+            if f is not 'flag_fields':
+                if org.has_changed(f):
+                    changed_data[f] = v
+            else:
+                # check if flag fields changed
+                for f, v in six.iteritems(fields['flag_fields']):
+                    if org.flag_has_changed(f):
+                        changed_data[f] = v
 
         org.save()
-
-        for key, option, type_ in ORG_OPTIONS:
-            if key in self.init_data:
-                OrganizationOption.objects.set_value(
-                    organization=org,
-                    key=option,
-                    value=type_(self.init_data[key]),
-                )
 
         if 'avatar' in self.init_data or 'avatarType' in self.init_data:
             OrganizationAvatar.save_avatar(
@@ -198,7 +209,7 @@ class OrganizationSerializer(serializers.Serializer):
             )
         if 'require2FA' in self.init_data and self.init_data['require2FA'] is True:
             org.send_setup_2fa_emails()
-        return org, org_changed_data
+        return org, changed_data
 
 
 class OwnerOrganizationSerializer(OrganizationSerializer):
@@ -267,7 +278,7 @@ class OrganizationDetailsEndpoint(OrganizationEndpoint):
             context={'organization': organization, 'user': request.user},
         )
         if serializer.is_valid():
-            organization, org_changed_data = serializer.save()
+            organization, changed_data = serializer.save()
 
             if was_pending_deletion and organization.status == OrganizationStatus.VISIBLE:
                 self.create_audit_entry(
@@ -290,7 +301,7 @@ class OrganizationDetailsEndpoint(OrganizationEndpoint):
                 organization=organization,
                 target_object=organization.id,
                 event=AuditLogEntryEvent.ORG_EDIT,
-                data=org_changed_data
+                data=changed_data
             )
 
             return Response(

@@ -11,6 +11,7 @@ from __future__ import absolute_import
 from copy import copy
 import logging
 import six
+from copy import copy
 
 from bitfield.types import BitHandler
 from django.db import models

@@ -1,8 +1,13 @@
 from __future__ import absolute_import
 
 from sentry.models import (
+    << << << < HEAD
     Commit, File, OrganizationMember, OrganizationMemberTeam, Project, Release, ReleaseCommit,
     ReleaseEnvironment, ReleaseFile, Team, TotpInterface
+    == == == =
+    Commit, File, OrganizationMember, OrganizationMemberTeam, OrganizationOption, Project, Release, ReleaseCommit,
+    ReleaseEnvironment, ReleaseFile, Team
+    >> >>>> > add check for org settings changes, display the changed setting, add tests
 )
 from sentry.testutils import TestCase
 from django.core import mail
@@ -168,3 +173,64 @@ class OrganizationTest(TestCase):
             org.send_setup_2fa_emails()
 
         assert len(mail.outbox) == 0
+
+    def test_has_changed(self):
+        org = self.create_organization()
+
+        org.name = 'Bizzy'
+        assert org.has_changed('name') is True
+
+        OrganizationOption.objects.create(
+            organization=org,
+            key='sentry:require_scrub_ip_address',
+            value=False
+        )
+        o = OrganizationOption.objects.get(
+            organization=org,
+            key='sentry:require_scrub_ip_address')
+        o.value = True
+        assert o.has_changed('value') is True
+
+        OrganizationOption.objects.create(
+            organization=org,
+            key='sentry:account-rate-limit',
+            value=0
+        )
+        p = OrganizationOption.objects.get(
+            organization=org,
+            key='sentry:account-rate-limit')
+        p.value = 50000
+        assert p.has_changed('value') is True
+
+        OrganizationOption.objects.create(
+            organization=org,
+            key='sentry:project-rate-limit',
+            value=85
+        )
+        r = OrganizationOption.objects.get(
+            organization=org,
+            key='sentry:project-rate-limit')
+        r.value = 85
+        assert r.has_changed('value') is False
+
+        OrganizationOption.objects.create(
+            organization=org,
+            key='sentry:sensitive_fields',
+            value=[]
+        )
+        s = OrganizationOption.objects.get(
+            organization=org,
+            key='sentry:sensitive_fields')
+        s.value = ['email']
+        assert s.has_changed('value') is True
+
+        OrganizationOption.objects.create(
+            organization=org,
+            key='sentry:safe_fields',
+            value=['email']
+        )
+        f = OrganizationOption.objects.get(
+            organization=org,
+            key='sentry:safe_fields')
+        f.value = ['email']
+        assert f.has_changed('value') is False
