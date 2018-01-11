@@ -33,7 +33,7 @@ class ServiceHook(Model):
     application = FlexibleForeignKey('sentry.ApiApplication', null=True)
     actor_id = BoundedPositiveIntegerField(db_index=True)
     project_id = BoundedPositiveIntegerField(db_index=True)
-    url = models.URLField()
+    url = models.URLField(max_length=512)
     secret = EncryptedTextField(default=lambda: ServiceHook.generate_secret())
     events = ArrayField(of=models.TextField)
     status = BoundedPositiveIntegerField(
