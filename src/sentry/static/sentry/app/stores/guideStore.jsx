@@ -19,7 +19,6 @@ const GuideStore = Reflux.createStore({
     if (guide && JSON.stringify(this._internal.guide) != JSON.stringify(guide)) {
       this._internal.guide = guide;
       this.trigger(this._internal);
-      console.log('loaded guide already sheesh');
     }
   },
 
@@ -45,7 +44,6 @@ const GuideStore = Reflux.createStore({
   completeStep() {
     this._internal.step++;
     if (this._internal.step < this._internal.guide.steps.length) {
-      console.log('outchea triggering dawg');
       this.trigger(this._internal);
     }
   },
