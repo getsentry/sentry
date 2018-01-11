@@ -161,7 +161,7 @@ const StackedBarChart = createReactClass({
   },
 
   shouldComponentUpdate(nextProps, nextState) {
-    return !_.isEqual(this.props, nextProps, true);
+    return !_.isEqual(this.props, nextProps);
   },
 
   use24Hours() {

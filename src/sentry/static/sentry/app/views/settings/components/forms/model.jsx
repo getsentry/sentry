@@ -77,7 +77,7 @@ class FormModel {
    */
   @computed
   get formChanged() {
-    return !_.isEqual(this.initialData, this.fields.toJSON(), true);
+    return !_.isEqual(this.initialData, this.fields.toJSON());
   }
 
   @computed
