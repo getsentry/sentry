@@ -101,8 +101,8 @@ export default class OrganizationMemberRow extends React.PureComponent {
     let isInviting = status === 'loading';
 
     return (
-      <Row align="center" py={2}>
-        <Box pl={2}>
+      <Row align="center">
+        <Box>
           <Avatar style={{width: 32, height: 32}} user={user ? user : {email}} />
         </Box>
 
@@ -165,7 +165,7 @@ export default class OrganizationMemberRow extends React.PureComponent {
         </Box>
 
         {showRemoveButton || showLeaveButton ? (
-          <Box px={2} w={140}>
+          <Box pl={2} w={140}>
             {showRemoveButton &&
               canRemoveMember && (
                 <Confirm
