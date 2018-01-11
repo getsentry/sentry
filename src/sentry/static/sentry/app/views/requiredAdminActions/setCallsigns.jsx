@@ -1,6 +1,5 @@
 import React from 'react';
 import createReactClass from 'create-react-class';
-import update from 'react-addons-update';
 import {browserHistory} from 'react-router';
 
 import ActionOverlay from '../../components/actionOverlay';
@@ -92,9 +91,10 @@ const SetCallsignsAction = createReactClass({
 
   onSetShortName(projectId, event) {
     this.setState({
-      slugs: update(this.state.slugs, {
-        [projectId]: {$set: event.target.value.toUpperCase().trim()},
-      }),
+      slugs: {
+        ...this.state.slugs,
+        [projectId]: event.target.value.toUpperCase().trim(),
+      },
     });
   },
 
