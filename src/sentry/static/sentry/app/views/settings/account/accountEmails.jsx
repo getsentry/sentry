@@ -16,7 +16,7 @@ import Row from '../components/row';
 import SettingsPageHeader from '../components/settingsPageHeader';
 import accountEmailsFields from '../../../data/forms/accountEmails';
 
-const ENDPOINT = '/account/emails/';
+const ENDPOINT = '/users/me/emails/';
 
 const RemoveButton = styled(({hidden, ...props}) => (
   <Button priority="danger" size="small" {...props}>
@@ -31,8 +31,13 @@ class EmailRow extends React.Component {
     email: PropTypes.string.isRequired,
     isVerified: PropTypes.bool,
     isPrimary: PropTypes.bool,
-    onRemove: PropTypes.func,
     hideRemove: PropTypes.bool,
+    onRemove: PropTypes.func,
+    onSetPrimary: PropTypes.func,
+  };
+
+  handleSetPrimary = e => {
+    this.props.onSetPrimary(this.props.email, e);
   };
 
   handleRemove = e => {
@@ -49,14 +54,17 @@ class EmailRow extends React.Component {
             <div>{email}</div>
           </Flex>
           <Flex ml={2}>
-            {isPrimary ? 'Primary' : ''}
-            {!isVerified ? 'Unverified' : ''}
+            {!isVerified ? t('Unverified') : ''}
+            {isPrimary ? t('Primary') : ''}
           </Flex>
         </Flex>
 
         {!isPrimary &&
           !hideRemove && (
             <Flex ml={2}>
+              <Button size="small" onClick={this.handleSetPrimary}>
+                {t('Set as primary')}
+              </Button>
               <RemoveButton
                 onClick={this.handleRemove}
                 hidden={isPrimary || hideRemove}
@@ -75,6 +83,15 @@ class AccountEmails extends AsyncView {
 
   handleSubmitSuccess = (change, model, id) => {
     model.setValue(id, '');
+  };
+
+  handleSetPrimary = email => {
+    this.api.requestPromise(ENDPOINT, {
+      method: 'PUT',
+      data: {
+        email,
+      },
+    });
   };
 
   handleRemove = email => {
@@ -111,6 +128,7 @@ class AccountEmails extends AsyncView {
                 return (
                   <EmailRow
                     key={emailObj.email}
+                    onSetPrimary={this.handleSetPrimary}
                     onRemove={this.handleRemove}
                     {...emailObj}
                   />

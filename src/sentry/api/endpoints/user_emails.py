@@ -4,17 +4,27 @@ import logging
 
 from django.db import IntegrityError, transaction
 from django.db.models import Q
+from rest_framework import serializers, status
 from rest_framework.response import Response
-from rest_framework import serializers
 
 from sentry import newsletter
-from sentry.api.base import Endpoint
-from sentry.api.bases.user import UserPermission
+from sentry.api.bases.user import UserEndpoint
 from sentry.api.decorators import sudo_required
 from sentry.api.serializers import serialize
 from sentry.models import User, UserEmail, UserOption
 
 logger = logging.getLogger('sentry.accounts')
+
+
+InvalidEmailResponse = Response({'detail': 'Invalid email'}, status=status.HTTP_400_BAD_REQUEST)
+
+
+class InvalidEmailError(Exception):
+    pass
+
+
+class DuplicateEmailError(Exception):
+    pass
 
 
 class EmailSerializer(serializers.Serializer):
@@ -35,26 +45,51 @@ def get_email(request):
     return serializer.object['email'].lower().strip()
 
 
-class AccountEmailsIndexEndpoint(Endpoint):
-    permission_classes = (UserPermission, )
+def add_email(email, user):
+    # Bad email
+    if email is None:
+        raise InvalidEmailError
 
-    def get(self, request):
+    # check if this email already exists for user
+    if email and UserEmail.objects.filter(
+        user=user, email__iexact=email
+    ).exists():
+        raise DuplicateEmailError
+
+    try:
+        with transaction.atomic():
+            new_email = UserEmail.objects.create(user=user, email=email)
+    except IntegrityError:
+        raise DuplicateEmailError
+    else:
+        new_email.set_hash()
+        new_email.save()
+        user.send_confirm_email_singular(new_email)
+
+        # Update newsletter subscription and mark as unverified
+        newsletter.update_subscription(user,
+                                       verified=False,
+                                       )
+        return new_email
+
+
+class UserEmailsEndpoint(UserEndpoint):
+    def get(self, request, user):
         """
         Get list of emails
         ``````````````````
 
-        Returns primary email and a list of secondary emails
+        Returns a list of emails. Primary email will have `isPrimary: true`
 
         :auth required:
         """
 
-        user = request.user
         emails = user.emails.all()
 
         return Response(serialize(list(emails), user=user))
 
     @sudo_required
-    def post(self, request):
+    def post(self, request, user):
         """
         Adds a secondary email address
         ``````````````````````````````
@@ -67,34 +102,11 @@ class AccountEmailsIndexEndpoint(Endpoint):
 
         email = get_email(request)
 
-        # Bad email
-        if email is None:
-            return Response("Invalid email", status=400)
-
-        user = request.user
-
-        # check if this email already exists for user
-        if email and UserEmail.objects.filter(
-            user=user, email__iexact=email
-        ).exists():
-            return Response("Invalid email", status=400)
-
         try:
-            # Uhh is this needed? just c&p'd from frontend/accounts.py
-            with transaction.atomic():
-                new_email = UserEmail.objects.create(user=user, email=email)
-        except IntegrityError:
-            pass
+            new_email = add_email(email, user)
+        except (InvalidEmailError, DuplicateEmailError):
+            return InvalidEmailResponse
         else:
-            new_email.set_hash()
-            new_email.save()
-            user.send_confirm_email_singular(new_email)
-
-            # Update newsletter subscription and mark as unverified
-            newsletter.update_subscription(user,
-                                           verified=False,
-                                           )
-
             logger.info(
                 'user.email.add',
                 extra={
@@ -104,13 +116,10 @@ class AccountEmailsIndexEndpoint(Endpoint):
                 }
             )
 
-            return Response(status=204)
-
-        # Otherwise, invalid request
-        return Response(status=400)
+            return Response(status=status.HTTP_204_NO_CONTENT)
 
     @sudo_required
-    def put(self, request):
+    def put(self, request, user):
         """
         Updates primary email
         `````````````````````
@@ -122,22 +131,40 @@ class AccountEmailsIndexEndpoint(Endpoint):
         """
 
         new_email = get_email(request)
-
-        # Bad email
-        if new_email is None:
-            return Response("Invalid email", status=400)
-
-        user = request.user
         old_email = user.email
 
-        # Is this a security/abuse concern?
+        if new_email is None:
+            return InvalidEmailResponse
+
+        # If email doesn't exist for user, attempt to add new email
+        if not UserEmail.objects.filter(
+            user=user, email__iexact=new_email
+        ).exists():
+            try:
+                added_email = add_email(new_email, user)
+            except InvalidEmailError:
+                return InvalidEmailResponse
+            except DuplicateEmailError:
+                pass
+            else:
+                logger.info(
+                    'user.email.add',
+                    extra={
+                        'user_id': user.id,
+                        'ip_address': request.META['REMOTE_ADDR'],
+                        'email': added_email.email,
+                    }
+                )
+                new_email = added_email.email
+
         # Check if email is in use
+        # Is this a security/abuse concern?
         if User.objects.filter(Q(email__iexact=new_email) | Q(username__iexact=new_email)
                                ).exclude(id=user.id).exists():
-            return Response("Invalid email", status=400)
+            return InvalidEmailResponse
 
         if new_email == old_email:
-            return Response("Invalid email", status=400)
+            return InvalidEmailResponse
 
         # update notification settings for those set to primary email with new primary email
         alert_email = UserOption.objects.get_value(user=user, key='alert_email')
@@ -148,22 +175,32 @@ class AccountEmailsIndexEndpoint(Endpoint):
         for option in options:
             if option.value != old_email:
                 continue
-            option.value = new_email
-            option.save()
+            option.update(value=new_email)
 
         has_new_username = old_email == user.username
 
-        user.email = new_email
+        update_kwargs = {
+            'email': new_email,
+        }
 
         if has_new_username and not User.objects.filter(username__iexact=new_email).exists():
-            user.username = old_email
+            update_kwargs['username'] = new_email
 
-        user.save()
+        user.update(**update_kwargs)
 
-        return Response(status=204)
+        logger.info(
+            'user.email.edit',
+            extra={
+                'user_id': user.id,
+                'ip_address': request.META['REMOTE_ADDR'],
+                'email': new_email,
+            }
+        )
+
+        return Response(status=status.HTTP_204_NO_CONTENT)
 
     @sudo_required
-    def delete(self, request):
+    def delete(self, request, user):
         """
         Removes an email from account
         `````````````````````````````
@@ -174,14 +211,14 @@ class AccountEmailsIndexEndpoint(Endpoint):
         :auth required:
         """
 
-        user = request.user
         email = request.DATA.get('email')
         primary_email = UserEmail.get_primary_email(user)
         del_email = UserEmail.objects.filter(user=user, email=email)[0]
 
         # Don't allow deleting primary email?
         if primary_email == del_email:
-            return Response("Cannot remove primary email", status=400)
+            return Response({'detail': 'Cannot remove primary email'},
+                            status=status.HTTP_400_BAD_REQUEST)
 
         del_email.delete()
 
@@ -194,4 +231,4 @@ class AccountEmailsIndexEndpoint(Endpoint):
             }
         )
 
-        return Response(status=204)
+        return Response(status=status.HTTP_204_NO_CONTENT)

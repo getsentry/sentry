@@ -33,6 +33,7 @@ exports[`AccountEmails renders with emails 1`] = `
           isVerified={true}
           key="secondary1@example.com"
           onRemove={[Function]}
+          onSetPrimary={[Function]}
         />
         <EmailRow
           email="secondary2@example.com"
@@ -40,12 +41,13 @@ exports[`AccountEmails renders with emails 1`] = `
           isVerified={false}
           key="secondary2@example.com"
           onRemove={[Function]}
+          onSetPrimary={[Function]}
         />
       </Styled(div)>
     </Styled(div)>
     <Form
       allowUndo={false}
-      apiEndpoint="/account/emails/"
+      apiEndpoint="/users/me/emails/"
       apiMethod="POST"
       cancelLabel="Cancel"
       className="form-stacked"

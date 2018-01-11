@@ -6,7 +6,7 @@ import AccountEmails from 'app/views/settings/account/accountEmails';
 
 jest.mock('scroll-to-element', () => {});
 
-const ENDPOINT = '/account/emails/';
+const ENDPOINT = '/users/me/emails/';
 
 describe('AccountEmails', function() {
   beforeEach(function() {
@@ -37,13 +37,41 @@ describe('AccountEmails', function() {
     // The first Button should be delete button for first secondary email (NOT primary)
     wrapper
       .find('Button')
-      .first()
+      .at(1)
       .simulate('click');
 
     expect(mock).toHaveBeenCalledWith(
       ENDPOINT,
       expect.objectContaining({
         method: 'DELETE',
+        data: {
+          email: 'secondary1@example.com',
+        },
+      })
+    );
+  });
+
+  it('can change a secondary email to primary an email', function() {
+    let mock = Client.addMockResponse({
+      url: ENDPOINT,
+      method: 'PUT',
+      statusCode: 200,
+    });
+
+    let wrapper = mount(<AccountEmails />, TestStubs.routerContext());
+
+    expect(mock).not.toHaveBeenCalled();
+
+    // The first Button should be delete button for first secondary email (NOT primary)
+    wrapper
+      .find('Button')
+      .first()
+      .simulate('click');
+
+    expect(mock).toHaveBeenCalledWith(
+      ENDPOINT,
+      expect.objectContaining({
+        method: 'PUT',
         data: {
           email: 'secondary1@example.com',
         },
