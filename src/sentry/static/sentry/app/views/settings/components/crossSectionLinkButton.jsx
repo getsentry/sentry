@@ -2,9 +2,9 @@ import styled from 'react-emotion';
 import PropTypes from 'prop-types';
 import React from 'react';
 
-const CrossSectionLinkButton = styled(props => {
-  return React.createElement('a', {href: props.href}, props.children);
-})`
+const CrossSectionLinkButton = styled(({href, children}) => (
+  <a href={href}>{children}</a>
+))`
   color: blue;
 `;
 
