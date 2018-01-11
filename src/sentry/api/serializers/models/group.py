@@ -148,10 +148,26 @@ class GroupSerializer(Serializer):
             environment = self.environment_func()
         except Environment.DoesNotExist:
             user_counts = {}
+            times_seen = {}
         else:
-            environment_id = environment and environment.id
+            project_id = item_list[0].project_id
             user_counts = tagstore.get_groups_user_counts(
-                item_list[0].project_id, [g.id for g in item_list], environment_id=environment_id)
+                project_id,
+                [g.id for g in item_list],
+                environment_id=environment and environment.id,
+            )
+            if environment is not None:
+                times_seen = {
+                    item.id: tagstore.get_group_tag_value(
+                        project_id,
+                        item.id,
+                        environment.id,
+                        'environment',
+                        environment.name,
+                    ).times_seen for item in item_list
+                }
+            else:
+                times_seen = {item.id: item.times_seen for item in item_list}
 
         ignore_items = {g.group_id: g for g in GroupSnooze.objects.filter(
             group__in=item_list,
@@ -219,7 +235,7 @@ class GroupSerializer(Serializer):
                 'resolution': resolution,
                 'resolution_actor': resolution_actor,
                 'share_id': share_ids.get(item.id),
-                'times_seen': item.times_seen,
+                'times_seen': times_seen.get(item.id, 0),
             }
         return result
 
