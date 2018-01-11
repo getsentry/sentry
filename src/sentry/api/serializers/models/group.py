@@ -149,7 +149,7 @@ class GroupSerializer(Serializer):
         except Environment.DoesNotExist:
             user_counts = {}
         else:
-            environment_id = environment.id if environment is not None else None
+            environment_id = environment and environment.id
             user_counts = tagstore.get_groups_user_counts(
                 item_list[0].project_id, [g.id for g in item_list], environment_id=environment_id)
 
@@ -369,7 +369,7 @@ class StreamGroupSerializer(GroupSerializer):
                 stats = tsdb.get_range(
                     model=tsdb.models.group,
                     keys=group_ids,
-                    environment_id=environment.id if environment is not None else None,
+                    environment_id=environment and environment.id,
                     **query_params
                 )
 
