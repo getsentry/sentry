@@ -84,6 +84,7 @@ exports[`OrganizationMembersView No Require Link does not have 2fa warning if us
 
 .glamor-41 {
   box-sizing: border-box;
+  padding: 16px;
   padding-top: 16px;
   padding-bottom: 16px;
   display: -webkit-box;
@@ -432,208 +433,216 @@ exports[`OrganizationMembersView No Require Link does not have 2fa warning if us
                 requireLink={false}
                 routes={Array []}
               >
-                <Styled(Base)
+                <Row
                   align="center"
+                  p={2}
                   py={2}
                 >
-                  <Base
+                  <Styled(Base)
                     align="center"
-                    className="glamor-41 glamor-42"
+                    p={2}
                     py={2}
                   >
-                    <div
+                    <Base
+                      align="center"
                       className="glamor-41 glamor-42"
-                      is={null}
+                      p={2}
+                      py={2}
                     >
-                      <Box
-                        pl={2}
+                      <div
+                        className="glamor-41 glamor-42"
+                        is={null}
                       >
-                        <Base
-                          className="glamor-25"
+                        <Box
                           pl={2}
                         >
-                          <div
+                          <Base
                             className="glamor-25"
-                            is={null}
+                            pl={2}
                           >
-                            <Avatar
-                              className="avatar"
-                              gravatar={true}
-                              size={64}
-                              style={
-                                Object {
-                                  "height": 32,
-                                  "width": 32,
-                                }
-                              }
-                              user={
-                                Object {
-                                  "email": "sentry1@test.com",
-                                  "has2fa": false,
-                                  "id": "1",
-                                  "name": "Sentry 1 Name",
-                                  "username": "Sentry 1 Username",
-                                }
-                              }
+                            <div
+                              className="glamor-25"
+                              is={null}
                             >
-                              <span
+                              <Avatar
                                 className="avatar"
+                                gravatar={true}
+                                size={64}
                                 style={
                                   Object {
                                     "height": 32,
                                     "width": 32,
                                   }
                                 }
+                                user={
+                                  Object {
+                                    "email": "sentry1@test.com",
+                                    "has2fa": false,
+                                    "id": "1",
+                                    "name": "Sentry 1 Name",
+                                    "username": "Sentry 1 Username",
+                                  }
+                                }
                               >
-                                <img
-                                  onError={[Function]}
-                                  onLoad={[Function]}
-                                  src="undefined/avatar/c68ca8af553301ae11c5607b8bb672b4?s=64&d=blank"
-                                />
-                              </span>
-                            </Avatar>
-                          </div>
-                        </Base>
-                      </Box>
-                      <Box
-                        flex="1"
-                        pl={1}
-                        pr={2}
-                      >
-                        <Base
-                          className="glamor-33"
+                                <span
+                                  className="avatar"
+                                  style={
+                                    Object {
+                                      "height": 32,
+                                      "width": 32,
+                                    }
+                                  }
+                                >
+                                  <img
+                                    onError={[Function]}
+                                    onLoad={[Function]}
+                                    src="undefined/avatar/c68ca8af553301ae11c5607b8bb672b4?s=64&d=blank"
+                                  />
+                                </span>
+                              </Avatar>
+                            </div>
+                          </Base>
+                        </Box>
+                        <Box
                           flex="1"
                           pl={1}
                           pr={2}
                         >
-                          <div
+                          <Base
                             className="glamor-33"
-                            is={null}
+                            flex="1"
+                            pl={1}
+                            pr={2}
                           >
-                            <h5
-                              style={
-                                Object {
-                                  "margin": "0 0 3px",
-                                }
-                              }
+                            <div
+                              className="glamor-33"
+                              is={null}
                             >
-                              <Styled(Link)
-                                to="1"
+                              <h5
+                                style={
+                                  Object {
+                                    "margin": "0 0 3px",
+                                  }
+                                }
                               >
-                                <Link
-                                  className="glamor-27 glamor-28"
+                                <Styled(Link)
                                   to="1"
                                 >
-                                  <a
+                                  <Link
                                     className="glamor-27 glamor-28"
-                                    href="1"
-                                  />
-                                </Link>
-                              </Styled(Link)>
-                            </h5>
-                            <Styled(div)>
-                              <div
-                                className="glamor-31 glamor-32"
-                              />
-                            </Styled(div)>
-                          </div>
-                        </Base>
-                      </Box>
-                      <Box
-                        px={2}
-                        w={180}
-                      >
-                        <Base
-                          className="glamor-8"
+                                    to="1"
+                                  >
+                                    <a
+                                      className="glamor-27 glamor-28"
+                                      href="1"
+                                    />
+                                  </Link>
+                                </Styled(Link)>
+                              </h5>
+                              <Styled(div)>
+                                <div
+                                  className="glamor-31 glamor-32"
+                                />
+                              </Styled(div)>
+                            </div>
+                          </Base>
+                        </Box>
+                        <Box
                           px={2}
                           w={180}
                         >
-                          <div
+                          <Base
                             className="glamor-8"
-                            is={null}
+                            px={2}
+                            w={180}
                           >
-                            <div>
-                              <Tooltip
-                                title="Two-factor auth not enabled"
-                              >
-                                <span
-                                  className="tip icon-exclamation"
-                                  style={
-                                    Object {
-                                      "color": "#B64236",
-                                    }
-                                  }
-                                  title="Two-factor auth not enabled"
-                                />
-                              </Tooltip>
-                            </div>
-                          </div>
-                        </Base>
-                      </Box>
-                      <Box
-                        px={2}
-                        w={140}
-                      >
-                        <Base
-                          className="glamor-10"
-                          px={2}
-                          w={140}
-                        >
-                          <div
-                            className="glamor-10"
-                            is={null}
-                          />
-                        </Base>
-                      </Box>
-                      <Box
-                        px={2}
-                        w={140}
-                      >
-                        <Base
-                          className="glamor-10"
-                          px={2}
-                          w={140}
-                        >
-                          <div
-                            className="glamor-10"
-                            is={null}
-                          >
-                            <Button
-                              disabled={true}
-                              size="small"
-                              title="You cannot leave the organization as you are the only owner."
+                            <div
+                              className="glamor-8"
+                              is={null}
                             >
-                              <button
-                                className="button tip button-default button-sm button-disabled"
-                                disabled={true}
-                                onClick={[Function]}
-                                role="button"
-                              >
-                                <FlowLayout
-                                  truncate={false}
+                              <div>
+                                <Tooltip
+                                  title="Two-factor auth not enabled"
                                 >
-                                  <div
-                                    className="flow-layout"
+                                  <span
+                                    className="tip icon-exclamation"
+                                    style={
+                                      Object {
+                                        "color": "#B64236",
+                                      }
+                                    }
+                                    title="Two-factor auth not enabled"
+                                  />
+                                </Tooltip>
+                              </div>
+                            </div>
+                          </Base>
+                        </Box>
+                        <Box
+                          px={2}
+                          w={140}
+                        >
+                          <Base
+                            className="glamor-10"
+                            px={2}
+                            w={140}
+                          >
+                            <div
+                              className="glamor-10"
+                              is={null}
+                            />
+                          </Base>
+                        </Box>
+                        <Box
+                          px={2}
+                          w={140}
+                        >
+                          <Base
+                            className="glamor-10"
+                            px={2}
+                            w={140}
+                          >
+                            <div
+                              className="glamor-10"
+                              is={null}
+                            >
+                              <Button
+                                disabled={true}
+                                size="small"
+                                title="You cannot leave the organization as you are the only owner."
+                              >
+                                <button
+                                  className="button tip button-default button-sm button-disabled"
+                                  disabled={true}
+                                  onClick={[Function]}
+                                  role="button"
+                                >
+                                  <FlowLayout
+                                    truncate={false}
                                   >
-                                    <span
-                                      className="button-label"
+                                    <div
+                                      className="flow-layout"
                                     >
                                       <span
-                                        className="icon icon-exit"
-                                      />
-                                       
-                                      Leave
-                                    </span>
-                                  </div>
-                                </FlowLayout>
-                              </button>
-                            </Button>
-                          </div>
-                        </Base>
-                      </Box>
-                    </div>
-                  </Base>
-                </Styled(Base)>
+                                        className="button-label"
+                                      >
+                                        <span
+                                          className="icon icon-exit"
+                                        />
+                                         
+                                        Leave
+                                      </span>
+                                    </div>
+                                  </FlowLayout>
+                                </button>
+                              </Button>
+                            </div>
+                          </Base>
+                        </Box>
+                      </div>
+                    </Base>
+                  </Styled(Base)>
+                </Row>
               </OrganizationMemberRow>
               <OrganizationMemberRow
                 canAddMembers={true}
@@ -691,203 +700,211 @@ exports[`OrganizationMembersView No Require Link does not have 2fa warning if us
                 requireLink={false}
                 routes={Array []}
               >
-                <Styled(Base)
+                <Row
                   align="center"
+                  p={2}
                   py={2}
                 >
-                  <Base
+                  <Styled(Base)
                     align="center"
-                    className="glamor-41 glamor-42"
+                    p={2}
                     py={2}
                   >
-                    <div
+                    <Base
+                      align="center"
                       className="glamor-41 glamor-42"
-                      is={null}
+                      p={2}
+                      py={2}
                     >
-                      <Box
-                        pl={2}
+                      <div
+                        className="glamor-41 glamor-42"
+                        is={null}
                       >
-                        <Base
-                          className="glamor-25"
+                        <Box
                           pl={2}
                         >
-                          <div
+                          <Base
                             className="glamor-25"
-                            is={null}
+                            pl={2}
                           >
-                            <Avatar
-                              className="avatar"
-                              gravatar={true}
-                              size={64}
-                              style={
-                                Object {
-                                  "height": 32,
-                                  "width": 32,
-                                }
-                              }
-                              user={
-                                Object {
-                                  "email": "sentry2@test.com",
-                                  "has2fa": true,
-                                  "id": "2",
-                                  "name": "Sentry 2 Name",
-                                  "username": "Sentry 2 Username",
-                                }
-                              }
+                            <div
+                              className="glamor-25"
+                              is={null}
                             >
-                              <span
+                              <Avatar
                                 className="avatar"
+                                gravatar={true}
+                                size={64}
                                 style={
                                   Object {
                                     "height": 32,
                                     "width": 32,
                                   }
                                 }
+                                user={
+                                  Object {
+                                    "email": "sentry2@test.com",
+                                    "has2fa": true,
+                                    "id": "2",
+                                    "name": "Sentry 2 Name",
+                                    "username": "Sentry 2 Username",
+                                  }
+                                }
                               >
-                                <img
-                                  onError={[Function]}
-                                  onLoad={[Function]}
-                                  src="undefined/avatar/4eca4e68b0a900e542fdf17e57d04dcd?s=64&d=blank"
-                                />
-                              </span>
-                            </Avatar>
-                          </div>
-                        </Base>
-                      </Box>
-                      <Box
-                        flex="1"
-                        pl={1}
-                        pr={2}
-                      >
-                        <Base
-                          className="glamor-33"
+                                <span
+                                  className="avatar"
+                                  style={
+                                    Object {
+                                      "height": 32,
+                                      "width": 32,
+                                    }
+                                  }
+                                >
+                                  <img
+                                    onError={[Function]}
+                                    onLoad={[Function]}
+                                    src="undefined/avatar/4eca4e68b0a900e542fdf17e57d04dcd?s=64&d=blank"
+                                  />
+                                </span>
+                              </Avatar>
+                            </div>
+                          </Base>
+                        </Box>
+                        <Box
                           flex="1"
                           pl={1}
                           pr={2}
                         >
-                          <div
+                          <Base
                             className="glamor-33"
-                            is={null}
+                            flex="1"
+                            pl={1}
+                            pr={2}
                           >
-                            <h5
-                              style={
-                                Object {
-                                  "margin": "0 0 3px",
-                                }
-                              }
+                            <div
+                              className="glamor-33"
+                              is={null}
                             >
-                              <Styled(Link)
-                                to="2"
+                              <h5
+                                style={
+                                  Object {
+                                    "margin": "0 0 3px",
+                                  }
+                                }
                               >
-                                <Link
-                                  className="glamor-27 glamor-28"
+                                <Styled(Link)
                                   to="2"
                                 >
-                                  <a
+                                  <Link
                                     className="glamor-27 glamor-28"
-                                    href="2"
-                                  />
-                                </Link>
-                              </Styled(Link)>
-                            </h5>
-                            <Styled(div)>
-                              <div
-                                className="glamor-31 glamor-32"
-                              />
-                            </Styled(div)>
-                          </div>
-                        </Base>
-                      </Box>
-                      <Box
-                        px={2}
-                        w={180}
-                      >
-                        <Base
-                          className="glamor-8"
+                                    to="2"
+                                  >
+                                    <a
+                                      className="glamor-27 glamor-28"
+                                      href="2"
+                                    />
+                                  </Link>
+                                </Styled(Link)>
+                              </h5>
+                              <Styled(div)>
+                                <div
+                                  className="glamor-31 glamor-32"
+                                />
+                              </Styled(div)>
+                            </div>
+                          </Base>
+                        </Box>
+                        <Box
                           px={2}
                           w={180}
                         >
-                          <div
+                          <Base
                             className="glamor-8"
-                            is={null}
+                            px={2}
+                            w={180}
                           >
-                            <div>
-                              <span
-                                className="icon-check"
-                                style={
-                                  Object {
-                                    "color": "green",
-                                  }
-                                }
-                              />
-                            </div>
-                          </div>
-                        </Base>
-                      </Box>
-                      <Box
-                        px={2}
-                        w={140}
-                      >
-                        <Base
-                          className="glamor-10"
-                          px={2}
-                          w={140}
-                        >
-                          <div
-                            className="glamor-10"
-                            is={null}
-                          />
-                        </Base>
-                      </Box>
-                      <Box
-                        px={2}
-                        w={140}
-                      >
-                        <Base
-                          className="glamor-10"
-                          px={2}
-                          w={140}
-                        >
-                          <div
-                            className="glamor-10"
-                            is={null}
-                          >
-                            <Button
-                              disabled={true}
-                              size="small"
-                              title="You cannot leave the organization as you are the only owner."
+                            <div
+                              className="glamor-8"
+                              is={null}
                             >
-                              <button
-                                className="button tip button-default button-sm button-disabled"
+                              <div>
+                                <span
+                                  className="icon-check"
+                                  style={
+                                    Object {
+                                      "color": "green",
+                                    }
+                                  }
+                                />
+                              </div>
+                            </div>
+                          </Base>
+                        </Box>
+                        <Box
+                          px={2}
+                          w={140}
+                        >
+                          <Base
+                            className="glamor-10"
+                            px={2}
+                            w={140}
+                          >
+                            <div
+                              className="glamor-10"
+                              is={null}
+                            />
+                          </Base>
+                        </Box>
+                        <Box
+                          px={2}
+                          w={140}
+                        >
+                          <Base
+                            className="glamor-10"
+                            px={2}
+                            w={140}
+                          >
+                            <div
+                              className="glamor-10"
+                              is={null}
+                            >
+                              <Button
                                 disabled={true}
-                                onClick={[Function]}
-                                role="button"
+                                size="small"
+                                title="You cannot leave the organization as you are the only owner."
                               >
-                                <FlowLayout
-                                  truncate={false}
+                                <button
+                                  className="button tip button-default button-sm button-disabled"
+                                  disabled={true}
+                                  onClick={[Function]}
+                                  role="button"
                                 >
-                                  <div
-                                    className="flow-layout"
+                                  <FlowLayout
+                                    truncate={false}
                                   >
-                                    <span
-                                      className="button-label"
+                                    <div
+                                      className="flow-layout"
                                     >
                                       <span
-                                        className="icon icon-exit"
-                                      />
-                                       
-                                      Leave
-                                    </span>
-                                  </div>
-                                </FlowLayout>
-                              </button>
-                            </Button>
-                          </div>
-                        </Base>
-                      </Box>
-                    </div>
-                  </Base>
-                </Styled(Base)>
+                                        className="button-label"
+                                      >
+                                        <span
+                                          className="icon icon-exit"
+                                        />
+                                         
+                                        Leave
+                                      </span>
+                                    </div>
+                                  </FlowLayout>
+                                </button>
+                              </Button>
+                            </div>
+                          </Base>
+                        </Box>
+                      </div>
+                    </Base>
+                  </Styled(Base)>
+                </Row>
               </OrganizationMemberRow>
               <OrganizationMemberRow
                 canAddMembers={true}
@@ -945,203 +962,211 @@ exports[`OrganizationMembersView No Require Link does not have 2fa warning if us
                 requireLink={false}
                 routes={Array []}
               >
-                <Styled(Base)
+                <Row
                   align="center"
+                  p={2}
                   py={2}
                 >
-                  <Base
+                  <Styled(Base)
                     align="center"
-                    className="glamor-41 glamor-42"
+                    p={2}
                     py={2}
                   >
-                    <div
+                    <Base
+                      align="center"
                       className="glamor-41 glamor-42"
-                      is={null}
+                      p={2}
+                      py={2}
                     >
-                      <Box
-                        pl={2}
+                      <div
+                        className="glamor-41 glamor-42"
+                        is={null}
                       >
-                        <Base
-                          className="glamor-25"
+                        <Box
                           pl={2}
                         >
-                          <div
+                          <Base
                             className="glamor-25"
-                            is={null}
+                            pl={2}
                           >
-                            <Avatar
-                              className="avatar"
-                              gravatar={true}
-                              size={64}
-                              style={
-                                Object {
-                                  "height": 32,
-                                  "width": 32,
-                                }
-                              }
-                              user={
-                                Object {
-                                  "email": "sentry3@test.com",
-                                  "has2fa": true,
-                                  "id": "3",
-                                  "name": "Sentry 3 Name",
-                                  "username": "Sentry 3 Username",
-                                }
-                              }
+                            <div
+                              className="glamor-25"
+                              is={null}
                             >
-                              <span
+                              <Avatar
                                 className="avatar"
+                                gravatar={true}
+                                size={64}
                                 style={
                                   Object {
                                     "height": 32,
                                     "width": 32,
                                   }
                                 }
+                                user={
+                                  Object {
+                                    "email": "sentry3@test.com",
+                                    "has2fa": true,
+                                    "id": "3",
+                                    "name": "Sentry 3 Name",
+                                    "username": "Sentry 3 Username",
+                                  }
+                                }
                               >
-                                <img
-                                  onError={[Function]}
-                                  onLoad={[Function]}
-                                  src="undefined/avatar/40d78e2a4587a53a171944ffe71ee3d4?s=64&d=blank"
-                                />
-                              </span>
-                            </Avatar>
-                          </div>
-                        </Base>
-                      </Box>
-                      <Box
-                        flex="1"
-                        pl={1}
-                        pr={2}
-                      >
-                        <Base
-                          className="glamor-33"
+                                <span
+                                  className="avatar"
+                                  style={
+                                    Object {
+                                      "height": 32,
+                                      "width": 32,
+                                    }
+                                  }
+                                >
+                                  <img
+                                    onError={[Function]}
+                                    onLoad={[Function]}
+                                    src="undefined/avatar/40d78e2a4587a53a171944ffe71ee3d4?s=64&d=blank"
+                                  />
+                                </span>
+                              </Avatar>
+                            </div>
+                          </Base>
+                        </Box>
+                        <Box
                           flex="1"
                           pl={1}
                           pr={2}
                         >
-                          <div
+                          <Base
                             className="glamor-33"
-                            is={null}
+                            flex="1"
+                            pl={1}
+                            pr={2}
                           >
-                            <h5
-                              style={
-                                Object {
-                                  "margin": "0 0 3px",
-                                }
-                              }
+                            <div
+                              className="glamor-33"
+                              is={null}
                             >
-                              <Styled(Link)
-                                to="3"
+                              <h5
+                                style={
+                                  Object {
+                                    "margin": "0 0 3px",
+                                  }
+                                }
                               >
-                                <Link
-                                  className="glamor-27 glamor-28"
+                                <Styled(Link)
                                   to="3"
                                 >
-                                  <a
+                                  <Link
                                     className="glamor-27 glamor-28"
-                                    href="3"
-                                  />
-                                </Link>
-                              </Styled(Link)>
-                            </h5>
-                            <Styled(div)>
-                              <div
-                                className="glamor-31 glamor-32"
-                              />
-                            </Styled(div)>
-                          </div>
-                        </Base>
-                      </Box>
-                      <Box
-                        px={2}
-                        w={180}
-                      >
-                        <Base
-                          className="glamor-8"
+                                    to="3"
+                                  >
+                                    <a
+                                      className="glamor-27 glamor-28"
+                                      href="3"
+                                    />
+                                  </Link>
+                                </Styled(Link)>
+                              </h5>
+                              <Styled(div)>
+                                <div
+                                  className="glamor-31 glamor-32"
+                                />
+                              </Styled(div)>
+                            </div>
+                          </Base>
+                        </Box>
+                        <Box
                           px={2}
                           w={180}
                         >
-                          <div
+                          <Base
                             className="glamor-8"
-                            is={null}
+                            px={2}
+                            w={180}
                           >
-                            <div>
-                              <span
-                                className="icon-check"
-                                style={
-                                  Object {
-                                    "color": "green",
-                                  }
-                                }
-                              />
-                            </div>
-                          </div>
-                        </Base>
-                      </Box>
-                      <Box
-                        px={2}
-                        w={140}
-                      >
-                        <Base
-                          className="glamor-10"
-                          px={2}
-                          w={140}
-                        >
-                          <div
-                            className="glamor-10"
-                            is={null}
-                          />
-                        </Base>
-                      </Box>
-                      <Box
-                        px={2}
-                        w={140}
-                      >
-                        <Base
-                          className="glamor-10"
-                          px={2}
-                          w={140}
-                        >
-                          <div
-                            className="glamor-10"
-                            is={null}
-                          >
-                            <Button
-                              disabled={true}
-                              size="small"
-                              title="You cannot leave the organization as you are the only owner."
+                            <div
+                              className="glamor-8"
+                              is={null}
                             >
-                              <button
-                                className="button tip button-default button-sm button-disabled"
+                              <div>
+                                <span
+                                  className="icon-check"
+                                  style={
+                                    Object {
+                                      "color": "green",
+                                    }
+                                  }
+                                />
+                              </div>
+                            </div>
+                          </Base>
+                        </Box>
+                        <Box
+                          px={2}
+                          w={140}
+                        >
+                          <Base
+                            className="glamor-10"
+                            px={2}
+                            w={140}
+                          >
+                            <div
+                              className="glamor-10"
+                              is={null}
+                            />
+                          </Base>
+                        </Box>
+                        <Box
+                          px={2}
+                          w={140}
+                        >
+                          <Base
+                            className="glamor-10"
+                            px={2}
+                            w={140}
+                          >
+                            <div
+                              className="glamor-10"
+                              is={null}
+                            >
+                              <Button
                                 disabled={true}
-                                onClick={[Function]}
-                                role="button"
+                                size="small"
+                                title="You cannot leave the organization as you are the only owner."
                               >
-                                <FlowLayout
-                                  truncate={false}
+                                <button
+                                  className="button tip button-default button-sm button-disabled"
+                                  disabled={true}
+                                  onClick={[Function]}
+                                  role="button"
                                 >
-                                  <div
-                                    className="flow-layout"
+                                  <FlowLayout
+                                    truncate={false}
                                   >
-                                    <span
-                                      className="button-label"
+                                    <div
+                                      className="flow-layout"
                                     >
                                       <span
-                                        className="icon icon-exit"
-                                      />
-                                       
-                                      Leave
-                                    </span>
-                                  </div>
-                                </FlowLayout>
-                              </button>
-                            </Button>
-                          </div>
-                        </Base>
-                      </Box>
-                    </div>
-                  </Base>
-                </Styled(Base)>
+                                        className="button-label"
+                                      >
+                                        <span
+                                          className="icon icon-exit"
+                                        />
+                                         
+                                        Leave
+                                      </span>
+                                    </div>
+                                  </FlowLayout>
+                                </button>
+                              </Button>
+                            </div>
+                          </Base>
+                        </Box>
+                      </div>
+                    </Base>
+                  </Styled(Base)>
+                </Row>
               </OrganizationMemberRow>
             </div>
           </Styled(div)>
@@ -1236,6 +1261,7 @@ exports[`OrganizationMembersView Require Link does not have 2fa warning if user 
 
 .glamor-41 {
   box-sizing: border-box;
+  padding: 16px;
   padding-top: 16px;
   padding-bottom: 16px;
   display: -webkit-box;
@@ -1584,155 +1610,220 @@ exports[`OrganizationMembersView Require Link does not have 2fa warning if user 
                 requireLink={true}
                 routes={Array []}
               >
-                <Styled(Base)
+                <Row
                   align="center"
+                  p={2}
                   py={2}
                 >
-                  <Base
+                  <Styled(Base)
                     align="center"
-                    className="glamor-41 glamor-42"
+                    p={2}
                     py={2}
                   >
-                    <div
+                    <Base
+                      align="center"
                       className="glamor-41 glamor-42"
-                      is={null}
+                      p={2}
+                      py={2}
                     >
-                      <Box
-                        pl={2}
+                      <div
+                        className="glamor-41 glamor-42"
+                        is={null}
                       >
-                        <Base
-                          className="glamor-25"
+                        <Box
                           pl={2}
                         >
-                          <div
+                          <Base
                             className="glamor-25"
-                            is={null}
+                            pl={2}
                           >
-                            <Avatar
-                              className="avatar"
-                              gravatar={true}
-                              size={64}
-                              style={
-                                Object {
-                                  "height": 32,
-                                  "width": 32,
-                                }
-                              }
-                              user={
-                                Object {
-                                  "email": "sentry1@test.com",
-                                  "has2fa": false,
-                                  "id": "1",
-                                  "name": "Sentry 1 Name",
-                                  "username": "Sentry 1 Username",
-                                }
-                              }
+                            <div
+                              className="glamor-25"
+                              is={null}
                             >
-                              <span
+                              <Avatar
                                 className="avatar"
+                                gravatar={true}
+                                size={64}
                                 style={
                                   Object {
                                     "height": 32,
                                     "width": 32,
                                   }
                                 }
+                                user={
+                                  Object {
+                                    "email": "sentry1@test.com",
+                                    "has2fa": false,
+                                    "id": "1",
+                                    "name": "Sentry 1 Name",
+                                    "username": "Sentry 1 Username",
+                                  }
+                                }
                               >
-                                <img
-                                  onError={[Function]}
-                                  onLoad={[Function]}
-                                  src="undefined/avatar/c68ca8af553301ae11c5607b8bb672b4?s=64&d=blank"
-                                />
-                              </span>
-                            </Avatar>
-                          </div>
-                        </Base>
-                      </Box>
-                      <Box
-                        flex="1"
-                        pl={1}
-                        pr={2}
-                      >
-                        <Base
-                          className="glamor-33"
+                                <span
+                                  className="avatar"
+                                  style={
+                                    Object {
+                                      "height": 32,
+                                      "width": 32,
+                                    }
+                                  }
+                                >
+                                  <img
+                                    onError={[Function]}
+                                    onLoad={[Function]}
+                                    src="undefined/avatar/c68ca8af553301ae11c5607b8bb672b4?s=64&d=blank"
+                                  />
+                                </span>
+                              </Avatar>
+                            </div>
+                          </Base>
+                        </Box>
+                        <Box
                           flex="1"
                           pl={1}
                           pr={2}
                         >
-                          <div
+                          <Base
                             className="glamor-33"
-                            is={null}
+                            flex="1"
+                            pl={1}
+                            pr={2}
                           >
-                            <h5
-                              style={
-                                Object {
-                                  "margin": "0 0 3px",
-                                }
-                              }
+                            <div
+                              className="glamor-33"
+                              is={null}
                             >
-                              <Styled(Link)
-                                to="1"
-                              >
-                                <Link
-                                  className="glamor-27 glamor-28"
-                                  to="1"
-                                >
-                                  <a
-                                    className="glamor-27 glamor-28"
-                                    href="1"
-                                  />
-                                </Link>
-                              </Styled(Link)>
-                            </h5>
-                            <Styled(div)>
-                              <div
-                                className="glamor-31 glamor-32"
-                              />
-                            </Styled(div)>
-                          </div>
-                        </Base>
-                      </Box>
-                      <Box
-                        px={2}
-                        w={180}
-                      >
-                        <Base
-                          className="glamor-8"
-                          px={2}
-                          w={180}
-                        >
-                          <div
-                            className="glamor-8"
-                            is={null}
-                          >
-                            <div>
-                              <div>
-                                <strong>
-                                  Missing SSO Link
-                                </strong>
-                              </div>
-                              <Button
-                                disabled={false}
-                                onClick={[Function]}
-                                priority="primary"
-                                size="xsmall"
+                              <h5
                                 style={
                                   Object {
-                                    "marginTop": 2,
-                                    "padding": "0 4px",
+                                    "margin": "0 0 3px",
                                   }
                                 }
                               >
-                                <button
-                                  className="button button-primary button-xs"
+                                <Styled(Link)
+                                  to="1"
+                                >
+                                  <Link
+                                    className="glamor-27 glamor-28"
+                                    to="1"
+                                  >
+                                    <a
+                                      className="glamor-27 glamor-28"
+                                      href="1"
+                                    />
+                                  </Link>
+                                </Styled(Link)>
+                              </h5>
+                              <Styled(div)>
+                                <div
+                                  className="glamor-31 glamor-32"
+                                />
+                              </Styled(div)>
+                            </div>
+                          </Base>
+                        </Box>
+                        <Box
+                          px={2}
+                          w={180}
+                        >
+                          <Base
+                            className="glamor-8"
+                            px={2}
+                            w={180}
+                          >
+                            <div
+                              className="glamor-8"
+                              is={null}
+                            >
+                              <div>
+                                <div>
+                                  <strong>
+                                    Missing SSO Link
+                                  </strong>
+                                </div>
+                                <Button
                                   disabled={false}
                                   onClick={[Function]}
-                                  role="button"
+                                  priority="primary"
+                                  size="xsmall"
                                   style={
                                     Object {
                                       "marginTop": 2,
                                       "padding": "0 4px",
                                     }
                                   }
+                                >
+                                  <button
+                                    className="button button-primary button-xs"
+                                    disabled={false}
+                                    onClick={[Function]}
+                                    role="button"
+                                    style={
+                                      Object {
+                                        "marginTop": 2,
+                                        "padding": "0 4px",
+                                      }
+                                    }
+                                  >
+                                    <FlowLayout
+                                      truncate={false}
+                                    >
+                                      <div
+                                        className="flow-layout"
+                                      >
+                                        <span
+                                          className="button-label"
+                                        >
+                                          Resend invite
+                                        </span>
+                                      </div>
+                                    </FlowLayout>
+                                  </button>
+                                </Button>
+                              </div>
+                            </div>
+                          </Base>
+                        </Box>
+                        <Box
+                          px={2}
+                          w={140}
+                        >
+                          <Base
+                            className="glamor-10"
+                            px={2}
+                            w={140}
+                          >
+                            <div
+                              className="glamor-10"
+                              is={null}
+                            />
+                          </Base>
+                        </Box>
+                        <Box
+                          px={2}
+                          w={140}
+                        >
+                          <Base
+                            className="glamor-10"
+                            px={2}
+                            w={140}
+                          >
+                            <div
+                              className="glamor-10"
+                              is={null}
+                            >
+                              <Button
+                                disabled={true}
+                                size="small"
+                                title="You cannot leave the organization as you are the only owner."
+                              >
+                                <button
+                                  className="button tip button-default button-sm button-disabled"
+                                  disabled={true}
+                                  onClick={[Function]}
+                                  role="button"
                                 >
                                   <FlowLayout
                                     truncate={false}
@@ -1743,80 +1834,23 @@ exports[`OrganizationMembersView Require Link does not have 2fa warning if user 
                                       <span
                                         className="button-label"
                                       >
-                                        Resend invite
+                                        <span
+                                          className="icon icon-exit"
+                                        />
+                                         
+                                        Leave
                                       </span>
                                     </div>
                                   </FlowLayout>
                                 </button>
                               </Button>
                             </div>
-                          </div>
-                        </Base>
-                      </Box>
-                      <Box
-                        px={2}
-                        w={140}
-                      >
-                        <Base
-                          className="glamor-10"
-                          px={2}
-                          w={140}
-                        >
-                          <div
-                            className="glamor-10"
-                            is={null}
-                          />
-                        </Base>
-                      </Box>
-                      <Box
-                        px={2}
-                        w={140}
-                      >
-                        <Base
-                          className="glamor-10"
-                          px={2}
-                          w={140}
-                        >
-                          <div
-                            className="glamor-10"
-                            is={null}
-                          >
-                            <Button
-                              disabled={true}
-                              size="small"
-                              title="You cannot leave the organization as you are the only owner."
-                            >
-                              <button
-                                className="button tip button-default button-sm button-disabled"
-                                disabled={true}
-                                onClick={[Function]}
-                                role="button"
-                              >
-                                <FlowLayout
-                                  truncate={false}
-                                >
-                                  <div
-                                    className="flow-layout"
-                                  >
-                                    <span
-                                      className="button-label"
-                                    >
-                                      <span
-                                        className="icon icon-exit"
-                                      />
-                                       
-                                      Leave
-                                    </span>
-                                  </div>
-                                </FlowLayout>
-                              </button>
-                            </Button>
-                          </div>
-                        </Base>
-                      </Box>
-                    </div>
-                  </Base>
-                </Styled(Base)>
+                          </Base>
+                        </Box>
+                      </div>
+                    </Base>
+                  </Styled(Base)>
+                </Row>
               </OrganizationMemberRow>
               <OrganizationMemberRow
                 canAddMembers={true}
@@ -1874,155 +1908,220 @@ exports[`OrganizationMembersView Require Link does not have 2fa warning if user 
                 requireLink={true}
                 routes={Array []}
               >
-                <Styled(Base)
+                <Row
                   align="center"
+                  p={2}
                   py={2}
                 >
-                  <Base
+                  <Styled(Base)
                     align="center"
-                    className="glamor-41 glamor-42"
+                    p={2}
                     py={2}
                   >
-                    <div
+                    <Base
+                      align="center"
                       className="glamor-41 glamor-42"
-                      is={null}
+                      p={2}
+                      py={2}
                     >
-                      <Box
-                        pl={2}
+                      <div
+                        className="glamor-41 glamor-42"
+                        is={null}
                       >
-                        <Base
-                          className="glamor-25"
+                        <Box
                           pl={2}
                         >
-                          <div
+                          <Base
                             className="glamor-25"
-                            is={null}
+                            pl={2}
                           >
-                            <Avatar
-                              className="avatar"
-                              gravatar={true}
-                              size={64}
-                              style={
-                                Object {
-                                  "height": 32,
-                                  "width": 32,
-                                }
-                              }
-                              user={
-                                Object {
-                                  "email": "sentry2@test.com",
-                                  "has2fa": true,
-                                  "id": "2",
-                                  "name": "Sentry 2 Name",
-                                  "username": "Sentry 2 Username",
-                                }
-                              }
+                            <div
+                              className="glamor-25"
+                              is={null}
                             >
-                              <span
+                              <Avatar
                                 className="avatar"
+                                gravatar={true}
+                                size={64}
                                 style={
                                   Object {
                                     "height": 32,
                                     "width": 32,
                                   }
                                 }
+                                user={
+                                  Object {
+                                    "email": "sentry2@test.com",
+                                    "has2fa": true,
+                                    "id": "2",
+                                    "name": "Sentry 2 Name",
+                                    "username": "Sentry 2 Username",
+                                  }
+                                }
                               >
-                                <img
-                                  onError={[Function]}
-                                  onLoad={[Function]}
-                                  src="undefined/avatar/4eca4e68b0a900e542fdf17e57d04dcd?s=64&d=blank"
-                                />
-                              </span>
-                            </Avatar>
-                          </div>
-                        </Base>
-                      </Box>
-                      <Box
-                        flex="1"
-                        pl={1}
-                        pr={2}
-                      >
-                        <Base
-                          className="glamor-33"
+                                <span
+                                  className="avatar"
+                                  style={
+                                    Object {
+                                      "height": 32,
+                                      "width": 32,
+                                    }
+                                  }
+                                >
+                                  <img
+                                    onError={[Function]}
+                                    onLoad={[Function]}
+                                    src="undefined/avatar/4eca4e68b0a900e542fdf17e57d04dcd?s=64&d=blank"
+                                  />
+                                </span>
+                              </Avatar>
+                            </div>
+                          </Base>
+                        </Box>
+                        <Box
                           flex="1"
                           pl={1}
                           pr={2}
                         >
-                          <div
+                          <Base
                             className="glamor-33"
-                            is={null}
+                            flex="1"
+                            pl={1}
+                            pr={2}
                           >
-                            <h5
-                              style={
-                                Object {
-                                  "margin": "0 0 3px",
-                                }
-                              }
+                            <div
+                              className="glamor-33"
+                              is={null}
                             >
-                              <Styled(Link)
-                                to="2"
-                              >
-                                <Link
-                                  className="glamor-27 glamor-28"
-                                  to="2"
-                                >
-                                  <a
-                                    className="glamor-27 glamor-28"
-                                    href="2"
-                                  />
-                                </Link>
-                              </Styled(Link)>
-                            </h5>
-                            <Styled(div)>
-                              <div
-                                className="glamor-31 glamor-32"
-                              />
-                            </Styled(div)>
-                          </div>
-                        </Base>
-                      </Box>
-                      <Box
-                        px={2}
-                        w={180}
-                      >
-                        <Base
-                          className="glamor-8"
-                          px={2}
-                          w={180}
-                        >
-                          <div
-                            className="glamor-8"
-                            is={null}
-                          >
-                            <div>
-                              <div>
-                                <strong>
-                                  Missing SSO Link
-                                </strong>
-                              </div>
-                              <Button
-                                disabled={false}
-                                onClick={[Function]}
-                                priority="primary"
-                                size="xsmall"
+                              <h5
                                 style={
                                   Object {
-                                    "marginTop": 2,
-                                    "padding": "0 4px",
+                                    "margin": "0 0 3px",
                                   }
                                 }
                               >
-                                <button
-                                  className="button button-primary button-xs"
+                                <Styled(Link)
+                                  to="2"
+                                >
+                                  <Link
+                                    className="glamor-27 glamor-28"
+                                    to="2"
+                                  >
+                                    <a
+                                      className="glamor-27 glamor-28"
+                                      href="2"
+                                    />
+                                  </Link>
+                                </Styled(Link)>
+                              </h5>
+                              <Styled(div)>
+                                <div
+                                  className="glamor-31 glamor-32"
+                                />
+                              </Styled(div)>
+                            </div>
+                          </Base>
+                        </Box>
+                        <Box
+                          px={2}
+                          w={180}
+                        >
+                          <Base
+                            className="glamor-8"
+                            px={2}
+                            w={180}
+                          >
+                            <div
+                              className="glamor-8"
+                              is={null}
+                            >
+                              <div>
+                                <div>
+                                  <strong>
+                                    Missing SSO Link
+                                  </strong>
+                                </div>
+                                <Button
                                   disabled={false}
                                   onClick={[Function]}
-                                  role="button"
+                                  priority="primary"
+                                  size="xsmall"
                                   style={
                                     Object {
                                       "marginTop": 2,
                                       "padding": "0 4px",
                                     }
                                   }
+                                >
+                                  <button
+                                    className="button button-primary button-xs"
+                                    disabled={false}
+                                    onClick={[Function]}
+                                    role="button"
+                                    style={
+                                      Object {
+                                        "marginTop": 2,
+                                        "padding": "0 4px",
+                                      }
+                                    }
+                                  >
+                                    <FlowLayout
+                                      truncate={false}
+                                    >
+                                      <div
+                                        className="flow-layout"
+                                      >
+                                        <span
+                                          className="button-label"
+                                        >
+                                          Resend invite
+                                        </span>
+                                      </div>
+                                    </FlowLayout>
+                                  </button>
+                                </Button>
+                              </div>
+                            </div>
+                          </Base>
+                        </Box>
+                        <Box
+                          px={2}
+                          w={140}
+                        >
+                          <Base
+                            className="glamor-10"
+                            px={2}
+                            w={140}
+                          >
+                            <div
+                              className="glamor-10"
+                              is={null}
+                            />
+                          </Base>
+                        </Box>
+                        <Box
+                          px={2}
+                          w={140}
+                        >
+                          <Base
+                            className="glamor-10"
+                            px={2}
+                            w={140}
+                          >
+                            <div
+                              className="glamor-10"
+                              is={null}
+                            >
+                              <Button
+                                disabled={true}
+                                size="small"
+                                title="You cannot leave the organization as you are the only owner."
+                              >
+                                <button
+                                  className="button tip button-default button-sm button-disabled"
+                                  disabled={true}
+                                  onClick={[Function]}
+                                  role="button"
                                 >
                                   <FlowLayout
                                     truncate={false}
@@ -2033,80 +2132,23 @@ exports[`OrganizationMembersView Require Link does not have 2fa warning if user 
                                       <span
                                         className="button-label"
                                       >
-                                        Resend invite
+                                        <span
+                                          className="icon icon-exit"
+                                        />
+                                         
+                                        Leave
                                       </span>
                                     </div>
                                   </FlowLayout>
                                 </button>
                               </Button>
                             </div>
-                          </div>
-                        </Base>
-                      </Box>
-                      <Box
-                        px={2}
-                        w={140}
-                      >
-                        <Base
-                          className="glamor-10"
-                          px={2}
-                          w={140}
-                        >
-                          <div
-                            className="glamor-10"
-                            is={null}
-                          />
-                        </Base>
-                      </Box>
-                      <Box
-                        px={2}
-                        w={140}
-                      >
-                        <Base
-                          className="glamor-10"
-                          px={2}
-                          w={140}
-                        >
-                          <div
-                            className="glamor-10"
-                            is={null}
-                          >
-                            <Button
-                              disabled={true}
-                              size="small"
-                              title="You cannot leave the organization as you are the only owner."
-                            >
-                              <button
-                                className="button tip button-default button-sm button-disabled"
-                                disabled={true}
-                                onClick={[Function]}
-                                role="button"
-                              >
-                                <FlowLayout
-                                  truncate={false}
-                                >
-                                  <div
-                                    className="flow-layout"
-                                  >
-                                    <span
-                                      className="button-label"
-                                    >
-                                      <span
-                                        className="icon icon-exit"
-                                      />
-                                       
-                                      Leave
-                                    </span>
-                                  </div>
-                                </FlowLayout>
-                              </button>
-                            </Button>
-                          </div>
-                        </Base>
-                      </Box>
-                    </div>
-                  </Base>
-                </Styled(Base)>
+                          </Base>
+                        </Box>
+                      </div>
+                    </Base>
+                  </Styled(Base)>
+                </Row>
               </OrganizationMemberRow>
               <OrganizationMemberRow
                 canAddMembers={true}
@@ -2164,203 +2206,211 @@ exports[`OrganizationMembersView Require Link does not have 2fa warning if user 
                 requireLink={true}
                 routes={Array []}
               >
-                <Styled(Base)
+                <Row
                   align="center"
+                  p={2}
                   py={2}
                 >
-                  <Base
+                  <Styled(Base)
                     align="center"
-                    className="glamor-41 glamor-42"
+                    p={2}
                     py={2}
                   >
-                    <div
+                    <Base
+                      align="center"
                       className="glamor-41 glamor-42"
-                      is={null}
+                      p={2}
+                      py={2}
                     >
-                      <Box
-                        pl={2}
+                      <div
+                        className="glamor-41 glamor-42"
+                        is={null}
                       >
-                        <Base
-                          className="glamor-25"
+                        <Box
                           pl={2}
                         >
-                          <div
+                          <Base
                             className="glamor-25"
-                            is={null}
+                            pl={2}
                           >
-                            <Avatar
-                              className="avatar"
-                              gravatar={true}
-                              size={64}
-                              style={
-                                Object {
-                                  "height": 32,
-                                  "width": 32,
-                                }
-                              }
-                              user={
-                                Object {
-                                  "email": "sentry3@test.com",
-                                  "has2fa": true,
-                                  "id": "3",
-                                  "name": "Sentry 3 Name",
-                                  "username": "Sentry 3 Username",
-                                }
-                              }
+                            <div
+                              className="glamor-25"
+                              is={null}
                             >
-                              <span
+                              <Avatar
                                 className="avatar"
+                                gravatar={true}
+                                size={64}
                                 style={
                                   Object {
                                     "height": 32,
                                     "width": 32,
                                   }
                                 }
+                                user={
+                                  Object {
+                                    "email": "sentry3@test.com",
+                                    "has2fa": true,
+                                    "id": "3",
+                                    "name": "Sentry 3 Name",
+                                    "username": "Sentry 3 Username",
+                                  }
+                                }
                               >
-                                <img
-                                  onError={[Function]}
-                                  onLoad={[Function]}
-                                  src="undefined/avatar/40d78e2a4587a53a171944ffe71ee3d4?s=64&d=blank"
-                                />
-                              </span>
-                            </Avatar>
-                          </div>
-                        </Base>
-                      </Box>
-                      <Box
-                        flex="1"
-                        pl={1}
-                        pr={2}
-                      >
-                        <Base
-                          className="glamor-33"
+                                <span
+                                  className="avatar"
+                                  style={
+                                    Object {
+                                      "height": 32,
+                                      "width": 32,
+                                    }
+                                  }
+                                >
+                                  <img
+                                    onError={[Function]}
+                                    onLoad={[Function]}
+                                    src="undefined/avatar/40d78e2a4587a53a171944ffe71ee3d4?s=64&d=blank"
+                                  />
+                                </span>
+                              </Avatar>
+                            </div>
+                          </Base>
+                        </Box>
+                        <Box
                           flex="1"
                           pl={1}
                           pr={2}
                         >
-                          <div
+                          <Base
                             className="glamor-33"
-                            is={null}
+                            flex="1"
+                            pl={1}
+                            pr={2}
                           >
-                            <h5
-                              style={
-                                Object {
-                                  "margin": "0 0 3px",
-                                }
-                              }
+                            <div
+                              className="glamor-33"
+                              is={null}
                             >
-                              <Styled(Link)
-                                to="3"
+                              <h5
+                                style={
+                                  Object {
+                                    "margin": "0 0 3px",
+                                  }
+                                }
                               >
-                                <Link
-                                  className="glamor-27 glamor-28"
+                                <Styled(Link)
                                   to="3"
                                 >
-                                  <a
+                                  <Link
                                     className="glamor-27 glamor-28"
-                                    href="3"
-                                  />
-                                </Link>
-                              </Styled(Link)>
-                            </h5>
-                            <Styled(div)>
-                              <div
-                                className="glamor-31 glamor-32"
-                              />
-                            </Styled(div)>
-                          </div>
-                        </Base>
-                      </Box>
-                      <Box
-                        px={2}
-                        w={180}
-                      >
-                        <Base
-                          className="glamor-8"
+                                    to="3"
+                                  >
+                                    <a
+                                      className="glamor-27 glamor-28"
+                                      href="3"
+                                    />
+                                  </Link>
+                                </Styled(Link)>
+                              </h5>
+                              <Styled(div)>
+                                <div
+                                  className="glamor-31 glamor-32"
+                                />
+                              </Styled(div)>
+                            </div>
+                          </Base>
+                        </Box>
+                        <Box
                           px={2}
                           w={180}
                         >
-                          <div
+                          <Base
                             className="glamor-8"
-                            is={null}
+                            px={2}
+                            w={180}
                           >
-                            <div>
-                              <span
-                                className="icon-check"
-                                style={
-                                  Object {
-                                    "color": "green",
-                                  }
-                                }
-                              />
-                            </div>
-                          </div>
-                        </Base>
-                      </Box>
-                      <Box
-                        px={2}
-                        w={140}
-                      >
-                        <Base
-                          className="glamor-10"
-                          px={2}
-                          w={140}
-                        >
-                          <div
-                            className="glamor-10"
-                            is={null}
-                          />
-                        </Base>
-                      </Box>
-                      <Box
-                        px={2}
-                        w={140}
-                      >
-                        <Base
-                          className="glamor-10"
-                          px={2}
-                          w={140}
-                        >
-                          <div
-                            className="glamor-10"
-                            is={null}
-                          >
-                            <Button
-                              disabled={true}
-                              size="small"
-                              title="You cannot leave the organization as you are the only owner."
+                            <div
+                              className="glamor-8"
+                              is={null}
                             >
-                              <button
-                                className="button tip button-default button-sm button-disabled"
+                              <div>
+                                <span
+                                  className="icon-check"
+                                  style={
+                                    Object {
+                                      "color": "green",
+                                    }
+                                  }
+                                />
+                              </div>
+                            </div>
+                          </Base>
+                        </Box>
+                        <Box
+                          px={2}
+                          w={140}
+                        >
+                          <Base
+                            className="glamor-10"
+                            px={2}
+                            w={140}
+                          >
+                            <div
+                              className="glamor-10"
+                              is={null}
+                            />
+                          </Base>
+                        </Box>
+                        <Box
+                          px={2}
+                          w={140}
+                        >
+                          <Base
+                            className="glamor-10"
+                            px={2}
+                            w={140}
+                          >
+                            <div
+                              className="glamor-10"
+                              is={null}
+                            >
+                              <Button
                                 disabled={true}
-                                onClick={[Function]}
-                                role="button"
+                                size="small"
+                                title="You cannot leave the organization as you are the only owner."
                               >
-                                <FlowLayout
-                                  truncate={false}
+                                <button
+                                  className="button tip button-default button-sm button-disabled"
+                                  disabled={true}
+                                  onClick={[Function]}
+                                  role="button"
                                 >
-                                  <div
-                                    className="flow-layout"
+                                  <FlowLayout
+                                    truncate={false}
                                   >
-                                    <span
-                                      className="button-label"
+                                    <div
+                                      className="flow-layout"
                                     >
                                       <span
-                                        className="icon icon-exit"
-                                      />
-                                       
-                                      Leave
-                                    </span>
-                                  </div>
-                                </FlowLayout>
-                              </button>
-                            </Button>
-                          </div>
-                        </Base>
-                      </Box>
-                    </div>
-                  </Base>
-                </Styled(Base)>
+                                        className="button-label"
+                                      >
+                                        <span
+                                          className="icon icon-exit"
+                                        />
+                                         
+                                        Leave
+                                      </span>
+                                    </div>
+                                  </FlowLayout>
+                                </button>
+                              </Button>
+                            </div>
+                          </Base>
+                        </Box>
+                      </div>
+                    </Base>
+                  </Styled(Base)>
+                </Row>
               </OrganizationMemberRow>
             </div>
           </Styled(div)>
