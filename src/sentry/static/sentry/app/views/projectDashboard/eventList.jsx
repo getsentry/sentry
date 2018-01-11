@@ -31,14 +31,16 @@ const EventList = createReactClass({
     this.fetchData();
   },
 
-  componentWillReceiveProps() {
-    this.setState(
-      {
-        loading: true,
-        error: false,
-      },
-      this.fetchData
-    );
+  componentWillReceiveProps(nextProps) {
+    if (nextProps.endpoint !== this.props.endpoint) {
+      this.setState(
+        {
+          loading: true,
+          error: false,
+        },
+        this.fetchData
+      );
+    }
   },
 
   fetchData() {
