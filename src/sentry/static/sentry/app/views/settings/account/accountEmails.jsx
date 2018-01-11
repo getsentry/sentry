@@ -55,7 +55,7 @@ class EmailRow extends React.Component {
           </Flex>
           <Flex ml={2}>
             {!isVerified ? t('Unverified') : ''}
-            {isPrimary ? t('Primary') : ''}
+            <Box ml={1}>{isPrimary ? t('Primary') : ''}</Box>
           </Flex>
         </Flex>
 
@@ -65,10 +65,13 @@ class EmailRow extends React.Component {
               <Button size="small" onClick={this.handleSetPrimary}>
                 {t('Set as primary')}
               </Button>
-              <RemoveButton
-                onClick={this.handleRemove}
-                hidden={isPrimary || hideRemove}
-              />
+
+              <Box ml={1}>
+                <RemoveButton
+                  onClick={this.handleRemove}
+                  hidden={isPrimary || hideRemove}
+                />
+              </Box>
             </Flex>
           )}
       </Row>
