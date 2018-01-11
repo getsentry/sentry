@@ -33,7 +33,7 @@ from sentry.signals import advanced_search, issue_resolved_in_release
 from sentry.tasks.deletion import delete_group
 from sentry.tasks.merge import merge_group
 from sentry.utils.apidocs import attach_scenarios, scenario
-from sentry.utils.cursors import Cursor
+from sentry.utils.cursors import Cursor, CursorResult
 from sentry.utils.functional import extract_lazy_object
 
 delete_logger = logging.getLogger('sentry.deletions.api')
@@ -328,7 +328,9 @@ class ProjectGroupIndexEndpoint(ProjectEndpoint, EnvironmentMixin):
             environment_id = self._get_environment_id_from_request(
                 request, project.organization_id)
         except Environment.DoesNotExist:
-            cursor_result = []
+            # XXX: The 1000 magic number for `max_hits` is an abstraction leak
+            # from `sentry.api.paginator.BasePaginator.get_result`.
+            cursor_result = CursorResult([], None, None, hits=0, max_hits=1000)
         else:
             cursor_result = search.query(
                 count_hits=True,
