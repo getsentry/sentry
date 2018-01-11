@@ -6,12 +6,14 @@ from sentry.models import UserOption
 from sentry.testutils import APITestCase
 
 
-class UsersAppearanceTest(APITestCase):
+class UserAppearanceTest(APITestCase):
     def setUp(self):
         self.user = self.create_user(email='a@example.com')
         self.login_as(user=self.user)
         self.url = reverse(
-            'sentry-api-0-user-appearance'
+            'sentry-api-0-user-appearance', kwargs={
+                'user_id': self.user.id
+            }
         )
 
     def test_default_options(self):
