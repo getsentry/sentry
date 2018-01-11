@@ -14,6 +14,7 @@ import Panel from '../components/panel';
 import PanelBody from '../components/panelBody';
 import PanelHeader from '../components/panelHeader';
 import PanelFooter from '../components/panelFooter';
+import CrossSectionLinkButton from '../components/crossSectionLinkButton';
 
 import InlineSvg from '../../../components/inlineSvg';
 
@@ -35,6 +36,9 @@ export default class AccountNotifications extends AsyncView {
             {accountNotificationFields.map(field => {
               return <FormField key={field.title} field={field} />;
             })}
+            <CrossSectionLinkButton href="/settings/account/emails">
+              Looking to add, remove, or route an email? Use the emails panel.
+            </CrossSectionLinkButton>
           </Box>
         </ApiForm>
       </div>
