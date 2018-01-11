@@ -39,7 +39,7 @@ describe('AccountIdentities', function() {
         {
           id: '1',
           provider: 'github',
-          provider_label: 'Github',
+          providerLabel: 'Github',
         },
       ],
     });
@@ -63,7 +63,7 @@ describe('AccountIdentities', function() {
         {
           id: '1',
           provider: 'github',
-          provider_label: 'Github',
+          providerLabel: 'Github',
         },
       ],
     });

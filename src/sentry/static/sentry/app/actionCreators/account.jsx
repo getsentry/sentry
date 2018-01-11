@@ -9,7 +9,7 @@ export function disconnectIdentity(identity) {
 
   request
     .then(() => {
-      IndicatorStore.addSuccess(`Disconnected ${identity.provider_label}`);
+      IndicatorStore.addSuccess(`Disconnected ${identity.providerLabel}`);
     })
     .catch(() => {
       IndicatorStore.addError('Error disconnecting identity');

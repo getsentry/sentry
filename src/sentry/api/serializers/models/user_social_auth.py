@@ -14,5 +14,5 @@ class UserSocialAuthSerializer(Serializer):
         return {
             'id': six.text_type(obj.id),
             'provider': obj.provider,
-            'provider_label': settings.AUTH_PROVIDER_LABELS[obj.provider],
+            'providerLabel': settings.AUTH_PROVIDER_LABELS[obj.provider],
         }

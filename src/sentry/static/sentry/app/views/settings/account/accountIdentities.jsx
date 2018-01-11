@@ -66,7 +66,7 @@ class AccountIdentities extends AsyncView {
               this.state.identities.map(identity => (
                 <Row key={identity.id} align="center">
                   <Box flex="1" p={2}>
-                    {identity.provider_label}
+                    {identity.providerLabel}
                   </Box>
 
                   <Box p={2}>
