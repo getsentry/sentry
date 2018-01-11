@@ -2,7 +2,7 @@
 
 exports[`Select2Field render() renders with flat choices 1`] = `
 <div
-  className=""
+  className="control-group"
 >
   <div
     className="controls"
@@ -36,7 +36,7 @@ exports[`Select2Field render() renders with flat choices 1`] = `
 
 exports[`Select2Field render() renders with form context 1`] = `
 <div
-  className=""
+  className="control-group"
 >
   <div
     className="controls"
@@ -57,7 +57,7 @@ exports[`Select2Field render() renders with form context 1`] = `
 
 exports[`Select2Field render() renders with paired choices 1`] = `
 <div
-  className=""
+  className="control-group"
 >
   <div
     className="controls"
@@ -97,7 +97,7 @@ exports[`Select2Field render() renders with paired choices 1`] = `
 
 exports[`Select2Field render() renders without form context 1`] = `
 <div
-  className=""
+  className="control-group"
 >
   <div
     className="controls"
