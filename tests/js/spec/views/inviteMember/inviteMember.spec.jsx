@@ -138,7 +138,7 @@ describe('CreateProject', function() {
         body: {},
       };
 
-      Client.addMockResponse(inviteRequest);
+      let mock = Client.addMockResponse(inviteRequest);
 
       let wrapper = mount(<InviteMember {...baseProps} />, baseContext);
 
@@ -161,7 +161,7 @@ describe('CreateProject', function() {
       node.props().onClick({preventDefault: () => {}});
       expect(wrapper.state('busy')).toBe(true);
       expect(wrapper.state('error')).toBe(undefined);
-      expect(Client.getCallCount(inviteRequest)).toBe(3);
+      expect(mock).toHaveBeenCalledTimes(3);
     });
   });
 });
