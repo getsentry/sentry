@@ -1,7 +1,6 @@
 import PropTypes from 'prop-types';
 import React from 'react';
 import createReactClass from 'create-react-class';
-import PureRenderMixin from 'react-addons-pure-render-mixin';
 import Reflux from 'reflux';
 import {capitalize} from 'lodash';
 
@@ -129,7 +128,6 @@ const StreamActions = createReactClass({
       ],
     }),
     Reflux.listenTo(SelectedGroupStore, 'onSelectedGroupChange'),
-    PureRenderMixin,
   ],
 
   getDefaultProps() {
