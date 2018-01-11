@@ -219,6 +219,7 @@ class GroupSerializer(Serializer):
                 'resolution': resolution,
                 'resolution_actor': resolution_actor,
                 'share_id': share_ids.get(item.id),
+                'times_seen': item.times_seen,
             }
         return result
 
@@ -303,7 +304,7 @@ class GroupSerializer(Serializer):
             'id': six.text_type(obj.id),
             'shareId': share_id,
             'shortId': obj.qualified_short_id,
-            'count': six.text_type(obj.times_seen),
+            'count': six.text_type(attrs['times_seen']),
             'userCount': attrs['user_count'],
             'title': obj.title,
             'culprit': obj.culprit,
