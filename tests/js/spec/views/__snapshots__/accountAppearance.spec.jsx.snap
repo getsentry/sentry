@@ -7,7 +7,7 @@ exports[`AccountAppearance renders 1`] = `
   <div>
     <Form
       allowUndo={true}
-      apiEndpoint="/account/appearance/"
+      apiEndpoint="/users/me/appearance/"
       apiMethod="PUT"
       cancelLabel="Cancel"
       className="form-stacked"

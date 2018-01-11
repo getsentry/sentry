@@ -6,7 +6,7 @@ import Form from '../components/forms/form';
 import JsonForm from '../components/forms/jsonForm';
 import formData from '../../../data/forms/accountAppearance';
 
-const ENDPOINT = '/account/appearance/';
+const ENDPOINT = '/users/me/appearance/';
 
 class AccountAppearance extends AsyncView {
   getEndpoints() {

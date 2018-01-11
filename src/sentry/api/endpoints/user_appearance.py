@@ -4,12 +4,11 @@ from datetime import datetime
 
 import pytz
 from django.conf import settings
-from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework import serializers
 from django.utils.translation import ugettext_lazy as _
 
-from sentry.api.base import Endpoint
+from sentry.api.bases.user import UserEndpoint
 from sentry.constants import LANGUAGES
 from sentry.models import UserOption
 
@@ -30,7 +29,8 @@ def _get_timezone_choices():
 TIMEZONE_CHOICES = _get_timezone_choices()
 
 
-class AccountAppearanceSerializer(serializers.Serializer):
+class UserAppearanceSerializer(serializers.Serializer):
+    # Note the label part of these ChoiceFields are not used by the frontend
     language = serializers.ChoiceField(choices=LANGUAGES, required=False)
     stacktrace_order = serializers.ChoiceField(choices=(
         ('-1', _('Default (let Sentry decide)')),
@@ -41,10 +41,8 @@ class AccountAppearanceSerializer(serializers.Serializer):
     clock_24_hours = serializers.BooleanField(required=False)
 
 
-class AccountAppearanceDetailsEndpoint(Endpoint):
-    permission_classes = (IsAuthenticated, )
-
-    def get(self, request):
+class UserAppearanceEndpoint(UserEndpoint):
+    def get(self, request, user):
         """
         Retrieve Account "Appearance" options
         `````````````````````````````````````
@@ -54,7 +52,7 @@ class AccountAppearanceDetailsEndpoint(Endpoint):
 
         :auth: required
         """
-        options = UserOption.objects.get_all_values(user=request.user, project=None)
+        options = UserOption.objects.get_all_values(user=user, project=None)
 
         return Response({
             'language': options.get('language') or request.LANGUAGE_CODE,
@@ -63,7 +61,7 @@ class AccountAppearanceDetailsEndpoint(Endpoint):
             'clock_24_hours': options.get('clock_24_hours') or False,
         })
 
-    def put(self, request):
+    def put(self, request, user):
         """
         Update Account Appearance options
         `````````````````````````````````
@@ -76,7 +74,7 @@ class AccountAppearanceDetailsEndpoint(Endpoint):
         :param clock_24_hours boolean: use 24 hour clock
         :auth: required
         """
-        serializer = AccountAppearanceSerializer(data=request.DATA, partial=True)
+        serializer = UserAppearanceSerializer(data=request.DATA, partial=True)
 
         if not serializer.is_valid():
             return Response(serializer.errors, status=400)
@@ -85,7 +83,7 @@ class AccountAppearanceDetailsEndpoint(Endpoint):
 
         for key in result:
             UserOption.objects.set_value(
-                user=request.user,
+                user=user,
                 key=key,
                 value=result.get(key),
             )

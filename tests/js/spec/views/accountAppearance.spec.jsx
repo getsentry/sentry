@@ -13,7 +13,7 @@ describe('AccountAppearance', function() {
   beforeEach(function() {
     Client.clearMockResponses();
     Client.addMockResponse({
-      url: '/account/appearance/',
+      url: '/users/me/appearance/',
       method: 'GET',
       body: TestStubs.AccountAppearance(),
     });

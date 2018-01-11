@@ -2,7 +2,6 @@ from __future__ import absolute_import, print_function
 
 from django.conf.urls import include, patterns, url
 
-from .endpoints.account_appearance_details import AccountAppearanceDetailsEndpoint
 from .endpoints.api_applications import ApiApplicationsEndpoint
 from .endpoints.api_application_details import ApiApplicationDetailsEndpoint
 from .endpoints.api_authorizations import ApiAuthorizationsEndpoint
@@ -130,6 +129,7 @@ from .endpoints.team_members import TeamMembersEndpoint
 from .endpoints.team_project_index import TeamProjectIndexEndpoint
 from .endpoints.team_stats import TeamStatsEndpoint
 from .endpoints.useravatar import UserAvatarEndpoint
+from .endpoints.user_appearance import UserAppearanceEndpoint
 from .endpoints.user_authenticator_details import UserAuthenticatorDetailsEndpoint
 from .endpoints.user_identity_details import UserIdentityDetailsEndpoint
 from .endpoints.user_index import UserIndexEndpoint
@@ -177,10 +177,6 @@ urlpatterns = patterns(
     url(r'^broadcasts/$', BroadcastIndexEndpoint.as_view(),
         name='sentry-api-0-broadcast-index'),
 
-    # Account
-    url(r'^account/appearance/$', AccountAppearanceDetailsEndpoint.as_view(),
-        name='sentry-api-0-account-appearance-details'),
-
     # Users
     url(r'^users/$', UserIndexEndpoint.as_view(), name='sentry-api-0-user-index'),
     url(
@@ -192,6 +188,11 @@ urlpatterns = patterns(
         r'^users/(?P<user_id>[^\/]+)/avatar/$',
         UserAvatarEndpoint.as_view(),
         name='sentry-api-0-user-avatar'
+    ),
+    url(
+        r'^users/(?P<user_id>[^\/]+)/appearance/$',
+        UserAppearanceEndpoint.as_view(),
+        name='sentry-api-0-user-appearance'
     ),
     url(
         r'^users/(?P<user_id>[^\/]+)/authenticators/(?P<auth_id>[^\/]+)/$',
