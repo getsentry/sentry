@@ -102,7 +102,7 @@ class AccountAuthorizations extends AsyncView {
 
     return (
       <div>
-        <SettingsPageHeader label="Authorized Applications" />
+        <SettingsPageHeader title="Authorized Applications" />
         <Description>
           {tct('You can manage your own applications via the [link:API dashboard].', {
             link: <a href="/settings/account/api/" />,
