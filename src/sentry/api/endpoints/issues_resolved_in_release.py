@@ -65,7 +65,7 @@ class IssuesResolvedInReleaseEndpoint(ProjectEndpoint, EnvironmentMixin):
             list(groups),
             request.user,
             GroupSerializer(
-                environment_id_func=self._get_environment_id_func(request, project.organization_id)
+                environment_func=self._get_environment_func(request, project.organization_id)
             )
         )
 

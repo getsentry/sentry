@@ -10,8 +10,8 @@ from sentry.utils.functional import apply_values
 
 @register(Activity)
 class ActivitySerializer(Serializer):
-    def __init__(self, environment_id_func=None):
-        self.environment_id_func = environment_id_func
+    def __init__(self, environment_func=None):
+        self.environment_func = environment_func
 
     def get_attrs(self, item_list, user):
         # TODO(dcramer); assert on relations
@@ -117,7 +117,7 @@ class OrganizationActivitySerializer(ActivitySerializer):
             d['id']: d for d in serialize(
                 set([i.group for i in item_list if i.group_id]),
                 user,
-                GroupSerializer(environment_id_func=self.environment_id_func)
+                GroupSerializer(environment_func=self.environment_func)
             )
         }
 

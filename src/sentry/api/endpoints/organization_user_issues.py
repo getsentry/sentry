@@ -56,7 +56,7 @@ class OrganizationUserIssuesEndpoint(OrganizationEndpoint, EnvironmentMixin):
             groups, request.user, TagBasedStreamGroupSerializer(
                 stats_period=None,
                 tags=tags,
-                environment_id_func=self._get_environment_id_func(request, organization.id)
+                environment_func=self._get_environment_func(request, organization.id)
             )
         )
 

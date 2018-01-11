@@ -178,7 +178,7 @@ class GroupDetailsEndpoint(GroupEndpoint, EnvironmentMixin):
             group,
             request.user,
             GroupSerializer(
-                environment_id_func=self._get_environment_id_func(
+                environment_func=self._get_environment_func(
                     request, group.project.organization_id)
             )
         )
@@ -317,7 +317,7 @@ class GroupDetailsEndpoint(GroupEndpoint, EnvironmentMixin):
             group,
             request.user,
             GroupSerializer(
-                environment_id_func=self._get_environment_id_func(
+                environment_func=self._get_environment_func(
                     request, group.project.organization_id)
             )
         )

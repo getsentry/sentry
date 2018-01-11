@@ -35,8 +35,8 @@ disabled = object()
 
 @register(Group)
 class GroupSerializer(Serializer):
-    def __init__(self, environment_id_func=None):
-        self.environment_id_func = environment_id_func if environment_id_func is not None else lambda: None
+    def __init__(self, environment_func=None):
+        self.environment_func = environment_func if environment_func is not None else lambda: None
 
     def _get_subscriptions(self, item_list, user):
         """
@@ -145,10 +145,11 @@ class GroupSerializer(Serializer):
         )
 
         try:
-            environment_id = self.environment_id_func()
+            environment = self.environment_func()
         except Environment.DoesNotExist:
             user_counts = {}
         else:
+            environment_id = environment and environment.id
             user_counts = tagstore.get_groups_user_counts(
                 item_list[0].project_id, [g.id for g in item_list], environment_id=environment_id)
 
@@ -336,8 +337,8 @@ class StreamGroupSerializer(GroupSerializer):
         '24h': StatsPeriod(24, timedelta(hours=1)),
     }
 
-    def __init__(self, environment_id_func=None, stats_period=None, matching_event_id=None):
-        super(StreamGroupSerializer, self).__init__(environment_id_func)
+    def __init__(self, environment_func=None, stats_period=None, matching_event_id=None):
+        super(StreamGroupSerializer, self).__init__(environment_func)
 
         if stats_period is not None:
             assert stats_period in self.STATS_PERIOD_CHOICES
@@ -359,17 +360,21 @@ class StreamGroupSerializer(GroupSerializer):
                 'end': now,
                 'rollup': int(interval.total_seconds()),
             }
+
             try:
+                environment = self.environment_func()
+            except Environment.DoesNotExist:
+                stats = {key: tsdb.make_series(0, **query_params) for key in group_ids}
+            else:
                 stats = tsdb.get_range(
                     model=tsdb.models.group,
                     keys=group_ids,
-                    environment_id=self.environment_id_func(),
+                    environment_id=environment and environment.id,
                     **query_params
                 )
-            except Environment.DoesNotExist:
-                stats = {key: tsdb.make_series(0, **query_params) for key in group_ids}
 
             for item in item_list:
+
                 attrs[item].update({
                     'stats': stats[item.id],
                 })
