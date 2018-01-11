@@ -328,9 +328,9 @@ class ProjectGroupIndexEndpoint(ProjectEndpoint, EnvironmentMixin):
             environment_id = self._get_environment_id_from_request(
                 request, project.organization_id)
         except Environment.DoesNotExist:
-            # XXX: The 1000 magic number is an abstraction leak from
-            # `sentry.api.paginator.BasePaginator.get_result`.
-            cursor_result = CursorResult([], None, None, 0, 1000)
+            # XXX: The 1000 magic number for `max_hits` is an abstraction leak
+            # from `sentry.api.paginator.BasePaginator.get_result`.
+            cursor_result = CursorResult([], None, None, hits=0, max_hits=1000)
         else:
             cursor_result = search.query(
                 count_hits=True,
