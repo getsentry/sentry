@@ -84,7 +84,9 @@ exports[`OrganizationMembersView No Require Link does not have 2fa warning if us
 
 .glamor-41 {
   box-sizing: border-box;
-  padding: 16px;
+  padding: 0px;
+  padding-top: 16px;
+  padding-bottom: 16px;
   display: -webkit-box;
   display: -webkit-flex;
   display: -ms-flexbox;
@@ -102,6 +104,7 @@ exports[`OrganizationMembersView No Require Link does not have 2fa warning if us
 
 .glamor-25 {
   box-sizing: border-box;
+  padding-left: 16px;
 }
 
 .glamor-33 {
@@ -119,12 +122,6 @@ exports[`OrganizationMembersView No Require Link does not have 2fa warning if us
 
 .glamor-31 {
   font-size: 14px;
-}
-
-.glamor-39 {
-  box-sizing: border-box;
-  width: 140px;
-  padding-left: 16px;
 }
 
 <OrganizationMembersView
@@ -438,24 +435,30 @@ exports[`OrganizationMembersView No Require Link does not have 2fa warning if us
               >
                 <Row
                   align="center"
-                  p={2}
+                  p={0}
+                  py={2}
                 >
                   <Styled(Base)
                     align="center"
-                    p={2}
+                    p={0}
+                    py={2}
                   >
                     <Base
                       align="center"
                       className="glamor-41 glamor-42"
-                      p={2}
+                      p={0}
+                      py={2}
                     >
                       <div
                         className="glamor-41 glamor-42"
                         is={null}
                       >
-                        <Box>
+                        <Box
+                          pl={2}
+                        >
                           <Base
                             className="glamor-25"
+                            pl={2}
                           >
                             <div
                               className="glamor-25"
@@ -591,16 +594,16 @@ exports[`OrganizationMembersView No Require Link does not have 2fa warning if us
                           </Base>
                         </Box>
                         <Box
-                          pl={2}
+                          px={2}
                           w={140}
                         >
                           <Base
-                            className="glamor-39"
-                            pl={2}
+                            className="glamor-10"
+                            px={2}
                             w={140}
                           >
                             <div
-                              className="glamor-39"
+                              className="glamor-10"
                               is={null}
                             >
                               <Button
@@ -699,24 +702,30 @@ exports[`OrganizationMembersView No Require Link does not have 2fa warning if us
               >
                 <Row
                   align="center"
-                  p={2}
+                  p={0}
+                  py={2}
                 >
                   <Styled(Base)
                     align="center"
-                    p={2}
+                    p={0}
+                    py={2}
                   >
                     <Base
                       align="center"
                       className="glamor-41 glamor-42"
-                      p={2}
+                      p={0}
+                      py={2}
                     >
                       <div
                         className="glamor-41 glamor-42"
                         is={null}
                       >
-                        <Box>
+                        <Box
+                          pl={2}
+                        >
                           <Base
                             className="glamor-25"
+                            pl={2}
                           >
                             <div
                               className="glamor-25"
@@ -847,16 +856,16 @@ exports[`OrganizationMembersView No Require Link does not have 2fa warning if us
                           </Base>
                         </Box>
                         <Box
-                          pl={2}
+                          px={2}
                           w={140}
                         >
                           <Base
-                            className="glamor-39"
-                            pl={2}
+                            className="glamor-10"
+                            px={2}
                             w={140}
                           >
                             <div
-                              className="glamor-39"
+                              className="glamor-10"
                               is={null}
                             >
                               <Button
@@ -955,24 +964,30 @@ exports[`OrganizationMembersView No Require Link does not have 2fa warning if us
               >
                 <Row
                   align="center"
-                  p={2}
+                  p={0}
+                  py={2}
                 >
                   <Styled(Base)
                     align="center"
-                    p={2}
+                    p={0}
+                    py={2}
                   >
                     <Base
                       align="center"
                       className="glamor-41 glamor-42"
-                      p={2}
+                      p={0}
+                      py={2}
                     >
                       <div
                         className="glamor-41 glamor-42"
                         is={null}
                       >
-                        <Box>
+                        <Box
+                          pl={2}
+                        >
                           <Base
                             className="glamor-25"
+                            pl={2}
                           >
                             <div
                               className="glamor-25"
@@ -1103,16 +1118,16 @@ exports[`OrganizationMembersView No Require Link does not have 2fa warning if us
                           </Base>
                         </Box>
                         <Box
-                          pl={2}
+                          px={2}
                           w={140}
                         >
                           <Base
-                            className="glamor-39"
-                            pl={2}
+                            className="glamor-10"
+                            px={2}
                             w={140}
                           >
                             <div
-                              className="glamor-39"
+                              className="glamor-10"
                               is={null}
                             >
                               <Button
@@ -1246,7 +1261,9 @@ exports[`OrganizationMembersView Require Link does not have 2fa warning if user 
 
 .glamor-41 {
   box-sizing: border-box;
-  padding: 16px;
+  padding: 0px;
+  padding-top: 16px;
+  padding-bottom: 16px;
   display: -webkit-box;
   display: -webkit-flex;
   display: -ms-flexbox;
@@ -1264,6 +1281,7 @@ exports[`OrganizationMembersView Require Link does not have 2fa warning if user 
 
 .glamor-25 {
   box-sizing: border-box;
+  padding-left: 16px;
 }
 
 .glamor-33 {
@@ -1281,12 +1299,6 @@ exports[`OrganizationMembersView Require Link does not have 2fa warning if user 
 
 .glamor-31 {
   font-size: 14px;
-}
-
-.glamor-39 {
-  box-sizing: border-box;
-  width: 140px;
-  padding-left: 16px;
 }
 
 <OrganizationMembersView
@@ -1600,24 +1612,30 @@ exports[`OrganizationMembersView Require Link does not have 2fa warning if user 
               >
                 <Row
                   align="center"
-                  p={2}
+                  p={0}
+                  py={2}
                 >
                   <Styled(Base)
                     align="center"
-                    p={2}
+                    p={0}
+                    py={2}
                   >
                     <Base
                       align="center"
                       className="glamor-41 glamor-42"
-                      p={2}
+                      p={0}
+                      py={2}
                     >
                       <div
                         className="glamor-41 glamor-42"
                         is={null}
                       >
-                        <Box>
+                        <Box
+                          pl={2}
+                        >
                           <Base
                             className="glamor-25"
+                            pl={2}
                           >
                             <div
                               className="glamor-25"
@@ -1784,16 +1802,16 @@ exports[`OrganizationMembersView Require Link does not have 2fa warning if user 
                           </Base>
                         </Box>
                         <Box
-                          pl={2}
+                          px={2}
                           w={140}
                         >
                           <Base
-                            className="glamor-39"
-                            pl={2}
+                            className="glamor-10"
+                            px={2}
                             w={140}
                           >
                             <div
-                              className="glamor-39"
+                              className="glamor-10"
                               is={null}
                             >
                               <Button
@@ -1892,24 +1910,30 @@ exports[`OrganizationMembersView Require Link does not have 2fa warning if user 
               >
                 <Row
                   align="center"
-                  p={2}
+                  p={0}
+                  py={2}
                 >
                   <Styled(Base)
                     align="center"
-                    p={2}
+                    p={0}
+                    py={2}
                   >
                     <Base
                       align="center"
                       className="glamor-41 glamor-42"
-                      p={2}
+                      p={0}
+                      py={2}
                     >
                       <div
                         className="glamor-41 glamor-42"
                         is={null}
                       >
-                        <Box>
+                        <Box
+                          pl={2}
+                        >
                           <Base
                             className="glamor-25"
+                            pl={2}
                           >
                             <div
                               className="glamor-25"
@@ -2076,16 +2100,16 @@ exports[`OrganizationMembersView Require Link does not have 2fa warning if user 
                           </Base>
                         </Box>
                         <Box
-                          pl={2}
+                          px={2}
                           w={140}
                         >
                           <Base
-                            className="glamor-39"
-                            pl={2}
+                            className="glamor-10"
+                            px={2}
                             w={140}
                           >
                             <div
-                              className="glamor-39"
+                              className="glamor-10"
                               is={null}
                             >
                               <Button
@@ -2184,24 +2208,30 @@ exports[`OrganizationMembersView Require Link does not have 2fa warning if user 
               >
                 <Row
                   align="center"
-                  p={2}
+                  p={0}
+                  py={2}
                 >
                   <Styled(Base)
                     align="center"
-                    p={2}
+                    p={0}
+                    py={2}
                   >
                     <Base
                       align="center"
                       className="glamor-41 glamor-42"
-                      p={2}
+                      p={0}
+                      py={2}
                     >
                       <div
                         className="glamor-41 glamor-42"
                         is={null}
                       >
-                        <Box>
+                        <Box
+                          pl={2}
+                        >
                           <Base
                             className="glamor-25"
+                            pl={2}
                           >
                             <div
                               className="glamor-25"
@@ -2332,16 +2362,16 @@ exports[`OrganizationMembersView Require Link does not have 2fa warning if user 
                           </Base>
                         </Box>
                         <Box
-                          pl={2}
+                          px={2}
                           w={140}
                         >
                           <Base
-                            className="glamor-39"
-                            pl={2}
+                            className="glamor-10"
+                            px={2}
                             w={140}
                           >
                             <div
-                              className="glamor-39"
+                              className="glamor-10"
                               is={null}
                             >
                               <Button
