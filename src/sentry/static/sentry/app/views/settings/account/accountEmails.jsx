@@ -83,23 +83,32 @@ class AccountEmails extends AsyncView {
 
   handleSubmitSuccess = (change, model, id) => {
     model.setValue(id, '');
+    this.remountComponent();
   };
 
   handleSetPrimary = email => {
-    this.api.requestPromise(ENDPOINT, {
-      method: 'PUT',
-      data: {
-        email,
-      },
+    this.setState({loading: true, emails: []}, () => {
+      this.api
+        .requestPromise(ENDPOINT, {
+          method: 'PUT',
+          data: {
+            email,
+          },
+        })
+        .then(this.remountComponent.bind(this));
     });
   };
 
   handleRemove = email => {
-    this.api.requestPromise(ENDPOINT, {
-      method: 'DELETE',
-      data: {
-        email,
-      },
+    this.setState({loading: true, emails: []}, () => {
+      this.api
+        .requestPromise(ENDPOINT, {
+          method: 'DELETE',
+          data: {
+            email,
+          },
+        })
+        .then(this.remountComponent.bind(this));
     });
   };
 
