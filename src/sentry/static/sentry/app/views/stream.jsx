@@ -35,7 +35,6 @@ const Stream = createReactClass({
   propTypes: {
     defaultSort: PropTypes.string,
     defaultStatsPeriod: PropTypes.string,
-    defaultQuery: PropTypes.string,
     maxItems: PropTypes.number,
     setProjectNavSection: PropTypes.func,
   },
@@ -49,7 +48,6 @@ const Stream = createReactClass({
 
   getDefaultProps() {
     return {
-      defaultQuery: null,
       defaultSort: 'date',
       defaultStatsPeriod: '24h',
       maxItems: 25,
@@ -528,7 +526,7 @@ const Stream = createReactClass({
   transitionTo() {
     let queryParams = {};
 
-    if (!this.state.searchId && this.state.query !== this.props.defaultQuery) {
+    if (!this.state.searchId) {
       queryParams.query = this.state.query;
     }
 
@@ -762,7 +760,6 @@ const Stream = createReactClass({
               searchId={searchId}
               queryCount={this.state.queryCount}
               queryMaxCount={this.state.queryMaxCount}
-              defaultQuery={this.props.defaultQuery}
               onSortChange={this.onSortChange}
               onSearch={this.onSearch}
               onSavedSearchCreate={this.onSavedSearchCreate}
