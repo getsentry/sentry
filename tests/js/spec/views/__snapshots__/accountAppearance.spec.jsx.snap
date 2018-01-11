@@ -48,7 +48,7 @@ exports[`AccountAppearance renders 1`] = `
                     ],
                     "help": "Choose the default ordering of frames in stacktraces",
                     "label": "Stacktrace Order",
-                    "name": "stacktrace_order",
+                    "name": "stacktraceOrder",
                     "required": false,
                     "type": "choice",
                   },
@@ -1845,7 +1845,7 @@ exports[`AccountAppearance renders 1`] = `
                   },
                   Object {
                     "label": "Use a 24-hour clock",
-                    "name": "clock_24_hours",
+                    "name": "clock24Hours",
                     "type": "boolean",
                   },
                 ],

@@ -21,16 +21,16 @@ class UserAppearanceTest(APITestCase):
 
         assert resp.status_code == 200, resp.content
         assert resp.data['timezone'] == 'UTC'
-        assert resp.data['stacktrace_order'] == -1
+        assert resp.data['stacktraceOrder'] == -1
         assert resp.data['language'] == 'en'
-        assert not resp.data['clock_24_hours']
+        assert not resp.data['clock24Hours']
 
     def test_update(self):
         resp = self.client.put(self.url, data={
             'timezone': 'UTC',
-            'stacktrace_order': '2',
+            'stacktraceOrder': '2',
             'language': 'fr',
-            'clock_24_hours': True,
+            'clock24Hours': True,
             'extra': True,
         })
 

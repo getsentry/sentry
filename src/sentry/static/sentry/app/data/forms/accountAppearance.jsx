@@ -8,7 +8,7 @@ const forms = [
     title: 'Events',
     fields: [
       {
-        name: 'stacktrace_order',
+        name: 'stacktraceOrder',
         type: 'choice',
         required: false,
         choices: [
@@ -41,7 +41,7 @@ const forms = [
         choices: timezones,
       },
       {
-        name: 'clock_24_hours',
+        name: 'clock24Hours',
         type: 'boolean',
         label: 'Use a 24-hour clock',
       },

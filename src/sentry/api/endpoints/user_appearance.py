@@ -32,13 +32,13 @@ TIMEZONE_CHOICES = _get_timezone_choices()
 class UserAppearanceSerializer(serializers.Serializer):
     # Note the label part of these ChoiceFields are not used by the frontend
     language = serializers.ChoiceField(choices=LANGUAGES, required=False)
-    stacktrace_order = serializers.ChoiceField(choices=(
+    stacktraceOrder = serializers.ChoiceField(choices=(
         ('-1', _('Default (let Sentry decide)')),
         ('1', _('Most recent call last')),
         ('2', _('Most recent call first')),
     ), required=False)
     timezone = serializers.ChoiceField(choices=TIMEZONE_CHOICES, required=False)
-    clock_24_hours = serializers.BooleanField(required=False)
+    clock24Hours = serializers.BooleanField(required=False)
 
 
 class UserAppearanceEndpoint(UserEndpoint):
@@ -56,9 +56,9 @@ class UserAppearanceEndpoint(UserEndpoint):
 
         return Response({
             'language': options.get('language') or request.LANGUAGE_CODE,
-            'stacktrace_order': int(options.get('stacktrace_order', -1) or -1),
+            'stacktraceOrder': int(options.get('stacktrace_order', -1) or -1),
             'timezone': options.get('timezone') or settings.SENTRY_DEFAULT_TIME_ZONE,
-            'clock_24_hours': options.get('clock_24_hours') or False,
+            'clock24Hours': options.get('clock_24_hours') or False,
         })
 
     def put(self, request, user):
@@ -81,10 +81,16 @@ class UserAppearanceEndpoint(UserEndpoint):
 
         result = serializer.object
 
+        # map API keys to keys in model
+        key_map = {
+            'stacktraceOrder': 'stacktrace_order',
+            'clock24Hours': 'clock_24_hours',
+        }
+
         for key in result:
             UserOption.objects.set_value(
                 user=user,
-                key=key,
+                key=key_map.get(key, key),
                 value=result.get(key),
             )
 
