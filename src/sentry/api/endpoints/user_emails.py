@@ -46,6 +46,12 @@ def get_email(request):
 
 
 def add_email(email, user):
+    """
+    Adds an email to user account
+
+    Can be either primary or secondary
+    """
+
     # Bad email
     if email is None:
         raise InvalidEmailError
@@ -67,7 +73,7 @@ def add_email(email, user):
         user.send_confirm_email_singular(new_email)
 
         # Update newsletter subscription and mark as unverified
-        newsletter.update_subscription(user,
+        newsletter.update_subscription(user=user,
                                        verified=False,
                                        )
         return new_email
