@@ -68,7 +68,7 @@ class ProjectUserReportsEndpoint(ProjectEndpoint, EnvironmentMixin):
             queryset=queryset,
             order_by='-date_added',
             on_results=lambda x: serialize(x, request.user, ProjectUserReportSerializer(
-                environment_id_func=self._get_environment_id_func(
+                environment_func=self._get_environment_func(
                     request, project.organization_id)
             )),
             paginator_cls=DateTimePaginator,
@@ -141,7 +141,7 @@ class ProjectUserReportsEndpoint(ProjectEndpoint, EnvironmentMixin):
         user_feedback_received.send(project=report.project, group=report.group, sender=self)
 
         return Response(serialize(report, request.user, ProjectUserReportSerializer(
-            environment_id_func=self._get_environment_id_func(
+            environment_func=self._get_environment_func(
                 request, project.organization_id)
         )))
 

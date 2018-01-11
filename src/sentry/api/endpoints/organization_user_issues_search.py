@@ -44,7 +44,7 @@ class OrganizationUserIssuesSearchEndpoint(OrganizationEndpoint, EnvironmentMixi
         ).order_by('-last_seen')[:limit]
 
         context = serialize(list(groups), request.user, GroupSerializer(
-            environment_id_func=self._get_environment_id_func(
+            environment_func=self._get_environment_func(
                 request, organization.id)
         ))
 
