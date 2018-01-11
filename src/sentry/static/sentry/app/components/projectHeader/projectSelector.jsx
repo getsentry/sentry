@@ -330,9 +330,13 @@ const ProjectSelector = createReactClass({
           <Link to={`/${org.slug}/`} className="home-crumb">
             <span className="icon-home" />
           </Link>
-          {this.state.activeProject
-            ? this.getLinkNode(this.state.activeTeam, this.state.activeProject)
-            : t('Select a project')}
+          {this.state.activeProject ? (
+            this.getLinkNode(this.state.activeTeam, this.state.activeProject)
+          ) : (
+            <span onClick={() => (this.state.isOpen ? this.onClose() : this.onOpen())}>
+              {t('Select a project')}
+            </span>
+          )}
           <DropdownLink
             title=""
             topLevelClasses={dropdownClassNames}

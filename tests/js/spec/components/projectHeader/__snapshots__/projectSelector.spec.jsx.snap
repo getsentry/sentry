@@ -45,7 +45,11 @@ exports[`ProjectSelector render() can filter projects by project name 1`] = `
           />
         </a>
       </Link>
-      Select a project
+      <span
+        onClick={[Function]}
+      >
+        Select a project
+      </span>
       <DropdownLink
         alwaysRenderMenu={false}
         anchorRight={false}
@@ -184,7 +188,11 @@ exports[`ProjectSelector render() can filter projects by team name/project name 
           />
         </a>
       </Link>
-      Select a project
+      <span
+        onClick={[Function]}
+      >
+        Select a project
+      </span>
       <DropdownLink
         alwaysRenderMenu={false}
         anchorRight={false}
@@ -313,7 +321,11 @@ exports[`ProjectSelector render() lists projects and has filter 1`] = `
         className="icon-home"
       />
     </Link>
-    Select a project
+    <span
+      onClick={[Function]}
+    >
+      Select a project
+    </span>
     <DropdownLink
       alwaysRenderMenu={false}
       anchorRight={false}
@@ -378,7 +390,11 @@ exports[`ProjectSelector render() should show empty message and create project b
         className="icon-home"
       />
     </Link>
-    Select a project
+    <span
+      onClick={[Function]}
+    >
+      Select a project
+    </span>
     <DropdownLink
       alwaysRenderMenu={false}
       anchorRight={false}
@@ -435,7 +451,11 @@ exports[`ProjectSelector render() should show empty message with no projects but
         className="icon-home"
       />
     </Link>
-    Select a project
+    <span
+      onClick={[Function]}
+    >
+      Select a project
+    </span>
     <DropdownLink
       alwaysRenderMenu={false}
       anchorRight={false}
@@ -508,7 +528,11 @@ exports[`ProjectSelector render() shows empty filter message when filtering has 
           />
         </a>
       </Link>
-      Select a project
+      <span
+        onClick={[Function]}
+      >
+        Select a project
+      </span>
       <DropdownLink
         alwaysRenderMenu={false}
         anchorRight={false}
