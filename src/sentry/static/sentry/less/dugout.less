@@ -1,0 +1,152 @@
+@keyframes expand {
+  from {
+    width: 20px;
+    height: 20px;
+    opacity: 1;
+  }
+
+  to {
+    width: 100px;
+    height: 100px;
+    opacity: 0;
+  }
+}
+
+@keyframes hover {
+  0% {
+    transform: translateY(0px);
+  }
+
+  50% {
+    transform: translateY(-4px);
+  }
+
+  100% {
+    transform: translateY(0px);
+  }
+}
+
+@keyframes slideup {
+  0% {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+
+  50% {
+    opacity: 1;
+    transform: translateY(-5px);
+  }
+
+  100% {
+    transform: translateY(0px);
+  }
+}
+
+.guide-anchor-ping {
+  width: 20px;
+  height: 20px;
+  cursor: pointer;
+  z-index: 999;
+  position: relative;
+  pointer-events: none;
+  animation: 1.5s ease-out infinite expand;
+  visibility: hidden;
+
+  &,
+  &:before,
+  &:after {
+    position: absolute;
+    display: block;
+    left: 50%;
+    top: 50%;
+    transform: translate(-50%, -50%);
+    background-color: fade(@green, 25%);
+    border-radius: 50%;
+  }
+
+  &:before,
+  &:after {
+    content: '';
+  }
+
+  &:before {
+    width: 75%;
+    height: 75%;
+    background-color: fade(@green, 50%);
+  }
+
+  &:after {
+    width: 50%;
+    height: 50%;
+    color: @green;
+  }
+}
+
+.guide-anchor-ping.active {
+  visibility: visible;
+}
+
+.guide-anchor.text {
+  display: inline-block;
+}
+
+.guide-anchor.button {
+  & > *:not(.guide-anchor-ping) {
+    position: relative;
+    z-index: 1000;
+  }
+}
+
+.dugout-drawer {
+  transition: 0.2s height;
+  position: fixed;
+  bottom: 0;
+  left: 60px;
+  width: ~'calc(100% - 60px)';
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  flex-direction: column;
+  z-index: 99;
+  cursor: pointer;
+}
+
+.dugout-drawer--engaged {
+  height: 200px;
+  cursor: default;
+
+  .dugout-message {
+    opacity: 0;
+  }
+}
+
+.dugout-message {
+  animation: 0.2s ease-in-out slideup, 2s ease-in-out 1s infinite hover;
+  transition: 0.2s opacity;
+  background: @green;
+  padding: 0.1em 1em;
+  margin-bottom: 0.5em;
+  font-size: 0.9em;
+  border-radius: 5em;
+  color: #fff;
+}
+
+.dugout-message-large {
+  animation: 0.2s ease-in-out slideup;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  background: @green;
+  width: 100%;
+  height: 100%;
+  color: #fff;
+  padding-bottom: 2em;
+  margin-bottom: -2em;
+}
+
+.dugout-message-large-title {
+  font-size: 1.5em;
+  font-weight: bold;
+  margin-bottom: 0.5em;
+}
