@@ -17,6 +17,7 @@ class SlackIntegration(Integration):
         'links:read',
         'links:write',
         'team:read',
+        'channels:read',
     )
 
     def get_pipeline_views(self):
