@@ -20,7 +20,6 @@ const GuideAnchor = React.createClass({
   },
 
   onGuideChange(guideState) {
-    console.log('GA: on guide change hit');
     if (
       guideState.step >= 0 &&
       guideState.guide.steps[guideState.step].target == this.props.target
