@@ -147,7 +147,7 @@ class ApiApplications extends AsyncView {
 
     return (
       <div>
-        <SettingsPageHeader label="API Applications" action={action} />
+        <SettingsPageHeader title="API Applications" action={action} />
 
         {isEmpty && (
           <EmptyMessage>{t("You haven't created any applications yet.")}</EmptyMessage>
