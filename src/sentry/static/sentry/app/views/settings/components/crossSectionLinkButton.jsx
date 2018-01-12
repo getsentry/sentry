@@ -13,15 +13,13 @@ const StyledInlineSvg = styled(InlineSvg)`
   margin-right: 0.75em;
 `;
 
-const CrossSectionLinkButton = ({to, children, icon, ...props}) => (
+const CrossSectionLinkButton = styled(({to, children, icon, ...props}) => (
   <Link to={to} {...props}>
     {icon && <StyledInlineSvg src={icon} size="1.5em" />}
     <CrossSectionLinkButtonText>{children}</CrossSectionLinkButtonText>
     <InlineSvg src="icon-chevron-right" size="1em" />
   </Link>
-);
-
-const CrossSectionLinkButtonStyled = styled(CrossSectionLinkButton)`
+))`
   display: flex;
   align-items: center;
   background-color: ${t => t.theme.yellowLightest};
@@ -41,4 +39,4 @@ CrossSectionLinkButton.propTypes = {
   icon: PropTypes.string,
 };
 
-export default CrossSectionLinkButtonStyled;
+export default CrossSectionLinkButton;
