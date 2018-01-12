@@ -19,7 +19,7 @@ exports[`InternalLinkButton renders 1`] = `
 
 <Component
   className="glamor-0 glamor-1"
-  href="/settings/accounts/notifications"
+  to="/settings/accounts/notifications"
 >
   This is an external link button
 </Component>
@@ -44,8 +44,8 @@ exports[`InternalLinkButton renders with icon 1`] = `
 
 <Component
   className="glamor-0 glamor-1"
-  href="/settings/accounts/notifications"
   icon="icon-mail"
+  to="/settings/accounts/notifications"
 >
   This is an external link button
 </Component>

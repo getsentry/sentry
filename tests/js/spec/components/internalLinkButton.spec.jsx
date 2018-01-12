@@ -5,7 +5,7 @@ import InternalLinkButton from 'app/components/internalLinkButton';
 describe('InternalLinkButton', function() {
   it('renders', function() {
     let wrapper = shallow(
-      <InternalLinkButton href="/settings/accounts/notifications">
+      <InternalLinkButton to="/settings/accounts/notifications">
         This is an external link button
       </InternalLinkButton>
     );
@@ -14,7 +14,7 @@ describe('InternalLinkButton', function() {
 
   it('renders with icon', function() {
     let wrapper = shallow(
-      <InternalLinkButton href="/settings/accounts/notifications" icon="icon-mail">
+      <InternalLinkButton to="/settings/accounts/notifications" icon="icon-mail">
         This is an external link button
       </InternalLinkButton>
     );
