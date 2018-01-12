@@ -5,6 +5,7 @@ import Reflux from 'reflux';
 import {fetchPlugins} from '../actionCreators/plugins';
 import PluginsStore from '../stores/pluginsStore';
 import ProjectState from '../mixins/projectState';
+import SentryTypes from '../proptypes';
 
 /**
  * Higher order component that fetches list of plugins and
@@ -13,6 +14,10 @@ import ProjectState from '../mixins/projectState';
 const withPlugins = WrappedComponent =>
   createReactClass({
     displayName: 'withPlugins',
+    propTypes: {
+      organization: SentryTypes.Organization,
+      project: SentryTypes.Project,
+    },
     mixins: [ProjectState, Reflux.connect(PluginsStore, 'store')],
     componentDidMount() {
       let organization = this.props.organization || this.getOrganization();

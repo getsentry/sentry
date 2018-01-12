@@ -34,6 +34,12 @@
   ],
   "settings": {
     "import/resolver": "webpack",
-    "import/extensions": [".js", ".jsx"]
+    "import/extensions": [".js", ".jsx"],
+    "react": {
+      "version": "15.4" // React version, default to the latest React stable release
+    }
+  },
+  "rules":{
+    "react/no-deprecated":"error"
   }
 }
