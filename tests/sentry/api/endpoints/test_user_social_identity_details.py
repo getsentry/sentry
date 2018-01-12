@@ -13,7 +13,8 @@ class UserSocialIdentityDetailsEndpointTest(APITestCase):
         UserSocialAuth.create_social_auth(self.user, '1234', 'github')
         self.login_as(self.user)
         self.url = reverse('sentry-api-0-user-social-identity-details', kwargs={
-            'identity_id': 1
+            'user_id': self.user.id,
+            'identity_id': 1,
         })
 
     #  Throws backend not found
