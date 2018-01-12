@@ -80,7 +80,7 @@ class TagStorage(Service):
         'get_tag_value_qs',
         'get_group_tag_value_qs',
 
-        'get_groups_times_seen_by_environment',
+        'get_groups_times_seen_by_environment_name',
     )
 
     def setup_deletions(self, tagvalue_model, grouptagkey_model,
@@ -394,8 +394,8 @@ class TagStorage(Service):
         """
         raise NotImplementedError
 
-    def get_groups_times_seen_by_environment(self, project_id, group_ids, environment_name):
+    def get_groups_times_seen_by_environment_name(self, project_id, group_ids, environment_name):
         """
-        >>> get_groups_times_seen_by_environment(1, [2, 3], 'production')
+        >>> get_groups_times_seen_by_environment_name(1, [2, 3], 'production')
         """
         raise NotImplementedError

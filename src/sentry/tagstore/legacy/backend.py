@@ -610,7 +610,7 @@ class LegacyTagStorage(TagStorage):
             event_id__in=event_ids,
         ).update(group_id=destination_id)
 
-    def get_groups_times_seen_by_environment(self, project_id, group_ids, environment_name):
+    def get_groups_times_seen_by_environment_name(self, project_id, group_ids, environment_name):
         qs = GroupTagValue.objects.filter(
             group_id__in=group_ids,
             key='environment',
