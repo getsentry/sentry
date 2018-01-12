@@ -5,6 +5,8 @@ import {shallow, mount} from 'enzyme';
 import {Client} from 'app/api';
 import AccountSubscriptions from 'app/views/settings/account/accountSubscriptions';
 
+const ENDPOINT = '/users/me/subscriptions/';
+
 describe('AccountSubscriptions', function() {
   beforeEach(function() {
     Client.clearMockResponses();
@@ -12,7 +14,7 @@ describe('AccountSubscriptions', function() {
 
   it('renders empty', function() {
     Client.addMockResponse({
-      url: '/account/subscriptions/',
+      url: ENDPOINT,
       body: [],
     });
     let wrapper = shallow(<AccountSubscriptions />, {
@@ -29,8 +31,12 @@ describe('AccountSubscriptions', function() {
 
   it('renders list and can toggle', function() {
     Client.addMockResponse({
-      url: '/account/subscriptions/',
+      url: ENDPOINT,
       body: TestStubs.Subscriptions(),
+    });
+    let mock = Client.addMockResponse({
+      url: ENDPOINT,
+      method: 'PUT',
     });
 
     let wrapper = mount(<AccountSubscriptions />, {
@@ -44,24 +50,22 @@ describe('AccountSubscriptions', function() {
 
     expect(wrapper).toMatchSnapshot();
 
-    let subscribeResp = {
-      url: '/account/subscriptions/',
-      method: 'PUT',
-      data: {
-        list_id: 'test list id',
-        subscribed: true,
-      },
-    };
-
-    Client.addMockResponse(subscribeResp);
-
-    expect(Client.getCallCount(subscribeResp)).toBe(0);
+    expect(mock).not.toHaveBeenCalled();
 
     wrapper
       .find('Switch')
       .first()
       .simulate('click');
 
-    expect(Client.getCallCount(subscribeResp)).toBe(1);
+    expect(mock).toHaveBeenCalledWith(
+      ENDPOINT,
+      expect.objectContaining({
+        method: 'PUT',
+        data: {
+          listId: 2,
+          subscribed: false,
+        },
+      })
+    );
   });
 });

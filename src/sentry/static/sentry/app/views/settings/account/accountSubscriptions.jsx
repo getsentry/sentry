@@ -13,7 +13,7 @@ import SettingsPageHeader from '../components/settingsPageHeader';
 import Switch from '../../../components/switch';
 import IndicatorStore from '../../../stores/indicatorStore';
 
-const ENDPOINT = '/account/subscriptions/';
+const ENDPOINT = '/users/me/subscriptions/';
 
 const SubscriptionName = styled.div`
   font-size: 1.2em;
@@ -42,7 +42,7 @@ class AccountSubscriptions extends AsyncView {
       newSubscriptions[index] = {
         ...subscription,
         subscribed,
-        subscribed_date: new Date(),
+        subscribedDate: new Date(),
       };
       return {
         ...state,
@@ -53,17 +53,17 @@ class AccountSubscriptions extends AsyncView {
     this.api.request(ENDPOINT, {
       method: 'PUT',
       data: {
-        list_id: subscription.list_id,
+        listId: subscription.listId,
         subscribed,
       },
       success: data => {
         IndicatorStore.addSuccess(
-          `${subscribed ? 'Subscribed' : 'Unsubscribed'} to ${subscription.list_name}`
+          `${subscribed ? 'Subscribed' : 'Unsubscribed'} to ${subscription.listName}`
         );
       },
       error: err => {
         IndicatorStore.addError(
-          `Unable to ${subscribed ? '' : 'un'}subscribe to ${subscription.list_name}`
+          `Unable to ${subscribed ? '' : 'un'}subscribe to ${subscription.listName}`
         );
         this.setState({subscriptions: oldSubscriptions});
       },
@@ -97,11 +97,11 @@ class AccountSubscriptions extends AsyncView {
 
           <PanelBody>
             {this.state.subscriptions.map((subscription, index) => (
-              <Row p={2} align="center" key={subscription.list_id}>
+              <Row p={2} align="center" key={subscription.listId}>
                 <Box flex="1">
-                  <SubscriptionName>{subscription.list_name}</SubscriptionName>
-                  {subscription.list_description && (
-                    <Description>{subscription.list_description}</Description>
+                  <SubscriptionName>{subscription.listName}</SubscriptionName>
+                  {subscription.listDescription && (
+                    <Description>{subscription.listDescription}</Description>
                   )}
                 </Box>
                 <Flex direction="column" align="flex-end">
@@ -114,7 +114,7 @@ class AccountSubscriptions extends AsyncView {
                     <SubscribedDescription>
                       <div>{subscription.email} on </div>
                       <div>
-                        <DateTime shortDate date={subscription.subscribed_date} />
+                        <DateTime shortDate date={subscription.subscribedDate} />
                       </div>
                     </SubscribedDescription>
                   )}
