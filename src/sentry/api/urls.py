@@ -130,6 +130,7 @@ from .endpoints.team_project_index import TeamProjectIndexEndpoint
 from .endpoints.team_stats import TeamStatsEndpoint
 from .endpoints.useravatar import UserAvatarEndpoint
 from .endpoints.user_authenticator_details import UserAuthenticatorDetailsEndpoint
+from .endpoints.user_emails import UserEmailsEndpoint
 from .endpoints.user_identity_details import UserIdentityDetailsEndpoint
 from .endpoints.user_index import UserIndexEndpoint
 from .endpoints.user_details import UserDetailsEndpoint
@@ -182,6 +183,10 @@ urlpatterns = patterns(
         r'^users/(?P<user_id>[^\/]+)/$',
         UserDetailsEndpoint.as_view(),
         name='sentry-api-0-user-details'
+    ),
+    url(
+        r'^users/(?P<user_id>[^\/]+)/emails/$', UserEmailsEndpoint.as_view(),
+        name='sentry-api-0-user-emails'
     ),
     url(
         r'^users/(?P<user_id>[^\/]+)/avatar/$',

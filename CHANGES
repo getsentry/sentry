@@ -10,6 +10,7 @@ Schema Changes
 API Changes
 ~~~~~~~~~~~
 - Project plugins endpoint returns every configurable plugin, and includes additional information about each one
+- Added UserEmail endpoint for adding new emails to an account
 
 Version 8.22
 ------------
