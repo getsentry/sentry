@@ -16,7 +16,12 @@ from sentry.models import User, UserEmail, UserOption
 logger = logging.getLogger('sentry.accounts')
 
 
-InvalidEmailResponse = Response({'detail': 'Invalid email'}, status=status.HTTP_400_BAD_REQUEST)
+class InvalidEmailResponse(Response):
+    def __init__(self):
+        super(InvalidEmailResponse, self).__init__(
+            {'detail': 'Invalid email'},
+            status=status.HTTP_400_BAD_REQUEST
+        )
 
 
 class InvalidEmailError(Exception):
@@ -55,12 +60,6 @@ def add_email(email, user):
     # Bad email
     if email is None:
         raise InvalidEmailError
-
-    # check if this email already exists for user
-    if email and UserEmail.objects.filter(
-        user=user, email__iexact=email
-    ).exists():
-        raise DuplicateEmailError
 
     try:
         with transaction.atomic():
@@ -111,7 +110,7 @@ class UserEmailsEndpoint(UserEndpoint):
         try:
             new_email = add_email(email, user)
         except (InvalidEmailError, DuplicateEmailError):
-            return InvalidEmailResponse
+            return InvalidEmailResponse()
         else:
             logger.info(
                 'user.email.add',
@@ -140,7 +139,7 @@ class UserEmailsEndpoint(UserEndpoint):
         old_email = user.email
 
         if new_email is None:
-            return InvalidEmailResponse
+            return InvalidEmailResponse()
 
         # If email doesn't exist for user, attempt to add new email
         if not UserEmail.objects.filter(
@@ -149,7 +148,7 @@ class UserEmailsEndpoint(UserEndpoint):
             try:
                 added_email = add_email(new_email, user)
             except InvalidEmailError:
-                return InvalidEmailResponse
+                return InvalidEmailResponse()
             except DuplicateEmailError:
                 pass
             else:
@@ -167,10 +166,10 @@ class UserEmailsEndpoint(UserEndpoint):
         # Is this a security/abuse concern?
         if User.objects.filter(Q(email__iexact=new_email) | Q(username__iexact=new_email)
                                ).exclude(id=user.id).exists():
-            return InvalidEmailResponse
+            return InvalidEmailResponse()
 
         if new_email == old_email:
-            return InvalidEmailResponse
+            return InvalidEmailResponse()
 
         # update notification settings for those set to primary email with new primary email
         alert_email = UserOption.objects.get_value(user=user, key='alert_email')
