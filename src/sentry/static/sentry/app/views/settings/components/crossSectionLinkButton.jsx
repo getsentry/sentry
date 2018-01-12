@@ -5,23 +5,23 @@ import React from 'react';
 import Link from '../../../components/link';
 import InlineSvg from '../../../components/inlineSvg';
 
-const CrossSectionLinkButtonText = styled(({children, ...props}) => (
-  <div {...props}>{children}</div>
-))`
+const CrossSectionLinkButtonText = styled('div')`
   flex-grow: 1;
-
-  &:not(:first-child) {
-    margin-left: 0.75em;
-  }
 `;
 
-const CrossSectionLinkButton = styled(({to, children, icon, ...props}) => (
+const StyledInlineSvg = styled(InlineSvg)`
+  margin-right: 0.75em;
+`;
+
+const CrossSectionLinkButton = ({to, children, icon, ...props}) => (
   <Link to={to} {...props}>
-    <InlineSvg src={icon} size="1.5em" />
+    {icon && <StyledInlineSvg src={icon} size="1.5em" />}
     <CrossSectionLinkButtonText>{children}</CrossSectionLinkButtonText>
     <InlineSvg src="icon-chevron-right" size="1em" />
   </Link>
-))`
+);
+
+const CrossSectionLinkButtonStyled = styled(CrossSectionLinkButton)`
   display: flex;
   align-items: center;
   background-color: ${t => t.theme.yellowLightest};
@@ -37,7 +37,8 @@ const CrossSectionLinkButton = styled(({to, children, icon, ...props}) => (
 `;
 
 CrossSectionLinkButton.propTypes = {
-  to: PropTypes.string,
+  to: PropTypes.string.isRequired,
+  icon: PropTypes.string,
 };
 
-export default CrossSectionLinkButton;
+export default CrossSectionLinkButtonStyled;
