@@ -1,7 +1,5 @@
 from __future__ import absolute_import
 
-import pytest
-
 from django.core.urlresolvers import reverse
 
 from social_auth.models import UserSocialAuth
@@ -10,19 +8,25 @@ from sentry.testutils import APITestCase
 
 class UserSocialIdentityDetailsEndpointTest(APITestCase):
     def setUp(self):
-        UserSocialAuth.create_social_auth(self.user, '1234', 'github')
         self.login_as(self.user)
-        self.url = reverse('sentry-api-0-user-social-identity-details', kwargs={
+
+    def test_can_disconnect(self):
+        UserSocialAuth.create_social_auth(self.user, '1234', 'github')
+        url = reverse('sentry-api-0-user-social-identity-details', kwargs={
             'user_id': self.user.id,
             'identity_id': 1,
         })
-
-    #  Throws backend not found
-    @pytest.mark.skip
-    def test_can_disconnect(self):
-        response = self.client.delete(self.url)
-        assert response.status_code == 204
+        with self.settings(GITHUB_APP_ID='app-id', GITHUB_API_SECRET='secret'):
+            response = self.client.delete(url)
+            assert response.status_code == 204
+            assert not len(UserSocialAuth.objects.filter(user=self.user))
 
     def test_disconnect_id_not_found(self):
-        response = self.client.delete(self.url)
-        assert response.status_code == 404
+        url = reverse('sentry-api-0-user-social-identity-details', kwargs={
+            'user_id': self.user.id,
+            'identity_id': 999,
+        })
+        with self.settings(GITHUB_APP_ID='app-id', GITHUB_API_SECRET='secret'):
+            response = self.client.delete(url)
+            assert response.status_code == 404
+            assert not len(UserSocialAuth.objects.filter(user=self.user))
