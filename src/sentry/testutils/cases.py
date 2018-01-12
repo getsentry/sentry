@@ -348,7 +348,7 @@ class TwoFactorAPITestCase(APITestCase):
         assert response.status_code == status_code, response.content
         organization = Organization.objects.get(id=organization.id)
 
-        if status_code in range(200, 300):
+        if status_code >= 200 and status_code < 300:
             assert organization.flags.require_2fa
         else:
             assert not organization.flags.require_2fa
