@@ -37,7 +37,7 @@ exports[`ApiTokenRow renders 1`] = `
         Created
          
         <DateTime
-          date={2017-10-17T11:41:20.000Z}
+          date={2018-01-12T02:01:41.000Z}
           seconds={true}
         />
       </Styled(div)>

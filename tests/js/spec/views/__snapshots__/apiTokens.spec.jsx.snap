@@ -432,7 +432,7 @@ exports[`ApiTokens renders with result 1`] = `
                 onRemove={[Function]}
                 token={
                   Object {
-                    "dateCreated": 2017-10-17T11:41:20.000Z,
+                    "dateCreated": 2018-01-12T02:01:41.000Z,
                     "scopes": Array [
                       "scope1",
                       "scope2",
@@ -547,11 +547,11 @@ exports[`ApiTokens renders with result 1`] = `
                                   Created
                                    
                                   <DateTime
-                                    date={2017-10-17T11:41:20.000Z}
+                                    date={2018-01-12T02:01:41.000Z}
                                     seconds={true}
                                   >
                                     <time>
-                                      Oct 17, 2017 11:41:20 AM UTC
+                                      Jan 12, 2018 2:01:41 AM UTC
                                     </time>
                                   </DateTime>
                                 </div>
