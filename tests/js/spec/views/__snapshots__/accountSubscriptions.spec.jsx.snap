@@ -6,14 +6,14 @@ exports[`AccountSubscriptions renders empty 1`] = `
 >
   <div>
     <SettingsPageHeading
-      label="Subscriptions"
+      title="Subscriptions"
     />
-    <p>
+    <Styled(div)>
       Sentry is committed to respecting your inbox. Our goal is to provide useful content and resources that make fixing errors less painful. Enjoyable even.
-    </p>
-    <p>
+    </Styled(div)>
+    <Styled(div)>
       As part of our compliance with the EU’s General Data Protection Regulation (GDPR), starting on 25 May 2018, we’ll only email you according to the marketing categories to which you’ve explicitly opted-in.
-    </p>
+    </Styled(div)>
     <Styled(div)>
       <PanelHeader
         disablePadding={true}
@@ -36,10 +36,10 @@ exports[`AccountSubscriptions renders empty 1`] = `
       </PanelHeader>
       <Styled(div) />
     </Styled(div)>
-    <p>
+    <Styled(div)>
       We’re applying GDPR consent and privacy policies to all Sentry contacts, regardless of location. You’ll be able to manage your subscriptions here and from an Unsubscribe link in the footer of all marketing emails.
-    </p>
-    <p>
+    </Styled(div)>
+    <Styled(div)>
       Please contact 
       <a
         href="mailto:learn@sentry.io"
@@ -47,19 +47,19 @@ exports[`AccountSubscriptions renders empty 1`] = `
         learn@sentry.io
       </a>
        with any questions or suggestions.
-    </p>
+    </Styled(div)>
   </div>
 </DocumentTitle>
 `;
 
 exports[`AccountSubscriptions renders list and can toggle 1`] = `
-.glamor-2 {
+.glamor-4 {
   font-size: 14px;
   box-shadow: inset 0 -1px 0;
   margin: -20px 0 30px;
 }
 
-.glamor-0 {
+.glamor-2 {
   box-sizing: border-box;
   display: -webkit-box;
   display: -webkit-flex;
@@ -71,14 +71,28 @@ exports[`AccountSubscriptions renders list and can toggle 1`] = `
   align-items: center;
 }
 
-.glamor-47 {
+.glamor-0 {
+  font-size: 20px;
+  font-weight: bold;
+  margin: 20px 0;
+  -webkit-flex: 1;
+  -ms-flex: 1;
+  flex: 1;
+}
+
+.glamor-6 {
+  line-height: 1.5;
+  margin-bottom: 30px;
+}
+
+.glamor-53 {
   background: #fff;
   border: 1px solid;
   margin-bottom: 30px;
   position: relative;
 }
 
-.glamor-17 {
+.glamor-23 {
   border-bottom: 1px solid;
   border-radius: 0 0;
   background: padding:15px 0;
@@ -86,13 +100,13 @@ exports[`AccountSubscriptions renders list and can toggle 1`] = `
   font-size: 13px;
 }
 
-.glamor-13 {
+.glamor-19 {
   font-size: inherit;
   text-transform: inherit;
   margin: 0;
 }
 
-.glamor-11 {
+.glamor-17 {
   font-size: 12px;
   font-weight: 600;
   text-transform: uppercase;
@@ -102,7 +116,7 @@ exports[`AccountSubscriptions renders list and can toggle 1`] = `
   margin: 0;
 }
 
-.glamor-4 {
+.glamor-10 {
   box-sizing: border-box;
   padding-left: 16px;
   padding-right: 16px;
@@ -111,13 +125,13 @@ exports[`AccountSubscriptions renders list and can toggle 1`] = `
   flex: 1;
 }
 
-.glamor-6 {
+.glamor-12 {
   box-sizing: border-box;
   padding-left: 16px;
   padding-right: 16px;
 }
 
-.glamor-29 {
+.glamor-35 {
   box-sizing: border-box;
   padding: 16px;
   display: -webkit-box;
@@ -131,27 +145,27 @@ exports[`AccountSubscriptions renders list and can toggle 1`] = `
   border-bottom: 1px solid;
 }
 
-.glamor-29:last-child {
+.glamor-35:last-child {
   border: 0;
 }
 
-.glamor-23 {
+.glamor-29 {
   box-sizing: border-box;
   -webkit-flex: 1;
   -ms-flex: 1;
   flex: 1;
 }
 
-.glamor-19 {
+.glamor-25 {
   font-size: 1.2em;
 }
 
-.glamor-21 {
+.glamor-27 {
   font-size: 0.8em;
   margin-top: 6px;
 }
 
-.glamor-27 {
+.glamor-33 {
   box-sizing: border-box;
   display: -webkit-box;
   display: -webkit-flex;
@@ -166,7 +180,7 @@ exports[`AccountSubscriptions renders list and can toggle 1`] = `
   align-items: flex-end;
 }
 
-.glamor-25 {
+.glamor-31 {
   font-size: 0.8em;
   margin-top: 6px;
   text-align: right;
@@ -178,37 +192,53 @@ exports[`AccountSubscriptions renders list and can toggle 1`] = `
   >
     <div>
       <SettingsPageHeading
-        label="Subscriptions"
+        title="Subscriptions"
       >
         <Styled(div)>
           <div
-            className="glamor-2 glamor-3"
+            className="glamor-4 glamor-5"
           >
             <Flex
               align="center"
             >
               <Base
                 align="center"
-                className="glamor-0"
+                className="glamor-2"
               >
                 <div
-                  className="glamor-0"
+                  className="glamor-2"
                   is={null}
-                />
+                >
+                  <Styled(div)>
+                    <div
+                      className="glamor-0 glamor-1"
+                    >
+                      Subscriptions
+                    </div>
+                  </Styled(div)>
+                </div>
               </Base>
             </Flex>
           </div>
         </Styled(div)>
       </SettingsPageHeading>
-      <p>
-        Sentry is committed to respecting your inbox. Our goal is to provide useful content and resources that make fixing errors less painful. Enjoyable even.
-      </p>
-      <p>
-        As part of our compliance with the EU’s General Data Protection Regulation (GDPR), starting on 25 May 2018, we’ll only email you according to the marketing categories to which you’ve explicitly opted-in.
-      </p>
       <Styled(div)>
         <div
-          className="glamor-47 glamor-48"
+          className="glamor-6 glamor-7"
+        >
+          Sentry is committed to respecting your inbox. Our goal is to provide useful content and resources that make fixing errors less painful. Enjoyable even.
+        </div>
+      </Styled(div)>
+      <Styled(div)>
+        <div
+          className="glamor-6 glamor-7"
+        >
+          As part of our compliance with the EU’s General Data Protection Regulation (GDPR), starting on 25 May 2018, we’ll only email you according to the marketing categories to which you’ve explicitly opted-in.
+        </div>
+      </Styled(div)>
+      <Styled(div)>
+        <div
+          className="glamor-53 glamor-54"
         >
           <PanelHeader
             disablePadding={true}
@@ -217,27 +247,27 @@ exports[`AccountSubscriptions renders list and can toggle 1`] = `
               disablePadding={true}
             >
               <div
-                className="glamor-17 glamor-18"
+                className="glamor-23 glamor-24"
               >
                 <Styled(Component)>
                   <Component
-                    className="glamor-13 glamor-10"
+                    className="glamor-19 glamor-16"
                   >
                     <Styled(div)
-                      className="glamor-13 glamor-10"
+                      className="glamor-19 glamor-16"
                     >
                       <div
-                        className="glamor-10 glamor-11 glamor-12"
+                        className="glamor-16 glamor-17 glamor-18"
                       >
                         <Flex
                           align="center"
                         >
                           <Base
                             align="center"
-                            className="glamor-0"
+                            className="glamor-2"
                           >
                             <div
-                              className="glamor-0"
+                              className="glamor-2"
                               is={null}
                             >
                               <Box
@@ -245,12 +275,12 @@ exports[`AccountSubscriptions renders list and can toggle 1`] = `
                                 px={2}
                               >
                                 <Base
-                                  className="glamor-4"
+                                  className="glamor-10"
                                   flex="1"
                                   px={2}
                                 >
                                   <div
-                                    className="glamor-4"
+                                    className="glamor-10"
                                     is={null}
                                   >
                                     Name
@@ -261,11 +291,11 @@ exports[`AccountSubscriptions renders list and can toggle 1`] = `
                                 px={2}
                               >
                                 <Base
-                                  className="glamor-6"
+                                  className="glamor-12"
                                   px={2}
                                 >
                                   <div
-                                    className="glamor-6"
+                                    className="glamor-12"
                                     is={null}
                                   >
                                     Subscribed
@@ -284,7 +314,7 @@ exports[`AccountSubscriptions renders list and can toggle 1`] = `
           </PanelHeader>
           <Styled(div)>
             <div
-              className="glamor-45 glamor-46"
+              className="glamor-51 glamor-52"
             >
               <Styled(Base)
                 align="center"
@@ -293,34 +323,34 @@ exports[`AccountSubscriptions renders list and can toggle 1`] = `
               >
                 <Base
                   align="center"
-                  className="glamor-29 glamor-30"
+                  className="glamor-35 glamor-36"
                   p={2}
                 >
                   <div
-                    className="glamor-29 glamor-30"
+                    className="glamor-35 glamor-36"
                     is={null}
                   >
                     <Box
                       flex="1"
                     >
                       <Base
-                        className="glamor-23"
+                        className="glamor-29"
                         flex="1"
                       >
                         <div
-                          className="glamor-23"
+                          className="glamor-29"
                           is={null}
                         >
                           <Styled(div)>
                             <div
-                              className="glamor-19 glamor-20"
+                              className="glamor-25 glamor-26"
                             >
                               Product & Feature Updates
                             </div>
                           </Styled(div)>
                           <Styled(div)>
                             <div
-                              className="glamor-21 glamor-22"
+                              className="glamor-27 glamor-28"
                             >
                               Everything you need to know about Sentry features, integrations, partnerships, and launches.
                             </div>
@@ -334,11 +364,11 @@ exports[`AccountSubscriptions renders list and can toggle 1`] = `
                     >
                       <Base
                         align="flex-end"
-                        className="glamor-27"
+                        className="glamor-33"
                         direction="column"
                       >
                         <div
-                          className="glamor-27"
+                          className="glamor-33"
                           is={null}
                         >
                           <Switch
@@ -359,7 +389,7 @@ exports[`AccountSubscriptions renders list and can toggle 1`] = `
                           </Switch>
                           <Styled(div)>
                             <div
-                              className="glamor-25 glamor-26"
+                              className="glamor-31 glamor-32"
                             >
                               <div>
                                 test@sentry.io
@@ -391,34 +421,34 @@ exports[`AccountSubscriptions renders list and can toggle 1`] = `
               >
                 <Base
                   align="center"
-                  className="glamor-29 glamor-30"
+                  className="glamor-35 glamor-36"
                   p={2}
                 >
                   <div
-                    className="glamor-29 glamor-30"
+                    className="glamor-35 glamor-36"
                     is={null}
                   >
                     <Box
                       flex="1"
                     >
                       <Base
-                        className="glamor-23"
+                        className="glamor-29"
                         flex="1"
                       >
                         <div
-                          className="glamor-23"
+                          className="glamor-29"
                           is={null}
                         >
                           <Styled(div)>
                             <div
-                              className="glamor-19 glamor-20"
+                              className="glamor-25 glamor-26"
                             >
                               Sentry Newsletter
                             </div>
                           </Styled(div)>
                           <Styled(div)>
                             <div
-                              className="glamor-21 glamor-22"
+                              className="glamor-27 glamor-28"
                             >
                               Our monthly update on what's new with Sentry and the community.
                             </div>
@@ -432,11 +462,11 @@ exports[`AccountSubscriptions renders list and can toggle 1`] = `
                     >
                       <Base
                         align="flex-end"
-                        className="glamor-27"
+                        className="glamor-33"
                         direction="column"
                       >
                         <div
-                          className="glamor-27"
+                          className="glamor-33"
                           is={null}
                         >
                           <Switch
@@ -465,18 +495,26 @@ exports[`AccountSubscriptions renders list and can toggle 1`] = `
           </Styled(div)>
         </div>
       </Styled(div)>
-      <p>
-        We’re applying GDPR consent and privacy policies to all Sentry contacts, regardless of location. You’ll be able to manage your subscriptions here and from an Unsubscribe link in the footer of all marketing emails.
-      </p>
-      <p>
-        Please contact 
-        <a
-          href="mailto:learn@sentry.io"
+      <Styled(div)>
+        <div
+          className="glamor-6 glamor-7"
         >
-          learn@sentry.io
-        </a>
-         with any questions or suggestions.
-      </p>
+          We’re applying GDPR consent and privacy policies to all Sentry contacts, regardless of location. You’ll be able to manage your subscriptions here and from an Unsubscribe link in the footer of all marketing emails.
+        </div>
+      </Styled(div)>
+      <Styled(div)>
+        <div
+          className="glamor-6 glamor-7"
+        >
+          Please contact 
+          <a
+            href="mailto:learn@sentry.io"
+          >
+            learn@sentry.io
+          </a>
+           with any questions or suggestions.
+        </div>
+      </Styled(div)>
     </div>
   </DocumentTitle>
 </AccountSubscriptions>

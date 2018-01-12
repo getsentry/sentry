@@ -12,6 +12,7 @@ import Row from '../components/row';
 import SettingsPageHeader from '../components/settingsPageHeader';
 import Switch from '../../../components/switch';
 import IndicatorStore from '../../../stores/indicatorStore';
+import TextBlock from '../components/text/textBlock';
 
 const ENDPOINT = '/users/me/subscriptions/';
 
@@ -73,17 +74,17 @@ class AccountSubscriptions extends AsyncView {
   renderBody() {
     return (
       <div>
-        <SettingsPageHeader label="Subscriptions" />
-        <p>
+        <SettingsPageHeader title="Subscriptions" />
+        <TextBlock>
           Sentry is committed to respecting your inbox. Our goal is to provide useful
           content and resources that make fixing errors less painful. Enjoyable even.
-        </p>
+        </TextBlock>
 
-        <p>
+        <TextBlock>
           As part of our compliance with the EU’s General Data Protection Regulation
           (GDPR), starting on 25 May 2018, we’ll only email you according to the marketing
           categories to which you’ve explicitly opted-in.
-        </p>
+        </TextBlock>
 
         <Panel>
           <PanelHeader disablePadding>
@@ -123,16 +124,16 @@ class AccountSubscriptions extends AsyncView {
             ))}
           </PanelBody>
         </Panel>
-        <p>
+        <TextBlock>
           We’re applying GDPR consent and privacy policies to all Sentry contacts,
           regardless of location. You’ll be able to manage your subscriptions here and
           from an Unsubscribe link in the footer of all marketing emails.
-        </p>
+        </TextBlock>
 
-        <p>
+        <TextBlock>
           Please contact <a href="mailto:learn@sentry.io">learn@sentry.io</a> with any
           questions or suggestions.
-        </p>
+        </TextBlock>
       </div>
     );
   }
