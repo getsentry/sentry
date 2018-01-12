@@ -77,6 +77,7 @@ def _do_preprocess_event(cache_key, data, start_time, event_id, process_event):
         data = None
     save_event.delay(
         cache_key=cache_key, data=data, start_time=start_time, event_id=event_id,
+        project_id=project
     )
 
 
@@ -164,6 +165,7 @@ def _do_process_event(cache_key, start_time, event_id, process_task):
 
     save_event.delay(
         cache_key=cache_key, data=None, start_time=start_time, event_id=event_id,
+        project_id=project
     )
 
 
@@ -285,7 +287,8 @@ def create_failed_event(cache_key, project_id, issues, event_id, start_time=None
 
 
 @instrumented_task(name='sentry.tasks.store.save_event', queue='events.save_event')
-def save_event(cache_key=None, data=None, start_time=None, event_id=None, **kwargs):
+def save_event(cache_key=None, data=None, start_time=None, event_id=None,
+               project_id=None, **kwargs):
     """
     Saves an event to the database.
     """
@@ -299,13 +302,26 @@ def save_event(cache_key=None, data=None, start_time=None, event_id=None, **kwar
     if event_id is None and data is not None:
         event_id = data['event_id']
 
-    if data is None:
-        metrics.incr('events.failed', tags={'reason': 'cache', 'stage': 'post'})
-        return
-
-    project_id = data.pop('project')
+    # only when we come from reprocessing we get a project_id sent into
+    # the task.
+    if project_id is None:
+        project_id = data.pop('project')
 
     delete_raw_event(project_id, event_id, allow_hint_clear=True)
+
+    # This covers two cases: where data is None because we did not manage
+    # to fetch it from the default cache or the empty dictionary was
+    # stored in the default cache.  The former happens if the event
+    # expired while being on the queue, the second happens on reprocessing
+    # if the raw event was deleted concurrently while we held on to
+    # it.  This causes the node store to delete the data and we end up
+    # fetching an empty dict.  We could in theory not invoke `save_event`
+    # in those cases but it's important that we always clean up the
+    # reprocessing reports correctly or they will screw up the UI.  So
+    # to future proof this correctly we just handle this case here.
+    if not data:
+        metrics.incr('events.failed', tags={'reason': 'cache', 'stage': 'post'})
+        return
 
     Raven.tags_context({
         'project': project_id,

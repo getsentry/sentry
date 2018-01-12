@@ -31,6 +31,9 @@ def reprocess_events(project_id, **kwargs):
                 for raw_event in raw_events:
                     helper.insert_data_to_database(raw_event.data.data, from_reprocessing=True)
                     create_reprocessing_report(project_id=project_id, event_id=raw_event.event_id)
+                    # Here we only delete the raw event but leave the
+                    # reprocessing report alive.  When the queue
+                    # eventually kicks in this should clean up.
                     raw_event.delete()
     except UnableToAcquireLock as error:
         logger.warning('reprocess_events.fail', extra={'error': error})
@@ -47,12 +50,14 @@ def create_reprocessing_report(project_id, event_id):
 
 @instrumented_task(name='sentry.tasks.clear_expired_raw_events', time_limit=15, soft_time_limit=10)
 def clear_expired_raw_events():
-    from sentry.models import RawEvent, ProcessingIssue
+    from sentry.models import RawEvent, ProcessingIssue, ReprocessingReport
 
     cutoff = timezone.now() - \
         timedelta(days=settings.SENTRY_RAW_EVENT_MAX_AGE_DAYS)
 
+    # Clear old raw events and reprocessing reports
     RawEvent.objects.filter(datetime__lt=cutoff).delete()
+    ReprocessingReport.objects.filter(datetime__lt=cutoff).delete()
 
     # Processing issues get a bit of extra time before we delete them
     cutoff = timezone.now() - timedelta(days=int(settings.SENTRY_RAW_EVENT_MAX_AGE_DAYS * 1.3))
