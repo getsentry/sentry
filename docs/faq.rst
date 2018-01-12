@@ -73,6 +73,7 @@ and users?
 
         project = Project()
         project.team = team
+        project.add_team(team)
         project.name = 'Default'
         project.organization = organization
         project.save()
