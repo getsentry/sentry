@@ -7,12 +7,18 @@ import AutoComplete from '../../../components/autoComplete';
 import InlineSvg from '../../../components/inlineSvg';
 import {searchIndex as orgSearchIndex} from '../../../data/forms/organizationGeneralSettings';
 import {searchIndex as teamSearchIndex} from '../../../data/forms/teamSettingsFields';
+import {searchIndex as accountAppearanceSearchIndex} from '../../../data/forms/accountAppearance';
 import {t} from '../../../locale';
 import replaceRouterParams from '../../../utils/replaceRouterParams';
 
 const MIN_SEARCH_LENGTH = 2;
 
-const searchIndex = Object.assign({}, orgSearchIndex, teamSearchIndex);
+const searchIndex = Object.assign(
+  {},
+  orgSearchIndex,
+  teamSearchIndex,
+  accountAppearanceSearchIndex
+);
 
 const SearchInputWrapper = styled.div`
   position: relative;

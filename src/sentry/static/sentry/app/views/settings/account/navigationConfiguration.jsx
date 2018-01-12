@@ -11,6 +11,10 @@ const accountNavigation = [
         title: t('Avatar'),
       },
       {
+        path: `${pathPrefix}/appearance/`,
+        title: t('Appearance'),
+      },
+      {
         path: `${pathPrefix}/notifications/`,
         title: t('Notifications'),
       },

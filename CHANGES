@@ -10,6 +10,7 @@ Schema Changes
 API Changes
 ~~~~~~~~~~~
 - Project plugins endpoint returns every configurable plugin, and includes additional information about each one
+- Added user "appearances" endpoint to list and modify appearance options.
 
 Version 8.22
 ------------
