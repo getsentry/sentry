@@ -650,7 +650,7 @@ class V2TagStorage(TagStorage):
 
         # ANY matches should come last since they're the least specific and
         # will provide the largest range of matches
-        tag_lookups = sorted(six.iteritems(tags), key=lambda x: x != ANY)
+        tag_lookups = sorted(six.iteritems(tags), key=lambda (k, v): v == ANY)
 
         # get initial matches to start the filter
         matches = None
