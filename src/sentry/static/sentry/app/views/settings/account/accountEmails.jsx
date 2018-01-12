@@ -1,15 +1,15 @@
 import React from 'react';
 
 import SettingsPageHeader from '../components/settingsPageHeader';
-import CrossSectionLinkButton from '../components/crossSectionLinkButton';
+import InternalLinkButton from '../components/internalLinkButton';
 
 const AccountEmails = () => {
   return (
     <div>
       <SettingsPageHeader title="Emails" />
-      <CrossSectionLinkButton to="/settings/account/notifications" icon="icon-stack">
+      <InternalLinkButton to="/settings/account/notifications" icon="icon-stack">
         Wanna change how many emails you get? Use the notifications panel.
-      </CrossSectionLinkButton>
+      </InternalLinkButton>
     </div>
   );
 };

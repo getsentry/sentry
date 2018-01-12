@@ -5,7 +5,7 @@ import React from 'react';
 import Link from '../../../components/link';
 import InlineSvg from '../../../components/inlineSvg';
 
-const CrossSectionLinkButtonText = styled('div')`
+const InternalLinkButtonText = styled('div')`
   flex-grow: 1;
 `;
 
@@ -13,10 +13,10 @@ const StyledInlineSvg = styled(InlineSvg)`
   margin-right: 0.75em;
 `;
 
-const CrossSectionLinkButton = styled(({to, children, icon, ...props}) => (
+const InternalLinkButton = styled(({to, children, icon, ...props}) => (
   <Link to={to} {...props}>
     {icon && <StyledInlineSvg src={icon} size="1.5em" />}
-    <CrossSectionLinkButtonText>{children}</CrossSectionLinkButtonText>
+    <InternalLinkButtonText>{children}</InternalLinkButtonText>
     <InlineSvg src="icon-chevron-right" size="1em" />
   </Link>
 ))`
@@ -34,9 +34,9 @@ const CrossSectionLinkButton = styled(({to, children, icon, ...props}) => (
   }
 `;
 
-CrossSectionLinkButton.propTypes = {
+InternalLinkButton.propTypes = {
   to: PropTypes.string.isRequired,
   icon: PropTypes.string,
 };
 
-export default CrossSectionLinkButton;
+export default InternalLinkButton;
