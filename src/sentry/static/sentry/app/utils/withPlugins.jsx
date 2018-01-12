@@ -1,4 +1,5 @@
 import React from 'react';
+import createReactClass from 'create-react-class';
 import Reflux from 'reflux';
 
 import {fetchPlugins} from '../actionCreators/plugins';
@@ -10,7 +11,7 @@ import ProjectState from '../mixins/projectState';
  * passes PluginsStore to component as `plugins`
  */
 const withPlugins = WrappedComponent =>
-  React.createClass({
+  createReactClass({
     displayName: 'withPlugins',
     mixins: [ProjectState, Reflux.connect(PluginsStore, 'store')],
     componentDidMount() {
