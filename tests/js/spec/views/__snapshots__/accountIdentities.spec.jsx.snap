@@ -6,7 +6,7 @@ exports[`AccountIdentities renders empty 1`] = `
 >
   <div>
     <SettingsPageHeading
-      label="Identities"
+      title="Identities"
     />
     <Styled(div)>
       <PanelHeader
@@ -34,7 +34,7 @@ exports[`AccountIdentities renders list 1`] = `
 >
   <div>
     <SettingsPageHeading
-      label="Identities"
+      title="Identities"
     />
     <Styled(div)>
       <PanelHeader

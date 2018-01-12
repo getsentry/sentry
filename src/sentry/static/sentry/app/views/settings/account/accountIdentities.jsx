@@ -50,7 +50,7 @@ class AccountIdentities extends AsyncView {
 
     return (
       <div>
-        <SettingsPageHeader label="Identities" />
+        <SettingsPageHeader title="Identities" />
         <Panel>
           <PanelHeader disablePadding>
             <Box px={2}>{t('Identities')}</Box>
