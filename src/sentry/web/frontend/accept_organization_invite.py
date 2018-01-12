@@ -6,7 +6,7 @@ from django.core.urlresolvers import reverse
 from django.utils.crypto import constant_time_compare
 from django.utils.translation import ugettext_lazy as _
 
-from sentry.models import (AuditLogEntryEvent, OrganizationMember, Project)
+from sentry.models import (AuditLogEntryEvent, OrganizationMember, Project, ProjectTeam)
 from sentry.signals import member_joined
 from sentry.utils import auth
 from sentry.web.frontend.base import BaseView
@@ -62,12 +62,20 @@ class AcceptOrganizationInviteView(BaseView):
         qs = Project.objects.filter(
             organization=organization,
         )
-        project_list = list(qs.select_related('team')[:25])
+        project_list = list(qs[:25])
+        project_teams = list(ProjectTeam.objects.filter(
+            project__in=project_list,
+        ).select_related('team'))
+        projects_by_id = {p.id: p for p in project_list}
+
+        project_team_context = [
+            (projects_by_id[pt.project_id], pt.team) for pt in project_teams
+        ]
         project_count = qs.count()
 
         context = {
             'organization': om.organization,
-            'project_list': project_list,
+            'project_team_list': project_team_context,
             'project_count': project_count,
             'needs_authentication': not request.user.is_authenticated(),
             'logout_url': '{}?next={}'.format(
