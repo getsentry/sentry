@@ -56,7 +56,6 @@ class BufferTest(TestCase):
         org = Organization.objects.create(slug='test-org')
         team = Team.objects.create(organization=org, slug='test-team')
         project = Project.objects.create(organization=org, slug='test-project', team=team)
-        project.add_team(team)
         release = Release.objects.create(organization=org, version='abcdefg')
         release_project = ReleaseProject.objects.create(project=project, release=release)
         assert release_project.new_groups == 0

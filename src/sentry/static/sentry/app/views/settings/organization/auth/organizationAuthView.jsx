@@ -93,7 +93,7 @@ class OrganizationAuthView extends OrganizationSettingsView {
 
     return (
       <div>
-        <SettingsPageHeader label="Authentication" />
+        <SettingsPageHeader title="Authentication" />
         <Panel>
           <PanelHeader disablePadding>
             <Flex>

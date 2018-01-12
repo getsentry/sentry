@@ -393,7 +393,6 @@ class RuleTestCase(TestCase):
     def get_state(self, **kwargs):
         kwargs.setdefault('is_new', True)
         kwargs.setdefault('is_regression', True)
-        kwargs.setdefault('is_sample', True)
         return EventState(**kwargs)
 
     def assertPasses(self, rule, event=None, **kwargs):

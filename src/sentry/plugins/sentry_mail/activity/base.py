@@ -138,7 +138,6 @@ class ActivityEmail(object):
         group = self.group
 
         headers = {
-            'X-Sentry-Team': project.team.slug,
             'X-Sentry-Project': project.slug,
         }
 

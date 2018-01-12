@@ -5,7 +5,7 @@ import SettingsPageHeader from '../components/settingsPageHeader';
 const AccountEmails = () => {
   return (
     <div>
-      <SettingsPageHeader label="Emails" />
+      <SettingsPageHeader title="Emails" />
     </div>
   );
 };

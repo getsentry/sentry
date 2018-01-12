@@ -71,11 +71,6 @@ def create_project_delete_log(entry):
     delete_log.organization_name = entry.organization.name
     delete_log.organization_slug = entry.organization.slug
 
-    team = project.team
-    delete_log.team_id = team.id
-    delete_log.team_name = team.name
-    delete_log.team_slug = team.slug
-
     complete_delete_log(delete_log, entry)
 
 

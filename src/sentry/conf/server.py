@@ -747,6 +747,7 @@ SENTRY_FEATURES = {
     'organizations:invite-members': True,
     'organizations:new-settings': False,
     'organizations:require-2fa': False,
+    'organizations:environments': False,
     'projects:global-events': False,
     'projects:plugins': True,
     'projects:dsym': False,
@@ -814,7 +815,9 @@ SENTRY_SMTP_HOST = 'localhost'
 SENTRY_SMTP_PORT = 1025
 
 SENTRY_INTERFACES = {
-    'csp': 'sentry.interfaces.csp.Csp',
+    'csp': 'sentry.interfaces.security.Csp',
+    'expectct': 'sentry.interfaces.security.ExpectCT',
+    'expectstaple': 'sentry.interfaces.security.ExpectStaple',
     'device': 'sentry.interfaces.device.Device',
     'exception': 'sentry.interfaces.exception.Exception',
     'logentry': 'sentry.interfaces.message.Message',
@@ -837,7 +840,7 @@ SENTRY_INTERFACES = {
     'sentry.interfaces.Query': 'sentry.interfaces.query.Query',
     'sentry.interfaces.Http': 'sentry.interfaces.http.Http',
     'sentry.interfaces.User': 'sentry.interfaces.user.User',
-    'sentry.interfaces.Csp': 'sentry.interfaces.csp.Csp',
+    'sentry.interfaces.Csp': 'sentry.interfaces.security.Csp',
     'sentry.interfaces.AppleCrashReport': 'sentry.interfaces.applecrash.AppleCrashReport',
     'sentry.interfaces.Breadcrumbs': 'sentry.interfaces.breadcrumbs.Breadcrumbs',
     'sentry.interfaces.Contexts': 'sentry.interfaces.contexts.Contexts',
@@ -1251,14 +1254,14 @@ SUDO_URL = 'sentry-sudo'
 
 # TODO(dcramer): move this to sentry.io so it can be automated
 SDK_VERSIONS = {
-    'raven-js': '3.16.0',
-    'raven-node': '2.1.0',
-    'raven-python': '6.1.0',
-    'raven-ruby': '2.5.3',
-    'sentry-cocoa': '3.1.2',
-    'sentry-java': '1.2.0',
-    'sentry-laravel': '0.7.0',
-    'sentry-php': '1.7.0',
+    'raven-js': '3.21.0',
+    'raven-node': '2.3.0',
+    'raven-python': '6.4.0',
+    'raven-ruby': '2.7.1',
+    'sentry-cocoa': '3.11.1',
+    'sentry-java': '1.6.4',
+    'sentry-laravel': '0.8.0',
+    'sentry-php': '1.8.2',
 }
 
 SDK_URLS = {

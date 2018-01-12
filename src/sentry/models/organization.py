@@ -54,7 +54,7 @@ class OrganizationStatus(IntEnum):
             # realistically Enum shouldn't even creating these, but alas
             if name.startswith('_'):
                 continue
-            result.append((member, member.label))
+            result.append((member.value, member.label))
         return tuple(result)
 
 
@@ -105,7 +105,9 @@ class Organization(Model):
     slug = models.SlugField(unique=True)
     status = BoundedPositiveIntegerField(
         choices=OrganizationStatus.as_choices(),
-        default=OrganizationStatus.ACTIVE
+        # south will generate a default value of `'<OrganizationStatus.ACTIVE: 0>'`
+        # if `.value` is omitted
+        default=OrganizationStatus.ACTIVE.value
     )
     date_added = models.DateTimeField(default=timezone.now)
     members = models.ManyToManyField(
@@ -194,7 +196,7 @@ class Organization(Model):
             'id': self.id,
             'slug': self.slug,
             'name': self.name,
-            'status': self.status,
+            'status': int(self.status),
             'flags': self.flags,
             'default_role': self.default_role,
         }

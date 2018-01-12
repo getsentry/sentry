@@ -9,6 +9,7 @@ import Panel from '../../components/panel';
 import PanelBody from '../../components/panelBody';
 import PanelHeader from '../../components/panelHeader';
 import SettingsPageHeader from '../../components/settingsPageHeader';
+import TextBlock from '../../components/text/textBlock';
 
 import ProjectTable from './projectTable';
 import {t} from '../../../../locale';
@@ -64,10 +65,10 @@ class OrganizationStats extends React.Component {
 
     return (
       <div>
-        <SettingsPageHeader label={t('Organization Stats')} />
+        <SettingsPageHeader title={t('Organization Stats')} />
         <div className="row">
           <div className="col-md-9">
-            <p>
+            <TextBlock>
               {t(
                 `The chart below reflects events the system has received
             across your entire organization. Events are broken down into
@@ -76,7 +77,7 @@ class OrganizationStats extends React.Component {
             being hit, and Filtered events are events that were blocked
             due to your inbound data filter rules.`
               )}
-            </p>
+            </TextBlock>
           </div>
           {!statsLoading && (
             <div className="col-md-3 stats-column">

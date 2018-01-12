@@ -11,17 +11,6 @@ from sentry.utils.imports import import_string
 from sentry.utils.safe import safe_execute
 
 
-def iter_interfaces():
-    rv = {}
-
-    for name, import_path in six.iteritems(settings.SENTRY_INTERFACES):
-        rv.setdefault(import_path, []).append(name)
-
-    for import_path, keys in six.iteritems(rv):
-        iface = import_string(import_path)
-        yield iface, keys
-
-
 def get_interface(name):
     try:
         import_path = settings.SENTRY_INTERFACES[name]
@@ -99,7 +88,7 @@ class Interface(object):
 
     @classmethod
     def to_python(cls, data):
-        return cls(data)
+        return cls(**data)
 
     def get_api_context(self, is_public=False):
         return self.to_json()

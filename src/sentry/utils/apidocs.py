@@ -284,14 +284,15 @@ class MockUtils(object):
             },
         )[0]
 
-    def create_project(self, name, team, org):
+    def create_project(self, name, teams, org):
         from sentry.models import Project
         project = Project.objects.get_or_create(
-            team=team, name=name, defaults={
+            team=teams[0], name=name, defaults={
                 'organization': org,
             }
         )[0]
-        project.add_team(team)
+        for team in teams:
+            project.add_team(team)
         return project
 
     def create_release(self, project, user, version=None):
@@ -386,7 +387,7 @@ class Runner(object):
     def isolated_project(self, project_name):
         from sentry.models import Group, Event
 
-        project = self.utils.create_project(project_name, team=self.default_team, org=self.org)
+        project = self.utils.create_project(project_name, teams=[self.default_team], org=self.org)
         release = self.utils.create_release(project=project, user=self.me)
         self.utils.create_event(project=project, release=release, platform='python')
         self.utils.create_event(project=project, release=release, platform='java')

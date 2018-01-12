@@ -13,7 +13,6 @@ import PanelBody from '../../components/panelBody';
 import PanelHeader from '../../components/panelHeader';
 import SelectInput from '../../../../components/selectInput';
 import SettingsPageHeader from '../../components/settingsPageHeader';
-import SpreadLayout from '../../../../components/spreadLayout';
 
 const UserInfo = styled(Box)`
   display: flex;
@@ -65,33 +64,27 @@ class AuditLogList extends React.Component {
     let {pageLinks, entries, eventType, eventTypes, onEventSelect} = this.props;
     let hasEntries = entries && entries.length > 0;
 
+    let action = (
+      <form>
+        <SelectInput
+          name="event"
+          onChange={onEventSelect}
+          value={eventType}
+          style={{width: 250}}
+        >
+          <option key="any" value="">
+            {t('Any action')}
+          </option>
+          {eventTypes.map(type => {
+            return <option key={type}>{type}</option>;
+          })}
+        </SelectInput>
+      </form>
+    );
+
     return (
       <div>
-        <SettingsPageHeader label={t('Audit Log')} />
-
-        <SpreadLayout>
-          <p>{t('Sentry keeps track of important events within your organization.')}</p>
-
-          <form className="form-horizontal" style={{marginBottom: 20}}>
-            <div className="control-group">
-              <div className="controls">
-                <SelectInput
-                  name="event"
-                  onChange={onEventSelect}
-                  value={eventType}
-                  style={{width: 250}}
-                >
-                  <option key="any" value="">
-                    {t('Any')}
-                  </option>
-                  {eventTypes.map(type => {
-                    return <option key={type}>{type}</option>;
-                  })}
-                </SelectInput>
-              </div>
-            </div>
-          </form>
-        </SpreadLayout>
+        <SettingsPageHeader title={t('Audit Log')} action={action} />
 
         <Panel>
           <PanelHeader disablePadding>

@@ -153,6 +153,17 @@ class GroupListTest(APITestCase):
         response = self.client.get('{}?statsPeriod=48h'.format(self.path), format='json')
         assert response.status_code == 400
 
+    def test_environment(self):
+        self.create_event(tags={'environment': 'production'})
+
+        self.login_as(user=self.user)
+
+        response = self.client.get(self.path + '?environment=production', format='json')
+        assert response.status_code == 200
+
+        response = self.client.get(self.path + '?environment=garbage', format='json')
+        assert response.status_code == 200
+
     def test_auto_resolved(self):
         project = self.project
         project.update_option('sentry:resolve_age', 1)

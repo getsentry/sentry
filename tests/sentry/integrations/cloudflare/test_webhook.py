@@ -19,7 +19,7 @@ class BaseWebhookTest(TestCase):
         self.org = self.create_organization(owner=None)
         self.team = self.create_team(organization=self.org)
         self.create_member(organization=self.org, user=self.user, role='owner', teams=[self.team])
-        self.project = self.create_project(name='a', team=self.team)
+        self.project = self.create_project(name='a', teams=[self.team])
         self.token = ApiToken.objects.create(
             user=self.user,
             token='55838c83b3ec4e3ebc24c10c7bd071ffb1dc91161d3d49aeaedd9bd35d84bbe2',
@@ -149,7 +149,7 @@ class PreviewWebhookTest(BaseWebhookTest):
             self.key.get_dsn(public=True))
 
     def test_multiple_projects(self):
-        project2 = self.create_project(name='b', team=self.team)
+        project2 = self.create_project(name='b', teams=[self.team])
 
         webhook_data = json.loads(self.load_fixture(
             'cloudflare/preview-webhook-authenticated.json'))
@@ -234,7 +234,7 @@ class OptionChangeAccountWebhookTest(BaseWebhookTest):
             self.key.get_dsn(public=True))
 
     def test_with_existing_project_selected_and_no_keys(self):
-        project2 = self.create_project(name='b', team=self.team)
+        project2 = self.create_project(name='b', teams=[self.team])
         # kill the automatically generated keys
         ProjectKey.objects.filter(project=project2).delete()
 

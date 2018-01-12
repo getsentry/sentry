@@ -222,9 +222,9 @@ class Endpoint(APIView):
 
 
 class EnvironmentMixin(object):
-    def _get_environment_id_func(self, request, organization_id):
+    def _get_environment_func(self, request, organization_id):
         """\
-        Creates a function that when called returns the environment_id
+        Creates a function that when called returns the ``Environment``
         associated with a request object, or ``None`` if no environment was
         provided. If the environment doesn't exist, an ``Environment.DoesNotExist``
         exception will be raised.
@@ -236,7 +236,7 @@ class EnvironmentMixin(object):
         provided.)
         """
         return functools.partial(
-            self._get_environment_id_from_request,
+            self._get_environment_from_request,
             request,
             organization_id,
         )

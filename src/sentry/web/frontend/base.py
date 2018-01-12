@@ -474,40 +474,40 @@ class TeamView(OrganizationView):
         return (args, kwargs)
 
 
-class ProjectView(TeamView):
+class ProjectView(OrganizationView):
     """
     Any view acting on behalf of a project should inherit from this base and the
-    matching URL pattern must pass 'team_slug' as well as 'project_slug'.
+    matching URL pattern must pass 'org_slug' as well as 'project_slug'.
 
     Three keyword arguments are added to the resulting dispatch:
 
     - organization
-    - team
     - project
     """
 
-    def get_context_data(self, request, organization, team, project, **kwargs):
-        context = super(ProjectView, self).get_context_data(request, organization, team)
+    def get_context_data(self, request, organization, project, **kwargs):
+        context = super(ProjectView, self).get_context_data(request, organization)
         context['project'] = project
         context['processing_issues'] = serialize(project).get('processingIssues', 0)
         return context
 
-    def has_permission(self, request, organization, team, project, *args, **kwargs):
+    def has_permission(self, request, organization, project, *args, **kwargs):
         if project is None:
             return False
-        if team is None:
-            return False
-        rv = super(ProjectView, self).has_permission(request, organization, team)
+        rv = super(ProjectView, self).has_permission(request, organization)
         if not rv:
             return rv
+
+        teams = list(project.teams.all())
+
         if self.required_scope:
-            if not request.access.has_team_scope(team, self.required_scope):
+            if not any(request.access.has_team_scope(team, self.required_scope) for team in teams):
                 logger.info(
                     'User %s does not have %s permission to access project %s', request.user,
                     self.required_scope, project
                 )
                 return False
-        elif not request.access.has_team(team):
+        elif not any(request.access.has_team(team) for team in teams):
             logger.info('User %s does not have access to project %s', request.user, project)
             return False
         return True
@@ -527,13 +527,7 @@ class ProjectView(TeamView):
         else:
             active_project = None
 
-        if active_project:
-            active_team = active_project.team
-        else:
-            active_team = None
-
         kwargs['project'] = active_project
-        kwargs['team'] = active_team
         kwargs['organization'] = active_organization
 
         return (args, kwargs)

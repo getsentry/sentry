@@ -9,7 +9,8 @@ from sentry.app import env
 from sentry.api.serializers import Serializer, register, serialize
 from sentry.auth.superuser import is_active_superuser
 from sentry.models import (
-    OrganizationAccessRequest, OrganizationMemberTeam, Project, ProjectStatus, Team
+    OrganizationAccessRequest, OrganizationMemberTeam, ProjectStatus,
+    ProjectTeam, Team
 )
 
 
@@ -70,24 +71,30 @@ class TeamSerializer(Serializer):
 
 class TeamWithProjectsSerializer(TeamSerializer):
     def get_attrs(self, item_list, user):
-        project_qs = list(
-            Project.objects.filter(
+        project_teams = list(
+            ProjectTeam.objects.filter(
                 team__in=item_list,
-                status=ProjectStatus.VISIBLE,
-            ).order_by('name', 'slug')
+                project__status=ProjectStatus.VISIBLE,
+            ).order_by('project__name', 'project__slug').select_related('project')
         )
 
         team_map = {i.id: i for i in item_list}
         # TODO(dcramer): we should query in bulk for ones we're missing here
         orgs = {i.organization_id: i.organization for i in item_list}
 
-        for project in project_qs:
-            project._team_cache = team_map[project.team_id]
-            project._organization_cache = orgs[project.organization_id]
+        for project_team in project_teams:
+            # TODO(jess): remove when we've completely deprecated Project.team
+            project_team.project._team_cache = team_map[project_team.project.team_id]
+            project_team.project._organization_cache = orgs[project_team.project.organization_id]
+
+        projects = [pt.project for pt in project_teams]
+        projects_by_id = {
+            project.id: data for project, data in zip(projects, serialize(projects, user))
+        }
 
         project_map = defaultdict(list)
-        for project, data in zip(project_qs, serialize(project_qs, user)):
-            project_map[project.team_id].append(data)
+        for project_team in project_teams:
+            project_map[project_team.team_id].append(projects_by_id[project_team.project_id])
 
         result = super(TeamWithProjectsSerializer, self).get_attrs(item_list, user)
         for team in item_list:

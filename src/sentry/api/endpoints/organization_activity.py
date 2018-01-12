@@ -12,7 +12,7 @@ class OrganizationActivityEndpoint(OrganizationMemberEndpoint, EnvironmentMixin)
         queryset = Activity.objects.filter(
             project__in=Project.objects.filter(
                 organization=organization,
-                team__in=OrganizationMemberTeam.objects.filter(
+                teams__in=OrganizationMemberTeam.objects.filter(
                     organizationmember=member,
                 ).values('team')
             )
@@ -29,7 +29,7 @@ class OrganizationActivityEndpoint(OrganizationMemberEndpoint, EnvironmentMixin)
             paginator_cls=DateTimePaginator,
             order_by='-datetime',
             on_results=lambda x: serialize(x, request.user, OrganizationActivitySerializer(
-                environment_id_func=self._get_environment_id_func(
+                environment_func=self._get_environment_func(
                     request, organization.id)
             )),
         )

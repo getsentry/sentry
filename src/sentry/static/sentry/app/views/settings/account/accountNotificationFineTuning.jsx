@@ -1,4 +1,5 @@
 import React from 'react';
+import styled from 'react-emotion';
 
 import AsyncView from '../../asyncView';
 import ApiForm from '../components/forms/apiForm';
@@ -17,6 +18,11 @@ const ACCOUNT_NOTIFICATION_FIELDS = {
     choices: [['default', 'Default'], ['on', 'On'], ['off', 'Off']],
   },
 };
+
+const PanelBodyLineItem = styled(PanelBody)`
+  font-size: 1.4rem;
+  border-bottom: 1px solid ${p => p.theme.borderLight};
+`;
 
 export default class AccountNotificationDetails extends AsyncView {
   getEndpoints() {
@@ -53,9 +59,7 @@ export default class AccountNotificationDetails extends AsyncView {
       <div>
         <ApiForm apiMethod="PUT" apiEndpoint={'/users/me/notifications/'}>
           <Panel>
-            <PanelHeader>
-              <div className="text-light">{this.props.route.name}</div>
-            </PanelHeader>
+            <PanelHeader lightText={true}>{this.props.route.name}</PanelHeader>
 
             {data.map(org => {
               return (
@@ -63,13 +67,14 @@ export default class AccountNotificationDetails extends AsyncView {
                   <PanelHeader>{org.name}</PanelHeader>
                   {org.projects.map((project, idx) => {
                     return (
-                      <PanelBody key={idx}>
+                      <PanelBodyLineItem key={idx}>
                         <Select2Field
                           name={project.name}
                           choices={project.choices}
                           label={project.label}
+                          small={true}
                         />
-                      </PanelBody>
+                      </PanelBodyLineItem>
                     );
                   })}
                 </div>

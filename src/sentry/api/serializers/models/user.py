@@ -14,6 +14,7 @@ from sentry.models import (
     UserAvatar,
     UserOption,
     UserEmail,
+    UserPermission,
 )
 from sentry.auth.superuser import is_active_superuser
 from sentry.utils.avatar import get_gravatar_url
@@ -98,6 +99,8 @@ class UserSerializer(Serializer):
                 'clock24Hours': options.get('clock_24_hours') or False,
                 'seenReleaseBroadcast': options.get('seen_release_broadcast'),
             }
+
+            d['permissions'] = list(UserPermission.for_user(obj.id))
 
         if attrs.get('avatar'):
             avatar = {

@@ -103,8 +103,13 @@ urlpatterns += patterns(
         name='sentry-api-minidump'
     ),
     url(
+        r'^api/(?P<project_id>\d+)/security/$',
+        api.SecurityReportView.as_view(),
+        name='sentry-api-security-report'
+    ),
+    url(  # This URL to be deprecated
         r'^api/(?P<project_id>\d+)/csp-report/$',
-        api.CspReportView.as_view(),
+        api.SecurityReportView.as_view(),
         name='sentry-api-csp-report'
     ),
     url(

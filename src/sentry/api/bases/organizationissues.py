@@ -33,9 +33,9 @@ class OrganizationIssuesEndpoint(OrganizationMemberEndpoint, EnvironmentMixin):
 
         project_list = Project.objects.filter(
             organization=organization,
-            team__in=OrganizationMemberTeam.objects.filter(
+            teams__in=OrganizationMemberTeam.objects.filter(
                 organizationmember=member,
-            ).values('team')
+            ).values('team'),
         )
 
         queryset = self.get_queryset(request, organization, member, project_list)
@@ -55,7 +55,7 @@ class OrganizationIssuesEndpoint(OrganizationMemberEndpoint, EnvironmentMixin):
         def on_results(results):
             results = serialize(
                 results, request.user, StreamGroupSerializer(
-                    environment_id_func=self._get_environment_id_func(request, organization.id),
+                    environment_func=self._get_environment_func(request, organization.id),
                     stats_period=stats_period,
                 )
             )

@@ -30,7 +30,7 @@ class Command(BaseCommand):
                 project = Project.objects.get(id=options['project'])
             elif '/' in options['project']:
                 t_slug, p_slug = options['project'].split('/', 1)
-                project = Project.objects.get(slug=p_slug, team__slug=t_slug)
+                project = Project.objects.get(slug=p_slug, teams__slug=t_slug)
             else:
                 raise CommandError(
                     'Project must be specified as team-slug/project-slug or a project id'

@@ -35,7 +35,11 @@ ProjectStatus = ObjectStatus
 class ProjectTeam(Model):
     __core__ = True
 
-    project = FlexibleForeignKey('sentry.Project')
+    # TODO(jess): this unique index is temporary and should be
+    # removed when the UI is updated to handle multiple teams
+    # per project. This is just to prevent wonky behavior in
+    # the mean time.
+    project = FlexibleForeignKey('sentry.Project', unique=True)
     team = FlexibleForeignKey('sentry.Team')
 
     class Meta:
@@ -66,13 +70,12 @@ class ProjectManager(BaseManager):
                 return []
 
         base_qs = self.filter(
-            team=team,
+            teams=team,
             status=ProjectStatus.VISIBLE,
         )
 
         project_list = []
         for project in base_qs:
-            project.team = team
             project_list.append(project)
 
         return sorted(project_list, key=lambda x: x.name.lower())
@@ -278,9 +281,10 @@ class Project(Model):
         return is_enabled
 
     def transfer_to(self, team):
-        from sentry.models import ReleaseProject
+        from sentry.models import ProjectTeam, ReleaseProject
 
         organization = team.organization
+        from_team_id = self.team_id
 
         # We only need to delete ReleaseProjects when moving to a different
         # Organization. Releases are bound to Organization, so it's not realistic
@@ -306,6 +310,8 @@ class Project(Model):
                 organization=organization,
                 team=team,
             )
+
+        ProjectTeam.objects.filter(project=self, team_id=from_team_id).update(team=team)
 
     def add_team(self, team):
         try:

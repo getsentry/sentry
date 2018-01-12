@@ -1,31 +1,14 @@
 // Jest Snapshot v1, https://goo.gl/fbAQLP
 
 exports[`OrganizationApiKeysList renders 1`] = `
-.glamor-8 {
-  display: -webkit-box;
-  display: -webkit-flex;
-  display: -ms-flexbox;
-  display: flex;
-  -webkit-align-items: top;
-  -webkit-box-align: top;
-  -ms-flex-align: top;
-  align-items: top;
+.glamor-6 {
   font-size: 14px;
   box-shadow: inset 0 -1px 0;
-  margin-bottom: 30px;
+  margin: -20px 0 30px;
 }
 
 .glamor-4 {
-  display: -webkit-box;
-  display: -webkit-flex;
-  display: -ms-flexbox;
-  display: flex;
-  -webkit-flex: 1;
-  -ms-flex: 1;
-  flex: 1;
-}
-
-.glamor-2 {
+  box-sizing: border-box;
   display: -webkit-box;
   display: -webkit-flex;
   display: -ms-flexbox;
@@ -34,30 +17,33 @@ exports[`OrganizationApiKeysList renders 1`] = `
   -webkit-box-align: center;
   -ms-flex-align: center;
   align-items: center;
-  font-weight: bold;
-  border-bottom: 3px solid;
 }
 
 .glamor-0 {
-  padding: 0 0 15px;
+  font-size: 20px;
+  font-weight: bold;
+  margin: 20px 0;
+  -webkit-flex: 1;
+  -ms-flex: 1;
+  flex: 1;
 }
 
-.glamor-6 {
+.glamor-2 {
   margin-right: 4px;
 }
 
-.glamor-10 {
+.glamor-8 {
   line-height: 1.8;
 }
 
-.glamor-40 {
+.glamor-43 {
   background: #fff;
   border: 1px solid;
   margin-bottom: 30px;
   position: relative;
 }
 
-.glamor-24 {
+.glamor-27 {
   border-bottom: 1px solid;
   border-radius: 0 0;
   background: padding:15px 0;
@@ -65,7 +51,13 @@ exports[`OrganizationApiKeysList renders 1`] = `
   font-size: 13px;
 }
 
-.glamor-22 {
+.glamor-23 {
+  font-size: inherit;
+  text-transform: inherit;
+  margin: 0;
+}
+
+.glamor-21 {
   font-size: 12px;
   font-weight: 600;
   text-transform: uppercase;
@@ -75,19 +67,7 @@ exports[`OrganizationApiKeysList renders 1`] = `
   margin: 0;
 }
 
-.glamor-20 {
-  box-sizing: border-box;
-  display: -webkit-box;
-  display: -webkit-flex;
-  display: -ms-flexbox;
-  display: flex;
-  -webkit-align-items: center;
-  -webkit-box-align: center;
-  -ms-flex-align: center;
-  align-items: center;
-}
-
-.glamor-16 {
+.glamor-14 {
   box-sizing: border-box;
   -webkit-flex: 1;
   -ms-flex: 1;
@@ -102,7 +82,7 @@ exports[`OrganizationApiKeysList renders 1`] = `
   align-items: center;
 }
 
-.glamor-12 {
+.glamor-10 {
   box-sizing: border-box;
   padding-left: 16px;
   padding-right: 16px;
@@ -111,7 +91,7 @@ exports[`OrganizationApiKeysList renders 1`] = `
   flex: 1;
 }
 
-.glamor-14 {
+.glamor-12 {
   box-sizing: border-box;
   padding-left: 16px;
   padding-right: 16px;
@@ -120,14 +100,14 @@ exports[`OrganizationApiKeysList renders 1`] = `
   flex: 2;
 }
 
-.glamor-18 {
+.glamor-16 {
   box-sizing: border-box;
   width: 100px;
   padding-left: 16px;
   padding-right: 16px;
 }
 
-.glamor-34 {
+.glamor-37 {
   box-sizing: border-box;
   padding-top: 8px;
   padding-bottom: 8px;
@@ -142,7 +122,7 @@ exports[`OrganizationApiKeysList renders 1`] = `
   border-bottom: 1px solid;
 }
 
-.glamor-34:last-child {
+.glamor-37:last-child {
   border: 0;
 }
 
@@ -203,72 +183,74 @@ exports[`OrganizationApiKeysList renders 1`] = `
           New API Key
         </Button>
       }
-      label="API Keys"
+      title="API Keys"
     >
       <Styled(div)>
         <div
-          className="glamor-8 glamor-9"
+          className="glamor-6 glamor-7"
         >
-          <Styled(div)>
-            <div
-              className="glamor-4 glamor-5"
+          <Flex
+            align="center"
+          >
+            <Base
+              align="center"
+              className="glamor-4"
             >
-              <Styled(div)>
-                <div
-                  className="glamor-2 glamor-3"
-                >
-                  <Styled(span)>
-                    <span
-                      className="glamor-0 glamor-1"
-                    >
-                      API Keys
-                    </span>
-                  </Styled(span)>
-                </div>
-              </Styled(div)>
-            </div>
-          </Styled(div)>
-          <div>
-            <Button
-              disabled={false}
-              priority="link"
-            >
-              <button
-                className="button button-link"
-                disabled={false}
-                onClick={[Function]}
-                role="button"
+              <div
+                className="glamor-4"
+                is={null}
               >
-                <FlowLayout
-                  truncate={false}
-                >
+                <Styled(div)>
                   <div
-                    className="flow-layout"
+                    className="glamor-0 glamor-1"
                   >
-                    <span
-                      className="button-label"
-                    >
-                      <Styled(span)
-                        className="icon-plus"
-                      >
-                        <span
-                          className="icon-plus glamor-6 glamor-7"
-                        />
-                      </Styled(span)>
-                       
-                      New API Key
-                    </span>
+                    API Keys
                   </div>
-                </FlowLayout>
-              </button>
-            </Button>
-          </div>
+                </Styled(div)>
+                <div>
+                  <Button
+                    disabled={false}
+                    priority="link"
+                  >
+                    <button
+                      className="button button-link"
+                      disabled={false}
+                      onClick={[Function]}
+                      role="button"
+                    >
+                      <FlowLayout
+                        truncate={false}
+                      >
+                        <div
+                          className="flow-layout"
+                        >
+                          <span
+                            className="button-label"
+                          >
+                            <Styled(span)
+                              className="icon-plus"
+                            >
+                              <span
+                                className="icon-plus glamor-2 glamor-3"
+                              />
+                            </Styled(span)>
+                             
+                            New API Key
+                          </span>
+                        </div>
+                      </FlowLayout>
+                    </button>
+                  </Button>
+                </div>
+              </div>
+            </Base>
+          </Flex>
         </div>
       </Styled(div)>
     </SettingsPageHeading>
     <Styled(p)>
       <p
-        className="glamor-10 glamor-11"
+        className="glamor-8 glamor-9"
       >
         <span
           key="5"
@@ -340,7 +322,7 @@ exports[`OrganizationApiKeysList renders 1`] = `
     </div>
     <Styled(div)>
       <div
-        className="glamor-40 glamor-41"
+        className="glamor-43 glamor-44"
       >
         <PanelHeader
           disablePadding={true}
@@ -349,101 +331,109 @@ exports[`OrganizationApiKeysList renders 1`] = `
             disablePadding={true}
           >
             <div
-              className="glamor-24 glamor-25"
+              className="glamor-27 glamor-28"
             >
-              <Styled(div)>
-                <div
-                  className="glamor-22 glamor-23"
+              <Styled(Component)>
+                <Component
+                  className="glamor-23 glamor-20"
                 >
-                  <Flex
-                    align="center"
+                  <Styled(div)
+                    className="glamor-23 glamor-20"
                   >
-                    <Base
-                      align="center"
-                      className="glamor-20"
+                    <div
+                      className="glamor-20 glamor-21 glamor-22"
                     >
-                      <div
-                        className="glamor-20"
-                        is={null}
+                      <Flex
+                        align="center"
                       >
-                        <Flex
+                        <Base
                           align="center"
-                          flex="1"
+                          className="glamor-4"
                         >
-                          <Base
-                            align="center"
-                            className="glamor-16"
-                            flex="1"
+                          <div
+                            className="glamor-4"
+                            is={null}
                           >
-                            <div
-                              className="glamor-16"
-                              is={null}
+                            <Flex
+                              align="center"
+                              flex="1"
                             >
-                              <Box
+                              <Base
+                                align="center"
+                                className="glamor-14"
                                 flex="1"
-                                px={2}
                               >
-                                <Base
-                                  className="glamor-12"
-                                  flex="1"
-                                  px={2}
-                                >
-                                  <div
-                                    className="glamor-12"
-                                    is={null}
-                                  >
-                                    Name
-                                  </div>
-                                </Base>
-                              </Box>
-                              <Box
-                                flex="2"
-                                px={2}
-                              >
-                                <Base
+                                <div
                                   className="glamor-14"
-                                  flex="2"
-                                  px={2}
+                                  is={null}
                                 >
-                                  <div
-                                    className="glamor-14"
-                                    is={null}
+                                  <Box
+                                    flex="1"
+                                    px={2}
                                   >
-                                    Key
-                                  </div>
-                                </Base>
-                              </Box>
-                            </div>
-                          </Base>
-                        </Flex>
-                        <Box
-                          px={2}
-                          w={100}
-                        >
-                          <Base
-                            className="glamor-18"
-                            px={2}
-                            w={100}
-                          >
-                            <div
-                              className="glamor-18"
-                              is={null}
+                                    <Base
+                                      className="glamor-10"
+                                      flex="1"
+                                      px={2}
+                                    >
+                                      <div
+                                        className="glamor-10"
+                                        is={null}
+                                      >
+                                        Name
+                                      </div>
+                                    </Base>
+                                  </Box>
+                                  <Box
+                                    flex="2"
+                                    px={2}
+                                  >
+                                    <Base
+                                      className="glamor-12"
+                                      flex="2"
+                                      px={2}
+                                    >
+                                      <div
+                                        className="glamor-12"
+                                        is={null}
+                                      >
+                                        Key
+                                      </div>
+                                    </Base>
+                                  </Box>
+                                </div>
+                              </Base>
+                            </Flex>
+                            <Box
+                              px={2}
+                              w={100}
                             >
-                              Actions
-                            </div>
-                          </Base>
-                        </Box>
-                      </div>
-                    </Base>
-                  </Flex>
-                </div>
-              </Styled(div)>
+                              <Base
+                                className="glamor-16"
+                                px={2}
+                                w={100}
+                              >
+                                <div
+                                  className="glamor-16"
+                                  is={null}
+                                >
+                                  Actions
+                                </div>
+                              </Base>
+                            </Box>
+                          </div>
+                        </Base>
+                      </Flex>
+                    </div>
+                  </Styled(div)>
+                </Component>
+              </Styled(Component)>
             </div>
           </Styled(div)>
         </PanelHeader>
         <Styled(div)>
           <div
-            className="glamor-38 glamor-39"
+            className="glamor-41 glamor-42"
           >
             <Styled(Base)
               align="center"
@@ -452,11 +442,11 @@ exports[`OrganizationApiKeysList renders 1`] = `
             >
               <Base
                 align="center"
-                className="glamor-34 glamor-35"
+                className="glamor-37 glamor-38"
                 py={1}
               >
                 <div
-                  className="glamor-34 glamor-35"
+                  className="glamor-37 glamor-38"
                   is={null}
                 >
                   <Flex
@@ -465,11 +455,11 @@ exports[`OrganizationApiKeysList renders 1`] = `
                   >
                     <Base
                       align="center"
-                      className="glamor-16"
+                      className="glamor-14"
                       flex="1"
                     >
                       <div
-                        className="glamor-16"
+                        className="glamor-14"
                         is={null}
                       >
                         <Box
@@ -479,12 +469,12 @@ exports[`OrganizationApiKeysList renders 1`] = `
                         >
                           <Base
                             align="center"
-                            className="glamor-12"
+                            className="glamor-10"
                             flex="1"
                             px={2}
                           >
                             <div
-                              className="glamor-12"
+                              className="glamor-10"
                               is={null}
                             >
                               <Link
@@ -504,12 +494,12 @@ exports[`OrganizationApiKeysList renders 1`] = `
                           px={2}
                         >
                           <Base
-                            className="glamor-14"
+                            className="glamor-12"
                             flex="2"
                             px={2}
                           >
                             <div
-                              className="glamor-14"
+                              className="glamor-12"
                               is={null}
                             >
                               <div
@@ -528,12 +518,12 @@ exports[`OrganizationApiKeysList renders 1`] = `
                     w={100}
                   >
                     <Base
-                      className="glamor-18"
+                      className="glamor-16"
                       px={2}
                       w={100}
                     >
                       <div
-                        className="glamor-18"
+                        className="glamor-16"
                         is={null}
                       >
                         <LinkWithConfirmation

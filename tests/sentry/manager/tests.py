@@ -106,8 +106,8 @@ class TeamManagerTest(TestCase):
         org = self.create_organization()
         team = self.create_team(organization=org, name='Test')
         self.create_member(organization=org, user=user, teams=[team])
-        project = self.create_project(team=team, name='foo')
-        project2 = self.create_project(team=team, name='bar')
+        project = self.create_project(teams=[team], name='foo')
+        project2 = self.create_project(teams=[team], name='bar')
         result = Team.objects.get_for_user(
             organization=org,
             user=user,
@@ -121,8 +121,8 @@ class ProjectManagerTest(TestCase):
         user = User.objects.create(username='foo')
         org = self.create_organization()
         team = self.create_team(organization=org, name='Test')
-        project = self.create_project(team=team, name='foo')
-        project2 = self.create_project(team=team, name='baz')
+        project = self.create_project(teams=[team], name='foo')
+        project2 = self.create_project(teams=[team], name='baz')
 
         result = Project.objects.get_for_user(
             team=team,

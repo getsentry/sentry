@@ -29,7 +29,7 @@ class GroupLink(Model):
     class LinkedType:
         unknown = 0
         commit = 1
-        pull = 2
+        pull_request = 2
         issue = 3
 
     group_id = BoundedBigIntegerField()
@@ -37,7 +37,7 @@ class GroupLink(Model):
     linked_type = BoundedPositiveIntegerField(
         default=LinkedType.commit,
         choices=((LinkedType.commit, _('Commit')),
-                 (LinkedType.pull, _('Pull Request')),
+                 (LinkedType.pull_request, _('Pull Request')),
                  (LinkedType.issue, _('Tracker Issue')), ),
     )
     linked_id = BoundedBigIntegerField()

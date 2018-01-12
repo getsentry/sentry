@@ -11,7 +11,7 @@ class ProjectTest(TestCase):
         user = self.create_user()
         org = self.create_organization(owner=user)
         team = self.create_team(organization=org)
-        project = self.create_project(team=team)
+        project = self.create_project(teams=[team])
         member = OrganizationMember.objects.get(
             user=user,
             organization=org,
@@ -27,7 +27,7 @@ class ProjectTest(TestCase):
         user = self.create_user()
         org = self.create_organization(owner=user)
         team = self.create_team(organization=org)
-        project = self.create_project(team=team)
+        project = self.create_project(teams=[team])
         OrganizationMember.objects.get(
             user=user,
             organization=org,
@@ -38,7 +38,7 @@ class ProjectTest(TestCase):
     def test_transfer_to(self):
         from_org = self.create_organization()
         from_team = self.create_team(organization=from_org)
-        project = self.create_project(team=from_team)
+        project = self.create_project(teams=[from_team])
         to_org = self.create_organization()
         to_team = self.create_team(organization=to_org)
 
@@ -47,16 +47,18 @@ class ProjectTest(TestCase):
         project = Project.objects.get(id=project.id)
 
         assert project.team_id == to_team.id
+        assert project.teams.count() == 1
+        assert project.teams.first() == to_team
         assert project.organization_id == to_org.id
 
     def test_transfer_to_slug_collision(self):
         from_org = self.create_organization()
         from_team = self.create_team(organization=from_org)
-        project = self.create_project(team=from_team, slug='matt')
+        project = self.create_project(teams=[from_team], slug='matt')
         to_org = self.create_organization()
         to_team = self.create_team(organization=to_org)
         # conflicting project slug
-        self.create_project(team=to_team, slug='matt')
+        self.create_project(teams=[to_team], slug='matt')
 
         assert Project.objects.filter(organization=to_org).count() == 1
 
@@ -65,6 +67,8 @@ class ProjectTest(TestCase):
         project = Project.objects.get(id=project.id)
 
         assert project.team_id == to_team.id
+        assert project.teams.count() == 1
+        assert project.teams.first() == to_team
         assert project.organization_id == to_org.id
         assert project.slug != 'matt'
         assert Project.objects.filter(organization=to_org).count() == 2

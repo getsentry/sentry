@@ -15,8 +15,7 @@ from sentry.coreapi import (
     APIUnauthorized,
     Auth,
     ClientApiHelper,
-    CspApiHelper,
-    APIForbidden,
+    SecurityApiHelper,
 )
 from sentry.event_manager import EventManager
 from sentry.interfaces.base import get_interface
@@ -29,7 +28,7 @@ class BaseAPITest(TestCase):
     def setUp(self):
         self.user = self.create_user('coreapi@example.com')
         self.team = self.create_team(name='Foo')
-        self.project = self.create_project(team=self.team)
+        self.project = self.create_project(teams=[self.team])
         self.pk = self.project.key_set.get_or_create()[0]
         self.helper = self.helper_cls(agent='Awesome Browser', ip_address='198.51.100.0')
 
@@ -621,27 +620,23 @@ class EnsureHasIpTest(BaseAPITest):
         assert out['sentry.interfaces.User']['ip_address'] == '127.0.0.1'
 
 
-class CspApiHelperTest(BaseAPITest):
-    helper_cls = CspApiHelper
+class SecurityApiHelperTest(BaseAPITest):
+    helper_cls = SecurityApiHelper
 
-    def test_validate_basic(self):
+    def test_csp_validate_basic(self):
         report = {
-            "document-uri":
-            "http://45.55.25.245:8123/csp",
-            "referrer":
-            "http://example.com",
-            "violated-directive":
-            "img-src https://45.55.25.245:8123/",
-            "effective-directive":
-            "img-src",
-            "original-policy":
-            "default-src  https://45.55.25.245:8123/; child-src  https://45.55.25.245:8123/; connect-src  https://45.55.25.245:8123/; font-src  https://45.55.25.245:8123/; img-src  https://45.55.25.245:8123/; media-src  https://45.55.25.245:8123/; object-src  https://45.55.25.245:8123/; script-src  https://45.55.25.245:8123/; style-src  https://45.55.25.245:8123/; form-action  https://45.55.25.245:8123/; frame-ancestors 'none'; plugin-types 'none'; report-uri http://45.55.25.245:8123/csp-report?os=OS%20X&device=&browser_version=43.0&browser=chrome&os_version=Lion",
-            "blocked-uri":
-            "http://google.com",
-            "status-code":
-            200,
-            "_meta": {
-                "release": "abc123",
+            "release": "abc123",
+            "interface": 'sentry.interfaces.Csp',
+            "report": {
+                "csp-report": {
+                    "document-uri": "http://45.55.25.245:8123/csp",
+                    "referrer": "http://example.com",
+                    "violated-directive": "img-src https://45.55.25.245:8123/",
+                    "effective-directive": "img-src",
+                    "original-policy": "default-src  https://45.55.25.245:8123/; child-src  https://45.55.25.245:8123/; connect-src  https://45.55.25.245:8123/; font-src  https://45.55.25.245:8123/; img-src  https://45.55.25.245:8123/; media-src  https://45.55.25.245:8123/; object-src  https://45.55.25.245:8123/; script-src  https://45.55.25.245:8123/; style-src  https://45.55.25.245:8123/; form-action  https://45.55.25.245:8123/; frame-ancestors 'none'; plugin-types 'none'; report-uri http://45.55.25.245:8123/csp-report?os=OS%20X&device=&browser_version=43.0&browser=chrome&os_version=Lion",
+                    "blocked-uri": "http://google.com",
+                    "status-code": 200,
+                }
             }
         }
         result = self.validate_and_normalize(report)
@@ -661,29 +656,32 @@ class CspApiHelperTest(BaseAPITest):
             'Referer': 'http://example.com'
         }
 
-    @mock.patch('sentry.interfaces.csp.Csp.to_python', mock.Mock(side_effect=Exception))
-    def test_validate_raises_invalid_interface(self):
-        with self.assertRaises(APIForbidden):
+    def test_csp_validate_failure(self):
+        report = {
+            "release": "abc123",
+            "interface": 'sentry.interfaces.Csp',
+            "report": {}
+        }
+        with self.assertRaises(APIError):
+            self.validate_and_normalize(report)
+
+        with self.assertRaises(APIError):
             self.validate_and_normalize({})
 
-    def test_tags_out_of_bounds(self):
+    def test_csp_tags_out_of_bounds(self):
         report = {
-            "document-uri":
-            "http://45.55.25.245:8123/csp",
-            "referrer":
-            "http://example.com",
-            "violated-directive":
-            "img-src https://45.55.25.245:8123/",
-            "effective-directive":
-            "img-src",
-            "original-policy":
-            "default-src  https://45.55.25.245:8123/; child-src  https://45.55.25.245:8123/; connect-src  https://45.55.25.245:8123/; font-src  https://45.55.25.245:8123/; img-src  https://45.55.25.245:8123/; media-src  https://45.55.25.245:8123/; object-src  https://45.55.25.245:8123/; script-src  https://45.55.25.245:8123/; style-src  https://45.55.25.245:8123/; form-action  https://45.55.25.245:8123/; frame-ancestors 'none'; plugin-types 'none'; report-uri http://45.55.25.245:8123/csp-report?os=OS%20X&device=&browser_version=43.0&browser=chrome&os_version=Lion",
-            "blocked-uri":
-            "v" * 201,
-            "status-code":
-            200,
-            "_meta": {
-                "release": "abc123",
+            "release": "abc123",
+            "interface": 'sentry.interfaces.Csp',
+            "report": {
+                "csp-report": {
+                    "document-uri": "http://45.55.25.245:8123/csp",
+                    "referrer": "http://example.com",
+                    "violated-directive": "img-src https://45.55.25.245:8123/",
+                    "effective-directive": "img-src",
+                    "original-policy": "default-src  https://45.55.25.245:8123/; child-src  https://45.55.25.245:8123/; connect-src  https://45.55.25.245:8123/; font-src  https://45.55.25.245:8123/; img-src  https://45.55.25.245:8123/; media-src  https://45.55.25.245:8123/; object-src  https://45.55.25.245:8123/; script-src  https://45.55.25.245:8123/; style-src  https://45.55.25.245:8123/; form-action  https://45.55.25.245:8123/; frame-ancestors 'none'; plugin-types 'none'; report-uri http://45.55.25.245:8123/csp-report?os=OS%20X&device=&browser_version=43.0&browser=chrome&os_version=Lion",
+                    "blocked-uri": "v" * 201,
+                    "status-code": 200,
+                }
             }
         }
         result = self.validate_and_normalize(report)
@@ -692,24 +690,20 @@ class CspApiHelperTest(BaseAPITest):
         ]
         assert len(result['errors']) == 1
 
-    def test_tag_value(self):
+    def test_csp_tag_value(self):
         report = {
-            "document-uri":
-            "http://45.55.25.245:8123/csp",
-            "referrer":
-            "http://example.com",
-            "violated-directive":
-            "img-src https://45.55.25.245:8123/",
-            "effective-directive":
-            "img-src",
-            "original-policy":
-            "default-src  https://45.55.25.245:8123/; child-src  https://45.55.25.245:8123/; connect-src  https://45.55.25.245:8123/; font-src  https://45.55.25.245:8123/; img-src  https://45.55.25.245:8123/; media-src  https://45.55.25.245:8123/; object-src  https://45.55.25.245:8123/; script-src  https://45.55.25.245:8123/; style-src  https://45.55.25.245:8123/; form-action  https://45.55.25.245:8123/; frame-ancestors 'none'; plugin-types 'none'; report-uri http://45.55.25.245:8123/csp-report?os=OS%20X&device=&browser_version=43.0&browser=chrome&os_version=Lion",
-            "blocked-uri":
-            "http://google.com",
-            "status-code":
-            200,
-            "_meta": {
-                "release": "abc123",
+            "release": "abc123",
+            "interface": 'sentry.interfaces.Csp',
+            "report": {
+                "csp-report": {
+                    "document-uri": "http://45.55.25.245:8123/csp",
+                    "referrer": "http://example.com",
+                    "violated-directive": "img-src https://45.55.25.245:8123/",
+                    "effective-directive": "img-src",
+                    "original-policy": "default-src  https://45.55.25.245:8123/; child-src  https://45.55.25.245:8123/; connect-src  https://45.55.25.245:8123/; font-src  https://45.55.25.245:8123/; img-src  https://45.55.25.245:8123/; media-src  https://45.55.25.245:8123/; object-src  https://45.55.25.245:8123/; script-src  https://45.55.25.245:8123/; style-src  https://45.55.25.245:8123/; form-action  https://45.55.25.245:8123/; frame-ancestors 'none'; plugin-types 'none'; report-uri http://45.55.25.245:8123/csp-report?os=OS%20X&device=&browser_version=43.0&browser=chrome&os_version=Lion",
+                    "blocked-uri": "http://google.com",
+                    "status-code": 200,
+                }
             }
         }
         result = self.validate_and_normalize(report)
@@ -718,27 +712,3 @@ class CspApiHelperTest(BaseAPITest):
             ('blocked-uri', 'http://google.com'),
         ]
         assert len(result['errors']) == 0
-
-    def test_no_tags(self):
-        report = {
-            "document-uri":
-            "http://45.55.25.245:8123/csp",
-            "referrer":
-            "http://example.com",
-            "violated-directive":
-            "img-src https://45.55.25.245:8123/",
-            "effective-directive":
-            "v" * 201,
-            "original-policy":
-            "default-src  https://45.55.25.245:8123/; child-src  https://45.55.25.245:8123/; connect-src  https://45.55.25.245:8123/; font-src  https://45.55.25.245:8123/; img-src  https://45.55.25.245:8123/; media-src  https://45.55.25.245:8123/; object-src  https://45.55.25.245:8123/; script-src  https://45.55.25.245:8123/; style-src  https://45.55.25.245:8123/; form-action  https://45.55.25.245:8123/; frame-ancestors 'none'; plugin-types 'none'; report-uri http://45.55.25.245:8123/csp-report?os=OS%20X&device=&browser_version=43.0&browser=chrome&os_version=Lion",
-            "blocked-uri":
-            "http://goo\ngle.com",
-            "status-code":
-            200,
-            "_meta": {
-                "release": "abc123",
-            }
-        }
-        result = self.validate_and_normalize(report)
-        assert result['tags'] == []
-        assert len(result['errors']) == 2
