@@ -3,6 +3,7 @@ import PropTypes from 'prop-types';
 import React from 'react';
 
 import InlineSvg from '../../../components/inlineSvg';
+import Link from '../../../components/link';
 
 const CrossSectionLinkButtonText = styled(({children, ...props}) => (
   <div {...props}>{children}</div>
@@ -11,12 +12,12 @@ const CrossSectionLinkButtonText = styled(({children, ...props}) => (
   margin-left: 0.75em;
 `;
 
-const CrossSectionLinkButton = styled(({href, children, ...props}) => (
-  <a href={href} {...props}>
+const CrossSectionLinkButton = styled(({to, children, ...props}) => (
+  <Link to={to} {...props}>
     <InlineSvg src="icon-mail" width="1.5em" height="1em" />
     <CrossSectionLinkButtonText>{children}</CrossSectionLinkButtonText>
     <InlineSvg src="icon-chevron-right" size="1em" />
-  </a>
+  </Link>
 ))`
   display: flex;
   background-color: ${t => t.theme.yellowLightest};
@@ -32,7 +33,7 @@ const CrossSectionLinkButton = styled(({href, children, ...props}) => (
 `;
 
 CrossSectionLinkButton.propTypes = {
-  href: PropTypes.string,
+  to: PropTypes.string,
 };
 
 export default CrossSectionLinkButton;

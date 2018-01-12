@@ -36,7 +36,7 @@ export default class AccountNotifications extends AsyncView {
             {accountNotificationFields.map(field => {
               return <FormField key={field.title} field={field} />;
             })}
-            <CrossSectionLinkButton href="/settings/account/emails">
+            <CrossSectionLinkButton to="/settings/account/emails">
               Looking to add, remove, or route an email? Use the emails panel.
             </CrossSectionLinkButton>
           </Box>
