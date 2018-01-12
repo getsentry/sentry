@@ -16,6 +16,7 @@ const theme = {
   greenDark: '#3EA573',
 
   yellow: '#ECD744',
+  yellowLightest: '#FFFDF7',
   yellowLight: '#FFF15E',
   yellowDark: '#D3BE2B',
 
