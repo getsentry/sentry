@@ -1,7 +1,7 @@
 import React from 'react';
 
 import SettingsPageHeader from '../components/settingsPageHeader';
-import InternalLinkButton from '../components/internalLinkButton';
+import InternalLinkButton from '../../../components/internalLinkButton';
 
 const AccountEmails = () => {
   return (

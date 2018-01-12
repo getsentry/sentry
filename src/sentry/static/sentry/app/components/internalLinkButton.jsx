@@ -2,8 +2,8 @@ import styled from 'react-emotion';
 import PropTypes from 'prop-types';
 import React from 'react';
 
-import Link from '../../../components/link';
-import InlineSvg from '../../../components/inlineSvg';
+import Link from './link';
+import InlineSvg from './inlineSvg';
 
 const InternalLinkButtonText = styled('div')`
   flex-grow: 1;

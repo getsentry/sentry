@@ -14,7 +14,7 @@ import Panel from '../components/panel';
 import PanelBody from '../components/panelBody';
 import PanelHeader from '../components/panelHeader';
 import PanelFooter from '../components/panelFooter';
-import InternalLinkButton from '../components/internalLinkButton';
+import InternalLinkButton from '../../../components/internalLinkButton';
 import InlineSvg from '../../../components/inlineSvg';
 
 export default class AccountNotifications extends AsyncView {

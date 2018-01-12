@@ -2,7 +2,7 @@ import React from 'react';
 import {storiesOf} from '@storybook/react';
 import {withInfo} from '@storybook/addon-info';
 
-import InternalLinkButton from 'settings-ui/internalLinkButton';
+import InternalLinkButton from 'sentry-ui/internalLinkButton';
 
 storiesOf('Links/InternalLinkButton', module)
   .add(
