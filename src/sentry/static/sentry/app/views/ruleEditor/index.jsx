@@ -157,9 +157,7 @@ const RuleEditor = createReactClass({
             </div>
 
             {this.hasError('conditions') && (
-              <p className="error">
-                {this.state.error['conditions'][0]}
-              </p>
+              <p className="error">{this.state.error.conditions[0]}</p>
             )}
 
             <RuleNodeList
@@ -174,9 +172,7 @@ const RuleEditor = createReactClass({
             <h6>{t('Take these actions:')}</h6>
 
             {this.hasError('actions') && (
-              <p className="error">
-                {this.state.error['actions'][0]}
-              </p>
+              <p className="error">{this.state.error.actions[0]}</p>
             )}
 
             <RuleNodeList
