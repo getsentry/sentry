@@ -649,3 +649,41 @@ class TagStorage(TestCase):
                 self.proj1group1event1.id], self.proj1group2.id)
 
         assert EventTag.objects.filter(group_id=self.proj1group2.id).count() == 3
+
+    def test_get_groups_times_seen_by_environment(self):
+        self.ts.get_or_create_tag_key(
+            project_id=self.proj1.id,
+            environment_id=None,
+            key='environment',
+        )
+
+        self.ts.get_or_create_tag_value(
+            project_id=self.proj1.id,
+            environment_id=None,
+            key='environment',
+            value='production',
+        )
+
+        self.ts.create_group_tag_key(
+            project_id=self.proj1.id,
+            group_id=self.proj1group1.id,
+            environment_id=None,
+            key='environment',
+        )
+
+        self.ts.create_group_tag_value(
+            project_id=self.proj1.id,
+            group_id=self.proj1group1.id,
+            environment_id=None,
+            key='environment',
+            value='production',
+            times_seen=10,
+        )
+
+        self.ts.get_groups_times_seen_by_environment(
+            self.proj1.id,
+            [self.proj1group1.id, self.proj1group2.id],
+            'production',
+        ) == {
+            self.proj1group1.id: 10,
+        }
