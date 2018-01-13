@@ -8,8 +8,10 @@ import ApiMixin from '../mixins/apiMixin';
 import LoadingError from '../components/loadingError';
 import LoadingIndicator from '../components/loadingIndicator';
 import PluginList from '../components/pluginList';
-import withPlugins from '../utils/withPlugins';
 import SentryTypes from '../proptypes';
+import SettingsPageHeader from './settings/components/settingsPageHeader';
+import TextBlock from './settings/components/text/textBlock';
+import withPlugins from '../utils/withPlugins';
 
 const ProjectReleaseTracking = createReactClass({
   displayName: 'ProjectReleaseTracking',
@@ -131,12 +133,12 @@ const ProjectReleaseTracking = createReactClass({
 
     return (
       <div>
-        <h2>{t('Release Tracking')}</h2>
-        <p>
+        <SettingsPageHeader title={t('Release Tracking')} />
+        <TextBlock>
           {t(
             'Configure release tracking for this project to automatically record new releases of your application.'
           )}
-        </p>
+        </TextBlock>
         <div className="box">
           <div className="box-header">
             <h3>{t('Client Configuration')}</h3>

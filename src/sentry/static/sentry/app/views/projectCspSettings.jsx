@@ -1,13 +1,15 @@
 import PropTypes from 'prop-types';
 import React from 'react';
-
 import createReactClass from 'create-react-class';
 
+import {FormState, TextareaField, BooleanField} from '../components/forms';
+import {t, tct} from '../locale';
 import ApiMixin from '../mixins/apiMixin';
+import ExternalLink from '../components/externalLink';
 import IndicatorStore from '../stores/indicatorStore';
 import LoadingIndicator from '../components/loadingIndicator';
-import {FormState, TextareaField, BooleanField} from '../components/forms';
-import {t} from '../locale';
+import SettingsPageHeader from './settings/components/settingsPageHeader';
+import TextBlock from './settings/components/text/textBlock';
 
 const ProjectCspSettingsForm = createReactClass({
   displayName: 'ProjectCspSettingsForm',
@@ -256,26 +258,30 @@ const ProjectCspSettings = createReactClass({
 
     let {orgId, projectId} = this.props.params;
 
-    // TODO(dcramer): localize when language is final
     return (
       <div>
-        <h1>{t('CSP Reports')}</h1>
+        <SettingsPageHeader title={t('CSP Reports')} />
 
         <div className="alert alert-block alert-info">
           Psst! This feature is still a work-in-progress. Thanks for being an early
           adopter!
         </div>
 
-        <p>
-          <a href="https://en.wikipedia.org/wiki/Content_Security_Policy">
-            Content Security Policy
-          </a>{' '}
+        <TextBlock>
+          {tct(
+            `[link:Content Security Policy]
           (CSP) is a security standard which helps prevent cross-site scripting (XSS),
           clickjacking and other code injection attacks resulting from execution of
           malicious content in the trusted web page context. It's enforced by browser
           vendors, and Sentry supports capturing CSP violations using the standard
-          reporting hooks.
-        </p>
+          reporting hooks.`,
+            {
+              link: (
+                <ExternalLink href="https://en.wikipedia.org/wiki/Content_Security_Policy" />
+              ),
+            }
+          )}
+        </TextBlock>
 
         <div className="box">
           <div className="box-header">

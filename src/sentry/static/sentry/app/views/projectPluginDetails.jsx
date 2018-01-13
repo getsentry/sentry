@@ -7,6 +7,7 @@ import Button from '../components/buttons/button';
 import ExternalLink from '../components/externalLink';
 import IndicatorStore from '../stores/indicatorStore';
 import PluginConfig from '../components/pluginConfig';
+import SettingsPageHeader from './settings/components/settingsPageHeader';
 import withPlugins from '../utils/withPlugins';
 
 /**
@@ -107,9 +108,7 @@ class ProjectPluginDetails extends AsyncView {
 
     return (
       <div>
-        {this.renderActions()}
-        <h2>{pluginDetails.name}</h2>
-        <hr />
+        <SettingsPageHeader title={pluginDetails.name} action={this.renderActions()} />
         <div className="row">
           <div className="col-md-7">
             <PluginConfig

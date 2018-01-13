@@ -5,60 +5,48 @@ exports[`ProjectAlertSettings render() renders 1`] = `
   title="Project Alert Settings"
 >
   <div>
-    <SpreadLayout
-      center={true}
-      responsive={false}
-      style={
-        Object {
-          "marginBottom": 20,
-        }
+    <SettingsPageHeading
+      action={
+        <Button
+          className="pull-right"
+          disabled={false}
+          href="/org-slug/project-slug/settings/alerts/rules/new/"
+          priority="primary"
+          size="small"
+        >
+          <span
+            className="icon-plus"
+          />
+          New Alert Rule
+        </Button>
       }
-    >
-      <h2
-        style={
-          Object {
-            "margin": 0,
+      tabs={
+        <ul
+          className="nav nav-tabs"
+          style={
+            Object {
+              "borderBottom": "1px solid #ddd",
+            }
           }
-        }
-      >
-        Alerts
-      </h2>
-      <Button
-        className="pull-right"
-        disabled={false}
-        href="/org-slug/project-slug/settings/alerts/rules/new/"
-        priority="primary"
-        size="small"
-      >
-        <span
-          className="icon-plus"
-        />
-        New Alert Rule
-      </Button>
-    </SpreadLayout>
-    <ul
-      className="nav nav-tabs"
-      style={
-        Object {
-          "borderBottom": "1px solid #ddd",
-        }
+        >
+          <ListLink
+            activeClassName="active"
+            index={true}
+            to="/org-slug/project-slug/settings/alerts/"
+          >
+            Settings
+          </ListLink>
+          <ListLink
+            activeClassName="active"
+            index={false}
+            to="/org-slug/project-slug/settings/alerts/rules/"
+          >
+            Rules
+          </ListLink>
+        </ul>
       }
-    >
-      <ListLink
-        activeClassName="active"
-        index={true}
-        to="/org-slug/project-slug/settings/alerts/"
-      >
-        Settings
-      </ListLink>
-      <ListLink
-        activeClassName="active"
-        index={false}
-        to="/org-slug/project-slug/settings/alerts/rules/"
-      >
-        Rules
-      </ListLink>
-    </ul>
+      title="Alerts"
+    />
     <div
       className="alert alert-block alert-info"
     >

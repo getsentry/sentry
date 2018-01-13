@@ -1,15 +1,17 @@
 import React from 'react';
-
 import createReactClass from 'create-react-class';
 
+import {t, tct} from '../locale';
 import ApiMixin from '../mixins/apiMixin';
+import ExternalLink from '../components/externalLink';
 import HookStore from '../stores/hookStore';
 import LoadingError from '../components/loadingError';
 import LoadingIndicator from '../components/loadingIndicator';
 import PluginList from '../components/pluginList';
 import ProjectState from '../mixins/projectState';
+import SettingsPageHeader from './settings/components/settingsPageHeader';
 import StackedBarChart from '../components/stackedBarChart';
-import {t} from '../locale';
+import TextBlock from './settings/components/text/textBlock';
 
 const DataForwardingStats = createReactClass({
   displayName: 'DataForwardingStats',
@@ -211,29 +213,37 @@ export default createReactClass({
     let {params} = this.props;
     return (
       <div className="ref-data-forwarding-settings">
-        <h1>{t('Data Forwarding')}</h1>
-        <div className="panel panel-default">
-          <div className="panel-body p-b-0">
-            <p>
-              {
-                "Enable Data Forwarding to send processed events to your favorite business intelligence tools. The exact payload and types of data depend on the integration you're using."
-              }
-            </p>
-            <p>
-              Learn more about this functionality in our{' '}
-              <a href="https://docs.sentry.io/learn/data-forwarding/">documentation</a>
-              .
-            </p>
-            <p>
-              <small>
-                Note: Sentry will forward <strong>all applicable events</strong> to the
-                given provider, which in some situations may be a much more significant
-                volume of data.
-              </small>
-            </p>
-          </div>
+        <SettingsPageHeader title={t('Data Forwarding')} />
+
+        <div>
+          <TextBlock>
+            {t(
+              "Enable Data Forwarding to send processed events to your favorite business intelligence tools. The exact payload and types of data depend on the integration you're using."
+            )}
+          </TextBlock>
+
+          <TextBlock>
+            {tct('Learn more about this functionality in our [link:documentation].', {
+              link: <ExternalLink href="https://docs.sentry.io/learn/data-forwarding/" />,
+            })}
+          </TextBlock>
+
+          <TextBlock>
+            <small>
+              {tct(
+                `Note: Sentry will forward [em:all applicable events] to the
+              given provider, which in some situations may be a much more significant
+              volume of data.`,
+                {
+                  em: <strong />,
+                }
+              )}
+            </small>
+          </TextBlock>
         </div>
+
         <DataForwardingStats params={params} />
+
         {this.renderBody()}
       </div>
     );

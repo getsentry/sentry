@@ -9,11 +9,11 @@ import {
   TextareaField,
   TextField,
 } from '../components/forms';
-import IndicatorStore from '../stores/indicatorStore';
-
+import {getOrganizationState} from '../mixins/organizationState';
 import {t, tct} from '../locale';
 import AsyncView from './asyncView';
-import {getOrganizationState} from '../mixins/organizationState';
+import IndicatorStore from '../stores/indicatorStore';
+import SettingsPageHeader from './settings/components/settingsPageHeader';
 
 class ListAsTextareaField extends TextareaField {
   getValue(props, context) {
@@ -187,7 +187,8 @@ export default class ProjectGeneralSettings extends AsyncView {
 
     return (
       <div>
-        <h2>{t('Project Settings')}</h2>
+        <SettingsPageHeader title={t('Project Settings')} />
+
         <ApiForm
           initialData={initialData}
           apiMethod="PUT"
