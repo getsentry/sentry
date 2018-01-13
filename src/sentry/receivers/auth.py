@@ -6,7 +6,7 @@ import six
 from django.contrib.auth.models import update_last_login
 from django.contrib.auth.signals import user_logged_in
 from django.db.utils import DatabaseError
-from sentry.models import UserOption, LostPasswordHash
+from sentry.models import UserOption
 
 
 # Set user language if set
@@ -34,7 +34,7 @@ def safe_update_last_login(sender, user, **kwargs):
 
 def remove_lost_password_hashes(sender, user, **kwargs):
     # Remove pending password recovery hashes; user was able to login
-    LostPasswordHash.objects.filter(user=user).delete()
+    user.clear_lost_passwords()
 
 user_logged_in.disconnect(update_last_login)
 user_logged_in.connect(
