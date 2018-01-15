@@ -1,12 +1,23 @@
+import {Box, Flex} from 'grid-emotion';
 import React from 'react';
+import styled from 'react-emotion';
 
 import {t} from '../locale';
 import AsyncView from './asyncView';
 import ExternalLink from '../components/externalLink';
 import LinkWithConfirmation from '../components/linkWithConfirmation';
+import Panel from './settings/components/panel';
+import PanelBody from './settings/components/panelBody';
+import PanelHeader from './settings/components/panelHeader';
+import Row from './settings/components/row';
 import SettingsPageHeader from './settings/components/settingsPageHeader';
 import TextBlock from './settings/components/text/textBlock';
 import Tooltip from '../components/tooltip';
+
+const Description = styled.div`
+  font-size: 0.8em;
+  color: ${p => p.theme.gray1};
+`;
 
 export default class ProjectTags extends AsyncView {
   getEndpoints() {
@@ -60,40 +71,36 @@ export default class ProjectTags extends AsyncView {
           .
         </TextBlock>
 
-        <div className="panel panel-default">
-          <table className="table">
-            <thead>
-              <tr>
-                <th>{t('Tags')}</th>
-                <th style={{width: 20}} />
-              </tr>
-            </thead>
-            <tbody>
-              {this.state.tags.map(({key, name, canDelete}, idx) => {
-                return (
-                  <tr key={key}>
-                    <td>
-                      <h5>
-                        {name}
-                        &nbsp;
-                        <small>({key})</small>
-                      </h5>
-                    </td>
-                    <td>
-                      {canDelete ? (
-                        this.renderLink(key, canDelete, idx)
-                      ) : (
-                        <Tooltip title={t('This tag cannot be deleted.')}>
-                          <span>{this.renderLink(key, canDelete, idx)}</span>
-                        </Tooltip>
-                      )}
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        </div>
+        <Panel>
+          <PanelHeader>
+            <Flex>
+              <Box flex="1">{t('Tags')}</Box>
+            </Flex>
+          </PanelHeader>
+
+          <PanelBody>
+            {this.state.tags.map(({key, name}, idx) => {
+              return (
+                <Row key={key}>
+                  <Flex direction="column" justify="center" flex="1" p={2}>
+                    <Box mb={1}>{name}</Box>
+                    <Description>{key}</Description>
+                  </Flex>
+                  <Flex align="center" p={2}>
+                    <LinkWithConfirmation
+                      className="btn btn-sm btn-default"
+                      title={'Remove tag?'}
+                      message={'Are you sure you want to remove this tag?'}
+                      onConfirm={() => this.onDelete(key, idx)}
+                    >
+                      <span className="icon icon-trash" />
+                    </LinkWithConfirmation>
+                  </Flex>
+                </Row>
+              );
+            })}
+          </PanelBody>
+        </Panel>
       </div>
     );
   }

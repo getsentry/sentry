@@ -33,6 +33,108 @@ exports[`ProjectTags renders 1`] = `
   margin-bottom: 30px;
 }
 
+.glamor-57 {
+  background: #fff;
+  border: 1px solid;
+  margin-bottom: 30px;
+  position: relative;
+}
+
+.glamor-19 {
+  border-bottom: 1px solid;
+  border-radius: 0 0;
+  text-transform: uppercase;
+  font-size: 13px;
+  line-height: 1;
+  padding: 15px 20px;
+}
+
+.glamor-15 {
+  font-size: inherit;
+  text-transform: inherit;
+  margin: 0;
+}
+
+.glamor-13 {
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  margin-bottom: 20px;
+  font-size: inherit;
+  text-transform: inherit;
+  margin: 0;
+}
+
+.glamor-10 {
+  box-sizing: border-box;
+  display: -webkit-box;
+  display: -webkit-flex;
+  display: -ms-flexbox;
+  display: flex;
+}
+
+.glamor-8 {
+  box-sizing: border-box;
+  -webkit-flex: 1;
+  -ms-flex: 1;
+  flex: 1;
+}
+
+.glamor-29 {
+  box-sizing: border-box;
+  padding: 16px;
+  display: -webkit-box;
+  display: -webkit-flex;
+  display: -ms-flexbox;
+  display: flex;
+  border-bottom: 1px solid;
+}
+
+.glamor-29:last-child {
+  border: 0;
+}
+
+.glamor-25 {
+  box-sizing: border-box;
+  padding: 16px;
+  -webkit-flex: 1;
+  -ms-flex: 1;
+  flex: 1;
+  display: -webkit-box;
+  display: -webkit-flex;
+  display: -ms-flexbox;
+  display: flex;
+  -webkit-flex-direction: column;
+  -ms-flex-direction: column;
+  flex-direction: column;
+  -webkit-box-pack: center;
+  -webkit-justify-content: center;
+  -ms-flex-pack: center;
+  justify-content: center;
+}
+
+.glamor-21 {
+  box-sizing: border-box;
+  margin-bottom: 8px;
+}
+
+.glamor-23 {
+  font-size: 0.8em;
+}
+
+.glamor-27 {
+  box-sizing: border-box;
+  padding: 16px;
+  display: -webkit-box;
+  display: -webkit-flex;
+  display: -ms-flexbox;
+  display: flex;
+  -webkit-align-items: center;
+  -webkit-box-align: center;
+  -ms-flex-align: center;
+  align-items: center;
+}
+
 <ProjectTags
   params={
     Object {
@@ -101,327 +203,529 @@ exports[`ProjectTags renders 1`] = `
             .
           </div>
         </Styled(div)>
-        <div
-          className="panel panel-default"
-        >
-          <table
-            className="table"
+        <Styled(div)>
+          <div
+            className="glamor-57 glamor-58"
           >
-            <thead>
-              <tr>
-                <th>
-                  Tags
-                </th>
-                <th
-                  style={
-                    Object {
-                      "width": 20,
-                    }
-                  }
-                />
-              </tr>
-            </thead>
-            <tbody>
-              <tr
-                key="browser"
-              >
-                <td>
-                  <h5>
-                    Browser
-                     
-                    <small>
-                      (
-                      browser
-                      )
-                    </small>
-                  </h5>
-                </td>
-                <td>
-                  <LinkWithConfirmation
-                    className="btn btn-sm btn-default"
-                    disabled={false}
-                    message="Are you sure you want to remove this tag?"
-                    onConfirm={[Function]}
-                    title="Remove tag?"
-                  >
-                    <Confirm
-                      cancelText="Cancel"
-                      confirmText="Confirm"
-                      disabled={false}
-                      message="Are you sure you want to remove this tag?"
-                      onConfirm={[Function]}
-                      priority="primary"
+            <PanelHeader>
+              <Styled(div)>
+                <div
+                  className="glamor-19 glamor-20"
+                >
+                  <Styled(Component)>
+                    <Component
+                      className="glamor-15 glamor-12"
                     >
-                      <a
-                        className="btn btn-sm btn-default"
-                        disabled={false}
-                        onClick={[Function]}
-                        title="Remove tag?"
+                      <Styled(div)
+                        className="glamor-15 glamor-12"
                       >
-                        <span
-                          className="icon icon-trash"
-                        />
-                      </a>
-                      <Modal
-                        animation={false}
-                        autoFocus={true}
-                        backdrop={true}
-                        bsClass="modal"
-                        dialogComponentClass={[Function]}
-                        enforceFocus={true}
-                        keyboard={true}
-                        manager={
-                          ModalManager {
-                            "add": [Function],
-                            "containers": Array [],
-                            "data": Array [],
-                            "handleContainerOverflow": true,
-                            "hideSiblingNodes": true,
-                            "isTopModal": [Function],
-                            "modals": Array [],
-                            "remove": [Function],
-                          }
-                        }
-                        onHide={[Function]}
-                        renderBackdrop={[Function]}
-                        restoreFocus={true}
-                        show={false}
-                      >
-                        <Modal
-                          autoFocus={true}
-                          backdrop={true}
-                          backdropClassName="modal-backdrop"
-                          containerClassName="modal-open"
-                          enforceFocus={true}
-                          keyboard={true}
-                          manager={
-                            ModalManager {
-                              "add": [Function],
-                              "containers": Array [],
-                              "data": Array [],
-                              "handleContainerOverflow": true,
-                              "hideSiblingNodes": true,
-                              "isTopModal": [Function],
-                              "modals": Array [],
-                              "remove": [Function],
-                            }
-                          }
-                          onEntering={[Function]}
-                          onExited={[Function]}
-                          onHide={[Function]}
-                          renderBackdrop={[Function]}
-                          restoreFocus={true}
-                          show={false}
-                        />
-                      </Modal>
-                    </Confirm>
-                  </LinkWithConfirmation>
-                </td>
-              </tr>
-              <tr
-                key="device"
-              >
-                <td>
-                  <h5>
-                    Device
-                     
-                    <small>
-                      (
-                      device
-                      )
-                    </small>
-                  </h5>
-                </td>
-                <td>
-                  <LinkWithConfirmation
-                    className="btn btn-sm btn-default"
-                    disabled={false}
-                    message="Are you sure you want to remove this tag?"
-                    onConfirm={[Function]}
-                    title="Remove tag?"
-                  >
-                    <Confirm
-                      cancelText="Cancel"
-                      confirmText="Confirm"
-                      disabled={false}
-                      message="Are you sure you want to remove this tag?"
-                      onConfirm={[Function]}
-                      priority="primary"
-                    >
-                      <a
-                        className="btn btn-sm btn-default"
-                        disabled={false}
-                        onClick={[Function]}
-                        title="Remove tag?"
-                      >
-                        <span
-                          className="icon icon-trash"
-                        />
-                      </a>
-                      <Modal
-                        animation={false}
-                        autoFocus={true}
-                        backdrop={true}
-                        bsClass="modal"
-                        dialogComponentClass={[Function]}
-                        enforceFocus={true}
-                        keyboard={true}
-                        manager={
-                          ModalManager {
-                            "add": [Function],
-                            "containers": Array [],
-                            "data": Array [],
-                            "handleContainerOverflow": true,
-                            "hideSiblingNodes": true,
-                            "isTopModal": [Function],
-                            "modals": Array [],
-                            "remove": [Function],
-                          }
-                        }
-                        onHide={[Function]}
-                        renderBackdrop={[Function]}
-                        restoreFocus={true}
-                        show={false}
-                      >
-                        <Modal
-                          autoFocus={true}
-                          backdrop={true}
-                          backdropClassName="modal-backdrop"
-                          containerClassName="modal-open"
-                          enforceFocus={true}
-                          keyboard={true}
-                          manager={
-                            ModalManager {
-                              "add": [Function],
-                              "containers": Array [],
-                              "data": Array [],
-                              "handleContainerOverflow": true,
-                              "hideSiblingNodes": true,
-                              "isTopModal": [Function],
-                              "modals": Array [],
-                              "remove": [Function],
-                            }
-                          }
-                          onEntering={[Function]}
-                          onExited={[Function]}
-                          onHide={[Function]}
-                          renderBackdrop={[Function]}
-                          restoreFocus={true}
-                          show={false}
-                        />
-                      </Modal>
-                    </Confirm>
-                  </LinkWithConfirmation>
-                </td>
-              </tr>
-              <tr
-                key="environment"
-              >
-                <td>
-                  <h5>
-                    Environment
-                     
-                    <small>
-                      (
-                      environment
-                      )
-                    </small>
-                  </h5>
-                </td>
-                <td>
-                  <Tooltip
-                    title="This tag cannot be deleted."
-                  >
-                    <span
-                      className="tip"
-                      title="This tag cannot be deleted."
-                    >
-                      <LinkWithConfirmation
-                        className="btn btn-sm btn-default"
-                        disabled={true}
-                        message="Are you sure you want to remove this tag?"
-                        onConfirm={[Function]}
-                        title="Remove tag?"
-                      >
-                        <Confirm
-                          cancelText="Cancel"
-                          confirmText="Confirm"
-                          disabled={true}
-                          message="Are you sure you want to remove this tag?"
-                          onConfirm={[Function]}
-                          priority="primary"
+                        <div
+                          className="glamor-12 glamor-13 glamor-14"
                         >
-                          <a
-                            className="btn btn-sm btn-default disabled"
-                            disabled={true}
-                            onClick={[Function]}
-                            title="Remove tag?"
+                          <Flex>
+                            <Base
+                              className="glamor-10"
+                            >
+                              <div
+                                className="glamor-10"
+                                is={null}
+                              >
+                                <Box
+                                  flex="1"
+                                >
+                                  <Base
+                                    className="glamor-8"
+                                    flex="1"
+                                  >
+                                    <div
+                                      className="glamor-8"
+                                      is={null}
+                                    >
+                                      Tags
+                                    </div>
+                                  </Base>
+                                </Box>
+                              </div>
+                            </Base>
+                          </Flex>
+                        </div>
+                      </Styled(div)>
+                    </Component>
+                  </Styled(Component)>
+                </div>
+              </Styled(div)>
+            </PanelHeader>
+            <PanelBody
+              direction="column"
+              disablePadding={true}
+              flex={false}
+            >
+              <div
+                className=""
+              >
+                <Row
+                  key="browser"
+                  p={2}
+                >
+                  <Styled(Base)
+                    p={2}
+                  >
+                    <Base
+                      className="glamor-29 glamor-30"
+                      p={2}
+                    >
+                      <div
+                        className="glamor-29 glamor-30"
+                        is={null}
+                      >
+                        <Flex
+                          direction="column"
+                          flex="1"
+                          justify="center"
+                          p={2}
+                        >
+                          <Base
+                            className="glamor-25"
+                            direction="column"
+                            flex="1"
+                            justify="center"
+                            p={2}
                           >
-                            <span
-                              className="icon icon-trash"
-                            />
-                          </a>
-                          <Modal
-                            animation={false}
-                            autoFocus={true}
-                            backdrop={true}
-                            bsClass="modal"
-                            dialogComponentClass={[Function]}
-                            enforceFocus={true}
-                            keyboard={true}
-                            manager={
-                              ModalManager {
-                                "add": [Function],
-                                "containers": Array [],
-                                "data": Array [],
-                                "handleContainerOverflow": true,
-                                "hideSiblingNodes": true,
-                                "isTopModal": [Function],
-                                "modals": Array [],
-                                "remove": [Function],
-                              }
-                            }
-                            onHide={[Function]}
-                            renderBackdrop={[Function]}
-                            restoreFocus={true}
-                            show={false}
+                            <div
+                              className="glamor-25"
+                              is={null}
+                            >
+                              <Box
+                                mb={1}
+                              >
+                                <Base
+                                  className="glamor-21"
+                                  mb={1}
+                                >
+                                  <div
+                                    className="glamor-21"
+                                    is={null}
+                                  >
+                                    Browser
+                                  </div>
+                                </Base>
+                              </Box>
+                              <Styled(div)>
+                                <div
+                                  className="glamor-23 glamor-24"
+                                >
+                                  browser
+                                </div>
+                              </Styled(div)>
+                            </div>
+                          </Base>
+                        </Flex>
+                        <Flex
+                          align="center"
+                          p={2}
+                        >
+                          <Base
+                            align="center"
+                            className="glamor-27"
+                            p={2}
                           >
-                            <Modal
-                              autoFocus={true}
-                              backdrop={true}
-                              backdropClassName="modal-backdrop"
-                              containerClassName="modal-open"
-                              enforceFocus={true}
-                              keyboard={true}
-                              manager={
-                                ModalManager {
-                                  "add": [Function],
-                                  "containers": Array [],
-                                  "data": Array [],
-                                  "handleContainerOverflow": true,
-                                  "hideSiblingNodes": true,
-                                  "isTopModal": [Function],
-                                  "modals": Array [],
-                                  "remove": [Function],
-                                }
-                              }
-                              onEntering={[Function]}
-                              onExited={[Function]}
-                              onHide={[Function]}
-                              renderBackdrop={[Function]}
-                              restoreFocus={true}
-                              show={false}
-                            />
-                          </Modal>
-                        </Confirm>
-                      </LinkWithConfirmation>
-                    </span>
-                  </Tooltip>
-                </td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
+                            <div
+                              className="glamor-27"
+                              is={null}
+                            >
+                              <LinkWithConfirmation
+                                className="btn btn-sm btn-default"
+                                message="Are you sure you want to remove this tag?"
+                                onConfirm={[Function]}
+                                title="Remove tag?"
+                              >
+                                <Confirm
+                                  cancelText="Cancel"
+                                  confirmText="Confirm"
+                                  message="Are you sure you want to remove this tag?"
+                                  onConfirm={[Function]}
+                                  priority="primary"
+                                >
+                                  <a
+                                    className="btn btn-sm btn-default"
+                                    onClick={[Function]}
+                                    title="Remove tag?"
+                                  >
+                                    <span
+                                      className="icon icon-trash"
+                                    />
+                                  </a>
+                                  <Modal
+                                    animation={false}
+                                    autoFocus={true}
+                                    backdrop={true}
+                                    bsClass="modal"
+                                    dialogComponentClass={[Function]}
+                                    enforceFocus={true}
+                                    keyboard={true}
+                                    manager={
+                                      ModalManager {
+                                        "add": [Function],
+                                        "containers": Array [],
+                                        "data": Array [],
+                                        "handleContainerOverflow": true,
+                                        "hideSiblingNodes": true,
+                                        "isTopModal": [Function],
+                                        "modals": Array [],
+                                        "remove": [Function],
+                                      }
+                                    }
+                                    onHide={[Function]}
+                                    renderBackdrop={[Function]}
+                                    restoreFocus={true}
+                                    show={false}
+                                  >
+                                    <Modal
+                                      autoFocus={true}
+                                      backdrop={true}
+                                      backdropClassName="modal-backdrop"
+                                      containerClassName="modal-open"
+                                      enforceFocus={true}
+                                      keyboard={true}
+                                      manager={
+                                        ModalManager {
+                                          "add": [Function],
+                                          "containers": Array [],
+                                          "data": Array [],
+                                          "handleContainerOverflow": true,
+                                          "hideSiblingNodes": true,
+                                          "isTopModal": [Function],
+                                          "modals": Array [],
+                                          "remove": [Function],
+                                        }
+                                      }
+                                      onEntering={[Function]}
+                                      onExited={[Function]}
+                                      onHide={[Function]}
+                                      renderBackdrop={[Function]}
+                                      restoreFocus={true}
+                                      show={false}
+                                    />
+                                  </Modal>
+                                </Confirm>
+                              </LinkWithConfirmation>
+                            </div>
+                          </Base>
+                        </Flex>
+                      </div>
+                    </Base>
+                  </Styled(Base)>
+                </Row>
+                <Row
+                  key="device"
+                  p={2}
+                >
+                  <Styled(Base)
+                    p={2}
+                  >
+                    <Base
+                      className="glamor-29 glamor-30"
+                      p={2}
+                    >
+                      <div
+                        className="glamor-29 glamor-30"
+                        is={null}
+                      >
+                        <Flex
+                          direction="column"
+                          flex="1"
+                          justify="center"
+                          p={2}
+                        >
+                          <Base
+                            className="glamor-25"
+                            direction="column"
+                            flex="1"
+                            justify="center"
+                            p={2}
+                          >
+                            <div
+                              className="glamor-25"
+                              is={null}
+                            >
+                              <Box
+                                mb={1}
+                              >
+                                <Base
+                                  className="glamor-21"
+                                  mb={1}
+                                >
+                                  <div
+                                    className="glamor-21"
+                                    is={null}
+                                  >
+                                    Device
+                                  </div>
+                                </Base>
+                              </Box>
+                              <Styled(div)>
+                                <div
+                                  className="glamor-23 glamor-24"
+                                >
+                                  device
+                                </div>
+                              </Styled(div)>
+                            </div>
+                          </Base>
+                        </Flex>
+                        <Flex
+                          align="center"
+                          p={2}
+                        >
+                          <Base
+                            align="center"
+                            className="glamor-27"
+                            p={2}
+                          >
+                            <div
+                              className="glamor-27"
+                              is={null}
+                            >
+                              <LinkWithConfirmation
+                                className="btn btn-sm btn-default"
+                                message="Are you sure you want to remove this tag?"
+                                onConfirm={[Function]}
+                                title="Remove tag?"
+                              >
+                                <Confirm
+                                  cancelText="Cancel"
+                                  confirmText="Confirm"
+                                  message="Are you sure you want to remove this tag?"
+                                  onConfirm={[Function]}
+                                  priority="primary"
+                                >
+                                  <a
+                                    className="btn btn-sm btn-default"
+                                    onClick={[Function]}
+                                    title="Remove tag?"
+                                  >
+                                    <span
+                                      className="icon icon-trash"
+                                    />
+                                  </a>
+                                  <Modal
+                                    animation={false}
+                                    autoFocus={true}
+                                    backdrop={true}
+                                    bsClass="modal"
+                                    dialogComponentClass={[Function]}
+                                    enforceFocus={true}
+                                    keyboard={true}
+                                    manager={
+                                      ModalManager {
+                                        "add": [Function],
+                                        "containers": Array [],
+                                        "data": Array [],
+                                        "handleContainerOverflow": true,
+                                        "hideSiblingNodes": true,
+                                        "isTopModal": [Function],
+                                        "modals": Array [],
+                                        "remove": [Function],
+                                      }
+                                    }
+                                    onHide={[Function]}
+                                    renderBackdrop={[Function]}
+                                    restoreFocus={true}
+                                    show={false}
+                                  >
+                                    <Modal
+                                      autoFocus={true}
+                                      backdrop={true}
+                                      backdropClassName="modal-backdrop"
+                                      containerClassName="modal-open"
+                                      enforceFocus={true}
+                                      keyboard={true}
+                                      manager={
+                                        ModalManager {
+                                          "add": [Function],
+                                          "containers": Array [],
+                                          "data": Array [],
+                                          "handleContainerOverflow": true,
+                                          "hideSiblingNodes": true,
+                                          "isTopModal": [Function],
+                                          "modals": Array [],
+                                          "remove": [Function],
+                                        }
+                                      }
+                                      onEntering={[Function]}
+                                      onExited={[Function]}
+                                      onHide={[Function]}
+                                      renderBackdrop={[Function]}
+                                      restoreFocus={true}
+                                      show={false}
+                                    />
+                                  </Modal>
+                                </Confirm>
+                              </LinkWithConfirmation>
+                            </div>
+                          </Base>
+                        </Flex>
+                      </div>
+                    </Base>
+                  </Styled(Base)>
+                </Row>
+                <Row
+                  key="environment"
+                  p={2}
+                >
+                  <Styled(Base)
+                    p={2}
+                  >
+                    <Base
+                      className="glamor-29 glamor-30"
+                      p={2}
+                    >
+                      <div
+                        className="glamor-29 glamor-30"
+                        is={null}
+                      >
+                        <Flex
+                          direction="column"
+                          flex="1"
+                          justify="center"
+                          p={2}
+                        >
+                          <Base
+                            className="glamor-25"
+                            direction="column"
+                            flex="1"
+                            justify="center"
+                            p={2}
+                          >
+                            <div
+                              className="glamor-25"
+                              is={null}
+                            >
+                              <Box
+                                mb={1}
+                              >
+                                <Base
+                                  className="glamor-21"
+                                  mb={1}
+                                >
+                                  <div
+                                    className="glamor-21"
+                                    is={null}
+                                  >
+                                    Environment
+                                  </div>
+                                </Base>
+                              </Box>
+                              <Styled(div)>
+                                <div
+                                  className="glamor-23 glamor-24"
+                                >
+                                  environment
+                                </div>
+                              </Styled(div)>
+                            </div>
+                          </Base>
+                        </Flex>
+                        <Flex
+                          align="center"
+                          p={2}
+                        >
+                          <Base
+                            align="center"
+                            className="glamor-27"
+                            p={2}
+                          >
+                            <div
+                              className="glamor-27"
+                              is={null}
+                            >
+                              <LinkWithConfirmation
+                                className="btn btn-sm btn-default"
+                                message="Are you sure you want to remove this tag?"
+                                onConfirm={[Function]}
+                                title="Remove tag?"
+                              >
+                                <Confirm
+                                  cancelText="Cancel"
+                                  confirmText="Confirm"
+                                  message="Are you sure you want to remove this tag?"
+                                  onConfirm={[Function]}
+                                  priority="primary"
+                                >
+                                  <a
+                                    className="btn btn-sm btn-default"
+                                    onClick={[Function]}
+                                    title="Remove tag?"
+                                  >
+                                    <span
+                                      className="icon icon-trash"
+                                    />
+                                  </a>
+                                  <Modal
+                                    animation={false}
+                                    autoFocus={true}
+                                    backdrop={true}
+                                    bsClass="modal"
+                                    dialogComponentClass={[Function]}
+                                    enforceFocus={true}
+                                    keyboard={true}
+                                    manager={
+                                      ModalManager {
+                                        "add": [Function],
+                                        "containers": Array [],
+                                        "data": Array [],
+                                        "handleContainerOverflow": true,
+                                        "hideSiblingNodes": true,
+                                        "isTopModal": [Function],
+                                        "modals": Array [],
+                                        "remove": [Function],
+                                      }
+                                    }
+                                    onHide={[Function]}
+                                    renderBackdrop={[Function]}
+                                    restoreFocus={true}
+                                    show={false}
+                                  >
+                                    <Modal
+                                      autoFocus={true}
+                                      backdrop={true}
+                                      backdropClassName="modal-backdrop"
+                                      containerClassName="modal-open"
+                                      enforceFocus={true}
+                                      keyboard={true}
+                                      manager={
+                                        ModalManager {
+                                          "add": [Function],
+                                          "containers": Array [],
+                                          "data": Array [],
+                                          "handleContainerOverflow": true,
+                                          "hideSiblingNodes": true,
+                                          "isTopModal": [Function],
+                                          "modals": Array [],
+                                          "remove": [Function],
+                                        }
+                                      }
+                                      onEntering={[Function]}
+                                      onExited={[Function]}
+                                      onHide={[Function]}
+                                      renderBackdrop={[Function]}
+                                      restoreFocus={true}
+                                      show={false}
+                                    />
+                                  </Modal>
+                                </Confirm>
+                              </LinkWithConfirmation>
+                            </div>
+                          </Base>
+                        </Flex>
+                      </div>
+                    </Base>
+                  </Styled(Base)>
+                </Row>
+              </div>
+            </PanelBody>
+          </div>
+        </Styled(div)>
       </div>
     </DocumentTitle>
   </SideEffect(DocumentTitle)>
