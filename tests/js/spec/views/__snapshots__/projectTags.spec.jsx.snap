@@ -33,7 +33,7 @@ exports[`ProjectTags renders 1`] = `
   margin-bottom: 30px;
 }
 
-.glamor-57 {
+.glamor-51 {
   background: #fff;
   border: 1px solid;
   margin-bottom: 30px;
@@ -80,7 +80,7 @@ exports[`ProjectTags renders 1`] = `
   flex: 1;
 }
 
-.glamor-29 {
+.glamor-27 {
   box-sizing: border-box;
   padding: 16px;
   display: -webkit-box;
@@ -90,39 +90,24 @@ exports[`ProjectTags renders 1`] = `
   border-bottom: 1px solid;
 }
 
-.glamor-29:last-child {
+.glamor-27:last-child {
   border: 0;
 }
 
-.glamor-25 {
+.glamor-23 {
   box-sizing: border-box;
   padding: 16px;
   -webkit-flex: 1;
   -ms-flex: 1;
   flex: 1;
-  display: -webkit-box;
-  display: -webkit-flex;
-  display: -ms-flexbox;
-  display: flex;
-  -webkit-flex-direction: column;
-  -ms-flex-direction: column;
-  flex-direction: column;
-  -webkit-box-pack: center;
-  -webkit-justify-content: center;
-  -ms-flex-pack: center;
-  justify-content: center;
 }
 
 .glamor-21 {
-  box-sizing: border-box;
-  margin-bottom: 8px;
-}
-
-.glamor-23 {
   font-size: 0.8em;
+  margin-left: 8px;
 }
 
-.glamor-27 {
+.glamor-25 {
   box-sizing: border-box;
   padding: 16px;
   display: -webkit-box;
@@ -205,7 +190,7 @@ exports[`ProjectTags renders 1`] = `
         </Styled(div)>
         <Styled(div)>
           <div
-            className="glamor-57 glamor-58"
+            className="glamor-51 glamor-52"
           >
             <PanelHeader>
               <Styled(div)>
@@ -271,66 +256,52 @@ exports[`ProjectTags renders 1`] = `
                     p={2}
                   >
                     <Base
-                      className="glamor-29 glamor-30"
+                      className="glamor-27 glamor-28"
                       p={2}
                     >
                       <div
-                        className="glamor-29 glamor-30"
+                        className="glamor-27 glamor-28"
                         is={null}
                       >
-                        <Flex
-                          direction="column"
+                        <Box
+                          align="flex-end"
                           flex="1"
-                          justify="center"
                           p={2}
                         >
                           <Base
-                            className="glamor-25"
-                            direction="column"
+                            align="flex-end"
+                            className="glamor-23"
                             flex="1"
-                            justify="center"
                             p={2}
                           >
                             <div
-                              className="glamor-25"
+                              className="glamor-23"
                               is={null}
                             >
-                              <Box
-                                mb={1}
-                              >
-                                <Base
-                                  className="glamor-21"
-                                  mb={1}
-                                >
-                                  <div
-                                    className="glamor-21"
-                                    is={null}
-                                  >
-                                    Browser
-                                  </div>
-                                </Base>
-                              </Box>
-                              <Styled(div)>
-                                <div
-                                  className="glamor-23 glamor-24"
+                              <span>
+                                Browser
+                              </span>
+                              <Styled(span)>
+                                <span
+                                  className="glamor-21 glamor-22"
                                 >
                                   browser
-                                </div>
-                              </Styled(div)>
+                                </span>
+                              </Styled(span)>
                             </div>
                           </Base>
-                        </Flex>
+                        </Box>
                         <Flex
                           align="center"
                           p={2}
                         >
                           <Base
                             align="center"
-                            className="glamor-27"
+                            className="glamor-25"
                             p={2}
                           >
                             <div
-                              className="glamor-27"
+                              className="glamor-25"
                               is={null}
                             >
                               <LinkWithConfirmation
@@ -424,66 +395,52 @@ exports[`ProjectTags renders 1`] = `
                     p={2}
                   >
                     <Base
-                      className="glamor-29 glamor-30"
+                      className="glamor-27 glamor-28"
                       p={2}
                     >
                       <div
-                        className="glamor-29 glamor-30"
+                        className="glamor-27 glamor-28"
                         is={null}
                       >
-                        <Flex
-                          direction="column"
+                        <Box
+                          align="flex-end"
                           flex="1"
-                          justify="center"
                           p={2}
                         >
                           <Base
-                            className="glamor-25"
-                            direction="column"
+                            align="flex-end"
+                            className="glamor-23"
                             flex="1"
-                            justify="center"
                             p={2}
                           >
                             <div
-                              className="glamor-25"
+                              className="glamor-23"
                               is={null}
                             >
-                              <Box
-                                mb={1}
-                              >
-                                <Base
-                                  className="glamor-21"
-                                  mb={1}
-                                >
-                                  <div
-                                    className="glamor-21"
-                                    is={null}
-                                  >
-                                    Device
-                                  </div>
-                                </Base>
-                              </Box>
-                              <Styled(div)>
-                                <div
-                                  className="glamor-23 glamor-24"
+                              <span>
+                                Device
+                              </span>
+                              <Styled(span)>
+                                <span
+                                  className="glamor-21 glamor-22"
                                 >
                                   device
-                                </div>
-                              </Styled(div)>
+                                </span>
+                              </Styled(span)>
                             </div>
                           </Base>
-                        </Flex>
+                        </Box>
                         <Flex
                           align="center"
                           p={2}
                         >
                           <Base
                             align="center"
-                            className="glamor-27"
+                            className="glamor-25"
                             p={2}
                           >
                             <div
-                              className="glamor-27"
+                              className="glamor-25"
                               is={null}
                             >
                               <LinkWithConfirmation
@@ -577,66 +534,52 @@ exports[`ProjectTags renders 1`] = `
                     p={2}
                   >
                     <Base
-                      className="glamor-29 glamor-30"
+                      className="glamor-27 glamor-28"
                       p={2}
                     >
                       <div
-                        className="glamor-29 glamor-30"
+                        className="glamor-27 glamor-28"
                         is={null}
                       >
-                        <Flex
-                          direction="column"
+                        <Box
+                          align="flex-end"
                           flex="1"
-                          justify="center"
                           p={2}
                         >
                           <Base
-                            className="glamor-25"
-                            direction="column"
+                            align="flex-end"
+                            className="glamor-23"
                             flex="1"
-                            justify="center"
                             p={2}
                           >
                             <div
-                              className="glamor-25"
+                              className="glamor-23"
                               is={null}
                             >
-                              <Box
-                                mb={1}
-                              >
-                                <Base
-                                  className="glamor-21"
-                                  mb={1}
-                                >
-                                  <div
-                                    className="glamor-21"
-                                    is={null}
-                                  >
-                                    Environment
-                                  </div>
-                                </Base>
-                              </Box>
-                              <Styled(div)>
-                                <div
-                                  className="glamor-23 glamor-24"
+                              <span>
+                                Environment
+                              </span>
+                              <Styled(span)>
+                                <span
+                                  className="glamor-21 glamor-22"
                                 >
                                   environment
-                                </div>
-                              </Styled(div)>
+                                </span>
+                              </Styled(span)>
                             </div>
                           </Base>
-                        </Flex>
+                        </Box>
                         <Flex
                           align="center"
                           p={2}
                         >
                           <Base
                             align="center"
-                            className="glamor-27"
+                            className="glamor-25"
                             p={2}
                           >
                             <div
-                              className="glamor-27"
+                              className="glamor-25"
                               is={null}
                             >
                               <LinkWithConfirmation

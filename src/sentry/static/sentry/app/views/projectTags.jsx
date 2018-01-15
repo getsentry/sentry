@@ -14,9 +14,10 @@ import SettingsPageHeader from './settings/components/settingsPageHeader';
 import TextBlock from './settings/components/text/textBlock';
 import Tooltip from '../components/tooltip';
 
-const Description = styled.div`
+const Description = styled.span`
   font-size: 0.8em;
   color: ${p => p.theme.gray1};
+  margin-left: 8px;
 `;
 
 export default class ProjectTags extends AsyncView {
@@ -82,10 +83,10 @@ export default class ProjectTags extends AsyncView {
             {this.state.tags.map(({key, name}, idx) => {
               return (
                 <Row key={key}>
-                  <Flex direction="column" justify="center" flex="1" p={2}>
-                    <Box mb={1}>{name}</Box>
+                  <Box align="flex-end" flex="1" p={2}>
+                    <span>{name}</span>
                     <Description>{key}</Description>
-                  </Flex>
+                  </Box>
                   <Flex align="center" p={2}>
                     <LinkWithConfirmation
                       className="btn btn-sm btn-default"
