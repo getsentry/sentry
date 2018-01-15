@@ -5,10 +5,6 @@ import {Client} from 'app/api';
 import {shallow} from 'enzyme';
 import AccountAuthorizations from 'app/views/settings/account/accountAuthorizations';
 
-jest.mock('app/api');
-// jest.mock('jquery');
-// jest.mock('scroll-to-element', () => 'scroll-to-element');
-
 describe('AccountAuthorizations', function() {
   beforeEach(function() {
     Client.clearMockResponses();
