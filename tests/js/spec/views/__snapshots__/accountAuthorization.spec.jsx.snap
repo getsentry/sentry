@@ -1,0 +1,60 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`AccountAuthorizations renders empty 1`] = `
+<DocumentTitle
+  title="Approved Applications - Sentry"
+>
+  <div>
+    <SettingsPageHeading
+      title="Authorized Applications"
+    />
+    <Styled(p)>
+      <span
+        key="5"
+      >
+        <span
+          key="0"
+        >
+          You can manage your own applications via the 
+        </span>
+        <a
+          href="/settings/account/api/"
+          key="2"
+        >
+          <span
+            key="1"
+          >
+            API dashboard
+          </span>
+        </a>
+        <span
+          key="3"
+        >
+          .
+        </span>
+      </span>
+    </Styled(p)>
+    <Styled(div)>
+      <PanelHeader
+        disablePadding={true}
+      >
+        <Flex
+          align="center"
+        >
+          <Box
+            flex="1"
+            px={2}
+          >
+            Approved Applications
+          </Box>
+        </Flex>
+      </PanelHeader>
+      <Styled(div)>
+        <Styled(div)>
+          You haven't approved any third party applications.
+        </Styled(div)>
+      </Styled(div)>
+    </Styled(div)>
+  </div>
+</DocumentTitle>
+`;
