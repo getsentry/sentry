@@ -1,7 +1,7 @@
 // Jest Snapshot v1, https://goo.gl/fbAQLP
 
 exports[`ProjectAlertSettings render() renders 1`] = `
-<DocumentTitle
+<SideEffect(DocumentTitle)
   title="Project Alert Settings"
 >
   <div>
@@ -137,5 +137,5 @@ exports[`ProjectAlertSettings render() renders 1`] = `
       }
     />
   </div>
-</DocumentTitle>
+</SideEffect(DocumentTitle)>
 `;

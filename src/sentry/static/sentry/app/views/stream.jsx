@@ -770,23 +770,25 @@ const Stream = createReactClass({
               savedSearchList={this.state.savedSearchList}
             />
             <Sticky onStickyStateChange={this.onStickyStateChange}>
-              <div className="group-header">
-                <div className={this.state.isStickyHeader ? 'container' : null}>
-                  <StreamActions
-                    orgId={params.orgId}
-                    projectId={params.projectId}
-                    hasReleases={projectFeatures.has('releases')}
-                    latestRelease={this.context.project.latestRelease}
-                    query={this.state.query}
-                    onSelectStatsPeriod={this.onSelectStatsPeriod}
-                    onRealtimeChange={this.onRealtimeChange}
-                    realtimeActive={this.state.realtimeActive}
-                    statsPeriod={this.state.statsPeriod}
-                    groupIds={this.state.groupIds}
-                    allResultsVisible={this.allResultsVisible()}
-                  />
+              {props => (
+                <div className="group-header">
+                  <div className={this.state.isStickyHeader ? 'container' : null}>
+                    <StreamActions
+                      orgId={params.orgId}
+                      projectId={params.projectId}
+                      hasReleases={projectFeatures.has('releases')}
+                      latestRelease={this.context.project.latestRelease}
+                      query={this.state.query}
+                      onSelectStatsPeriod={this.onSelectStatsPeriod}
+                      onRealtimeChange={this.onRealtimeChange}
+                      realtimeActive={this.state.realtimeActive}
+                      statsPeriod={this.state.statsPeriod}
+                      groupIds={this.state.groupIds}
+                      allResultsVisible={this.allResultsVisible()}
+                    />
+                  </div>
                 </div>
-              </div>
+              )}
             </Sticky>
             {this.renderProcessingIssuesHint()}
             {this.renderStreamBody()}

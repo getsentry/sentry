@@ -136,324 +136,328 @@ exports[`ProjectPluginDetails renders 1`] = `
       }
     }
   >
-    <DocumentTitle
+    <SideEffect(DocumentTitle)
       title="Sentry"
     >
-      <div>
-        <SettingsPageHeading
-          action={
-            <div
-              className="pull-right"
-            >
-              <Button
-                disabled={false}
-                onClick={[Function]}
-                style={
-                  Object {
-                    "marginRight": "6px",
+      <DocumentTitle
+        title="Sentry"
+      >
+        <div>
+          <SettingsPageHeading
+            action={
+              <div
+                className="pull-right"
+              >
+                <Button
+                  disabled={false}
+                  onClick={[Function]}
+                  style={
+                    Object {
+                      "marginRight": "6px",
+                    }
                   }
-                }
-              >
-                Enable Plugin
-              </Button>
-              <Button
-                disabled={false}
-                onClick={[Function]}
-              >
-                Reset Configuration
-              </Button>
-            </div>
-          }
-          title="Amazon SQS"
-        >
-          <Styled(div)>
-            <div
-              className="glamor-4 glamor-5"
-            >
-              <Flex
-                align="center"
-              >
-                <Base
-                  align="center"
-                  className="glamor-2"
                 >
-                  <div
+                  Enable Plugin
+                </Button>
+                <Button
+                  disabled={false}
+                  onClick={[Function]}
+                >
+                  Reset Configuration
+                </Button>
+              </div>
+            }
+            title="Amazon SQS"
+          >
+            <Styled(div)>
+              <div
+                className="glamor-4 glamor-5"
+              >
+                <Flex
+                  align="center"
+                >
+                  <Base
+                    align="center"
                     className="glamor-2"
-                    is={null}
                   >
-                    <Styled(div)>
-                      <div
-                        className="glamor-0 glamor-1"
-                      >
-                        Amazon SQS
-                      </div>
-                    </Styled(div)>
-                    <div>
-                      <div
-                        className="pull-right"
-                      >
-                        <Button
-                          disabled={false}
-                          onClick={[Function]}
-                          style={
-                            Object {
-                              "marginRight": "6px",
-                            }
-                          }
+                    <div
+                      className="glamor-2"
+                      is={null}
+                    >
+                      <Styled(div)>
+                        <div
+                          className="glamor-0 glamor-1"
                         >
-                          <button
-                            className="button button-default"
+                          Amazon SQS
+                        </div>
+                      </Styled(div)>
+                      <div>
+                        <div
+                          className="pull-right"
+                        >
+                          <Button
                             disabled={false}
                             onClick={[Function]}
-                            role="button"
                             style={
                               Object {
                                 "marginRight": "6px",
                               }
                             }
                           >
-                            <FlowLayout
-                              truncate={false}
+                            <button
+                              className="button button-default"
+                              disabled={false}
+                              onClick={[Function]}
+                              role="button"
+                              style={
+                                Object {
+                                  "marginRight": "6px",
+                                }
+                              }
                             >
-                              <div
-                                className="flow-layout"
+                              <FlowLayout
+                                truncate={false}
                               >
-                                <span
-                                  className="button-label"
+                                <div
+                                  className="flow-layout"
                                 >
-                                  Enable Plugin
-                                </span>
-                              </div>
-                            </FlowLayout>
-                          </button>
-                        </Button>
-                        <Button
-                          disabled={false}
-                          onClick={[Function]}
-                        >
-                          <button
-                            className="button button-default"
+                                  <span
+                                    className="button-label"
+                                  >
+                                    Enable Plugin
+                                  </span>
+                                </div>
+                              </FlowLayout>
+                            </button>
+                          </Button>
+                          <Button
                             disabled={false}
                             onClick={[Function]}
-                            role="button"
                           >
-                            <FlowLayout
-                              truncate={false}
+                            <button
+                              className="button button-default"
+                              disabled={false}
+                              onClick={[Function]}
+                              role="button"
                             >
-                              <div
-                                className="flow-layout"
+                              <FlowLayout
+                                truncate={false}
                               >
-                                <span
-                                  className="button-label"
+                                <div
+                                  className="flow-layout"
                                 >
-                                  Reset Configuration
-                                </span>
-                              </div>
-                            </FlowLayout>
-                          </button>
-                        </Button>
+                                  <span
+                                    className="button-label"
+                                  >
+                                    Reset Configuration
+                                  </span>
+                                </div>
+                              </FlowLayout>
+                            </button>
+                          </Button>
+                        </div>
                       </div>
                     </div>
-                  </div>
-                </Base>
-              </Flex>
-            </div>
-          </Styled(div)>
-        </SettingsPageHeading>
-        <div
-          className="row"
-        >
-          <div
-            className="col-md-7"
-          >
-            <PluginConfig
-              data={
-                Object {
-                  "assets": Array [],
-                  "author": Object {
-                    "name": "Sentry Team",
-                    "url": "https://github.com/getsentry/sentry",
-                  },
-                  "canDisable": true,
-                  "enabled": false,
-                  "hasConfiguration": true,
-                  "id": "amazon-sqs",
-                  "name": "Amazon SQS",
-                  "slug": "amazon-sqs",
-                  "version": "8.23.0.dev0",
-                }
-              }
-              enabled={false}
-              onDisablePlugin={[Function]}
-              organization={
-                Object {
-                  "access": Array [
-                    "org:read",
-                    "org:write",
-                    "org:admin",
-                    "project:read",
-                    "project:write",
-                    "project:admin",
-                    "team:read",
-                    "team:write",
-                    "team:admin",
-                  ],
-                  "features": Array [],
-                  "id": "3",
-                  "name": "Organization Name",
-                  "onboardingTasks": Array [],
-                  "slug": "org-slug",
-                  "status": Object {
-                    "id": "active",
-                    "name": "active",
-                  },
-                  "teams": Array [],
-                }
-              }
-              project={
-                Object {
-                  "digestsMaxDelay": 60,
-                  "digestsMinDelay": 5,
-                  "id": "2",
-                  "name": "Project Name",
-                  "slug": "project-slug",
-                  "subjectTemplate": "[$project] \${tag:level}: $title",
-                }
-              }
-            >
-              <div
-                className="box ref-plugin-config-amazon-sqs"
-              >
-                <div
-                  className="box-header"
-                >
-                  <h3>
-                    Amazon SQS
-                  </h3>
-                </div>
-                <div
-                  className="box-content with-padding"
-                >
-                  <div
-                    dangerouslySetInnerHTML={
-                      Object {
-                        "__html": undefined,
-                      }
-                    }
-                  />
-                  <PluginSettings
-                    organization={
-                      Object {
-                        "access": Array [
-                          "org:read",
-                          "org:write",
-                          "org:admin",
-                          "project:read",
-                          "project:write",
-                          "project:admin",
-                          "team:read",
-                          "team:write",
-                          "team:admin",
-                        ],
-                        "features": Array [],
-                        "id": "3",
-                        "name": "Organization Name",
-                        "onboardingTasks": Array [],
-                        "slug": "org-slug",
-                        "status": Object {
-                          "id": "active",
-                          "name": "active",
-                        },
-                        "teams": Array [],
-                      }
-                    }
-                    plugin={
-                      DefaultPlugin {
-                        "assets": Array [],
-                        "author": Object {
-                          "name": "Sentry Team",
-                          "url": "https://github.com/getsentry/sentry",
-                        },
-                        "canDisable": true,
-                        "enabled": false,
-                        "hasConfiguration": true,
-                        "id": "amazon-sqs",
-                        "name": "Amazon SQS",
-                        "slug": "amazon-sqs",
-                        "version": "8.23.0.dev0",
-                      }
-                    }
-                    project={
-                      Object {
-                        "digestsMaxDelay": 60,
-                        "digestsMinDelay": 5,
-                        "id": "2",
-                        "name": "Project Name",
-                        "slug": "project-slug",
-                        "subjectTemplate": "[$project] \${tag:level}: $title",
-                      }
-                    }
-                  />
-                </div>
+                  </Base>
+                </Flex>
               </div>
-            </PluginConfig>
-          </div>
+            </Styled(div)>
+          </SettingsPageHeading>
           <div
-            className="col-md-4 col-md-offset-1"
+            className="row"
           >
             <div
-              className="pluginDetails-meta"
+              className="col-md-7"
             >
-              <h4>
-                Plugin Information
-              </h4>
-              <dl
-                className="flat"
+              <PluginConfig
+                data={
+                  Object {
+                    "assets": Array [],
+                    "author": Object {
+                      "name": "Sentry Team",
+                      "url": "https://github.com/getsentry/sentry",
+                    },
+                    "canDisable": true,
+                    "enabled": false,
+                    "hasConfiguration": true,
+                    "id": "amazon-sqs",
+                    "name": "Amazon SQS",
+                    "slug": "amazon-sqs",
+                    "version": "8.23.0.dev0",
+                  }
+                }
+                enabled={false}
+                onDisablePlugin={[Function]}
+                organization={
+                  Object {
+                    "access": Array [
+                      "org:read",
+                      "org:write",
+                      "org:admin",
+                      "project:read",
+                      "project:write",
+                      "project:admin",
+                      "team:read",
+                      "team:write",
+                      "team:admin",
+                    ],
+                    "features": Array [],
+                    "id": "3",
+                    "name": "Organization Name",
+                    "onboardingTasks": Array [],
+                    "slug": "org-slug",
+                    "status": Object {
+                      "id": "active",
+                      "name": "active",
+                    },
+                    "teams": Array [],
+                  }
+                }
+                project={
+                  Object {
+                    "digestsMaxDelay": 60,
+                    "digestsMinDelay": 5,
+                    "id": "2",
+                    "name": "Project Name",
+                    "slug": "project-slug",
+                    "subjectTemplate": "[$project] \${tag:level}: $title",
+                  }
+                }
               >
-                <dt>
-                  Name
-                </dt>
-                <dd>
-                  Amazon SQS
-                </dd>
-                <dt>
-                  Author
-                </dt>
-                <dd>
-                  Sentry Team
-                </dd>
-                <div>
+                <div
+                  className="box ref-plugin-config-amazon-sqs"
+                >
+                  <div
+                    className="box-header"
+                  >
+                    <h3>
+                      Amazon SQS
+                    </h3>
+                  </div>
+                  <div
+                    className="box-content with-padding"
+                  >
+                    <div
+                      dangerouslySetInnerHTML={
+                        Object {
+                          "__html": undefined,
+                        }
+                      }
+                    />
+                    <PluginSettings
+                      organization={
+                        Object {
+                          "access": Array [
+                            "org:read",
+                            "org:write",
+                            "org:admin",
+                            "project:read",
+                            "project:write",
+                            "project:admin",
+                            "team:read",
+                            "team:write",
+                            "team:admin",
+                          ],
+                          "features": Array [],
+                          "id": "3",
+                          "name": "Organization Name",
+                          "onboardingTasks": Array [],
+                          "slug": "org-slug",
+                          "status": Object {
+                            "id": "active",
+                            "name": "active",
+                          },
+                          "teams": Array [],
+                        }
+                      }
+                      plugin={
+                        DefaultPlugin {
+                          "assets": Array [],
+                          "author": Object {
+                            "name": "Sentry Team",
+                            "url": "https://github.com/getsentry/sentry",
+                          },
+                          "canDisable": true,
+                          "enabled": false,
+                          "hasConfiguration": true,
+                          "id": "amazon-sqs",
+                          "name": "Amazon SQS",
+                          "slug": "amazon-sqs",
+                          "version": "8.23.0.dev0",
+                        }
+                      }
+                      project={
+                        Object {
+                          "digestsMaxDelay": 60,
+                          "digestsMinDelay": 5,
+                          "id": "2",
+                          "name": "Project Name",
+                          "slug": "project-slug",
+                          "subjectTemplate": "[$project] \${tag:level}: $title",
+                        }
+                      }
+                    />
+                  </div>
+                </div>
+              </PluginConfig>
+            </div>
+            <div
+              className="col-md-4 col-md-offset-1"
+            >
+              <div
+                className="pluginDetails-meta"
+              >
+                <h4>
+                  Plugin Information
+                </h4>
+                <dl
+                  className="flat"
+                >
                   <dt>
-                    URL
+                    Name
                   </dt>
                   <dd>
-                    <ExternalLink
-                      href="https://github.com/getsentry/sentry"
-                      rel="noreferrer noopener"
-                      target="_blank"
-                    >
-                      <a
+                    Amazon SQS
+                  </dd>
+                  <dt>
+                    Author
+                  </dt>
+                  <dd>
+                    Sentry Team
+                  </dd>
+                  <div>
+                    <dt>
+                      URL
+                    </dt>
+                    <dd>
+                      <ExternalLink
                         href="https://github.com/getsentry/sentry"
                         rel="noreferrer noopener"
                         target="_blank"
                       >
-                        github.com/getsentry/sentry
-                      </a>
-                    </ExternalLink>
+                        <a
+                          href="https://github.com/getsentry/sentry"
+                          rel="noreferrer noopener"
+                          target="_blank"
+                        >
+                          github.com/getsentry/sentry
+                        </a>
+                      </ExternalLink>
+                    </dd>
+                  </div>
+                  <dt>
+                    Version
+                  </dt>
+                  <dd>
+                    8.23.0.dev0
                   </dd>
-                </div>
-                <dt>
-                  Version
-                </dt>
-                <dd>
-                  8.23.0.dev0
-                </dd>
-              </dl>
+                </dl>
+              </div>
             </div>
           </div>
         </div>
-      </div>
-    </DocumentTitle>
+      </DocumentTitle>
+    </SideEffect(DocumentTitle)>
   </ProjectPluginDetails>
 </withPlugins>
 `;

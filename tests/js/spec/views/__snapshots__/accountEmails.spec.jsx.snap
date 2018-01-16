@@ -1,7 +1,7 @@
 // Jest Snapshot v1, https://goo.gl/fbAQLP
 
 exports[`AccountEmails renders with emails 1`] = `
-<DocumentTitle
+<SideEffect(DocumentTitle)
   title="Sentry"
 >
   <div>
@@ -84,5 +84,5 @@ exports[`AccountEmails renders with emails 1`] = `
       />
     </Form>
   </div>
-</DocumentTitle>
+</SideEffect(DocumentTitle)>
 `;

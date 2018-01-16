@@ -346,11 +346,14 @@ exports[`Issues -> Merged View renders with mocked data 1`] = `
                                 keyboard={true}
                                 manager={
                                   ModalManager {
+                                    "add": [Function],
                                     "containers": Array [],
                                     "data": Array [],
                                     "handleContainerOverflow": true,
                                     "hideSiblingNodes": true,
+                                    "isTopModal": [Function],
                                     "modals": Array [],
+                                    "remove": [Function],
                                   }
                                 }
                                 onHide={[Function]}
@@ -362,18 +365,19 @@ exports[`Issues -> Merged View renders with mocked data 1`] = `
                                   autoFocus={true}
                                   backdrop={true}
                                   backdropClassName="modal-backdrop"
-                                  backdropTransitionTimeout={150}
                                   containerClassName="modal-open"
-                                  dialogTransitionTimeout={300}
                                   enforceFocus={true}
                                   keyboard={true}
                                   manager={
                                     ModalManager {
+                                      "add": [Function],
                                       "containers": Array [],
                                       "data": Array [],
                                       "handleContainerOverflow": true,
                                       "hideSiblingNodes": true,
+                                      "isTopModal": [Function],
                                       "modals": Array [],
+                                      "remove": [Function],
                                     }
                                   }
                                   onEntering={[Function]}
@@ -1670,11 +1674,14 @@ exports[`Issues -> Merged View renders with mocked data 2`] = `
                                 keyboard={true}
                                 manager={
                                   ModalManager {
+                                    "add": [Function],
                                     "containers": Array [],
                                     "data": Array [],
                                     "handleContainerOverflow": true,
                                     "hideSiblingNodes": true,
+                                    "isTopModal": [Function],
                                     "modals": Array [],
+                                    "remove": [Function],
                                   }
                                 }
                                 onHide={[Function]}
@@ -1686,18 +1693,19 @@ exports[`Issues -> Merged View renders with mocked data 2`] = `
                                   autoFocus={true}
                                   backdrop={true}
                                   backdropClassName="modal-backdrop"
-                                  backdropTransitionTimeout={150}
                                   containerClassName="modal-open"
-                                  dialogTransitionTimeout={300}
                                   enforceFocus={true}
                                   keyboard={true}
                                   manager={
                                     ModalManager {
+                                      "add": [Function],
                                       "containers": Array [],
                                       "data": Array [],
                                       "handleContainerOverflow": true,
                                       "hideSiblingNodes": true,
+                                      "isTopModal": [Function],
                                       "modals": Array [],
+                                      "remove": [Function],
                                     }
                                   }
                                   onEntering={[Function]}

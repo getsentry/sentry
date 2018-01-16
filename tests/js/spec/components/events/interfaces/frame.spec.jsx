@@ -1,5 +1,5 @@
 import React from 'react';
-import TestUtils from 'react-addons-test-utils';
+import TestUtils from 'react-dom/test-utils';
 
 import Frame from 'app/components/events/interfaces/frame';
 import FrameVariables from 'app/components/events/interfaces/frameVariables';
