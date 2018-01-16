@@ -22,10 +22,6 @@ class DeletedProject(DeletedEntry):
     organization_name = models.CharField(max_length=64, null=True)
     organization_slug = models.CharField(max_length=50, null=True)
 
-    team_id = BoundedBigIntegerField(null=True)
-    team_name = models.CharField(max_length=64, null=True)
-    team_slug = models.CharField(max_length=50, null=True)
-
     platform = models.CharField(max_length=64, null=True)
 
     class Meta:
