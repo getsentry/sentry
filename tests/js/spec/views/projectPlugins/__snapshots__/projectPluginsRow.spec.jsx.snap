@@ -13,9 +13,18 @@ exports[`ProjectPluginRow renders 1`] = `
     />
     <h5>
       Amazon SQS 
-      <span>
-        v8.23.0.dev0
-      </span>
+      <DynamicWrapper
+        fixed={
+          <span>
+            v10
+          </span>
+        }
+        value={
+          <span>
+            v8.23.0.dev0
+          </span>
+        }
+      />
     </h5>
     <p>
       <ExternalLink
