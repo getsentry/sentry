@@ -52,7 +52,11 @@ exports[`OrganizationRepositories renders with a repository 1`] = `
         </Box>
       </Flex>
     </PanelHeader>
-    <Styled(div)>
+    <PanelBody
+      direction="column"
+      disablePadding={true}
+      flex={false}
+    >
       <Box>
         <WithTheme(Styled(SpreadLayout))
           key="4"
@@ -108,7 +112,7 @@ exports[`OrganizationRepositories renders with a repository 1`] = `
           </Box>
         </WithTheme(Styled(SpreadLayout))>
       </Box>
-    </Styled(div)>
+    </PanelBody>
   </Styled(div)>
 </div>
 `;

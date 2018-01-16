@@ -77,11 +77,15 @@ exports[`ApiTokens renders empty result 1`] = `
           </Box>
         </Flex>
       </PanelHeader>
-      <Styled(div)>
+      <PanelBody
+        direction="column"
+        disablePadding={true}
+        flex={false}
+      >
         <Styled(div)>
           You haven't created any authentication tokens yet.
         </Styled(div)>
-      </Styled(div)>
+      </PanelBody>
     </Styled(div)>
   </div>
 </SideEffect(DocumentTitle)>
@@ -120,7 +124,7 @@ exports[`ApiTokens renders with result 1`] = `
   margin-bottom: 30px;
 }
 
-.glamor-49 {
+.glamor-47 {
   background: #fff;
   border: 1px solid;
   margin-bottom: 30px;
@@ -130,9 +134,10 @@ exports[`ApiTokens renders with result 1`] = `
 .glamor-23 {
   border-bottom: 1px solid;
   border-radius: 0 0;
-  background: padding:15px 0;
   text-transform: uppercase;
   font-size: 13px;
+  line-height: 1;
+  padding: 15px 0;
 }
 
 .glamor-19 {
@@ -412,7 +417,7 @@ exports[`ApiTokens renders with result 1`] = `
         </Styled(div)>
         <Styled(div)>
           <div
-            className="glamor-49 glamor-50"
+            className="glamor-47 glamor-48"
           >
             <PanelHeader
               disablePadding={true}
@@ -471,9 +476,13 @@ exports[`ApiTokens renders with result 1`] = `
                 </div>
               </Styled(div)>
             </PanelHeader>
-            <Styled(div)>
+            <PanelBody
+              direction="column"
+              disablePadding={true}
+              flex={false}
+            >
               <div
-                className="glamor-47 glamor-48"
+                className=""
               >
                 <ApiTokenRow
                   key="apitoken123"
@@ -680,7 +689,7 @@ exports[`ApiTokens renders with result 1`] = `
                   </Row>
                 </ApiTokenRow>
               </div>
-            </Styled(div)>
+            </PanelBody>
           </div>
         </Styled(div)>
       </div>

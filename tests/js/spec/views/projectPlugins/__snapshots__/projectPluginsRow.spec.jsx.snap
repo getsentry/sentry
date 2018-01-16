@@ -8,8 +8,9 @@ exports[`ProjectPluginRow renders 1`] = `
   <td
     colSpan={2}
   >
-    <div
-      className="icon-integration icon-amazon-sqs"
+    <Styled(PluginIcon)
+      pluginId="amazon-sqs"
+      size={48}
     />
     <h5>
       Amazon SQS 

@@ -7,6 +7,9 @@ import ExternalLink from '../components/externalLink';
 import HookStore from '../stores/hookStore';
 import LoadingError from '../components/loadingError';
 import LoadingIndicator from '../components/loadingIndicator';
+import Panel from './settings/components/panel';
+import PanelBody from './settings/components/panelBody';
+import PanelHeader from './settings/components/panelHeader';
 import PluginList from '../components/pluginList';
 import ProjectState from '../mixins/projectState';
 import SettingsPageHeader from './settings/components/settingsPageHeader';
@@ -73,29 +76,30 @@ const DataForwardingStats = createReactClass({
     else if (this.state.error) return <LoadingError onRetry={this.fetchData} />;
 
     return (
-      <div className="box">
-        <div className="box-header">
-          <h5>{t('Forwarded events in the last 30 days (by day)')}</h5>
-        </div>
-        {!this.state.emptyStats ? (
-          <StackedBarChart
-            points={this.state.stats}
-            height={150}
-            label="events"
-            barClasses={['accepted']}
-            className="standard-barchart"
-          />
-        ) : (
-          <div className="box-content">
+      <Panel>
+        <PanelHeader>{t('Forwarded events in the last 30 days (by day)')}</PanelHeader>
+        <PanelBody>
+          {!this.state.emptyStats ? (
+            <StackedBarChart
+              style={{
+                border: 'none',
+              }}
+              points={this.state.stats}
+              height={150}
+              label="events"
+              barClasses={['accepted']}
+              className="standard-barchart"
+            />
+          ) : (
             <div className="blankslate p-y-2">
               <h5>{t('Nothing forwarded in the last 30 days.')}</h5>
               <p className="m-b-0">
                 {t('Total events forwarded to third party integrations.')}
               </p>
             </div>
-          </div>
-        )}
-      </div>
+          )}
+        </PanelBody>
+      </Panel>
     );
   },
 });
@@ -215,32 +219,30 @@ export default createReactClass({
       <div className="ref-data-forwarding-settings">
         <SettingsPageHeader title={t('Data Forwarding')} />
 
-        <div>
-          <TextBlock>
-            {t(
-              "Enable Data Forwarding to send processed events to your favorite business intelligence tools. The exact payload and types of data depend on the integration you're using."
-            )}
-          </TextBlock>
+        <TextBlock>
+          {t(
+            "Enable Data Forwarding to send processed events to your favorite business intelligence tools. The exact payload and types of data depend on the integration you're using."
+          )}
+        </TextBlock>
 
-          <TextBlock>
-            {tct('Learn more about this functionality in our [link:documentation].', {
-              link: <ExternalLink href="https://docs.sentry.io/learn/data-forwarding/" />,
-            })}
-          </TextBlock>
+        <TextBlock>
+          {tct('Learn more about this functionality in our [link:documentation].', {
+            link: <ExternalLink href="https://docs.sentry.io/learn/data-forwarding/" />,
+          })}
+        </TextBlock>
 
-          <TextBlock>
-            <small>
-              {tct(
-                `Note: Sentry will forward [em:all applicable events] to the
+        <TextBlock>
+          <small>
+            {tct(
+              `Note: Sentry will forward [em:all applicable events] to the
               given provider, which in some situations may be a much more significant
               volume of data.`,
-                {
-                  em: <strong />,
-                }
-              )}
-            </small>
-          </TextBlock>
-        </div>
+              {
+                em: <strong />,
+              }
+            )}
+          </small>
+        </TextBlock>
 
         <DataForwardingStats params={params} />
 

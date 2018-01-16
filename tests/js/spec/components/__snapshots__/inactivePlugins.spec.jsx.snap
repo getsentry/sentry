@@ -1,0 +1,73 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`InactivePlugins renders null when no plugins 1`] = `""`;
+
+exports[`InactivePlugins renders plugins list 1`] = `
+<Styled(div)>
+  <PanelHeader>
+    Inactive Integrations
+  </PanelHeader>
+  <PanelBody
+    direction="column"
+    disablePadding={true}
+    flex={false}
+  >
+    <Flex
+      flex="1"
+      p={1}
+      wrap="wrap"
+    >
+      <Box
+        key="amazon-sqs"
+        m={1}
+      >
+        <Styled(button)
+          className="ref-plugin-enable-amazon-sqs"
+          onClick={[Function]}
+        >
+          <Flex
+            align="center"
+            justify="center"
+          >
+            <Flex
+              align="center"
+              mr={1}
+            >
+              <PluginIcon
+                pluginId="amazon-sqs"
+                size={20}
+              />
+            </Flex>
+            Amazon SQS
+          </Flex>
+        </Styled(button)>
+      </Box>
+      <Box
+        key="github"
+        m={1}
+      >
+        <Styled(button)
+          className="ref-plugin-enable-github"
+          onClick={[Function]}
+        >
+          <Flex
+            align="center"
+            justify="center"
+          >
+            <Flex
+              align="center"
+              mr={1}
+            >
+              <PluginIcon
+                pluginId="github"
+                size={20}
+              />
+            </Flex>
+            GitHub
+          </Flex>
+        </Styled(button)>
+      </Box>
+    </Flex>
+  </PanelBody>
+</Styled(div)>
+`;

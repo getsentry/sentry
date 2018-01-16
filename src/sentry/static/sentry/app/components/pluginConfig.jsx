@@ -1,13 +1,18 @@
+import {Box, Flex} from 'grid-emotion';
 import PropTypes from 'prop-types';
 import React from 'react';
-import createReactClass from 'create-react-class';
 import _ from 'lodash';
+import createReactClass from 'create-react-class';
 
 import {disablePlugin} from '../actionCreators/plugins';
 import {t} from '../locale';
 import ApiMixin from '../mixins/apiMixin';
 import IndicatorStore from '../stores/indicatorStore';
 import LoadingIndicator from '../components/loadingIndicator';
+import Panel from '../views/settings/components/panel';
+import PanelBody from '../views/settings/components/panelBody';
+import PanelHeader from '../views/settings/components/panelHeader';
+import PluginIcon from '../plugins/components/pluginIcon';
 import plugins from '../plugins';
 
 const PluginConfig = createReactClass({
@@ -107,24 +112,35 @@ const PluginConfig = createReactClass({
       typeof this.props.enabled !== 'undefined' ? this.props.enabled : data.enabled;
 
     return (
-      <div className={`box ref-plugin-config-${data.id}`}>
-        <div className="box-header">
-          {data.canDisable &&
-            enabled && (
-              <div className="pull-right">
-                {data.isTestable && (
-                  <a onClick={this.testPlugin} className="btn btn-sm btn-default">
-                    {t('Test Plugin')}
-                  </a>
-                )}
-                <a className="btn btn-sm btn-default" onClick={this.disablePlugin}>
-                  {t('Disable')}
-                </a>
-              </div>
-            )}
-          <h3>{data.name}</h3>
-        </div>
-        <div className="box-content with-padding">
+      <Panel className={`plugin-config ref-plugin-config-${data.id}`}>
+        <PanelHeader hasButtons>
+          <Flex>
+            <Flex align="center" flex="1">
+              <Flex align="center" mr={1}>
+                <PluginIcon pluginId={data.id} />
+              </Flex>
+              <span>{data.name}</span>
+            </Flex>
+            {data.canDisable &&
+              enabled && (
+                <Flex align="center">
+                  <Box mr={1}>
+                    {data.isTestable && (
+                      <a onClick={this.testPlugin} className="btn btn-sm btn-default">
+                        {t('Test Plugin')}
+                      </a>
+                    )}
+                  </Box>
+                  <Box>
+                    <a className="btn btn-sm btn-default" onClick={this.disablePlugin}>
+                      {t('Disable')}
+                    </a>
+                  </Box>
+                </Flex>
+              )}
+          </Flex>
+        </PanelHeader>
+        <PanelBody disablePadding={false} flex wrap="wrap">
           {data.status === 'beta' ? (
             <div className="alert alert-block alert-warning">
               <strong>
@@ -147,8 +163,8 @@ const PluginConfig = createReactClass({
               project: this.props.project,
             })
           )}
-        </div>
-      </div>
+        </PanelBody>
+      </Panel>
     );
   },
 });
