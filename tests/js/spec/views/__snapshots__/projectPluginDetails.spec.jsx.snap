@@ -28,7 +28,7 @@ exports[`ProjectPluginDetails renders 1`] = `
   flex: 1;
 }
 
-.glamor-26 {
+.glamor-25 {
   background: #fff;
   border: 1px solid;
   margin-bottom: 30px;
@@ -110,12 +110,11 @@ exports[`ProjectPluginDetails renders 1`] = `
   background-image: url();
 }
 
-.glamor-25 {
-  padding: 20px;
-}
-
 .glamor-23 {
   box-sizing: border-box;
+  padding-top: 8px;
+  padding-left: 16px;
+  padding-right: 16px;
   display: -webkit-box;
   display: -webkit-flex;
   display: -ms-flexbox;
@@ -126,7 +125,6 @@ exports[`ProjectPluginDetails renders 1`] = `
   -webkit-flex-direction: column;
   -ms-flex-direction: column;
   flex-direction: column;
-  padding: 20px;
 }
 
 <withPlugins
@@ -429,7 +427,7 @@ exports[`ProjectPluginDetails renders 1`] = `
                   className="plugin-config ref-plugin-config-amazon-sqs"
                 >
                   <div
-                    className="plugin-config ref-plugin-config-amazon-sqs glamor-26 glamor-27"
+                    className="plugin-config ref-plugin-config-amazon-sqs glamor-25 glamor-26"
                   >
                     <PanelHeader
                       hasButtons={true}
@@ -519,18 +517,24 @@ exports[`ProjectPluginDetails renders 1`] = `
                     </PanelHeader>
                     <PanelBody
                       direction="column"
-                      disablePadding={false}
+                      disablePadding={true}
                       flex={true}
+                      pt={1}
+                      px={2}
                       wrap="wrap"
                     >
                       <Flex
-                        className="glamor-25"
+                        className=""
                         direction="column"
+                        pt={1}
+                        px={2}
                         wrap="wrap"
                       >
                         <Base
                           className="glamor-23"
                           direction="column"
+                          pt={1}
+                          px={2}
                           wrap="wrap"
                         >
                           <div
