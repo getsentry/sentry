@@ -36,11 +36,14 @@ exports[`ResolveActions with confirmation step renders 1`] = `
         keyboard={true}
         manager={
           ModalManager {
+            "add": [Function],
             "containers": Array [],
             "data": Array [],
             "handleContainerOverflow": true,
             "hideSiblingNodes": true,
+            "isTopModal": [Function],
             "modals": Array [],
+            "remove": [Function],
           }
         }
         onHide={[Function]}
@@ -52,18 +55,19 @@ exports[`ResolveActions with confirmation step renders 1`] = `
           autoFocus={true}
           backdrop={true}
           backdropClassName="modal-backdrop"
-          backdropTransitionTimeout={150}
           containerClassName="modal-open"
-          dialogTransitionTimeout={300}
           enforceFocus={true}
           keyboard={true}
           manager={
             ModalManager {
+              "add": [Function],
               "containers": Array [],
               "data": Array [],
               "handleContainerOverflow": true,
               "hideSiblingNodes": true,
+              "isTopModal": [Function],
               "modals": Array [],
+              "remove": [Function],
             }
           }
           onEntering={[Function]}
@@ -120,11 +124,14 @@ exports[`ResolveActions with confirmation step renders 1`] = `
               keyboard={true}
               manager={
                 ModalManager {
+                  "add": [Function],
                   "containers": Array [],
                   "data": Array [],
                   "handleContainerOverflow": true,
                   "hideSiblingNodes": true,
+                  "isTopModal": [Function],
                   "modals": Array [],
+                  "remove": [Function],
                 }
               }
               onHide={[Function]}
@@ -136,18 +143,19 @@ exports[`ResolveActions with confirmation step renders 1`] = `
                 autoFocus={true}
                 backdrop={true}
                 backdropClassName="modal-backdrop"
-                backdropTransitionTimeout={150}
                 containerClassName="modal-open"
-                dialogTransitionTimeout={300}
                 enforceFocus={true}
                 keyboard={true}
                 manager={
                   ModalManager {
+                    "add": [Function],
                     "containers": Array [],
                     "data": Array [],
                     "handleContainerOverflow": true,
                     "hideSiblingNodes": true,
+                    "isTopModal": [Function],
                     "modals": Array [],
+                    "remove": [Function],
                   }
                 }
                 onEntering={[Function]}
@@ -251,11 +259,14 @@ exports[`ResolveActions with confirmation step renders 1`] = `
                           keyboard={true}
                           manager={
                             ModalManager {
+                              "add": [Function],
                               "containers": Array [],
                               "data": Array [],
                               "handleContainerOverflow": true,
                               "hideSiblingNodes": true,
+                              "isTopModal": [Function],
                               "modals": Array [],
+                              "remove": [Function],
                             }
                           }
                           onHide={[Function]}
@@ -267,18 +278,19 @@ exports[`ResolveActions with confirmation step renders 1`] = `
                             autoFocus={true}
                             backdrop={true}
                             backdropClassName="modal-backdrop"
-                            backdropTransitionTimeout={150}
                             containerClassName="modal-open"
-                            dialogTransitionTimeout={300}
                             enforceFocus={true}
                             keyboard={true}
                             manager={
                               ModalManager {
+                                "add": [Function],
                                 "containers": Array [],
                                 "data": Array [],
                                 "handleContainerOverflow": true,
                                 "hideSiblingNodes": true,
+                                "isTopModal": [Function],
                                 "modals": Array [],
+                                "remove": [Function],
                               }
                             }
                             onEntering={[Function]}
@@ -326,11 +338,14 @@ exports[`ResolveActions with confirmation step renders 1`] = `
                           keyboard={true}
                           manager={
                             ModalManager {
+                              "add": [Function],
                               "containers": Array [],
                               "data": Array [],
                               "handleContainerOverflow": true,
                               "hideSiblingNodes": true,
+                              "isTopModal": [Function],
                               "modals": Array [],
+                              "remove": [Function],
                             }
                           }
                           onHide={[Function]}
@@ -342,18 +357,19 @@ exports[`ResolveActions with confirmation step renders 1`] = `
                             autoFocus={true}
                             backdrop={true}
                             backdropClassName="modal-backdrop"
-                            backdropTransitionTimeout={150}
                             containerClassName="modal-open"
-                            dialogTransitionTimeout={300}
                             enforceFocus={true}
                             keyboard={true}
                             manager={
                               ModalManager {
+                                "add": [Function],
                                 "containers": Array [],
                                 "data": Array [],
                                 "handleContainerOverflow": true,
                                 "hideSiblingNodes": true,
+                                "isTopModal": [Function],
                                 "modals": Array [],
+                                "remove": [Function],
                               }
                             }
                             onEntering={[Function]}
@@ -429,11 +445,14 @@ exports[`ResolveActions without confirmation renders 1`] = `
         keyboard={true}
         manager={
           ModalManager {
+            "add": [Function],
             "containers": Array [],
             "data": Array [],
             "handleContainerOverflow": true,
             "hideSiblingNodes": true,
+            "isTopModal": [Function],
             "modals": Array [],
+            "remove": [Function],
           }
         }
         onHide={[Function]}
@@ -445,18 +464,19 @@ exports[`ResolveActions without confirmation renders 1`] = `
           autoFocus={true}
           backdrop={true}
           backdropClassName="modal-backdrop"
-          backdropTransitionTimeout={150}
           containerClassName="modal-open"
-          dialogTransitionTimeout={300}
           enforceFocus={true}
           keyboard={true}
           manager={
             ModalManager {
+              "add": [Function],
               "containers": Array [],
               "data": Array [],
               "handleContainerOverflow": true,
               "hideSiblingNodes": true,
+              "isTopModal": [Function],
               "modals": Array [],
+              "remove": [Function],
             }
           }
           onEntering={[Function]}

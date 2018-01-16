@@ -1,7 +1,7 @@
 // Jest Snapshot v1, https://goo.gl/fbAQLP
 
 exports[`projectGeneralSettings renders 1`] = `
-<DocumentTitle
+<SideEffect(DocumentTitle)
   title="Sentry"
 >
   <div>
@@ -427,5 +427,5 @@ exports[`projectGeneralSettings renders 1`] = `
       </div>
     </ApiForm>
   </div>
-</DocumentTitle>
+</SideEffect(DocumentTitle)>
 `;
