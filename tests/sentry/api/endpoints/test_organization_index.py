@@ -5,8 +5,8 @@ import six
 from django.core.urlresolvers import reverse
 from exam import fixture
 
-from sentry.models import Organization, OrganizationStatus
-from sentry.testutils import APITestCase
+from sentry.models import Authenticator, Organization, OrganizationStatus, TotpInterface
+from sentry.testutils import APITestCase, TwoFactorAPITestCase
 
 
 class OrganizationsListTest(APITestCase):
@@ -80,3 +80,51 @@ class OrganizationsCreateTest(APITestCase):
         assert resp.status_code == 201, resp.content
         org = Organization.objects.get(id=resp.data['id'])
         assert org.slug == 'hello-world'
+
+
+class OrganizationIndex2faTest(TwoFactorAPITestCase):
+    def setUp(self):
+        self.org_2fa = self.create_organization(owner=self.create_user())
+        self.enable_org_2fa(self.org_2fa)
+        self.no_2fa_user = self.create_user()
+        self.create_member(organization=self.org_2fa, user=self.no_2fa_user, role="member")
+
+    @fixture
+    def path(self):
+        return reverse('sentry-organization-home', kwargs={
+            'organization_slug': self.org_2fa.slug,
+        })
+
+    def assert_can_access_org_home(self):
+        response = self.client.get(self.path)
+        assert response.status_code == 200
+
+    def assert_redirected_to_2fa(self):
+        response = self.client.get(self.path)
+        assert response.status_code == 302
+        assert self.path_2fa in response.url
+
+    def test_preexisting_members_must_enable_2fa(self):
+        self.login_as(self.no_2fa_user)
+        self.assert_redirected_to_2fa()
+
+        TotpInterface().enroll(self.no_2fa_user)
+        self.assert_can_access_org_home()
+
+    def test_new_member_must_enable_2fa(self):
+        new_user = self.create_user()
+        self.create_member(organization=self.org_2fa, user=new_user, role="member")
+        self.login_as(new_user)
+
+        self.assert_redirected_to_2fa()
+
+        TotpInterface().enroll(new_user)
+        self.assert_can_access_org_home()
+
+    def test_member_disable_all_2fa_blocked(self):
+        TotpInterface().enroll(self.no_2fa_user)
+        self.login_as(self.no_2fa_user)
+        self.assert_can_access_org_home()
+
+        Authenticator.objects.get(user=self.no_2fa_user).delete()
+        self.assert_redirected_to_2fa()

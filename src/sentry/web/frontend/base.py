@@ -15,7 +15,7 @@ from sentry import roles
 from sentry.auth import access
 from sentry.auth.superuser import is_active_superuser
 from sentry.models import (
-    Organization, OrganizationMember, OrganizationStatus, Project, ProjectStatus,
+    Authenticator, Organization, OrganizationMember, OrganizationStatus, Project, ProjectStatus,
     Team, TeamStatus
 )
 from sentry.utils import auth
@@ -105,6 +105,9 @@ class OrganizationMixin(object):
             user=user,
             organization=organization,
         ).exists()
+
+    def is_not_2fa_compliant(self, user, organization):
+        return organization.flags.require_2fa and not Authenticator.objects.user_has_2fa(user)
 
     def get_active_team(self, request, organization, team_slug):
         """
@@ -208,6 +211,10 @@ class BaseView(View, OrganizationMixin):
         if not self.has_permission(request, *args, **kwargs):
             return self.handle_permission_required(request, *args, **kwargs)
 
+        if 'organization' in kwargs and self.is_not_2fa_compliant(
+                request.user, kwargs['organization']):
+            return self.handle_not_2fa_compliant(request, *args, **kwargs)
+
         self.request = request
         self.default_context = self.get_context_data(request, *args, **kwargs)
 
@@ -252,8 +259,15 @@ class BaseView(View, OrganizationMixin):
         redirect_uri = self.get_no_permission_url(request, *args, **kwargs)
         return self.redirect(redirect_uri)
 
+    def handle_not_2fa_compliant(self, request, *args, **kwargs):
+        redirect_uri = self.get_not_2fa_compliant_url(request, *args, **kwargs)
+        return self.redirect(redirect_uri)
+
     def get_no_permission_url(request, *args, **kwargs):
         return reverse('sentry-login')
+
+    def get_not_2fa_compliant_url(self, request, *args, **kwargs):
+        return reverse('sentry-account-settings-2fa')
 
     def get_context_data(self, request, **kwargs):
         context = csrf(request)
