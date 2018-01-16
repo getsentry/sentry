@@ -2,9 +2,9 @@
 
 exports[`ProjectPlugins renders 1`] = `
 <div>
-  <h2>
-    Integrations
-  </h2>
+  <SettingsPageHeading
+    title="Integrations"
+  />
   <div
     className="panel panel-default"
   >

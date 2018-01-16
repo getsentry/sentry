@@ -1,6 +1,33 @@
 // Jest Snapshot v1, https://goo.gl/fbAQLP
 
 exports[`ProjectPluginDetails renders 1`] = `
+.glamor-4 {
+  font-size: 14px;
+  box-shadow: inset 0 -1px 0;
+  margin: -20px 0 30px;
+}
+
+.glamor-2 {
+  box-sizing: border-box;
+  display: -webkit-box;
+  display: -webkit-flex;
+  display: -ms-flexbox;
+  display: flex;
+  -webkit-align-items: center;
+  -webkit-box-align: center;
+  -ms-flex-align: center;
+  align-items: center;
+}
+
+.glamor-0 {
+  font-size: 20px;
+  font-weight: bold;
+  margin: 20px 0;
+  -webkit-flex: 1;
+  -ms-flex: 1;
+  flex: 1;
+}
+
 <withPlugins
   location={
     Object {
@@ -113,74 +140,126 @@ exports[`ProjectPluginDetails renders 1`] = `
       title="Sentry"
     >
       <div>
-        <div
-          className="pull-right"
-        >
-          <Button
-            disabled={false}
-            onClick={[Function]}
-            style={
-              Object {
-                "marginRight": "6px",
-              }
-            }
-          >
-            <button
-              className="button button-default"
-              disabled={false}
-              onClick={[Function]}
-              role="button"
-              style={
-                Object {
-                  "marginRight": "6px",
+        <SettingsPageHeading
+          action={
+            <div
+              className="pull-right"
+            >
+              <Button
+                disabled={false}
+                onClick={[Function]}
+                style={
+                  Object {
+                    "marginRight": "6px",
+                  }
                 }
-              }
-            >
-              <FlowLayout
-                truncate={false}
               >
-                <div
-                  className="flow-layout"
-                >
-                  <span
-                    className="button-label"
-                  >
-                    Enable Plugin
-                  </span>
-                </div>
-              </FlowLayout>
-            </button>
-          </Button>
-          <Button
-            disabled={false}
-            onClick={[Function]}
-          >
-            <button
-              className="button button-default"
-              disabled={false}
-              onClick={[Function]}
-              role="button"
-            >
-              <FlowLayout
-                truncate={false}
+                Enable Plugin
+              </Button>
+              <Button
+                disabled={false}
+                onClick={[Function]}
               >
-                <div
-                  className="flow-layout"
+                Reset Configuration
+              </Button>
+            </div>
+          }
+          title="Amazon SQS"
+        >
+          <Styled(div)>
+            <div
+              className="glamor-4 glamor-5"
+            >
+              <Flex
+                align="center"
+              >
+                <Base
+                  align="center"
+                  className="glamor-2"
                 >
-                  <span
-                    className="button-label"
+                  <div
+                    className="glamor-2"
+                    is={null}
                   >
-                    Reset Configuration
-                  </span>
-                </div>
-              </FlowLayout>
-            </button>
-          </Button>
-        </div>
-        <h2>
-          Amazon SQS
-        </h2>
-        <hr />
+                    <Styled(div)>
+                      <div
+                        className="glamor-0 glamor-1"
+                      >
+                        Amazon SQS
+                      </div>
+                    </Styled(div)>
+                    <div>
+                      <div
+                        className="pull-right"
+                      >
+                        <Button
+                          disabled={false}
+                          onClick={[Function]}
+                          style={
+                            Object {
+                              "marginRight": "6px",
+                            }
+                          }
+                        >
+                          <button
+                            className="button button-default"
+                            disabled={false}
+                            onClick={[Function]}
+                            role="button"
+                            style={
+                              Object {
+                                "marginRight": "6px",
+                              }
+                            }
+                          >
+                            <FlowLayout
+                              truncate={false}
+                            >
+                              <div
+                                className="flow-layout"
+                              >
+                                <span
+                                  className="button-label"
+                                >
+                                  Enable Plugin
+                                </span>
+                              </div>
+                            </FlowLayout>
+                          </button>
+                        </Button>
+                        <Button
+                          disabled={false}
+                          onClick={[Function]}
+                        >
+                          <button
+                            className="button button-default"
+                            disabled={false}
+                            onClick={[Function]}
+                            role="button"
+                          >
+                            <FlowLayout
+                              truncate={false}
+                            >
+                              <div
+                                className="flow-layout"
+                              >
+                                <span
+                                  className="button-label"
+                                >
+                                  Reset Configuration
+                                </span>
+                              </div>
+                            </FlowLayout>
+                          </button>
+                        </Button>
+                      </div>
+                    </div>
+                  </div>
+                </Base>
+              </Flex>
+            </div>
+          </Styled(div)>
+        </SettingsPageHeading>
         <div
           className="row"
         >

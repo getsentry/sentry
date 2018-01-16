@@ -2,12 +2,12 @@ import {Link} from 'react-router';
 import DocumentTitle from 'react-document-title';
 import PropTypes from 'prop-types';
 import React from 'react';
-
 import createReactClass from 'create-react-class';
 
 import {t, tct} from '../locale';
 import ApiMixin from '../mixins/apiMixin';
 import AutoSelectText from '../components/autoSelectText';
+import Button from '../components/buttons/button';
 import ClippedBox from '../components/clippedBox';
 import Confirm from '../components/confirm';
 import DynamicWrapper from '../components/dynamicWrapper';
@@ -17,6 +17,8 @@ import LoadingIndicator from '../components/loadingIndicator';
 import OrganizationState from '../mixins/organizationState';
 import Pagination from '../components/pagination';
 import ProjectState from '../mixins/projectState';
+import SettingsPageHeader from './settings/components/settingsPageHeader';
+import TextBlock from './settings/components/text/textBlock';
 
 const KeyRow = createReactClass({
   displayName: 'KeyRow',
@@ -353,19 +355,28 @@ export default createReactClass({
     return (
       <DocumentTitle title={t('Client Keys')}>
         <div className="ref-keys">
-          {access.has('project:write') && (
-            <a onClick={this.onCreateKey} className="btn pull-right btn-primary btn-sm">
-              <span className="icon-plus" />&nbsp;{t('Generate New Key')}
-            </a>
-          )}
-          <h2>{t('Client Keys')}</h2>
-          <p>
-            To send data to Sentry you will need to configure an SDK with a client key
-            (usually referred to as the <code>SENTRY_DSN</code> value). For more
-            information on integrating Sentry with your application take a look at our{' '}
-            <a href="https://docs.sentry.io/">documentation</a>
-            .
-          </p>
+          <SettingsPageHeader
+            title={t('Client Keys')}
+            action={
+              access.has('project:write') ? (
+                <Button onClick={this.onCreateKey} size="small" priority="primary">
+                  <span className="icon-plus" />&nbsp;{t('Generate New Key')}
+                </Button>
+              ) : null
+            }
+          />
+          <TextBlock>
+            {tct(
+              `To send data to Sentry you will need to configure an SDK with a client key
+            (usually referred to as the [code:SENTRY_DSN] value). For more
+            information on integrating Sentry with your application take a look at our
+            [link:documentation].`,
+              {
+                link: <a href="https://docs.sentry.io/" />,
+                code: <code />,
+              }
+            )}
+          </TextBlock>
           {this.renderBody()}
         </div>
       </DocumentTitle>

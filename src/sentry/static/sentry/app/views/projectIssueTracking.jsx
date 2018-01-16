@@ -1,11 +1,13 @@
 import React from 'react';
-import PluginList from '../components/pluginList';
-import withPlugins from '../utils/withPlugins';
 
-import {t} from '../locale';
 import {fetchPlugins} from '../actionCreators/plugins';
+import {t} from '../locale';
 import LoadingIndicator from '../components/loadingIndicator';
+import PluginList from '../components/pluginList';
 import SentryTypes from '../proptypes';
+import SettingsPageHeader from './settings/components/settingsPageHeader';
+import TextBlock from './settings/components/text/textBlock';
+import withPlugins from '../utils/withPlugins';
 
 class ProjectIssueTracking extends React.Component {
   static contextTypes = {
@@ -37,13 +39,13 @@ class ProjectIssueTracking extends React.Component {
     if (issueTrackingPlugins.length) {
       return (
         <div className="ref-issue-tracking-settings">
-          <h2>{t('Issue Tracking')}</h2>
-          <p>
+          <SettingsPageHeader title={t('Issue Tracking')} />
+          <TextBlock>
             Enabling Issue Tracking will let you quickly create tasks within your existing
             tools. You'll find the new action on an issue's details page. Once you create
             an issue, you'll find a helpful annotation and link to the task in your
             project management tool.
-          </p>
+          </TextBlock>
           <PluginList
             organization={organization}
             project={project}
