@@ -97,6 +97,8 @@ class TSDBModel(Enum):
     # the number of events filtered because their group was discarded
     project_total_received_discarded = 610
 
+    servicehook_fired = 700
+
 
 class BaseTSDB(Service):
     __all__ = (
