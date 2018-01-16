@@ -6,6 +6,7 @@ import LoadingIndicator from '../../components/loadingIndicator';
 import ProjectPluginRow from './projectPluginRow';
 import RouteError from '../routeError';
 import SentryTypes from '../../proptypes';
+import SettingsPageHeader from '../settings/components/settingsPageHeader';
 
 class ProjectPlugins extends React.Component {
   static propTypes = {
@@ -24,7 +25,7 @@ class ProjectPlugins extends React.Component {
 
     return (
       <div>
-        <h2>{t('Integrations')}</h2>
+        <SettingsPageHeader title={t('Integrations')} />
 
         {hasError && <RouteError error={error} component={this} onRetry={onError} />}
         {isLoading && <LoadingIndicator />}

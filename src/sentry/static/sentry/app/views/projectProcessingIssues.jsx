@@ -1,16 +1,17 @@
 import React from 'react';
-
 import createReactClass from 'create-react-class';
 
+import {FormState} from '../components/forms';
+import {t, tn} from '../locale';
 import ApiMixin from '../mixins/apiMixin';
-import OrganizationState from '../mixins/organizationState';
-import TimeSince from '../components/timeSince';
+import IndicatorStore from '../stores/indicatorStore';
 import LoadingError from '../components/loadingError';
 import LoadingIndicator from '../components/loadingIndicator';
-import IndicatorStore from '../stores/indicatorStore';
-import {FormState} from '../components/forms';
+import OrganizationState from '../mixins/organizationState';
+import SettingsPageHeader from './settings/components/settingsPageHeader';
 import Switch from '../components/switch';
-import {t, tn} from '../locale';
+import TextBlock from './settings/components/text/textBlock';
+import TimeSince from '../components/timeSince';
 
 const MESSAGES = {
   native_no_crashed_thread: t('No crashed thread found in crash report'),
@@ -457,8 +458,8 @@ const ProjectProcessingIssues = createReactClass({
   render() {
     return (
       <div>
-        <h1>{t('Processing Issues')}</h1>
-        <p>
+        <SettingsPageHeader title={t('Processing Issues')} />
+        <TextBlock>
           {t(
             `
           For some platforms the event processing requires configuration or
@@ -468,7 +469,7 @@ const ProjectProcessingIssues = createReactClass({
           them.
         `
           )}
-        </p>
+        </TextBlock>
         {this.renderDebugTable()}
         {this.renderResolveButton()}
         {this.renderReprocessingSettings()}

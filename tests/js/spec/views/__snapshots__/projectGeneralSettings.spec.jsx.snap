@@ -5,9 +5,9 @@ exports[`projectGeneralSettings renders 1`] = `
   title="Sentry"
 >
   <div>
-    <h2>
-      Project Settings
-    </h2>
+    <SettingsPageHeading
+      title="Project Settings"
+    />
     <ApiForm
       apiEndpoint="/projects/org-slug/project-slug/"
       apiMethod="PUT"

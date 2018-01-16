@@ -1,8 +1,11 @@
 import React from 'react';
-import AsyncView from './asyncView';
+
 import {t} from '../locale';
+import AsyncView from './asyncView';
 import ExternalLink from '../components/externalLink';
 import LinkWithConfirmation from '../components/linkWithConfirmation';
+import SettingsPageHeader from './settings/components/settingsPageHeader';
+import TextBlock from './settings/components/text/textBlock';
 
 export default class ProjectTags extends AsyncView {
   getEndpoints() {
@@ -32,15 +35,15 @@ export default class ProjectTags extends AsyncView {
   renderBody() {
     return (
       <div>
-        <h2>{t('Tags')}</h2>
-        <p>
+        <SettingsPageHeader title={t('Tags')} />
+        <TextBlock>
           Each event in Sentry may be annotated with various tags (key and value pairs).
           Learn how to{' '}
           <ExternalLink href="https://docs.sentry.io/hosted/learn/context/">
             add custom tags
           </ExternalLink>
           .
-        </p>
+        </TextBlock>
 
         <div className="panel panel-default">
           <table className="table">

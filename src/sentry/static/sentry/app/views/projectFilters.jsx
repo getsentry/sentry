@@ -1,22 +1,24 @@
 import PropTypes from 'prop-types';
 import React from 'react';
-import createReactClass from 'create-react-class';
-import _ from 'lodash';
 import ReactDOMServer from 'react-dom/server';
+import _ from 'lodash';
+import createReactClass from 'create-react-class';
 import moment from 'moment';
 
+import {FormState, TextareaField} from '../components/forms';
+import {intcomma} from '../utils';
+import {t, tn} from '../locale';
 import ApiMixin from '../mixins/apiMixin';
-import IndicatorStore from '../stores/indicatorStore';
 import GroupTombstones from '../components/groupTombstones';
 import HookStore from '../stores/hookStore';
+import IndicatorStore from '../stores/indicatorStore';
 import LoadingError from '../components/loadingError';
 import LoadingIndicator from '../components/loadingIndicator';
 import ProjectState from '../mixins/projectState';
+import SettingsPageHeader from './settings/components/settingsPageHeader';
 import StackedBarChart from '../components/stackedBarChart';
 import Switch from '../components/switch';
-import {FormState, TextareaField} from '../components/forms';
-import {t, tn} from '../locale';
-import {intcomma} from '../utils';
+import TextBlock from './settings/components/text/textBlock';
 import marked from '../utils/marked';
 
 const FilterSwitch = function(props) {
@@ -770,15 +772,14 @@ const ProjectFilters = createReactClass({
   },
 
   render() {
-    // TODO(dcramer): localize when language is final
     return (
       <div>
-        <h1>{t('Inbound Data Filters')}</h1>
-        <p>
+        <SettingsPageHeader title={t('Inbound Data Filters')} />
+        <TextBlock>
           {t(
             'Filters allow you to prevent Sentry from storing events in certain situations. Filtered events are tracked separately from rate limits, and do not apply to any project quotas.'
           )}
-        </p>
+        </TextBlock>
         {this.renderBody()}
       </div>
     );

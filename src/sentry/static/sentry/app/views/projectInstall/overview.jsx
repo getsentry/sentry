@@ -1,11 +1,12 @@
+import {browserHistory, Link} from 'react-router';
 import PropTypes from 'prop-types';
 import React from 'react';
-import {browserHistory, Link} from 'react-router';
-
-import AutoSelectText from '../../components/autoSelectText';
-import PlatformPicker from '../onboarding/project/platformpicker';
 
 import {t, tct} from '../../locale';
+import AutoSelectText from '../../components/autoSelectText';
+import PlatformPicker from '../onboarding/project/platformpicker';
+import SettingsPageHeader from '../settings/components/settingsPageHeader';
+import TextBlock from '../settings/components/text/textBlock';
 
 class ProjectInstallOverview extends React.Component {
   static propTypes = {
@@ -44,12 +45,13 @@ class ProjectInstallOverview extends React.Component {
 
     return (
       <div>
-        <h1>{t('Configure your application')}</h1>
-        <p>
+        <SettingsPageHeader title={t('Configure your application')} />
+
+        <TextBlock>
           {t(
             'Get started by selecting the platform or language that powers your application.'
           )}
-        </p>
+        </TextBlock>
 
         {this.state.showDsn ? (
           <div>
