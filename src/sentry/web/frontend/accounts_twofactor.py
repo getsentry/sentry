@@ -46,6 +46,7 @@ class TwoFactorSettingsView(BaseView):
             interface = Authenticator.objects.get_interface(request.user, self.interface_id)
         except LookupError:
             raise Http404
+        request.user.clear_lost_passwords()
         return self.configure(request, interface)
 
     def make_context(self, request, interface):
