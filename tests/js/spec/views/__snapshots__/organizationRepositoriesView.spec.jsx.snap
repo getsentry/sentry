@@ -1,7 +1,7 @@
 // Jest Snapshot v1, https://goo.gl/fbAQLP
 
 exports[`OrganizationRepositoriesView render() without any providers is loading when initially rendering 1`] = `
-<DocumentTitle
+<SideEffect(DocumentTitle)
   title="Repositories"
 >
   <LazyLoad
@@ -25,5 +25,5 @@ exports[`OrganizationRepositoriesView render() without any providers is loading 
       }
     }
   />
-</DocumentTitle>
+</SideEffect(DocumentTitle)>
 `;

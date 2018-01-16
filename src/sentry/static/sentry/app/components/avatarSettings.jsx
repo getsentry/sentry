@@ -1,6 +1,5 @@
 import PropTypes from 'prop-types';
 import React from 'react';
-
 import createReactClass from 'create-react-class';
 
 import AlertActions from '../actions/alertActions';
@@ -13,7 +12,6 @@ import {t} from '../locale';
 
 const AvatarSettings = createReactClass({
   displayName: 'AvatarSettings',
-
   propTypes: {
     userId: PropTypes.number,
   },

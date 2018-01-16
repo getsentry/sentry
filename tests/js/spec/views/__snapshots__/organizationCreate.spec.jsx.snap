@@ -1,7 +1,7 @@
 // Jest Snapshot v1, https://goo.gl/fbAQLP
 
 exports[`OrganizationCreate render() renders correctly 1`] = `
-<DocumentTitle
+<SideEffect(DocumentTitle)
   title="Create Organization"
 >
   <NarryLayout>
@@ -40,5 +40,5 @@ exports[`OrganizationCreate render() renders correctly 1`] = `
       />
     </ApiForm>
   </NarryLayout>
-</DocumentTitle>
+</SideEffect(DocumentTitle)>
 `;

@@ -4,7 +4,7 @@ exports[`OnboardingWizard render() should render NotFound if no matching organiz
 <div
   className="onboarding-container"
 >
-  <DocumentTitle
+  <SideEffect(DocumentTitle)
     title="Sentry"
   />
   <div
@@ -39,9 +39,13 @@ exports[`OnboardingWizard render() should render and respond to click events 1`]
   <div
     className="onboarding-container"
   >
-    <DocumentTitle
+    <SideEffect(DocumentTitle)
       title="Sentry"
-    />
+    >
+      <DocumentTitle
+        title="Sentry"
+      />
+    </SideEffect(DocumentTitle)>
     <div
       className="step-container"
     >
@@ -873,9 +877,13 @@ exports[`OnboardingWizard render() should render and respond to click events 2`]
   <div
     className="onboarding-container"
   >
-    <DocumentTitle
+    <SideEffect(DocumentTitle)
       title="Sentry"
-    />
+    >
+      <DocumentTitle
+        title="Sentry"
+      />
+    </SideEffect(DocumentTitle)>
     <div
       className="step-container"
     >

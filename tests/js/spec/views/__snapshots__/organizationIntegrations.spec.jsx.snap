@@ -8,103 +8,107 @@ exports[`OrganizationIntegrations render() with a provider renders 1`] = `
     }
   }
 >
-  <DocumentTitle
+  <SideEffect(DocumentTitle)
     title="Integrations"
   >
-    <div
-      className="ref-organization-integrations"
+    <DocumentTitle
+      title="Integrations"
     >
       <div
-        className="pull-right"
-      >
-        <DropdownLink
-          alwaysRenderMenu={true}
-          anchorRight={true}
-          caret={true}
-          className="btn btn-primary btn-sm"
-          disabled={false}
-          title="Add Integration"
-        >
-          <DropdownMenu
-            keepMenuOpen={false}
-          >
-            <span
-              className="dropdown pull-right anchor-right open"
-            >
-              <a
-                className="dropdown-actor btn btn-primary btn-sm dropdown-menu-right dropdown-toggle hover"
-                onClick={[Function]}
-                onMouseEnter={[Function]}
-                onMouseLeave={[Function]}
-              >
-                <div
-                  className="dropdown-actor-title"
-                >
-                  <span>
-                    Add Integration
-                  </span>
-                  <i
-                    className="icon-arrow-down"
-                  />
-                </div>
-              </a>
-              <ul
-                className="dropdown-menu"
-                onClick={[Function]}
-                onMouseLeave={[Function]}
-              >
-                <MenuItem
-                  key="github"
-                  noAnchor={true}
-                >
-                  <li
-                    className=""
-                    href={null}
-                    role="presentation"
-                    title={null}
-                  >
-                    <a
-                      onClick={[Function]}
-                    >
-                      GitHub
-                    </a>
-                  </li>
-                </MenuItem>
-              </ul>
-            </span>
-          </DropdownMenu>
-        </DropdownLink>
-      </div>
-      <h3
-        className="m-b-2"
-      >
-        Integrations
-      </h3>
-      <div
-        className="well blankslate align-center p-x-2 p-y-1"
+        className="ref-organization-integrations"
       >
         <div
-          className="icon icon-lg icon-git-commit"
-        />
-        <h3>
-          Sentry is better with friends
-        </h3>
-        <p>
-          Integrations allow you to pull in things like repository data or sync with an external issue tracker.
-        </p>
-        <p
-          className="m-b-1"
+          className="pull-right"
         >
-          <a
-            className="btn btn-default"
-            href="https://docs.sentry.io/learn/integrations/"
+          <DropdownLink
+            alwaysRenderMenu={true}
+            anchorRight={true}
+            caret={true}
+            className="btn btn-primary btn-sm"
+            disabled={false}
+            title="Add Integration"
           >
-            Learn more
-          </a>
-        </p>
+            <DropdownMenu
+              keepMenuOpen={false}
+            >
+              <span
+                className="dropdown pull-right anchor-right open"
+              >
+                <a
+                  className="dropdown-actor btn btn-primary btn-sm dropdown-menu-right dropdown-toggle hover"
+                  onClick={[Function]}
+                  onMouseEnter={[Function]}
+                  onMouseLeave={[Function]}
+                >
+                  <div
+                    className="dropdown-actor-title"
+                  >
+                    <span>
+                      Add Integration
+                    </span>
+                    <i
+                      className="icon-arrow-down"
+                    />
+                  </div>
+                </a>
+                <ul
+                  className="dropdown-menu"
+                  onClick={[Function]}
+                  onMouseLeave={[Function]}
+                >
+                  <MenuItem
+                    key="github"
+                    noAnchor={true}
+                  >
+                    <li
+                      className=""
+                      href={null}
+                      role="presentation"
+                      title={null}
+                    >
+                      <a
+                        onClick={[Function]}
+                      >
+                        GitHub
+                      </a>
+                    </li>
+                  </MenuItem>
+                </ul>
+              </span>
+            </DropdownMenu>
+          </DropdownLink>
+        </div>
+        <h3
+          className="m-b-2"
+        >
+          Integrations
+        </h3>
+        <div
+          className="well blankslate align-center p-x-2 p-y-1"
+        >
+          <div
+            className="icon icon-lg icon-git-commit"
+          />
+          <h3>
+            Sentry is better with friends
+          </h3>
+          <p>
+            Integrations allow you to pull in things like repository data or sync with an external issue tracker.
+          </p>
+          <p
+            className="m-b-1"
+          >
+            <a
+              className="btn btn-default"
+              href="https://docs.sentry.io/learn/integrations/"
+            >
+              Learn more
+            </a>
+          </p>
+        </div>
       </div>
-    </div>
-  </DocumentTitle>
+    </DocumentTitle>
+  </SideEffect(DocumentTitle)>
 </OrganizationIntegrations>
 `;
 
@@ -116,201 +120,209 @@ exports[`OrganizationIntegrations render() with a provider renders with a reposi
     }
   }
 >
-  <DocumentTitle
+  <SideEffect(DocumentTitle)
     title="Integrations"
   >
-    <div
-      className="ref-organization-integrations"
+    <DocumentTitle
+      title="Integrations"
     >
       <div
-        className="pull-right"
+        className="ref-organization-integrations"
       >
-        <DropdownLink
-          alwaysRenderMenu={true}
-          anchorRight={true}
-          caret={true}
-          className="btn btn-primary btn-sm"
-          disabled={false}
-          title="Add Integration"
+        <div
+          className="pull-right"
         >
-          <DropdownMenu
-            keepMenuOpen={false}
+          <DropdownLink
+            alwaysRenderMenu={true}
+            anchorRight={true}
+            caret={true}
+            className="btn btn-primary btn-sm"
+            disabled={false}
+            title="Add Integration"
           >
-            <span
-              className="dropdown pull-right anchor-right open"
+            <DropdownMenu
+              keepMenuOpen={false}
             >
-              <a
-                className="dropdown-actor btn btn-primary btn-sm dropdown-menu-right dropdown-toggle hover"
-                onClick={[Function]}
-                onMouseEnter={[Function]}
-                onMouseLeave={[Function]}
+              <span
+                className="dropdown pull-right anchor-right open"
               >
-                <div
-                  className="dropdown-actor-title"
+                <a
+                  className="dropdown-actor btn btn-primary btn-sm dropdown-menu-right dropdown-toggle hover"
+                  onClick={[Function]}
+                  onMouseEnter={[Function]}
+                  onMouseLeave={[Function]}
                 >
-                  <span>
-                    Add Integration
-                  </span>
-                  <i
-                    className="icon-arrow-down"
-                  />
-                </div>
-              </a>
-              <ul
-                className="dropdown-menu"
-                onClick={[Function]}
-                onMouseLeave={[Function]}
-              >
-                <MenuItem
-                  key="github"
-                  noAnchor={true}
-                >
-                  <li
-                    className=""
-                    href={null}
-                    role="presentation"
-                    title={null}
+                  <div
+                    className="dropdown-actor-title"
                   >
-                    <a
-                      onClick={[Function]}
+                    <span>
+                      Add Integration
+                    </span>
+                    <i
+                      className="icon-arrow-down"
+                    />
+                  </div>
+                </a>
+                <ul
+                  className="dropdown-menu"
+                  onClick={[Function]}
+                  onMouseLeave={[Function]}
+                >
+                  <MenuItem
+                    key="github"
+                    noAnchor={true}
+                  >
+                    <li
+                      className=""
+                      href={null}
+                      role="presentation"
+                      title={null}
                     >
-                      GitHub
-                    </a>
-                  </li>
-                </MenuItem>
-              </ul>
-            </span>
-          </DropdownMenu>
-        </DropdownLink>
-      </div>
-      <h3
-        className="m-b-2"
-      >
-        Integrations
-      </h3>
-      <div
-        className="panel panel-default"
-      >
-        <table
-          className="table"
+                      <a
+                        onClick={[Function]}
+                      >
+                        GitHub
+                      </a>
+                    </li>
+                  </MenuItem>
+                </ul>
+              </span>
+            </DropdownMenu>
+          </DropdownLink>
+        </div>
+        <h3
+          className="m-b-2"
         >
-          <tbody>
-            <tr
-              key="4"
-            >
-              <td
-                style={
-                  Object {
-                    "paddingRight": 0,
-                    "width": 24,
-                  }
-                }
+          Integrations
+        </h3>
+        <div
+          className="panel panel-default"
+        >
+          <table
+            className="table"
+          >
+            <tbody>
+              <tr
+                key="4"
               >
-                <span
-                  className="icon icon-integration icon-github"
+                <td
                   style={
                     Object {
-                      "display": "inline-block",
-                      "height": 24,
+                      "paddingRight": 0,
                       "width": 24,
                     }
                   }
-                />
-              </td>
-              <td>
-                <strong>
-                  repo-name
-                </strong>
-                 —
-                 
-                <small>
-                  GitHub
-                </small>
-              </td>
-              <td
-                style={
-                  Object {
-                    "width": 60,
-                  }
-                }
-              >
-                <Confirm
-                  cancelText="Cancel"
-                  confirmText="Confirm"
-                  message="Are you sure you want to remove this integration?"
-                  onConfirm={[Function]}
-                  priority="primary"
                 >
-                  <button
-                    className="btn btn-default btn-xs"
-                    onClick={[Function]}
-                  >
-                    <span
-                      className="icon icon-trash"
-                    />
-                    <Modal
-                      animation={false}
-                      autoFocus={true}
-                      backdrop={true}
-                      bsClass="modal"
-                      dialogComponentClass={[Function]}
-                      enforceFocus={true}
-                      key="confirm"
-                      keyboard={true}
-                      manager={
-                        ModalManager {
-                          "containers": Array [],
-                          "data": Array [],
-                          "handleContainerOverflow": true,
-                          "hideSiblingNodes": true,
-                          "modals": Array [],
-                        }
+                  <span
+                    className="icon icon-integration icon-github"
+                    style={
+                      Object {
+                        "display": "inline-block",
+                        "height": 24,
+                        "width": 24,
                       }
-                      onHide={[Function]}
-                      renderBackdrop={[Function]}
-                      restoreFocus={true}
-                      show={false}
+                    }
+                  />
+                </td>
+                <td>
+                  <strong>
+                    repo-name
+                  </strong>
+                   —
+                   
+                  <small>
+                    GitHub
+                  </small>
+                </td>
+                <td
+                  style={
+                    Object {
+                      "width": 60,
+                    }
+                  }
+                >
+                  <Confirm
+                    cancelText="Cancel"
+                    confirmText="Confirm"
+                    message="Are you sure you want to remove this integration?"
+                    onConfirm={[Function]}
+                    priority="primary"
+                  >
+                    <button
+                      className="btn btn-default btn-xs"
+                      onClick={[Function]}
                     >
+                      <span
+                        className="icon icon-trash"
+                      />
                       <Modal
+                        animation={false}
                         autoFocus={true}
                         backdrop={true}
-                        backdropClassName="modal-backdrop"
-                        backdropTransitionTimeout={150}
-                        containerClassName="modal-open"
-                        dialogTransitionTimeout={300}
+                        bsClass="modal"
+                        dialogComponentClass={[Function]}
                         enforceFocus={true}
+                        key="confirm"
                         keyboard={true}
                         manager={
                           ModalManager {
+                            "add": [Function],
                             "containers": Array [],
                             "data": Array [],
                             "handleContainerOverflow": true,
                             "hideSiblingNodes": true,
+                            "isTopModal": [Function],
                             "modals": Array [],
+                            "remove": [Function],
                           }
                         }
-                        onEntering={[Function]}
-                        onExited={[Function]}
                         onHide={[Function]}
                         renderBackdrop={[Function]}
                         restoreFocus={true}
                         show={false}
-                      />
-                    </Modal>
-                  </button>
-                </Confirm>
-              </td>
-            </tr>
-          </tbody>
-        </table>
+                      >
+                        <Modal
+                          autoFocus={true}
+                          backdrop={true}
+                          backdropClassName="modal-backdrop"
+                          containerClassName="modal-open"
+                          enforceFocus={true}
+                          keyboard={true}
+                          manager={
+                            ModalManager {
+                              "add": [Function],
+                              "containers": Array [],
+                              "data": Array [],
+                              "handleContainerOverflow": true,
+                              "hideSiblingNodes": true,
+                              "isTopModal": [Function],
+                              "modals": Array [],
+                              "remove": [Function],
+                            }
+                          }
+                          onEntering={[Function]}
+                          onExited={[Function]}
+                          onHide={[Function]}
+                          renderBackdrop={[Function]}
+                          restoreFocus={true}
+                          show={false}
+                        />
+                      </Modal>
+                    </button>
+                  </Confirm>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
       </div>
-    </div>
-  </DocumentTitle>
+    </DocumentTitle>
+  </SideEffect(DocumentTitle)>
 </OrganizationIntegrations>
 `;
 
 exports[`OrganizationIntegrations render() without any providers is loading when initially rendering 1`] = `
-<DocumentTitle
+<SideEffect(DocumentTitle)
   title="Integrations"
 >
   <div
@@ -357,7 +369,7 @@ exports[`OrganizationIntegrations render() without any providers is loading when
       </p>
     </div>
   </div>
-</DocumentTitle>
+</SideEffect(DocumentTitle)>
 `;
 
 exports[`OrganizationIntegrations render() without any providers renders 1`] = `
@@ -368,84 +380,88 @@ exports[`OrganizationIntegrations render() without any providers renders 1`] = `
     }
   }
 >
-  <DocumentTitle
+  <SideEffect(DocumentTitle)
     title="Integrations"
   >
-    <div
-      className="ref-organization-integrations"
+    <DocumentTitle
+      title="Integrations"
     >
       <div
-        className="pull-right"
-      >
-        <DropdownLink
-          alwaysRenderMenu={true}
-          anchorRight={true}
-          caret={true}
-          className="btn btn-primary btn-sm"
-          disabled={false}
-          title="Add Integration"
-        >
-          <DropdownMenu
-            keepMenuOpen={false}
-          >
-            <span
-              className="dropdown pull-right anchor-right open"
-            >
-              <a
-                className="dropdown-actor btn btn-primary btn-sm dropdown-menu-right dropdown-toggle hover"
-                onClick={[Function]}
-                onMouseEnter={[Function]}
-                onMouseLeave={[Function]}
-              >
-                <div
-                  className="dropdown-actor-title"
-                >
-                  <span>
-                    Add Integration
-                  </span>
-                  <i
-                    className="icon-arrow-down"
-                  />
-                </div>
-              </a>
-              <ul
-                className="dropdown-menu"
-                onClick={[Function]}
-                onMouseLeave={[Function]}
-              />
-            </span>
-          </DropdownMenu>
-        </DropdownLink>
-      </div>
-      <h3
-        className="m-b-2"
-      >
-        Integrations
-      </h3>
-      <div
-        className="well blankslate align-center p-x-2 p-y-1"
+        className="ref-organization-integrations"
       >
         <div
-          className="icon icon-lg icon-git-commit"
-        />
-        <h3>
-          Sentry is better with friends
-        </h3>
-        <p>
-          Integrations allow you to pull in things like repository data or sync with an external issue tracker.
-        </p>
-        <p
-          className="m-b-1"
+          className="pull-right"
         >
-          <a
-            className="btn btn-default"
-            href="https://docs.sentry.io/learn/integrations/"
+          <DropdownLink
+            alwaysRenderMenu={true}
+            anchorRight={true}
+            caret={true}
+            className="btn btn-primary btn-sm"
+            disabled={false}
+            title="Add Integration"
           >
-            Learn more
-          </a>
-        </p>
+            <DropdownMenu
+              keepMenuOpen={false}
+            >
+              <span
+                className="dropdown pull-right anchor-right open"
+              >
+                <a
+                  className="dropdown-actor btn btn-primary btn-sm dropdown-menu-right dropdown-toggle hover"
+                  onClick={[Function]}
+                  onMouseEnter={[Function]}
+                  onMouseLeave={[Function]}
+                >
+                  <div
+                    className="dropdown-actor-title"
+                  >
+                    <span>
+                      Add Integration
+                    </span>
+                    <i
+                      className="icon-arrow-down"
+                    />
+                  </div>
+                </a>
+                <ul
+                  className="dropdown-menu"
+                  onClick={[Function]}
+                  onMouseLeave={[Function]}
+                />
+              </span>
+            </DropdownMenu>
+          </DropdownLink>
+        </div>
+        <h3
+          className="m-b-2"
+        >
+          Integrations
+        </h3>
+        <div
+          className="well blankslate align-center p-x-2 p-y-1"
+        >
+          <div
+            className="icon icon-lg icon-git-commit"
+          />
+          <h3>
+            Sentry is better with friends
+          </h3>
+          <p>
+            Integrations allow you to pull in things like repository data or sync with an external issue tracker.
+          </p>
+          <p
+            className="m-b-1"
+          >
+            <a
+              className="btn btn-default"
+              href="https://docs.sentry.io/learn/integrations/"
+            >
+              Learn more
+            </a>
+          </p>
+        </div>
       </div>
-    </div>
-  </DocumentTitle>
+    </DocumentTitle>
+  </SideEffect(DocumentTitle)>
 </OrganizationIntegrations>
 `;

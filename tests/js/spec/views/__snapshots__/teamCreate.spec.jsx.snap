@@ -1,7 +1,7 @@
 // Jest Snapshot v1, https://goo.gl/fbAQLP
 
 exports[`TeamCreate render() renders correctly 1`] = `
-<DocumentTitle
+<SideEffect(DocumentTitle)
   title="Create Team"
 >
   <NarryLayout>
@@ -35,5 +35,5 @@ exports[`TeamCreate render() renders correctly 1`] = `
       />
     </ApiForm>
   </NarryLayout>
-</DocumentTitle>
+</SideEffect(DocumentTitle)>
 `;

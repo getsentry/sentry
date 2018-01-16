@@ -46,7 +46,7 @@ export default class ActionLink extends React.Component {
       return (
         <a
           className={classNames(className, {disabled})}
-          onClick={!disabled && onAction}
+          onClick={disabled ? undefined : onAction}
           disabled={disabled}
         >
           {children}
