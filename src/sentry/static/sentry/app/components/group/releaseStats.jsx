@@ -47,9 +47,10 @@ const GroupReleaseStats = createReactClass({
     let envList = EnvironmentStore.getAll();
     let queryParams = this.props.location.query;
 
-    let selectedEnvironment = queryParams.hasOwnProperty('environment')
-      ? queryParams.environment
-      : this.props.defaultEnvironment;
+    let selectedEnvironment =
+      'environment' in queryParams
+        ? queryParams.environment
+        : this.props.defaultEnvironment;
 
     if (
       selectedEnvironment &&
