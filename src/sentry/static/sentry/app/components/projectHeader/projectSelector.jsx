@@ -333,7 +333,11 @@ const ProjectSelector = createReactClass({
           {this.state.activeProject ? (
             this.getLinkNode(this.state.activeTeam, this.state.activeProject)
           ) : (
-            <span onClick={() => (this.state.isOpen ? this.onClose() : this.onOpen())}>
+            <span
+              role="button"
+              style={{cursor: 'pointer'}}
+              onClick={() => (this.state.isOpen ? this.onClose() : this.onOpen())}
+            >
               {t('Select a project')}
             </span>
           )}
