@@ -1,6 +1,7 @@
 import {Flex, Box} from 'grid-emotion';
 import React from 'react';
 import styled from 'react-emotion';
+import {connect} from 'react-redux';
 
 import {t} from '../../locale';
 import ConfigStore from '../../stores/configStore';
@@ -13,7 +14,6 @@ import PanelBody from './components/panelBody';
 import PanelHeader from './components/panelHeader';
 import SentryTypes from '../../proptypes';
 import SettingsLayout from './settingsLayout';
-import withLatestContext from '../../utils/withLatestContext';
 
 const LINKS = {
   DOCUMENTATION: 'https://docs.sentry.io/',
@@ -301,4 +301,5 @@ class SettingsIndex extends React.Component {
     );
   }
 }
-export default withLatestContext(SettingsIndex);
+
+export default connect(state => state.latestContext)(SettingsIndex);

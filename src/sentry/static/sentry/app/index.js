@@ -10,6 +10,7 @@ import PropTypes from 'prop-types';
 import {renderToStaticMarkup} from 'react-dom/server';
 import Reflux from 'reflux';
 import * as Router from 'react-router';
+import {Provider} from 'react-redux';
 import ReactBootstrapModal from 'react-bootstrap/lib/Modal';
 import JsCookie from 'js-cookie';
 
@@ -18,6 +19,7 @@ import * as api from './api';
 import * as il8n from './locale';
 import plugins from './plugins';
 import Main from './main';
+import configureStore from './stores/configureReduxStore';
 
 const csrfCookieName = window.csrfCookieName || 'sc';
 
@@ -58,7 +60,9 @@ let render = Component => {
   let rootEl = document.getElementById('blk_router');
   ReactDOM.render(
     <AppContainer>
-      <Component />
+      <Provider store={configureStore()}>
+        <Component />
+      </Provider>
     </AppContainer>,
     rootEl
   );

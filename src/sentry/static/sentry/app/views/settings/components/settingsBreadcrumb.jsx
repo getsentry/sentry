@@ -1,6 +1,7 @@
 import PropTypes from 'prop-types';
 import React from 'react';
 import styled from 'react-emotion';
+import {connect} from 'react-redux';
 
 import Crumb from './crumb.styled';
 import Link from '../../../components/link';
@@ -11,7 +12,6 @@ import SettingsBreadcrumbDivider from './settingsBreadcrumbDivider';
 import SettingsBreadcrumbDropdown from './settingsBreadcrumbDropdown';
 import recreateRoute from '../../../utils/recreateRoute';
 import replaceRouterParams from '../../../utils/replaceRouterParams';
-import withLatestContext from '../../../utils/withLatestContext';
 
 const Breadcrumbs = styled.div`
   display: flex;
@@ -53,16 +53,22 @@ const ProjectName = styled.div`
 
 // `organizationDetails` to differeniate from the organization that comes from `OrganizationsStore` which only has
 // a fraction of an org's properties
-const ProjectCrumb = withLatestContext(
-  ({
-    team,
-    organization: latestOrganization,
-    project: latestProject,
-    params,
-    routes,
-    route,
-    ...props
-  }) => {
+
+class ProjectCrumb extends React.Component {
+  static propTypes = {
+    team: SentryTypes.Team,
+    organizationDetails: SentryTypes.Organization,
+    routes: PropTypes.array,
+    route: PropTypes.object,
+    isLast: PropTypes.bool,
+    latestOrganization: SentryTypes.Organization,
+    latestProject: SentryTypes.Project,
+  };
+
+  render() {
+    const props = this.props;
+    const {latestOrganization, latestProject, team, route, routes, params} = props;
+
     if (!latestOrganization) return null;
 
     let {teams} = latestOrganization;
@@ -115,70 +121,75 @@ const ProjectCrumb = withLatestContext(
       </SettingsBreadcrumbDropdown>
     );
   }
-);
+}
 
-ProjectCrumb.displayName = 'ProjectCrumb';
-ProjectCrumb.propTypes = {
-  team: SentryTypes.Team,
-  organizationDetails: SentryTypes.Organization,
-  routes: PropTypes.array,
-  route: PropTypes.object,
-  isLast: PropTypes.bool,
-};
+class OrganizationCrumb extends React.Component {
+  static propTypes = {
+    team: SentryTypes.Team,
+    organizationDetails: SentryTypes.Organization,
+    routes: PropTypes.array,
+    route: PropTypes.object,
+    isLast: PropTypes.bool,
+    latestOrganization: SentryTypes.Organization,
+    latestProject: SentryTypes.Project,
+    organizations: PropTypes.arrayOf(SentryTypes.Organization),
+  };
+
+  render() {
+    const {routes, route, latestOrganization, params, organizations} = this.props;
+    const hasMenu = organizations.length > 1;
+    return (
+      <SettingsBreadcrumbDropdown
+        name={
+          <StyledLink
+            to={recreateRoute(route, {
+              routes,
+              params: {...params, orgId: latestOrganization.slug},
+            })}
+          >
+            {latestOrganization.name}
+          </StyledLink>
+        }
+        hasMenu={hasMenu}
+        route={route}
+        {...this.props}
+      >
+        {organizations.map(org => (
+          <MenuItem
+            to={recreateRoute(route, {
+              routes,
+              params: {...params, orgId: org.slug},
+            })}
+            active={org.slug === params.orgId}
+            key={org.slug}
+          >
+            {org.name}
+          </MenuItem>
+        ))}
+      </SettingsBreadcrumbDropdown>
+    );
+  }
+}
 
 const MENUS = {
-  Organization: withLatestContext(
-    ({organizations, organization, params, routes, route, isLast, ...props}) => {
-      let hasMenu = organizations.length > 1;
-
-      return (
-        <SettingsBreadcrumbDropdown
-          name={
-            <StyledLink
-              to={recreateRoute(route, {
-                routes,
-                params: {...params, orgId: organization.slug},
-              })}
-            >
-              {organization.name}
-            </StyledLink>
-          }
-          hasMenu={hasMenu}
-          route={route}
-          {...props}
-        >
-          {organizations.map(org => (
-            <MenuItem
-              to={recreateRoute(route, {
-                routes,
-                params: {...params, orgId: org.slug},
-              })}
-              active={org.slug === params.orgId}
-              key={org.slug}
-            >
-              {org.name}
-            </MenuItem>
-          ))}
-        </SettingsBreadcrumbDropdown>
-      );
-    }
-  ),
-
+  Organization: OrganizationCrumb,
   Project: ProjectCrumb,
 };
 
 class SettingsBreadcrumb extends React.Component {
   static propTypes = {
     routes: PropTypes.array,
+    latestOrganization: SentryTypes.Organization,
+    latestProject: SentryTypes.Project,
+    organizations: PropTypes.arrayOf(SentryTypes.Organization),
   };
 
   static contextTypes = {
-    organization: SentryTypes.Organization,
     team: SentryTypes.Team,
   };
 
   render() {
-    let {routes, params} = this.props;
+    let {routes, params, latestProject, latestOrganization, organizations} = this.props;
     let routesWithNames = routes.filter(({name}) => name);
     let lastRouteIndex = routesWithNames.length - 1;
     return (
@@ -212,6 +223,9 @@ class SettingsBreadcrumb extends React.Component {
               params={params}
               route={route}
               isLast={isLast}
+              latestProject={latestProject}
+              latestOrganization={latestOrganization}
+              organizations={organizations}
             />
           );
         })}
@@ -220,4 +234,12 @@ class SettingsBreadcrumb extends React.Component {
   }
 }
 
-export default SettingsBreadcrumb;
+const mapStateToProps = state => {
+  return {
+    organizations: state.organization.organizations,
+    latestProject: state.latestContext.project,
+    latestOrganization: state.latestContext.organization,
+  };
+};
+
+export default connect(mapStateToProps)(SettingsBreadcrumb);

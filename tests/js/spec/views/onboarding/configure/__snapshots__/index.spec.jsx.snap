@@ -14,7 +14,7 @@ exports[`Configure should render correctly render() should redirect to if no mat
     >
       Configure your application
     </h2>
-    <ProjectContext
+    <Connect(ProjectContext)
       orgId="testOrg"
       projectId="testProject"
       style={
@@ -40,7 +40,7 @@ exports[`Configure should render correctly render() should redirect to if no mat
           }
         />
       </ProjectDocsContext>
-    </ProjectContext>
+    </Connect(ProjectContext)>
     <Waiting
       hasEvent={false}
       skip={[Function]}
@@ -50,95 +50,119 @@ exports[`Configure should render correctly render() should redirect to if no mat
 `;
 
 exports[`Configure should render correctly render() should render platform docs 1`] = `
-<Configure
-  next={[Function]}
-  params={
+<Provider
+  store={
     Object {
-      "orgId": "testOrg",
-      "platform": "node",
-      "projectId": "testProject",
+      "clearActions": [Function],
+      "dispatch": [Function],
+      "getActions": [Function],
+      "getState": [Function],
+      "replaceReducer": [Function],
+      "subscribe": [Function],
     }
   }
 >
-  <div>
-    <div
-      className="onboarding-Configure"
-    >
-      <h2
-        style={
-          Object {
-            "marginBottom": 30,
-          }
-        }
+  <Configure
+    next={[Function]}
+    params={
+      Object {
+        "orgId": "testOrg",
+        "platform": "node",
+        "projectId": "testProject",
+      }
+    }
+  >
+    <div>
+      <div
+        className="onboarding-Configure"
       >
-        Configure your application
-      </h2>
-      <ProjectContext
-        orgId="testOrg"
-        projectId="testProject"
-        style={
-          Object {
-            "marginBottom": 30,
+        <h2
+          style={
+            Object {
+              "marginBottom": 30,
+            }
           }
-        }
-      >
-        <DocumentTitle
-          title="undefined / Test Project"
         >
-          <ProjectDocsContext>
-            <LoadingIndicator>
+          Configure your application
+        </h2>
+        <Connect(ProjectContext)
+          orgId="testOrg"
+          projectId="testProject"
+          style={
+            Object {
+              "marginBottom": 30,
+            }
+          }
+        >
+          <ProjectContext
+            orgId="testOrg"
+            projectId="testProject"
+            style={
+              Object {
+                "marginBottom": 30,
+              }
+            }
+            updateEnvironments={[Function]}
+          >
+            <DocumentTitle
+              title="undefined / Test Project"
+            >
+              <ProjectDocsContext>
+                <LoadingIndicator>
+                  <div
+                    className="loading"
+                  >
+                    <div
+                      className="loading-indicator"
+                    />
+                    <div
+                      className="loading-message"
+                    />
+                  </div>
+                </LoadingIndicator>
+              </ProjectDocsContext>
+            </DocumentTitle>
+          </ProjectContext>
+        </Connect(ProjectContext)>
+        <Waiting
+          hasEvent={false}
+          skip={[Function]}
+        >
+          <div
+            className="awaiting-event"
+          >
+            <div
+              className="pull-right"
+            >
               <div
-                className="loading"
+                className="btn btn-primary"
+                onClick={[Function]}
               >
-                <div
-                  className="loading-indicator"
-                />
-                <div
-                  className="loading-message"
+                All done!
+              </div>
+            </div>
+            <div
+              className="wrap waiting-text"
+            >
+              <h3
+                className="animated-ellipsis"
+              >
+                Waiting to receive an error
+              </h3>
+              <div
+                className="robot"
+              >
+                <span
+                  className="eye"
                 />
               </div>
-            </LoadingIndicator>
-          </ProjectDocsContext>
-        </DocumentTitle>
-      </ProjectContext>
-      <Waiting
-        hasEvent={false}
-        skip={[Function]}
-      >
-        <div
-          className="awaiting-event"
-        >
-          <div
-            className="pull-right"
-          >
-            <div
-              className="btn btn-primary"
-              onClick={[Function]}
-            >
-              All done!
             </div>
           </div>
-          <div
-            className="wrap waiting-text"
-          >
-            <h3
-              className="animated-ellipsis"
-            >
-              Waiting to receive an error
-            </h3>
-            <div
-              className="robot"
-            >
-              <span
-                className="eye"
-              />
-            </div>
-          </div>
-        </div>
-      </Waiting>
+        </Waiting>
+      </div>
     </div>
-  </div>
-</Configure>
+  </Configure>
+</Provider>
 `;
 
 exports[`Configure should render correctly render() shouldn't redirect for a found platform 1`] = `
@@ -155,7 +179,7 @@ exports[`Configure should render correctly render() shouldn't redirect for a fou
     >
       Configure your application
     </h2>
-    <ProjectContext
+    <Connect(ProjectContext)
       orgId="testOrg"
       projectId="testProject"
       style={
@@ -181,7 +205,7 @@ exports[`Configure should render correctly render() shouldn't redirect for a fou
           }
         />
       </ProjectDocsContext>
-    </ProjectContext>
+    </Connect(ProjectContext)>
     <Waiting
       hasEvent={false}
       skip={[Function]}
