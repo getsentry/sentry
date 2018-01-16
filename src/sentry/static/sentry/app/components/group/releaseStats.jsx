@@ -75,7 +75,8 @@ const GroupReleaseStats = createReactClass({
 
   fetchData() {
     let group = this.props.group;
-    let envName = this.state.environment.urlRoutingName;
+    let env = this.state.environment || {};
+    let envName = env.urlRoutingName;
     let stats = this.props.group.stats['24h'];
 
     // due to the current stats logic in Sentry we need to extend the bounds

@@ -194,18 +194,13 @@ const GroupSidebar = createReactClass({
     let project = this.getProject();
     let projectId = project.slug;
     let orgId = this.getOrganization().slug;
-    let defaultEnvironment = project.defaultEnvironment;
     let group = this.getGroup();
 
     return (
       <div className="group-stats">
         <SuggestedOwners event={this.props.event} />
 
-        <GroupReleaseStats
-          group={group}
-          location={this.context.location}
-          defaultEnvironment={defaultEnvironment}
-        />
+        <GroupReleaseStats group={group} location={this.context.location} />
 
         {this.renderPluginIssue()}
 
