@@ -95,9 +95,7 @@ def post_process_group(event, is_new, is_regression, is_sample, **kwargs):
         'projects:servicehooks',
         project=event.project,
     ):
-        allowed_events = set()
-        if is_new:
-            allowed_events.add('event.created')
+        allowed_events = set(['event.created'])
         if has_alert:
             allowed_events.add('event.alert')
 
