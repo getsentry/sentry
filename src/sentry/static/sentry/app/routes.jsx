@@ -156,6 +156,13 @@ const accountSettingsRoutes = [
     componentPromise={() => import('./views/settings/account/accountAppearance')}
     component={errorHandler(LazyLoad)}
   />,
+
+  <Route
+    key="authorizations/"
+    path="authorizations/"
+    componentPromise={() => import('./views/settings/account/accountAuthorizations')}
+    component={errorHandler(LazyLoad)}
+  />,
 ];
 
 const projectSettingsRoutes = [
