@@ -46,12 +46,15 @@ def get_payload_v0(servicehook, event):
     name='sentry.tasks.process_service_hook', default_retry_delay=60 * 5, max_retries=5
 )
 def process_service_hook(servicehook_id, event, **kwargs):
+    from sentry import tsdb
     from sentry.models import ServiceHook
 
     try:
         servicehook = ServiceHook.objects.get(id=servicehook_id)
     except ServiceHook.DoesNotExist:
         return
+
+    tsdb.incr(tsdb.models.servicehook_fired, servicehook.id)
 
     if servicehook.version == 0:
         payload = get_payload_v0(event)
