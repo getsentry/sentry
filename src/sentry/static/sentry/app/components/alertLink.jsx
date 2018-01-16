@@ -5,7 +5,7 @@ import React from 'react';
 import Link from './link';
 import InlineSvg from './inlineSvg';
 
-const InternalLinkButtonText = styled('div')`
+const AlertLinkText = styled('div')`
   flex-grow: 1;
 `;
 
@@ -13,10 +13,10 @@ const StyledInlineSvg = styled(InlineSvg)`
   margin-right: 0.75em;
 `;
 
-const InternalLinkButton = styled(({to, children, icon, ...props}) => (
+const AlertLink = styled(({to, children, icon, ...props}) => (
   <Link to={to} {...props}>
     {icon && <StyledInlineSvg src={icon} size="1.5em" />}
-    <InternalLinkButtonText>{children}</InternalLinkButtonText>
+    <AlertLinkText>{children}</AlertLinkText>
     <InlineSvg src="icon-chevron-right" size="1em" />
   </Link>
 ))`
@@ -34,9 +34,9 @@ const InternalLinkButton = styled(({to, children, icon, ...props}) => (
   }
 `;
 
-InternalLinkButton.propTypes = {
+AlertLink.propTypes = {
   to: PropTypes.string.isRequired,
   icon: PropTypes.string,
 };
 
-export default InternalLinkButton;
+export default AlertLink;

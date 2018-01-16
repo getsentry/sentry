@@ -14,7 +14,7 @@ import Panel from '../components/panel';
 import PanelBody from '../components/panelBody';
 import PanelHeader from '../components/panelHeader';
 import PanelFooter from '../components/panelFooter';
-import InternalLinkButton from '../../../components/internalLinkButton';
+import AlertLink from '../../../components/alertLink';
 import InlineSvg from '../../../components/inlineSvg';
 import {t} from '../../../locale';
 
@@ -36,9 +36,9 @@ export default class AccountNotifications extends AsyncView {
             {accountNotificationFields.map(field => {
               return <FormField key={field.title} field={field} />;
             })}
-            <InternalLinkButton to="/settings/account/emails" icon="icon-mail">
+            <AlertLink to="/settings/account/emails" icon="icon-mail">
               {t('Looking to add, remove, or route an email? Use the emails panel.')}
-            </InternalLinkButton>
+            </AlertLink>
           </Box>
         </ApiForm>
       </div>

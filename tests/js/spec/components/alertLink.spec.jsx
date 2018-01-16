@@ -1,22 +1,22 @@
 import React from 'react';
 import {shallow} from 'enzyme';
-import InternalLinkButton from 'app/components/internalLinkButton';
+import AlertLink from 'app/components/alertLink';
 
-describe('InternalLinkButton', function() {
+describe('AlertLink', function() {
   it('renders', function() {
     let wrapper = shallow(
-      <InternalLinkButton to="/settings/accounts/notifications">
+      <AlertLink to="/settings/accounts/notifications">
         This is an external link button
-      </InternalLinkButton>
+      </AlertLink>
     );
     expect(wrapper).toMatchSnapshot();
   });
 
   it('renders with icon', function() {
     let wrapper = shallow(
-      <InternalLinkButton to="/settings/accounts/notifications" icon="icon-mail">
+      <AlertLink to="/settings/accounts/notifications" icon="icon-mail">
         This is an external link button
-      </InternalLinkButton>
+      </AlertLink>
     );
     expect(wrapper).toMatchSnapshot();
   });
