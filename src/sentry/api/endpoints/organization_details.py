@@ -15,7 +15,7 @@ from sentry.api.serializers import serialize
 from sentry.api.serializers.models.organization import (DetailedOrganizationSerializer)
 from sentry.api.serializers.rest_framework import ListField
 from sentry.models import (
-    AuditLogEntryEvent, Organization, OrganizationAvatar, OrganizationOption, OrganizationStatus, Authenticator
+    AuditLogEntryEvent, Authenticator, Organization, OrganizationAvatar, OrganizationOption, OrganizationStatus
 )
 from sentry.tasks.deletion import delete_organization
 from sentry.utils.apidocs import scenario, attach_scenarios

@@ -9,7 +9,7 @@ from sentry.app import raven
 from sentry.auth import access
 from sentry.auth.superuser import is_active_superuser
 from sentry.models import (
-    ApiKey, Organization, OrganizationMemberTeam, Project, ProjectTeam, ReleaseProject, Team
+    ApiKey, Authenticator, Organization, OrganizationMemberTeam, Project, ProjectTeam, ReleaseProject, Team
 )
 from sentry.utils import auth
 
@@ -21,6 +21,9 @@ class OrganizationPermission(ScopedPermission):
         'PUT': ['org:write', 'org:admin'],
         'DELETE': ['org:admin'],
     }
+
+    def is_not_2fa_compliant(self, user, organization):
+        return organization.flags.require_2fa and not Authenticator.objects.user_has_2fa(user)
 
     def needs_sso(self, request, organization):
         # XXX(dcramer): this is very similar to the server-rendered views
@@ -57,16 +60,30 @@ class OrganizationPermission(ScopedPermission):
                         'user_id': request.user.id,
                     }
                 )
-            elif request.user.is_authenticated() and self.needs_sso(request, organization):
+            elif request.user.is_authenticated():
                 # session auth needs to confirm various permissions
-                logger.info(
-                    'access.must-sso',
-                    extra={
-                        'organization_id': organization.id,
-                        'user_id': request.user.id,
-                    }
-                )
-                raise NotAuthenticated(detail='Must login via SSO')
+                if self.needs_sso(request, organization):
+
+                    logger.info(
+                        'access.must-sso',
+                        extra={
+                            'organization_id': organization.id,
+                            'user_id': request.user.id,
+                        }
+                    )
+                    raise NotAuthenticated(detail='Must login via SSO')
+
+                if self.is_not_2fa_compliant(
+                        request.user, organization):
+                    logger.info(
+                        'access.not-2fa-compliant',
+                        extra={
+                            'organization_id': organization.id,
+                            'user_id': request.user.id,
+                        }
+                    )
+                    raise NotAuthenticated(
+                        detail='Organization requires two-factor authentication to be enabled')
 
         allowed_scopes = set(self.scope_map.get(request.method, []))
         return any(request.access.has_scope(s) for s in allowed_scopes)
