@@ -285,8 +285,7 @@ const StreamActions = createReactClass({
     // TODO(mitsuhiko): very unclear how to translate this
     let issues = this.state.selectedIds;
     let numIssues = issues.size;
-    let {allInQuerySelected, anySelected} = this.state;
-    let disabled = !anySelected;
+    let {allInQuerySelected, anySelected, multiSelected} = this.state;
     let confirm = getConfirm(numIssues, allInQuerySelected, this.props.query);
     let label = getLabel(numIssues, allInQuerySelected);
 
@@ -310,14 +309,14 @@ const StreamActions = createReactClass({
               shouldConfirm={this.shouldConfirm('resolve')}
               confirmMessage={confirm('resolve', true)}
               confirmLabel={label('resolve')}
-              disabled={disabled}
+              disabled={!anySelected}
             />
             <IgnoreActions
               onUpdate={this.onUpdate}
               shouldConfirm={this.shouldConfirm('ignore')}
               confirmMessage={confirm('ignore', true)}
               confirmLabel={label('ignore')}
-              disabled={disabled}
+              disabled={!anySelected}
             />
             <div className="btn-group">
               <ActionLink
@@ -327,7 +326,7 @@ const StreamActions = createReactClass({
                 message={confirm('bookmark', false)}
                 confirmLabel={label('bookmark')}
                 title={t('Add to Bookmarks')}
-                disabled={disabled}
+                disabled={!anySelected}
               >
                 <i aria-hidden="true" className="icon-star-solid" />
               </ActionLink>
@@ -343,7 +342,7 @@ const StreamActions = createReactClass({
                 <MenuItem noAnchor={true}>
                   <ActionLink
                     className="action-merge"
-                    disabled={disabled}
+                    disabled={!multiSelected}
                     onAction={this.onMerge}
                     shouldConfirm={this.shouldConfirm('merge')}
                     message={confirm('merge', false)}
@@ -355,7 +354,7 @@ const StreamActions = createReactClass({
                 <MenuItem noAnchor={true}>
                   <ActionLink
                     className="action-remove-bookmark"
-                    disabled={disabled}
+                    disabled={!anySelected}
                     onAction={() => this.onUpdate({isBookmarked: false})}
                     shouldConfirm={this.shouldConfirm('unbookmark')}
                     message={confirm('remove', false, ' from your bookmarks')}
@@ -368,7 +367,7 @@ const StreamActions = createReactClass({
                 <MenuItem noAnchor={true}>
                   <ActionLink
                     className="action-unresolve"
-                    disabled={disabled}
+                    disabled={!anySelected}
                     onAction={() => this.onUpdate({status: 'unresolved'})}
                     shouldConfirm={this.shouldConfirm('unresolve')}
                     message={confirm('unresolve', true)}
@@ -381,7 +380,7 @@ const StreamActions = createReactClass({
                 <MenuItem noAnchor={true}>
                   <ActionLink
                     className="action-delete"
-                    disabled={disabled || this.state.allInQuerySelected}
+                    disabled={!anySelected || this.state.allInQuerySelected}
                     onAction={this.onDelete}
                     shouldConfirm={this.shouldConfirm('delete')}
                     message={confirm('delete', false)}
