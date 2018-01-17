@@ -304,7 +304,7 @@ class MailPluginTest(TestCase):
 
         msg = mail.outbox[0]
 
-        assert msg.subject.startswith('[Example prefix] BAR-1')
+        assert msg.subject.startswith('[Example prefix]')
 
     def test_assignment(self):
         activity = Activity.objects.create(
