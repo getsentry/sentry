@@ -161,6 +161,23 @@ body.auth {
     }
   }
 
+  .project-header {
+    display: flex;
+    &-main {
+      flex-grow: 1;
+    }
+    &-toggle {
+      text-align: right;
+      label {
+        color: @gray-lighter;
+        font-size: 14px;
+        font-weight: normal;
+        display: block;
+        margin-top: 8px;
+      }
+    }
+  }
+
   .project-select-wrapper {
     display: flex;
     align-items: center;
@@ -174,6 +191,11 @@ body.auth {
     &.active {
       color: @yellow-orange;
     }
+  }
+
+  .environment-selector-toggle {
+    color: @gray-darkest;
+    font-weight: 600;
   }
 
   .project-select {
