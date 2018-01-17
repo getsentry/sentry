@@ -271,6 +271,39 @@ class SettingsTest(TestCase):
         assert not user.check_password('foobar')
         assert not user.check_password('foobars')
 
+    def test_password_hash_invalidated_when_email_changes(self):
+        self.login_as(self.user)
+
+        LostPasswordHash.objects.create(user=self.user)
+
+        params = self.params()
+        params['password'] = 'admin'
+        params['email'] = 'bizbaz@example.com'
+
+        resp = self.client.post(self.path, params)
+        assert resp.status_code == 302
+        user = User.objects.get(id=self.user.id)
+        assert user.email == 'bizbaz@example.com'
+        assert not LostPasswordHash.objects.filter(user=self.user).exists()
+
+    def test_password_hash_invalidated_when_password_changes(self):
+        old_nonce = self.user.session_nonce
+        self.login_as(self.user)
+
+        LostPasswordHash.objects.create(user=self.user)
+
+        params = self.params()
+        params['password'] = 'admin'
+        params['new_password'] = 'foobar'
+        params['verify_new_password'] = 'foobar'
+
+        resp = self.client.post(self.path, params)
+        assert resp.status_code == 302
+        user = User.objects.get(id=self.user.id)
+        assert user.check_password('foobar')
+        assert user.session_nonce != old_nonce
+        assert not LostPasswordHash.objects.filter(user=self.user).exists()
+
 
 class ListIdentitiesTest(TestCase):
     @fixture
@@ -332,6 +365,18 @@ class RecoverPasswordTest(TestCase):
         assert 'email' in resp.context
         send_recover_mail.call_count == 1
 
+    @mock.patch('sentry.models.LostPasswordHash.send_email')
+    def test_lost_password_hash_invalid_after_successful_login(self, send_recover_mail):
+        resp = self.client.post(self.path, {
+            'user': self.user.username
+        })
+        assert resp.status_code == 200
+        send_recover_mail.call_count == 1
+
+        assert LostPasswordHash.objects.get(user=self.user).is_valid()
+        self.login_as(self.user)
+        assert not LostPasswordHash.objects.filter(user=self.user).exists()
+
 
 class RecoverPasswordConfirmTest(TestCase):
     def setUp(self):
@@ -366,6 +411,7 @@ class RecoverPasswordConfirmTest(TestCase):
         user = User.objects.get(id=self.user.id)
         assert user.check_password('bar')
         assert user.session_nonce != old_nonce
+        assert not LostPasswordHash.objects.filter(user=user).exists()
 
 
 class ConfirmEmailSendTest(TestCase):
@@ -416,6 +462,7 @@ class ConfirmEmailTest(TestCase):
         self.assertRedirects(resp, reverse('sentry-account-settings-emails'), status_code=302)
         email = self.user.emails.first()
         assert email.is_verified
+        assert not email.hash_is_valid()
 
 
 class DisconnectIdentityTest(TestCase):

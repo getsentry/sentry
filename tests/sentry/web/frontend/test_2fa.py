@@ -3,7 +3,7 @@ from __future__ import absolute_import
 from django.core.urlresolvers import reverse
 
 from sentry.testutils import TestCase
-from sentry.models import TotpInterface
+from sentry.models import TotpInterface, LostPasswordHash
 
 
 class TwoFactorAuthTest(TestCase):
@@ -110,3 +110,58 @@ class TwoFactorAuthTest(TestCase):
         self.assertTemplateUsed('sentry/account/twofactor/remove.html')
         self.assertContains(resp, 'Do you want to remove the method?')
         self.assertContains(resp, 'Sentry account password')
+
+    def test_add_2fa_password_deletes_lost_password(self):
+        user = self.create_user('foo@example.com')
+        path = reverse('sentry-account-settings-2fa-totp')
+        self.login_as(user)
+        LostPasswordHash.objects.create(user=user)
+        resp = self.client.post(path, data={'enroll': ''})
+        self.assertContains(resp, 'Scan the below QR code')
+        self.assertContains(resp, 'Sentry account password')
+        self.assertNotContains(resp, 'Method is currently not enabled')
+        assert not LostPasswordHash.objects.filter(user=user).exists()
+
+    def test_add_2fa_SSO_deletes_lost_passswords(self):
+        user = self.create_user('foo@example.com')
+        user.set_unusable_password()
+        user.save()
+        path = reverse('sentry-account-settings-2fa-totp')
+        self.login_as(user)
+        LostPasswordHash.objects.create(user=user)
+        resp = self.client.post(path, data={'enroll': ''})
+        assert resp.status_code == 200
+        self.assertTemplateUsed('sentry/account/twofactor/enroll_totp.html')
+        assert 'otp_form' in resp.context
+        self.assertContains(resp, 'One-time password')
+        self.assertContains(resp, 'Authenticator App')
+        self.assertNotContains(resp, 'Sentry account password')
+        assert not LostPasswordHash.objects.filter(user=user).exists()
+
+    def test_remove_2fa_SSO_deletes_lost_passswords(self):
+        user = self.create_user('foo@example.com')
+        user.set_unusable_password()
+        user.save()
+        TotpInterface().enroll(user)
+        path = reverse('sentry-account-settings-2fa-totp')
+        self.login_as(user)
+        LostPasswordHash.objects.create(user=user)
+        resp = self.client.post(path, data={'remove': ''})
+        assert resp.status_code == 200
+        self.assertTemplateUsed('sentry/account/twofactor/remove.html')
+        self.assertContains(resp, 'Do you want to remove the method?')
+        self.assertNotContains(resp, 'Sentry account password')
+        assert not LostPasswordHash.objects.filter(user=user).exists()
+
+    def test_remove_2fa_password_deletes_lost_passswords(self):
+        user = self.create_user('foo@example.com')
+        TotpInterface().enroll(user)
+        path = reverse('sentry-account-settings-2fa-totp')
+        self.login_as(user)
+        LostPasswordHash.objects.create(user=user)
+        resp = self.client.post(path, data={'remove': ''})
+        assert resp.status_code == 200
+        self.assertTemplateUsed('sentry/account/twofactor/remove.html')
+        self.assertContains(resp, 'Do you want to remove the method?')
+        self.assertContains(resp, 'Sentry account password')
+        assert not LostPasswordHash.objects.filter(user=user).exists()

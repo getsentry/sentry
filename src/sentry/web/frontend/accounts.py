@@ -296,6 +296,8 @@ def account_settings(request):
                 msg = _('A confirmation email has been sent to %s.') % user_email.email
                 messages.add_message(request, messages.SUCCESS, msg)
 
+        user.clear_lost_passwords()
+
         messages.add_message(request, messages.SUCCESS, _('Your settings were saved.'))
         return HttpResponseRedirect(request.path)
 
@@ -509,7 +511,7 @@ def show_emails(request):
                 'email': email,
             }
         )
-
+        user.clear_lost_passwords()
         return HttpResponseRedirect(request.path)
 
     if 'primary' in request.POST:
@@ -545,6 +547,7 @@ def show_emails(request):
             if has_new_username and not User.objects.filter(username__iexact=new_primary).exists():
                 user.username = user.email
             user.save()
+        user.clear_lost_passwords()
         return HttpResponseRedirect(request.path)
 
     if email_form.is_valid():
@@ -581,6 +584,8 @@ def show_emails(request):
                 )
                 msg = _('A confirmation email has been sent to %s.') % new_email.email
                 messages.add_message(request, messages.SUCCESS, msg)
+
+        user.clear_lost_passwords()
 
         messages.add_message(request, messages.SUCCESS, _('Your settings were saved.'))
         return HttpResponseRedirect(request.path)
