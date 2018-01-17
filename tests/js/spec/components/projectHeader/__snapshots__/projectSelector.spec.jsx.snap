@@ -47,6 +47,12 @@ exports[`ProjectSelector render() can filter projects by project name 1`] = `
       </Link>
       <span
         onClick={[Function]}
+        role="button"
+        style={
+          Object {
+            "cursor": "pointer",
+          }
+        }
       >
         Select a project
       </span>
@@ -190,6 +196,12 @@ exports[`ProjectSelector render() can filter projects by team name/project name 
       </Link>
       <span
         onClick={[Function]}
+        role="button"
+        style={
+          Object {
+            "cursor": "pointer",
+          }
+        }
       >
         Select a project
       </span>
@@ -323,6 +335,12 @@ exports[`ProjectSelector render() lists projects and has filter 1`] = `
     </Link>
     <span
       onClick={[Function]}
+      role="button"
+      style={
+        Object {
+          "cursor": "pointer",
+        }
+      }
     >
       Select a project
     </span>
@@ -392,6 +410,12 @@ exports[`ProjectSelector render() should show empty message and create project b
     </Link>
     <span
       onClick={[Function]}
+      role="button"
+      style={
+        Object {
+          "cursor": "pointer",
+        }
+      }
     >
       Select a project
     </span>
@@ -453,6 +477,12 @@ exports[`ProjectSelector render() should show empty message with no projects but
     </Link>
     <span
       onClick={[Function]}
+      role="button"
+      style={
+        Object {
+          "cursor": "pointer",
+        }
+      }
     >
       Select a project
     </span>
@@ -530,6 +560,12 @@ exports[`ProjectSelector render() shows empty filter message when filtering has 
       </Link>
       <span
         onClick={[Function]}
+        role="button"
+        style={
+          Object {
+            "cursor": "pointer",
+          }
+        }
       >
         Select a project
       </span>
