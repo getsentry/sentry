@@ -18,6 +18,7 @@ class GroupDeletionTask(ModelDeletionTask):
             models.GroupLink,
             models.GroupBookmark,
             models.GroupMeta,
+            models.GroupEnvironment,
             models.GroupRelease,
             models.GroupRedirect,
             models.GroupResolution,
