@@ -1,6 +1,9 @@
 import React from 'react';
-
+import Reflux from 'reflux';
 import createReactClass from 'create-react-class';
+
+import EnvironmentStore from '../stores/environmentStore';
+import LatestContextStore from '../stores/latestContextStore';
 
 import DiffModal from '../components/modals/diffModal';
 import ProjectHeader from '../components/projectHeader';
@@ -8,12 +11,24 @@ import ProjectState from '../mixins/projectState';
 
 const ProjectDetailsLayout = createReactClass({
   displayName: 'ProjectDetailsLayout',
-  mixins: [ProjectState],
+  mixins: [
+    ProjectState,
+    Reflux.connect(EnvironmentStore, 'environments'),
+    Reflux.listenTo(LatestContextStore, 'onLatestContextChange'),
+  ],
 
   getInitialState() {
     return {
+      environments: [],
       projectNavSection: null,
+      activeEnvironment: null,
     };
+  },
+
+  onLatestContextChange(context) {
+    this.setState({
+      activeEnvironment: context.environment,
+    });
   },
 
   /**
@@ -36,6 +51,8 @@ const ProjectDetailsLayout = createReactClass({
           activeSection={this.state.projectNavSection}
           project={this.context.project}
           organization={this.getOrganization()}
+          environments={this.state.environments}
+          activeEnvironment={this.state.activeEnvironment}
         />
         <div className="container">
           <div className="content">
