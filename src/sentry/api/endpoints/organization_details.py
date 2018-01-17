@@ -14,6 +14,7 @@ from sentry.api.fields import AvatarField
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.organization import (DetailedOrganizationSerializer)
 from sentry.api.serializers.rest_framework import ListField
+from sentry.constants import RESERVED_ORGANIZATION_SLUGS
 from sentry.models import (
     AuditLogEntryEvent, Authenticator, Organization, OrganizationAvatar, OrganizationOption, OrganizationStatus
 )
@@ -35,7 +36,8 @@ ORG_OPTIONS = (
 
 delete_logger = logging.getLogger('sentry.deletions.api')
 
-DELETION_STATUSES = frozenset([OrganizationStatus.PENDING_DELETION, OrganizationStatus.DELETION_IN_PROGRESS])
+DELETION_STATUSES = frozenset([OrganizationStatus.PENDING_DELETION,
+                               OrganizationStatus.DELETION_IN_PROGRESS])
 
 
 @scenario('RetrieveOrganization')
@@ -81,6 +83,18 @@ class OrganizationSerializer(serializers.Serializer):
 
     def validate_slug(self, attrs, source):
         value = attrs[source]
+        # Historically, the only check just made sure there was more than 1
+        # character for the slug, but since then, there are many slugs that
+        # fit within this new imposed limit. We're not fixing existing, but
+        # just preventing new bad values.
+        if len(value) < 3:
+            raise serializers.ValidationError(
+                'This slug "%s" is too short. Minimum of 3 characters.' %
+                (value, ))
+        if value in RESERVED_ORGANIZATION_SLUGS:
+            raise serializers.ValidationError(
+                'This slug "%s" is reserved and not allowed.' %
+                (value, ))
         qs = Organization.objects.filter(
             slug=value,
         ).exclude(id=self.context['organization'].id)

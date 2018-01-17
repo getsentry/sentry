@@ -8,6 +8,7 @@ from django.core import mail
 from mock import patch
 from exam import fixture
 
+from sentry.constants import RESERVED_ORGANIZATION_SLUGS
 from sentry.models import (
     Authenticator,
     DeletedOrganization,
@@ -79,6 +80,36 @@ class OrganizationUpdateTest(APITestCase):
         response = self.client.put(
             url, data={
                 'slug': org2.slug,
+            }
+        )
+        assert response.status_code == 400, response.content
+
+    def test_short_slug(self):
+        org = self.create_organization(owner=self.user)
+        self.login_as(user=self.user)
+        url = reverse(
+            'sentry-api-0-organization-details', kwargs={
+                'organization_slug': org.slug,
+            }
+        )
+        response = self.client.put(
+            url, data={
+                'slug': 'a',
+            }
+        )
+        assert response.status_code == 400, response.content
+
+    def test_reserved_slug(self):
+        org = self.create_organization(owner=self.user)
+        self.login_as(user=self.user)
+        url = reverse(
+            'sentry-api-0-organization-details', kwargs={
+                'organization_slug': org.slug,
+            }
+        )
+        response = self.client.put(
+            url, data={
+                'slug': list(RESERVED_ORGANIZATION_SLUGS)[0],
             }
         )
         assert response.status_code == 400, response.content
