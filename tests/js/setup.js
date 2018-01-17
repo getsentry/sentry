@@ -258,7 +258,11 @@ window.TestStubs = {
     };
   },
   Tags: () => {
-    return [{key: 'browser', name: 'Browser'}, {key: 'device', name: 'Device'}];
+    return [
+      {key: 'browser', name: 'Browser', canDelete: true},
+      {key: 'device', name: 'Device', canDelete: true},
+      {key: 'environment', name: 'Environment', canDelete: false},
+    ];
   },
   Plugin: params => {
     return {
