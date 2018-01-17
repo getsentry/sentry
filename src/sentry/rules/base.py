@@ -69,6 +69,9 @@ class RuleBase(object):
         self.had_data = data is not None
         self.rule = rule
 
+    def is_enabled(self):
+        return True
+
     def get_option(self, key):
         return self.data.get(key)
 
