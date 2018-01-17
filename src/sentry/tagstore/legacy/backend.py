@@ -528,7 +528,7 @@ class LegacyTagStorage(TagStorage):
             key='sentry:user',
         ).order_by('-last_seen')[:limit])
 
-    def get_group_ids_for_search_filter(self, project_id, environment_id, tags):
+    def get_group_ids_for_search_filter(self, project_id, environment_id, tags, limit=1000):
         from sentry.search.base import ANY, EMPTY
         # Django doesnt support union, so we limit results and try to find
         # reasonable matches
@@ -565,7 +565,7 @@ class LegacyTagStorage(TagStorage):
                 # restrict matches to only the most recently seen issues
                 base_qs = base_qs.order_by('-last_seen')
 
-            matches = list(base_qs.values_list('group_id', flat=True)[:1000])
+            matches = list(base_qs.values_list('group_id', flat=True)[:limit])
 
             if not matches:
                 return None

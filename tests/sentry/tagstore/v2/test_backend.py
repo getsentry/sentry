@@ -632,16 +632,16 @@ class TagStorage(TestCase):
 
     def test_get_group_ids_for_search_filter_predicate_order(self):
         """
-            Since each tag-matching filter is capped at 1000 results, and each
+            Since each tag-matching filter returns limited results, and each
             filter returns a subset of the previous filter's matches, we
             attempt to match more selective predicates first.
 
             This tests that we filter by a more selective "divides == even"
             predicate before filtering by an ANY predicate and therefore return
-            all 501 matching groups instead of the 500 that would be returned
-            if we had filtered by the ANY predicate first.
+            all matching groups instead of the partial set that would be returned
+            if we had filtered and limited using the ANY predicate first.
         """
-        for i in range(1002):
+        for i in range(3):
             self.ts.get_or_create_group_tag_value(
                 self.proj1.id, i, self.proj1env1.id,
                 'foo', 'bar'
@@ -655,7 +655,9 @@ class TagStorage(TestCase):
         assert len(self.ts.get_group_ids_for_search_filter(
             self.proj1.id,
             self.proj1env1.id,
-            OrderedDict([('foo', ANY), ('divides', 'even')]))) == 501
+            OrderedDict([('foo', ANY), ('divides', 'even')]),
+            limit=2
+        )) == 2
 
     def test_update_group_for_events(self):
         v1, _ = self.ts.get_or_create_tag_value(self.proj1.id, self.proj1env1.id, 'k1', 'v1')
