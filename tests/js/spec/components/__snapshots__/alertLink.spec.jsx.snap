@@ -1,0 +1,52 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`AlertLink renders 1`] = `
+.glamor-0 {
+  display: -webkit-box;
+  display: -webkit-flex;
+  display: -ms-flexbox;
+  display: flex;
+  -webkit-align-items: center;
+  -webkit-box-align: center;
+  -ms-flex-align: center;
+  align-items: center;
+  border: 1px dashed;
+  padding: 1em;
+  border-radius: 0.25em;
+  -webkit-transition: 0.2s border-color;
+  transition: 0.2s border-color;
+}
+
+<Component
+  className="glamor-0 glamor-1"
+  to="/settings/accounts/notifications"
+>
+  This is an external link button
+</Component>
+`;
+
+exports[`AlertLink renders with icon 1`] = `
+.glamor-0 {
+  display: -webkit-box;
+  display: -webkit-flex;
+  display: -ms-flexbox;
+  display: flex;
+  -webkit-align-items: center;
+  -webkit-box-align: center;
+  -ms-flex-align: center;
+  align-items: center;
+  border: 1px dashed;
+  padding: 1em;
+  border-radius: 0.25em;
+  -webkit-transition: 0.2s border-color;
+  transition: 0.2s border-color;
+}
+
+<Component
+  className="glamor-0 glamor-1"
+  icon="icon-mail"
+  to="/settings/accounts/notifications"
+>
+  This is an external link button
+</Component>
+`;
