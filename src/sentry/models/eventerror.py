@@ -91,7 +91,7 @@ class EventError(object):
         NATIVE_MISSING_SYSTEM_DSYM: u'A system debug symbol file was missing.',
         NATIVE_MISSING_SYMBOL: u'Unable to resolve a symbol.',
         NATIVE_SIMULATOR_FRAME: u'Encountered an unprocessable simulator frame.',
-        NATIVE_UNKNOWN_IMAGE: u'An binary image is referenced that is unknown.',
+        NATIVE_UNKNOWN_IMAGE: u'A binary image is referenced that is unknown.',
         PROGUARD_MISSING_MAPPING: u'A proguard mapping file was missing.',
         PROGUARD_MISSING_LINENO: u'A proguard mapping file does not contain line info.',
     }
