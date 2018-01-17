@@ -36,6 +36,9 @@ class ProjectRuleEditView(ProjectView):
                 'html': node.render_form(),
             }
 
+            if not node.is_enabled():
+                continue
+
             if rule_type.startswith('condition/'):
                 condition_list.append(context)
             elif rule_type.startswith('action/'):
