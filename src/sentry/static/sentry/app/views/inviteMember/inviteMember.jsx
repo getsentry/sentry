@@ -17,7 +17,7 @@ import TextField from '../../components/forms/textField';
 import recreateRoute from '../../utils/recreateRoute';
 
 // These don't have allowed and are only used for superusers. superceded by server result of allowed roles
-const ROLE_LIST = [
+const STATIC_ROLE_LIST = [
   {
     id: 'member',
     name: 'Member',
@@ -59,7 +59,7 @@ const InviteMember = createReactClass({
 
     return {
       selectedTeams: new Set(initialTeamSelection),
-      roleList: ROLE_LIST,
+      roleList: [],
       selectedRole: 'member',
       email: '',
       loading: true,
@@ -71,12 +71,7 @@ const InviteMember = createReactClass({
   componentDidMount() {
     let {slug} = this.getOrganization();
     let {isSuperuser} = ConfigStore.get('user');
-    if (isSuperuser) {
-      // eslint-disable-next-line react/no-did-mount-set-state
-      this.setState({loading: false});
-      // no need to fetch
-      return;
-    }
+
     this.api.request(`/organizations/${slug}/members/me/`, {
       method: 'GET',
       success: resp => {
@@ -103,9 +98,14 @@ const InviteMember = createReactClass({
         }
       },
       error: error => {
-        Raven.captureMessage('[members]: data fetch error ', {
-          extra: {error, state: this.state},
-        });
+        if (error.status == 404 && isSuperuser) {
+          // use the static list
+          this.setState({roleList: STATIC_ROLE_LIST, loading: false});
+        } else {
+          Raven.captureMessage('[members]: data fetch error ', {
+            extra: {error, state: this.state},
+          });
+        }
       },
     });
   },
