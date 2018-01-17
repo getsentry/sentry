@@ -17,6 +17,13 @@ if settings.SENTRY_TAGSTORE.startswith('sentry.tagstore.legacy'):
     from sentry.tagstore.legacy.models import *  # NOQA
 elif settings.SENTRY_TAGSTORE.startswith('sentry.tagstore.v2'):
     from sentry.tagstore.v2.models import *  # NOQA
+
+    # Prevent schema migration from adding DROP TABLE for Legacy
+    from sentry.tagstore.legacy.models import TagKey as LegacyTagKey  # NOQA
+    from sentry.tagstore.legacy.models import TagValue as LegacyTagValue  # NOQA
+    from sentry.tagstore.legacy.models import GroupTagKey as LegacyGroupTagKey  # NOQA
+    from sentry.tagstore.legacy.models import GroupTagValue as LegacyGroupTagValue  # NOQA
+    from sentry.tagstore.legacy.models import EventTag as LegacyEventTag  # NOQA
 elif settings.SENTRY_TAGSTORE.startswith('sentry.tagstore.multi'):
     for backend in settings.SENTRY_TAGSTORE_OPTIONS.get('backends', []):
         if backend[0].startswith('sentry.tagstore.legacy'):
