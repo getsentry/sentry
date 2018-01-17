@@ -87,7 +87,7 @@ class OrganizationMemberDetailsEndpoint(OrganizationEndpoint):
                 organization=organization,
                 id=member_id,
             )
-        return queryset.select_related('user').first()
+        return queryset.select_related('user').get()
 
     def _is_only_owner(self, member):
         if member.role != roles.get_top_dog().id:
