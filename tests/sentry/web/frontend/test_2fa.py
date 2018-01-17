@@ -137,3 +137,31 @@ class TwoFactorAuthTest(TestCase):
         self.assertContains(resp, 'Authenticator App')
         self.assertNotContains(resp, 'Sentry account password')
         assert not LostPasswordHash.objects.filter(user=user).exists()
+
+    def test_remove_2fa_SSO_deletes_lost_passswords(self):
+        user = self.create_user('foo@example.com')
+        user.set_unusable_password()
+        user.save()
+        TotpInterface().enroll(user)
+        path = reverse('sentry-account-settings-2fa-totp')
+        self.login_as(user)
+        LostPasswordHash.objects.create(user=user)
+        resp = self.client.post(path, data={'remove': ''})
+        assert resp.status_code == 200
+        self.assertTemplateUsed('sentry/account/twofactor/remove.html')
+        self.assertContains(resp, 'Do you want to remove the method?')
+        self.assertNotContains(resp, 'Sentry account password')
+        assert not LostPasswordHash.objects.filter(user=user).exists()
+
+    def test_remove_2fa_password_deletes_lost_passswords(self):
+        user = self.create_user('foo@example.com')
+        TotpInterface().enroll(user)
+        path = reverse('sentry-account-settings-2fa-totp')
+        self.login_as(user)
+        LostPasswordHash.objects.create(user=user)
+        resp = self.client.post(path, data={'remove': ''})
+        assert resp.status_code == 200
+        self.assertTemplateUsed('sentry/account/twofactor/remove.html')
+        self.assertContains(resp, 'Do you want to remove the method?')
+        self.assertContains(resp, 'Sentry account password')
+        assert not LostPasswordHash.objects.filter(user=user).exists()
