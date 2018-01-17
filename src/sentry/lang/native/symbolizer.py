@@ -79,7 +79,7 @@ class SymbolicationFailed(Exception):
 
     def get_data(self):
         """Returns the event data."""
-        rv = {'message': self.message}
+        rv = {'message': self.message, 'type': self.type}
         if self.image_path is not None:
             rv['image_path'] = self.image_path
         if self.image_uuid is not None:

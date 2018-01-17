@@ -381,7 +381,7 @@ const Frame = createReactClass({
           )}
           <span className="address">{data.instructionAddr}</span>
           <span className="symbol">
-            <code>{data.function || '<unknown>'}</code>
+            <code>{data.function || '<unknown>'}</code>{' '}
             {data.filename && (
               <span className="filename">
                 {data.filename}

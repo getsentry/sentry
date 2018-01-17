@@ -253,13 +253,7 @@ class NativeStacktraceProcessor(StacktraceProcessor):
                 # optional dsyms)
                 errors = []
                 if e.is_user_fixable or e.is_sdk_failure:
-                    errors.append({
-                        'type': e.type,
-                        'image_uuid': e.image_uuid,
-                        'image_path': e.image_path,
-                        'image_arch': e.image_arch,
-                        'message': e.message,
-                    })
+                    errors.append(e.get_data())
                 else:
                     logger.debug('Failed to symbolicate with native backend',
                                  exc_info=True)
