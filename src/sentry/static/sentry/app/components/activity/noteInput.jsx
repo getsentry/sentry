@@ -3,7 +3,6 @@ import React from 'react';
 import createReactClass from 'create-react-class';
 import marked from 'marked';
 import {MentionsInput, Mention} from 'react-mentions';
-import PureRenderMixin from 'react-addons-pure-render-mixin';
 
 import ApiMixin from '../../mixins/apiMixin';
 import GroupStore from '../../stores/groupStore';
@@ -30,7 +29,7 @@ const NoteInput = createReactClass({
     sessionUser: PropTypes.object.isRequired,
   },
 
-  mixins: [PureRenderMixin, ApiMixin],
+  mixins: [ApiMixin],
 
   getInitialState() {
     let {item, group} = this.props;

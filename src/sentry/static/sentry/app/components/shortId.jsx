@@ -1,7 +1,6 @@
 import PropTypes from 'prop-types';
 import React from 'react';
 import createReactClass from 'create-react-class';
-import PureRenderMixin from 'react-addons-pure-render-mixin';
 import ProjectState from '../mixins/projectState';
 
 import AutoSelectText from './autoSelectText';
@@ -14,7 +13,7 @@ const ShortId = createReactClass({
     project: PropTypes.object,
   },
 
-  mixins: [PureRenderMixin, ProjectState],
+  mixins: [ProjectState],
 
   preventPropagation(e) {
     // this is a hack for the stream so the click handler doesn't

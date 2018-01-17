@@ -2,7 +2,6 @@ import PropTypes from 'prop-types';
 import React from 'react';
 import createReactClass from 'create-react-class';
 import ReactDOM from 'react-dom';
-import PureRenderMixin from 'react-addons-pure-render-mixin';
 import Reflux from 'reflux';
 import _ from 'lodash';
 import classNames from 'classnames';
@@ -34,7 +33,6 @@ const SearchBar = createReactClass({
 
   mixins: [
     ApiMixin,
-    PureRenderMixin,
     Reflux.listenTo(MemberListStore, 'onMemberListStoreChange'),
   ],
 
