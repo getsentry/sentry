@@ -41,7 +41,12 @@ class OrganizationMembersView extends OrganizationSettingsView {
 
   getEndpoints() {
     return [
-      ['members', `/organizations/${this.props.params.orgId}/members/`],
+      [
+        'members',
+        `/organizations/${this.props.params.orgId}/members/`,
+        {},
+        {paginate: true},
+      ],
       [
         'authProvider',
         `/organizations/${this.props.params.orgId}/auth-provider/`,
@@ -202,7 +207,7 @@ class OrganizationMembersView extends OrganizationSettingsView {
 
   renderBody() {
     let {params, routes} = this.props;
-    let {pageLinks, members, requestList} = this.state;
+    let {membersPageLinks, members, requestList} = this.state;
     let {organization} = this.context;
     let {orgId} = params || {};
     let {name: orgName, access} = organization;
@@ -283,10 +288,10 @@ class OrganizationMembersView extends OrganizationSettingsView {
                 />
               );
             })}
-
-            <Pagination pageLinks={pageLinks} />
           </PanelBody>
         </Panel>
+
+        <Pagination pageLinks={membersPageLinks} />
       </div>
     );
   }

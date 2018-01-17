@@ -76,16 +76,21 @@ class AsyncComponent extends React.Component {
 
     endpoints.forEach(([stateKey, endpoint, params, options]) => {
       options = options || {};
+      let locationQuery = (this.props.location && this.props.location.query) || {};
+      let paramsQuery = (params && params.query) || {};
+      let query = options.paginate && {...locationQuery, ...paramsQuery};
+
       this.api.request(endpoint, {
         method: 'GET',
         ...params,
+        query,
         success: (data, _, jqXHR) => {
           this.setState(prevState => {
             return {
               [stateKey]: data,
+              [`${stateKey}PageLinks`]: jqXHR.getResponseHeader('Link'),
               remainingRequests: prevState.remainingRequests - 1,
               loading: prevState.remainingRequests > 1,
-              pageLinks: jqXHR.getResponseHeader('Link'),
             };
           });
         },
