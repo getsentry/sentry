@@ -147,18 +147,24 @@ class OrganizationSerializer(serializers.Serializer):
         changed_data = {}
 
         for key, option, type_ in ORG_OPTIONS:
-            options = OrganizationOption.objects.get(
-                organization=org, key=option)
-            if key in self.init_data:
-                options.value = self.init_data[key]
+            if key not in self.init_data:
+                continue
+            try:
+                option_inst = OrganizationOption.objects.get(
+                    organization=org, key=option)
+            except OrganizationOption.DoesNotExist:
                 OrganizationOption.objects.set_value(
                     organization=org,
                     key=option,
                     value=type_(self.init_data[key]),
                 )
-            # check if ORG_OPTIONS changed
-            if options.has_changed('value'):
-                changed_data[key] = options.value
+                changed_data[key] = self.init_data[key]
+            else:
+                option_inst.value = self.init_data[key]
+                # check if ORG_OPTIONS changed
+                if option_inst.has_changed('value'):
+                    changed_data[key] = option_inst.value
+                option_inst.save()
 
         if 'openMembership' in self.init_data:
             org.flags.allow_joinleave = self.init_data['openMembership']
