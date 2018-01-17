@@ -35,19 +35,11 @@ window.TestStubs = {
     isActive: sinon.spy(),
     createHref: sinon.spy(),
   }),
+
   location: () => ({
     query: {},
     pathame: '/mock-pathname/',
   }),
-
-  AccountAppearance: () => {
-    return {
-      stacktrace_order: '2',
-      timezone: 'US/Pacific',
-      language: 'en',
-      clock_24_hours: true,
-    };
-  },
 
   routerContext: () => ({
     context: {
@@ -59,6 +51,15 @@ window.TestStubs = {
       location: PropTypes.object,
     },
   }),
+
+  AccountAppearance: () => {
+    return {
+      stacktrace_order: '2',
+      timezone: 'US/Pacific',
+      language: 'en',
+      clock_24_hours: true,
+    };
+  },
 
   ApiKey: params => {
     return {
@@ -118,11 +119,42 @@ window.TestStubs = {
     ];
   },
 
-  Team: params => {
+  GitHubRepositoryProvider: params => {
     return {
-      id: '1',
-      slug: 'team-slug',
-      name: 'Team Name',
+      id: 'github',
+      name: 'GitHub',
+      config: [
+        {
+          name: 'name',
+          label: 'Repository Name',
+          type: 'text',
+          placeholder: 'e.g. getsentry/sentry',
+          help: 'Enter your repository name, including the owner.',
+          required: true,
+        },
+      ],
+      ...params,
+    };
+  },
+
+  GitHubIntegrationProvider: params => {
+    return {
+      key: 'github',
+      name: 'GitHub',
+      config: [],
+      setupUri: '/github-integration-setup-uri/',
+      ...params,
+    };
+  },
+
+  Integration: params => {
+    return {
+      id: '4',
+      name: 'repo-name',
+      provider: {
+        key: 'github',
+        name: 'GitHub',
+      },
       ...params,
     };
   },
@@ -181,17 +213,6 @@ window.TestStubs = {
     },
   ],
 
-  Project: params => {
-    return {
-      id: '2',
-      slug: 'project-slug',
-      name: 'Project Name',
-      subjectTemplate: '[$project] ${tag:level}: $title',
-      digestsMinDelay: 5,
-      digestsMaxDelay: 60,
-      ...params,
-    };
-  },
   Organization: params => {
     return {
       id: '3',
@@ -218,60 +239,7 @@ window.TestStubs = {
       ...params,
     };
   },
-  Repository: params => {
-    return {
-      id: '4',
-      name: 'repo-name',
-      provider: 'github',
-      url: 'https://github.com/example/repo-name',
-      status: 'active',
-      ...params,
-    };
-  },
-  GitHubRepositoryProvider: params => {
-    return {
-      id: 'github',
-      name: 'GitHub',
-      config: [
-        {
-          name: 'name',
-          label: 'Repository Name',
-          type: 'text',
-          placeholder: 'e.g. getsentry/sentry',
-          help: 'Enter your repository name, including the owner.',
-          required: true,
-        },
-      ],
-      ...params,
-    };
-  },
-  Integration: params => {
-    return {
-      id: '4',
-      name: 'repo-name',
-      provider: {
-        key: 'github',
-        name: 'GitHub',
-      },
-      ...params,
-    };
-  },
-  GitHubIntegrationProvider: params => {
-    return {
-      key: 'github',
-      name: 'GitHub',
-      config: [],
-      setupUri: '/github-integration-setup-uri/',
-      ...params,
-    };
-  },
-  Tags: () => {
-    return [
-      {key: 'browser', name: 'Browser', canDelete: true},
-      {key: 'device', name: 'Device', canDelete: true},
-      {key: 'environment', name: 'Environment', canDelete: false},
-    ];
-  },
+
   Plugin: params => {
     return {
       author: {url: 'https://github.com/getsentry/sentry', name: 'Sentry Team'},
@@ -286,6 +254,7 @@ window.TestStubs = {
       ...params,
     };
   },
+
   Plugins: () => {
     return [
       {
@@ -312,6 +281,50 @@ window.TestStubs = {
     ];
   },
 
+  Project: params => {
+    return {
+      id: '2',
+      slug: 'project-slug',
+      name: 'Project Name',
+      subjectTemplate: '[$project] ${tag:level}: $title',
+      digestsMinDelay: 5,
+      digestsMaxDelay: 60,
+      ...params,
+    };
+  },
+
+  Repository: params => {
+    return {
+      id: '4',
+      name: 'repo-name',
+      provider: 'github',
+      url: 'https://github.com/example/repo-name',
+      status: 'active',
+      ...params,
+    };
+  },
+
+  Searches: params => [
+    {
+      name: 'Needs Triage',
+      dateCreated: '2017-11-14T02:22:58.026Z',
+      isUserDefault: false,
+      isPrivate: false,
+      query: 'is:unresolved is:unassigned',
+      id: '2',
+      isDefault: true,
+    },
+    {
+      name: 'Unresolved Issues',
+      dateCreated: '2017-11-14T02:22:58.022Z',
+      isUserDefault: true,
+      isPrivate: false,
+      query: 'is:unresolved',
+      id: '1',
+      isDefault: false,
+    },
+  ],
+
   Subscriptions: () => {
     return [
       {
@@ -335,6 +348,23 @@ window.TestStubs = {
         email: 'test@sentry.io',
       },
     ];
+  },
+
+  Tags: () => {
+    return [
+      {key: 'browser', name: 'Browser', canDelete: true},
+      {key: 'device', name: 'Device', canDelete: true},
+      {key: 'environment', name: 'Environment', canDelete: false},
+    ];
+  },
+
+  Team: params => {
+    return {
+      id: '1',
+      slug: 'team-slug',
+      name: 'Team Name',
+      ...params,
+    };
   },
 };
 
