@@ -97,6 +97,7 @@ import ReleaseOverview from './views/releases/releaseOverview';
 import RouteNotFound from './views/routeNotFound';
 import SetCallsignsAction from './views/requiredAdminActions/setCallsigns';
 import SettingsProjectProvider from './views/settings/settingsProjectProvider';
+import SettingsWrapper from './views/settings/settingsWrapper';
 import SharedGroupDetails from './views/sharedGroupDetails';
 import Stream from './views/stream';
 import TeamCreate from './views/teamCreate';
@@ -430,13 +431,7 @@ function routes() {
         />
       </Route>
 
-      <Route
-        newnew
-        path="/settings/"
-        name="Settings"
-        getComponent={(loc, cb) =>
-          import('./views/settings/settingsWrapper').then(lazyLoad(cb))}
-      >
+      <Route newnew path="/settings/" name="Settings" component={SettingsWrapper}>
         <IndexRoute
           getComponent={(loc, cb) =>
             import('./views/settings/settingsIndex').then(lazyLoad(cb))}
