@@ -47,7 +47,7 @@ class ProjectPluginRow extends React.PureComponent {
               <span>
                 {' '}
                 &middot;{' '}
-                <Link to={`/${orgId}/${projectId}/settings/plugins/${id}`}>
+                <Link to={`/${orgId}/${projectId}/settings/plugins/${id}/`}>
                   {t('Configure plugin')}
                 </Link>
               </span>

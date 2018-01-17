@@ -32,7 +32,7 @@ exports[`ProjectPluginRow renders 1`] = `
         <Link
           onlyActiveOnIndex={false}
           style={Object {}}
-          to="/org-slug/project-slug/settings/plugins/amazon-sqs"
+          to="/org-slug/project-slug/settings/plugins/amazon-sqs/"
         >
           Configure plugin
         </Link>
