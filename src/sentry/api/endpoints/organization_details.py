@@ -163,7 +163,8 @@ class OrganizationSerializer(serializers.Serializer):
                 option_inst.value = self.init_data[key]
                 # check if ORG_OPTIONS changed
                 if option_inst.has_changed('value'):
-                    changed_data[key] = option_inst.value
+                    old_val = option_inst.old_value('value')
+                    changed_data[key] = 'from {} to {}'.format(old_val, option_inst.value)
                 option_inst.save()
 
         if 'openMembership' in self.init_data:
@@ -181,11 +182,11 @@ class OrganizationSerializer(serializers.Serializer):
         if 'slug' in self.init_data:
             org.slug = self.init_data['slug']
 
-        fields = {
+        org_tracked_field = {
             'name': org.name,
             'slug': org.slug,
             'default_role': org.default_role,
-            'flag_fields': {
+            'flag_field': {
                 'allow_joinleave': org.flags.allow_joinleave.is_set,
                 'enhanced_privacy': org.flags.enhanced_privacy.is_set,
                 'disable_shared_issues': org.flags.disable_shared_issues.is_set,
@@ -194,15 +195,16 @@ class OrganizationSerializer(serializers.Serializer):
         }
 
         # check if fields changed
-        for f, v in six.iteritems(fields):
-            if f is not 'flag_fields':
+        for f, v in six.iteritems(org_tracked_field):
+            if f is not 'flag_field':
                 if org.has_changed(f):
-                    changed_data[f] = v
+                    old_val = org.old_value(f)
+                    changed_data[f] = 'from {} to {}'.format(old_val, v)
             else:
                 # check if flag fields changed
-                for f, v in six.iteritems(fields['flag_fields']):
+                for f, v in six.iteritems(org_tracked_field['flag_field']):
                     if org.flag_has_changed(f):
-                        changed_data[f] = v
+                        changed_data[f] = 'to {}'.format(v)
 
         org.save()
 
