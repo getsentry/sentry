@@ -17,7 +17,7 @@ def get_reprocessing_revision(project, cached=True):
         return ProjectOption.objects.get(
             project=project,
             key=REPROCESSING_OPTION
-        )
+        ).value
     except ProjectOption.DoesNotExist:
         pass
 
