@@ -293,4 +293,4 @@ class EventSubjectTemplateData(object):
         raise KeyError
 
 
-DEFAULT_SUBJECT_TEMPLATE = EventSubjectTemplate('$shortID - ${tag:level}: $title')
+DEFAULT_SUBJECT_TEMPLATE = EventSubjectTemplate('$shortID - $title')

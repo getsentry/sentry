@@ -27,8 +27,8 @@ class EventTest(TestCase):
         )
         self.group.level = 30
 
-        assert event1.get_email_subject() == 'BAR-1 - info: Foo bar'
-        assert event2.get_email_subject() == 'BAR-1 - ERROR: Foo bar'
+        assert event1.get_email_subject() == 'BAR-1 - Foo bar'
+        assert event2.get_email_subject() == 'BAR-1 - Foo bar'
 
     def test_email_subject_with_template(self):
         self.project.update_option(

@@ -229,4 +229,4 @@ class GroupTest(TestCase):
         project = self.create_project()
         group = self.create_group(project=project)
 
-        assert group.get_email_subject() == '%s - %s' % (group.short_id, group.title)
+        assert group.get_email_subject() == '%s - %s' % (group.qualified_short_id, group.title)
