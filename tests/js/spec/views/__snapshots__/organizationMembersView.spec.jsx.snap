@@ -1143,6 +1143,9 @@ exports[`OrganizationMembersView No Require Link does not have 2fa warning if us
                   </Base>
                 </Styled(Base)>
               </OrganizationMemberRow>
+              <Pagination
+                onCursor={[Function]}
+              />
             </div>
           </Styled(div)>
         </div>
@@ -2362,6 +2365,9 @@ exports[`OrganizationMembersView Require Link does not have 2fa warning if user 
                   </Base>
                 </Styled(Base)>
               </OrganizationMemberRow>
+              <Pagination
+                onCursor={[Function]}
+              />
             </div>
           </Styled(div)>
         </div>
