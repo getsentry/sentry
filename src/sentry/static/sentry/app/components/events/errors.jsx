@@ -31,7 +31,7 @@ class EventErrors extends React.Component {
   };
 
   uniqueErrors = errors => {
-    return _.uniqBy(errors, _.isEqual);
+    return _.uniqWith(errors, _.isEqual);
   };
 
   render() {
