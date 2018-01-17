@@ -1,6 +1,7 @@
 import {browserHistory} from 'react-router';
 import Modal from 'react-bootstrap/lib/Modal';
 import React from 'react';
+import createReactClass from 'create-react-class';
 import Reflux from 'reflux';
 import classNames from 'classnames';
 
@@ -13,7 +14,8 @@ import SudoActions from '../../actions/sudoActions';
 import SudoModalStore from '../../stores/sudoModalStore';
 import U2fContainer from '../u2fContainer';
 
-const SudoModal = React.createClass({
+const SudoModal = createReactClass({
+  displayName: 'SudoModal',
   mixins: [ApiMixin, Reflux.connect(SudoModalStore, 'modalProps')],
 
   getInitialState() {
