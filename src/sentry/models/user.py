@@ -17,6 +17,7 @@ from django.utils import timezone
 from django.utils.translation import ugettext_lazy as _
 
 from sentry.db.models import BaseManager, BaseModel, BoundedAutoField
+from sentry.models import LostPasswordHash
 from sentry.utils.http import absolute_uri
 
 audit_logger = logging.getLogger('sentry.audit.user')
@@ -278,3 +279,6 @@ class User(BaseModel, AbstractBaseUser):
                 user=self,
             ).values('organization'),
         )
+
+    def clear_lost_passwords(self):
+        LostPasswordHash.objects.filter(user=self).delete()
