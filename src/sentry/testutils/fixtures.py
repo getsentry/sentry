@@ -329,7 +329,7 @@ class Fixtures(object):
         Activity.objects.create(
             type=Activity.RELEASE,
             project=project,
-            ident=version,
+            ident=Activity.get_version_ident(version),
             user=user,
             data={'version': version},
         )

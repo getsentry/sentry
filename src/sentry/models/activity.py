@@ -85,6 +85,10 @@ class Activity(Model):
 
     __repr__ = sane_repr('project_id', 'group_id', 'event_id', 'user_id', 'type', 'ident')
 
+    @staticmethod
+    def get_version_ident(version):
+        return (version or '')[:64]
+
     def __init__(self, *args, **kwargs):
         super(Activity, self).__init__(*args, **kwargs)
         from sentry.models import Release
