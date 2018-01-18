@@ -119,6 +119,11 @@ class UpdateProjectRuleTest(APITestCase):
 
         project = self.create_project()
 
+        Environment.get_or_create(
+            project,
+            'production',
+        )
+
         rule = Rule.objects.create(project=project, label='foo')
 
         url = reverse(

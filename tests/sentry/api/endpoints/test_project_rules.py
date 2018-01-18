@@ -80,6 +80,11 @@ class CreateProjectRuleTest(APITestCase):
 
         project = self.create_project()
 
+        Environment.get_or_create(
+            project,
+            'production',
+        )
+
         conditions = [
             {
                 'id': 'sentry.rules.conditions.first_seen_event.FirstSeenEventCondition',
