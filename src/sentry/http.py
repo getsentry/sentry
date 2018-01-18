@@ -366,13 +366,4 @@ def fetch_file(
         if response is not None:
             response.close()
 
-    if result[2] != 200:
-        logger.debug('HTTP %s when fetching %r', result[2], url, exc_info=True)
-        error = {
-            'type': EventError.FETCH_INVALID_HTTP_CODE,
-            'value': result[2],
-            'url': expose_url(url),
-        }
-        raise CannotFetch(error)
-
     return UrlResult(url, result[0], result[1], result[2], result[3])
