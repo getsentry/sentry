@@ -103,7 +103,7 @@ class GeneralSettings extends React.Component {
               label={t('Subject template')}
               required={false}
               help={t(
-                'The email subject to use (excluding the prefix) for individual alerts. Usable variables include: $project, $title, and ${tag:key}, such as ${tag:environment} or ${tag:release}.'
+                'The email subject to use (excluding the prefix) for individual alerts. Usable variables include: $project, $title, $shortID, and ${tag:key}, such as ${tag:environment} or ${tag:release}.'
               )}
             />
           </ApiForm>

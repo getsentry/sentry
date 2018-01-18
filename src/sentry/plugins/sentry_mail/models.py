@@ -205,9 +205,9 @@ class MailPlugin(NotificationPlugin):
                 send_to=[user_id],
             )
 
-    def get_digest_subject(self, project, counts, date):
-        return u'[{project}] {count} new {noun} since {date}'.format(
-            project=project.get_full_name(),
+    def get_digest_subject(self, group, counts, date):
+        return u'{short_id} - {count} new {noun} since {date}'.format(
+            short_id=group.qualified_short_id,
             count=len(counts),
             noun='alert' if len(counts) == 1 else 'alerts',
             date=dateformat.format(date, 'N j, Y, P e'),
@@ -243,7 +243,8 @@ class MailPlugin(NotificationPlugin):
             'X-Sentry-Project': project.slug,
         }
 
-        subject = self.get_digest_subject(project, counts, start)
+        group = six.next(iter(counts))
+        subject = self.get_digest_subject(group, counts, start)
 
         for user_id in self.get_send_to(project):
             self.add_unsubscribe_link(context, user_id, project)
