@@ -123,7 +123,7 @@ test-cli:
 
 test-js:
 	@echo "--> Building static assets"
-	@${NPM_ROOT}/.bin/webpack
+	@${NPM_ROOT}/.bin/webpack --profile --json > webpack-stats.json
 	@echo "--> Running JavaScript tests"
 	@npm run test-ci
 	@echo ""
