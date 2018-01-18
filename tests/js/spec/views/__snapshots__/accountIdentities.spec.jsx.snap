@@ -47,9 +47,10 @@ exports[`AccountIdentities renders list 1`] = `
         </Box>
       </PanelHeader>
       <Styled(div)>
-        <Styled(Base)
+        <Row
           align="center"
           key="1"
+          p={2}
         >
           <Box
             flex="1"
@@ -68,7 +69,7 @@ exports[`AccountIdentities renders list 1`] = `
               Disconnect
             </Button>
           </Box>
-        </Styled(Base)>
+        </Row>
       </Styled(div)>
     </Styled(div)>
   </div>
