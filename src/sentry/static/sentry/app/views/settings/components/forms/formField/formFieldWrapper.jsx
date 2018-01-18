@@ -13,6 +13,8 @@ const FormFieldWrapper = styled(({highlighted, inline, ...props}) => <Flex {...p
   ${SettingsInputField}, ${SettingsTextAreaField} {
     background: ${p => (p.error ? '#fff' : p.theme.offWhite)};
     border: 1px solid ${p => p.theme.borderLight};
+
+    &:hover, &:focus { border: 1px solid ${p => p.theme.borderDark}}
   }
 
   ${p => {
@@ -25,14 +27,14 @@ const FormFieldWrapper = styled(({highlighted, inline, ...props}) => <Flex {...p
       `;
     }
   }} ${p => {
-      if (p.highlighted) {
-        return css`
-          outline: 1px solid ${p.theme.purple};
-        `;
-      } else {
-        return '';
-      }
-    }} &:last-child {
+  if (p.highlighted) {
+    return css`
+      outline: 1px solid ${p.theme.purple};
+    `;
+  } else {
+    return '';
+  }
+}} &:last-child {
     border-bottom: none;
   }
 `;
