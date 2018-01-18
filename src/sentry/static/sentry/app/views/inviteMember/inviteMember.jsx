@@ -16,6 +16,34 @@ import TeamSelect from './teamSelect';
 import TextField from '../../components/forms/textField';
 import recreateRoute from '../../utils/recreateRoute';
 
+// These don't have allowed and are only used for superusers. superceded by server result of allowed roles
+const STATIC_ROLE_LIST = [
+  {
+    id: 'member',
+    name: 'Member',
+    desc:
+      'Members can view and act on events, as well as view most other data within the organization.',
+  },
+  {
+    id: 'admin',
+    name: 'Admin',
+    desc:
+      "Admin privileges on any teams of which they're a member. They can create new teams and projects, as well as remove teams and projects which they already hold membership on.",
+  },
+  {
+    id: 'manager',
+    name: 'Manager',
+    desc:
+      'Gains admin access on all teams as well as the ability to add and remove members.',
+  },
+  {
+    id: 'owner',
+    name: 'Owner',
+    desc:
+      'Gains full permission across the organization. Can manage members as well as perform catastrophic operations such as removing the organization.',
+  },
+];
+
 const InviteMember = createReactClass({
   displayName: 'InviteMember',
   propTypes: {
@@ -42,6 +70,8 @@ const InviteMember = createReactClass({
 
   componentDidMount() {
     let {slug} = this.getOrganization();
+    let {isSuperuser} = ConfigStore.get('user');
+
     this.api.request(`/organizations/${slug}/members/me/`, {
       method: 'GET',
       success: resp => {
@@ -68,9 +98,14 @@ const InviteMember = createReactClass({
         }
       },
       error: error => {
-        Raven.captureMessage('[members]: data fetch error ', {
-          extra: {error, state: this.state},
-        });
+        if (error.status == 404 && isSuperuser) {
+          // use the static list
+          this.setState({roleList: STATIC_ROLE_LIST, loading: false});
+        } else {
+          Raven.captureMessage('[members]: data fetch error ', {
+            extra: {error, state: this.state},
+          });
+        }
       },
     });
   },
@@ -169,6 +204,8 @@ const InviteMember = createReactClass({
     let {error, loading, roleList, selectedRole, selectedTeams} = this.state;
     let {teams} = this.getOrganization();
     let {invitesEnabled} = ConfigStore.getConfig();
+    let {isSuperuser} = ConfigStore.get('user');
+
     return (
       <div>
         <h3>{t('Add Member to Organization')}</h3>
@@ -197,7 +234,7 @@ const InviteMember = createReactClass({
             </div>
             {error && error.role && <p className="error alert-error">{error.role}</p>}
             <RoleSelect
-              enforceAllowed
+              enforceAllowed={!isSuperuser}
               roleList={roleList}
               selectedRole={selectedRole}
               setRole={slug => this.setState({selectedRole: slug})}
