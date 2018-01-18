@@ -92,7 +92,8 @@ class Project(Model):
     name = models.CharField(max_length=200)
     forced_color = models.CharField(max_length=6, null=True, blank=True)
     organization = FlexibleForeignKey('sentry.Organization')
-    team = FlexibleForeignKey('sentry.Team')
+    # DEPRECATED. use teams instead.
+    team = FlexibleForeignKey('sentry.Team', null=True)
     teams = models.ManyToManyField(
         'sentry.Team', related_name='teams', through=ProjectTeam
     )
