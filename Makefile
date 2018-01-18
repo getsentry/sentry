@@ -163,7 +163,7 @@ lint-python:
 
 lint-js:
 	@echo "--> Linting javascript"
-	bash -eo pipefail -c "bin/lint --js --parseable | tee eslint.codestyle.xml"
+	bash -eo pipefail -c "bin/lint --js --parseable | tee eslint.checkstyle.xml"
 	@echo ""
 
 coverage: develop
