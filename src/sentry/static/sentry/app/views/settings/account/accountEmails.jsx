@@ -124,12 +124,6 @@ class AccountEmails extends AsyncView {
       <div>
         <SettingsPageHeader title="Emails" />
 
-        <Box mb={30}>
-          <AlertLink to="/settings/account/notifications" icon="icon-stack">
-            {t('Wanna change how many emails you get? Use the notifications panel.')}
-          </AlertLink>
-        </Box>
-
         <Panel>
           <PanelHeader>
             <Box>{t('Emails')}</Box>
@@ -159,6 +153,12 @@ class AccountEmails extends AsyncView {
         >
           <JsonForm location={this.props.location} forms={accountEmailsFields} />
         </Form>
+
+        <Box mb={30}>
+          <AlertLink to="/settings/account/notifications" icon="icon-stack">
+            {t('Wanna change how many emails you get? Use the notifications panel.')}
+          </AlertLink>
+        </Box>
       </div>
     );
   }

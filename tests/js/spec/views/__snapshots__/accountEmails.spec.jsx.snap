@@ -8,16 +8,6 @@ exports[`AccountEmails renders with emails 1`] = `
     <SettingsPageHeading
       title="Emails"
     />
-    <Box
-      mb={30}
-    >
-      <Styled(Component)
-        icon="icon-stack"
-        to="/settings/account/notifications"
-      >
-        Wanna change how many emails you get? Use the notifications panel.
-      </Styled(Component)>
-    </Box>
     <Styled(div)>
       <PanelHeader>
         <Box>
@@ -87,6 +77,16 @@ exports[`AccountEmails renders with emails 1`] = `
         }
       />
     </Form>
+    <Box
+      mb={30}
+    >
+      <Styled(Component)
+        icon="icon-stack"
+        to="/settings/account/notifications"
+      >
+        Wanna change how many emails you get? Use the notifications panel.
+      </Styled(Component)>
+    </Box>
   </div>
 </SideEffect(DocumentTitle)>
 `;
