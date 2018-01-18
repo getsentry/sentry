@@ -88,7 +88,7 @@ class ReleaseHook(object):
         Activity.objects.create(
             type=Activity.RELEASE,
             project=self.project,
-            ident=version,
+            ident=Activity.get_version_ident(version),
             data={'version': version},
             datetime=values['date_released'],
         )

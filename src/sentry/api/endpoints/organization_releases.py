@@ -170,7 +170,7 @@ class OrganizationReleasesEndpoint(OrganizationReleasesBaseEndpoint):
                     Activity.objects.create(
                         type=Activity.RELEASE,
                         project=project,
-                        ident=result['version'],
+                        ident=Activity.get_version_ident(result['version']),
                         data={'version': result['version']},
                         datetime=release.date_released,
                     )

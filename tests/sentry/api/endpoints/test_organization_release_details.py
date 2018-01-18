@@ -461,6 +461,52 @@ class UpdateReleaseDetailsTest(APITestCase):
         )
         assert activity.exists()
 
+    def test_activity_generation_long_release(self):
+        user = self.create_user(is_staff=False, is_superuser=False)
+        org = self.organization
+        org.flags.allow_joinleave = False
+        org.save()
+
+        team = self.create_team(organization=org)
+
+        project = self.create_project(teams=[team], organization=org)
+
+        release = Release.objects.create(
+            organization_id=org.id,
+            version='x' * 65,
+        )
+
+        release.add_project(project)
+
+        self.create_member(teams=[team], user=user, organization=org)
+
+        self.login_as(user=user)
+
+        url = reverse(
+            'sentry-api-0-organization-release-details',
+            kwargs={
+                'organization_slug': org.slug,
+                'version': release.version,
+            }
+        )
+        response = self.client.put(
+            url, data={
+                'dateReleased': datetime.utcnow().isoformat() + 'Z',
+            }
+        )
+
+        assert response.status_code == 200, (response.status_code, response.content)
+
+        release = Release.objects.get(id=release.id)
+        assert release.date_released
+
+        activity = Activity.objects.filter(
+            type=Activity.RELEASE,
+            project=project,
+            ident=release.version[:64],
+        )
+        assert activity.exists()
+
 
 class ReleaseDeleteTest(APITestCase):
     def test_simple(self):
