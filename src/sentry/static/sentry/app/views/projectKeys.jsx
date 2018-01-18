@@ -167,7 +167,7 @@ const KeyRow = createReactClass({
                 value={data.dsn.secret}
                 fixed={data.dsn.secret.replace(
                   new RegExp(`\/${data.projectId}$`),
-                  '<<projectId>>'
+                  '/<<projectId>>'
                 )}
               />
             </AutoSelectText>
@@ -180,7 +180,7 @@ const KeyRow = createReactClass({
                 value={data.dsn.public}
                 fixed={data.dsn.secret.replace(
                   new RegExp(`\/${data.projectId}$`),
-                  '<<projectId>>'
+                  '/<<projectId>>'
                 )}
               />
             </AutoSelectText>
