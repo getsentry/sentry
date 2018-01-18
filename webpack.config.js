@@ -105,9 +105,7 @@ var appConfig = {
         loader: 'babel-loader',
         include: path.join(__dirname, staticPrefix),
         exclude: /(vendor|node_modules|dist)/,
-        options: {
-          cacheDirectory: babelConfig,
-        },
+        query: babelConfig,
       },
       {
         test: /\.po$/,
