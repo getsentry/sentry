@@ -12,7 +12,7 @@ from .utils import build_attachment, logger
 
 # XXX(dcramer): this could be more tightly bound to our configured domain,
 # but slack limits what we can unfurl anyways so its probably safe
-_link_regexp = re.compile(r'^https?\://[^/]+/[^/]+/[^/]+/issues/(\d+)/')
+_link_regexp = re.compile(r'^https?\://[^/]+/[^/]+/[^/]+/issues/(\d+)')
 
 
 # XXX(dcramer): a lot of this is copied from sentry-plugins right now, and will
