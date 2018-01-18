@@ -11,10 +11,10 @@ class UserSocialIdentityDetailsEndpointTest(APITestCase):
         self.login_as(self.user)
 
     def test_can_disconnect(self):
-        UserSocialAuth.create_social_auth(self.user, '1234', 'github')
+        auth = UserSocialAuth.create_social_auth(self.user, '1234', 'github')
         url = reverse('sentry-api-0-user-social-identity-details', kwargs={
             'user_id': self.user.id,
-            'identity_id': 1,
+            'identity_id': auth.id,
         })
         with self.settings(GITHUB_APP_ID='app-id', GITHUB_API_SECRET='secret'):
             response = self.client.delete(url)
