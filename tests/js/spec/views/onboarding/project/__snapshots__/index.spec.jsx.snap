@@ -14,15 +14,15 @@ exports[`Project render() should render NotFound if no matching organization 1`]
       }
     }
     name=""
-    next={[Function]}
+    next={[MockFunction]}
     params={
       Object {
         "orgId": "my-cool-org",
       }
     }
     platform=""
-    setName={[Function]}
-    setPlatform={[Function]}
+    setName={[MockFunction]}
+    setPlatform={[MockFunction]}
     setTeam={[Function]}
     showOther={true}
     team=""
@@ -77,7 +77,13 @@ exports[`Project render() should set required class on empty submit 1`] = `
     }
   }
   name="bar"
-  next={[Function]}
+  next={
+    [MockFunction] {
+      "calls": Array [
+        Array [],
+      ],
+    }
+  }
   params={
     Object {
       "orgId": "testOrg",
@@ -85,8 +91,8 @@ exports[`Project render() should set required class on empty submit 1`] = `
     }
   }
   platform=""
-  setName={[Function]}
-  setPlatform={[Function]}
+  setName={[MockFunction]}
+  setPlatform={[MockFunction]}
   setTeam={[Function]}
   team=""
   teams={Array []}
@@ -104,7 +110,13 @@ exports[`Project render() should set required class on empty submit 1`] = `
         }
       }
       name="bar"
-      next={[Function]}
+      next={
+        [MockFunction] {
+          "calls": Array [
+            Array [],
+          ],
+        }
+      }
       params={
         Object {
           "orgId": "testOrg",
@@ -112,8 +124,8 @@ exports[`Project render() should set required class on empty submit 1`] = `
         }
       }
       platform=""
-      setName={[Function]}
-      setPlatform={[Function]}
+      setName={[MockFunction]}
+      setPlatform={[MockFunction]}
       setTeam={[Function]}
       showOther={true}
       team=""

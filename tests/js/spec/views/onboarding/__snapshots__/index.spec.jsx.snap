@@ -114,10 +114,10 @@ exports[`OnboardingWizard render() should render and respond to click events 1`]
       <div>
         <OnboardingProject
           name=""
-          next={[Function]}
+          next={[MockFunction]}
           platform=""
-          setName={[Function]}
-          setPlatform={[Function]}
+          setName={[MockFunction]}
+          setPlatform={[MockFunction]}
           setTeam={[Function]}
           team=""
           teams={Array []}
@@ -130,10 +130,10 @@ exports[`OnboardingWizard render() should render and respond to click events 1`]
             </h4>
             <PlatformPicker
               name=""
-              next={[Function]}
+              next={[MockFunction]}
               platform=""
-              setName={[Function]}
-              setPlatform={[Function]}
+              setName={[MockFunction]}
+              setPlatform={[MockFunction]}
               setTeam={[Function]}
               showOther={true}
               team=""
@@ -948,10 +948,18 @@ exports[`OnboardingWizard render() should render and respond to click events 2`]
       <div>
         <OnboardingProject
           name=""
-          next={[Function]}
+          next={[MockFunction]}
           platform=""
-          setName={[Function]}
-          setPlatform={[Function]}
+          setName={[MockFunction]}
+          setPlatform={
+            [MockFunction] {
+              "calls": Array [
+                Array [
+                  "csharp",
+                ],
+              ],
+            }
+          }
           setTeam={[Function]}
           team=""
           teams={Array []}
@@ -964,10 +972,18 @@ exports[`OnboardingWizard render() should render and respond to click events 2`]
             </h4>
             <PlatformPicker
               name=""
-              next={[Function]}
+              next={[MockFunction]}
               platform=""
-              setName={[Function]}
-              setPlatform={[Function]}
+              setName={[MockFunction]}
+              setPlatform={
+                [MockFunction] {
+                  "calls": Array [
+                    Array [
+                      "csharp",
+                    ],
+                  ],
+                }
+              }
               setTeam={[Function]}
               showOther={true}
               team=""
