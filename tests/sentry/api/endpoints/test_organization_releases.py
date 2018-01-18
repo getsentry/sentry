@@ -334,6 +334,47 @@ class OrganizationReleaseCreateTest(APITestCase):
             type=Activity.RELEASE, project=project2, ident=release.version
         ).exists()
 
+    def test_activity_with_long_release(self):
+        user = self.create_user(is_staff=False, is_superuser=False)
+        org = self.create_organization()
+        org.flags.allow_joinleave = False
+        org.save()
+
+        team = self.create_team(organization=org)
+        project = self.create_project(name='foo', organization=org, teams=[team])
+        project2 = self.create_project(name='bar', organization=org, teams=[team])
+
+        self.create_member(teams=[team], user=user, organization=org)
+        self.login_as(user=user)
+
+        release = Release.objects.create(
+            version='x' * 65, date_released=datetime.utcnow(), organization=org
+        )
+        release.add_project(project)
+
+        url = reverse(
+            'sentry-api-0-organization-releases', kwargs={
+                'organization_slug': org.slug,
+            }
+        )
+
+        response = self.client.post(url, data={'version': 'x' * 65, 'projects': [project.slug]})
+        assert response.status_code == 208, response.content
+
+        response = self.client.post(
+            url, data={'version': 'x' * 65,
+                       'projects': [project.slug, project2.slug]}
+        )
+
+        # should be 201 because 1 project was added
+        assert response.status_code == 201, response.content
+        assert not Activity.objects.filter(
+            type=Activity.RELEASE, project=project, ident=release.version[:64]
+        ).exists()
+        assert Activity.objects.filter(
+            type=Activity.RELEASE, project=project2, ident=release.version[:64]
+        ).exists()
+
     def test_version_whitespace(self):
         user = self.create_user(is_staff=False, is_superuser=False)
         org = self.create_organization()
