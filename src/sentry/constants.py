@@ -127,6 +127,8 @@ TAG_LABELS = {
 
 PROTECTED_TAG_KEYS = frozenset([
     'environment',
+    'release',
+    'sentry:release',
 ])
 
 # TODO(dcramer): once this is more flushed out we want this to be extendable
