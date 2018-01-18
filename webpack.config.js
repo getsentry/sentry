@@ -21,6 +21,28 @@ var SENTRY_DEVSERVER_PORT = process.env.SENTRY_DEVSERVER_PORT;
 var USE_HOT_MODULE_RELOAD = !IS_PRODUCTION && WEBPACK_DEV_PORT && SENTRY_DEVSERVER_PORT;
 var WITH_CSS_SOURCEMAPS = !!process.env.WITH_CSS_SOURCEMAPS || IS_PRODUCTION;
 
+var babelConfig = JSON.parse(fs.readFileSync(path.join(__dirname, '.babelrc')));
+babelConfig.cacheDirectory = true;
+
+// only extract po files if we need to
+if (process.env.SENTRY_EXTRACT_TRANSLATIONS === '1') {
+  babelConfig.plugins.push([
+    'babel-gettext-extractor',
+    {
+      fileName: 'build/javascript.po',
+      baseDirectory: path.join(__dirname, 'src/sentry'),
+      functionNames: {
+        gettext: ['msgid'],
+        ngettext: ['msgid', 'msgid_plural', 'count'],
+        gettextComponentTemplate: ['msgid'],
+        t: ['msgid'],
+        tn: ['msgid', 'msgid_plural', 'count'],
+        tct: ['msgid'],
+      },
+    },
+  ]);
+}
+
 var appEntry = {
   app: ['app'],
   vendor: [
@@ -84,8 +106,7 @@ var appConfig = {
         include: path.join(__dirname, staticPrefix),
         exclude: /(vendor|node_modules|dist)/,
         options: {
-          cacheDirectory: true,
-          presets: [require.resolve(path.join(__dirname, '.babelrc.js'))],
+          cacheDirectory: babelConfig,
         },
       },
       {
