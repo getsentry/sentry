@@ -60,7 +60,6 @@ class SlackActionEndpoint(Endpoint):
         callback_id = json.dumps({
             'issue': group.id,
             'orig_response_url': data['response_url'],
-
         })
 
         dialog = {
