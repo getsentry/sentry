@@ -8,12 +8,16 @@ exports[`AccountEmails renders with emails 1`] = `
     <SettingsPageHeading
       title="Emails"
     />
-    <Styled(Component)
-      icon="icon-stack"
-      to="/settings/account/notifications"
+    <Box
+      mb={30}
     >
-      Wanna change how many emails you get? Use the notifications panel.
-    </Styled(Component)>
+      <Styled(Component)
+        icon="icon-stack"
+        to="/settings/account/notifications"
+      >
+        Wanna change how many emails you get? Use the notifications panel.
+      </Styled(Component)>
+    </Box>
     <Styled(div)>
       <PanelHeader>
         <Box>
@@ -52,6 +56,8 @@ exports[`AccountEmails renders with emails 1`] = `
       cancelLabel="Cancel"
       className="form-stacked"
       footerClass="form-actions align-right"
+      onSubmit={[Function]}
+      onSubmitError={[Function]}
       onSubmitSuccess={[Function]}
       requireChanges={false}
       saveOnBlur={true}

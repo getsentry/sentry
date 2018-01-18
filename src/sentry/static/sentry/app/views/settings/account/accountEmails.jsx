@@ -124,9 +124,11 @@ class AccountEmails extends AsyncView {
       <div>
         <SettingsPageHeader title="Emails" />
 
-        <AlertLink to="/settings/account/notifications" icon="icon-stack">
-          {t('Wanna change how many emails you get? Use the notifications panel.')}
-        </AlertLink>
+        <Box mb={30}>
+          <AlertLink to="/settings/account/notifications" icon="icon-stack">
+            {t('Wanna change how many emails you get? Use the notifications panel.')}
+          </AlertLink>
+        </Box>
 
         <Panel>
           <PanelHeader>
