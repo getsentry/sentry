@@ -28,7 +28,7 @@ class JsonForm extends React.Component {
 
   constructor(props, ...args) {
     super(props, ...args);
-    this.state = {highlighted: props.location.hash};
+    this.state = {highlighted: this.getLocation(props).hash};
   }
 
   componentDidMount() {
@@ -36,14 +36,19 @@ class JsonForm extends React.Component {
   }
 
   componentWillReceiveProps(nextProps, e) {
-    if (this.props.location.hash !== nextProps.location.hash) {
-      this.scrollToHash(nextProps.location.hash);
-      this.setState({highlighted: nextProps.location.hash});
+    if (this.getLocation(this.props).hash !== this.getLocation(nextProps).hash) {
+      let hash = this.getLocation(nextProps).hash;
+      this.scrollToHash(hash);
+      this.setState({highlighted: hash});
     }
   }
 
+  getLocation = props => {
+    return props.location || this.context.location || {};
+  };
+
   scrollToHash(toHash) {
-    let hash = toHash || this.props.location.hash;
+    let hash = toHash || this.getLocation(this.props).hash;
 
     if (!hash) return;
 

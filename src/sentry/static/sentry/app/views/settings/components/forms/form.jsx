@@ -35,6 +35,9 @@ export default class Form extends React.Component {
     requireChanges: false,
     allowUndo: false,
     saveOnBlur: false,
+    onSubmit: () => {},
+    onSubmitSuccess: () => {},
+    onSubmitError: () => {},
   };
 
   static childContextTypes = {
@@ -90,12 +93,12 @@ export default class Form extends React.Component {
 
   onSubmitSuccess = data => {
     this.model.submitSuccess(data);
-    this.props.onSubmitSuccess && this.props.onSubmitSuccess(data, this.model);
+    this.props.onSubmitSuccess(data, this.model);
   };
 
   onSubmitError = error => {
     this.model.submitError(error);
-    this.props.onSubmitError && this.props.onSubmitError(error, this.model);
+    this.props.onSubmitError(error, this.model);
   };
 
   render() {
