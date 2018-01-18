@@ -2,15 +2,13 @@
 
 exports[`TextCopyInput renders 1`] = `
 <Styled(Base)>
-  <Styled(Base)
-    flex="1"
-  >
+  <Styled(div)>
     <Styled(AutoSelectText)
       innerRef={[Function]}
     >
       Text to Copy
     </Styled(AutoSelectText)>
-  </Styled(Base)>
+  </Styled(div)>
   <Clipboard
     errorMessage="Error copying to clipboard"
     hideMessages={false}
@@ -19,20 +17,15 @@ exports[`TextCopyInput renders 1`] = `
     successMessage="Copied to clipboard"
     value="Text to Copy"
   >
-    <Flex
-      shrink="0"
+    <Styled(Button)
+      onClick={[Function]}
+      size="xsmall"
     >
-      <Button
-        borderless={true}
-        disabled={false}
-        onClick={[Function]}
-        size="xsmall"
-      >
-        <InlineSvg
-          src="icon-clipboard"
-        />
-      </Button>
-    </Flex>
+      <InlineSvg
+        size="1.25em"
+        src="icon-clipboard"
+      />
+    </Styled(Button)>
   </Clipboard>
 </Styled(Base)>
 `;
