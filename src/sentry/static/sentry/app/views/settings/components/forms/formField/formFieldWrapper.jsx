@@ -10,6 +10,11 @@ const FormFieldWrapper = styled(({highlighted, inline, ...props}) => <Flex {...p
   border-bottom: 1px solid ${p => p.theme.borderLight};
   transition: background 0.15s;
 
+  ${SettingsInputField}, ${SettingsTextAreaField} {
+    background: ${p => (p.error ? '#fff' : p.theme.offWhite)};
+    border: 1px solid ${p => p.theme.borderLight};
+  }
+
   ${p => {
     if (p.inline) {
       return 'align-items: center;';
@@ -27,17 +32,7 @@ const FormFieldWrapper = styled(({highlighted, inline, ...props}) => <Flex {...p
       } else {
         return '';
       }
-    }}
-
-  &:hover {
-    ${SettingsInputField}, ${SettingsTextAreaField} {
-      ${p => css`
-        background: ${p.error ? '#fff' : p.theme.offWhite};
-      `};
-    }
-  }
-
-  &:last-child {
+    }} &:last-child {
     border-bottom: none;
   }
 `;
