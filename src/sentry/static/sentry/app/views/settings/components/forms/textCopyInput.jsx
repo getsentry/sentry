@@ -11,20 +11,34 @@ import Button from '../../../../components/buttons/button';
 import Clipboard from '../../../../components/clipboard';
 import InlineSvg from '../../../../components/inlineSvg';
 
+const Wrapper = styled(Flex)`
+  display: flex;
+  max-width: 600px;
+`;
+
+const OverflowContainer = styled('div')`
+  flex-grow: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  background: ${p => p.theme.offWhite};
+  border: 1px solid ${p => p.theme.borderLight};
+  border-right-width: 0;
+  border-radius: 0.25em 0 0 0.25em;
+  padding: 0.25em 1em;
+  box-shadow: 0 2px rgba(0, 0, 0, 0.05);
+`;
+
+const StyledCopyButton = styled(Button)`
+  flex-shrink: 1;
+  border-radius: 0 0.25em 0.25em 0;
+`;
+
 const StyledAutoSelectText = styled(AutoSelectText)`
   ${inputStyles};
   display: inline-block;
-  width: auto;
+  width: 100%;
   padding: 0;
-`;
-
-const OverflowContainer = styled(Flex)`
-  overflow: hidden;
-  text-overflow: ellipsis;
-`;
-
-const Wrapper = styled(Flex)`
-  overflow: hidden;
 `;
 
 class TextCopyInput extends React.Component {
@@ -73,17 +87,15 @@ class TextCopyInput extends React.Component {
 
     return (
       <Wrapper>
-        <OverflowContainer flex="1">
+        <OverflowContainer>
           <StyledAutoSelectText innerRef={this.handleAutoMount} style={style}>
             {children}
           </StyledAutoSelectText>
         </OverflowContainer>
         <Clipboard hideUnsupported onClick={this.handleCopyClick} value={children}>
-          <Flex shrink="0">
-            <Button borderless size="xsmall" onClick={this.handleCopyClick}>
-              <InlineSvg src="icon-clipboard" />
-            </Button>
-          </Flex>
+          <StyledCopyButton size="xsmall" onClick={this.handleCopyClick}>
+            <InlineSvg src="icon-clipboard" size="1.25em" />
+          </StyledCopyButton>
         </Clipboard>
       </Wrapper>
     );
