@@ -2,8 +2,10 @@ from __future__ import absolute_import
 
 import pytest
 
+from collections import OrderedDict
 from datetime import datetime
 
+from sentry.search.base import ANY
 from sentry.testutils import TestCase
 from sentry.tagstore import TagKeyStatus
 from sentry.tagstore.v2.backend import V2TagStorage
@@ -627,6 +629,35 @@ class TagStorage(TestCase):
 
         assert self.ts.get_group_ids_for_search_filter(
             self.proj1.id, self.proj1env1.id, tags) == [self.proj1group1.id]
+
+    def test_get_group_ids_for_search_filter_predicate_order(self):
+        """
+            Since each tag-matching filter returns limited results, and each
+            filter returns a subset of the previous filter's matches, we
+            attempt to match more selective predicates first.
+
+            This tests that we filter by a more selective "divides == even"
+            predicate before filtering by an ANY predicate and therefore return
+            all matching groups instead of the partial set that would be returned
+            if we had filtered and limited using the ANY predicate first.
+        """
+        for i in range(3):
+            self.ts.get_or_create_group_tag_value(
+                self.proj1.id, i, self.proj1env1.id,
+                'foo', 'bar'
+            )
+
+            self.ts.get_or_create_group_tag_value(
+                self.proj1.id, i, self.proj1env1.id,
+                'divides', 'even' if i % 2 == 0 else 'odd'
+            )
+
+        assert len(self.ts.get_group_ids_for_search_filter(
+            self.proj1.id,
+            self.proj1env1.id,
+            OrderedDict([('foo', ANY), ('divides', 'even')]),
+            limit=2
+        )) == 2
 
     def test_update_group_for_events(self):
         v1, _ = self.ts.get_or_create_tag_value(self.proj1.id, self.proj1env1.id, 'k1', 'v1')
