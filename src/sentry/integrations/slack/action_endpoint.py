@@ -1,41 +1,121 @@
 from __future__ import absolute_import
 
+from django.core.urlresolvers import reverse
+
 from sentry import http, options
+from sentry.api import client
 from sentry.api.base import Endpoint
-from sentry.models import Activity, Group, Integration, Project
+from sentry.models import Group, Integration, Project, IdentityProvider, Identity
 from sentry.utils import json
+from sentry.utils.http import absolute_uri
 
-from .utils import build_attachment, build_workflow_message, logger
+from .utils import build_attachment, logger
+
+LINK_IDENTITY_MESSAGE = "Looks like you haven't linked your Sentry account with your Slack identity yet! <{link_url}|Link your identity now> to perform actions in Sentry through Slack."
+
+RESOLVE_SELECTOR = {
+    'label': 'Resolve issue',
+    'type': 'select',
+    'name': 'resolve_type',
+    'placeholder': 'Select when to expect this issue resolved',
+    'value': 'resolved',
+    'options': [
+        {
+            'label': 'Immediately',
+            'value': 'resolved'
+        },
+        {
+            'label': 'In the next release',
+            'value': 'resolved:inNextRelease'
+        },
+        {
+            'label': 'In the current release',
+            'value': 'resolved:inCurrentRelease'
+        },
+    ],
+}
 
 
-# https://api.slack.com/docs/message-threading
 class SlackActionEndpoint(Endpoint):
     authentication_classes = ()
     permission_classes = ()
 
-    def on_status(self, request, integration, group, action, data):
-        activity = Activity(type=Activity.SET_RESOLVED, group=group, project=group.project)
+    def on_assign(self, request, identity, group, action):
+        assignee = action['selected_options'][0]['value']
 
-        payload = build_workflow_message(activity)
-        payload.update({
-            'thread_ts': data['message_ts'],
-            'source_team': data['team']['id'],
-            'channel': data['channel']['id'],
-            'user': integration.metadata['bot_user_id'],
-            'token': integration.metadata['bot_access_token'],
-            'type': 'message',
-            'as_user': True,
-            'unfurl_links': False,
-            'unfurl_media': False,
+        if assignee == 'none':
+            assignee = None
+
+        try:
+            self.update_group(group, identity, {'assignedTo': assignee})
+        except client.ApiError as e:
+            logger.error('slack.action.sentry-client-error', extra={'error': e.body})
+
+    def open_resolve_dialog(self, data, group, integration):
+        # XXX(epurkhiser): In order to update the original message we have to
+        # keep track of the response_url in the callback_id. Definitely hacky,
+        # but seems like there's no other solutions [1]:
+        #
+        # [1]: https://stackoverflow.com/questions/46629852/update-a-bot-message-after-responding-to-a-slack-dialog#comment80795670_46629852
+        callback_id = json.dumps({
+            'issue': group.id,
+            'orig_response_url': data['response_url'],
+
         })
+
+        dialog = {
+            'callback_id': callback_id,
+            'title': u'Resolve {}'.format(group.qualified_short_id),
+            'submit_label': 'Resolve',
+            'elements': [RESOLVE_SELECTOR],
+        }
+
+        payload = {
+            'dialog': json.dumps(dialog),
+            'trigger_id': data['trigger_id'],
+            'token': integration.metadata['bot_access_token'],
+        }
+
         session = http.build_session()
-        req = session.post('https://slack.com/api/chat.postMessage', data=payload)
-        req.raise_for_status()
+        req = session.post('https://slack.com/api/dialog.open', data=payload)
         resp = req.json()
         if not resp.get('ok'):
             logger.error('slack.action.response-error', extra={
                 'error': resp.get('error'),
             })
+
+    def on_status(self, request, identity, group, action, data, integration):
+        status = action['value']
+
+        if status == 'resolve_dialog':
+            self.open_resolve_dialog(data, group, integration)
+            return
+
+        status_data = status.split(':', 1)
+        status = {'status': status_data[0]}
+
+        # Additional status details
+        if status_data[-1] == 'inNextRelease':
+            status.update({'statusDetails': {'inNextRelease': True}})
+
+        if status_data[-1] == 'inCurrentRelease':
+            status.update({'statusDetails': {'inRelease': 'latest'}})
+
+        try:
+            self.update_group(group, identity, status)
+        except client.ApiError as e:
+            logger.error('slack.action.sentry-client-error', extra={'error': e.body})
+
+    def update_group(self, group, identity, data):
+        return client.put(
+            path='/projects/{}/{}/issues/'.format(
+                group.project.organization.slug,
+                group.project.slug,
+            ),
+            params={'id': group.id},
+            data=data,
+            user=identity.user
+        )
 
     def post(self, request):
         logging_data = {}
@@ -57,8 +137,6 @@ class SlackActionEndpoint(Endpoint):
         channel_id = data.get('channel', {}).get('id')
         user_id = data.get('user', {}).get('id')
         callback_id = data.get('callback_id')
-        # TODO(dcramer): should we verify this here?
-        # authed_users = data.get('authed_users')
 
         logging_data.update({
             'team_id': team_id,
@@ -86,18 +164,12 @@ class SlackActionEndpoint(Endpoint):
 
         logging_data['integration_id'] = integration.id
 
-        # TODO
-        # When your Action URL is triggered, you'll receive the user ID and team
-        # ID for the invoker. If they do not yet exist in your system, send them
-        # an ephemeral message containing a link they can follow to link accounts
-        # on your website.
-        action_list = data.get('actions')
-        if not action_list:
-            logger.error('slack.action.missing-actions', extra=logging_data)
-            return self.respond(status=400)
+        # Determine the issue group action is being taken on
+        callback_data = json.loads(callback_id)
+        group_id = callback_data['issue']
 
-        assert callback_id.startswith('issue:')
-        group_id = callback_id.split('issue:', 1)[-1]
+        # Actions list may be empty when receiving a dialog response
+        action_list = data.get('actions', [])
 
         try:
             group = Group.objects.get(
@@ -110,7 +182,66 @@ class SlackActionEndpoint(Endpoint):
             logger.error('slack.action.invalid-issue', extra=logging_data)
             return self.respond(status=403)
 
+        # Determine the acting user by slack identity
+        try:
+            identity = Identity.objects.get(
+                external_id=user_id,
+                idp=IdentityProvider.objects.get(organization=group.organization),
+            )
+        except Identity.DoesNotExist:
+            associate_url = absolute_uri(reverse('sentry-account-associate-identity', kwargs={
+                'organization_slug': group.organization.slug,
+                'provider_key': 'slack',
+            }))
+
+            return self.respond({
+                'response_type': 'ephemeral',
+                'replace_original': False,
+                'text': LINK_IDENTITY_MESSAGE.format(link_url=associate_url)
+            })
+
+        # Handle status dialog submission
+        if data['type'] == 'dialog_submission' and 'resolve_type' in data['submission']:
+            # Masquerade a status action
+            action = {
+                'name': 'status',
+                'value': data['submission']['resolve_type'],
+            }
+
+            self.on_status(request, identity, group, action, data, integration)
+            group = Group.objects.get(id=group.id)
+
+            attachment = build_attachment(group, identity=identity, actions=[action])
+
+            # use the original response_url to update the link attachment
+            session = http.build_session()
+            req = session.post(callback_data['orig_response_url'], json=attachment)
+            resp = req.json()
+            if not resp.get('ok'):
+                logger.error('slack.action.response-error', extra={
+                    'error': resp.get('error'),
+                })
+
+            return self.respond()
+
+        # Handle interaction actions
         for action in action_list:
             if action['name'] == 'status':
-                self.on_status(request, integration, group, action, data)
-        return self.respond(build_attachment(group))
+                self.on_status(request, identity, group, action, data, integration)
+
+            if action['name'] == 'assign':
+                self.on_assign(request, identity, group, action)
+
+        # Usually we'll want to respond with the updated attachment including
+        # the list of actions taken. However, when opening a dialog we do not
+        # have anything to update the message with and will use the
+        # response_url later to update it.
+        if len(action_list) > 0 and action_list[0].get('value') == 'resolve_dialog':
+            return self.respond()
+
+        # Reload group as it may have been mutated by the action
+        group = Group.objects.get(id=group.id)
+
+        attachment = build_attachment(group, identity=identity, actions=action_list)
+
+        return self.respond(attachment)

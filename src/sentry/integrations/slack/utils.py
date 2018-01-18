@@ -1,13 +1,39 @@
 from __future__ import absolute_import
 
 import logging
+import time
 
+from django.db.models import Q
 from six.moves.urllib.parse import parse_qs, urlencode, urlparse, urlunparse
 
-from sentry.models import GroupStatus
-
+from sentry.utils import json
+from sentry.utils.assets import get_asset_url
+from sentry.utils.http import absolute_uri
+from sentry.models import GroupStatus, GroupAssignee, OrganizationMember, User, Identity
 
 logger = logging.getLogger('sentry.integrations.slack')
+
+UNASSIGN_OPTION = {
+    'text': u':negative_squared_cross_mark: Unassign Issue',
+    'value': 'none',
+}
+
+# Attachment colors used for issues with no actions take
+NEW_ISSUE_COLOR = '#E03E2F'
+ACTIONED_ISSUE_COLOR = '#EDEEEF'
+
+
+def get_assignees(group):
+    queryset = OrganizationMember.objects.filter(
+        Q(user__is_active=True) | Q(user__isnull=True),
+        organization=group.organization,
+        teams=group.team,
+    ).select_related('user')
+
+    members = sorted(queryset, key=lambda x: x.user.get_display_name() if x.user_id else x.email)
+    members = filter(lambda m: m.user_id is not None, members)
+
+    return [{'text': x.user.get_display_name(), 'value': x.user.username} for x in members]
 
 
 def add_notification_referrer_param(url, provider):
@@ -19,38 +45,22 @@ def add_notification_referrer_param(url, provider):
     return urlunparse(url_list)
 
 
-def build_workflow_message(activity):
-    from sentry.plugins.sentry_mail.activity import emails
-
-    cls = emails.get(activity.type)
-    if cls is None:
-        return
-
-    email = cls(activity)
-
-    context = email.get_context()
-
-    return {
-        'text': context['text_description'],
-    }
-
-
 def build_attachment_title(group, event=None):
     ev_metadata = group.get_event_metadata()
     ev_type = group.get_event_type()
     if ev_type == 'error':
         if group.culprit:
-            return '{} - {}'.format(ev_metadata['type'][:40], group.culprit)
+            return u'{} - {}'.format(ev_metadata['type'][:40], group.culprit)
         return ev_metadata['type']
     elif ev_type == 'csp':
-        return '{} - {}'.format(ev_metadata['directive'], ev_metadata['uri'])
+        return u'{} - {}'.format(ev_metadata['directive'], ev_metadata['uri'])
     else:
         if group.culprit:
-            return '{} - {}'.format(group.title[:40], group.culprit)
+            return u'{} - {}'.format(group.title[:40], group.culprit)
         return group.title
 
 
-def build_attachment_pretext(group, event=None):
+def build_attachment_text(group, event=None):
     ev_metadata = group.get_event_metadata()
     ev_type = group.get_event_type()
     if ev_type == 'error':
@@ -59,64 +69,131 @@ def build_attachment_pretext(group, event=None):
         return None
 
 
-def build_attachment(group, event=None):
+def build_assigned_text(identity, assignee):
+    if assignee == 'none':
+        return u'*Issue unassigned by <@{user_id}>*'.format(
+            user_id=identity.external_id,
+        )
+
+    try:
+        assignee_ident = Identity.objects.get(user=User.objects.get(email=assignee))
+        assignee_text = u'<@{}>'.format(assignee_ident.external_id)
+    except Identity.DoesNotExist:
+        assignee_text = assignee
+
+    return u'*Issue assigned to {assignee_text} by <@{user_id}>*'.format(
+        assignee_text=assignee_text,
+        user_id=identity.external_id,
+    )
+
+
+def build_action_text(identity, action):
+    if action['name'] == 'assign':
+        return build_assigned_text(identity, action['selected_options'][0]['value'])
+
+    statuses = {
+        'resolved': 'resolved',
+        'ignored': 'ignored',
+        'unresolved': 're-opened',
+    }
+
+    # Resolve actions have additional 'parameters' after ':'
+    status = action['value'].split(':', 1)[0]
+
+    # Action has no valid action text, ignore
+    if status not in statuses:
+        return
+
+    return u'*Issue {status} by <@{user_id}>*'.format(
+        status=statuses[status],
+        user_id=identity.external_id,
+    )
+
+
+def build_attachment(group, event=None, identity=None, actions=None):
     # XXX(dcramer): options are limited to 100 choices, even when nested
     status = group.get_status()
-    if status == GroupStatus.UNRESOLVED:
-        status_label = 'Unresolved'
-    elif status == GroupStatus.RESOLVED:
-        status_label = 'Resolved'
-    elif status == GroupStatus.IGNORED:
-        status_label = 'Ignored'
-    else:
-        status_label = 'n/a'
+    assignees = get_assignees(group)
+
+    text = build_attachment_text(group, event) or ''
+    color = NEW_ISSUE_COLOR
+
+    if actions is None:
+        actions = []
+
+    if len(actions) > 0:
+        action_texts = filter(None, [build_action_text(identity, a) for a in actions])
+        text += '\n' + '\n'.join(action_texts)
+
+    try:
+        assignee = GroupAssignee.objects.get(group=group).user
+        assignee = {
+            'text': assignee.get_display_name(),
+            'value': assignee.username,
+        }
+
+        # Add unassign option to the top of the list
+        assignees.insert(0, UNASSIGN_OPTION)
+    except GroupAssignee.DoesNotExist:
+        assignee = None
+
+    resolve_button = {
+        'name': 'status',
+        'type': 'button',
+        'text': 'Resolve',
+        'value': 'resolve_dialog',
+    }
+
+    ignore_button = {
+        'name': 'status',
+        'type': 'button',
+        'text': 'Ignore',
+        'value': 'ignored',
+    }
+
+    if status == GroupStatus.RESOLVED:
+        resolve_button.update({
+            'text': 'Unresolve Issue',
+            'value': 'unresolved',
+        })
+
+    if status == GroupStatus.IGNORED:
+        ignore_button.update({
+            'text': 'Stop Ignoring',
+            'value': 'unresolved',
+        })
+
+    payload_actions = [
+        resolve_button,
+        ignore_button,
+        {
+            'name': 'assign',
+            'text': 'Select Assignee ..',
+            'type': 'select',
+            'options': assignees,
+            'selected_options': [assignee],
+        },
+    ]
+
+    if len(actions) > 0:
+        color = ACTIONED_ISSUE_COLOR
+        payload_actions = []
+
+    logo_url = absolute_uri(get_asset_url('sentry', 'images/sentry-email-avatar.png'))
 
     return {
         'fallback': '[{}] {}'.format(group.project.slug, group.title),
         'title': build_attachment_title(group, event),
         'title_link': add_notification_referrer_param(group.get_absolute_url(), 'slack'),
-        'text': build_attachment_pretext(group, event),
-        'callback_id': 'issue:{}'.format(group.id),
+        'text': text,
+        'mrkdwn_in': ['text'],
+        'callback_id': json.dumps({'issue': group.id}),
+        'footer_icon': logo_url,
         'footer': '{} / {}'.format(
             group.organization.slug,
             group.project.slug,
         ),
-        'color': '#6C5FC7',
-        'actions': [
-            {
-                'name': 'assignedTo',
-                'text': 'Assign ..',
-                'type': 'select',
-                'options': [
-                    {'text': 'David Cramer', 'value': 'dcramer'},
-                    {'text': 'George Castanza', 'value': 'george'},
-                ],
-                "selected_options": [
-                    {
-                        "text": "Assigned to: David Cramer",
-                        "value": "dcramer"
-                    }
-                ]
-            },
-            {
-                'name': 'status',
-                'text': 'Status: {}'.format(status_label),
-                'type': 'select',
-                'option_groups': [
-                    {
-                        'text': 'Ignore until ..',
-                        'options': [
-                            {'text': 'Forever', 'value': 'ignore'},
-                        ]
-                    },
-                    {
-                        'text': 'Resolve in ..',
-                        'options': [
-                            {'text': 'The next release', 'value': 'resolve:inNextRelease'},
-                            {'text': 'The current release', 'value': 'resolve:inCurrentRelease'},
-                        ]
-                    }
-                ]
-            }
-        ],
+        'ts': int(time.mktime(group.last_seen.timetuple())),
+        'color': color,
+        'actions': payload_actions,
     }
