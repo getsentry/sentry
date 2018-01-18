@@ -1,7 +1,6 @@
 import PropTypes from 'prop-types';
 import React from 'react';
 import {Link} from 'react-router';
-import classNames from 'classnames';
 
 import ProjectSelector from './projectSelector';
 import BookmarkToggle from '../projects/bookmarkToggle';
@@ -43,19 +42,13 @@ class ProjectHeader extends React.Component {
       ? activeEnvironment.name
       : allEnvironmentsLabel;
 
-    let projectIconClass = classNames('project-select-bookmark icon icon-star-solid', {
-      active: project.isBookmarked,
-    });
-
     return (
       <div className="sub-header flex flex-container flex-vertically-centered">
         <div className="project-header p-t-1">
           <div className="project-header-main">
             <div className="project-select-wrapper">
               <ProjectSelector organization={org} projectId={project.slug} />
-              <BookmarkToggle orgId={org.slug} project={project}>
-                <a className={projectIconClass} />
-              </BookmarkToggle>
+              <BookmarkToggle />
             </div>
 
             <ul className="nav nav-tabs">

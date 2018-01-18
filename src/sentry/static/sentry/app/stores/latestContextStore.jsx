@@ -18,6 +18,7 @@ const LatestContextStore = Reflux.createStore({
   init() {
     this.reset();
     this.listenTo(ProjectActions.setActive, this.onSetActiveProject);
+    this.listenTo(ProjectActions.updateSuccess, this.onUpdateProject);
     this.listenTo(OrganizationsActions.setActive, this.onSetActiveOrganization);
     this.listenTo(OrganizationsActions.update, this.onUpdateOrganization);
     this.listenTo(EnvironmentActions.setActive, this.onSetActiveEnvironment);
@@ -64,6 +65,11 @@ const LatestContextStore = Reflux.createStore({
       this.state.environment = null;
     }
 
+    this.trigger(this.state);
+  },
+
+  onUpdateProject(project) {
+    this.state.project = project;
     this.trigger(this.state);
   },
 
