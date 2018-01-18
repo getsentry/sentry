@@ -130,15 +130,11 @@
       "<rootDir>/tests/js/setup.js"
     ],
     "setupTestFrameworkScriptFile": "<rootDir>/tests/js/setupFramework.js",
-    "testEnvironment": "jsdom",
     "testMatch": [
       "<rootDir>/tests/js/**/?(*.)(spec|test).js?(x)"
     ],
     "testPathIgnorePatterns": [
       "<rootDir>/tests/sentry/lang/javascript/"
-    ],
-    "transformIgnorePatterns": [
-      "<rootDir>/node_modules/"
     ],
     "unmockedModulePathPatterns": [
       "<rootDir>/node_modules/react",
