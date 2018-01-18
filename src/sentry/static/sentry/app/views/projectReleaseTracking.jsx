@@ -5,6 +5,7 @@ import createReactClass from 'create-react-class';
 import {t, tct} from '../locale';
 import AlertActions from '../actions/alertActions';
 import ApiMixin from '../mixins/apiMixin';
+import DynamicWrapper from '../components/dynamicWrapper';
 import LoadingError from '../components/loadingError';
 import LoadingIndicator from '../components/loadingIndicator';
 import PluginList from '../components/pluginList';
@@ -176,7 +177,7 @@ const ProjectReleaseTracking = createReactClass({
               </p>
               <p>
                 <code style={{display: 'inlineBlock'}} className="auto-select">
-                  {this.state.token}
+                  <DynamicWrapper value={this.state.token} fixed="__TOKEN__" />
                 </code>
               </p>
               <p>
@@ -206,7 +207,10 @@ const ProjectReleaseTracking = createReactClass({
                 )}
               </p>
 
-              <pre className="auto-select">{this.state.webhookUrl}</pre>
+              <DynamicWrapper
+                value={<pre className="auto-select">{this.state.webhookUrl}</pre>}
+                fixed={<pre className="auto-select">__WEBHOOK_URL__</pre>}
+              />
 
               <p>
                 {t(
@@ -214,7 +218,19 @@ const ProjectReleaseTracking = createReactClass({
                 )}
               </p>
 
-              <pre className="auto-select">{this.getReleaseWebhookIntructions()}</pre>
+              <DynamicWrapper
+                value={
+                  <pre className="auto-select">{this.getReleaseWebhookIntructions()}</pre>
+                }
+                fixed={
+                  <pre className="auto-select">
+                    {`curl __WEBHOOK_URL__ \\
+  -X POST \\
+  -H 'Content-Type: application/json' \\
+  -d \'{"version": "abcdefg"}\'`}
+                  </pre>
+                }
+              />
             </form>
           </div>
         </div>

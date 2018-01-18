@@ -6,6 +6,7 @@ import {t} from '../../locale';
 import Checkbox from '../../components/checkbox';
 import ExternalLink from '../../components/externalLink';
 import SentryTypes from '../../proptypes';
+import DynamicWrapper from '../../components/dynamicWrapper';
 
 class ProjectPluginRow extends React.PureComponent {
   static propTypes = {
@@ -39,7 +40,10 @@ class ProjectPluginRow extends React.PureComponent {
           <div className={`icon-integration icon-${id}`} />
           <h5>
             {`${name} `}
-            <span>{version ? `v${version}` : <em>{t('n/a')}</em>}</span>
+            <DynamicWrapper
+              value={<span>{version ? `v${version}` : <em>{t('n/a')}</em>}</span>}
+              fixed={<span>v10</span>}
+            />
           </h5>
           <p>
             {author && <ExternalLink href={author.url}>{author.name}</ExternalLink>}

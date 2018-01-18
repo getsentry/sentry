@@ -13,11 +13,11 @@ DynamicWrapper.propTypes = {
   /**
    * Value to display when `process.env.IS_PERCY` is truthy
    */
-  fixed: PropTypes.string.isRequired,
+  fixed: PropTypes.node.isRequired,
   /**
    * Actual value to use when not in a test environment
    */
-  value: PropTypes.string.isRequired,
+  value: PropTypes.node.isRequired,
 };
 
 export default DynamicWrapper;
