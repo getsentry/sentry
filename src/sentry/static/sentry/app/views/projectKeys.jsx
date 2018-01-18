@@ -178,7 +178,7 @@ const KeyRow = createReactClass({
             <AutoSelectText className="form-control disabled">
               <DynamicWrapper
                 value={data.dsn.public}
-                fixed={data.dsn.secret.replace(
+                fixed={data.dsn.public.replace(
                   new RegExp(`\/${data.projectId}$`),
                   '/<<projectId>>'
                 )}
