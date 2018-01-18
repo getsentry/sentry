@@ -17,7 +17,7 @@ RESOLVE_SELECTOR = {
     'label': 'Resolve issue',
     'type': 'select',
     'name': 'resolve_type',
-    'placeholder': 'Select when to expect this issue resolved',
+    'placeholder': 'Select the resolution target',
     'value': 'resolved',
     'options': [
         {
