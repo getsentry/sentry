@@ -21,12 +21,16 @@
     [
       "babel-plugin-transform-builtin-extend",
       {
-        "globals": ["Array"]
+        "globals": ["Array", "Error"]
       }
-    ],
-    "idx"
+    ]
   ],
   "env": {
+    "production": {
+      "plugins": [
+        "idx"
+      ]
+    },
     "development": {
       "plugins": [
         ["emotion", {"sourceMap": true, "autoLabel": true}]
@@ -44,10 +48,9 @@
         [
           "babel-plugin-transform-builtin-extend",
           {
-            "globals": ["Array"]
+            "globals": ["Array", "Error"]
           }
-        ],
-        "idx"
+        ]
       ]
     }
   }
