@@ -125,6 +125,10 @@ TAG_LABELS = {
     'server_name': 'Server',
 }
 
+PROTECTED_TAG_KEYS = frozenset([
+    'environment',
+])
+
 # TODO(dcramer): once this is more flushed out we want this to be extendable
 SENTRY_RULES = (
     'sentry.rules.actions.notify_event.NotifyEventAction',
