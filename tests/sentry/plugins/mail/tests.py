@@ -326,7 +326,7 @@ class MailPluginTest(TestCase):
 
         msg = mail.outbox[0]
 
-        assert msg.subject == 'Re: [Sentry] [foo Bar] error: \xe3\x81\x93\xe3\x82\x93\xe3\x81\xab\xe3\x81\xa1\xe3\x81\xaf'
+        assert msg.subject == 'Re: [BAR-1] [foo Bar] error: \xe3\x81\x93\xe3\x82\x93\xe3\x81\xab\xe3\x81\xa1\xe3\x81\xaf'
         assert msg.to == [self.user.email]
 
     def test_note(self):
@@ -351,7 +351,7 @@ class MailPluginTest(TestCase):
 
         msg = mail.outbox[0]
 
-        assert msg.subject == 'Re: [Sentry] [foo Bar] error: \xe3\x81\x93\xe3\x82\x93\xe3\x81\xab\xe3\x81\xa1\xe3\x81\xaf'
+        assert msg.subject == 'Re: [BAR-1] [foo Bar] error: \xe3\x81\x93\xe3\x82\x93\xe3\x81\xab\xe3\x81\xa1\xe3\x81\xaf'
         assert msg.to == [self.user.email]
 
 
