@@ -255,7 +255,7 @@ exports[`OrganizationMembersView No Require Link does not have 2fa warning if us
         </Styled(div)>
       </SettingsPageHeading>
       <OrganizationAccessRequests
-        accessRequestBusy={Array []}
+        accessRequestBusy={Map {}}
         onApprove={[Function]}
         onDeny={[Function]}
         requestList={Array []}
@@ -1407,7 +1407,7 @@ exports[`OrganizationMembersView Require Link does not have 2fa warning if user 
         </Styled(div)>
       </SettingsPageHeading>
       <OrganizationAccessRequests
-        accessRequestBusy={Array []}
+        accessRequestBusy={Map {}}
         onApprove={[Function]}
         onDeny={[Function]}
         requestList={Array []}
