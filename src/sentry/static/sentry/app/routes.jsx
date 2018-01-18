@@ -2,8 +2,6 @@ import {Redirect, Route, IndexRoute, IndexRedirect} from 'react-router';
 import React from 'react';
 
 import AccountAuthorizations from './views/accountAuthorizations';
-import AccountAvatar from './views/settings/account/avatar';
-import AccountEmails from './views/settings/account/accountEmails';
 import AccountLayout from './views/accountLayout';
 
 import AdminBuffer from './views/adminBuffer';
@@ -141,13 +139,15 @@ const accountSettingsRoutes = [
     key="emails/"
     path="emails/"
     name="Emails"
-    component={errorHandler(AccountEmails)}
+    componentPromise={() => import('./views/settings/account/accountEmails')}
+    component={errorHandler(LazyLoad)}
   />,
   <Route
     key="avatar/"
     path="avatar/"
     name="Avatar"
-    component={errorHandler(AccountAvatar)}
+    componentPromise={() => import('./views/settings/account/avatar')}
+    component={errorHandler(LazyLoad)}
   />,
 
   <Route

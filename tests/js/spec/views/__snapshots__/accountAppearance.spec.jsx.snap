@@ -20,6 +20,9 @@ exports[`AccountAppearance renders 1`] = `
           "timezone": "US/Pacific",
         }
       }
+      onSubmit={[Function]}
+      onSubmitError={[Function]}
+      onSubmitSuccess={[Function]}
       requireChanges={false}
       saveOnBlur={true}
       submitDisabled={false}
