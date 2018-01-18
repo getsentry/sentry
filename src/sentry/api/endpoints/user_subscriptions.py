@@ -56,7 +56,7 @@ class UserSubscriptionsEndpoint(UserEndpoint):
 
         # Can't handle subscriptions without a verified email
         if not email.is_verified:
-            return Response({'details': 'Verify your email address first.'},
+            return Response({'details': 'Must have verified email to subscribe to newsletter.'},
                             status=status.HTTP_400_BAD_REQUEST)
 
         subscribed = request.DATA.get('subscribed')
