@@ -10,6 +10,7 @@ import IndicatorStore from '../../../../stores/indicatorStore';
 import OrganizationAccessRequests from './organizationAccessRequests';
 import OrganizationMemberRow from './organizationMemberRow';
 import OrganizationSettingsView from '../../../organizationSettingsView';
+import Pagination from '../../../../components/pagination';
 import Panel from '../../components/panel';
 import PanelBody from '../../components/panelBody';
 import PanelHeader from '../../components/panelHeader';
@@ -40,7 +41,12 @@ class OrganizationMembersView extends OrganizationSettingsView {
 
   getEndpoints() {
     return [
-      ['members', `/organizations/${this.props.params.orgId}/members/`],
+      [
+        'members',
+        `/organizations/${this.props.params.orgId}/members/`,
+        {},
+        {paginate: true},
+      ],
       [
         'authProvider',
         `/organizations/${this.props.params.orgId}/auth-provider/`,
@@ -201,7 +207,7 @@ class OrganizationMembersView extends OrganizationSettingsView {
 
   renderBody() {
     let {params, routes} = this.props;
-    let {members, requestList} = this.state;
+    let {membersPageLinks, members, requestList} = this.state;
     let {organization} = this.context;
     let {orgId} = params || {};
     let {name: orgName, access} = organization;
@@ -284,6 +290,8 @@ class OrganizationMembersView extends OrganizationSettingsView {
             })}
           </PanelBody>
         </Panel>
+
+        <Pagination pageLinks={membersPageLinks} />
       </div>
     );
   }
