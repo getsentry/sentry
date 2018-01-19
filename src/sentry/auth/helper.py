@@ -492,7 +492,7 @@ class AuthHelper(object):
             # the email matches we go ahead and let them merge it. This is the
             # only way to prevent them having duplicate accounts, and because
             # we trust identity providers, its considered safe.
-            if existing_user and (existing_user.is_managed or verified_email):
+            if existing_user and existing_user.is_managed and verified_email:
                 # we only allow this flow to happen if the existing user has
                 # membership, otherwise we short circuit because it might be
                 # an attempt to hijack membership of another organization
