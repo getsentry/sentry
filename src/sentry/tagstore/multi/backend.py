@@ -236,3 +236,6 @@ class MultiTagStorage(TagStorage):
 
     def update_group_for_events(self, *args, **kwargs):
         return self._call_all_backends('update_group_for_events', *args, **kwargs)
+
+    def get_groups_times_seen_by_environment_name(self, *args, **kwargs):
+        return self._call_one_backend('get_groups_times_seen_by_environment_name', *args, **kwargs)
