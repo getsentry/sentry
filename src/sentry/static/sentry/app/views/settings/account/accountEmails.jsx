@@ -13,6 +13,7 @@ import Panel from '../components/panel';
 import PanelBody from '../components/panelBody';
 import PanelHeader from '../components/panelHeader';
 import Row from '../components/row';
+import Tag from '../components/tag';
 import SettingsPageHeader from '../components/settingsPageHeader';
 import accountEmailsFields from '../../../data/forms/accountEmails';
 
@@ -54,8 +55,12 @@ class EmailRow extends React.Component {
             <div>{email}</div>
           </Flex>
           <Flex ml={2}>
-            {!isVerified ? t('Unverified') : ''}
-            <Box ml={1}>{isPrimary ? t('Primary') : ''}</Box>
+            {!isVerified && <Tag type="warning">{t('Unverified')}</Tag>}
+            {isPrimary && (
+              <Tag type="success" ml={1}>
+                {t('Primary')}
+              </Tag>
+            )}
           </Flex>
         </Flex>
 
