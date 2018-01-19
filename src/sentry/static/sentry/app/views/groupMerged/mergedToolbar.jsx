@@ -6,7 +6,7 @@ import _ from 'lodash';
 
 import {t} from '../../locale';
 import GroupingStore from '../../stores/groupingStore';
-import ProjectActions from '../../actions/projectActions';
+import {openDiffModal} from '../../actionCreators/modal';
 import Button from '../../components/buttons/button';
 import LinkWithConfirmation from '../../components/linkWithConfirmation';
 import Toolbar from '../../components/toolbar';
@@ -59,7 +59,8 @@ const MergedToolbar = createReactClass({
 
     // only need eventId, not fingerprint
     let [baseEventId, targetEventId] = Array.from(entries).map(([, eventId]) => eventId);
-    ProjectActions.openDiffModal({
+
+    openDiffModal({
       baseIssueId: groupId,
       targetIssueId: groupId,
       baseEventId,
