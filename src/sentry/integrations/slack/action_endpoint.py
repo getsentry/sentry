@@ -219,6 +219,12 @@ class SlackActionEndpoint(Endpoint):
 
             return self.respond()
 
+        # Usually we'll want to respond with the updated attachment including
+        # the list of actions taken. However, when opening a dialog we do not
+        # have anything to update the message with and will use the
+        # response_url later to update it.
+        defer_attachment_update = False
+
         # Handle interaction actions
         for action in action_list:
             if action['name'] == 'status':
@@ -227,17 +233,13 @@ class SlackActionEndpoint(Endpoint):
                 self.on_assign(request, identity, group, action)
             elif action['name'] == 'resolve_dialog':
                 self.open_resolve_dialog(data, group, integration)
+                defer_attachment_update = True
 
-        # Usually we'll want to respond with the updated attachment including
-        # the list of actions taken. However, when opening a dialog we do not
-        # have anything to update the message with and will use the
-        # response_url later to update it.
-        if len(action_list) > 0 and action_list[0].get('name') == 'resolve_dialog':
+        if defer_attachment_update:
             return self.respond()
 
         # Reload group as it may have been mutated by the action
         group = Group.objects.get(id=group.id)
 
         attachment = build_attachment(group, identity=identity, actions=action_list)
-
         return self.respond(attachment)
