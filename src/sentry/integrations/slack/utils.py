@@ -182,14 +182,14 @@ def build_attachment(group, event=None, identity=None, actions=None):
         payload_actions = []
 
     return {
-        'fallback': '[{}] {}'.format(group.project.slug, group.title),
+        'fallback': u'[{}] {}'.format(group.project.slug, group.title),
         'title': build_attachment_title(group, event),
         'title_link': add_notification_referrer_param(group.get_absolute_url(), 'slack'),
         'text': text,
         'mrkdwn_in': ['text'],
         'callback_id': json.dumps({'issue': group.id}),
         'footer_icon': logo_url,
-        'footer': '{} / {}'.format(
+        'footer': u'{} / {}'.format(
             group.organization.slug,
             group.project.slug,
         ),
