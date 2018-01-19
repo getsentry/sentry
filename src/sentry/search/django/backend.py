@@ -65,19 +65,28 @@ class DjangoSearchBackend(SearchBackend):
 
         queryset = Group.objects.filter(project=project)
 
-        if tags:
-            # TODO: pass in sort option
-            # TODO: mark as needing to maintain sort order from matches
-            try:
-                environment_id = environment_func().id
-            except Environment.DoesNotExist:
-                matches = []
-            else:
-                matches = tagstore.get_group_ids_for_search_filter(project.id, environment_id, tags)
+        if tags is None:
+            tags = {}
 
+        try:
+            environment = environment_func()
+        except Environment.DoesNotExist:
+            assert 'environment' in tags, 'environment must be provided as tag'
+            return queryset.none()
+
+        if environment is not None:
+            assert 'environment' in tags, 'environment must be provided as tag'
+            assert tags['environment'] == environment.name, 'environments must match'
+            environment_id = environment.id
+        else:
+            environment_id = None
+
+        if tags:
+            matches = tagstore.get_group_ids_for_search_filter(project.id, environment_id, tags)
             if not matches:
                 return queryset.none()
 
+            # TODO: Replace the sort order with the output order of the matches
             queryset = queryset.filter(id__in=matches)
 
         if query:
