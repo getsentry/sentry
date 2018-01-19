@@ -10,6 +10,13 @@ const FormFieldWrapper = styled(({highlighted, inline, ...props}) => <Flex {...p
   border-bottom: 1px solid ${p => p.theme.borderLight};
   transition: background 0.15s;
 
+  ${SettingsInputField}, ${SettingsTextAreaField} {
+    background: ${p => (p.error ? '#fff' : p.theme.offWhite)};
+    border: 1px solid ${p => p.theme.borderLight};
+
+    &:hover, &:focus { border: 1px solid ${p => p.theme.borderDark}}
+  }
+
   ${p => {
     if (p.inline) {
       return 'align-items: center;';
@@ -20,24 +27,14 @@ const FormFieldWrapper = styled(({highlighted, inline, ...props}) => <Flex {...p
       `;
     }
   }} ${p => {
-      if (p.highlighted) {
-        return css`
-          outline: 1px solid ${p.theme.purple};
-        `;
-      } else {
-        return '';
-      }
-    }}
-
-  &:hover {
-    ${SettingsInputField}, ${SettingsTextAreaField} {
-      ${p => css`
-        background: ${p.error ? '#fff' : p.theme.offWhite};
-      `};
-    }
+  if (p.highlighted) {
+    return css`
+      outline: 1px solid ${p.theme.purple};
+    `;
+  } else {
+    return '';
   }
-
-  &:last-child {
+}} &:last-child {
     border-bottom: none;
   }
 `;

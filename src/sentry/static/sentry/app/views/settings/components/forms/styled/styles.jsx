@@ -6,7 +6,7 @@ const inputStyles = props => css`
   width: 100%;
   border: 0;
   border-radius: 2px;
-  padding: 10px;
+  padding: 0.5em;
   transition: border 0.2s ease;
   resize: vertical;
 
