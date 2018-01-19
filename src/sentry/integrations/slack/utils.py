@@ -115,15 +115,13 @@ def build_attachment(group, event=None, identity=None, actions=None):
     status = group.get_status()
     assignees = get_assignees(group)
 
-    text = build_attachment_text(group, event) or ''
+    logo_url = absolute_uri(get_asset_url('sentry', 'images/sentry-email-avatar.png'))
     color = NEW_ISSUE_COLOR
+
+    text = build_attachment_text(group, event) or ''
 
     if actions is None:
         actions = []
-
-    if len(actions) > 0:
-        action_texts = filter(None, [build_action_text(identity, a) for a in actions])
-        text += '\n' + '\n'.join(action_texts)
 
     try:
         assignee = GroupAssignee.objects.get(group=group).user
@@ -176,11 +174,12 @@ def build_attachment(group, event=None, identity=None, actions=None):
         },
     ]
 
-    if len(actions) > 0:
+    if actions:
+        action_texts = filter(None, [build_action_text(identity, a) for a in actions])
+        text += '\n' + '\n'.join(action_texts)
+
         color = ACTIONED_ISSUE_COLOR
         payload_actions = []
-
-    logo_url = absolute_uri(get_asset_url('sentry', 'images/sentry-email-avatar.png'))
 
     return {
         'fallback': '[{}] {}'.format(group.project.slug, group.title),
