@@ -455,10 +455,7 @@ class AuthHelper(object):
 
     def _find_existing_user(self, email):
         return User.objects.filter(
-            id__in=UserEmail.objects.filter(
-                email__iexact=email,
-                is_verified=True,
-            ).values('user'),
+            id__in=UserEmail.objects.filter(email__iexact=email).values('user'),
             is_active=True,
         ).first()
 
@@ -486,11 +483,16 @@ class AuthHelper(object):
             except IndexError:
                 existing_user = None
 
+            verified_email = existing_user and existing_user.emails.filter(
+                is_verified=True,
+                email__iexact=identity['email'],
+            ).exists()
+
             # If they already have an SSO account and the identity provider says
             # the email matches we go ahead and let them merge it. This is the
             # only way to prevent them having duplicate accounts, and because
             # we trust identity providers, its considered safe.
-            if existing_user and existing_user.is_managed:
+            if existing_user and existing_user.is_managed and verified_email:
                 # we only allow this flow to happen if the existing user has
                 # membership, otherwise we short circuit because it might be
                 # an attempt to hijack membership of another organization
