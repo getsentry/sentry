@@ -2,7 +2,7 @@ import $ from 'jquery';
 import _ from 'lodash';
 
 import GroupActions from './actions/groupActions';
-import {openSudo} from './actionCreators/sudo';
+import {openSudo} from './actionCreators/modal';
 
 export class Request {
   constructor(xhr) {

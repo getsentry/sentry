@@ -18,7 +18,7 @@ class GlobalModal extends React.Component {
      * `closeModal`
      *
      */
-    children: PropTypes.func.isRequired,
+    children: PropTypes.func,
     options: PropTypes.shape({
       modalClassName: PropTypes.string,
     }),
@@ -45,13 +45,14 @@ class GlobalModal extends React.Component {
         animation={false}
         onHide={closeModal}
       >
-        {children &&
-          children({
-            closeModal,
-            Header: Modal.Header,
-            Body: Modal.Body,
-            Footer: Modal.Footer,
-          })}
+        {children
+          ? children({
+              closeModal,
+              Header: Modal.Header,
+              Body: Modal.Body,
+              Footer: Modal.Footer,
+            })
+          : null}
       </Component>
     );
   }
@@ -86,7 +87,7 @@ const GlobalModalContainer = createReactClass({
 
     return (
       <GlobalModal {...this.props} {...modalStore} visible={visible}>
-        {visible && modalStore.renderer}
+        {visible ? modalStore.renderer : null}
       </GlobalModal>
     );
   },
