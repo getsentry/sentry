@@ -27,7 +27,7 @@ def get_assignees(group):
     queryset = OrganizationMember.objects.filter(
         Q(user__is_active=True) | Q(user__isnull=True),
         organization=group.organization,
-        teams=group.team,
+        teams__in=group.project.teams.all(),
     ).select_related('user')
 
     members = sorted(queryset, key=lambda x: x.user.get_display_name() if x.user_id else x.email)
