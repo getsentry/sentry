@@ -82,7 +82,13 @@ class DjangoSearchBackend(SearchBackend):
             environment_id = None
 
         if tags:
-            matches = tagstore.get_group_ids_for_search_filter(project.id, environment_id, tags)
+            matches = tagstore.get_group_ids_for_search_filter(
+                project.id,
+                environment_id,
+                tags,
+                sort_by if environment_id is not None else None,
+            )
+
             if not matches:
                 return queryset.none()
 
