@@ -51,6 +51,35 @@ class SlackActionEndpoint(Endpoint):
         except client.ApiError as e:
             logger.error('slack.action.sentry-client-error', extra={'error': e.body})
 
+    def on_status(self, request, identity, group, action, data, integration):
+        status = action['value']
+
+        status_data = status.split(':', 1)
+        status = {'status': status_data[0]}
+
+        # Additional status details
+        if status_data[-1] == 'inNextRelease':
+            status.update({'statusDetails': {'inNextRelease': True}})
+
+        if status_data[-1] == 'inCurrentRelease':
+            status.update({'statusDetails': {'inRelease': 'latest'}})
+
+        try:
+            self.update_group(group, identity, status)
+        except client.ApiError as e:
+            logger.error('slack.action.sentry-client-error', extra={'error': e.body})
+
+    def update_group(self, group, identity, data):
+        return client.put(
+            path='/projects/{}/{}/issues/'.format(
+                group.project.organization.slug,
+                group.project.slug,
+            ),
+            params={'id': group.id},
+            data=data,
+            user=identity.user
+        )
+
     def open_resolve_dialog(self, data, group, integration):
         # XXX(epurkhiser): In order to update the original message we have to
         # keep track of the response_url in the callback_id. Definitely hacky,
@@ -82,35 +111,6 @@ class SlackActionEndpoint(Endpoint):
             logger.error('slack.action.response-error', extra={
                 'error': resp.get('error'),
             })
-
-    def on_status(self, request, identity, group, action, data, integration):
-        status = action['value']
-
-        status_data = status.split(':', 1)
-        status = {'status': status_data[0]}
-
-        # Additional status details
-        if status_data[-1] == 'inNextRelease':
-            status.update({'statusDetails': {'inNextRelease': True}})
-
-        if status_data[-1] == 'inCurrentRelease':
-            status.update({'statusDetails': {'inRelease': 'latest'}})
-
-        try:
-            self.update_group(group, identity, status)
-        except client.ApiError as e:
-            logger.error('slack.action.sentry-client-error', extra={'error': e.body})
-
-    def update_group(self, group, identity, data):
-        return client.put(
-            path='/projects/{}/{}/issues/'.format(
-                group.project.organization.slug,
-                group.project.slug,
-            ),
-            params={'id': group.id},
-            data=data,
-            user=identity.user
-        )
 
     def post(self, request):
         logging_data = {}
