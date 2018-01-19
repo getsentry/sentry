@@ -21,9 +21,10 @@ from sentry.api.serializers.models.group import (
 from sentry.constants import DEFAULT_SORT_OPTION
 from sentry.db.models.query import create_or_update
 from sentry.models import (
-    Activity, Environment, Group, GroupAssignee, GroupBookmark, GroupHash, GroupResolution,
-    GroupSeen, GroupShare, GroupSnooze, GroupStatus, GroupSubscription, GroupSubscriptionReason,
-    GroupTombstone, Release, TOMBSTONE_FIELDS_FROM_GROUP, UserOption
+    Activity, Group, GroupAssignee, GroupBookmark, GroupHash, GroupResolution,
+    GroupSeen, GroupShare, GroupSnooze, GroupStatus, GroupSubscription,
+    GroupSubscriptionReason, GroupTombstone, Release,
+    TOMBSTONE_FIELDS_FROM_GROUP, UserOption
 )
 from sentry.models.event import Event
 from sentry.models.group import looks_like_short_id
@@ -33,7 +34,7 @@ from sentry.signals import advanced_search, issue_resolved_in_release
 from sentry.tasks.deletion import delete_group
 from sentry.tasks.merge import merge_group
 from sentry.utils.apidocs import attach_scenarios, scenario
-from sentry.utils.cursors import Cursor, CursorResult
+from sentry.utils.cursors import Cursor
 from sentry.utils.functional import extract_lazy_object
 
 delete_logger = logging.getLogger('sentry.deletions.api')
@@ -188,6 +189,10 @@ class ProjectGroupIndexEndpoint(ProjectEndpoint, EnvironmentMixin):
         query_kwargs = {
             'project': project,
             'sort_by': request.GET.get('sort', DEFAULT_SORT_OPTION),
+            'environment_func': self._get_environment_func(
+                request,
+                project.organization_id,
+            ),
         }
 
         limit = request.GET.get('limit')
@@ -324,18 +329,7 @@ class ProjectGroupIndexEndpoint(ProjectEndpoint, EnvironmentMixin):
         except ValidationError as exc:
             return Response({'detail': six.text_type(exc)}, status=400)
 
-        try:
-            environment_id = self._get_environment_id_from_request(
-                request, project.organization_id)
-        except Environment.DoesNotExist:
-            # XXX: The 1000 magic number for `max_hits` is an abstraction leak
-            # from `sentry.api.paginator.BasePaginator.get_result`.
-            cursor_result = CursorResult([], None, None, hits=0, max_hits=1000)
-        else:
-            cursor_result = search.query(
-                count_hits=True,
-                environment_id=environment_id,
-                **query_kwargs)
+        cursor_result = search.query(count_hits=True, **query_kwargs)
 
         results = list(cursor_result)
 

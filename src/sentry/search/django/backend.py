@@ -57,13 +57,28 @@ class DjangoSearchBackend(SearchBackend):
         times_seen_upper_inclusive=True,
         cursor=None,
         limit=None,
-        environment_id=None,
+        environment_func=None,
     ):
-        from sentry.models import Event, Group, GroupSubscription, GroupStatus
+        from sentry.models import Environment, Event, Group, GroupSubscription, GroupStatus
 
         engine = get_db_engine('default')
 
         queryset = Group.objects.filter(project=project)
+
+        if tags:
+            # TODO: pass in sort option
+            # TODO: mark as needing to maintain sort order from matches
+            try:
+                environment_id = environment_func().id
+            except Environment.DoesNotExist:
+                matches = []
+            else:
+                matches = tagstore.get_group_ids_for_search_filter(project.id, environment_id, tags)
+
+            if not matches:
+                return queryset.none()
+
+            queryset = queryset.filter(id__in=matches)
 
         if query:
             # TODO(dcramer): if we want to continue to support search on SQL
@@ -113,14 +128,6 @@ class DjangoSearchBackend(SearchBackend):
             queryset = queryset.filter(
                 first_release__organization_id=project.organization_id,
                 first_release__version=first_release,
-            )
-
-        if tags:
-            matches = tagstore.get_group_ids_for_search_filter(project.id, environment_id, tags)
-            if not matches:
-                return queryset.none()
-            queryset = queryset.filter(
-                id__in=matches,
             )
 
         if age_from or age_to:
