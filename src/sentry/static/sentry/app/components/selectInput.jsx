@@ -7,8 +7,8 @@ class SelectInput extends React.Component {
     disabled: PropTypes.bool,
     multiple: PropTypes.bool,
     required: PropTypes.bool,
-    placeholder: PropTypes.string,
-    value: PropTypes.string,
+    placeholder: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
+    value: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
     onChange: PropTypes.func,
   };
 
