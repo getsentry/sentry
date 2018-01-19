@@ -151,16 +151,16 @@ class GroupSerializer(Serializer):
             times_seen = {}
         else:
             project_id = item_list[0].project_id
-            item_id_list = [g.id for g in item_list]
+            item_ids = [g.id for g in item_list]
             user_counts = tagstore.get_groups_user_counts(
                 project_id,
-                item_id_list,
+                item_ids,
                 environment_id=environment and environment.id,
             )
             if environment is not None:
                 times_seen = tagstore.get_groups_times_seen_by_environment_name(
                     project_id,
-                    item_id_list,
+                    item_ids,
                     environment.name,
                 )
             else:
