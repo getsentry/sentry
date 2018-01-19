@@ -205,6 +205,10 @@ class OrganizationAuthLoginTest(AuthProviderTestCase):
         )
         user = self.create_user('bar@example.com')
 
+        email = user.emails.all()[:1].get()
+        email.is_verified = False
+        email.save()
+
         path = reverse('sentry-auth-organization', args=[organization.slug])
 
         resp = self.client.post(path, {'init': True})
