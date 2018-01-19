@@ -65,6 +65,7 @@ export default class extends React.Component {
 
                   <h6 className="nav-header">Manage</h6>
                   <ul className="nav nav-stacked">
+                    <ListLink to="/manage/agents/">Agents</ListLink>
                     <ListLink to="/manage/organizations/">Organizations</ListLink>
                     <ListLink to="/manage/projects/">Projects</ListLink>
                     <ListLink to="/manage/users/">Users</ListLink>
