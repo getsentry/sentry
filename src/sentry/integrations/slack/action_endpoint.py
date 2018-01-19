@@ -57,11 +57,11 @@ class SlackActionEndpoint(Endpoint):
         status_data = status.split(':', 1)
         status = {'status': status_data[0]}
 
-        # Additional status details
-        if status_data[-1] == 'inNextRelease':
-            status.update({'statusDetails': {'inNextRelease': True}})
+        resolve_type = status_data[-1]
 
-        if status_data[-1] == 'inCurrentRelease':
+        if resolve_type == 'inNextRelease':
+            status.update({'statusDetails': {'inNextRelease': True}})
+        elif resolve_type == 'inCurrentRelease':
             status.update({'statusDetails': {'inRelease': 'latest'}})
 
         try:
