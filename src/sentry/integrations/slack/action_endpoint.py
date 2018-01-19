@@ -86,10 +86,6 @@ class SlackActionEndpoint(Endpoint):
     def on_status(self, request, identity, group, action, data, integration):
         status = action['value']
 
-        if status == 'resolve_dialog':
-            self.open_resolve_dialog(data, group, integration)
-            return
-
         status_data = status.split(':', 1)
         status = {'status': status_data[0]}
 
@@ -227,15 +223,16 @@ class SlackActionEndpoint(Endpoint):
         for action in action_list:
             if action['name'] == 'status':
                 self.on_status(request, identity, group, action, data, integration)
-
-            if action['name'] == 'assign':
+            elif action['name'] == 'assign':
                 self.on_assign(request, identity, group, action)
+            elif action['name'] == 'resolve_dialog':
+                self.open_resolve_dialog(data, group, integration)
 
         # Usually we'll want to respond with the updated attachment including
         # the list of actions taken. However, when opening a dialog we do not
         # have anything to update the message with and will use the
         # response_url later to update it.
-        if len(action_list) > 0 and action_list[0].get('value') == 'resolve_dialog':
+        if len(action_list) > 0 and action_list[0].get('name') == 'resolve_dialog':
             return self.respond()
 
         # Reload group as it may have been mutated by the action

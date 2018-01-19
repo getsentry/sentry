@@ -138,21 +138,22 @@ def build_attachment(group, event=None, identity=None, actions=None):
         assignee = None
 
     resolve_button = {
-        'name': 'status',
+        'name': 'resolve_dialog',
+        'value': 'resolve_dialog',
         'type': 'button',
         'text': 'Resolve',
-        'value': 'resolve_dialog',
     }
 
     ignore_button = {
         'name': 'status',
+        'value': 'ignored',
         'type': 'button',
         'text': 'Ignore',
-        'value': 'ignored',
     }
 
     if status == GroupStatus.RESOLVED:
         resolve_button.update({
+            'name': 'status',
             'text': 'Unresolve Issue',
             'value': 'unresolved',
         })
