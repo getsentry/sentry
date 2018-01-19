@@ -158,8 +158,6 @@ class Symbolizer(object):
         sdk_name = sdk_info['sdk_name'].lower() if sdk_info else ''
         if sdk_name == 'macos' and MAC_OS_PATH in obj_path:
             return True
-
-        # For now, consider all linux objects in_app
         if sdk_name == 'linux' and not obj_path.startswith(LINUX_SYS_PATHS):
             return True
 
