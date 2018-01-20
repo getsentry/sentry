@@ -187,7 +187,7 @@ export default class ProjectAlertSettings extends AsyncView {
           title={t('Alerts')}
           action={
             <Button
-              href={`/${orgId}/${projectId}/settings/alerts/rules/new/`}
+              to={`/${orgId}/${projectId}/settings/alerts/rules/new/`}
               priority="primary"
               size="small"
               className="pull-right"

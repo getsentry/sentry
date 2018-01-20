@@ -2,12 +2,13 @@ import PropTypes from 'prop-types';
 import React from 'react';
 import createReactClass from 'create-react-class';
 import ReactDOM from 'react-dom';
+import {browserHistory} from 'react-router';
 import $ from 'jquery';
 import ApiMixin from '../../mixins/apiMixin';
 import IndicatorStore from '../../stores/indicatorStore';
 import SelectInput from '../../components/selectInput';
 import {t, tct} from '../../locale';
-
+import LoadingIndicator from '../../components/loadingIndicator';
 import RuleNodeList from './ruleNodeList';
 
 const RuleEditor = createReactClass({
@@ -16,7 +17,6 @@ const RuleEditor = createReactClass({
   propTypes: {
     actions: PropTypes.array.isRequired,
     conditions: PropTypes.array.isRequired,
-    rule: PropTypes.object.isRequired,
     project: PropTypes.object.isRequired,
     organization: PropTypes.object.isRequired,
   },
@@ -25,14 +25,44 @@ const RuleEditor = createReactClass({
 
   getInitialState() {
     return {
+      rule: null,
       loading: false,
       error: null,
     };
   },
 
+  componentDidMount() {
+    this.fetchRule();
+  },
+
   componentDidUpdate() {
     if (this.state.error) {
       $(document.body).scrollTop($(ReactDOM.findDOMNode(this.refs.form)).offset().top);
+    }
+  },
+
+  fetchRule() {
+    let {ruleId, projectId, orgId} = this.props.params;
+
+    if (ruleId) {
+      let endpoint = `/projects/${orgId}/${projectId}/rules/${ruleId}/`;
+      this.api.request(endpoint, {
+        success: rule => {
+          this.setState({
+            rule,
+          });
+        },
+      });
+    } else {
+      let defaultRule = {
+        actionMatch: 'all',
+        actions: [],
+        conditions: [],
+        name: '',
+        frequency: 30,
+      };
+
+      this.setState({rule: defaultRule});
     }
   },
 
@@ -69,7 +99,7 @@ const RuleEditor = createReactClass({
       frequency,
       name,
     };
-    let rule = this.props.rule;
+    let rule = this.state.rule;
     let project = this.props.project;
     let org = this.props.organization;
     let endpoint = `/projects/${org.slug}/${project.slug}/rules/`;
@@ -78,11 +108,16 @@ const RuleEditor = createReactClass({
     }
 
     let loadingIndicator = IndicatorStore.add('Saving...');
+
     this.api.request(endpoint, {
       method: rule.id ? 'PUT' : 'POST',
       data,
-      success: () => {
-        window.location.href = '../';
+      success: resp => {
+        this.setState({error: null, loading: false, rule: resp});
+
+        browserHistory.replace(
+          `/${org.slug}/${project.slug}/settings/alerts/rules/${resp.id}/`
+        );
       },
       error: response => {
         this.setState({
@@ -103,7 +138,9 @@ const RuleEditor = createReactClass({
   },
 
   render() {
-    let rule = this.props.rule;
+    if (!this.state.rule) return <LoadingIndicator />;
+
+    let rule = this.state.rule;
     let {loading, error} = this.state;
     let {actionMatch, actions, conditions, frequency, name} = rule;
 

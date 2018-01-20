@@ -150,7 +150,6 @@ export default {
     PluginConfig: require('./components/pluginConfig').default,
     ProjectIssueTracking: require('./views/projectIssueTracking').default,
     ProjectSelector: require('./components/projectHeader/projectSelector').default,
-    RuleEditor: require('./views/ruleEditor').default,
     Sidebar: require('./components/sidebar').default,
     StackedBarChart: require('./components/stackedBarChart').default,
     TimeSince: require('./components/timeSince').default,

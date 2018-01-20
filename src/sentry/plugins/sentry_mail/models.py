@@ -154,7 +154,8 @@ class MailPlugin(NotificationPlugin):
 
         rules = []
         for rule in notification.rules:
-            rule_link = reverse('sentry-edit-project-rule', args=[org.slug, project.slug, rule.id])
+            rule_link = '/%s/%s/settings/alerts/rules/%s/' % (org.slug, project.slug, rule.id)
+
             rules.append((rule.label, rule_link))
 
         enhanced_privacy = org.flags.enhanced_privacy

@@ -10,9 +10,9 @@ exports[`ProjectAlertSettings render() renders 1`] = `
         <Button
           className="pull-right"
           disabled={false}
-          href="/org-slug/project-slug/settings/alerts/rules/new/"
           priority="primary"
           size="small"
+          to="/org-slug/project-slug/settings/alerts/rules/new/"
         >
           <span
             className="icon-plus"

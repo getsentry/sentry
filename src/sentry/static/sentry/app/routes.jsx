@@ -58,6 +58,7 @@ import OrganizationGeneralSettingsView from './views/settings/organization/gener
 import OrganizationStats from './views/organizationStats';
 import OrganizationTeams from './views/organizationTeams';
 import ProjectAlertRules from './views/projectAlertRules';
+import ProjectAlertRuleDetails from './views/projectAlertRuleDetails';
 import ProjectAlertSettings from './views/projectAlertSettings';
 import ProjectTags from './views/projectTags';
 import ProjectChooser from './views/projectChooser';
@@ -239,6 +240,18 @@ const projectSettingsRoutes = [
     path="alerts/rules/"
     name="Alert Rules"
     component={errorHandler(ProjectAlertRules)}
+  />,
+  <Route
+    key="alerts/rules/new/"
+    path="alerts/rules/new/"
+    name="New Alert Rule"
+    component={errorHandler(ProjectAlertRuleDetails)}
+  />,
+  <Route
+    key="alerts/rules/rule/edit"
+    path="alerts/rules/:ruleId/"
+    name="Edit Alert Rule"
+    component={errorHandler(ProjectAlertRuleDetails)}
   />,
   <Route
     key="issue-tracking/"
