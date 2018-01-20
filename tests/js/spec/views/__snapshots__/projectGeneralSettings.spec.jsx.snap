@@ -338,13 +338,28 @@ exports[`projectGeneralSettings renders 1`] = `
             name="scrapeJavaScript"
             required={false}
           />
-          <TextField
-            disabled={false}
-            help="Outbound requests matching Allowed Domains will have the header \\"{token_header}: {token}\\" appended."
-            hideErrorMessage={false}
-            label="Security token"
-            name="securityToken"
-            required={false}
+          <DynamicWrapper
+            fixed={
+              <TextField
+                disabled={false}
+                help="Outbound requests matching Allowed Domains will have the header \\"{token_header}: {token}\\" appended."
+                hideErrorMessage={false}
+                label="Security token"
+                name="percy-mock-securityToken"
+                required={false}
+                value="<<SECURITY_TOKEN>>"
+              />
+            }
+            value={
+              <TextField
+                disabled={false}
+                help="Outbound requests matching Allowed Domains will have the header \\"{token_header}: {token}\\" appended."
+                hideErrorMessage={false}
+                label="Security token"
+                name="securityToken"
+                required={false}
+              />
+            }
           />
           <TextField
             disabled={false}

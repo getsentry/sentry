@@ -12,6 +12,7 @@ import {
 import {getOrganizationState} from '../mixins/organizationState';
 import {t, tct} from '../locale';
 import AsyncView from './asyncView';
+import DynamicWrapper from '../components/dynamicWrapper';
 import IndicatorStore from '../stores/indicatorStore';
 import SettingsPageHeader from './settings/components/settingsPageHeader';
 
@@ -359,13 +360,29 @@ export default class ProjectGeneralSettings extends AsyncView {
                   'Allow Sentry to scrape missing JavaScript source context when possible.'
                 )}
               />
-              <TextField
-                name="securityToken"
-                label={t('Security token')}
-                help={t(
-                  'Outbound requests matching Allowed Domains will have the header "{token_header}: {token}" appended.'
-                )}
+
+              <DynamicWrapper
+                value={
+                  <TextField
+                    name="securityToken"
+                    label={t('Security token')}
+                    help={t(
+                      'Outbound requests matching Allowed Domains will have the header "{token_header}: {token}" appended.'
+                    )}
+                  />
+                }
+                fixed={
+                  <TextField
+                    name="percy-mock-securityToken"
+                    label={t('Security token')}
+                    value="<<SECURITY_TOKEN>>"
+                    help={t(
+                      'Outbound requests matching Allowed Domains will have the header "{token_header}: {token}" appended.'
+                    )}
+                  />
+                }
               />
+
               <TextField
                 name="securityTokenHeader"
                 label={t('Security token header')}
