@@ -13,7 +13,7 @@ const TagTextStyled = styled('span')`
   white-space: nowrap;
   vertical-align: baseline;
   border-radius: 0.25em;
-  margin-left: 4px;
+  margin-left: 0.5em;
   text-transform: lowercase;
   background-color: ${p => {
     switch (p.type) {

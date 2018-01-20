@@ -1,4 +1,4 @@
-import {Box, Flex} from 'grid-emotion';
+import {Flex, Box} from 'grid-emotion';
 import PropTypes from 'prop-types';
 import React from 'react';
 import styled from 'react-emotion';
@@ -49,28 +49,19 @@ class EmailRow extends React.Component {
     let {email, isPrimary, isVerified, hideRemove} = this.props;
 
     return (
-      <Row>
-        <Flex align="center" flex="1">
-          <Flex flex="1">
-            <div>{email}</div>
-          </Flex>
-          <Flex ml={2}>
-            {!isVerified && <Tag type="warning">{t('Unverified')}</Tag>}
-            {isPrimary && (
-              <Tag type="success" ml={1}>
-                {t('Primary')}
-              </Tag>
-            )}
-          </Flex>
+      <Row justify="space-between">
+        <Flex align="center">
+          {email}
+          {!isVerified && <Tag type="warning">{t('Unverified')}</Tag>}
+          {isPrimary && <Tag type="success">{t('Primary')}</Tag>}
         </Flex>
 
         {!isPrimary &&
           !hideRemove && (
-            <Flex ml={2}>
+            <Flex>
               <Button size="small" onClick={this.handleSetPrimary}>
                 {t('Set as primary')}
               </Button>
-
               <Box ml={1}>
                 <RemoveButton
                   onClick={this.handleRemove}
@@ -130,9 +121,7 @@ class AccountEmails extends AsyncView {
         <SettingsPageHeader title="Emails" />
 
         <Panel>
-          <PanelHeader>
-            <Box>{t('Emails')}</Box>
-          </PanelHeader>
+          <PanelHeader>{t('Emails')}</PanelHeader>
           <PanelBody>
             {primary && <EmailRow onRemove={this.handleRemove} {...primary} />}
 
@@ -159,11 +148,9 @@ class AccountEmails extends AsyncView {
           <JsonForm location={this.props.location} forms={accountEmailsFields} />
         </Form>
 
-        <Box mb={30}>
-          <AlertLink to="/settings/account/notifications" icon="icon-stack">
-            {t('Wanna change how many emails you get? Use the notifications panel.')}
-          </AlertLink>
-        </Box>
+        <AlertLink to="/settings/account/notifications" icon="icon-stack">
+          {t('Wanna change how many emails you get? Use the notifications panel.')}
+        </AlertLink>
       </div>
     );
   }
