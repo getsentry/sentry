@@ -33,7 +33,6 @@ from .endpoints.index import IndexEndpoint
 from .endpoints.internal_queue_tasks import InternalQueueTasksEndpoint
 from .endpoints.internal_quotas import InternalQuotasEndpoint
 from .endpoints.internal_stats import InternalStatsEndpoint
-from .endpoints.legacy_project_redirect import LegacyProjectRedirectEndpoint
 from .endpoints.organization_access_request_details import OrganizationAccessRequestDetailsEndpoint
 from .endpoints.organization_activity import OrganizationActivityEndpoint
 from .endpoints.organization_auditlogs import OrganizationAuditLogsEndpoint
@@ -460,13 +459,6 @@ urlpatterns = patterns(
         r'^teams/(?P<organization_slug>[^\/]+)/(?P<team_slug>[^\/]+)/stats/$',
         TeamStatsEndpoint.as_view(),
         name='sentry-api-0-team-stats'
-    ),
-
-    # Handles redirecting project_id => org_slug/project_slug
-    # TODO(dcramer): remove this after a reasonable period of time
-    url(
-        r'^projects/(?P<project_id>\d+)/(?P<path>(?:groups|releases|stats|tags)/.*)$',
-        LegacyProjectRedirectEndpoint.as_view()
     ),
 
     # Projects
