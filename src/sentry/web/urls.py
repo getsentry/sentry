@@ -41,7 +41,6 @@ from sentry.web.frontend.organization_auth_settings import \
 from sentry.web.frontend.organization_integration_setup import \
     OrganizationIntegrationSetupView
 from sentry.web.frontend.out import OutView
-from sentry.web.frontend.project_rule_edit import ProjectRuleEditView
 from sentry.web.frontend.react_page import GenericReactPageView, ReactPageView
 from sentry.web.frontend.reactivate_account import ReactivateAccountView
 from sentry.web.frontend.release_webhook import ReleaseWebhookView
@@ -437,16 +436,6 @@ urlpatterns += patterns(
         r'^(?P<organization_slug>[\w_-]+)/(?P<project_slug>[\w_-]+)/settings/transfer/$',
         TransferProjectView.as_view(),
         name='sentry-transfer-project'
-    ),
-    url(
-        r'^(?P<organization_slug>[\w_-]+)/(?P<project_slug>[\w_-]+)/settings/alerts/rules/new/$',
-        ProjectRuleEditView.as_view(),
-        name='sentry-new-project-rule'
-    ),
-    url(
-        r'^(?P<organization_slug>[\w_-]+)/(?P<project_slug>[\w_-]+)/settings/alerts/rules/(?P<rule_id>\d+)/$',
-        ProjectRuleEditView.as_view(),
-        name='sentry-edit-project-rule'
     ),
     url(
         r'^avatar/(?P<avatar_id>[^\/]+)/$',
