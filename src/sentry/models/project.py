@@ -39,7 +39,7 @@ class ProjectTeam(Model):
     # removed when the UI is updated to handle multiple teams
     # per project. This is just to prevent wonky behavior in
     # the mean time.
-    project = FlexibleForeignKey('sentry.Project', unique=True)
+    project = FlexibleForeignKey('sentry.Project')
     team = FlexibleForeignKey('sentry.Team')
 
     class Meta:
