@@ -11,7 +11,7 @@ from sentry.utils.http import absolute_uri
 
 from .utils import build_attachment, logger
 
-LINK_IDENTITY_MESSAGE = "Looks like you haven't linked your Sentry account with your Slack identity yet! <{link_url}|Link your identity now> to perform actions in Sentry through Slack."
+LINK_IDENTITY_MESSAGE = "Looks like you haven't linked your Sentry account with your Slack identity yet! <{associate_url}|Link your identity now> to perform actions in Sentry through Slack."
 
 RESOLVE_SELECTOR = {
     'label': 'Resolve issue',
@@ -192,7 +192,7 @@ class SlackActionEndpoint(Endpoint):
             return self.respond({
                 'response_type': 'ephemeral',
                 'replace_original': False,
-                'text': LINK_IDENTITY_MESSAGE.format(link_url=associate_url)
+                'text': LINK_IDENTITY_MESSAGE.format(associate_url=associate_url)
             })
 
         # Handle status dialog submission
