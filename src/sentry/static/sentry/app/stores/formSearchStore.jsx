@@ -20,17 +20,13 @@ const FormSearchStore = Reflux.createStore({
    * @param Object searchIndex Map of search index -> object that includes route + field object
    */
   onAddSearchMap(searchMap) {
-    Object.keys(searchMap).forEach(searchIndex => {
-      this.searchMap[searchIndex] = searchMap[searchIndex];
-    });
-    this.trigger(this.searchMap);
-  },
+    this.searchMap = {
+      ...this.searchMap,
+      ...searchMap,
+    };
 
-  get() {
-    return this.searchMap;
+    this.trigger(this.searchMap);
   },
 });
 
 export default FormSearchStore;
-
-window.test = FormSearchStore;
