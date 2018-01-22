@@ -1,8 +1,9 @@
 // Jest Snapshot v1, https://goo.gl/fbAQLP
 
 exports[`ApiTokenRow renders 1`] = `
-<Styled(Base)
+<Row
   justify="space-between"
+  p={2}
   px={2}
   py={2}
 >
@@ -64,5 +65,5 @@ exports[`ApiTokenRow renders 1`] = `
       </Button>
     </Box>
   </Flex>
-</Styled(Base)>
+</Row>
 `;
