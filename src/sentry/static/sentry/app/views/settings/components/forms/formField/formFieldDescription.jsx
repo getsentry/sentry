@@ -1,16 +1,22 @@
-import {Box} from 'grid-emotion';
 import React from 'react';
-import styled from 'react-emotion';
+import styled, {css} from 'react-emotion';
 
-const FormFieldDescription = styled(({inline, ...props}) => <Box {...props} />)`
-  ${p =>
-    p.inline
-      ? `
-  width: 50%;
-  padding-right: 10px;
-  flex-shrink: 0;
-  `
-      : 'margin-bottom: 10px;'};
+const inlineStyle = p =>
+  p.inline
+    ? css`
+        width: 50%;
+        padding-right: 10px;
+        flex-shrink: 0;
+      `
+    : css`
+        margin-bottom: 10px;
+      `;
+
+const FormFieldDescription = styled(({inline, ...props}) => <label {...props} />)`
+  font-weight: normal;
+  margin-bottom: 0;
+
+  ${inlineStyle};
 `;
 
 export default FormFieldDescription;

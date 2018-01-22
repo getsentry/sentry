@@ -5,36 +5,36 @@ import {Flex} from 'grid-emotion';
 import SettingsInputField from '../styled/input';
 import SettingsTextAreaField from '../styled/textarea';
 
+const inlineStyle = p =>
+  p.inline
+    ? css`
+        align-items: center;
+      `
+    : css`
+        flex-direction: column;
+        align-items: stretch;
+      `;
+
+const highlightedStyle = p =>
+  p.highlighted
+    ? css`
+        outline: 1px solid ${p.theme.purple};
+      `
+    : '';
+
 const FormFieldWrapper = styled(({highlighted, inline, ...props}) => <Flex {...props} />)`
   padding: 0.9em 0 0.9em 1.3em;
   border-bottom: 1px solid ${p => p.theme.borderLight};
   transition: background 0.15s;
 
-  ${SettingsInputField}, ${SettingsTextAreaField} {
-    background: ${p => (p.error ? '#fff' : p.theme.offWhite)};
-    border: 1px solid ${p => p.theme.borderLight};
-
-    &:hover, &:focus { border: 1px solid ${p => p.theme.borderDark}}
-  }
-
-  ${p => {
-    if (p.inline) {
-      return 'align-items: center;';
-    } else {
-      return `
-        flex-direction: column;
-        align-items: stretch;
-      `;
+  &:hover,
+  &:focus {
+    ${SettingsInputField}, ${SettingsTextAreaField} {
+      border: 1px solid ${p => p.theme.borderDark};
     }
-  }} ${p => {
-  if (p.highlighted) {
-    return css`
-      outline: 1px solid ${p.theme.purple};
-    `;
-  } else {
-    return '';
   }
-}} &:last-child {
+
+  ${inlineStyle} ${highlightedStyle} &:last-child {
     border-bottom: none;
   }
 `;

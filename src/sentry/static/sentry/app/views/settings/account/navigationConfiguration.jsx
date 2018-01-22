@@ -32,6 +32,15 @@ const accountNavigation = [
       },
     ],
   },
+  {
+    name: t('API'),
+    items: [
+      {
+        path: `${pathPrefix}/api/applications/`,
+        title: t('Applications'),
+      },
+    ],
+  },
 ];
 
 export default accountNavigation;
