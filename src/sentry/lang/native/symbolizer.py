@@ -31,6 +31,11 @@ _support_framework = re.compile(
 SIM_PATH = '/Developer/CoreSimulator/Devices/'
 SIM_APP_PATH = '/Containers/Bundle/Application/'
 MAC_OS_PATH = '.app/Contents/'
+LINUX_SYS_PATHS = (
+    '/lib/',
+    '/usr/lib/',
+    'linux-gate.so',
+)
 
 _internal_function_re = re.compile(
     r'(kscm_|kscrash_|KSCrash |SentryClient |RNSentry )')
@@ -140,23 +145,20 @@ class Symbolizer(object):
         return frame
 
     def is_image_from_app_bundle(self, obj, sdk_info=None):
-        fn = obj.name
-        if not fn:
+        obj_path = obj.name
+        if not obj_path:
             return False
 
-        if fn.startswith(APP_BUNDLE_PATHS):
+        if obj_path.startswith(APP_BUNDLE_PATHS):
             return True
 
-        if SIM_PATH in fn and SIM_APP_PATH in fn:
+        if SIM_PATH in obj_path and SIM_APP_PATH in obj_path:
             return True
 
         sdk_name = sdk_info['sdk_name'].lower() if sdk_info else ''
-        if sdk_name == 'macos' and MAC_OS_PATH in fn:
+        if sdk_name == 'macos' and MAC_OS_PATH in obj_path:
             return True
-
-        # For now, consider all linux objects in_app
-        # TODO(ja): Fix in_app using file paths
-        if sdk_name == 'linux':
+        if sdk_name == 'linux' and not obj_path.startswith(LINUX_SYS_PATHS):
             return True
 
         return False
