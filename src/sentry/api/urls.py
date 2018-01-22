@@ -103,6 +103,7 @@ from .endpoints.project_stats import ProjectStatsEndpoint
 from .endpoints.project_tags import ProjectTagsEndpoint
 from .endpoints.project_tagkey_details import ProjectTagKeyDetailsEndpoint
 from .endpoints.project_tagkey_values import ProjectTagKeyValuesEndpoint
+from .endpoints.project_team_details import ProjectTeamDetailsEndpoint
 from .endpoints.project_teams import ProjectTeamsEndpoint
 from .endpoints.project_processingissues import ProjectProcessingIssuesEndpoint, \
     ProjectProcessingIssuesFixEndpoint, ProjectProcessingIssuesDiscardEndpoint
@@ -653,9 +654,14 @@ urlpatterns = patterns(
         name='sentry-api-0-project-tagkey-values'
     ),
     url(
-        r'^projects/(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/teams/',
+        r'^projects/(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/teams/$',
         ProjectTeamsEndpoint.as_view(),
         name='sentry-api-0-project-teams'
+    ),
+    url(
+        r'^projects/(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/teams/(?P<team_slug>[^\/]+)/$',
+        ProjectTeamDetailsEndpoint.as_view(),
+        name='sentry-api-0-project-team-details'
     ),
     url(
         r'^projects/(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/users/$',
