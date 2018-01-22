@@ -28,12 +28,12 @@ const StyledInput = styled(props => {
 const OverflowContainer = styled('div')`
   flex-grow: 1;
   border: none;
-  box-shadow: 0 2px rgba(0, 0, 0, 0.05);
 `;
 
 const StyledCopyButton = styled(Button)`
   flex-shrink: 1;
   border-radius: 0 0.25em 0.25em 0;
+  box-shadow: none;
 `;
 
 class TextCopyInput extends React.Component {

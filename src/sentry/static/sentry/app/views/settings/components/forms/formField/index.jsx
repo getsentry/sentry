@@ -236,7 +236,7 @@ class FormField extends React.Component {
 
     return (
       <FormFieldWrapper inline={inline} highlighted={highlighted}>
-        <FormFieldDescription inline={inline}>
+        <FormFieldDescription inline={inline} htmlFor={id}>
           {label && (
             <FormFieldLabel>
               {label} {required && <FormFieldRequiredBadge />}
