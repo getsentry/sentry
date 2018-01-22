@@ -7,8 +7,6 @@ coverage:
       python:
         paths:
         - "src/sentry/**/*.py"
-        ignore:
-        - "src/sentry/static/sentry/.*"
         target: 90%
       javascript:
         paths:
