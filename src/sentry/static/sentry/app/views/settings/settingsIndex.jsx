@@ -21,8 +21,8 @@ const LINKS = {
   DOCUMENATATION_QUICKSTART: 'https://docs.sentry.io/quickstart/',
   DOCUMENTATION_CLI: 'https://docs.sentry.io/learn/cli/',
   DOCUMENTATION_API: 'https://docs.sentry.io/hosted/api/',
-  API: '/api/',
-  API_APPLICATION: '/api/application/',
+  API: '/settings/account/api/',
+  API_APPLICATION: '/settings/account/api/application/',
   MANAGE: '/manage/',
   FORUM: 'https://forum.sentry.io/',
   GITHUB_ISSUES: 'https://github.com/getsentry/sentry/issues',
@@ -108,7 +108,7 @@ class SettingsIndex extends React.Component {
           <Box w={1 / 3} px={2}>
             <Panel>
               <HomePanelHeader>
-                <HomeLink href="/account/settings/">
+                <HomeLink to="/settings/account/">
                   <HomeIcon color="blue">
                     <InlineSvg src="icon-user" size="44px" />
                   </HomeIcon>
@@ -125,12 +125,12 @@ class SettingsIndex extends React.Component {
                     </HomeLink>
                   </li>
                   <li>
-                    <HomeLink href="/account/settings/notifications/">
+                    <HomeLink to="/settings/account/notifications/">
                       {t('Notification Preferences')}
                     </HomeLink>
                   </li>
                   <li>
-                    <HomeLink href="/account/settings/avatar/">
+                    <HomeLink to="/settings/account/avatar/">
                       {t('Change my avatar')}
                     </HomeLink>
                   </li>

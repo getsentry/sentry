@@ -173,6 +173,23 @@ const accountSettingsRoutes = [
       import(/*webpackChunkName: "AccountSocialIdentities"*/ './views/settings/account/accountIdentities')}
     component={errorHandler(LazyLoad)}
   />,
+
+  <Route key="api" path="api/" name="API">
+    <Route path="applications/" name="Applications">
+      <IndexRoute
+        componentPromise={() =>
+          import(/*webpackChunkName: "ApiApplications"*/ './views/settings/account/apiApplications')}
+        component={errorHandler(LazyLoad)}
+      />
+      <Route
+        path=":appId/"
+        name="Details"
+        componentPromise={() =>
+          import(/*webpackChunkName: "ApiApplicationDetails"*/ './views/settings/account/apiApplicationDetails')}
+        component={errorHandler(LazyLoad)}
+      />
+    </Route>
+  </Route>,
 ];
 
 const projectSettingsRoutes = [
