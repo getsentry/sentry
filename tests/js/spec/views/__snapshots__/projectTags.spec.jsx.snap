@@ -139,6 +139,7 @@ exports[`ProjectTags renders 1`] = `
                 <td>
                   <LinkWithConfirmation
                     className="btn btn-sm btn-default"
+                    disabled={false}
                     message="Are you sure you want to remove this tag?"
                     onConfirm={[Function]}
                     title="Remove tag?"
@@ -146,12 +147,14 @@ exports[`ProjectTags renders 1`] = `
                     <Confirm
                       cancelText="Cancel"
                       confirmText="Confirm"
+                      disabled={false}
                       message="Are you sure you want to remove this tag?"
                       onConfirm={[Function]}
                       priority="primary"
                     >
                       <a
                         className="btn btn-sm btn-default"
+                        disabled={false}
                         onClick={[Function]}
                         title="Remove tag?"
                       >
@@ -233,6 +236,7 @@ exports[`ProjectTags renders 1`] = `
                 <td>
                   <LinkWithConfirmation
                     className="btn btn-sm btn-default"
+                    disabled={false}
                     message="Are you sure you want to remove this tag?"
                     onConfirm={[Function]}
                     title="Remove tag?"
@@ -240,12 +244,14 @@ exports[`ProjectTags renders 1`] = `
                     <Confirm
                       cancelText="Cancel"
                       confirmText="Confirm"
+                      disabled={false}
                       message="Are you sure you want to remove this tag?"
                       onConfirm={[Function]}
                       priority="primary"
                     >
                       <a
                         className="btn btn-sm btn-default"
+                        disabled={false}
                         onClick={[Function]}
                         title="Remove tag?"
                       >
@@ -308,6 +314,112 @@ exports[`ProjectTags renders 1`] = `
                       </a>
                     </Confirm>
                   </LinkWithConfirmation>
+                </td>
+              </tr>
+              <tr
+                key="environment"
+              >
+                <td>
+                  <h5>
+                    Environment
+                     
+                    <small>
+                      (
+                      environment
+                      )
+                    </small>
+                  </h5>
+                </td>
+                <td>
+                  <Tooltip
+                    title="This tag cannot be deleted."
+                  >
+                    <span
+                      className="tip"
+                      title="This tag cannot be deleted."
+                    >
+                      <LinkWithConfirmation
+                        className="btn btn-sm btn-default"
+                        disabled={true}
+                        message="Are you sure you want to remove this tag?"
+                        onConfirm={[Function]}
+                        title="Remove tag?"
+                      >
+                        <Confirm
+                          cancelText="Cancel"
+                          confirmText="Confirm"
+                          disabled={true}
+                          message="Are you sure you want to remove this tag?"
+                          onConfirm={[Function]}
+                          priority="primary"
+                        >
+                          <a
+                            className="btn btn-sm btn-default disabled"
+                            disabled={true}
+                            onClick={[Function]}
+                            title="Remove tag?"
+                          >
+                            <span
+                              className="icon icon-trash"
+                            />
+                            <Modal
+                              animation={false}
+                              autoFocus={true}
+                              backdrop={true}
+                              bsClass="modal"
+                              dialogComponentClass={[Function]}
+                              enforceFocus={true}
+                              key="confirm"
+                              keyboard={true}
+                              manager={
+                                ModalManager {
+                                  "add": [Function],
+                                  "containers": Array [],
+                                  "data": Array [],
+                                  "handleContainerOverflow": true,
+                                  "hideSiblingNodes": true,
+                                  "isTopModal": [Function],
+                                  "modals": Array [],
+                                  "remove": [Function],
+                                }
+                              }
+                              onHide={[Function]}
+                              renderBackdrop={[Function]}
+                              restoreFocus={true}
+                              show={false}
+                            >
+                              <Modal
+                                autoFocus={true}
+                                backdrop={true}
+                                backdropClassName="modal-backdrop"
+                                containerClassName="modal-open"
+                                enforceFocus={true}
+                                keyboard={true}
+                                manager={
+                                  ModalManager {
+                                    "add": [Function],
+                                    "containers": Array [],
+                                    "data": Array [],
+                                    "handleContainerOverflow": true,
+                                    "hideSiblingNodes": true,
+                                    "isTopModal": [Function],
+                                    "modals": Array [],
+                                    "remove": [Function],
+                                  }
+                                }
+                                onEntering={[Function]}
+                                onExited={[Function]}
+                                onHide={[Function]}
+                                renderBackdrop={[Function]}
+                                restoreFocus={true}
+                                show={false}
+                              />
+                            </Modal>
+                          </a>
+                        </Confirm>
+                      </LinkWithConfirmation>
+                    </span>
+                  </Tooltip>
                 </td>
               </tr>
             </tbody>

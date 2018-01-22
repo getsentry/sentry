@@ -47,6 +47,6 @@ describe('ProjectTags', function() {
 
     wrapper.update();
 
-    expect(wrapper.find('tbody tr').length).toBe(1);
+    expect(wrapper.find('tbody tr').length).toBe(2);
   });
 });

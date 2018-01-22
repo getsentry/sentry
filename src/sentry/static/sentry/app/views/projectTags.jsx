@@ -6,6 +6,7 @@ import ExternalLink from '../components/externalLink';
 import LinkWithConfirmation from '../components/linkWithConfirmation';
 import SettingsPageHeader from './settings/components/settingsPageHeader';
 import TextBlock from './settings/components/text/textBlock';
+import Tooltip from '../components/tooltip';
 
 export default class ProjectTags extends AsyncView {
   getEndpoints() {
@@ -32,6 +33,20 @@ export default class ProjectTags extends AsyncView {
     });
   }
 
+  renderLink(key, canDelete, idx) {
+    return (
+      <LinkWithConfirmation
+        className={'btn btn-sm btn-default'}
+        title={'Remove tag?'}
+        message={'Are you sure you want to remove this tag?'}
+        onConfirm={() => this.onDelete(key, idx)}
+        disabled={!canDelete}
+      >
+        <span className="icon icon-trash" />
+      </LinkWithConfirmation>
+    );
+  }
+
   renderBody() {
     return (
       <div>
@@ -49,12 +64,12 @@ export default class ProjectTags extends AsyncView {
           <table className="table">
             <thead>
               <tr>
-                <th>Tags</th>
+                <th>{t('Tags')}</th>
                 <th style={{width: 20}} />
               </tr>
             </thead>
             <tbody>
-              {this.state.tags.map(({key, name}, idx) => {
+              {this.state.tags.map(({key, name, canDelete}, idx) => {
                 return (
                   <tr key={key}>
                     <td>
@@ -65,14 +80,13 @@ export default class ProjectTags extends AsyncView {
                       </h5>
                     </td>
                     <td>
-                      <LinkWithConfirmation
-                        className="btn btn-sm btn-default"
-                        title={'Remove tag?'}
-                        message={'Are you sure you want to remove this tag?'}
-                        onConfirm={() => this.onDelete(key, idx)}
-                      >
-                        <span className="icon icon-trash" />
-                      </LinkWithConfirmation>
+                      {canDelete ? (
+                        this.renderLink(key, canDelete, idx)
+                      ) : (
+                        <Tooltip title={t('This tag cannot be deleted.')}>
+                          <span>{this.renderLink(key, canDelete, idx)}</span>
+                        </Tooltip>
+                      )}
                     </td>
                   </tr>
                 );
