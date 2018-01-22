@@ -116,7 +116,7 @@ const BroadcastModal = createReactClass({
         className={'modal ' + nth}
         style={{display: 'block'}}
         key={i}
-        onClick={this.handleClick}
+        onClick={evt => this.handleClick(evt)}
       >
         <div className="modal-dialog">
           <div className="modal-content" role="document">
