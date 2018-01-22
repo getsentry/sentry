@@ -85,7 +85,6 @@ const Stream = createReactClass({
       tags: StreamTagStore.getAllTags(),
       tagsLoading: true,
       isSidebarVisible: false,
-      isStickyHeader: false,
       processingIssues: null,
       ...this.getQueryState(),
     };
@@ -509,12 +508,6 @@ const Stream = createReactClass({
     });
   },
 
-  onStickyStateChange(state) {
-    this.setState({
-      isStickyHeader: state,
-    });
-  },
-
   /**
    * Returns true if all results in the current query are visible/on this page
    */
@@ -769,24 +762,22 @@ const Stream = createReactClass({
               isSearchDisabled={this.state.isSidebarVisible}
               savedSearchList={this.state.savedSearchList}
             />
-            <Sticky onStickyStateChange={this.onStickyStateChange}>
+            <Sticky topOffset={59}>
               {props => (
-                <div className="group-header">
-                  <div className={this.state.isStickyHeader ? 'container' : null}>
-                    <StreamActions
-                      orgId={params.orgId}
-                      projectId={params.projectId}
-                      hasReleases={projectFeatures.has('releases')}
-                      latestRelease={this.context.project.latestRelease}
-                      query={this.state.query}
-                      onSelectStatsPeriod={this.onSelectStatsPeriod}
-                      onRealtimeChange={this.onRealtimeChange}
-                      realtimeActive={this.state.realtimeActive}
-                      statsPeriod={this.state.statsPeriod}
-                      groupIds={this.state.groupIds}
-                      allResultsVisible={this.allResultsVisible()}
-                    />
-                  </div>
+                <div className={classNames('group-header', {sticky: props.isSticky})}>
+                  <StreamActions
+                    orgId={params.orgId}
+                    projectId={params.projectId}
+                    hasReleases={projectFeatures.has('releases')}
+                    latestRelease={this.context.project.latestRelease}
+                    query={this.state.query}
+                    onSelectStatsPeriod={this.onSelectStatsPeriod}
+                    onRealtimeChange={this.onRealtimeChange}
+                    realtimeActive={this.state.realtimeActive}
+                    statsPeriod={this.state.statsPeriod}
+                    groupIds={this.state.groupIds}
+                    allResultsVisible={this.allResultsVisible()}
+                  />
                 </div>
               )}
             </Sticky>
