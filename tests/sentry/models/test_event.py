@@ -1,5 +1,6 @@
 from __future__ import absolute_import
 
+from sentry.models import Environment
 from sentry.testutils import TestCase
 
 
@@ -60,6 +61,19 @@ class EventTest(TestCase):
             'name': 'foo',
             'version': '1.0',
         }
+
+    def test_get_environment(self):
+        environment = Environment.get_or_create(self.project, 'production')
+        event = self.create_event(
+            data={'tags': [
+                ('environment', 'production'),
+            ]}
+        )
+
+        event.get_environment() == environment
+
+        with self.assertNumQueries(0):
+            event.get_environment() == environment
 
 
 class EventGetLegacyMessageTest(TestCase):

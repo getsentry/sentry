@@ -258,6 +258,17 @@ class Event(Model):
             128,
         ).encode('utf-8')
 
+    def get_environment(self):
+        from sentry.models import Environment
+
+        if not hasattr(self, '_environment_cache'):
+            self._environment_cache = Environment.objects.get(
+                organization_id=self.project.organization_id,
+                name=Environment.get_name_or_default(self.get_tag('environment')),
+            )
+
+        return self._environment_cache
+
 
 class EventSubjectTemplate(string.Template):
     idpattern = r'(tag:)?[_a-z][_a-z0-9]*'
