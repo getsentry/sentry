@@ -45,7 +45,13 @@
 .group-header {
   // needs fixed height so that stream doesn't "pop" up
   // when stream actions turn "sticky"
-  min-height: 44px;
+  min-height: 0;
+  &.sticky {
+    top: 0;
+    position: fixed;
+    width: 100%;
+    width: 100%;
+  }
 }
 
 .stream-no-bulk-actions {
