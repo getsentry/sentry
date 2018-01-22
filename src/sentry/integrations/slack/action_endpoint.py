@@ -68,6 +68,8 @@ class SlackActionEndpoint(Endpoint):
             self.update_group(group, identity, status)
         except client.ApiError as e:
             logger.error('slack.action.sentry-client-error', extra={'error': e.body})
+            # TODO(epurkhiser): Do we need to make it clear that if the user
+            # isn't on the team for this that hey can't do anything?
 
     def update_group(self, group, identity, data):
         return client.put(
