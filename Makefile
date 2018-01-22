@@ -218,7 +218,8 @@ travis-install-acceptance: install-yarn travis-install-postgres
 	mv ~/chromedriver ~/.bin/
 travis-install-network: travis-install-postgres
 travis-install-js:
-	$(MAKE) install-yarn
+	$(MAKE) travis-upgrade-pip
+	$(MAKE) travis-install-python install-yarn
 travis-install-cli: travis-install-postgres
 travis-install-dist:
 	$(MAKE) travis-upgrade-pip
