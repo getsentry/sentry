@@ -76,10 +76,15 @@ def build_assigned_text(identity, assignee):
         )
 
     try:
-        assignee_ident = Identity.objects.get(user=User.objects.get(email=assignee))
+        assignee_user = User.objects.get(email=assignee)
+    except User.DoesNotExist:
+        return
+
+    try:
+        assignee_ident = Identity.objects.get(user=assignee_user)
         assignee_text = u'<@{}>'.format(assignee_ident.external_id)
     except Identity.DoesNotExist:
-        assignee_text = assignee
+        assignee_text = assignee_user.get_display_name()
 
     return u'*Issue assigned to {assignee_text} by <@{user_id}>*'.format(
         assignee_text=assignee_text,
