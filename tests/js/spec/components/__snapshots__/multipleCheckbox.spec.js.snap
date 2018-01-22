@@ -1,0 +1,75 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`MultipleCheckbox renders 1`] = `
+<Styled(div)>
+  <Box
+    key="0"
+    w={
+      Array [
+        1,
+        0.5,
+        0.3333333333333333,
+        0.25,
+      ]
+    }
+  >
+    <Styled(label)>
+      <input
+        checked={false}
+        onChange={[Function]}
+        type="checkbox"
+        value={0}
+      />
+      <Styled(span)>
+        Choice A
+      </Styled(span)>
+    </Styled(label)>
+  </Box>
+  <Box
+    key="1"
+    w={
+      Array [
+        1,
+        0.5,
+        0.3333333333333333,
+        0.25,
+      ]
+    }
+  >
+    <Styled(label)>
+      <input
+        checked={true}
+        onChange={[Function]}
+        type="checkbox"
+        value={1}
+      />
+      <Styled(span)>
+        Choice B
+      </Styled(span)>
+    </Styled(label)>
+  </Box>
+  <Box
+    key="2"
+    w={
+      Array [
+        1,
+        0.5,
+        0.3333333333333333,
+        0.25,
+      ]
+    }
+  >
+    <Styled(label)>
+      <input
+        checked={false}
+        onChange={[Function]}
+        type="checkbox"
+        value={2}
+      />
+      <Styled(span)>
+        Choice C
+      </Styled(span)>
+    </Styled(label)>
+  </Box>
+</Styled(div)>
+`;

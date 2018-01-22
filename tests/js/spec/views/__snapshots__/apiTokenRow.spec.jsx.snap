@@ -1,0 +1,69 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`ApiTokenRow renders 1`] = `
+<Row
+  justify="space-between"
+  p={2}
+  px={2}
+  py={2}
+>
+  <Box
+    flex="1"
+  >
+    <div
+      style={
+        Object {
+          "marginBottom": 5,
+        }
+      }
+    >
+      <small>
+        <TextCopyInput
+          flexValueContainer={false}
+          onCopy={[Function]}
+          renderer={[Function]}
+        >
+          apitoken123
+        </TextCopyInput>
+      </small>
+    </div>
+    <div
+      style={
+        Object {
+          "marginBottom": 5,
+        }
+      }
+    >
+      <Styled(div)>
+        Created
+         
+        <DateTime
+          date={2018-01-12T02:01:41.000Z}
+          seconds={true}
+        />
+      </Styled(div)>
+    </div>
+    <div>
+      <Styled(div)>
+        scope1, scope2
+      </Styled(div)>
+    </div>
+  </Box>
+  <Flex
+    align="center"
+  >
+    <Box
+      pl={2}
+    >
+      <Button
+        disabled={false}
+        onClick={[Function]}
+      >
+        <span
+          className="icon icon-trash"
+        />
+      </Button>
+    </Box>
+  </Flex>
+</Row>
+`;
