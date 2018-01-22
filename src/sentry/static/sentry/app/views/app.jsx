@@ -18,6 +18,7 @@ import LoadingIndicator from '../components/loadingIndicator';
 import OrganizationsLoader from '../components/organizations/organizationsLoader';
 import OrganizationsStore from '../stores/organizationsStore';
 import SudoModal from '../components/modals/sudoModal';
+import GlobalModal from '../components/globalModal';
 import theme from '../utils/theme';
 
 if (window.globalStaticUrl) __webpack_public_path__ = window.globalStaticUrl; // defined in layout.html
@@ -148,6 +149,7 @@ const App = createReactClass({
       <ThemeProvider theme={theme}>
         <OrganizationsLoader>
           <SudoModal />
+          <GlobalModal />
           <Alerts className="messages-container" />
           <Indicators className="indicators-container" />
           {this.props.children}
