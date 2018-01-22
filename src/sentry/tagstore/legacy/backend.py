@@ -26,6 +26,77 @@ from sentry.utils import db
 from .models import EventTag, GroupTagKey, GroupTagValue, TagKey, TagValue
 
 
+selectivity_hints = {
+    'environment': 0.3,
+    'release': 0.6,
+    'transaction': 0.8,
+}
+
+order_by_expression_templates = {
+    'priority': lambda table: 'log({0}.times_seen) * 600 + {0}.last_seen::abstime::int'.format(table),
+    'date': lambda table: '{}.last_seen DESC'.format(table),
+    'new': lambda table: '{}.first_seen DESC'.format(table),
+    'freq': lambda table: '{}.times_seen DESC'.format(table),
+}
+
+
+def build_search_query(project_id, tags, order_by=None):
+    from sentry.search.base import ANY, EMPTY
+
+    assert len(tags) > 0
+
+    if order_by is not None:
+        order_by_tag_key, template_name = order_by
+        order_by_expression_template = order_by_expression_templates[template_name]
+        assert order_by_tag_key in tags
+    else:
+        order_by_tag_key = None
+        order_by_expression = 't{index}.last_seen DESC'.format(index=len(tags) - 1)
+
+    tags = sorted(
+        tags.items(),
+        key=lambda (k, v): selectivity_hints.get(k, 0.75),
+        reverse=True,
+    )
+
+    i = 0
+    join_conditions = []
+    where_conditions = ['t{index}.project_id = %s'.format(index=i)]
+    where_parameters = [project_id]
+    for i, (key, value) in enumerate(tags):
+        if value is ANY:
+            raise NotImplementedError
+        elif value is EMPTY:
+            raise NotImplementedError
+
+        if i > 0:
+            join_conditions.append(
+                'INNER JOIN {table} t{index} ON t{prev_index}.group_id = t{index}.group_id'.format(
+                    table=GroupTagValue._meta.db_table,
+                    index=i,
+                    prev_index=i - 1,
+                )
+            )
+        where_conditions.append('(t{index}.key = %s AND t{index}.value = %s)'.format(index=i))
+        where_parameters.extend([key, value])
+
+        if key == order_by_tag_key:
+            order_by_expression = order_by_expression_template('t{index}'.format(index=i))
+
+    return """\
+        SELECT t0.group_id
+        FROM {table} t0
+        {join_conditions}
+        WHERE {where_conditions}
+        ORDER BY {order_by}
+        LIMIT 1000""".format(
+        table=GroupTagValue._meta.db_table,
+        join_conditions='\n'.join(join_conditions),
+        where_conditions='\n  AND '.join(where_conditions),
+        order_by=order_by_expression,
+    ), where_parameters
+
+
 class LegacyTagStorage(TagStorage):
     """\
     The legacy tagstore backend ignores the ``environment_id`` (because it doesn't store this information
@@ -530,53 +601,19 @@ class LegacyTagStorage(TagStorage):
 
     def get_group_ids_for_search_filter(
             self, project_id, environment_id, tags, sort_by=None, limit=1000):
-        from sentry.search.base import ANY, EMPTY
+        from django.db import connections
 
         if sort_by is not None:
             assert 'environment' in tags
-            raise NotImplementedError
+            sort_by = ('environment', sort_by)
 
-        # Django doesnt support union, so we limit results and try to find
-        # reasonable matches
-
-        # ANY matches should come last since they're the least specific and
-        # will provide the largest range of matches
-        tag_lookups = sorted(six.iteritems(tags), key=lambda (k, v): v == ANY)
-
-        # get initial matches to start the filter
-        matches = None
-
-        # for each remaining tag, find matches contained in our
-        # existing set, pruning it down each iteration
-        for k, v in tag_lookups:
-            if v is EMPTY:
-                return None
-
-            elif v != ANY:
-                base_qs = GroupTagValue.objects.filter(
-                    key=k,
-                    value=v,
-                    project_id=project_id,
-                )
-
-            else:
-                base_qs = GroupTagValue.objects.filter(
-                    key=k,
-                    project_id=project_id,
-                ).distinct()
-
-            if matches:
-                base_qs = base_qs.filter(group_id__in=matches)
-            else:
-                # restrict matches to only the most recently seen issues
-                base_qs = base_qs.order_by('-last_seen')
-
-            matches = list(base_qs.values_list('group_id', flat=True)[:limit])
-
-            if not matches:
-                return None
-
-        return matches
+        using = router.db_for_read(GroupTagValue)
+        cursor = connections[using].cursor()
+        cursor.execute(*build_search_query(project_id, tags, sort_by))
+        return map(
+            lambda row: int(row[0]),
+            cursor.fetchall(),
+        )
 
     def update_group_tag_key_values_seen(self, project_id, group_ids):
         gtk_qs = GroupTagKey.objects.filter(

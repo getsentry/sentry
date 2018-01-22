@@ -68,11 +68,14 @@ class DjangoSearchBackend(SearchBackend):
         if tags is None:
             tags = {}
 
-        try:
-            environment = environment_func()
-        except Environment.DoesNotExist:
-            assert 'environment' in tags, 'environment must be provided as tag'
-            return queryset.none()
+        if environment_func is not None:
+            try:
+                environment = environment_func()
+            except Environment.DoesNotExist:
+                assert 'environment' in tags, 'environment must be provided as tag'
+                return queryset.none()
+        else:
+            environment = None
 
         if environment is not None:
             assert 'environment' in tags, 'environment must be provided as tag'
