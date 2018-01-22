@@ -323,6 +323,12 @@ class Project(Model):
         else:
             return True
 
+    def remove_team(self, team):
+        ProjectTeam.objects.filter(
+            project=self,
+            team=team,
+        ).delete()
+
     def get_security_token(self):
         lock = locks.get(self.get_lock_key(), duration=5)
         with TimedRetryPolicy(10)(lock.acquire):
