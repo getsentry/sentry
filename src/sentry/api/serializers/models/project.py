@@ -180,7 +180,10 @@ class ProjectWithTeamSerializer(ProjectSerializer):
         data = super(ProjectWithTeamSerializer,
                      self).serialize(obj, attrs, user)
         # TODO(jess): remove this when this is deprecated
-        data['team'] = attrs['teams'][0]
+        try:
+            data['team'] = attrs['teams'][0]
+        except IndexError:
+            pass
         data['teams'] = attrs['teams']
         return data
 
