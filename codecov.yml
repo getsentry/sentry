@@ -6,9 +6,9 @@ coverage:
       default: false
       python:
         paths:
-        - "src/sentry"
+        - "src/sentry/**/*.py"
         ignore:
-        - "src/sentry/static/sentry"
+        - "src/sentry/static/sentry/.*"
         target: 90%
       javascript:
         paths:
