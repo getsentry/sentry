@@ -8,6 +8,7 @@ sentry.tagstore.legacy.backend
 
 from __future__ import absolute_import
 
+import itertools
 import six
 
 from collections import defaultdict
@@ -41,7 +42,7 @@ order_by_expression_templates = {
 
 
 def build_search_query(project_id, tags, order_by=None):
-    from sentry.search.base import ANY, EMPTY
+    from sentry.search.base import ANY
 
     assert len(tags) > 0
 
@@ -49,9 +50,10 @@ def build_search_query(project_id, tags, order_by=None):
         order_by_tag_key, template_name = order_by
         order_by_expression_template = order_by_expression_templates[template_name]
         assert order_by_tag_key in tags
+        assert tags[order_by_tag_key] is not ANY
     else:
         order_by_tag_key = None
-        order_by_expression = 't{index}.last_seen DESC'.format(index=len(tags) - 1)
+        order_by_expression = 't.last_seen DESC'
 
     tags = sorted(
         tags.items(),
@@ -59,33 +61,41 @@ def build_search_query(project_id, tags, order_by=None):
         reverse=True,
     )
 
-    i = 0
+    table_alias_seq = itertools.count()
     join_conditions = []
-    where_conditions = ['t{index}.project_id = %s'.format(index=i)]
+    where_conditions = ['t.project_id = %s']
     where_parameters = [project_id]
-    for i, (key, value) in enumerate(tags):
+    for key, value in tags:
         if value is ANY:
-            raise NotImplementedError
-        elif value is EMPTY:
-            raise NotImplementedError
-
-        if i > 0:
-            join_conditions.append(
-                'INNER JOIN {table} t{index} ON t{prev_index}.group_id = t{index}.group_id'.format(
+            where_conditions.append(
+                't.group_id IN (SELECT DISTINCT group_id FROM {table} WHERE project_id = %s AND key = %s)'.format(
+                    project_id=project_id,
                     table=GroupTagValue._meta.db_table,
-                    index=i,
-                    prev_index=i - 1,
                 )
             )
-        where_conditions.append('(t{index}.key = %s AND t{index}.value = %s)'.format(index=i))
-        where_parameters.extend([key, value])
+            where_parameters.extend([project_id, key])
+        else:
+            i = next(table_alias_seq)
+            if i > 0:
+                join_conditions.append(
+                    'INNER JOIN {table} t{index} ON t{prev_index}.group_id = t{index}.group_id'.format(
+                        table=GroupTagValue._meta.db_table,
+                        index=i,
+                        prev_index=i - 1 if i > 1 else '',
+                    )
+                )
+            where_conditions.append(
+                '(t{index}.key = %s AND t{index}.value = %s)'.format(
+                    index=i if i > 0 else ''))
+            where_parameters.extend([key, value])
 
-        if key == order_by_tag_key:
-            order_by_expression = order_by_expression_template('t{index}'.format(index=i))
+            if key == order_by_tag_key:
+                order_by_expression = order_by_expression_template(
+                    't{index}'.format(index=i if i > 1 else ''))
 
     return """\
-        SELECT t0.group_id
-        FROM {table} t0
+        SELECT t.group_id
+        FROM {table} t
         {join_conditions}
         WHERE {where_conditions}
         ORDER BY {order_by}
@@ -602,6 +612,11 @@ class LegacyTagStorage(TagStorage):
     def get_group_ids_for_search_filter(
             self, project_id, environment_id, tags, sort_by=None, limit=1000):
         from django.db import connections
+        from sentry.search.base import EMPTY
+
+        assert tags
+        if any(v is EMPTY for v in tags.values()):
+            return []
 
         if sort_by is not None:
             assert 'environment' in tags
