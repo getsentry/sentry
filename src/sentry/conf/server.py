@@ -434,6 +434,7 @@ CELERY_IMPORTS = (
     'sentry.tasks.process_buffer', 'sentry.tasks.reports', 'sentry.tasks.reprocessing',
     'sentry.tasks.scheduler', 'sentry.tasks.signals', 'sentry.tasks.store', 'sentry.tasks.unmerge',
     'sentry.tasks.symcache_update', 'sentry.tasks.servicehooks',
+    'sentry.tagstore.tasks',
 )
 CELERY_QUEUES = [
     Queue('alerts', routing_key='alerts'),
