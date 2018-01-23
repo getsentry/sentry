@@ -214,6 +214,7 @@ MAX_SYM = 256
 KNOWN_DSYM_TYPES = {
     'text/x-breakpad': 'breakpad',
     'application/x-mach-binary': 'macho',
+    'application/x-elf-binary': 'elf',
     'text/x-proguard+plain': 'proguard',
 }
 
