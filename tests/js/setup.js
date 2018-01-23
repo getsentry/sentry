@@ -366,6 +366,29 @@ window.TestStubs = {
       ...params,
     };
   },
+  ProjectAlertRule: () => {
+    return {
+      id: '1',
+    };
+  },
+  ProjectAlertRuleConfiguration: () => {
+    return {
+      actions: [
+        {
+          html: 'Send a notification for all services',
+          id: 'sentry.rules.actions.notify1',
+          label: 'Send a notification for all services',
+        },
+      ],
+      conditions: [
+        {
+          html: 'An event is seen',
+          id: 'sentry.rules.conditions.1',
+          label: 'An event is seen',
+        },
+      ],
+    };
+  },
 };
 
 // this is very commonly used, so expose it globally
