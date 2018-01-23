@@ -13,6 +13,7 @@ API Changes
 - Project plugins endpoint returns every configurable plugin, and includes additional information about each one
 - Added user "appearances" endpoint to list and modify appearance options.
 - Add endpoint to list a project's teams
+- Add endpoint for adding and removing team access from a project
 
 Version 8.22
 ------------
