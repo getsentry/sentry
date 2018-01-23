@@ -38,6 +38,8 @@ class ProjectHeader extends React.Component {
     // TODO: remove when feature is released
     let hasEnvironmentsFeature = new Set(org.features).has('environments');
 
+    let showEnvironmentsToggle = hasEnvironmentsFeature && navSection !== 'settings';
+
     let activeEnvironmentTitle = activeEnvironment
       ? activeEnvironment.name
       : allEnvironmentsLabel;
@@ -82,7 +84,7 @@ class ProjectHeader extends React.Component {
               )}
             </ul>
           </div>
-          {hasEnvironmentsFeature && (
+          {showEnvironmentsToggle && (
             <div className="project-header-toggle">
               <label>Environment</label>
               <DropdownLink
