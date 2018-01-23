@@ -70,8 +70,8 @@ def build_search_query(project_id, tags, order_by=None):
     # performed after all of the specific ones, so we'll get better performance
     # -- these should also be performed as index only scans.)
     for i, key in enumerate(presence_tags):
-        lateral_queries.append('LATERAL (SELECT * FROM {table} WHERE group_id = t.group_id AND key = %s LIMIT 1) as tl{index}'.format(
-            index=i,
+        lateral_queries.append('LATERAL (SELECT * FROM {table} WHERE group_id = t.group_id AND key = %s LIMIT 1) as {alias}'.format(
+            alias='tl{}'.format(i),
             table=GroupTagValue._meta.db_table,
         ))
         where_parameters.append(key)
@@ -80,18 +80,21 @@ def build_search_query(project_id, tags, order_by=None):
     # if only presence tags are actually provided.
     key, value = specific_tags.popitem(False)
 
-    table_aliases[key] = 't'
-    where_conditions.append('(t.project_id = %s AND t.key = %s AND t.value = %s)')
+    alias = table_aliases[key] = 't'
+    where_conditions.append(
+        '({alias}.project_id = %s AND {alias}.key = %s AND {alias}.value = %s)'.format(
+            alias=alias))
     where_parameters.extend([project_id, key, value])
 
     # Build the base query out of all of the specific tag lookups.
     for i, (key, value) in enumerate(specific_tags.items()):
+        previous_alias = alias
         alias = table_aliases[key] = 't{}'.format(i)
         join_conditions.append(
             'INNER JOIN {table} {alias} ON {previous_alias}.group_id = {alias}.group_id'.format(
                 table=GroupTagValue._meta.db_table,
                 alias=alias,
-                previous_alias='t{}'.format(i if i > 0 else ''),
+                previous_alias=previous_alias,
             )
         )
         where_conditions.append('({alias}.key = %s AND {alias}.value = %s)'.format(alias=alias))
