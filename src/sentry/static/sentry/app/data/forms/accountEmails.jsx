@@ -1,6 +1,7 @@
-import {createSearchMap} from './util';
+// Export route to make these forms searchable by label/help
+export const route = '/settings/account/emails/';
 
-const forms = [
+const formGroups = [
   {
     // Form "section"/"panel"
     title: 'Add Secondary Emails',
@@ -18,16 +19,4 @@ const forms = [
   },
 ];
 
-export default forms;
-
-// generate search index from form fields
-export const searchIndex = createSearchMap({
-  route: '/settings/account/emails/',
-  formGroups: forms,
-});
-
-// need to associate index -> form group -> route
-// so when we search for a term we need to find:
-//   * what field(s) it matches:
-//     * what form group it belongs to
-//     * what route that belongs to
+export default formGroups;
