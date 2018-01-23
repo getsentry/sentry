@@ -34,9 +34,9 @@ class OrganizationProjectsView extends OrganizationSettingsView {
           <tbody>
             {projects
               .sort(({isBookmarked}) => (isBookmarked ? -1 : 1))
-              .map(project => (
+              .map((project, i) => (
                 <ProjectListItem
-                  key={project.slug}
+                  key={i}
                   project={project}
                   organization={this.context.organization}
                 />
@@ -78,7 +78,7 @@ const OrganizationProjectsViewContainer = createReactClass({
   },
 
   render() {
-    return <OrganizationProjectsView projects={this.state.projects} />;
+    return <OrganizationProjectsView {...this.props} projects={this.state.projects} />;
   },
 });
 

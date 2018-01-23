@@ -13,7 +13,11 @@ const organizationNavigation = [
       },
       {
         path: `${pathPrefix}/teams/`,
-        title: t('Projects & Teams'),
+        title: t('Teams'),
+      },
+      {
+        path: `${pathPrefix}/projects/`,
+        title: t('Projects'),
       },
       {
         path: `${pathPrefix}/stats/`,
