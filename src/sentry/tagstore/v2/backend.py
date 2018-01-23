@@ -76,7 +76,7 @@ class V2TagStorage(TagStorage):
                 relations = [
                     ModelRelation(m, {
                         'project_id': instance.project_id,
-                        '_key_id': instance.id,
+                        'key_id': instance.id,
                     }) for m in model_list
                 ]
                 return relations
