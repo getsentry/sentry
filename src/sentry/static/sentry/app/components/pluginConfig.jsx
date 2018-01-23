@@ -140,7 +140,7 @@ const PluginConfig = createReactClass({
               )}
           </Flex>
         </PanelHeader>
-        <PanelBody px={2} pt={1} flex wrap="wrap">
+        <PanelBody px={2} pt={2} flex wrap="wrap">
           {data.status === 'beta' ? (
             <div className="alert alert-block alert-warning">
               <strong>
