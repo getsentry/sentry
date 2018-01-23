@@ -173,7 +173,7 @@ class FormField extends React.Component {
 
   // Only works for styled inputs
   handleInputMount = ref => {
-    if (ref && !this.input) {
+    if (ref && !this.input && this.context.location) {
       let hash = this.context.location.hash;
 
       if (!hash) return;
