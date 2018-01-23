@@ -200,8 +200,7 @@ class ProjectDSymFile(Model):
 
     @property
     def supports_symcache(self):
-        # Only one that supports it so far.
-        return self.dsym_type in ('breakpad', 'macho')
+        return self.dsym_type in ('breakpad', 'macho', 'elf')
 
     def delete(self, *args, **kwargs):
         super(ProjectDSymFile, self).delete(*args, **kwargs)
@@ -237,7 +236,7 @@ def _create_dsym_from_uuid(project, dsym_type, cpu_name, uuid, fileobj, basename
     """
     if dsym_type == 'proguard':
         object_name = 'proguard-mapping'
-    elif dsym_type == 'macho':
+    elif dsym_type in ('macho', 'elf'):
         object_name = basename
     elif dsym_type == 'breakpad':
         object_name = basename[:-4] if basename.endswith('.sym') else basename
