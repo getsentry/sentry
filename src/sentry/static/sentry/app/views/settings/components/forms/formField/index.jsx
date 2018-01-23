@@ -72,9 +72,8 @@ const FormSpinner = styled(Spinner)`
 
 const SubmitOnReturnButtonStyled = styled(SubmitOnReturnButton)`
   position: absolute;
-  top: 50%;
-  right: 0.5em;
-  transform: translateY(-50%);
+  right: 0;
+  top: 0;
 `;
 
 /**

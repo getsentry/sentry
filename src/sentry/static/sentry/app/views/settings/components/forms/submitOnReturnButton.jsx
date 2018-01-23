@@ -2,34 +2,43 @@ import React from 'react';
 import styled from 'react-emotion';
 import InlineSvg from '../../../../components/inlineSvg';
 
-const submitOnReturnButtonStyles = p => `
+const SubmitButton = styled('div')`
   background: transparent;
   box-shadow: none;
   border: 1px solid transparent;
-  border-radius: ${p.theme.borderRadius};
+  border-radius: ${p => p.theme.borderRadius};
   transition: 0.2s all;
   display: flex;
   align-items: center;
   justify-content: center;
   height: 1.4em;
   width: 1.4em;
+`;
 
-  &:hover {
-    cursor: pointer;
+const ClickTargetStyled = styled('div')`
+  height: 100%;
+  width: 25%;
+  max-width: 2.5em;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+
+  &:hover ${SubmitButton} {
     background: #fff;
-    box-shadow: ${p.theme.dropShadowLight};
-    border: 1px solid ${p.theme.borderLight};
+    box-shadow: ${p => p.theme.dropShadowLight};
+    border: 1px solid ${p => p.theme.borderLight};
   }
 `;
 
-const SubmitOnReturnButton = styled(props => {
+const SubmitOnReturnButton = props => {
   return (
-    <div {...props}>
-      <InlineSvg size="0.75em" src="icon-return-key" />
-    </div>
+    <ClickTargetStyled {...props}>
+      <SubmitButton>
+        <InlineSvg size="0.75em" src="icon-return-key" />
+      </SubmitButton>
+    </ClickTargetStyled>
   );
-})`
-  ${submitOnReturnButtonStyles};
-`;
+};
 
 export default SubmitOnReturnButton;
