@@ -69,9 +69,13 @@ def build_search_query(project_id, tags, order_by=None):
     # Build lateral queries for non-specific tag lookups (these will be
     # performed after all of the specific ones, so we'll get better performance
     # -- these should also be performed as index only scans.)
+    alias = 't'
     for i, key in enumerate(presence_tags):
-        lateral_queries.append('LATERAL (SELECT * FROM {table} WHERE group_id = t.group_id AND key = %s LIMIT 1) as {alias}'.format(
-            alias='tl{}'.format(i),
+        previous_alias = alias
+        alias = 'tl{}'.format(i)
+        lateral_queries.append('LATERAL (SELECT * FROM {table} WHERE group_id = {previous_alias}.group_id AND key = %s LIMIT 1) as {alias}'.format(
+            alias=alias,
+            previous_alias=previous_alias,
             table=GroupTagValue._meta.db_table,
         ))
         where_parameters.append(key)
@@ -112,8 +116,8 @@ def build_search_query(project_id, tags, order_by=None):
     return """\
         SELECT t.group_id
         FROM {table} t
-        {lateral_queries}
         {join_conditions}
+        {lateral_queries}
         WHERE {where_conditions}
         {order_by}
         """.format(
