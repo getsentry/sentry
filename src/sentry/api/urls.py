@@ -3,6 +3,7 @@ from __future__ import absolute_import, print_function
 from django.conf.urls import include, patterns, url
 
 from .endpoints.accept_project_transfer import AcceptProjectTransferEndpoint
+from .endpoints.agent_aorta import AgentAortaEndpoint, AgentHeartbeatEndpoint
 from .endpoints.agent_index import AgentIndexEndpoint
 from .endpoints.api_applications import ApiApplicationsEndpoint
 from .endpoints.api_application_details import ApiApplicationDetailsEndpoint
@@ -170,11 +171,23 @@ from .endpoints.setup_wizard import SetupWizard
 urlpatterns = patterns(
     '',
 
-    # Agent Data
+    # Agent
     url(
         r'^agents/$',
         AgentIndexEndpoint.as_view(),
         name='sentry-api-0-agents-index'
+    ),
+
+    url(
+        r'^agent/aorta$',
+        AgentAortaEndpoint.as_view(),
+        name='sentry-api-0-agent-aorta'
+    ),
+
+    url(
+        r'^agent/heartbeat$',
+        AgentHeartbeatEndpoint.as_view(),
+        name='sentry-api-0-agent-heartbeat'
     ),
 
     # Api Data

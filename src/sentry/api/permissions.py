@@ -6,6 +6,14 @@ from sentry.api.exceptions import SuperuserRequired
 from sentry.auth.superuser import is_active_superuser
 
 
+class AgentPermission(permissions.BasePermission):
+    def has_permission(self, request, view):
+        # TODO(hazat): request.auth == agent signature, should be agent itself
+        if request.auth:
+            return True
+        return False
+
+
 class NoPermission(permissions.BasePermission):
     def has_permission(self, request, view):
         return False

@@ -13,6 +13,37 @@ class QuietBasicAuthentication(BasicAuthentication):
         return 'xBasic realm="%s"' % self.www_authenticate_realm
 
 
+class AgentAuthentication(QuietBasicAuthentication):
+    def authenticate(self, request):
+        agent_signature = request.META.get('HTTP_X_SENTRY_AGENT_SIGNATURE', b'')
+
+        # TODO(hazat): read signature und check agent id
+        if not agent_signature:
+            raise AuthenticationFailed('Invalid agent signature')
+
+        return self.authenticate_credentials(agent_signature, None)
+
+    def authenticate_credentials(self, userid, password):
+        if password:
+            return None
+
+        # TODO(hazat): read signature und check agent id
+        # try:
+        #     key = ApiKey.objects.get_from_cache(key=userid)
+        # except ApiKey.DoesNotExist:
+        #     raise AuthenticationFailed('API key is not valid')
+
+        # if not key.is_active:
+        #     raise AuthenticationFailed('Key is disabled')
+
+        # raven.tags_context({
+        #     'api_key': key.id,
+        # })
+
+        # TODO(hazat): return agent id
+        return (AnonymousUser(), userid)
+
+
 class ApiKeyAuthentication(QuietBasicAuthentication):
     def authenticate_credentials(self, userid, password):
         if password:
