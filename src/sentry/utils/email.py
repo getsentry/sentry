@@ -9,6 +9,7 @@ from __future__ import absolute_import
 
 import logging
 import os
+import re
 import six
 import subprocess
 import tempfile
@@ -40,6 +41,11 @@ from sentry.web.helpers import render_to_string
 
 # The maximum amount of recipients to display in human format.
 MAX_RECIPIENTS = 5
+
+# The fake TLD used to construct email addresses when one is required,
+# for example by automatically generated SSO accounts.
+FAKE_EMAIL_DOMAIN = 'sentry-fake'
+FAKE_EMAIL_RE = re.compile("\.{}$".format(FAKE_EMAIL_DOMAIN))
 
 logger = logging.getLogger('sentry.mail')
 
@@ -147,6 +153,22 @@ def get_from_email_domain():
     return _from_email_domain_cache[1]
 
 
+def create_fake_email(unique_id, namespace):
+    """
+    Generate a fake email of the form: {unique_id}@{namespace}.{FAKE_EMAIL_DOMAIN}
+
+    For example: c74e5b75-e037-4e75-ad27-1a0d21a6b203@cloudfoundry.sentry-fake
+    """
+    return "{}@{}.{}".format(unique_id, namespace, FAKE_EMAIL_DOMAIN)
+
+
+def is_fake_email(email):
+    """
+    Returns True if the provided email matches the fake email pattern.
+    """
+    return bool(FAKE_EMAIL_RE.search(email))
+
+
 def get_email_addresses(user_ids, project=None):
     pending = set(user_ids)
     results = {}
@@ -157,7 +179,7 @@ def get_email_addresses(user_ids, project=None):
             user__in=pending,
             key='mail:email',
         )
-        for option in (o for o in queryset if o.value):
+        for option in (o for o in queryset if o.value and not is_fake_email(o.value)):
             results[option.user_id] = option.value
             pending.discard(option.user_id)
 
@@ -166,14 +188,14 @@ def get_email_addresses(user_ids, project=None):
             user__in=pending,
             key='alert_email',
         )
-        for option in (o for o in queryset if o.value):
+        for option in (o for o in queryset if o.value and not is_fake_email(o.value)):
             results[option.user_id] = option.value
             pending.discard(option.user_id)
 
     if pending:
         queryset = User.objects.filter(pk__in=pending, is_active=True)
         for (user_id, email) in queryset.values_list('id', 'email'):
-            if email:
+            if email and not is_fake_email(email):
                 results[user_id] = email
                 pending.discard(user_id)
 
