@@ -32,7 +32,7 @@ const ClickTargetStyled = styled('div')`
   }
 `;
 
-const SubmitOnReturnButton = props => {
+const returnButton = props => {
   return (
     <ClickTargetStyled {...props}>
       <Tooltip title="Save">
@@ -44,4 +44,4 @@ const SubmitOnReturnButton = props => {
   );
 };
 
-export default SubmitOnReturnButton;
+export default returnButton;
