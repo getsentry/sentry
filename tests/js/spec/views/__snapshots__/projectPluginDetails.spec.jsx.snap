@@ -112,7 +112,7 @@ exports[`ProjectPluginDetails renders 1`] = `
 
 .glamor-23 {
   box-sizing: border-box;
-  padding-top: 8px;
+  padding-top: 16px;
   padding-left: 16px;
   padding-right: 16px;
   display: -webkit-box;
@@ -519,21 +519,21 @@ exports[`ProjectPluginDetails renders 1`] = `
                       direction="column"
                       disablePadding={true}
                       flex={true}
-                      pt={1}
+                      pt={2}
                       px={2}
                       wrap="wrap"
                     >
                       <Flex
                         className=""
                         direction="column"
-                        pt={1}
+                        pt={2}
                         px={2}
                         wrap="wrap"
                       >
                         <Base
                           className="glamor-23"
                           direction="column"
-                          pt={1}
+                          pt={2}
                           px={2}
                           wrap="wrap"
                         >

@@ -38,7 +38,9 @@ exports[`InactivePlugins renders plugins list 1`] = `
                 size={20}
               />
             </Flex>
-            Amazon SQS
+            <Styled(div)>
+              Amazon SQS
+            </Styled(div)>
           </Flex>
         </Styled(button)>
       </Box>
@@ -63,7 +65,9 @@ exports[`InactivePlugins renders plugins list 1`] = `
                 size={20}
               />
             </Flex>
-            GitHub
+            <Styled(div)>
+              GitHub
+            </Styled(div)>
           </Flex>
         </Styled(button)>
       </Box>

@@ -8,6 +8,7 @@ import Panel from '../views/settings/components/panel';
 import PanelBody from '../views/settings/components/panelBody';
 import PanelHeader from '../views/settings/components/panelHeader';
 import PluginIcon from '../plugins/components/pluginIcon';
+import TextOverflow from './textOverflow';
 
 const IntegrationButton = styled.button`
   width: 175px;
@@ -57,7 +58,7 @@ class InactivePlugins extends React.Component {
                       <Flex align="center" mr={1}>
                         <PluginIcon pluginId={plugin.id} />
                       </Flex>
-                      {plugin.shortName || plugin.name}
+                      <TextOverflow>{plugin.shortName || plugin.name}</TextOverflow>
                     </Flex>
                   </IntegrationButton>
                 </Box>
