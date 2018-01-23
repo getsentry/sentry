@@ -40,6 +40,7 @@ class V2TagStorage(TagStorage):
 
     def setup(self):
         self.setup_deletions(
+            tagkey_model=TagKey,
             tagvalue_model=TagValue,
             grouptagkey_model=GroupTagKey,
             grouptagvalue_model=GroupTagValue,
@@ -66,14 +67,26 @@ class V2TagStorage(TagStorage):
         super(V2TagStorage, self).setup_deletions(**kwargs)
 
         from sentry.deletions import default_manager as deletion_manager
-        from sentry.deletions.defaults import BulkModelDeletionTask
-        from sentry.deletions.base import ModelRelation
-        from sentry.models import Project
+        from sentry.deletions.base import ModelRelation, ModelDeletionTask
 
-        deletion_manager.register(TagKey, BulkModelDeletionTask)
-        deletion_manager.add_dependencies(Project, [
-            lambda instance: ModelRelation(TagKey, {'project_id': instance.id}),
-        ])
+        class TagKeyDeletionTask(ModelDeletionTask):
+            def get_child_relations(self, instance):
+                # in bulk
+                model_list = (GroupTagValue, GroupTagKey, TagValue)
+                relations = [
+                    ModelRelation(m, {
+                        'project_id': instance.project_id,
+                        'key_id': instance.id,
+                    }) for m in model_list
+                ]
+                return relations
+
+            def mark_deletion_in_progress(self, instance_list):
+                for instance in instance_list:
+                    if instance.status != TagKeyStatus.DELETION_IN_PROGRESS:
+                        instance.update(status=TagKeyStatus.DELETION_IN_PROGRESS)
+
+        deletion_manager.register(TagKey, TagKeyDeletionTask)
 
     def setup_receivers(self, **kwargs):
         super(V2TagStorage, self).setup_receivers(**kwargs)
