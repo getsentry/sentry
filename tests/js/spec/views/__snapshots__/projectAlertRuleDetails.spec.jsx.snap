@@ -1,0 +1,841 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`ProjectAlertRuleDetails Edit alert rule renders 1`] = `
+<ProjectAlertRuleDetails
+  params={
+    Object {
+      "orgId": "org-slug",
+      "projectId": "project-slug",
+    }
+  }
+>
+  <SideEffect(DocumentTitle)
+    title="Sentry"
+  >
+    <DocumentTitle
+      title="Sentry"
+    >
+      <RuleEditor
+        actions={
+          Array [
+            Object {
+              "html": "Send a notification for all services",
+              "id": "sentry.rules.actions.notify1",
+              "label": "Send a notification for all services",
+            },
+          ]
+        }
+        conditions={
+          Array [
+            Object {
+              "html": "An event is seen",
+              "id": "sentry.rules.conditions.1",
+              "label": "An event is seen",
+            },
+          ]
+        }
+        organization={
+          Object {
+            "access": Array [
+              "org:read",
+              "org:write",
+              "org:admin",
+              "project:read",
+              "project:write",
+              "project:admin",
+              "team:read",
+              "team:write",
+              "team:admin",
+            ],
+            "features": Array [],
+            "id": "3",
+            "name": "Organization Name",
+            "onboardingTasks": Array [],
+            "slug": "org-slug",
+            "status": Object {
+              "id": "active",
+              "name": "active",
+            },
+            "teams": Array [],
+          }
+        }
+        params={
+          Object {
+            "orgId": "org-slug",
+            "projectId": "project-slug",
+          }
+        }
+        project={
+          Object {
+            "digestsMaxDelay": 60,
+            "digestsMinDelay": 5,
+            "id": "2",
+            "name": "Project Name",
+            "slug": "project-slug",
+            "subjectTemplate": "[$project] \${tag:level}: $title",
+          }
+        }
+      >
+        <form
+          onSubmit={[Function]}
+        >
+          <div
+            className="box rule-detail"
+          >
+            <div
+              className="box-header"
+            >
+              <h3>
+                New Alert Rule
+              </h3>
+            </div>
+            <div
+              className="box-content with-padding"
+            >
+              <h6>
+                Rule name
+                :
+              </h6>
+              <div
+                className="control-group"
+              >
+                <input
+                  className="form-control"
+                  defaultValue=""
+                  placeholder="My Rule Name"
+                  required={true}
+                  type="text"
+                />
+              </div>
+              <hr />
+              <div
+                className="node-match-selector"
+              >
+                <h6>
+                  Every time 
+                  <SelectInput
+                    className=""
+                    disabled={false}
+                    key="1"
+                    multiple={false}
+                    onChange={[Function]}
+                    placeholder="Select an option..."
+                    required={true}
+                    style={
+                      Object {
+                        "width": 80,
+                      }
+                    }
+                    value="all"
+                  >
+                    <select
+                      className=""
+                      disabled={false}
+                      multiple={false}
+                      onChange={[Function]}
+                      placeholder="Select an option..."
+                      required={true}
+                      style={
+                        Object {
+                          "width": 80,
+                        }
+                      }
+                      value="all"
+                    >
+                      <option
+                        value="all"
+                      >
+                        all
+                      </option>
+                      <option
+                        value="any"
+                      >
+                        any
+                      </option>
+                      <option
+                        value="none"
+                      >
+                        none
+                      </option>
+                    </select>
+                  </SelectInput>
+                   of these conditions are met:
+                </h6>
+              </div>
+              <RuleNodeList
+                className="rule-condition-list"
+                initialItems={Array []}
+                nodes={
+                  Array [
+                    Object {
+                      "html": "An event is seen",
+                      "id": "sentry.rules.conditions.1",
+                      "label": "An event is seen",
+                    },
+                  ]
+                }
+              >
+                <div
+                  className="rule-condition-list"
+                >
+                  <table
+                    className="node-list table"
+                    style={
+                      Object {
+                        "marginBottom": "10px",
+                      }
+                    }
+                  >
+                    <tbody />
+                  </table>
+                  <fieldset
+                    className="node-selector"
+                  >
+                    <SelectInput
+                      disabled={false}
+                      multiple={false}
+                      onChange={[Function]}
+                      placeholder="Select an option..."
+                      required={false}
+                      style={
+                        Object {
+                          "width": "100%",
+                        }
+                      }
+                      value=""
+                    >
+                      <select
+                        disabled={false}
+                        multiple={false}
+                        onChange={[Function]}
+                        placeholder="Select an option..."
+                        required={false}
+                        style={
+                          Object {
+                            "width": "100%",
+                          }
+                        }
+                        value=""
+                      >
+                        <option
+                          key="blank"
+                        />
+                        <option
+                          key="sentry.rules.conditions.1"
+                          value="sentry.rules.conditions.1"
+                        >
+                          An event is seen
+                        </option>
+                      </select>
+                    </SelectInput>
+                  </fieldset>
+                </div>
+              </RuleNodeList>
+              <hr />
+              <h6>
+                Take these actions:
+              </h6>
+              <RuleNodeList
+                className="rule-action-list"
+                initialItems={Array []}
+                nodes={
+                  Array [
+                    Object {
+                      "html": "Send a notification for all services",
+                      "id": "sentry.rules.actions.notify1",
+                      "label": "Send a notification for all services",
+                    },
+                  ]
+                }
+              >
+                <div
+                  className="rule-action-list"
+                >
+                  <table
+                    className="node-list table"
+                    style={
+                      Object {
+                        "marginBottom": "10px",
+                      }
+                    }
+                  >
+                    <tbody />
+                  </table>
+                  <fieldset
+                    className="node-selector"
+                  >
+                    <SelectInput
+                      disabled={false}
+                      multiple={false}
+                      onChange={[Function]}
+                      placeholder="Select an option..."
+                      required={false}
+                      style={
+                        Object {
+                          "width": "100%",
+                        }
+                      }
+                      value=""
+                    >
+                      <select
+                        disabled={false}
+                        multiple={false}
+                        onChange={[Function]}
+                        placeholder="Select an option..."
+                        required={false}
+                        style={
+                          Object {
+                            "width": "100%",
+                          }
+                        }
+                        value=""
+                      >
+                        <option
+                          key="blank"
+                        />
+                        <option
+                          key="sentry.rules.actions.notify1"
+                          value="sentry.rules.actions.notify1"
+                        >
+                          Send a notification for all services
+                        </option>
+                      </select>
+                    </SelectInput>
+                  </fieldset>
+                </div>
+              </RuleNodeList>
+              <hr />
+              <div
+                className="node-frequency-selector"
+              >
+                <h6>
+                  <span
+                    key="4"
+                  >
+                    <span
+                      key="0"
+                    >
+                      Perform these actions at most once every 
+                    </span>
+                    <SelectInput
+                      className=""
+                      disabled={false}
+                      key="1"
+                      multiple={false}
+                      onChange={[Function]}
+                      placeholder="Select an option..."
+                      required={true}
+                      style={
+                        Object {
+                          "width": 150,
+                        }
+                      }
+                      value={30}
+                    >
+                      <select
+                        className=""
+                        disabled={false}
+                        multiple={false}
+                        onChange={[Function]}
+                        placeholder="Select an option..."
+                        required={true}
+                        style={
+                          Object {
+                            "width": 150,
+                          }
+                        }
+                        value={30}
+                      >
+                        <option
+                          value="5"
+                        >
+                          5 minutes
+                        </option>
+                        <option
+                          value="10"
+                        >
+                          10 minutes
+                        </option>
+                        <option
+                          value="30"
+                        >
+                          30 minutes
+                        </option>
+                        <option
+                          value="60"
+                        >
+                          60 minutes
+                        </option>
+                        <option
+                          value="180"
+                        >
+                          3 hours
+                        </option>
+                        <option
+                          value="720"
+                        >
+                          12 hours
+                        </option>
+                        <option
+                          value="1440"
+                        >
+                          24 hours
+                        </option>
+                        <option
+                          value="10080"
+                        >
+                          one week
+                        </option>
+                        <option
+                          value="43200"
+                        >
+                          30 days
+                        </option>
+                      </select>
+                    </SelectInput>
+                    <span
+                      key="2"
+                    >
+                       for an issue.
+                    </span>
+                  </span>
+                </h6>
+              </div>
+              <div
+                className="actions"
+              >
+                <button
+                  className="btn btn-primary btn-lg"
+                  disabled={false}
+                >
+                  Save Rule
+                </button>
+              </div>
+            </div>
+          </div>
+        </form>
+      </RuleEditor>
+    </DocumentTitle>
+  </SideEffect(DocumentTitle)>
+</ProjectAlertRuleDetails>
+`;
+
+exports[`ProjectAlertRuleDetails New alert rule renders 1`] = `
+<ProjectAlertRuleDetails
+  params={
+    Object {
+      "orgId": "org-slug",
+      "projectId": "project-slug",
+    }
+  }
+>
+  <SideEffect(DocumentTitle)
+    title="Sentry"
+  >
+    <DocumentTitle
+      title="Sentry"
+    >
+      <RuleEditor
+        actions={
+          Array [
+            Object {
+              "html": "Send a notification for all services",
+              "id": "sentry.rules.actions.notify1",
+              "label": "Send a notification for all services",
+            },
+          ]
+        }
+        conditions={
+          Array [
+            Object {
+              "html": "An event is seen",
+              "id": "sentry.rules.conditions.1",
+              "label": "An event is seen",
+            },
+          ]
+        }
+        organization={
+          Object {
+            "access": Array [
+              "org:read",
+              "org:write",
+              "org:admin",
+              "project:read",
+              "project:write",
+              "project:admin",
+              "team:read",
+              "team:write",
+              "team:admin",
+            ],
+            "features": Array [],
+            "id": "3",
+            "name": "Organization Name",
+            "onboardingTasks": Array [],
+            "slug": "org-slug",
+            "status": Object {
+              "id": "active",
+              "name": "active",
+            },
+            "teams": Array [],
+          }
+        }
+        params={
+          Object {
+            "orgId": "org-slug",
+            "projectId": "project-slug",
+          }
+        }
+        project={
+          Object {
+            "digestsMaxDelay": 60,
+            "digestsMinDelay": 5,
+            "id": "2",
+            "name": "Project Name",
+            "slug": "project-slug",
+            "subjectTemplate": "[$project] \${tag:level}: $title",
+          }
+        }
+      >
+        <form
+          onSubmit={[Function]}
+        >
+          <div
+            className="box rule-detail"
+          >
+            <div
+              className="box-header"
+            >
+              <h3>
+                New Alert Rule
+              </h3>
+            </div>
+            <div
+              className="box-content with-padding"
+            >
+              <h6>
+                Rule name
+                :
+              </h6>
+              <div
+                className="control-group"
+              >
+                <input
+                  className="form-control"
+                  defaultValue=""
+                  placeholder="My Rule Name"
+                  required={true}
+                  type="text"
+                />
+              </div>
+              <hr />
+              <div
+                className="node-match-selector"
+              >
+                <h6>
+                  Every time 
+                  <SelectInput
+                    className=""
+                    disabled={false}
+                    key="1"
+                    multiple={false}
+                    onChange={[Function]}
+                    placeholder="Select an option..."
+                    required={true}
+                    style={
+                      Object {
+                        "width": 80,
+                      }
+                    }
+                    value="all"
+                  >
+                    <select
+                      className=""
+                      disabled={false}
+                      multiple={false}
+                      onChange={[Function]}
+                      placeholder="Select an option..."
+                      required={true}
+                      style={
+                        Object {
+                          "width": 80,
+                        }
+                      }
+                      value="all"
+                    >
+                      <option
+                        value="all"
+                      >
+                        all
+                      </option>
+                      <option
+                        value="any"
+                      >
+                        any
+                      </option>
+                      <option
+                        value="none"
+                      >
+                        none
+                      </option>
+                    </select>
+                  </SelectInput>
+                   of these conditions are met:
+                </h6>
+              </div>
+              <RuleNodeList
+                className="rule-condition-list"
+                initialItems={Array []}
+                nodes={
+                  Array [
+                    Object {
+                      "html": "An event is seen",
+                      "id": "sentry.rules.conditions.1",
+                      "label": "An event is seen",
+                    },
+                  ]
+                }
+              >
+                <div
+                  className="rule-condition-list"
+                >
+                  <table
+                    className="node-list table"
+                    style={
+                      Object {
+                        "marginBottom": "10px",
+                      }
+                    }
+                  >
+                    <tbody />
+                  </table>
+                  <fieldset
+                    className="node-selector"
+                  >
+                    <SelectInput
+                      disabled={false}
+                      multiple={false}
+                      onChange={[Function]}
+                      placeholder="Select an option..."
+                      required={false}
+                      style={
+                        Object {
+                          "width": "100%",
+                        }
+                      }
+                      value=""
+                    >
+                      <select
+                        disabled={false}
+                        multiple={false}
+                        onChange={[Function]}
+                        placeholder="Select an option..."
+                        required={false}
+                        style={
+                          Object {
+                            "width": "100%",
+                          }
+                        }
+                        value=""
+                      >
+                        <option
+                          key="blank"
+                        />
+                        <option
+                          key="sentry.rules.conditions.1"
+                          value="sentry.rules.conditions.1"
+                        >
+                          An event is seen
+                        </option>
+                      </select>
+                    </SelectInput>
+                  </fieldset>
+                </div>
+              </RuleNodeList>
+              <hr />
+              <h6>
+                Take these actions:
+              </h6>
+              <RuleNodeList
+                className="rule-action-list"
+                initialItems={Array []}
+                nodes={
+                  Array [
+                    Object {
+                      "html": "Send a notification for all services",
+                      "id": "sentry.rules.actions.notify1",
+                      "label": "Send a notification for all services",
+                    },
+                  ]
+                }
+              >
+                <div
+                  className="rule-action-list"
+                >
+                  <table
+                    className="node-list table"
+                    style={
+                      Object {
+                        "marginBottom": "10px",
+                      }
+                    }
+                  >
+                    <tbody />
+                  </table>
+                  <fieldset
+                    className="node-selector"
+                  >
+                    <SelectInput
+                      disabled={false}
+                      multiple={false}
+                      onChange={[Function]}
+                      placeholder="Select an option..."
+                      required={false}
+                      style={
+                        Object {
+                          "width": "100%",
+                        }
+                      }
+                      value=""
+                    >
+                      <select
+                        disabled={false}
+                        multiple={false}
+                        onChange={[Function]}
+                        placeholder="Select an option..."
+                        required={false}
+                        style={
+                          Object {
+                            "width": "100%",
+                          }
+                        }
+                        value=""
+                      >
+                        <option
+                          key="blank"
+                        />
+                        <option
+                          key="sentry.rules.actions.notify1"
+                          value="sentry.rules.actions.notify1"
+                        >
+                          Send a notification for all services
+                        </option>
+                      </select>
+                    </SelectInput>
+                  </fieldset>
+                </div>
+              </RuleNodeList>
+              <hr />
+              <div
+                className="node-frequency-selector"
+              >
+                <h6>
+                  <span
+                    key="4"
+                  >
+                    <span
+                      key="0"
+                    >
+                      Perform these actions at most once every 
+                    </span>
+                    <SelectInput
+                      className=""
+                      disabled={false}
+                      key="1"
+                      multiple={false}
+                      onChange={[Function]}
+                      placeholder="Select an option..."
+                      required={true}
+                      style={
+                        Object {
+                          "width": 150,
+                        }
+                      }
+                      value={30}
+                    >
+                      <select
+                        className=""
+                        disabled={false}
+                        multiple={false}
+                        onChange={[Function]}
+                        placeholder="Select an option..."
+                        required={true}
+                        style={
+                          Object {
+                            "width": 150,
+                          }
+                        }
+                        value={30}
+                      >
+                        <option
+                          value="5"
+                        >
+                          5 minutes
+                        </option>
+                        <option
+                          value="10"
+                        >
+                          10 minutes
+                        </option>
+                        <option
+                          value="30"
+                        >
+                          30 minutes
+                        </option>
+                        <option
+                          value="60"
+                        >
+                          60 minutes
+                        </option>
+                        <option
+                          value="180"
+                        >
+                          3 hours
+                        </option>
+                        <option
+                          value="720"
+                        >
+                          12 hours
+                        </option>
+                        <option
+                          value="1440"
+                        >
+                          24 hours
+                        </option>
+                        <option
+                          value="10080"
+                        >
+                          one week
+                        </option>
+                        <option
+                          value="43200"
+                        >
+                          30 days
+                        </option>
+                      </select>
+                    </SelectInput>
+                    <span
+                      key="2"
+                    >
+                       for an issue.
+                    </span>
+                  </span>
+                </h6>
+              </div>
+              <div
+                className="actions"
+              >
+                <button
+                  className="btn btn-primary btn-lg"
+                  disabled={false}
+                >
+                  Save Rule
+                </button>
+              </div>
+            </div>
+          </div>
+        </form>
+      </RuleEditor>
+    </DocumentTitle>
+  </SideEffect(DocumentTitle)>
+</ProjectAlertRuleDetails>
+`;
