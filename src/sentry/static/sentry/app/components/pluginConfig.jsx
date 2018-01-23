@@ -7,6 +7,7 @@ import createReactClass from 'create-react-class';
 import {disablePlugin} from '../actionCreators/plugins';
 import {t} from '../locale';
 import ApiMixin from '../mixins/apiMixin';
+import Button from './buttons/button';
 import IndicatorStore from '../stores/indicatorStore';
 import LoadingIndicator from '../components/loadingIndicator';
 import Panel from '../views/settings/components/panel';
@@ -126,15 +127,15 @@ const PluginConfig = createReactClass({
                 <Flex align="center">
                   <Box mr={1}>
                     {data.isTestable && (
-                      <a onClick={this.testPlugin} className="btn btn-sm btn-default">
+                      <Button onClick={this.testPlugin} size="small">
                         {t('Test Plugin')}
-                      </a>
+                      </Button>
                     )}
                   </Box>
                   <Box>
-                    <a className="btn btn-sm btn-default" onClick={this.disablePlugin}>
+                    <Button size="small" onClick={this.disablePlugin}>
                       {t('Disable')}
-                    </a>
+                    </Button>
                   </Box>
                 </Flex>
               )}
