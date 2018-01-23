@@ -1,0 +1,16 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`returnButton renders 1`] = `
+<Styled(div)>
+  <Tooltip
+    title="Save"
+  >
+    <Styled(div)>
+      <InlineSvg
+        size="0.75em"
+        src="icon-return-key"
+      />
+    </Styled(div)>
+  </Tooltip>
+</Styled(div)>
+`;
