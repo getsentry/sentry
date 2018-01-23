@@ -1,0 +1,535 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`AccountSubscriptions renders empty 1`] = `
+<SideEffect(DocumentTitle)
+  title="Sentry"
+>
+  <div>
+    <SettingsPageHeading
+      title="Subscriptions"
+    />
+    <Styled(div)>
+      Sentry is committed to respecting your inbox. Our goal is to provide useful content and resources that make fixing errors less painful. Enjoyable even.
+    </Styled(div)>
+    <Styled(div)>
+      As part of our compliance with the EU’s General Data Protection Regulation (GDPR), starting on 25 May 2018, we’ll only email you according to the marketing categories to which you’ve explicitly opted-in.
+    </Styled(div)>
+    <Styled(div)>
+      <PanelHeader
+        disablePadding={true}
+      >
+        <Flex
+          align="center"
+        >
+          <Box
+            flex="1"
+            px={2}
+          >
+            Name
+          </Box>
+          <Box
+            px={2}
+          >
+            Subscribed
+          </Box>
+        </Flex>
+      </PanelHeader>
+      <Styled(div) />
+    </Styled(div)>
+    <Styled(div)>
+      We’re applying GDPR consent and privacy policies to all Sentry contacts, regardless of location. You’ll be able to manage your subscriptions here and from an Unsubscribe link in the footer of all marketing emails.
+    </Styled(div)>
+    <Styled(div)>
+      Please contact 
+      <a
+        href="mailto:learn@sentry.io"
+      >
+        learn@sentry.io
+      </a>
+       with any questions or suggestions.
+    </Styled(div)>
+  </div>
+</SideEffect(DocumentTitle)>
+`;
+
+exports[`AccountSubscriptions renders list and can toggle 1`] = `
+.glamor-4 {
+  font-size: 14px;
+  box-shadow: inset 0 -1px 0;
+  margin: -20px 0 30px;
+}
+
+.glamor-2 {
+  box-sizing: border-box;
+  display: -webkit-box;
+  display: -webkit-flex;
+  display: -ms-flexbox;
+  display: flex;
+  -webkit-align-items: center;
+  -webkit-box-align: center;
+  -ms-flex-align: center;
+  align-items: center;
+}
+
+.glamor-0 {
+  font-size: 20px;
+  font-weight: bold;
+  margin: 20px 0;
+  -webkit-flex: 1;
+  -ms-flex: 1;
+  flex: 1;
+}
+
+.glamor-6 {
+  line-height: 1.5;
+  margin-bottom: 30px;
+}
+
+.glamor-53 {
+  background: #fff;
+  border: 1px solid;
+  margin-bottom: 30px;
+  position: relative;
+}
+
+.glamor-23 {
+  border-bottom: 1px solid;
+  border-radius: 0 0;
+  background: padding:15px 0;
+  text-transform: uppercase;
+  font-size: 13px;
+}
+
+.glamor-19 {
+  font-size: inherit;
+  text-transform: inherit;
+  margin: 0;
+}
+
+.glamor-17 {
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  margin-bottom: 20px;
+  font-size: inherit;
+  text-transform: inherit;
+  margin: 0;
+}
+
+.glamor-10 {
+  box-sizing: border-box;
+  padding-left: 16px;
+  padding-right: 16px;
+  -webkit-flex: 1;
+  -ms-flex: 1;
+  flex: 1;
+}
+
+.glamor-12 {
+  box-sizing: border-box;
+  padding-left: 16px;
+  padding-right: 16px;
+}
+
+.glamor-35 {
+  box-sizing: border-box;
+  padding: 16px;
+  display: -webkit-box;
+  display: -webkit-flex;
+  display: -ms-flexbox;
+  display: flex;
+  -webkit-align-items: center;
+  -webkit-box-align: center;
+  -ms-flex-align: center;
+  align-items: center;
+  border-bottom: 1px solid;
+}
+
+.glamor-35:last-child {
+  border: 0;
+}
+
+.glamor-29 {
+  box-sizing: border-box;
+  -webkit-flex: 1;
+  -ms-flex: 1;
+  flex: 1;
+}
+
+.glamor-25 {
+  font-size: 1.2em;
+}
+
+.glamor-27 {
+  font-size: 0.8em;
+  margin-top: 6px;
+}
+
+.glamor-33 {
+  box-sizing: border-box;
+  display: -webkit-box;
+  display: -webkit-flex;
+  display: -ms-flexbox;
+  display: flex;
+  -webkit-flex-direction: column;
+  -ms-flex-direction: column;
+  flex-direction: column;
+  -webkit-align-items: flex-end;
+  -webkit-box-align: flex-end;
+  -ms-flex-align: flex-end;
+  align-items: flex-end;
+}
+
+.glamor-31 {
+  font-size: 0.8em;
+  margin-top: 6px;
+  text-align: right;
+}
+
+<AccountSubscriptions>
+  <SideEffect(DocumentTitle)
+    title="Sentry"
+  >
+    <DocumentTitle
+      title="Sentry"
+    >
+      <div>
+        <SettingsPageHeading
+          title="Subscriptions"
+        >
+          <Styled(div)>
+            <div
+              className="glamor-4 glamor-5"
+            >
+              <Flex
+                align="center"
+              >
+                <Base
+                  align="center"
+                  className="glamor-2"
+                >
+                  <div
+                    className="glamor-2"
+                    is={null}
+                  >
+                    <Styled(div)>
+                      <div
+                        className="glamor-0 glamor-1"
+                      >
+                        Subscriptions
+                      </div>
+                    </Styled(div)>
+                  </div>
+                </Base>
+              </Flex>
+            </div>
+          </Styled(div)>
+        </SettingsPageHeading>
+        <Styled(div)>
+          <div
+            className="glamor-6 glamor-7"
+          >
+            Sentry is committed to respecting your inbox. Our goal is to provide useful content and resources that make fixing errors less painful. Enjoyable even.
+          </div>
+        </Styled(div)>
+        <Styled(div)>
+          <div
+            className="glamor-6 glamor-7"
+          >
+            As part of our compliance with the EU’s General Data Protection Regulation (GDPR), starting on 25 May 2018, we’ll only email you according to the marketing categories to which you’ve explicitly opted-in.
+          </div>
+        </Styled(div)>
+        <Styled(div)>
+          <div
+            className="glamor-53 glamor-54"
+          >
+            <PanelHeader
+              disablePadding={true}
+            >
+              <Styled(div)
+                disablePadding={true}
+              >
+                <div
+                  className="glamor-23 glamor-24"
+                >
+                  <Styled(Component)>
+                    <Component
+                      className="glamor-19 glamor-16"
+                    >
+                      <Styled(div)
+                        className="glamor-19 glamor-16"
+                      >
+                        <div
+                          className="glamor-16 glamor-17 glamor-18"
+                        >
+                          <Flex
+                            align="center"
+                          >
+                            <Base
+                              align="center"
+                              className="glamor-2"
+                            >
+                              <div
+                                className="glamor-2"
+                                is={null}
+                              >
+                                <Box
+                                  flex="1"
+                                  px={2}
+                                >
+                                  <Base
+                                    className="glamor-10"
+                                    flex="1"
+                                    px={2}
+                                  >
+                                    <div
+                                      className="glamor-10"
+                                      is={null}
+                                    >
+                                      Name
+                                    </div>
+                                  </Base>
+                                </Box>
+                                <Box
+                                  px={2}
+                                >
+                                  <Base
+                                    className="glamor-12"
+                                    px={2}
+                                  >
+                                    <div
+                                      className="glamor-12"
+                                      is={null}
+                                    >
+                                      Subscribed
+                                    </div>
+                                  </Base>
+                                </Box>
+                              </div>
+                            </Base>
+                          </Flex>
+                        </div>
+                      </Styled(div)>
+                    </Component>
+                  </Styled(Component)>
+                </div>
+              </Styled(div)>
+            </PanelHeader>
+            <Styled(div)>
+              <div
+                className="glamor-51 glamor-52"
+              >
+                <Row
+                  align="center"
+                  key="2"
+                  p={2}
+                >
+                  <Styled(Base)
+                    align="center"
+                    p={2}
+                  >
+                    <Base
+                      align="center"
+                      className="glamor-35 glamor-36"
+                      p={2}
+                    >
+                      <div
+                        className="glamor-35 glamor-36"
+                        is={null}
+                      >
+                        <Box
+                          flex="1"
+                        >
+                          <Base
+                            className="glamor-29"
+                            flex="1"
+                          >
+                            <div
+                              className="glamor-29"
+                              is={null}
+                            >
+                              <Styled(div)>
+                                <div
+                                  className="glamor-25 glamor-26"
+                                >
+                                  Product & Feature Updates
+                                </div>
+                              </Styled(div)>
+                              <Styled(div)>
+                                <div
+                                  className="glamor-27 glamor-28"
+                                >
+                                  Everything you need to know about Sentry features, integrations, partnerships, and launches.
+                                </div>
+                              </Styled(div)>
+                            </div>
+                          </Base>
+                        </Box>
+                        <Flex
+                          align="flex-end"
+                          direction="column"
+                        >
+                          <Base
+                            align="flex-end"
+                            className="glamor-33"
+                            direction="column"
+                          >
+                            <div
+                              className="glamor-33"
+                              is={null}
+                            >
+                              <Switch
+                                isActive={true}
+                                size="lg"
+                                toggle={[Function]}
+                              >
+                                <div
+                                  aria-checked={true}
+                                  className="switch switch-lg switch-on"
+                                  onClick={[Function]}
+                                  role="checkbox"
+                                >
+                                  <span
+                                    className="switch-toggle"
+                                  />
+                                </div>
+                              </Switch>
+                              <Styled(div)>
+                                <div
+                                  className="glamor-31 glamor-32"
+                                >
+                                  <div>
+                                    test@sentry.io
+                                     on 
+                                  </div>
+                                  <div>
+                                    <DateTime
+                                      date="2018-01-08T05:14:59.102Z"
+                                      seconds={true}
+                                      shortDate={true}
+                                    >
+                                      <time>
+                                        01/08/2018
+                                      </time>
+                                    </DateTime>
+                                  </div>
+                                </div>
+                              </Styled(div)>
+                            </div>
+                          </Base>
+                        </Flex>
+                      </div>
+                    </Base>
+                  </Styled(Base)>
+                </Row>
+                <Row
+                  align="center"
+                  key="1"
+                  p={2}
+                >
+                  <Styled(Base)
+                    align="center"
+                    p={2}
+                  >
+                    <Base
+                      align="center"
+                      className="glamor-35 glamor-36"
+                      p={2}
+                    >
+                      <div
+                        className="glamor-35 glamor-36"
+                        is={null}
+                      >
+                        <Box
+                          flex="1"
+                        >
+                          <Base
+                            className="glamor-29"
+                            flex="1"
+                          >
+                            <div
+                              className="glamor-29"
+                              is={null}
+                            >
+                              <Styled(div)>
+                                <div
+                                  className="glamor-25 glamor-26"
+                                >
+                                  Sentry Newsletter
+                                </div>
+                              </Styled(div)>
+                              <Styled(div)>
+                                <div
+                                  className="glamor-27 glamor-28"
+                                >
+                                  Our monthly update on what's new with Sentry and the community.
+                                </div>
+                              </Styled(div)>
+                            </div>
+                          </Base>
+                        </Box>
+                        <Flex
+                          align="flex-end"
+                          direction="column"
+                        >
+                          <Base
+                            align="flex-end"
+                            className="glamor-33"
+                            direction="column"
+                          >
+                            <div
+                              className="glamor-33"
+                              is={null}
+                            >
+                              <Switch
+                                isActive={false}
+                                size="lg"
+                                toggle={[Function]}
+                              >
+                                <div
+                                  aria-checked={false}
+                                  className="switch switch-lg"
+                                  onClick={[Function]}
+                                  role="checkbox"
+                                >
+                                  <span
+                                    className="switch-toggle"
+                                  />
+                                </div>
+                              </Switch>
+                            </div>
+                          </Base>
+                        </Flex>
+                      </div>
+                    </Base>
+                  </Styled(Base)>
+                </Row>
+              </div>
+            </Styled(div)>
+          </div>
+        </Styled(div)>
+        <Styled(div)>
+          <div
+            className="glamor-6 glamor-7"
+          >
+            We’re applying GDPR consent and privacy policies to all Sentry contacts, regardless of location. You’ll be able to manage your subscriptions here and from an Unsubscribe link in the footer of all marketing emails.
+          </div>
+        </Styled(div)>
+        <Styled(div)>
+          <div
+            className="glamor-6 glamor-7"
+          >
+            Please contact 
+            <a
+              href="mailto:learn@sentry.io"
+            >
+              learn@sentry.io
+            </a>
+             with any questions or suggestions.
+          </div>
+        </Styled(div)>
+      </div>
+    </DocumentTitle>
+  </SideEffect(DocumentTitle)>
+</AccountSubscriptions>
+`;

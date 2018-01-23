@@ -154,14 +154,24 @@ const accountSettingsRoutes = [
     key="appearance/"
     path="appearance/"
     name="Appearance"
-    componentPromise={() => import('./views/settings/account/accountAppearance')}
+    componentPromise={() =>
+      import(/*webpackChunkName: "AccountAppearance"*/ './views/settings/account/accountAppearance')}
     component={errorHandler(LazyLoad)}
   />,
 
   <Route
     key="authorizations/"
     path="authorizations/"
-    componentPromise={() => import('./views/settings/account/accountAuthorizations')}
+    componentPromise={() =>
+      import(/*webpackChunkName: "AccountAuthorizations"*/ './views/settings/account/accountAuthorizations')}
+    component={errorHandler(LazyLoad)}
+  />,
+  <Route
+    key="subscriptions/"
+    path="subscriptions/"
+    name="Subscriptions"
+    componentPromise={() =>
+      import(/*webpackChunkName: "AccountSubscriptions"*/ './views/settings/account/accountSubscriptions')}
     component={errorHandler(LazyLoad)}
   />,
 
