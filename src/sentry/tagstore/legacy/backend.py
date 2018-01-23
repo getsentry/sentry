@@ -8,10 +8,9 @@ sentry.tagstore.legacy.backend
 
 from __future__ import absolute_import
 
-import itertools
 import six
 
-from collections import defaultdict
+from collections import OrderedDict, defaultdict
 from datetime import timedelta
 from django.db import connections, router, IntegrityError, transaction
 from django.db.models import Q, Sum
@@ -46,61 +45,80 @@ def build_search_query(project_id, tags, order_by=None):
 
     assert len(tags) > 0
 
-    if order_by is not None:
-        order_by_tag_key, template_name = order_by
-        order_by_expression_template = order_by_expression_templates[template_name]
-        assert order_by_tag_key in tags
-        assert tags[order_by_tag_key] is not ANY
-    else:
-        order_by_tag_key = None
-        order_by_expression = 't.last_seen DESC'
-
     tags = sorted(
         tags.items(),
         key=lambda (k, v): selectivity_hints.get(k, 0.75),
         reverse=True,
     )
 
-    table_alias_seq = itertools.count()
-    join_conditions = []
-    where_conditions = ['t.project_id = %s']
-    where_parameters = [project_id]
+    specific_tags = OrderedDict()
+    presence_tags = []
+
     for key, value in tags:
         if value is ANY:
-            where_conditions.append(
-                't.group_id IN (SELECT DISTINCT group_id FROM {table} WHERE project_id = %s AND key = %s)'.format(
-                    project_id=project_id,
-                    table=GroupTagValue._meta.db_table,
-                )
-            )
-            where_parameters.extend([project_id, key])
+            presence_tags.append(key)
         else:
-            i = next(table_alias_seq)
-            if i > 0:
-                join_conditions.append(
-                    'INNER JOIN {table} t{index} ON t{prev_index}.group_id = t{index}.group_id'.format(
-                        table=GroupTagValue._meta.db_table,
-                        index=i,
-                        prev_index=i - 1 if i > 1 else '',
-                    )
-                )
-            where_conditions.append(
-                '(t{index}.key = %s AND t{index}.value = %s)'.format(
-                    index=i if i > 0 else ''))
-            where_parameters.extend([key, value])
+            specific_tags[key] = value
 
-            if key == order_by_tag_key:
-                order_by_expression = order_by_expression_template(
-                    't{index}'.format(index=i if i > 1 else ''))
+    join_conditions = []
+    lateral_queries = []
+    where_conditions = []
+    where_parameters = []
+    table_aliases = {}
+
+    # Build lateral queries for non-specific tag lookups (these will be
+    # performed after all of the specific ones, so we'll get better performance
+    # -- these should also be performed as index only scans.)
+    for i, key in enumerate(presence_tags):
+        lateral_queries.append('LATERAL (SELECT * FROM {table} WHERE group_id = t.group_id AND key = %s LIMIT 1) as tl{index}'.format(
+            index=i,
+            table=GroupTagValue._meta.db_table,
+        ))
+        where_parameters.append(key)
+
+    # NOTE: This isn't a hard requirement and could be rewritten to be smarter
+    # if only presence tags are actually provided.
+    key, value = specific_tags.popitem(False)
+
+    table_aliases[key] = 't'
+    where_conditions.append('(t.project_id = %s AND t.key = %s AND t.value = %s)')
+    where_parameters.extend([project_id, key, value])
+
+    # Build the base query out of all of the specific tag lookups.
+    for i, (key, value) in enumerate(specific_tags.items()):
+        alias = table_aliases[key] = 't{}'.format(i)
+        join_conditions.append(
+            'INNER JOIN {table} {alias} ON {previous_alias}.group_id = {alias}.group_id'.format(
+                table=GroupTagValue._meta.db_table,
+                alias=alias,
+                previous_alias='t{}'.format(i if i > 0 else ''),
+            )
+        )
+        where_conditions.append('({alias}.key = %s AND {alias}.value = %s)'.format(alias=alias))
+        where_parameters.extend([key, value])
+
+    if order_by is not None:
+        order_by_tag_key, template_name = order_by
+        order_by_expression_template = order_by_expression_templates[template_name]
+        order_by_expression = 'ORDER BY {}'.format(
+            order_by_expression_template(
+                table_aliases[order_by_tag_key]))
+    else:
+        order_by_expression = ''
 
     return """\
         SELECT t.group_id
         FROM {table} t
+        {lateral_queries}
         {join_conditions}
         WHERE {where_conditions}
-        ORDER BY {order_by}
-        LIMIT 1000""".format(
+        {order_by}
+        """.format(
         table=GroupTagValue._meta.db_table,
+        lateral_queries=''.join(map(
+            lambda query: ', {}'.format(query),
+            lateral_queries,
+        )),
         join_conditions='\n'.join(join_conditions),
         where_conditions='\n  AND '.join(where_conditions),
         order_by=order_by_expression,
