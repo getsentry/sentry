@@ -26,6 +26,7 @@ export default class FieldFromConfig extends React.Component {
       extraHelp: PropTypes.oneOfType([PropTypes.string, PropTypes.func]),
       visible: PropTypes.oneOfType([PropTypes.bool, PropTypes.func]),
       disabled: PropTypes.oneOfType([PropTypes.bool, PropTypes.func]),
+      submitOnReturn: PropTypes.bool,
       getValue: PropTypes.func,
       setValue: PropTypes.func,
     }).isRequired,

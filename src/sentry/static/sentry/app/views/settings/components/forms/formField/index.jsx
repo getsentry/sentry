@@ -17,6 +17,7 @@ import FormFieldWrapper from './formFieldWrapper';
 import FormState from '../../../../../components/forms/state';
 import InlineSvg from '../../../../../components/inlineSvg';
 import Spinner from '../styled/spinner';
+import SubmitOnReturnButton from '../submitOnReturnButton';
 
 // This wraps Control + ControlError message
 // * can NOT be a flex box have because of position: absolute on "control error message"
@@ -69,6 +70,13 @@ const FormSpinner = styled(Spinner)`
   margin-left: 0;
 `;
 
+const SubmitOnReturnButtonStyled = styled(SubmitOnReturnButton)`
+  position: absolute;
+  top: 50%;
+  right: 0.5em;
+  transform: translateY(-50%);
+`;
+
 /**
  * Some fields don't need to implement their own onChange handlers, in
  * which case we will receive an Event, but if they do we should handle
@@ -94,6 +102,7 @@ class FormField extends React.Component {
     defaultValue: PropTypes.any,
     disabled: PropTypes.oneOfType([PropTypes.bool, PropTypes.func]),
     disabledReason: PropTypes.string,
+    submitOnReturn: PropTypes.bool,
     help: PropTypes.oneOfType([PropTypes.string, PropTypes.element]),
     required: PropTypes.bool,
     hideErrorMessage: PropTypes.bool,
@@ -228,6 +237,7 @@ class FormField extends React.Component {
       inline,
       disabled,
       disabledReason,
+      submitOnReturn,
       hideErrorMessage,
       help,
       alignRight,
@@ -280,6 +290,8 @@ class FormField extends React.Component {
                     <span className="icon-question" />
                   </span>
                 )}
+
+              {submitOnReturn && <SubmitOnReturnButtonStyled />}
             </FormFieldControlStyled>
 
             <FormFieldControlState justify="center" align="center">

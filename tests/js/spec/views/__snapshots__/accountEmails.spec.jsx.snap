@@ -66,6 +66,7 @@ exports[`AccountEmails renders with emails 1`] = `
                   "label": "Additional Email",
                   "name": "email",
                   "placeholder": "e.g. secondary@example.com",
+                  "submitOnReturn": true,
                   "type": "string",
                 },
               ],
