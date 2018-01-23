@@ -25,7 +25,7 @@ class EventTag(Model):
 
     class Meta:
         app_label = 'tagstore'
-        unique_together = (('event_id', 'key', 'value'), )
+        unique_together = (('project_id', 'event_id', 'key', 'value'), )
         index_together = (
             ('project_id', 'key', 'value'),
             ('group_id', 'key', 'value'),
