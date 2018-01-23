@@ -9,6 +9,7 @@ class DateTime extends React.Component {
   static propTypes = {
     date: PropTypes.any.isRequired,
     dateOnly: PropTypes.bool,
+    shortDate: PropTypes.bool,
     seconds: PropTypes.bool,
   };
 
@@ -17,11 +18,15 @@ class DateTime extends React.Component {
   };
 
   getFormat = ({clock24Hours}) => {
-    let {dateOnly, seconds} = this.props;
+    let {dateOnly, seconds, shortDate} = this.props;
 
     // October 26, 2017
     if (dateOnly) {
       return 'LL';
+    }
+
+    if (shortDate) {
+      return 'MM/DD/YYYY';
     }
 
     if (clock24Hours) {
@@ -42,6 +47,8 @@ class DateTime extends React.Component {
       date,
       // eslint-disable-next-line no-unused-vars
       seconds,
+      // eslint-disable-next-line no-unused-vars
+      shortDate,
       ...carriedProps
     } = this.props;
     let user = ConfigStore.get('user');
