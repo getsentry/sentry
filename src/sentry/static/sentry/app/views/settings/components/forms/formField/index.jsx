@@ -135,6 +135,11 @@ class FormField extends React.Component {
     form: PropTypes.object,
   };
 
+  constructor(props) {
+    super(props);
+    this.state = {showSubmitOnReturnButton: false};
+  }
+
   componentDidMount() {
     // this.attachTooltips();
     // Tell model about this field's props
@@ -187,6 +192,8 @@ class FormField extends React.Component {
     let {name, onChange} = this.props;
     let {value, event} = getValueFromEvent(...args);
     let model = this.getModel();
+
+    if (this.props.submitOnReturn) this.setState({showSubmitOnReturnButton: true});
 
     if (onChange) {
       onChange(value, event);
@@ -290,7 +297,8 @@ class FormField extends React.Component {
                   </span>
                 )}
 
-              {submitOnReturn && <SubmitOnReturnButtonStyled />}
+              {submitOnReturn &&
+                this.state.showSubmitOnReturnButton && <SubmitOnReturnButtonStyled />}
             </FormFieldControlStyled>
 
             <FormFieldControlState justify="center" align="center">
