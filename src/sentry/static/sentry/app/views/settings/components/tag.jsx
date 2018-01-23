@@ -16,7 +16,7 @@ const TagTextStyled = styled('span')`
   margin-left: 0.5em;
   text-transform: lowercase;
   background-color: ${p => {
-    switch (p.type) {
+    switch (p.priority) {
       case 'warning':
         return p.theme.yellowOrange;
       case 'success':
@@ -27,12 +27,12 @@ const TagTextStyled = styled('span')`
   }};
 `;
 
-const Tag = ({children, type, ...props}) => (
-  <TagTextStyled type={type}>{children}</TagTextStyled>
+const Tag = ({children, priority, ...props}) => (
+  <TagTextStyled priority={priority}>{children}</TagTextStyled>
 );
 
 Tag.propTypes = {
-  type: PropTypes.string,
+  priority: PropTypes.string,
 };
 
 export default Tag;

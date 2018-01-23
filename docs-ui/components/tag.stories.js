@@ -12,12 +12,12 @@ storiesOf('Tags', module)
   .add(
     'warning',
     withInfo('Use this to signal that something is maybe not so great')(() => (
-      <Tag type="warning">Development</Tag>
+      <Tag priority="warning">Development</Tag>
     ))
   )
   .add(
     'success',
     withInfo('Use this to signal something good')(() => (
-      <Tag type="success">Development</Tag>
+      <Tag priority="success">Development</Tag>
     ))
   );

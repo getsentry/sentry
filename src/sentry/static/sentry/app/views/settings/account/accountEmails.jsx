@@ -52,8 +52,8 @@ class EmailRow extends React.Component {
       <Row justify="space-between">
         <Flex align="center">
           {email}
-          {!isVerified && <Tag type="warning">{t('Unverified')}</Tag>}
-          {isPrimary && <Tag type="success">{t('Primary')}</Tag>}
+          {!isVerified && <Tag priority="warning">{t('Unverified')}</Tag>}
+          {isPrimary && <Tag priority="success">{t('Primary')}</Tag>}
         </Flex>
 
         {!isPrimary &&
