@@ -5,7 +5,7 @@ from django.core.urlresolvers import reverse
 from sentry import http, options
 from sentry.api import client
 from sentry.api.base import Endpoint
-from sentry.models import Group, Integration, Project, IdentityProvider, Identity
+from sentry.models import Group, Integration, Project, IdentityProvider, Identity, ApiKey
 from sentry.utils import json
 from sentry.utils.http import absolute_uri
 
@@ -72,6 +72,11 @@ class SlackActionEndpoint(Endpoint):
             # isn't on the team for this that hey can't do anything?
 
     def update_group(self, group, identity, data):
+        event_write_key = ApiKey(
+            organization=group.project.organization,
+            scope_list=['event:write'],
+        )
+
         return client.put(
             path='/projects/{}/{}/issues/'.format(
                 group.project.organization.slug,
@@ -79,7 +84,8 @@ class SlackActionEndpoint(Endpoint):
             ),
             params={'id': group.id},
             data=data,
-            user=identity.user
+            user=identity.user,
+            auth=event_write_key,
         )
 
     def open_resolve_dialog(self, data, group, integration):

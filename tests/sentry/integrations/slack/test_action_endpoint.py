@@ -8,7 +8,8 @@ from six.moves.urllib.parse import parse_qs
 from sentry import options
 from sentry.models import (
     Integration, OrganizationIntegration, Identity, IdentityProvider,
-    IdentityStatus, Group, GroupStatus, GroupAssignee
+    IdentityStatus, Group, GroupStatus, GroupAssignee, AuthProvider,
+    AuthIdentity
 )
 from sentry.testutils import APITestCase
 from sentry.utils import json
@@ -114,6 +115,34 @@ class StatusActionTest(BaseEventTest):
         )
 
     def test_ignore_issue(self):
+        status_action = {
+            'name': 'status',
+            'value': 'ignored',
+            'type': 'button'
+        }
+
+        resp = self.post_webhook(action_data=[status_action])
+        self.group1 = Group.objects.get(id=self.group1.id)
+
+        assert resp.status_code == 200, resp.content
+        assert self.group1.get_status() == GroupStatus.IGNORED
+
+        expect_status = u'*Issue ignored by <@{}>*'.format(self.identity.external_id)
+        assert resp.data['text'].endswith(expect_status), resp.data['text']
+
+    def test_ignore_issue_with_additional_user_auth(self):
+        """
+        Ensure that we can act as a user even when the organization has SSO enabled
+        """
+        auth_idp = AuthProvider.objects.create(
+            organization=self.org,
+            provider='dummy',
+        )
+        AuthIdentity.objects.create(
+            auth_provider=auth_idp,
+            user=self.user,
+        )
+
         status_action = {
             'name': 'status',
             'value': 'ignored',
