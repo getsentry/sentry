@@ -210,9 +210,7 @@ class StatusActionTest(BaseEventTest):
 
         status_action = {
             'name': 'assign',
-            'selected_options': [
-                {'value': user2.username},
-            ],
+            'selected_options': [{'value': user2.username}],
         }
 
         resp = self.post_webhook(action_data=[status_action])
@@ -312,3 +310,16 @@ class StatusActionTest(BaseEventTest):
         assert resp.data['response_type'] == 'ephemeral'
         assert not resp.data['replace_original']
         assert resp.data['text'] == 'Action failed: You do not have permission to perform this action.'
+
+    def test_invalid_token(self):
+        resp = self.post_webhook(token='invalid')
+        assert resp.status_code == 401
+
+    def test_no_integration(self):
+        self.integration.delete()
+        resp = self.post_webhook()
+        assert resp.status_code == 403
+
+    def test_slack_bad_payload(self):
+        resp = self.client.post('/extensions/slack/action/', data={'nopayload': 0})
+        assert resp.status_code == 400
