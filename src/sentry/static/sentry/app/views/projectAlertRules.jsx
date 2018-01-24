@@ -87,13 +87,15 @@ const RuleRow = createReactClass({
                     When <strong>{data.actionMatch}</strong> of these conditions are met:
                   </h6>
                   <table className="conditions-list table">
-                    {data.conditions.map((condition, i) => {
-                      return (
-                        <tr key={i}>
-                          <td>{condition.name}</td>
-                        </tr>
-                      );
-                    })}
+                    <tbody>
+                      {data.conditions.map((condition, i) => {
+                        return (
+                          <tr key={i}>
+                            <td>{condition.name}</td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
                   </table>
                 </div>
               )}
@@ -109,13 +111,15 @@ const RuleRow = createReactClass({
                     for an issue:
                   </h6>
                   <table className="actions-list table">
-                    {data.actions.map((action, i) => {
-                      return (
-                        <tr key={i}>
-                          <td>{action.name}</td>
-                        </tr>
-                      );
-                    })}
+                    <tbody>
+                      {data.actions.map((action, i) => {
+                        return (
+                          <tr key={i}>
+                            <td>{action.name}</td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
                   </table>
                 </div>
               )}
