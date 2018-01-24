@@ -9,10 +9,6 @@ describe('ProjectSavedSearches', function() {
   let org = TestStubs.Organization();
   let project = TestStubs.Project();
   beforeEach(function() {
-    // MockApiClient.addMockResponse({
-    // url: `/projects/${org.slug}/${project.slug}/tags/browser/`,
-    // method: 'DELETE',
-    // });
     MockApiClient.mockAsync = false;
     MockApiClient.clearMockResponses();
     MockApiClient.addMockResponse({
