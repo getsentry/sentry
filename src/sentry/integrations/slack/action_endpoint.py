@@ -167,11 +167,7 @@ class SlackActionEndpoint(Endpoint):
 
         logging_data['integration_id'] = integration.id
 
-        try:
-            callback_data = json.loads(callback_id)
-        except (KeyError, IndexError, TypeError, ValueError):
-            logger.error('slack.action.invalid-callback-id', extra=logging_data, exc_info=True)
-            return self.respond(status=400)
+        callback_data = json.loads(callback_id)
 
         # Determine the issue group action is being taken on
         group_id = callback_data['issue']
