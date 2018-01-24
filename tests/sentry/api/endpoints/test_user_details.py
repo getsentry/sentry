@@ -61,19 +61,18 @@ class UserDetailsTest(APITestCase):
 
 
 class UserUpdateTest(APITestCase):
-    def test_simple(self):
-        user = self.create_user(email='a@example.com')
-
-        self.login_as(user=user)
-
-        url = reverse(
+    def setUp(self):
+        self.user = self.create_user(email='a@example.com', name='example name')
+        self.login_as(user=self.user)
+        self.url = reverse(
             'sentry-api-0-user-details', kwargs={
                 'user_id': 'me',
             }
         )
 
+    def test_simple(self):
         resp = self.client.put(
-            url,
+            self.url,
             data={
                 'name': 'hello world',
                 'username': 'b@example.com',
@@ -83,9 +82,9 @@ class UserUpdateTest(APITestCase):
             }
         )
         assert resp.status_code == 200, resp.content
-        assert resp.data['id'] == six.text_type(user.id)
+        assert resp.data['id'] == six.text_type(self.user.id)
 
-        user = User.objects.get(id=user.id)
+        user = User.objects.get(id=self.user.id)
         assert user.name == 'hello world'
         assert user.email == 'b@example.com'
         assert user.username == user.email
@@ -95,14 +94,12 @@ class UserUpdateTest(APITestCase):
         ) is True
 
     def test_superuser(self):
-        user = self.create_user(email='a@example.com')
         superuser = self.create_user(email='b@example.com', is_superuser=True)
-
         self.login_as(user=superuser, superuser=True)
 
         url = reverse(
             'sentry-api-0-user-details', kwargs={
-                'user_id': user.id,
+                'user_id': self.user.id,
             }
         )
 
@@ -116,13 +113,64 @@ class UserUpdateTest(APITestCase):
             }
         )
         assert resp.status_code == 200, resp.content
-        assert resp.data['id'] == six.text_type(user.id)
+        assert resp.data['id'] == six.text_type(self.user.id)
 
-        user = User.objects.get(id=user.id)
+        user = User.objects.get(id=self.user.id)
         assert user.name == 'hello world'
         assert user.email == 'c@example.com'
         assert user.username == 'foo'
         assert not user.is_active
+
+    def test_duplicate_username(self):
+        self.create_user(email='dupe@example.com')
+
+        resp = self.client.put(
+            self.url,
+            data={
+                'username': 'dupe@example.com',
+            }
+        )
+        assert resp.status_code == 400
+
+        user = User.objects.get(id=self.user.id)
+        assert user.username == 'a@example.com'
+
+    def test_managed_fields(self):
+        assert self.user.name == 'example name'
+        with self.settings(SENTRY_MANAGED_USER_FIELDS=('name', )):
+            resp = self.client.put(
+                self.url,
+                data={
+                    'name': 'new name',
+                }
+            )
+            assert resp.status_code == 200
+
+            user = User.objects.get(id=self.user.id)
+            assert user.name == 'example name'
+
+    def test_verifies_mismatch_password(self):
+        # Password mismatch
+        response = self.client.put(self.url, data={
+            'password': 'testpassword',
+            'passwordVerify': 'passworddoesntmatch',
+        })
+        assert response.status_code == 400
+
+    def test_change_privileged_and_unprivileged(self):
+        user = User.objects.get(id=self.user.id)
+        old_password = user.password
+
+        response = self.client.put(self.url, data={
+            'password': 'newpassword',
+            'passwordVerify': 'newpassword',
+            'name': 'new name',
+        })
+        assert response.status_code == 200
+
+        user = User.objects.get(id=self.user.id)
+        assert user.password != old_password
+        assert user.name == 'new name'
 
 
 class UserSudoUpdateTest(APITestCase):
@@ -162,6 +210,7 @@ class UserSudoUpdateTest(APITestCase):
             })
             assert response.status_code == 204
 
+            # correct password change
             response = self.client.put(self.url, data={
                 'password': 'testpassword',
                 'passwordVerify': 'testpassword',

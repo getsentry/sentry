@@ -62,29 +62,14 @@ class AdminUserSerializer(BaseUserSerializer):
 
 
 class UserSudoSerializer(BaseUserSerializer):
-    passwordVerify = serializers.CharField(required=False, max_length=128)
-
     class Meta:
         model = User
-        fields = ('password', 'passwordVerify', 'username', 'email')
-
-    def validate_username(self, attrs, source):
-        value = attrs[source]
-        if User.objects.filter(username__iexact=value).exclude(id=self.object.id).exists():
-            raise serializers.ValidationError('That username is already in use.')
-        return attrs
+        fields = ('password', 'username', 'email')
 
     def validate_password(self, attrs, source):
         # this will raise a ValidationError if password is invalid
         password_validation.validate_password(attrs[source])
 
-        return attrs
-
-    def validate(self, attrs):
-        # make sure `password` matches `passwordVerify`
-        if 'password' in attrs and attrs.get('password') != attrs.get('passwordVerify'):
-            raise serializers.ValidationError('New password does not match verified password.')
-        attrs = super(UserSudoSerializer, self).validate(attrs)
         return attrs
 
 
@@ -103,6 +88,10 @@ class UserDetailsEndpoint(UserEndpoint):
         result = serializer.object
 
         if request.DATA.get('password'):
+            if request.DATA.get('password') != request.DATA.get('passwordVerify'):
+                return Response({"detail": "New password does not match verified password"},
+                                status=status.HTTP_400_BAD_REQUEST)
+
             # TODO(billy): Why is `user.has_usable_password()` false here
             if user.is_managed:
                 return Response({"detail": "Not allowed to change password"},
@@ -112,14 +101,14 @@ class UserDetailsEndpoint(UserEndpoint):
             user.refresh_session_nonce(request._request)
 
             capture_security_activity(
-                account=user,
+                account=result,
                 type='password-changed',
-                actor=request.user,
+                actor=result,
                 ip_address=request.META['REMOTE_ADDR'],
                 send_email=True,
             )
 
-        user.save()
+        serializer.save()
 
         # Proceed to update unprivileged fields
         return self.update_unprivileged_details(request, user)
