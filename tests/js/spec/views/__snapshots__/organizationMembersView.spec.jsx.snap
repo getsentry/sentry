@@ -28,7 +28,7 @@ exports[`OrganizationMembersView No Require Link does not have 2fa warning if us
   flex: 1;
 }
 
-.glamor-87 {
+.glamor-85 {
   background: #fff;
   border: 1px solid;
   margin-bottom: 30px;
@@ -38,9 +38,10 @@ exports[`OrganizationMembersView No Require Link does not have 2fa warning if us
 .glamor-23 {
   border-bottom: 1px solid;
   border-radius: 0 0;
-  background: padding:15px 0;
   text-transform: uppercase;
   font-size: 13px;
+  line-height: 1;
+  padding: 15px 0;
 }
 
 .glamor-19 {
@@ -266,7 +267,7 @@ exports[`OrganizationMembersView No Require Link does not have 2fa warning if us
         />
         <Styled(div)>
           <div
-            className="glamor-87 glamor-88"
+            className="glamor-85 glamor-86"
           >
             <PanelHeader
               disablePadding={true}
@@ -376,9 +377,13 @@ exports[`OrganizationMembersView No Require Link does not have 2fa warning if us
                 </div>
               </Styled(div)>
             </PanelHeader>
-            <Styled(div)>
+            <PanelBody
+              direction="column"
+              disablePadding={true}
+              flex={false}
+            >
               <div
-                className="glamor-85 glamor-86"
+                className=""
               >
                 <OrganizationMemberRow
                   canAddMembers={true}
@@ -1172,7 +1177,7 @@ exports[`OrganizationMembersView No Require Link does not have 2fa warning if us
                   </Row>
                 </OrganizationMemberRow>
               </div>
-            </Styled(div)>
+            </PanelBody>
           </div>
         </Styled(div)>
         <Pagination
@@ -1212,7 +1217,7 @@ exports[`OrganizationMembersView Require Link does not have 2fa warning if user 
   flex: 1;
 }
 
-.glamor-87 {
+.glamor-85 {
   background: #fff;
   border: 1px solid;
   margin-bottom: 30px;
@@ -1222,9 +1227,10 @@ exports[`OrganizationMembersView Require Link does not have 2fa warning if user 
 .glamor-23 {
   border-bottom: 1px solid;
   border-radius: 0 0;
-  background: padding:15px 0;
   text-transform: uppercase;
   font-size: 13px;
+  line-height: 1;
+  padding: 15px 0;
 }
 
 .glamor-19 {
@@ -1450,7 +1456,7 @@ exports[`OrganizationMembersView Require Link does not have 2fa warning if user 
         />
         <Styled(div)>
           <div
-            className="glamor-87 glamor-88"
+            className="glamor-85 glamor-86"
           >
             <PanelHeader
               disablePadding={true}
@@ -1560,9 +1566,13 @@ exports[`OrganizationMembersView Require Link does not have 2fa warning if user 
                 </div>
               </Styled(div)>
             </PanelHeader>
-            <Styled(div)>
+            <PanelBody
+              direction="column"
+              disablePadding={true}
+              flex={false}
+            >
               <div
-                className="glamor-85 glamor-86"
+                className=""
               >
                 <OrganizationMemberRow
                   canAddMembers={true}
@@ -2423,7 +2433,7 @@ exports[`OrganizationMembersView Require Link does not have 2fa warning if user 
                   </Row>
                 </OrganizationMemberRow>
               </div>
-            </Styled(div)>
+            </PanelBody>
           </div>
         </Styled(div)>
         <Pagination

@@ -6,6 +6,9 @@ import {t, tct} from '../locale';
 import AsyncView from './asyncView';
 import Button from '../components/buttons/button';
 import ListLink from '../components/listLink';
+import Panel from './settings/components/panel';
+import PanelBody from './settings/components/panelBody';
+import PanelHeader from './settings/components/panelHeader';
 import PluginList from '../components/pluginList';
 import SettingsPageHeader from './settings/components/settingsPageHeader';
 
@@ -20,11 +23,9 @@ class DigestSettings extends React.Component {
   render() {
     let {orgId, projectId, initialData, onSave} = this.props;
     return (
-      <div className="box">
-        <div className="box-header">
-          <h3>{t('Digests')}</h3>
-        </div>
-        <div className="box-content with-padding">
+      <Panel>
+        <PanelHeader>{t('Digests')}</PanelHeader>
+        <PanelBody px={2} pt={2} flex>
           <p>
             {t(
               'Sentry will automatically digest alerts sent ' +
@@ -68,8 +69,8 @@ class DigestSettings extends React.Component {
               </div>
             </div>
           </ApiForm>
-        </div>
-      </div>
+        </PanelBody>
+      </Panel>
     );
   }
 }
@@ -85,12 +86,10 @@ class GeneralSettings extends React.Component {
   render() {
     let {orgId, projectId, initialData, onSave} = this.props;
     return (
-      <div className="box">
-        <div className="box-header">
-          <h3>{t('Email Settings')}</h3>
-        </div>
+      <Panel>
+        <PanelHeader>{t('Email Settings')}</PanelHeader>
 
-        <div className="box-content with-padding">
+        <PanelBody px={2} pt={2} flex>
           <ApiForm
             onSubmitSuccess={onSave}
             apiMethod="PUT"
@@ -107,8 +106,8 @@ class GeneralSettings extends React.Component {
               )}
             />
           </ApiForm>
-        </div>
-      </div>
+        </PanelBody>
+      </Panel>
     );
   }
 }
