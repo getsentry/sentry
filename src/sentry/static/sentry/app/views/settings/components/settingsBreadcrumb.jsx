@@ -18,7 +18,7 @@ const Breadcrumbs = styled.div`
   align-items: center;
 `;
 
-const MenuItem = styled(Link)`
+const MenuItem = styled(({active, ...props}) => <Link {...props} />)`
   display: block;
   padding: 15px;
   border-bottom: 1px solid ${p => p.theme.borderLight};

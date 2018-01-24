@@ -37,6 +37,8 @@ describe('LazyLoad', function() {
   });
 
   it('renders with error message when promise is rejected', async function() {
+    // eslint-disable-next-line no-console
+    console.error = jest.fn();
     let reject;
     let promise = new Promise((resolve, rej) => {
       reject = rej;
@@ -56,5 +58,9 @@ describe('LazyLoad', function() {
     wrapper.update();
     expect(wrapper.find('LoadingIndicator').length).toBe(0);
     expect(wrapper.find('LoadingError').length).toBe(1);
+    // eslint-disable-next-line no-console
+    expect(console.error).toHaveBeenCalled();
+    // eslint-disable-next-line no-console
+    console.error.mockRestore();
   });
 });

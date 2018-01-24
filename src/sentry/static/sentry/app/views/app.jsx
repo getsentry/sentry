@@ -1,11 +1,11 @@
 /*global __webpack_public_path__ */
 /*eslint no-native-reassign:0 */
 import $ from 'jquery';
-import createReactClass from 'create-react-class';
-import Cookies from 'js-cookie';
 import {ThemeProvider} from 'emotion-theming';
+import Cookies from 'js-cookie';
 import PropTypes from 'prop-types';
 import React from 'react';
+import createReactClass from 'create-react-class';
 
 import {t} from '../locale';
 import AlertActions from '../actions/alertActions';
@@ -17,7 +17,6 @@ import InstallWizard from './installWizard';
 import LoadingIndicator from '../components/loadingIndicator';
 import OrganizationsLoader from '../components/organizations/organizationsLoader';
 import OrganizationsStore from '../stores/organizationsStore';
-import SudoModal from '../components/modals/sudoModal';
 import GlobalModal from '../components/globalModal';
 import theme from '../utils/theme';
 
@@ -148,7 +147,6 @@ const App = createReactClass({
     return (
       <ThemeProvider theme={theme}>
         <OrganizationsLoader>
-          <SudoModal />
           <GlobalModal />
           <Alerts className="messages-container" />
           <Indicators className="indicators-container" />

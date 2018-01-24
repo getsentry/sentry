@@ -1,83 +1,71 @@
-import {browserHistory} from 'react-router';
-import Modal from 'react-bootstrap/lib/Modal';
+import PropTypes from 'prop-types';
 import React from 'react';
 import createReactClass from 'create-react-class';
-import Reflux from 'reflux';
-import classNames from 'classnames';
 
 import {t} from '../../locale';
 import ApiForm from '../forms/apiForm';
 import ApiMixin from '../../mixins/apiMixin';
 import LoadingIndicator from '../loadingIndicator';
 import SimplePasswordField from '../forms/simplePasswordField';
-import SudoActions from '../../actions/sudoActions';
-import SudoModalStore from '../../stores/sudoModalStore';
 import U2fContainer from '../u2fContainer';
 
-const SudoModal = createReactClass({
-  displayName: 'SudoModal',
-  mixins: [ApiMixin, Reflux.connect(SudoModalStore, 'modalProps')],
+class SudoModal extends React.Component {
+  static propTypes = {
+    api: PropTypes.object,
+    closeModal: PropTypes.func.isRequired,
+    /**
+     * expects a function that returns a Promise
+     */
+    retryRequest: PropTypes.func.isRequired,
 
-  getInitialState() {
-    return {
-      modalProps: false,
+    Header: PropTypes.oneOfType([PropTypes.func, PropTypes.node]).isRequired,
+    Body: PropTypes.oneOfType([PropTypes.func, PropTypes.node]).isRequired,
+  };
+
+  constructor(...args) {
+    super(...args);
+    this.state = {
       error: false,
       busy: false,
     };
-  },
+  }
 
-  componentDidMount() {
-    // Listen for route changes so we can dismiss modal
-    this.unlisten = browserHistory.listen(() =>
-      this.setState({
-        modalProps: false,
-      })
-    );
-  },
-
-  componentWillUnmount() {
-    if (this.unlisten) {
-      this.unlisten();
-    }
-  },
-
-  handleSubmit() {
+  handleSubmit = () => {
     this.setState({busy: true});
-  },
+  };
 
-  handleSuccess() {
-    if (!this.state.modalProps || !this.state.modalProps.retryRequest) return;
+  handleSuccess = () => {
+    let {closeModal, retryRequest} = this.props;
+    if (!retryRequest) return;
 
     this.setState(
       {
         busy: true,
       },
       () => {
-        if (!this.state.modalProps) return;
-
-        this.state.modalProps.retryRequest().then(() => {
+        retryRequest().then(() => {
           this.setState(
             {
               busy: false,
             },
-            SudoActions.closeModal
+            closeModal
           );
         });
       }
     );
-  },
+  };
 
-  handleError() {
+  handleError = () => {
     this.setState({
       busy: false,
       error: true,
     });
-  },
+  };
 
-  handleU2fTap(data) {
+  handleU2fTap = data => {
     this.setState({busy: true});
     // u2Interface expects this to return a promise
-    return this.api
+    return this.props.api
       .requestPromise('/sudo/', {
         method: 'POST',
         data,
@@ -91,54 +79,51 @@ const SudoModal = createReactClass({
         // u2fInterface relies on this
         throw err;
       });
-  },
+  };
 
   render() {
-    let {className} = this.props;
-    let cx = classNames('sudo-modal', className);
-    let showModal = !!this.state.modalProps;
+    let {closeModal, Header, Body} = this.props;
 
     return (
-      <Modal
-        className={cx}
-        show={showModal}
-        animation={false}
-        onHide={SudoActions.closeModal}
+      <ApiForm
+        apiMethod="POST"
+        apiEndpoint="/sudo/"
+        footerClass="modal-footer"
+        submitLabel={t('Continue')}
+        onSubmit={this.handleSubmit}
+        onSubmitSuccess={this.handleSuccess}
+        onSubmitError={this.handleError}
+        hideErrors
+        resetOnError
       >
-        {showModal && (
-          <ApiForm
-            apiMethod="POST"
-            apiEndpoint="/sudo/"
-            footerClass="modal-footer"
-            submitLabel={t('Continue')}
-            onSubmit={this.handleSubmit}
-            onSubmitSuccess={this.handleSuccess}
-            onSubmitError={this.handleError}
-            hideErrors
-            resetOnError
-          >
-            <Modal.Header closeButton onHide={SudoActions.closeModal}>
-              {t('Confirm Your Identity')}
-            </Modal.Header>
+        <Header closeButton onHide={closeModal}>
+          {t('Confirm Your Identity')}
+        </Header>
 
-            <Modal.Body>
-              {this.state.busy && <LoadingIndicator overlay />}
-              <p>{t('Help us keep your account safe by confirming your identity.')}</p>
-              {this.state.error && (
-                <div className="alert alert-error alert-block">
-                  {t('Incorrect password')}
-                </div>
-              )}
+        <Body>
+          {this.state.busy && <LoadingIndicator overlay />}
+          <p>{t('Help us keep your account safe by confirming your identity.')}</p>
+          {this.state.error && (
+            <div className="alert alert-error alert-block">{t('Incorrect password')}</div>
+          )}
 
-              <SimplePasswordField label={t('Password')} required name="password" />
+          <SimplePasswordField label={t('Password')} required name="password" />
 
-              <U2fContainer displayMode="sudo" onTap={this.handleU2fTap} />
-            </Modal.Body>
-          </ApiForm>
-        )}
-      </Modal>
+          <U2fContainer displayMode="sudo" onTap={this.handleU2fTap} />
+        </Body>
+      </ApiForm>
     );
+  }
+}
+
+const SudoModalContainer = createReactClass({
+  displayName: 'SudoModalContainer',
+  mixins: [ApiMixin],
+
+  render() {
+    return <SudoModal {...this.props} api={this.api} />;
   },
 });
 
-export default SudoModal;
+export default SudoModalContainer;
+export {SudoModal};

@@ -59,31 +59,26 @@ class LazyLoad extends React.Component {
 
   getComponentGetter = () => this.props.component || this.props.route.componentPromise;
 
+  handleFetchError = error => {
+    // eslint-disable-next-line no-console
+    console.error(error);
+    Raven.captureException(error);
+    this.setState({
+      error,
+    });
+  };
+
   fetchComponent = () => {
     let getComponent = this.getComponentGetter();
 
     getComponent()
-      .then(
-        Component => {
-          // Always load default export if available
-          this.setState({
-            Component: Component.default || Component,
-          });
-        },
-        err => {
-          this.setState({
-            error: err,
-          });
-        }
-      )
-      .catch(err => {
-        // eslint-disable-next-line no-console
-        console.warn(err);
-        Raven.captureException(err);
+      .then(Component => {
+        // Always load default export if available
         this.setState({
-          error: err,
+          Component: Component.default || Component,
         });
-      });
+      }, this.handleFetchError)
+      .catch(this.handleFetchError);
   };
 
   fetchRetry = () => {
