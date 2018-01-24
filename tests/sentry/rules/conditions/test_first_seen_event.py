@@ -1,5 +1,6 @@
 from __future__ import absolute_import
 
+from sentry.models import Rule
 from sentry.testutils.cases import RuleTestCase
 from sentry.rules.conditions.first_seen_event import FirstSeenEventCondition
 
@@ -8,7 +9,9 @@ class FirstSeenEventConditionTest(RuleTestCase):
     rule_cls = FirstSeenEventCondition
 
     def test_applies_correctly(self):
-        rule = self.get_rule()
+        rule = self.get_rule(
+            rule=Rule(environment_id=None),
+        )
 
         self.assertPasses(rule, self.event, is_new=True)
 
