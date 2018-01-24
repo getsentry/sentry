@@ -15,16 +15,8 @@ const TagTextStyled = styled('span')`
   border-radius: 0.25em;
   margin-left: 0.5em;
   text-transform: lowercase;
-  background-color: ${p => {
-    switch (p.priority) {
-      case 'warning':
-        return p.theme.yellowOrange;
-      case 'success':
-        return p.theme.greenLight;
-      default:
-        return p.theme.gray1;
-    }
-  }};
+  background-color: ${p =>
+    p.priority ? p.theme.alert[p.priority].background : p.theme.gray1};
 `;
 
 const Tag = ({children, priority, ...props}) => (
