@@ -7,6 +7,7 @@ import Confirm from '../components/confirm';
 import DropdownLink from '../components/dropdownLink';
 import IndicatorStore from '../stores/indicatorStore';
 import MenuItem from '../components/menuItem';
+import PluginIcon from '../plugins/components/pluginIcon';
 
 export default class OrganizationIntegrations extends AsyncView {
   componentDidMount() {
@@ -125,11 +126,6 @@ export default class OrganizationIntegrations extends AsyncView {
 
   renderBody() {
     let itemList = this.state.itemList;
-    let iconStyles = {
-      width: 24,
-      height: 24,
-      display: 'inline-block',
-    };
 
     return (
       <div className="ref-organization-integrations">
@@ -159,11 +155,7 @@ export default class OrganizationIntegrations extends AsyncView {
                   return (
                     <tr key={integration.id}>
                       <td style={{width: 24, paddingRight: 0}}>
-                        <span
-                          className={`icon icon-integration icon-${integration.provider
-                            .key}`}
-                          style={iconStyles}
-                        />
+                        <PluginIcon size={24} pluginId={integration.provider.key} />
                       </td>
                       <td>
                         <strong>{integration.name}</strong> —{' '}

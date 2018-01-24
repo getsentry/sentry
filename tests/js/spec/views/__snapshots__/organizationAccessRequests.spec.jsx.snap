@@ -16,7 +16,11 @@ exports[`OrganizationAccessRequests renders list 1`] = `
       </Box>
     </Flex>
   </PanelHeader>
-  <Styled(div)>
+  <PanelBody
+    direction="column"
+    disablePadding={true}
+    flex={false}
+  >
     <Styled(Base)
       align="center"
       key="id"
@@ -75,6 +79,6 @@ exports[`OrganizationAccessRequests renders list 1`] = `
         </Button>
       </Box>
     </Styled(Base)>
-  </Styled(div)>
+  </PanelBody>
 </Styled(div)>
 `;

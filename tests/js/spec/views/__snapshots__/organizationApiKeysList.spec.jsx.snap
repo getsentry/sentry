@@ -36,7 +36,7 @@ exports[`OrganizationApiKeysList renders 1`] = `
   line-height: 1.8;
 }
 
-.glamor-43 {
+.glamor-41 {
   background: #fff;
   border: 1px solid;
   margin-bottom: 30px;
@@ -46,9 +46,10 @@ exports[`OrganizationApiKeysList renders 1`] = `
 .glamor-27 {
   border-bottom: 1px solid;
   border-radius: 0 0;
-  background: padding:15px 0;
   text-transform: uppercase;
   font-size: 13px;
+  line-height: 1;
+  padding: 15px 0;
 }
 
 .glamor-23 {
@@ -322,7 +323,7 @@ exports[`OrganizationApiKeysList renders 1`] = `
     </div>
     <Styled(div)>
       <div
-        className="glamor-43 glamor-44"
+        className="glamor-41 glamor-42"
       >
         <PanelHeader
           disablePadding={true}
@@ -431,9 +432,13 @@ exports[`OrganizationApiKeysList renders 1`] = `
             </div>
           </Styled(div)>
         </PanelHeader>
-        <Styled(div)>
+        <PanelBody
+          direction="column"
+          disablePadding={true}
+          flex={false}
+        >
           <div
-            className="glamor-41 glamor-42"
+            className=""
           >
             <Styled(Base)
               align="center"
@@ -610,7 +615,7 @@ exports[`OrganizationApiKeysList renders 1`] = `
               </Base>
             </Styled(Base)>
           </div>
-        </Styled(div)>
+        </PanelBody>
       </div>
     </Styled(div)>
   </div>

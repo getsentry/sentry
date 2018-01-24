@@ -24,7 +24,11 @@ exports[`AccountEmails renders with emails 1`] = `
           Emails
         </Box>
       </PanelHeader>
-      <Styled(div)>
+      <PanelBody
+        direction="column"
+        disablePadding={true}
+        flex={false}
+      >
         <EmailRow
           email="primary@example.com"
           isPrimary={true}
@@ -47,7 +51,7 @@ exports[`AccountEmails renders with emails 1`] = `
           onRemove={[Function]}
           onSetPrimary={[Function]}
         />
-      </Styled(div)>
+      </PanelBody>
     </Styled(div)>
     <Form
       allowUndo={false}

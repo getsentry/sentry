@@ -1,12 +1,13 @@
+import {Flex} from 'grid-emotion';
 import PropTypes from 'prop-types';
 import React from 'react';
 import _ from 'lodash';
 
 import {Form, FormState} from '../../components/forms';
-import PluginComponentBase from '../../components/bases/pluginComponentBase';
-import LoadingIndicator from '../../components/loadingIndicator';
-import {t, tct} from '../../locale';
 import {parseRepo} from '../../utils';
+import {t, tct} from '../../locale';
+import LoadingIndicator from '../../components/loadingIndicator';
+import PluginComponentBase from '../../components/bases/pluginComponentBase';
 
 class PluginSettings extends PluginComponentBase {
   constructor(props, context) {
@@ -145,23 +146,29 @@ class PluginSettings extends PluginComponentBase {
       return null;
     }
     return (
-      <Form onSubmit={this.onSubmit} submitDisabled={isSaving || !hasChanges}>
-        {this.state.errors.__all__ && (
-          <div className="alert alert-block alert-error">
-            <ul>
-              <li>{this.state.errors.__all__}</li>
-            </ul>
-          </div>
-        )}
-        {this.state.fieldList.map(f => {
-          return this.renderField({
-            key: f.name,
-            config: f,
-            formData: this.state.formData,
-            formErrors: this.state.errors,
-            onChange: this.changeField.bind(this, f.name),
-          });
-        })}
+      <Form
+        css={{width: '100%'}}
+        onSubmit={this.onSubmit}
+        submitDisabled={isSaving || !hasChanges}
+      >
+        <Flex direction="column">
+          {this.state.errors.__all__ && (
+            <div className="alert alert-block alert-error">
+              <ul>
+                <li>{this.state.errors.__all__}</li>
+              </ul>
+            </div>
+          )}
+          {this.state.fieldList.map(f => {
+            return this.renderField({
+              key: f.name,
+              config: f,
+              formData: this.state.formData,
+              formErrors: this.state.errors,
+              onChange: this.changeField.bind(this, f.name),
+            });
+          })}
+        </Flex>
       </Form>
     );
   }

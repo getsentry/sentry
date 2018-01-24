@@ -503,28 +503,6 @@ table.integrations {
     padding-left: 78px !important;
   }
 
-  .icon-integration {
-    position: absolute;
-    top: 15px;
-    left: 16px;
-    .square(48px);
-    border-radius: 2px;
-    border: 0;
-    /* this is so that there aren't gray boxes before load */
-    background-color: #fff;
-    display: inline-block;
-  }
-
-  .auto-tag-browsers,
-  .auto-tag-device,
-  .auto-tag-interface-types,
-  .auto-tag-operating-systems,
-  .auto-tag-urls {
-    .icon-integration {
-      .icon-sentry;
-    }
-  }
-
   h5 {
     font-size: 16px;
     margin-bottom: 8px;
@@ -3414,53 +3392,6 @@ ul.tag-list {
 
     a {
       word-break: break-all;
-    }
-  }
-}
-
-/**
-* Integration list
-* ============================================================================
-*/
-
-.integration-list {
-  .clearfix();
-  .list-unstyled();
-  margin-bottom: 18px;
-
-  li {
-    display: inline-block;
-    margin-bottom: 2px;
-
-    button {
-      width: 175px;
-      text-align: center;
-      font-size: 12px;
-      color: darken(#e4e8ed, 30%);
-      letter-spacing: 0.1px;
-      font-weight: 600;
-      text-transform: uppercase;
-      border: 1px solid #eee;
-      background: inherit;
-      border-radius: 4px;
-      padding: 10px;
-      display: block;
-      margin-right: 5px;
-
-      &:hover {
-        border-color: #ccc;
-      }
-      .icon-integration {
-        position: relative;
-        top: 4px;
-        right: 5px;
-        .square(20px);
-        border-radius: 2px;
-        border: 0;
-        /* this is so that there aren't gray boxes before load */
-        background-color: #fff;
-        display: inline-block;
-      }
     }
   }
 }

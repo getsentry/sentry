@@ -1,12 +1,20 @@
+import {Link} from 'react-router';
 import PropTypes from 'prop-types';
 import React from 'react';
-import {Link} from 'react-router';
+import styled from 'react-emotion';
 
 import {t} from '../../locale';
 import Checkbox from '../../components/checkbox';
 import ExternalLink from '../../components/externalLink';
+import PluginIcon from '../../plugins/components/pluginIcon';
 import SentryTypes from '../../proptypes';
 import DynamicWrapper from '../../components/dynamicWrapper';
+
+const StyledPluginIcon = styled(PluginIcon)`
+  position: absolute;
+  top: 15px;
+  left: 16px;
+`;
 
 class ProjectPluginRow extends React.PureComponent {
   static propTypes = {
@@ -37,7 +45,7 @@ class ProjectPluginRow extends React.PureComponent {
     return (
       <tr key={id} className={slug}>
         <td colSpan={2}>
-          <div className={`icon-integration icon-${id}`} />
+          <StyledPluginIcon size={48} pluginId={id} />
           <h5>
             {`${name} `}
             <DynamicWrapper

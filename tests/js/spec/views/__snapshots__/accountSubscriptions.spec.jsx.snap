@@ -34,7 +34,11 @@ exports[`AccountSubscriptions renders empty 1`] = `
           </Box>
         </Flex>
       </PanelHeader>
-      <Styled(div) />
+      <PanelBody
+        direction="column"
+        disablePadding={true}
+        flex={false}
+      />
     </Styled(div)>
     <Styled(div)>
       We’re applying GDPR consent and privacy policies to all Sentry contacts, regardless of location. You’ll be able to manage your subscriptions here and from an Unsubscribe link in the footer of all marketing emails.
@@ -85,7 +89,7 @@ exports[`AccountSubscriptions renders list and can toggle 1`] = `
   margin-bottom: 30px;
 }
 
-.glamor-53 {
+.glamor-51 {
   background: #fff;
   border: 1px solid;
   margin-bottom: 30px;
@@ -95,9 +99,10 @@ exports[`AccountSubscriptions renders list and can toggle 1`] = `
 .glamor-23 {
   border-bottom: 1px solid;
   border-radius: 0 0;
-  background: padding:15px 0;
   text-transform: uppercase;
   font-size: 13px;
+  line-height: 1;
+  padding: 15px 0;
 }
 
 .glamor-19 {
@@ -241,7 +246,7 @@ exports[`AccountSubscriptions renders list and can toggle 1`] = `
         </Styled(div)>
         <Styled(div)>
           <div
-            className="glamor-53 glamor-54"
+            className="glamor-51 glamor-52"
           >
             <PanelHeader
               disablePadding={true}
@@ -315,9 +320,13 @@ exports[`AccountSubscriptions renders list and can toggle 1`] = `
                 </div>
               </Styled(div)>
             </PanelHeader>
-            <Styled(div)>
+            <PanelBody
+              direction="column"
+              disablePadding={true}
+              flex={false}
+            >
               <div
-                className="glamor-51 glamor-52"
+                className=""
               >
                 <Row
                   align="center"
@@ -505,7 +514,7 @@ exports[`AccountSubscriptions renders list and can toggle 1`] = `
                   </Styled(Base)>
                 </Row>
               </div>
-            </Styled(div)>
+            </PanelBody>
           </div>
         </Styled(div)>
         <Styled(div)>

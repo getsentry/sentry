@@ -113,6 +113,20 @@ exports[`OrganizationIntegrations render() with a provider renders 1`] = `
 `;
 
 exports[`OrganizationIntegrations render() with a provider renders with a repository 1`] = `
+.glamor-0 {
+  position: relative;
+  height: 24px;
+  width: 24px;
+  border-radius: 2px;
+  border: 0;
+  background-color: #fff;
+  display: inline-block;
+  background-size: contain;
+  background-position: center center;
+  background-repeat: no-repeat;
+  background-image: url();
+}
+
 <OrganizationIntegrations
   params={
     Object {
@@ -213,16 +227,20 @@ exports[`OrganizationIntegrations render() with a provider renders with a reposi
                     }
                   }
                 >
-                  <span
-                    className="icon icon-integration icon-github"
-                    style={
-                      Object {
-                        "display": "inline-block",
-                        "height": 24,
-                        "width": 24,
-                      }
-                    }
-                  />
+                  <PluginIcon
+                    pluginId="github"
+                    size={24}
+                  >
+                    <Styled(div)
+                      image={Object {}}
+                      size={24}
+                    >
+                      <div
+                        className="glamor-0 glamor-1"
+                        size={24}
+                      />
+                    </Styled(div)>
+                  </PluginIcon>
                 </td>
                 <td>
                   <strong>
