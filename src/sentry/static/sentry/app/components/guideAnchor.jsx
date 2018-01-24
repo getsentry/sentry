@@ -1,12 +1,17 @@
 import PropTypes from 'prop-types';
 import classNames from 'classnames';
 import React from 'react';
+
+import createReactClass from 'create-react-class';
 import Reflux from 'reflux';
 import GuideStore from '../stores/guideStore';
 
-const GuideAnchor = React.createClass({
+// update create class. connect to guidestore instead of listento, move fetchguide to action creator
+
+const GuideAnchor = createReactClass({
   propTypes: {
     target: PropTypes.string.isRequired,
+    type: PropTypes.string.isRequired,
   },
 
   mixins: [Reflux.listenTo(GuideStore, 'onGuideChange')],

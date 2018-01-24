@@ -34,7 +34,7 @@ const GuideStore = Reflux.createStore({
   },
 
   getFirstStep() {
-    return this._internal.guide.steps[0];
+    return this._internal.guide.steps[0]; //will only have one step here
   },
 
   getCurrentGuide() {

@@ -1,16 +1,20 @@
 import React from 'react';
+import createReactClass from 'create-react-class';
 import Reflux from 'reflux';
 import classNames from 'classnames';
+import DugoutSearch from './dugoutSearch';
 import ApiMixin from '../mixins/apiMixin';
 import GuideStore from '../stores/guideStore';
 
-const DugoutHelper = React.createClass({
-  mixins: [ApiMixin, Reflux.listenTo(GuideStore, 'onGuideChange')],
+const DugoutHelper = createReactClass({
+  displayName: 'DugoutHelper',
+
+  // mixins: [ApiMixin, Reflux.listenTo(GuideStore, 'onGuideChange')],
+  mixins: [ApiMixin, Reflux.connect(GuideStore, 'guide')],
 
   getInitialState(props) {
     return {
-      title: GuideStore.getCurrentGuide().starting_message,
-      description: '',
+      guide: null,
     };
   },
 
@@ -38,8 +42,8 @@ const DugoutHelper = React.createClass({
       ''
     ) : (
       <div className="dugout-message-large">
-        <div className="dugout-message-large-title">{this.state.title}</div>
-        <div className="dugout-message-large-text">{this.state.description}</div>
+        <div className="dugout-message-large-title">{this.state.guide.title}</div>
+        <div className="dugout-message-large-text">{this.state.guide.description}</div>
       </div>
     );
   },
@@ -49,21 +53,24 @@ const DugoutHelper = React.createClass({
   },
 
   render() {
-    if (GuideStore.getCurrentGuide().steps <= 0) return null;
-    return (
-      <div>
-        <div
-          onClick={this.clickedHandle}
-          className={classNames('dugout-drawer', {
-            'dugout-drawer--engaged': !this.isFirstStep(),
-          })}
-        >
-          <div className="dugout-message">{this.currentGuide().starting_message}</div>
+    if (!this.guide) {
+      return <DugoutSearch subscription={2} />; //placeholder subscription
+    } else {
+      return (
+        <div>
+          <div
+            onClick={this.clickedHandle}
+            className={classNames('dugout-drawer', {
+              'dugout-drawer--engaged': !this.isFirstStep(),
+            })}
+          >
+            <div className="dugout-message">{this.state.guide.starting_message}</div>
 
-          {this.largeMessage()}
+            {this.largeMessage()}
+          </div>
         </div>
-      </div>
-    );
+      );
+    }
   },
 });
 
