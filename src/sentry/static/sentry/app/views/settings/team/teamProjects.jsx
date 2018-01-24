@@ -15,6 +15,7 @@ import Panel from '../components/panel';
 import PanelItem from '../components/panelItem';
 import PanelHeader from '../components/panelHeader';
 
+import {sortProjects} from '../../../utils.jsx';
 import {t} from '../../../locale';
 
 const TeamProjects = createReactClass({
@@ -79,6 +80,21 @@ const TeamProjects = createReactClass({
     });
   },
 
+  projectPanelcontents(projects) {
+    return sortProjects(projects).map((project, i) => (
+      <PanelItem key={i} align="center">
+        <Box w={1 / 2} p={2}>
+          <ProjectListItem project={project} organization={this.context.organization} />
+        </Box>
+        <Box w={1 / 2} p={2} style={{textAlign: 'right'}}>
+          <Button size="small" className="pull-right">
+            Remove
+          </Button>
+        </Box>
+      </PanelItem>
+    ));
+  },
+
   render() {
     if (this.state.loading) return <LoadingIndicator />;
     else if (this.state.error) return <LoadingError onRetry={this.fetchData} />;
@@ -94,43 +110,12 @@ const TeamProjects = createReactClass({
     return (
       <div>
         <Panel>
-          {linkedProjects
-            .sort(({isBookmarked}) => (isBookmarked ? -1 : 1))
-            .map((project, i) => (
-              <PanelItem key={i} align="center">
-                <Box w={1 / 2} p={2}>
-                  <ProjectListItem
-                    project={project}
-                    organization={this.context.organization}
-                  />
-                </Box>
-                <Box w={1 / 2} p={2} style={{textAlign: 'right'}}>
-                  <Button size="small" className="pull-right">
-                    Remove
-                  </Button>
-                </Box>
-              </PanelItem>
-            ))}
+          <PanelHeader>{t('Associated Projects:')}</PanelHeader>
+          {this.projectPanelcontents(linkedProjects, 'Remove')}
         </Panel>
         <Panel>
           <PanelHeader>{t('Other Projects:')}</PanelHeader>
-          {otherProjects
-            .sort(({isBookmarked}) => (isBookmarked ? -1 : 1))
-            .map((project, i) => (
-              <PanelItem key={i} align="center">
-                <Box w={1 / 2} p={2}>
-                  <ProjectListItem
-                    project={project}
-                    organization={this.context.organization}
-                  />
-                </Box>
-                <Box w={1 / 2} p={2} style={{textAlign: 'right'}}>
-                  <Button size="small" className="pull-right">
-                    Add
-                  </Button>
-                </Box>
-              </PanelItem>
-            ))}
+          {this.projectPanelcontents(otherProjects, 'Add')}
         </Panel>
       </div>
     );

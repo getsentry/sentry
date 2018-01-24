@@ -27,6 +27,7 @@ class Client {
         statusCode: 200,
         body: '',
         method: 'GET',
+        callCount: 0,
         ...response,
       },
       mock,
@@ -89,7 +90,6 @@ class Client {
 
       // mock gets returned when we add a mock response, will represent calls to api.request
       mock(url, options);
-
       if (response.statusCode !== 200) {
         response.callCount++;
         let resp = {

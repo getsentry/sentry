@@ -10,6 +10,7 @@ import ProjectListItem from './components/projectListItem';
 import ProjectsStore from '../../../../stores/projectsStore';
 import SentryTypes from '../../../../proptypes';
 import SpreadLayout from '../../../../components/spreadLayout';
+import {sortProjects} from '../../../../utils.jsx';
 
 class OrganizationProjectsView extends OrganizationSettingsView {
   static contextTypes = {
@@ -32,15 +33,13 @@ class OrganizationProjectsView extends OrganizationSettingsView {
 
         <table className="table table-no-top-border m-b-0">
           <tbody>
-            {projects
-              .sort(({isBookmarked}) => (isBookmarked ? -1 : 1))
-              .map((project, i) => (
-                <ProjectListItem
-                  key={i}
-                  project={project}
-                  organization={this.context.organization}
-                />
-              ))}
+            {sortProjects(projects).map((project, i) => (
+              <ProjectListItem
+                key={i}
+                project={project}
+                organization={this.context.organization}
+              />
+            ))}
           </tbody>
         </table>
       </div>
@@ -48,14 +47,13 @@ class OrganizationProjectsView extends OrganizationSettingsView {
   }
 }
 
-// reflux :(
 const OrganizationProjectsViewContainer = createReactClass({
   displayName: 'OrganizationProjectsViewContainer',
   mixins: [ApiMixin, Reflux.listenTo(ProjectsStore, 'onProjectUpdate')],
 
   getInitialState() {
     return {
-      projects: Array.from(ProjectsStore.getAll().values()),
+      projects: Array.from(ProjectsStore.getAll()),
     };
   },
 
@@ -73,7 +71,7 @@ const OrganizationProjectsViewContainer = createReactClass({
   onProjectUpdate(projects) {
     // loadInitialData returns a list of ids
     this.setState({
-      projects: Array.from(ProjectsStore.getAll().values()),
+      projects: Array.from(ProjectsStore.getAll()),
     });
   },
 

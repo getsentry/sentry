@@ -1,0 +1,193 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`OrganizationProjectsView render() Should render the projects in the store 1`] = `
+.glamor-0 {
+  text-align: right;
+  -webkit-box-pack: end;
+  -webkit-justify-content: flex-end;
+  -ms-flex-pack: end;
+  justify-content: flex-end;
+  width: 200px;
+}
+
+<OrganizationProjectsViewContainer
+  params={
+    Object {
+      "orgId": "org-slug",
+    }
+  }
+>
+  <OrganizationProjectsView
+    params={
+      Object {
+        "orgId": "org-slug",
+      }
+    }
+    projects={
+      Array [
+        Object {
+          "digestsMaxDelay": 60,
+          "digestsMinDelay": 5,
+          "id": "2",
+          "name": "Project Name",
+          "slug": "project-slug",
+          "subjectTemplate": "[$project] \${tag:level}: $title",
+        },
+      ]
+    }
+  >
+    <SideEffect(DocumentTitle)
+      title="Organization Name Projects"
+    >
+      <DocumentTitle
+        title="Organization Name Projects"
+      >
+        <div>
+          <SpreadLayout
+            center={true}
+            className="page-header"
+            responsive={false}
+          >
+            <div
+              className="spread-layout page-header center"
+            >
+              <h3>
+                Projects
+              </h3>
+            </div>
+          </SpreadLayout>
+          <table
+            className="table table-no-top-border m-b-0"
+          >
+            <tbody>
+              <ProjectListItem
+                key="0"
+                organization={
+                  Object {
+                    "access": Array [
+                      "org:read",
+                      "org:write",
+                      "org:admin",
+                      "project:read",
+                      "project:write",
+                      "project:admin",
+                      "team:read",
+                      "team:write",
+                      "team:admin",
+                    ],
+                    "features": Array [],
+                    "id": "3",
+                    "name": "Organization Name",
+                    "onboardingTasks": Array [],
+                    "slug": "org-slug",
+                    "status": Object {
+                      "id": "active",
+                      "name": "active",
+                    },
+                    "teams": Array [],
+                  }
+                }
+                project={
+                  Object {
+                    "digestsMaxDelay": 60,
+                    "digestsMinDelay": 5,
+                    "id": "2",
+                    "name": "Project Name",
+                    "slug": "project-slug",
+                    "subjectTemplate": "[$project] \${tag:level}: $title",
+                  }
+                }
+              >
+                <tr
+                  className={null}
+                  key="2"
+                >
+                  <td>
+                    <h5>
+                      <a
+                        className="tip"
+                        onClick={[Function]}
+                      >
+                        <span
+                          className="icon-star-outline bookmark"
+                        />
+                      </a>
+                      <Link
+                        to="/settings/organization/org-slug/project/project-slug/"
+                      >
+                        <Link
+                          onlyActiveOnIndex={false}
+                          style={Object {}}
+                          to="/settings/organization/org-slug/project/project-slug/"
+                        >
+                          <a
+                            onClick={[Function]}
+                            style={Object {}}
+                          >
+                            <ProjectLabel
+                              organization={
+                                Object {
+                                  "access": Array [
+                                    "org:read",
+                                    "org:write",
+                                    "org:admin",
+                                    "project:read",
+                                    "project:write",
+                                    "project:admin",
+                                    "team:read",
+                                    "team:write",
+                                    "team:admin",
+                                  ],
+                                  "features": Array [],
+                                  "id": "3",
+                                  "name": "Organization Name",
+                                  "onboardingTasks": Array [],
+                                  "slug": "org-slug",
+                                  "status": Object {
+                                    "id": "active",
+                                    "name": "active",
+                                  },
+                                  "teams": Array [],
+                                }
+                              }
+                              project={
+                                Object {
+                                  "digestsMaxDelay": 60,
+                                  "digestsMinDelay": 5,
+                                  "id": "2",
+                                  "name": "Project Name",
+                                  "slug": "project-slug",
+                                  "subjectTemplate": "[$project] \${tag:level}: $title",
+                                }
+                              }
+                            >
+                              <span
+                                className="project-label"
+                              >
+                                <span
+                                  className="project-name"
+                                >
+                                  Project Name
+                                </span>
+                              </span>
+                            </ProjectLabel>
+                          </a>
+                        </Link>
+                      </Link>
+                    </h5>
+                  </td>
+                  <Styled(td)>
+                    <td
+                      className="glamor-0 glamor-1"
+                    />
+                  </Styled(td)>
+                </tr>
+              </ProjectListItem>
+            </tbody>
+          </table>
+        </div>
+      </DocumentTitle>
+    </SideEffect(DocumentTitle)>
+  </OrganizationProjectsView>
+</OrganizationProjectsViewContainer>
+`;
