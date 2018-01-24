@@ -19,7 +19,7 @@ const StyledIconCircleExclamation = styled(props => (
 
 let StyledWarning = styled.div`
   margin: 30px 0;
-  background: ${p => p.theme.alert.info.background};
+  background: ${p => p.theme.alert.info.backgroundLight};
   border: 1px solid ${p => p.theme.alert.info.border};
   padding: 15px 20px;
   border-radius: ${p => p.theme.borderRadius};

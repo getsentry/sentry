@@ -58,15 +58,18 @@ const theme = {
 
   alert: {
     info: {
-      background: '#F5FAFE',
+      backgroundLight: '#F5FAFE',
+      background: '#2D5BB1',
       border: '#B5D6ED',
     },
     warning: {
-      background: '#FFFDF7',
+      backgroundLight: '#FFFDF7',
+      background: '#f9a66d',
       border: '#E1D697',
     },
     success: {
-      background: '#F8FCF7',
+      backgroundLight: '#F8FCF7',
+      background: '#57be8c',
       border: '#BBD6B3',
     },
     error: {
