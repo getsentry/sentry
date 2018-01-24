@@ -37,7 +37,7 @@ class SudoTest(APITestCase):
                 'username': 'foo@example.com',
                 'password': 'admin',
             })
-            assert response.status_code == 200
+            assert response.status_code == 204
 
             # This should now work
             response = self.client.delete(url, is_sudo=False)
