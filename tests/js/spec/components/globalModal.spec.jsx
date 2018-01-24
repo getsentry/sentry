@@ -29,4 +29,31 @@ describe('GlobalModal', function() {
       }, 1);
     }, 1);
   });
+
+  it('calls onClose handler when modal closes', function(done) {
+    let wrapper = mount(<GlobalModal />);
+    let closeSpy = jest.fn();
+
+    openModal(
+      ({Header}) => (
+        <div id="modal-test">
+          <Header closeButton>Header</Header>Hi
+        </div>
+      ),
+      {onClose: closeSpy}
+    );
+
+    // async :<
+    setTimeout(() => {
+      wrapper.update();
+      let modal = $(document.body).find('.modal');
+      modal.find('.close').click();
+
+      setTimeout(() => {
+        wrapper.update();
+        expect(closeSpy).toHaveBeenCalled();
+        done();
+      }, 1);
+    }, 1);
+  });
 });
