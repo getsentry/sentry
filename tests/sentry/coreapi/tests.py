@@ -284,6 +284,18 @@ class ValidateDataTest(BaseAPITest):
         })
         assert data['extra'] == {}
 
+    def test_release_tag_max_len(self):
+        release_key = u'sentry:release'
+        release_value = ('a' * VERSION_LENGTH)
+        data = self.validate_and_normalize({
+            'message': 'foo',
+            'tags': [
+                [release_key, release_value],
+            ],
+        })
+        assert not data['errors']
+        assert data['tags'] == [(release_key, release_value)]
+
     def test_release_too_long(self):
         data = self.validate_and_normalize({
             'release': 'a' * (VERSION_LENGTH + 1),
