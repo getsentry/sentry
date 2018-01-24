@@ -19,7 +19,7 @@ __all__ = ('DatabaseWrapper', )
 def escape_null(value):
     if not isinstance(value, string_types):
         return value
-    return value.replace('\x00', '\\x00')
+    return value.replace('\x00', '')
 
 
 class CursorWrapper(object):
