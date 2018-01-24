@@ -162,11 +162,10 @@ class StatusActionTest(BaseEventTest):
         user2 = self.create_user(is_superuser=False)
         self.create_member(user=user2, organization=self.org, teams=[self.team])
 
+        # Assign to user
         status_action = {
             'name': 'assign',
-            'selected_options': [
-                {'value': user2.username},
-            ],
+            'selected_options': [{'value': user2.username}],
         }
 
         resp = self.post_webhook(action_data=[status_action])
@@ -175,6 +174,22 @@ class StatusActionTest(BaseEventTest):
         assert GroupAssignee.objects.filter(group=self.group1, user=user2).exists()
 
         expect_status = u'*Issue assigned to {assignee} by <@{assigner}>*'.format(
+            assignee=user2.get_display_name(),
+            assigner=self.identity.external_id,
+        )
+
+        # Unassign from user
+        status_action = {
+            'name': 'assign',
+            'selected_options': [{'value': 'none'}],
+        }
+
+        resp = self.post_webhook(action_data=[status_action])
+
+        assert resp.status_code == 200, resp.content
+        assert not GroupAssignee.objects.filter(group=self.group1).exists()
+
+        expect_status = u'*Issue unassigned by <@{assigner}>*'.format(
             assignee=user2.get_display_name(),
             assigner=self.identity.external_id,
         )
