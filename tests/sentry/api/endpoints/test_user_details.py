@@ -3,6 +3,7 @@ from __future__ import absolute_import
 import six
 
 from django.core.urlresolvers import reverse
+from django.conf import settings
 
 from sentry.models import User, UserOption
 from sentry.testutils import APITestCase
@@ -122,3 +123,96 @@ class UserUpdateTest(APITestCase):
         assert user.email == 'c@example.com'
         assert user.username == 'foo'
         assert not user.is_active
+
+
+class UserSudoUpdateTest(APITestCase):
+    def setUp(self):
+        self.user = self.create_user(email='a@example.com')
+        self.login_as(user=self.user)
+
+        self.url = reverse(
+            'sentry-api-0-user-details', kwargs={
+                'user_id': self.user.id,
+            }
+        )
+
+        middleware = list(settings.MIDDLEWARE_CLASSES)
+        index = middleware.index('sentry.testutils.middleware.SudoMiddleware')
+        middleware[index] = 'sentry.middleware.sudo.SudoMiddleware'
+        self.sudo_middleware = tuple(middleware)
+
+        self.sudo_url = reverse('sentry-api-0-sudo', kwargs={})
+
+    def test_change_password_requires_sudo(self):
+        user = User.objects.get(id=self.user.id)
+        old_password = user.password
+        with self.settings(MIDDLEWARE_CLASSES=tuple(self.sudo_middleware)):
+            response = self.client.put(self.url, data={
+                'password': 'testpassword',
+                'passwordVerify': 'testpassword',
+            })
+
+            assert response.status_code == 401
+            assert response.data['sudoRequired']
+
+            # Now try to gain sudo access
+            response = self.client.post(self.sudo_url, {
+                'username': 'foo@example.com',
+                'password': 'admin',
+            })
+            assert response.status_code == 204
+
+            response = self.client.put(self.url, data={
+                'password': 'testpassword',
+                'passwordVerify': 'testpassword',
+            })
+            assert response.status_code == 200
+            user = User.objects.get(id=self.user.id)
+            assert user.password != old_password
+
+    def test_change_email_requires_sudo(self):
+        with self.settings(MIDDLEWARE_CLASSES=tuple(self.sudo_middleware)):
+            response = self.client.put(self.url, data={
+                'email': 'new@example.com',
+            })
+
+            assert response.status_code == 401
+            assert response.data['sudoRequired']
+
+            # Now try to gain sudo access
+            response = self.client.post(self.sudo_url, {
+                'username': 'foo@example.com',
+                'password': 'admin',
+            })
+            assert response.status_code == 204
+
+            response = self.client.put(self.url, data={
+                'email': 'new@example.com',
+            })
+            assert response.status_code == 200
+            user = User.objects.get(id=self.user.id)
+            assert user.email == 'new@example.com'
+
+    def test_change_username_requires_sudo(self):
+        with self.settings(MIDDLEWARE_CLASSES=tuple(self.sudo_middleware)):
+            response = self.client.put(self.url, data={
+                'username': 'new@example.com',
+            })
+
+            assert response.status_code == 401
+            assert response.data['sudoRequired']
+
+            # Now try to gain sudo access
+            response = self.client.post(self.sudo_url, {
+                'email': 'foo@example.com',
+                'password': 'admin',
+            })
+            assert response.status_code == 204
+
+            response = self.client.put(self.url, data={
+                'username': 'new@example.com',
+            })
+            assert response.status_code == 200
+            user = User.objects.get(id=self.user.id)
+            assert user.username == 'new@example.com'
+            assert user.email == 'new@example.com'

@@ -5,10 +5,13 @@ from rest_framework import serializers, status
 from rest_framework.response import Response
 
 from sentry.api.bases.user import UserEndpoint
+from sentry.api.decorators import sudo_required
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.user import DetailedUserSerializer
+from sentry.auth import password_validation
 from sentry.auth.superuser import is_active_superuser
 from sentry.models import User, UserOption
+from sentry.security import capture_security_activity
 
 
 class BaseUserSerializer(serializers.ModelSerializer):
@@ -36,13 +39,7 @@ class BaseUserSerializer(serializers.ModelSerializer):
 class UserSerializer(BaseUserSerializer):
     class Meta:
         model = User
-        fields = ('name', 'username', 'email')
-
-    def validate_username(self, attrs, source):
-        value = attrs[source]
-        if User.objects.filter(username__iexact=value).exclude(id=self.object.id).exists():
-            raise serializers.ValidationError('That username is already in use.')
-        return attrs
+        fields = ('name', )
 
     def validate(self, attrs):
         for field in settings.SENTRY_MANAGED_USER_FIELDS:
@@ -60,8 +57,35 @@ class AdminUserSerializer(BaseUserSerializer):
         model = User
         # no idea wtf is up with django rest framework, but we need is_active
         # and isActive
-        fields = ('name', 'username', 'isActive', 'email')
+        fields = ('name', 'isActive')
         # write_only_fields = ('password',)
+
+
+class UserSudoSerializer(BaseUserSerializer):
+    passwordVerify = serializers.CharField(required=False, max_length=128)
+
+    class Meta:
+        model = User
+        fields = ('password', 'passwordVerify', 'username', 'email')
+
+    def validate_username(self, attrs, source):
+        value = attrs[source]
+        if User.objects.filter(username__iexact=value).exclude(id=self.object.id).exists():
+            raise serializers.ValidationError('That username is already in use.')
+        return attrs
+
+    def validate_password(self, attrs, source):
+        # this will raise a ValidationError if password is invalid
+        password_validation.validate_password(attrs[source])
+
+        return attrs
+
+    def validate(self, attrs):
+        # make sure `password` matches `passwordVerify`
+        if 'password' in attrs and attrs.get('password') != attrs.get('passwordVerify'):
+            raise serializers.ValidationError('New password does not match verified password.')
+        attrs = super(UserSudoSerializer, self).validate(attrs)
+        return attrs
 
 
 class UserDetailsEndpoint(UserEndpoint):
@@ -69,7 +93,48 @@ class UserDetailsEndpoint(UserEndpoint):
         data = serialize(user, request.user, DetailedUserSerializer())
         return Response(data)
 
+    @sudo_required
+    def protected_put(self, request, user):
+        serializer = UserSudoSerializer(user, data=request.DATA, partial=True)
+
+        if not serializer.is_valid():
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+        result = serializer.object
+
+        if request.DATA.get('password'):
+            # TODO(billy): Why is `user.has_usable_password()` false here
+            if user.is_managed:
+                return Response({"detail": "Not allowed to change password"},
+                                status=status.HTTP_400_BAD_REQUEST)
+
+            user.set_password(result.password)
+            user.refresh_session_nonce(request._request)
+
+            capture_security_activity(
+                account=user,
+                type='password-changed',
+                actor=request.user,
+                ip_address=request.META['REMOTE_ADDR'],
+                send_email=True,
+            )
+
+        user.save()
+
+        # Proceed to update unprivileged fields
+        return self.update_unprivileged_details(request, user)
+
     def put(self, request, user):
+        # Changing `password`, `email`, or `username` requires sudo
+        if request.DATA.get('passwordVerify') or \
+                request.DATA.get('password') or \
+                request.DATA.get('username') or \
+                request.DATA.get('email'):
+            return self.protected_put(request, user)
+        else:
+            return self.update_unprivileged_details(request, user)
+
+    def update_unprivileged_details(self, request, user):
         if is_active_superuser(request):
             serializer_cls = AdminUserSerializer
         else:
