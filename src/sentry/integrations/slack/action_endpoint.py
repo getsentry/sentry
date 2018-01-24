@@ -46,10 +46,7 @@ class SlackActionEndpoint(Endpoint):
         if assignee == 'none':
             assignee = None
 
-        try:
-            self.update_group(group, identity, {'assignedTo': assignee})
-        except client.ApiError as e:
-            logger.error('slack.action.sentry-client-error', extra={'error': e.body})
+        self.update_group(group, identity, {'assignedTo': assignee})
 
     def on_status(self, request, identity, group, action, data, integration):
         status = action['value']
@@ -64,12 +61,7 @@ class SlackActionEndpoint(Endpoint):
         elif resolve_type == 'inCurrentRelease':
             status.update({'statusDetails': {'inRelease': 'latest'}})
 
-        try:
-            self.update_group(group, identity, status)
-        except client.ApiError as e:
-            logger.error('slack.action.sentry-client-error', extra={'error': e.body})
-            # TODO(epurkhiser): Do we need to make it clear that if the user
-            # isn't on the team for this that hey can't do anything?
+        self.update_group(group, identity, status)
 
     def update_group(self, group, identity, data):
         event_write_key = ApiKey(
@@ -235,14 +227,21 @@ class SlackActionEndpoint(Endpoint):
         defer_attachment_update = False
 
         # Handle interaction actions
-        for action in action_list:
-            if action['name'] == 'status':
-                self.on_status(request, identity, group, action, data, integration)
-            elif action['name'] == 'assign':
-                self.on_assign(request, identity, group, action)
-            elif action['name'] == 'resolve_dialog':
-                self.open_resolve_dialog(data, group, integration)
-                defer_attachment_update = True
+        try:
+            for action in action_list:
+                if action['name'] == 'status':
+                    self.on_status(request, identity, group, action, data, integration)
+                elif action['name'] == 'assign':
+                    self.on_assign(request, identity, group, action)
+                elif action['name'] == 'resolve_dialog':
+                    self.open_resolve_dialog(data, group, integration)
+                    defer_attachment_update = True
+        except client.ApiError as e:
+            return self.respond({
+                'response_type': 'ephemeral',
+                'replace_original': False,
+                'text': u'Action failed: {}'.format(e.body['detail']),
+            })
 
         if defer_attachment_update:
             return self.respond()

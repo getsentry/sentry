@@ -282,3 +282,33 @@ class StatusActionTest(BaseEventTest):
 
         expect_status = u'*Issue resolved by <@{}>*'.format(self.identity.external_id)
         assert update_data['text'].endswith(expect_status)
+
+    def test_permission_denied(self):
+        user2 = self.create_user(is_superuser=False)
+
+        user2_identity = Identity.objects.create(
+            external_id='slack_id2',
+            idp=self.idp,
+            user=user2,
+            status=IdentityStatus.VALID,
+            scopes=[],
+        )
+
+        status_action = {
+            'name': 'status',
+            'value': 'ignored',
+            'type': 'button'
+        }
+
+        resp = self.post_webhook(
+            action_data=[status_action],
+            slack_user={'id': user2_identity.external_id},
+        )
+        self.group1 = Group.objects.get(id=self.group1.id)
+
+        assert resp.status_code == 200, resp.content
+        assert not self.group1.get_status() == GroupStatus.IGNORED
+
+        assert resp.data['response_type'] == 'ephemeral'
+        assert not resp.data['replace_original']
+        assert resp.data['text'] == 'Action failed: You do not have permission to perform this action.'
