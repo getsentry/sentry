@@ -80,15 +80,36 @@ const TeamProjects = createReactClass({
     });
   },
 
-  projectPanelcontents(projects) {
+  linkProject(project, value) {
+    let {orgId, teamId} = this.props.params;
+
+    this.api.request(`/projects/${orgId}/${project.slug}/teams/${teamId}/`, {
+      method: value === 'Add' ? 'PUT' : 'DELETE',
+      success: data => {
+        console.log(data);
+      },
+      error: e => {
+        console.log(e);
+        this.setState({});
+      },
+    });
+  },
+
+  projectPanelcontents(projects, direction) {
     return sortProjects(projects).map((project, i) => (
       <PanelItem key={i} align="center">
         <Box w={1 / 2} p={2}>
           <ProjectListItem project={project} organization={this.context.organization} />
         </Box>
         <Box w={1 / 2} p={2} style={{textAlign: 'right'}}>
-          <Button size="small" className="pull-right">
-            Remove
+          <Button
+            size="small"
+            className="pull-right"
+            onClick={() => {
+              this.linkProject(project, direction);
+            }}
+          >
+            {direction}
           </Button>
         </Box>
       </PanelItem>
