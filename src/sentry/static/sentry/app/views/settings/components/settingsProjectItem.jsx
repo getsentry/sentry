@@ -13,7 +13,9 @@ import SentryTypes from '../../../proptypes';
 
 const StyledH5 = styled('h5')`
   margin: 0;
-  color: ${t => t.theme.gray5} !important;
+  a {
+    color: ${t => t.theme.gray3};
+  }
 `;
 
 const ProjectItem = createReactClass({
