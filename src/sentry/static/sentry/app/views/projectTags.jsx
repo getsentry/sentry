@@ -80,22 +80,21 @@ export default class ProjectTags extends AsyncView {
           </PanelHeader>
 
           <PanelBody>
-            {this.state.tags.map(({key, name}, idx) => {
+            {this.state.tags.map(({key, name, canDelete}, idx) => {
               return (
-                <Row key={key}>
+                <Row p={0} key={key}>
                   <Box align="flex-end" flex="1" p={2}>
                     <span>{name}</span>
                     <Description>{key}</Description>
                   </Box>
                   <Flex align="center" p={2}>
-                    <LinkWithConfirmation
-                      className="btn btn-sm btn-default"
-                      title={'Remove tag?'}
-                      message={'Are you sure you want to remove this tag?'}
-                      onConfirm={() => this.onDelete(key, idx)}
-                    >
-                      <span className="icon icon-trash" />
-                    </LinkWithConfirmation>
+                    {canDelete ? (
+                      this.renderLink(key, canDelete, idx)
+                    ) : (
+                      <Tooltip title={t('This tag cannot be deleted.')}>
+                        <span>{this.renderLink(key, canDelete, idx)}</span>
+                      </Tooltip>
+                    )}
                   </Flex>
                 </Row>
               );
