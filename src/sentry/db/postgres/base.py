@@ -50,7 +50,7 @@ class CursorWrapper(object):
                 # NULL byte in a parameter would start raising a ValueError.
                 # psycopg2 chose to do this rather than let Postgres silently
                 # truncate the data, which is it's behavior when it sees a
-                # NULL byte. But for us, we'd rather munge the value so it's
+                # NULL byte. But for us, we'd rather remove the null value so it's
                 # somewhat legible rather than error. Considering this is better
                 # behavior than the database truncating, seems good to do this
                 # rather than attempting to sanitize all data inputs now manually.
