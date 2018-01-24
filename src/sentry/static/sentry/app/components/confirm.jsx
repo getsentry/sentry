@@ -32,7 +32,11 @@ class Confirm extends React.PureComponent {
     this.confirming = false;
   }
 
-  handleConfirm = () => {
+  handleConfirm = e => {
+    if (e) {
+      e.stopPropagation();
+    }
+
     // `confirming` is used to make sure `onConfirm` is only called once
     if (!this.confirming) {
       this.props.onConfirm();
@@ -46,7 +50,10 @@ class Confirm extends React.PureComponent {
     this.confirming = true;
   };
 
-  handleToggle = () => {
+  handleToggle = e => {
+    if (e) {
+      e.stopPropagation();
+    }
     let {onConfirming, onCancel, disabled} = this.props;
     if (disabled) return;
 
