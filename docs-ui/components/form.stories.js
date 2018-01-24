@@ -64,7 +64,7 @@ storiesOf('Forms/Fields', module)
   .add(
     'TextField',
     withInfo('Simple text input')(() => (
-      <Form>
+      <Form initialData={{context: {location: 'cat'}}}>
         <TextField
           name="simpletextfield"
           label="Simple Text Field"
