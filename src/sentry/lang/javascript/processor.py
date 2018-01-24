@@ -425,9 +425,6 @@ def generate_module(src):
         return UNKNOWN_MODULE
 
     filename, ext = splitext(urlsplit(src).path)
-    if ext not in ('.js', '.jsx', '.coffee'):
-        return UNKNOWN_MODULE
-
     if filename.endswith('.min'):
         filename = filename[:-4]
 
