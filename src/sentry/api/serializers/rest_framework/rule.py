@@ -4,6 +4,7 @@ import six
 
 from rest_framework import serializers
 
+from sentry.models import Environment
 from sentry.rules import rules
 
 from . import ListField
@@ -57,6 +58,7 @@ class RuleNodeField(serializers.WritableField):
 
 class RuleSerializer(serializers.Serializer):
     name = serializers.CharField(max_length=64)
+    environment = serializers.CharField(max_length=64, required=False)
     actionMatch = serializers.ChoiceField(
         choices=(('all', 'all'), ('any', 'any'), ('none', 'none'), )
     )
@@ -68,8 +70,25 @@ class RuleSerializer(serializers.Serializer):
     )
     frequency = serializers.IntegerField(min_value=5, max_value=60 * 24 * 30)
 
+    def validate_environment(self, attrs, source):
+        name = attrs.get(source)
+        if name is None:
+            return attrs
+
+        try:
+            attrs['environment'] = Environment.get_for_organization_id(
+                self.context['project'].organization_id,
+                name,
+            ).id
+        except Environment.DoesNotExist:
+            raise serializers.ValidationError(u'This environment has not been created.')
+
+        return attrs
+
     def save(self, rule):
         rule.project = self.context['project']
+        if self.data.get('environment'):
+            rule.environment_id = self.data['environment']
         if self.data.get('name'):
             rule.label = self.data['name']
         if self.data.get('actionMatch'):

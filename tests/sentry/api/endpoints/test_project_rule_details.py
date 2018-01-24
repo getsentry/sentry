@@ -4,7 +4,7 @@ import six
 
 from django.core.urlresolvers import reverse
 
-from sentry.models import Rule, RuleStatus
+from sentry.models import Environment, Rule, RuleStatus
 from sentry.testutils import APITestCase
 
 
@@ -30,6 +30,36 @@ class ProjectRuleDetailsTest(APITestCase):
 
         assert response.status_code == 200, response.content
         assert response.data['id'] == six.text_type(rule.id)
+        assert response.data['environment'] is None
+
+    def test_with_environment(self):
+        self.login_as(user=self.user)
+
+        team = self.create_team()
+        project1 = self.create_project(teams=[team], name='foo')
+        self.create_project(teams=[team], name='bar')
+
+        rule = project1.rule_set.all()[0]
+        rule.update(
+            environment_id=Environment.get_or_create(
+                rule.project,
+                'production',
+            ).id,
+        )
+
+        url = reverse(
+            'sentry-api-0-project-rule-details',
+            kwargs={
+                'organization_slug': project1.organization.slug,
+                'project_slug': project1.slug,
+                'rule_id': rule.id,
+            }
+        )
+        response = self.client.get(url, format='json')
+
+        assert response.status_code == 200, response.content
+        assert response.data['id'] == six.text_type(rule.id)
+        assert response.data['environment'] == 'production'
 
 
 class UpdateProjectRuleTest(APITestCase):
@@ -75,6 +105,7 @@ class UpdateProjectRuleTest(APITestCase):
 
         rule = Rule.objects.get(id=rule.id)
         assert rule.label == 'hello world'
+        assert rule.environment_id is None
         assert rule.data['action_match'] == 'any'
         assert rule.data['actions'] == [
             {
@@ -82,6 +113,48 @@ class UpdateProjectRuleTest(APITestCase):
             }
         ]
         assert rule.data['conditions'] == conditions
+
+    def test_with_environment(self):
+        self.login_as(user=self.user)
+
+        project = self.create_project()
+
+        Environment.get_or_create(
+            project,
+            'production',
+        )
+
+        rule = Rule.objects.create(project=project, label='foo')
+
+        url = reverse(
+            'sentry-api-0-project-rule-details',
+            kwargs={
+                'organization_slug': project.organization.slug,
+                'project_slug': project.slug,
+                'rule_id': rule.id,
+            }
+        )
+        response = self.client.put(
+            url,
+            data={
+                'name': 'hello world',
+                'environment': 'production',
+                'actionMatch': 'any',
+                'actions': [],
+                'conditions': []
+            },
+            format='json'
+        )
+
+        assert response.status_code == 200, response.content
+        assert response.data['id'] == six.text_type(rule.id)
+
+        rule = Rule.objects.get(id=rule.id)
+        assert rule.label == 'hello world'
+        assert rule.environment_id == Environment.get_or_create(
+            rule.project,
+            'production',
+        ).id
 
     def test_invalid_rule_node_type(self):
         self.login_as(user=self.user)

@@ -3,7 +3,7 @@ from __future__ import absolute_import
 import six
 
 from sentry.api.serializers import Serializer, register
-from sentry.models import Rule
+from sentry.models import Environment, Rule
 
 
 def _generate_rule_label(project, rule, data):
@@ -19,7 +19,18 @@ def _generate_rule_label(project, rule, data):
 
 @register(Rule)
 class RuleSerializer(Serializer):
+    def get_attrs(self, item_list, user, *args, **kwargs):
+        environments = Environment.objects.in_bulk(
+            filter(None, [i.environment_id for i in item_list]),
+        )
+        return {
+            i: {
+                'environment': environments.get(i.environment_id)
+            } for i in item_list
+        }
+
     def serialize(self, obj, attrs, user):
+        environment = attrs['environment']
         d = {
             # XXX(dcramer): we currently serialize unsaved rule objects
             # as part of the rule editor
@@ -43,5 +54,6 @@ class RuleSerializer(Serializer):
             obj.label,
             'dateCreated':
             obj.date_added,
+            'environment': environment.name if environment is not None else None,
         }
         return d
