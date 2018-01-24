@@ -331,29 +331,39 @@ def save_event(cache_key=None, data=None, start_time=None, event_id=None,
         manager = EventManager(data)
         manager.save(project_id)
     except HashDiscarded:
-        tsdb.incr(
-            tsdb.models.project_total_received_discarded,
-            project_id,
-            timestamp=to_datetime(start_time) if start_time is not None else None,
-        )
+        increment_list = [
+            (tsdb.models.project_total_received_discarded, project_id,),
+        ]
 
         try:
             project = Project.objects.get_from_cache(id=project_id)
         except Project.DoesNotExist:
             pass
         else:
+            increment_list.extend([
+                (tsdb.models.project_total_blacklisted, project.id),
+                (tsdb.models.organization_total_blacklisted, project.organization_id),
+            ])
+
             project_key = None
             if data.get('key_id') is not None:
                 try:
                     project_key = ProjectKey.objects.get_from_cache(id=data['key_id'])
                 except ProjectKey.DoesNotExist:
                     pass
+                else:
+                    increment_list.append((tsdb.models.key_total_blacklisted, project_key.id))
 
             quotas.refund(
                 project,
                 key=project_key,
                 timestamp=start_time,
             )
+
+        tsdb.incr_multi(
+            increment_list,
+            timestamp=to_datetime(start_time) if start_time is not None else None,
+        )
 
     finally:
         if cache_key:
