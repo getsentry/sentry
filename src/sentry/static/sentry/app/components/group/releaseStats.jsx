@@ -69,7 +69,7 @@ const GroupReleaseStats = createReactClass({
 
   getEnvironment(envName) {
     let defaultEnv = EnvironmentStore.getDefault();
-    let queriedEnvironment = EnvironmentStore.getByName(envName || '');
+    let queriedEnvironment = EnvironmentStore.getByName(envName);
     return queriedEnvironment || defaultEnv;
   },
 

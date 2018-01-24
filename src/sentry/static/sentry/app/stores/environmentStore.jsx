@@ -35,10 +35,11 @@ const EnvironmentStore = Reflux.createStore({
   },
 
   getByName(name) {
-    name = '' + name;
-    for (let i = 0; i < this.items.length; i++) {
-      if (this.items[i].name === name) {
-        return this.items[i];
+    if (typeof name === 'string') {
+      for (let i = 0; i < this.items.length; i++) {
+        if (this.items[i].name === name) {
+          return this.items[i];
+        }
       }
     }
     return null;
