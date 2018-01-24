@@ -9,13 +9,13 @@ import HookStore from '../stores/hookStore';
 import LoadingError from '../components/loadingError';
 import LoadingIndicator from '../components/loadingIndicator';
 import BroadcastModal from '../components/broadcastModal';
-import DugoutHelper from '../components/dugoutHelper';
+// import DugoutHelper from '../components/dugoutHelper';
 import SentryTypes from '../proptypes';
 import TeamStore from '../stores/teamStore';
 import ProjectsStore from '../stores/projectsStore';
 import ProjectActions from '../actions/projectActions';
 import ConfigStore from '../stores/configStore';
-import GuideStore from '../stores/guideStore';
+// import GuideStore from '../stores/guideStore';
 import {setActiveOrganization} from '../actionCreators/organizations';
 
 import {t} from '../locale';
@@ -55,7 +55,7 @@ const OrganizationContext = createReactClass({
 
   componentWillMount() {
     this.fetchData();
-    this.fetchGuide();
+    // this.fetchGuide();
   },
 
   componentWillReceiveProps(nextProps) {
@@ -82,35 +82,35 @@ const OrganizationContext = createReactClass({
     this.remountComponent();
   },
 
-  fetchGuide() {
-    // this.api.request(`/dugout/${this.props.params.orgId}/`, {
-    //   method: 'GET',
-    //   success: (response) => {
-    //     GuideStore.loadData(response);
-    //   }
-    // });
+  // fetchGuide() {
+  //   // this.api.request(`/dugout/${this.props.params.orgId}/`, {
+  //   //   method: 'GET',
+  //   //   success: (response) => {
+  //   //     GuideStore.loadData(response);
+  //   //   }
+  //   // });
 
-    console.log('fetching guide now');
-    if (window.location.href.indexOf('#test') > -1) {
-      let mockStep = [
-        {
-          title: 'A better issue resolution flow',
-          description:
-            "Once you attach release to your Raven client, you'll be able to set an issue as resolved in the next release.",
-          target: 'setup-test',
-        },
-      ];
-      let mockResponse = {
-        slug: 'setup-test',
-        starting_message: 'yay starting message',
-        complete_message: 'yay complete message',
-        steps: mockStep,
-      };
-      GuideStore.loadData(mockResponse);
-    }
+  //   console.log('fetching guide now');
+  //   if (window.location.href.indexOf('#test') > -1) {
+  //     let mockStep = [
+  //       {
+  //         title: 'A better issue resolution flow',
+  //         description:
+  //           "Once you attach release to your Raven client, you'll be able to set an issue as resolved in the next release.",
+  //         target: 'setup-test',
+  //       },
+  //     ];
+  //     let mockResponse = {
+  //       slug: 'setup-test',
+  //       starting_message: 'yay starting message',
+  //       complete_message: 'yay complete message',
+  //       steps: mockStep,
+  //     };
+  //     GuideStore.loadData(mockResponse);
+  //   }
 
-    window.setTimeout(this.fetchGuide, 3000);
-  },
+  //   window.setTimeout(this.fetchGuide, 3000);
+  // },
 
   fetchData() {
     this.api.request(this.getOrganizationDetailsEndpoint(), {
@@ -224,7 +224,7 @@ const OrganizationContext = createReactClass({
             <BroadcastModal closeBroadcast={this.closeBroadcast} />
           )}
           {this.props.children}
-          <DugoutHelper organizationId={this.props.params.orgId} />
+          {/* <DugoutHelper organizationId={this.props.params.orgId} /> */}
         </div>
       </DocumentTitle>
     );
