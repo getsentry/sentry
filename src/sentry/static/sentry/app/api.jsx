@@ -87,6 +87,10 @@ export class Client {
               requestOptions.error(...args);
             });
         },
+        onClose: () => {
+          if (typeof requestOptions.error !== 'function') return;
+          requestOptions.error();
+        },
       });
       return;
     }

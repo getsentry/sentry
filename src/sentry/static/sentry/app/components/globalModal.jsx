@@ -20,6 +20,7 @@ class GlobalModal extends React.Component {
      */
     children: PropTypes.func,
     options: PropTypes.shape({
+      onClose: PropTypes.func,
       modalClassName: PropTypes.string,
     }),
     visible: PropTypes.bool,
@@ -28,6 +29,17 @@ class GlobalModal extends React.Component {
   static defaultProps = {
     visible: false,
     options: {},
+  };
+
+  handleCloseModal = () => {
+    let {options} = this.props;
+
+    if (typeof options.onClose === 'function') {
+      options.onClose();
+    }
+
+    // Action creator
+    closeModal();
   };
 
   render() {
@@ -43,7 +55,7 @@ class GlobalModal extends React.Component {
         className={options && options.modalClassName}
         show={visible}
         animation={false}
-        onHide={closeModal}
+        onHide={this.handleCloseModal}
       >
         {children
           ? children({
