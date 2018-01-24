@@ -1,27 +1,18 @@
 from __future__ import absolute_import
 
-import logging
 import json
 import re
 import six
-
-from six.moves.urllib.parse import parse_qs, urlencode, urlparse, urlunparse
 
 from sentry import http, options
 from sentry.api.base import Endpoint
 from sentry.models import Group, Integration, Project
 
-logger = logging.getLogger('sentry.integrations.slack')
+from .utils import build_attachment, logger
 
-_link_regexp = re.compile(r'^https?\://[^/]+/[^/]+/[^/]+/issues/(\d+)/')
-
-LEVEL_TO_COLOR = {
-    'debug': 'cfd3da',
-    'info': '2788ce',
-    'warning': 'f18500',
-    'error': 'f43f20',
-    'fatal': 'd20f2a',
-}
+# XXX(dcramer): this could be more tightly bound to our configured domain,
+# but slack limits what we can unfurl anyways so its probably safe
+_link_regexp = re.compile(r'^https?\://[^/]+/[^/]+/[^/]+/issues/(\d+)')
 
 
 # XXX(dcramer): a lot of this is copied from sentry-plugins right now, and will
@@ -38,22 +29,6 @@ class SlackEventEndpoint(Endpoint):
             return int(match.group(1))
         except (TypeError, ValueError):
             return
-
-    def _attachment_for(self, group):
-        return {
-            'fallback': u'[{}] {}'.format(group.project.slug, group.title),
-            'title': group.title,
-            'title_link': self._add_notification_referrer_param(group.get_absolute_url()),
-        }
-
-    def _add_notification_referrer_param(self, url):
-        parsed_url = urlparse(url)
-        query = parse_qs(parsed_url.query)
-        query['referrer'] = 'slack'
-
-        url_list = list(parsed_url)
-        url_list[4] = urlencode(query, doseq=True)
-        return urlunparse(url_list)
 
     def on_url_verification(self, request, data):
         return self.respond({
@@ -87,7 +62,7 @@ class SlackEventEndpoint(Endpoint):
             'channel': data['channel'],
             'ts': data['message_ts'],
             'unfurls': json.dumps({
-                v: self._attachment_for(results[k])
+                v: build_attachment(results[k])
                 for k, v in six.iteritems(issue_map)
                 if k in results
             }),
