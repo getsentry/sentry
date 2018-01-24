@@ -16,7 +16,7 @@ from .operations import DatabaseOperations
 __all__ = ('DatabaseWrapper', )
 
 
-def escape_null(value):
+def remove_null(value):
     if not isinstance(value, string_types):
         return value
     return value.replace('\x00', '')
@@ -60,7 +60,7 @@ class CursorWrapper(object):
                 # address that later rather than potentially catch incorrect behavior.
                 if e.message != 'A string literal cannot contain NUL (0x00) characters.':
                     raise
-                return self.cursor.execute(sql, [escape_null(param) for param in params])
+                return self.cursor.execute(sql, [remove_null(param) for param in params])
         return self.cursor.execute(sql)
 
     @capture_transaction_exceptions
