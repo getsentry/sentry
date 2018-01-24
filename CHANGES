@@ -1,5 +1,6 @@
 Version 8.23 (Unreleased)
 -------------------------
+- Experiemental implementation of slack actions via a new Integrations and Identity API.
 
 Schema Changes
 ~~~~~~~~~~~~~~
