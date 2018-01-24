@@ -26,27 +26,45 @@ class FrequencyConditionMixin(object):
 
         event = self.get_event()
         value = 10
+        data = {
+            'interval': '1m',
+            'value': six.text_type(value),
+        }
+
         rule = self.get_rule(
-            data={
-                'interval': '1m',
-                'value': six.text_type(value),
-            },
+            data=data,
             rule=Rule(environment_id=None),
+        )
+
+        environment_id = 1
+        environment_rule = self.get_rule(
+            data=data,
+            rule=Rule(environment_id=environment_id),
         )
 
         self.increment(
             event,
             value + 1,
+            environment_id=environment_id,
             timestamp=now() - timedelta(minutes=5),
         )
         self.assertDoesNotPass(rule, event)
+        self.assertDoesNotPass(environment_rule, event)
 
-        self.increment(event, value)
+        self.increment(event, value, environment_id=environment_id)
         self.assertDoesNotPass(rule, event)
+        self.assertDoesNotPass(environment_rule, event)
 
-        self.increment(event, 1)
-
+        self.increment(event, 1, environment_id=environment_id)
         self.assertPasses(rule, event)
+        self.assertPasses(environment_rule, event)
+        self.assertDoesNotPass(
+            self.get_rule(
+                data=data,
+                rule=Rule(environment_id=0),
+            ),
+            event,
+        )
 
     @mock.patch('django.utils.timezone.now')
     def test_one_hour(self, now):
@@ -54,27 +72,45 @@ class FrequencyConditionMixin(object):
 
         event = self.get_event()
         value = 10
+        data = {
+            'interval': '1h',
+            'value': six.text_type(value),
+        }
+
         rule = self.get_rule(
-            data={
-                'interval': '1h',
-                'value': six.text_type(value),
-            },
+            data=data,
             rule=Rule(environment_id=None),
+        )
+
+        environment_id = 1
+        environment_rule = self.get_rule(
+            data=data,
+            rule=Rule(environment_id=environment_id),
         )
 
         self.increment(
             event,
             value + 1,
+            environment_id=environment_id,
             timestamp=now() - timedelta(minutes=90),
         )
         self.assertDoesNotPass(rule, event)
+        self.assertDoesNotPass(environment_rule, event)
 
-        self.increment(event, value)
+        self.increment(event, value, environment_id=environment_id)
         self.assertDoesNotPass(rule, event)
+        self.assertDoesNotPass(environment_rule, event)
 
-        self.increment(event, 1)
-
+        self.increment(event, 1, environment_id=environment_id)
         self.assertPasses(rule, event)
+        self.assertPasses(environment_rule, event)
+        self.assertDoesNotPass(
+            self.get_rule(
+                data=data,
+                rule=Rule(environment_id=0),
+            ),
+            event,
+        )
 
     @mock.patch('django.utils.timezone.now')
     def test_one_day(self, now):
@@ -82,53 +118,94 @@ class FrequencyConditionMixin(object):
 
         event = self.get_event()
         value = 10
+        data = {
+            'interval': '1d',
+            'value': six.text_type(value),
+        }
+
         rule = self.get_rule(
-            data={
-                'interval': '1d',
-                'value': six.text_type(value),
-            },
+            data=data,
             rule=Rule(environment_id=None),
+        )
+
+        environment_id = 1
+        environment_rule = self.get_rule(
+            data=data,
+            rule=Rule(environment_id=environment_id),
         )
 
         self.increment(
             event,
             value + 1,
+            environment_id=environment_id,
             timestamp=now() - timedelta(hours=36),
         )
         self.assertDoesNotPass(rule, event)
+        self.assertDoesNotPass(environment_rule, event)
 
-        self.increment(event, value)
+        self.increment(event, value, environment_id=environment_id)
         self.assertDoesNotPass(rule, event)
+        self.assertDoesNotPass(environment_rule, event)
 
-        self.increment(event, 1)
-
+        self.increment(event, 1, environment_id=environment_id)
         self.assertPasses(rule, event)
+        self.assertPasses(environment_rule, event)
+        self.assertDoesNotPass(
+            self.get_rule(
+                data=data,
+                rule=Rule(environment_id=0),
+            ),
+            event,
+        )
 
     @mock.patch('django.utils.timezone.now')
     def test_more_than_zero(self, now):
         now.return_value = datetime(2016, 8, 1, 0, 0, 0, 0, tzinfo=pytz.utc)
 
         event = self.get_event()
+        data = {
+            'interval': '1m',
+            'value': six.text_type('0'),
+        }
+
         rule = self.get_rule(
-            data={
-                'interval': '1m',
-                'value': six.text_type('0'),
-            },
+            data=data,
             rule=Rule(environment_id=None),
         )
 
-        self.assertDoesNotPass(rule, event)
+        environment_id = 1
+        environment_rule = self.get_rule(
+            data=data,
+            rule=Rule(environment_id=environment_id),
+        )
 
-        self.increment(event, 1)
+        self.assertDoesNotPass(rule, event)
+        self.assertDoesNotPass(environment_rule, event)
+
+        self.increment(event, 1, environment_id=environment_id)
 
         self.assertPasses(rule, event)
+        self.assertPasses(environment_rule, event)
+        self.assertDoesNotPass(
+            self.get_rule(
+                data=data,
+                rule=Rule(environment_id=0),
+            ),
+            event,
+        )
 
 
 class EventFrequencyConditionTestCase(FrequencyConditionMixin, RuleTestCase):
     rule_cls = EventFrequencyCondition
 
-    def increment(self, event, count, timestamp=None):
-        tsdb.incr(tsdb.models.group, event.group_id, count=count, timestamp=timestamp)
+    def increment(self, event, count, environment_id, timestamp=None):
+        tsdb.incr(
+            tsdb.models.group,
+            event.group_id,
+            count=count,
+            environment_id=environment_id,
+            timestamp=timestamp,
+        )
 
 
 class EventUniqueUserFrequencyConditionTestCase(FrequencyConditionMixin, RuleTestCase):
@@ -136,9 +213,11 @@ class EventUniqueUserFrequencyConditionTestCase(FrequencyConditionMixin, RuleTes
 
     sequence = itertools.count()  # generates unique values, class scope doesn't matter
 
-    def increment(self, event, count, timestamp=None):
+    def increment(self, event, count, environment_id, timestamp=None):
         tsdb.record(
             tsdb.models.users_affected_by_group,
-            event.group_id, [next(self.sequence) for _ in xrange(0, count)],
+            event.group_id,
+            [next(self.sequence) for _ in xrange(0, count)],
+            environment_id=environment_id,
             timestamp=timestamp
         )
