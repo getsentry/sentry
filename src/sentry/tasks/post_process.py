@@ -52,7 +52,7 @@ def _capture_stats(event, is_new):
 
 
 @instrumented_task(name='sentry.tasks.post_process.post_process_group')
-def post_process_group(event, is_new, is_regression, is_sample, **kwargs):
+def post_process_group(event, is_new, is_regression, is_sample, is_new_group_environment, **kwargs):
     """
     Fires post processing hooks for a group.
     """
@@ -83,7 +83,7 @@ def post_process_group(event, is_new, is_regression, is_sample, **kwargs):
     # we process snoozes before rules as it might create a regression
     process_snoozes(event.group)
 
-    rp = RuleProcessor(event, is_new, is_regression)
+    rp = RuleProcessor(event, is_new, is_regression, is_new_group_environment)
     has_alert = False
     # TODO(dcramer): ideally this would fanout, but serializing giant
     # objects back and forth isn't super efficient
