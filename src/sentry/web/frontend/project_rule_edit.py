@@ -30,6 +30,8 @@ class ProjectRuleEditView(ProjectView):
         # TODO: conditions need to be based on actions
         for rule_type, rule_cls in rules:
             node = rule_cls(project)
+            if not node.is_enabled():
+                continue
             context = {
                 'id': node.id,
                 'label': node.label,

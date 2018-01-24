@@ -495,6 +495,15 @@ class IPlugin(local, PluggableViewMixin, PluginConfigMixin, PluginStatusMixin):
     def get_url_module(self):
         """Allows a plugin to return the import path to a URL module."""
 
+    def get_rules(self, **kwargs):
+        """
+        Return a list of Rule classes to add to the registry.
+
+        >>> def get_rules(self, **kwargs):
+        >>>     return [MyCustomRule]
+        """
+        return []
+
     def view_configure(self, request, project, **kwargs):
         if request.method == 'GET':
             return Response(
