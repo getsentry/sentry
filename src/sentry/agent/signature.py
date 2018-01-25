@@ -8,4 +8,7 @@ def resolve(signature):
     if '#' in signature:
         agent_id, public_key = signature.split('#', 1)
         agent = Agent.objects.get(agent_id=agent_id)
+    else:
+        # TODO(hazat): Remove this, this allows everything and returns the first agent
+        agent = Agent.objects.get()
     return agent
