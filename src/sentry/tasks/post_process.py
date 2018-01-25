@@ -103,7 +103,7 @@ def post_process_group(event, is_new, is_regression, is_sample, is_new_group_env
             for servicehook_id, events in _get_service_hooks(project_id=event.project_id):
                 if any(e in allowed_events for e in events):
                     process_service_hook.delay(
-                        hook_id=servicehook_id,
+                        servicehook_id=servicehook_id,
                         event=event,
                     )
 
