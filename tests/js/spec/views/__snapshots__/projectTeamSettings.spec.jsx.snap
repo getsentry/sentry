@@ -1,0 +1,62 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`ProjectTeamsSettings render() renders 1`] = `
+<SideEffect(DocumentTitle)
+  title="Sentry"
+>
+  <div>
+    <SettingsPageHeading
+      title="Teams"
+    />
+    <Styled(div)>
+      <PanelHeader
+        key="header"
+      >
+        <Flex
+          align="center"
+        >
+          <Box
+            flex="1"
+            px={2}
+          >
+            Team
+          </Box>
+        </Flex>
+      </PanelHeader>
+      <PanelBody
+        direction="column"
+        disablePadding={true}
+        flex={false}
+        key="body"
+      >
+        <TeamRow
+          access={
+            Set {
+              "org:read",
+              "org:write",
+              "org:admin",
+              "project:read",
+              "project:write",
+              "project:admin",
+              "team:read",
+              "team:write",
+              "team:admin",
+            }
+          }
+          key="1"
+          onRemove={[Function]}
+          orgId="org-slug"
+          projectId="project-slug"
+          team={
+            Object {
+              "id": "1",
+              "name": "Team Name",
+              "slug": "team-slug",
+            }
+          }
+        />
+      </PanelBody>
+    </Styled(div)>
+  </div>
+</SideEffect(DocumentTitle)>
+`;
