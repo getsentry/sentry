@@ -124,7 +124,16 @@ function appendTrailingSlash(nextState, replace) {
 const lazyLoad = cb => m => cb(null, m.default);
 
 const accountSettingsRoutes = [
-  <IndexRedirect key="account-settings-index" to="notifications/" />,
+  <IndexRedirect key="account-settings-index" to="details/" />,
+
+  <Route
+    key="details/"
+    path="details/"
+    name="Details"
+    componentPromise={() => import('./views/settings/account/accountDetails')}
+    component={errorHandler(LazyLoad)}
+  />,
+
   <Route key="notifications/" path="notifications/" name="Notifications">
     <IndexRoute
       componentPromise={() => import('./views/settings/account/accountNotifications')}

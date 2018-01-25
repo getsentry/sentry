@@ -7,7 +7,11 @@ const accountNavigation = [
     name: t('Account'),
     items: [
       {
-        path: `${pathPrefix}/avatar`,
+        path: `${pathPrefix}/details/`,
+        title: t('Account'),
+      },
+      {
+        path: `${pathPrefix}/avatar/`,
         title: t('Avatar'),
       },
       {
