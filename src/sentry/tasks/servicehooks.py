@@ -1,5 +1,6 @@
 from __future__ import absolute_import, print_function
 
+import six
 from time import time
 
 from sentry.http import safe_urlopen
@@ -65,7 +66,7 @@ def process_service_hook(servicehook_id, event, **kwargs):
 
     headers = {
         'Content-Type': 'application/json',
-        'X-ServiceHook-Timestamp': int(time()),
+        'X-ServiceHook-Timestamp': six.text_type(int(time())),
         'X-ServiceHook-GUID': servicehook.guid,
         'X-ServiceHook-Signature': servicehook.build_signature(body),
     }
