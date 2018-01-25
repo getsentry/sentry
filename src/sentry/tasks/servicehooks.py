@@ -72,7 +72,7 @@ def process_service_hook(servicehook_id, event, **kwargs):
 
     safe_urlopen(
         url=servicehook.url,
-        body=body,
+        data=body,
         headers=headers,
         timeout=5,
         verify_ssl=False,
