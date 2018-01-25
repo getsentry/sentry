@@ -4,7 +4,7 @@ import React from 'react';
 
 import createReactClass from 'create-react-class';
 import Reflux from 'reflux';
-import GuideStore from '../stores/guideStore';
+import GuideStore from '../../stores/guideStore';
 
 // update create class. connect to guidestore instead of listento, move fetchguide to action creator
 

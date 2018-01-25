@@ -9,7 +9,7 @@ import HookStore from '../stores/hookStore';
 import LoadingError from '../components/loadingError';
 import LoadingIndicator from '../components/loadingIndicator';
 import BroadcastModal from '../components/broadcastModal';
-// import DugoutHelper from '../components/dugoutHelper';
+// import DugoutHelper from '../components/dugout/helper';
 import SentryTypes from '../proptypes';
 import TeamStore from '../stores/teamStore';
 import ProjectsStore from '../stores/projectsStore';

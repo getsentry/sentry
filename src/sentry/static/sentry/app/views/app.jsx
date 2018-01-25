@@ -14,7 +14,7 @@ import ApiMixin from '../mixins/apiMixin';
 import ConfigStore from '../stores/configStore';
 import Indicators from '../components/indicators';
 import InstallWizard from './installWizard';
-import DugoutHelper from '../components/dugoutHelper';
+import DugoutHelper from '../components/dugout/helper';
 import LoadingIndicator from '../components/loadingIndicator';
 import OrganizationsLoader from '../components/organizations/organizationsLoader';
 import OrganizationsStore from '../stores/organizationsStore';

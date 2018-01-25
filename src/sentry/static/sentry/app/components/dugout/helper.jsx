@@ -1,11 +1,11 @@
 import React from 'react';
 import createReactClass from 'create-react-class';
 import Reflux from 'reflux';
-import DugoutHandle from './dugoutHandle';
+import DugoutHandle from './handle';
 import SupportDrawer from './supportDrawer';
 import GuideDrawer from './guideDrawer';
-import ApiMixin from '../mixins/apiMixin';
-import GuideStore from '../stores/guideStore';
+import ApiMixin from '../../mixins/apiMixin';
+import GuideStore from '../../stores/guideStore';
 
 const DugoutHelper = createReactClass({
   displayName: 'DugoutHelper',

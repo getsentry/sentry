@@ -15,7 +15,7 @@ import TeamStore from '../stores/teamStore';
 import ActivityFeed from '../components/activity/feed';
 import EventsPerHour from '../components/events/eventsPerHour';
 import IssueList from '../components/issueList';
-import GuideAnchor from '../components/guideAnchor';
+import GuideAnchor from '../components/dugout/guideAnchor';
 import OrganizationHomeContainer from '../components/organizations/homeContainer';
 import OrganizationState from '../mixins/organizationState';
 
