@@ -16,7 +16,7 @@ class NotifyEventServiceActionTest(RuleTestCase):
         plugin.is_enabled.return_value = True
         plugin.should_notify.return_value = True
 
-        rule = self.get_rule({
+        rule = self.get_rule(data={
             'service': 'mail',
         })
 

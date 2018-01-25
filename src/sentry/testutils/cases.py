@@ -384,11 +384,10 @@ class RuleTestCase(TestCase):
     def get_event(self):
         return self.event
 
-    def get_rule(self, data=None):
-        return self.rule_cls(
-            project=self.project,
-            data=data or {},
-        )
+    def get_rule(self, **kwargs):
+        kwargs.setdefault('project', self.project)
+        kwargs.setdefault('data', {})
+        return self.rule_cls(**kwargs)
 
     def get_state(self, **kwargs):
         kwargs.setdefault('is_new', True)

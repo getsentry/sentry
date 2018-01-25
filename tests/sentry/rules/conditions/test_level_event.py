@@ -10,7 +10,7 @@ class LevelConditionTest(RuleTestCase):
     rule_cls = LevelCondition
 
     def test_render_label(self):
-        rule = self.get_rule({
+        rule = self.get_rule(data={
             'match': MatchType.EQUAL,
             'level': '30',
         })
@@ -18,13 +18,13 @@ class LevelConditionTest(RuleTestCase):
 
     def test_equals(self):
         event = self.create_event(event_id='a' * 32, tags={'level': 'info'})
-        rule = self.get_rule({
+        rule = self.get_rule(data={
             'match': MatchType.EQUAL,
             'level': '20',
         })
         self.assertPasses(rule, event)
 
-        rule = self.get_rule({
+        rule = self.get_rule(data={
             'match': MatchType.EQUAL,
             'level': '30',
         })
@@ -32,13 +32,13 @@ class LevelConditionTest(RuleTestCase):
 
     def test_greater_than(self):
         event = self.create_event(event_id='a' * 32, tags={'level': 'info'})
-        rule = self.get_rule({
+        rule = self.get_rule(data={
             'match': MatchType.GREATER_OR_EQUAL,
             'level': '40',
         })
         self.assertDoesNotPass(rule, event)
 
-        rule = self.get_rule({
+        rule = self.get_rule(data={
             'match': MatchType.GREATER_OR_EQUAL,
             'level': '20',
         })
@@ -46,13 +46,13 @@ class LevelConditionTest(RuleTestCase):
 
     def test_less_than(self):
         event = self.create_event(event_id='a' * 32, tags={'level': 'info'})
-        rule = self.get_rule({
+        rule = self.get_rule(data={
             'match': MatchType.LESS_OR_EQUAL,
             'level': '10',
         })
         self.assertDoesNotPass(rule, event)
 
-        rule = self.get_rule({
+        rule = self.get_rule(data={
             'match': MatchType.LESS_OR_EQUAL,
             'level': '30',
         })
@@ -60,7 +60,7 @@ class LevelConditionTest(RuleTestCase):
 
     def test_without_tag(self):
         event = self.create_event(event_id='a' * 32, tags={})
-        rule = self.get_rule({
+        rule = self.get_rule(data={
             'match': MatchType.EQUAL,
             'level': '30',
         })
@@ -68,7 +68,7 @@ class LevelConditionTest(RuleTestCase):
 
     def test_errors_with_invalid_level(self):
         event = self.create_event(event_id='a' * 32, tags={'level': 'foobar'})
-        rule = self.get_rule({
+        rule = self.get_rule(data={
             'match': MatchType.EQUAL,
             'level': '30',
         })
@@ -94,7 +94,7 @@ class LevelConditionTest(RuleTestCase):
         assert wevent.level == logging.WARNING
         assert eevent.level == logging.WARNING
 
-        rule = self.get_rule({
+        rule = self.get_rule(data={
             'match': MatchType.GREATER_OR_EQUAL,
             'level': '40',
         })
