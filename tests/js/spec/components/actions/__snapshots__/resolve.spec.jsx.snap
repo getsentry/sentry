@@ -113,14 +113,38 @@ exports[`ResolveActions with confirmation step renders 1`] = `
               }
             />
             Resolve
+          </a>
+          <Modal
+            animation={false}
+            autoFocus={true}
+            backdrop={true}
+            bsClass="modal"
+            dialogComponentClass={[Function]}
+            enforceFocus={true}
+            keyboard={true}
+            manager={
+              ModalManager {
+                "add": [Function],
+                "containers": Array [],
+                "data": Array [],
+                "handleContainerOverflow": true,
+                "hideSiblingNodes": true,
+                "isTopModal": [Function],
+                "modals": Array [],
+                "remove": [Function],
+              }
+            }
+            onHide={[Function]}
+            renderBackdrop={[Function]}
+            restoreFocus={true}
+            show={false}
+          >
             <Modal
-              animation={false}
               autoFocus={true}
               backdrop={true}
-              bsClass="modal"
-              dialogComponentClass={[Function]}
+              backdropClassName="modal-backdrop"
+              containerClassName="modal-open"
               enforceFocus={true}
-              key="confirm"
               keyboard={true}
               manager={
                 ModalManager {
@@ -134,39 +158,14 @@ exports[`ResolveActions with confirmation step renders 1`] = `
                   "remove": [Function],
                 }
               }
+              onEntering={[Function]}
+              onExited={[Function]}
               onHide={[Function]}
               renderBackdrop={[Function]}
               restoreFocus={true}
               show={false}
-            >
-              <Modal
-                autoFocus={true}
-                backdrop={true}
-                backdropClassName="modal-backdrop"
-                containerClassName="modal-open"
-                enforceFocus={true}
-                keyboard={true}
-                manager={
-                  ModalManager {
-                    "add": [Function],
-                    "containers": Array [],
-                    "data": Array [],
-                    "handleContainerOverflow": true,
-                    "hideSiblingNodes": true,
-                    "isTopModal": [Function],
-                    "modals": Array [],
-                    "remove": [Function],
-                  }
-                }
-                onEntering={[Function]}
-                onExited={[Function]}
-                onHide={[Function]}
-                renderBackdrop={[Function]}
-                restoreFocus={true}
-                show={false}
-              />
-            </Modal>
-          </a>
+            />
+          </Modal>
         </Confirm>
       </ActionLink>
       <DropdownLink
@@ -248,14 +247,38 @@ exports[`ResolveActions with confirmation step renders 1`] = `
                       >
                          
                         The next release
+                      </a>
+                      <Modal
+                        animation={false}
+                        autoFocus={true}
+                        backdrop={true}
+                        bsClass="modal"
+                        dialogComponentClass={[Function]}
+                        enforceFocus={true}
+                        keyboard={true}
+                        manager={
+                          ModalManager {
+                            "add": [Function],
+                            "containers": Array [],
+                            "data": Array [],
+                            "handleContainerOverflow": true,
+                            "hideSiblingNodes": true,
+                            "isTopModal": [Function],
+                            "modals": Array [],
+                            "remove": [Function],
+                          }
+                        }
+                        onHide={[Function]}
+                        renderBackdrop={[Function]}
+                        restoreFocus={true}
+                        show={false}
+                      >
                         <Modal
-                          animation={false}
                           autoFocus={true}
                           backdrop={true}
-                          bsClass="modal"
-                          dialogComponentClass={[Function]}
+                          backdropClassName="modal-backdrop"
+                          containerClassName="modal-open"
                           enforceFocus={true}
-                          key="confirm"
                           keyboard={true}
                           manager={
                             ModalManager {
@@ -269,39 +292,14 @@ exports[`ResolveActions with confirmation step renders 1`] = `
                               "remove": [Function],
                             }
                           }
+                          onEntering={[Function]}
+                          onExited={[Function]}
                           onHide={[Function]}
                           renderBackdrop={[Function]}
                           restoreFocus={true}
                           show={false}
-                        >
-                          <Modal
-                            autoFocus={true}
-                            backdrop={true}
-                            backdropClassName="modal-backdrop"
-                            containerClassName="modal-open"
-                            enforceFocus={true}
-                            keyboard={true}
-                            manager={
-                              ModalManager {
-                                "add": [Function],
-                                "containers": Array [],
-                                "data": Array [],
-                                "handleContainerOverflow": true,
-                                "hideSiblingNodes": true,
-                                "isTopModal": [Function],
-                                "modals": Array [],
-                                "remove": [Function],
-                              }
-                            }
-                            onEntering={[Function]}
-                            onExited={[Function]}
-                            onHide={[Function]}
-                            renderBackdrop={[Function]}
-                            restoreFocus={true}
-                            show={false}
-                          />
-                        </Modal>
-                      </a>
+                        />
+                      </Modal>
                     </Confirm>
                   </ActionLink>
                   <ActionLink
@@ -327,14 +325,38 @@ exports[`ResolveActions with confirmation step renders 1`] = `
                       >
                          
                         The current release
+                      </a>
+                      <Modal
+                        animation={false}
+                        autoFocus={true}
+                        backdrop={true}
+                        bsClass="modal"
+                        dialogComponentClass={[Function]}
+                        enforceFocus={true}
+                        keyboard={true}
+                        manager={
+                          ModalManager {
+                            "add": [Function],
+                            "containers": Array [],
+                            "data": Array [],
+                            "handleContainerOverflow": true,
+                            "hideSiblingNodes": true,
+                            "isTopModal": [Function],
+                            "modals": Array [],
+                            "remove": [Function],
+                          }
+                        }
+                        onHide={[Function]}
+                        renderBackdrop={[Function]}
+                        restoreFocus={true}
+                        show={false}
+                      >
                         <Modal
-                          animation={false}
                           autoFocus={true}
                           backdrop={true}
-                          bsClass="modal"
-                          dialogComponentClass={[Function]}
+                          backdropClassName="modal-backdrop"
+                          containerClassName="modal-open"
                           enforceFocus={true}
-                          key="confirm"
                           keyboard={true}
                           manager={
                             ModalManager {
@@ -348,39 +370,14 @@ exports[`ResolveActions with confirmation step renders 1`] = `
                               "remove": [Function],
                             }
                           }
+                          onEntering={[Function]}
+                          onExited={[Function]}
                           onHide={[Function]}
                           renderBackdrop={[Function]}
                           restoreFocus={true}
                           show={false}
-                        >
-                          <Modal
-                            autoFocus={true}
-                            backdrop={true}
-                            backdropClassName="modal-backdrop"
-                            containerClassName="modal-open"
-                            enforceFocus={true}
-                            keyboard={true}
-                            manager={
-                              ModalManager {
-                                "add": [Function],
-                                "containers": Array [],
-                                "data": Array [],
-                                "handleContainerOverflow": true,
-                                "hideSiblingNodes": true,
-                                "isTopModal": [Function],
-                                "modals": Array [],
-                                "remove": [Function],
-                              }
-                            }
-                            onEntering={[Function]}
-                            onExited={[Function]}
-                            onHide={[Function]}
-                            renderBackdrop={[Function]}
-                            restoreFocus={true}
-                            show={false}
-                          />
-                        </Modal>
-                      </a>
+                        />
+                      </Modal>
                     </Confirm>
                   </ActionLink>
                   <ActionLink

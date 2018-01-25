@@ -1,10 +1,12 @@
 // Jest Snapshot v1, https://goo.gl/fbAQLP
 
 exports[`Confirm renders 1`] = `
-<button
-  onClick={[Function]}
->
-  Confirm?
+<React.Fragment>
+  <button
+    onClick={[Function]}
+  >
+    Confirm?
+  </button>
   <Modal
     animation={false}
     autoFocus={true}
@@ -12,7 +14,6 @@ exports[`Confirm renders 1`] = `
     bsClass="modal"
     dialogComponentClass={[Function]}
     enforceFocus={true}
-    key="confirm"
     keyboard={true}
     manager={
       ModalManager {
@@ -63,5 +64,5 @@ exports[`Confirm renders 1`] = `
       </Button>
     </div>
   </Modal>
-</button>
+</React.Fragment>
 `;

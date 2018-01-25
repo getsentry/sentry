@@ -33,10 +33,6 @@ class Confirm extends React.PureComponent {
   }
 
   handleConfirm = e => {
-    if (e) {
-      e.stopPropagation();
-    }
-
     // `confirming` is used to make sure `onConfirm` is only called once
     if (!this.confirming) {
       this.props.onConfirm();
@@ -51,9 +47,6 @@ class Confirm extends React.PureComponent {
   };
 
   handleToggle = e => {
-    if (e) {
-      e.stopPropagation();
-    }
     let {onConfirming, onCancel, disabled} = this.props;
     if (disabled) return;
 
@@ -89,32 +82,26 @@ class Confirm extends React.PureComponent {
       </p>
     );
 
-    const ConfirmModal = (
-      <Modal show={this.state.isModalOpen} animation={false} onHide={this.handleToggle}>
-        <div className="modal-body">{confirmMessage}</div>
-        <div className="modal-footer">
-          <Button style={{marginRight: 10}} onClick={this.handleToggle}>
-            {cancelText}
-          </Button>
-          <Button
-            disabled={this.state.disableConfirmButton}
-            priority={priority}
-            onClick={this.handleConfirm}
-          >
-            {confirmText}
-          </Button>
-        </div>
-      </Modal>
+    return (
+      <React.Fragment>
+        {React.cloneElement(children, {disabled, onClick: this.handleToggle})}
+        <Modal show={this.state.isModalOpen} animation={false} onHide={this.handleToggle}>
+          <div className="modal-body">{confirmMessage}</div>
+          <div className="modal-footer">
+            <Button style={{marginRight: 10}} onClick={this.handleToggle}>
+              {cancelText}
+            </Button>
+            <Button
+              disabled={this.state.disableConfirmButton}
+              priority={priority}
+              onClick={this.handleConfirm}
+            >
+              {confirmText}
+            </Button>
+          </div>
+        </Modal>
+      </React.Fragment>
     );
-
-    return React.cloneElement(children, {
-      disabled,
-      children: [
-        (children.props && children.props.children) || null,
-        React.cloneElement(ConfirmModal, {key: 'confirm'}),
-      ],
-      onClick: this.handleToggle,
-    });
   }
 }
 
