@@ -1,8 +1,9 @@
 import React from 'react';
 import createReactClass from 'create-react-class';
 import Reflux from 'reflux';
-import classNames from 'classnames';
-import DugoutSearch from './dugoutSearch';
+import DugoutHandle from './dugoutHandle';
+import SupportDrawer from './supportDrawer';
+import GuideDrawer from './guideDrawer';
 import ApiMixin from '../mixins/apiMixin';
 import GuideStore from '../stores/guideStore';
 
@@ -53,24 +54,18 @@ const DugoutHelper = createReactClass({
   },
 
   render() {
-    if (!this.guide) {
-      return <DugoutSearch subscription={2} />; //placeholder subscription
-    } else {
-      return (
-        <div>
-          <div
-            onClick={this.clickedHandle}
-            className={classNames('dugout-drawer', {
-              'dugout-drawer--engaged': !this.isFirstStep(),
-            })}
-          >
-            <div className="dugout-message">{this.state.guide.starting_message}</div>
+    let open = true;
+    let shortMessage = 'Need Help?'; // from GuideStore
+    let mode = 'support'; // alt is guide
 
-            {this.largeMessage()}
-          </div>
+    return (
+      <div>
+        <DugoutHandle open={open} message={shortMessage} />
+        <div className="dugout-drawer">
+          {mode == 'support' && open ? <SupportDrawer /> : <GuideDrawer />}
         </div>
-      );
-    }
+      </div>
+    );
   },
 });
 
