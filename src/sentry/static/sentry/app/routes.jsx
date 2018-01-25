@@ -229,6 +229,14 @@ const projectSettingsRoutes = [
     component={errorHandler(ProjectGeneralSettings)}
   />,
   <Route
+    key="teams/"
+    path="teams/"
+    name="Teams"
+    componentPromise={() =>
+      import(/*webpackChunkName: "ProjectTeams"*/ './views/settings/project/projectTeams')}
+    component={errorHandler(LazyLoad)}
+  />,
+  <Route
     key="alerts/"
     name="Alerts"
     path="alerts/"
