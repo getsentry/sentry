@@ -30,6 +30,7 @@ exports[`AccountAppearance renders 1`] = `
     >
       <Box>
         <JsonForm
+          additionalFieldProps={Object {}}
           forms={
             Array [
               Object {

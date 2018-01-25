@@ -178,7 +178,21 @@ class FormModel {
   }
 
   isValidField(id) {
-    return this.isValidRequiredField(id);
+    let validate = this.getDescriptor(id, 'validate');
+    let errors = [];
+
+    if (typeof validate === 'function') {
+      // Returns "tuples" of [id, error string]
+      errors = validate({model: this, id, form: this.getData().toJSON()}) || [];
+    }
+
+    errors
+      .filter(([, errorMessage]) => !!errorMessage)
+      .forEach(([field, errorMessage]) => {
+        this.setError(field, errorMessage);
+      });
+
+    return !errors.length && this.isValidRequiredField(id);
   }
 
   doApiRequest({apiEndpoint, apiMethod, data}) {
