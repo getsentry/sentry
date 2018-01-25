@@ -53,7 +53,7 @@ const OrganizationProjectsViewContainer = createReactClass({
 
   getInitialState() {
     return {
-      projects: Array.from(ProjectsStore.getAll()),
+      projects: ProjectsStore.getAll(),
     };
   },
 
@@ -71,7 +71,7 @@ const OrganizationProjectsViewContainer = createReactClass({
   onProjectUpdate(projects) {
     // loadInitialData returns a list of ids
     this.setState({
-      projects: Array.from(ProjectsStore.getAll()),
+      projects: ProjectsStore.getAll(),
     });
   },
 

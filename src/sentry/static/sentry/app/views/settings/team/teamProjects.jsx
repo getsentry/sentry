@@ -5,10 +5,12 @@ import Reflux from 'reflux';
 
 import ApiMixin from '../../../mixins/apiMixin';
 import ProjectsStore from '../../../stores/projectsStore';
+import TeamStore from '../../../stores/teamStore';
+import IndicatorStore from '../../../stores/indicatorStore';
+import TeamActions from '../../../actions/teamActions';
 
 import Button from '../../../components/buttons/button';
 import LoadingError from '../../../components/loadingError';
-import LoadingIndicator from '../../../components/loadingIndicator';
 import OrganizationState from '../../../mixins/organizationState';
 import ProjectListItem from '../components/settingsProjectItem';
 import Panel from '../components/panel';
@@ -24,19 +26,20 @@ const TeamProjects = createReactClass({
     ApiMixin,
     OrganizationState,
     Reflux.listenTo(ProjectsStore, 'onProjectUpdate'),
+    Reflux.listenTo(TeamStore, 'onTeamUpdate'),
   ],
 
   getInitialState() {
+    let team = TeamStore.getBySlug(this.props.params.teamId);
     return {
-      allProjects: Array.from(ProjectsStore.getAll().values()),
-      loading: true,
+      allProjects: ProjectsStore.getAll(),
       error: false,
-      projectListLinked: [],
+      projectListLinked: team ? team.projects : [],
     };
   },
 
   componentWillMount() {
-    this.fetchData();
+    // this.fetchData();
   },
 
   componentWillReceiveProps(nextProps) {
@@ -45,52 +48,62 @@ const TeamProjects = createReactClass({
       nextProps.params.teamId !== params.teamId ||
       nextProps.params.orgId !== params.orgId
     ) {
-      this.setState(
-        {
-          loading: true,
-          error: false,
-        },
-        this.fetchData
-      );
+      this.setState(this.getInitialState());
+      // , this.fetchData);
     }
   },
 
-  fetchData() {
-    let params = this.props.params;
-    this.api.request(`/teams/${params.orgId}/${params.teamId}/projects/`, {
-      success: data => {
-        this.setState({
-          projectListLinked: data,
-          loading: false,
-          error: false,
-        });
-      },
-      error: () => {
-        this.setState({
-          loading: false,
-          error: true,
-        });
-      },
-    });
-  },
+  // fetchData() {
+  //   let params = this.props.params;
+  //   // fetchTeamDetails(this.api, this.props.params);
+  //   this.api.request(`/teams/${params.orgId}/${params.teamId}/projects/`, {
+  //     success: data => {
+  //       this.setState({
+  //         projectListLinked: data,
+  //         error: false,
+  //       });
+  //     },
+  //     error: error => {
+  //       console.log(error);
+  //       this.setState({
+  //         error: true,
+  //       });
+  //     },
+  //   });
+  // },
 
   onProjectUpdate(projects) {
     this.setState({
-      allProjects: Array.from(ProjectsStore.getAll().values()),
+      allProjects: ProjectsStore.getAll(),
+    });
+  },
+
+  onTeamUpdate(teams) {
+    console.log(teams);
+    this.setState({
+      projectListLinked: TeamStore.getBySlug(this.props.params.teamId).projects,
     });
   },
 
   linkProject(project, value) {
     let {orgId, teamId} = this.props.params;
-
+    // console.log(teamId, project.slug);
     this.api.request(`/projects/${orgId}/${project.slug}/teams/${teamId}/`, {
-      method: value === 'Add' ? 'PUT' : 'DELETE',
-      success: data => {
-        console.log(data);
+      method: value === 'Add' ? 'POST' : 'DELETE',
+      success: () => {
+        let team = TeamStore.getBySlug(this.props.params.teamId);
+        if (value == 'Add') {
+          team.projects = [...team.projects, project];
+        } else {
+          team.projects = team.projects.filter(({id}) => id != project.id);
+        }
+        // console.log(team);
+        TeamActions.updateSuccess(0, teamId, team);
       },
       error: e => {
-        console.log(e);
-        this.setState({});
+        console.log(value, `/projects/${orgId}/${project.slug}/teams/${teamId}/`);
+        IndicatorStore.addError("Wasn't able to change project association.");
+        // this.setState({});
       },
     });
   },
@@ -117,10 +130,10 @@ const TeamProjects = createReactClass({
   },
 
   render() {
-    if (this.state.loading) return <LoadingIndicator />;
-    else if (this.state.error) return <LoadingError onRetry={this.fetchData} />;
+    if (this.state.error) return <LoadingError onRetry={this.fetchData} />;
 
     let {projectListLinked, allProjects} = this.state;
+    console.log(projectListLinked);
     let linkedProjects = allProjects.filter(p =>
       projectListLinked.find(l => l.id === p.id)
     );

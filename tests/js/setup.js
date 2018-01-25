@@ -411,6 +411,7 @@ window.TestStubs = {
       id: '1',
       slug: 'team-slug',
       name: 'Team Name',
+      projects: [],
       ...params,
     };
   },
