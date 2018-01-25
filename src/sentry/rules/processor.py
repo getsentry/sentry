@@ -87,6 +87,10 @@ class RuleProcessor(object):
         if not condition_list:
             return
 
+        if rule.environment_id is not None \
+                and self.event.get_environment().id != rule.environment_id:
+            return
+
         status = self.get_rule_status(rule)
 
         now = timezone.now()
