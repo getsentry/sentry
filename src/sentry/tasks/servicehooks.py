@@ -8,7 +8,7 @@ from sentry.utils import json
 from sentry.utils.http import absolute_uri
 
 
-def get_payload_v0(servicehook, event):
+def get_payload_v0(event):
     from sentry.api.serializers import serialize
 
     group = event.group

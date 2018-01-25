@@ -135,7 +135,7 @@ class PostProcessGroupTest(TestCase):
             )
 
         mock_process_service_hook.delay.assert_called_once_with(
-            hook_id=hook.id,
+            servicehook_id=hook.id,
             event=event,
         )
 
@@ -168,7 +168,7 @@ class PostProcessGroupTest(TestCase):
             )
 
         mock_process_service_hook.delay.assert_called_once_with(
-            hook_id=hook.id,
+            servicehook_id=hook.id,
             event=event,
         )
 
