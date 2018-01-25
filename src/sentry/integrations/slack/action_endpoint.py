@@ -134,11 +134,11 @@ class SlackActionEndpoint(Endpoint):
         callback_id = data.get('callback_id')
 
         logging_data.update({
-            'team_id': team_id,
-            'channel_id': channel_id,
-            'user_id': user_id,
-            'event_id': event_id,
-            'callback_id': callback_id,
+            'slack_team_id': team_id,
+            'slack_channel_id': channel_id,
+            'slack_user_id': user_id,
+            'slack_event_id': event_id,
+            'slack_callback_id': callback_id,
         })
 
         token = data.get('token')
