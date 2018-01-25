@@ -332,7 +332,7 @@ def save_event(cache_key=None, data=None, start_time=None, event_id=None,
         manager.save(project_id)
     except HashDiscarded:
         increment_list = [
-            (tsdb.models.project_total_received_discarded, project_id,),
+            (tsdb.models.project_total_received_discarded, project_id),
         ]
 
         try:
