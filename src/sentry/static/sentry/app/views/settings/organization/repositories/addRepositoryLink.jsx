@@ -198,10 +198,10 @@ class AddRepositoryLink extends PluginComponentBase {
   render() {
     let provider = this.props.provider;
     return (
-      <a onClick={this.onOpen}>
-        {provider.name}
+      <React.Fragment>
+        <a onClick={this.onOpen}>{provider.name}</a>
         {this.renderModal()}
-      </a>
+      </React.Fragment>
     );
   }
 }

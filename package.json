@@ -33,7 +33,7 @@
     "emotion": "^8.0.2-12",
     "emotion-theming": "^8.0.2-10",
     "enzyme-adapter-react-16": "^1.1.1",
-    "enzyme-to-json": "3.2.2",
+    "enzyme-to-json": "3.3.1",
     "extract-text-webpack-plugin": "^3.0.0",
     "file-loader": "0.8.4",
     "gettext-parser": "1.1.1",

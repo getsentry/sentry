@@ -112,15 +112,16 @@ const SaveSearchButton = createReactClass({
   render() {
     let isSaving = this.state.state === FormState.SAVING;
     return (
-      <a
-        title={this.props.tooltip || this.props.buttonTitle}
-        className={this.props.className}
-        disabled={this.props.disabled}
-        onClick={this.onToggle}
-        style={this.props.style}
-      >
-        {this.props.children}
-
+      <React.Fragment>
+        <a
+          title={this.props.tooltip || this.props.buttonTitle}
+          className={this.props.className}
+          disabled={this.props.disabled}
+          onClick={this.onToggle}
+          style={this.props.style}
+        >
+          {this.props.children}
+        </a>
         <Modal show={this.state.isModalOpen} animation={false} onHide={this.onToggle}>
           <form onSubmit={this.onSubmit}>
             <div className="modal-header">
@@ -183,7 +184,7 @@ const SaveSearchButton = createReactClass({
             </div>
           </form>
         </Modal>
-      </a>
+      </React.Fragment>
     );
   },
 });
