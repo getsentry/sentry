@@ -57,6 +57,7 @@ class TagStorage(Service):
         'get_group_tag_keys',
         'get_group_tag_value',
         'get_group_tag_values',
+        'get_group_list_tag_value',
 
         'delete_tag_key',
         'delete_all_group_tag_keys',
@@ -275,6 +276,12 @@ class TagStorage(Service):
     def get_group_tag_values(self, project_id, group_id, environment_id, key):
         """
         >>> get_group_tag_values(1, 2, 3, "key1")
+        """
+        raise NotImplementedError
+
+    def get_group_list_tag_value(self, project_id, group_id_list, environment_id, key, value):
+        """
+        >>> get_group_tag_value(1, [1, 2, 3, 4, 5], 3, "key1", "value1")
         """
         raise NotImplementedError
 
