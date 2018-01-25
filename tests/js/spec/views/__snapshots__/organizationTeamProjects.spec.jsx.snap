@@ -1,0 +1,295 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`OrganizationTeamProjects fetchStats() should make a request to the organizations endpoint 1`] = `
+.glamor-9 {
+  background: #fff;
+  border: 1px solid;
+  margin-bottom: 30px;
+  position: relative;
+}
+
+.glamor-7 {
+  border-bottom: 1px solid;
+  border-radius: 0 0;
+  text-transform: uppercase;
+  font-size: 13px;
+  line-height: 1;
+  padding: 15px 20px;
+}
+
+.glamor-3 {
+  font-size: inherit;
+  text-transform: inherit;
+  margin: 0;
+}
+
+.glamor-1 {
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  margin-bottom: 20px;
+  font-size: inherit;
+  text-transform: inherit;
+  margin: 0;
+}
+
+.glamor-26 {
+  box-sizing: border-box;
+  display: -webkit-box;
+  display: -webkit-flex;
+  display: -ms-flexbox;
+  display: flex;
+  -webkit-align-items: center;
+  -webkit-box-align: center;
+  -ms-flex-align: center;
+  align-items: center;
+  border-bottom: 1px solid;
+}
+
+.glamor-26:last-child {
+  border: 0;
+}
+
+.glamor-22 {
+  box-sizing: border-box;
+  width: 50%;
+  padding: 16px;
+}
+
+.glamor-20 {
+  margin: 0;
+}
+
+<TeamProjects
+  params={
+    Object {
+      "orgId": "org-slug",
+      "teamId": "team-slug",
+    }
+  }
+>
+  <div>
+    <Styled(div)>
+      <div
+        className="glamor-9 glamor-10"
+      >
+        <PanelHeader>
+          <Styled(div)>
+            <div
+              className="glamor-7 glamor-8"
+            >
+              <Styled(Component)>
+                <Component
+                  className="glamor-3 glamor-0"
+                >
+                  <Styled(div)
+                    className="glamor-3 glamor-0"
+                  >
+                    <div
+                      className="glamor-0 glamor-1 glamor-2"
+                    >
+                      Associated Projects:
+                    </div>
+                  </Styled(div)>
+                </Component>
+              </Styled(Component)>
+            </div>
+          </Styled(div)>
+        </PanelHeader>
+      </div>
+    </Styled(div)>
+    <Styled(div)>
+      <div
+        className="glamor-9 glamor-10"
+      >
+        <PanelHeader>
+          <Styled(div)>
+            <div
+              className="glamor-7 glamor-8"
+            >
+              <Styled(Component)>
+                <Component
+                  className="glamor-3 glamor-0"
+                >
+                  <Styled(div)
+                    className="glamor-3 glamor-0"
+                  >
+                    <div
+                      className="glamor-0 glamor-1 glamor-2"
+                    >
+                      Other Projects:
+                    </div>
+                  </Styled(div)>
+                </Component>
+              </Styled(Component)>
+            </div>
+          </Styled(div)>
+        </PanelHeader>
+        <Styled(Base)
+          align="center"
+          key="0"
+        >
+          <Base
+            align="center"
+            className="glamor-26 glamor-27"
+          >
+            <div
+              className="glamor-26 glamor-27"
+              is={null}
+            >
+              <Box
+                p={2}
+                w={0.5}
+              >
+                <Base
+                  className="glamor-22"
+                  p={2}
+                  w={0.5}
+                >
+                  <div
+                    className="glamor-22"
+                    is={null}
+                  >
+                    <ProjectItem
+                      organization={
+                        Object {
+                          "id": "1337",
+                          "slug": "org-slug",
+                        }
+                      }
+                      project={
+                        Object {
+                          "digestsMaxDelay": 60,
+                          "digestsMinDelay": 5,
+                          "id": "2",
+                          "name": "Project Name",
+                          "slug": "project-slug",
+                          "subjectTemplate": "[$project] \${tag:level}: $title",
+                        }
+                      }
+                    >
+                      <div
+                        className={null}
+                        key="2"
+                      >
+                        <Styled(h5)>
+                          <h5
+                            className="glamor-20 glamor-21"
+                          >
+                            <a
+                              className="tip"
+                              onClick={[Function]}
+                            >
+                              <span
+                                className="icon-star-outline bookmark"
+                              />
+                            </a>
+                            <Link
+                              to="/settings/organization/org-slug/project/project-slug/"
+                            >
+                              <a
+                                href="/settings/organization/org-slug/project/project-slug/"
+                              >
+                                <ProjectLabel
+                                  organization={
+                                    Object {
+                                      "id": "1337",
+                                      "slug": "org-slug",
+                                    }
+                                  }
+                                  project={
+                                    Object {
+                                      "digestsMaxDelay": 60,
+                                      "digestsMinDelay": 5,
+                                      "id": "2",
+                                      "name": "Project Name",
+                                      "slug": "project-slug",
+                                      "subjectTemplate": "[$project] \${tag:level}: $title",
+                                    }
+                                  }
+                                >
+                                  <span
+                                    className="project-label"
+                                  >
+                                    <span
+                                      className="project-name"
+                                    >
+                                      Project Name
+                                    </span>
+                                  </span>
+                                </ProjectLabel>
+                              </a>
+                            </Link>
+                          </h5>
+                        </Styled(h5)>
+                      </div>
+                    </ProjectItem>
+                  </div>
+                </Base>
+              </Box>
+              <Box
+                p={2}
+                style={
+                  Object {
+                    "textAlign": "right",
+                  }
+                }
+                w={0.5}
+              >
+                <Base
+                  className="glamor-22"
+                  p={2}
+                  style={
+                    Object {
+                      "textAlign": "right",
+                    }
+                  }
+                  w={0.5}
+                >
+                  <div
+                    className="glamor-22"
+                    is={null}
+                    style={
+                      Object {
+                        "textAlign": "right",
+                      }
+                    }
+                  >
+                    <Button
+                      className="pull-right"
+                      disabled={false}
+                      onClick={[Function]}
+                      size="small"
+                    >
+                      <button
+                        className="pull-right button button-default button-sm"
+                        disabled={false}
+                        onClick={[Function]}
+                        role="button"
+                      >
+                        <FlowLayout
+                          truncate={false}
+                        >
+                          <div
+                            className="flow-layout"
+                          >
+                            <span
+                              className="button-label"
+                            >
+                              Add
+                            </span>
+                          </div>
+                        </FlowLayout>
+                      </button>
+                    </Button>
+                  </div>
+                </Base>
+              </Box>
+            </div>
+          </Base>
+        </Styled(Base)>
+      </div>
+    </Styled(div)>
+  </div>
+</TeamProjects>
+`;
