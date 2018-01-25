@@ -4,6 +4,7 @@ import _ from 'lodash';
 import {Client} from '../../../../api';
 import {defined} from '../../../../utils';
 import FormState from '../../../../components/forms/state';
+import {addErrorMessage} from '../../../../actionCreators/settingsIndicator';
 
 class FormModel {
   /**
@@ -281,15 +282,33 @@ class FormModel {
 
         return {old: oldValue, new: newValue};
       })
-      .catch(error => {
+      .catch(resp => {
         // should we revert field value to last known state?
-
         saveSnapshot = null;
-        this.setError(id, 'Failed to save');
+
+        // API can return a JSON object with either:
+        // 1) map of {[fieldName] => Array<ErrorMessages>}
+        // 2) {'non_field_errors' => Array<ErrorMessages>}
+        if (resp && resp.responseJSON) {
+          // Show resp msg from API endpoint if possible
+          if (Array.isArray(resp.responseJSON[id]) && resp.responseJSON[id].length) {
+            // Just take first resp for now
+            this.setError(id, resp.responseJSON[id][0]);
+          } else if (
+            Array.isArray(resp.responseJSON.non_field_errors) &&
+            resp.responseJSON.non_field_errors.length
+          ) {
+            addErrorMessage(resp.responseJSON.non_field_errors[0], 10000);
+            // Reset saving state
+            this.setError(id, '');
+          }
+        } else {
+          // Default error behavior
+          this.setError(id, 'Failed to save');
+        }
 
         // eslint-disable-next-line no-console
-        console.error(error);
-        throw error;
+        console.error('Error saving form field', resp && resp.responseJSON);
       });
   }
 
