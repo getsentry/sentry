@@ -173,7 +173,7 @@ class StoreTasksTest(PluginTestCase):
             project_id=project.id
         )
 
-    @mock.patch.object(tsdb, 'incr')
+    @mock.patch.object(tsdb, 'incr_multi')
     @mock.patch.object(quotas, 'refund')
     def test_hash_discarded_raised(self, mock_refund, mock_incr):
         project = self.create_project()
@@ -193,8 +193,10 @@ class StoreTasksTest(PluginTestCase):
         mock_save.side_effect = HashDiscarded
         with mock.patch.object(EventManager, 'save', mock_save):
             save_event(data=data, start_time=now)
-            mock_incr.assert_called_with(
-                tsdb.models.project_total_received_discarded,
-                project.id,
+            mock_incr.assert_called_with([
+                (tsdb.models.project_total_received_discarded, project.id),
+                (tsdb.models.project_total_blacklisted, project.id),
+                (tsdb.models.organization_total_blacklisted, project.organization_id),
+            ],
                 timestamp=to_datetime(now),
             )
