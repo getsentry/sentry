@@ -742,16 +742,6 @@ class V2TagStorage(TagStorage):
             event_id__in=event_ids,
         ).update(group_id=destination_id)
 
-    def get_groups_times_seen_by_environment_name(self, project_id, group_ids, environment_name):
-        qs = GroupTagValue.objects.filter(
-            project_id=project_id,
-            group_id__in=group_ids,
-            _key__key='environment',
-            _value__value=environment_name,
-        )
-        qs = self._add_environment_filter(qs, None)
-        return {i.group_id: i.times_seen for i in qs}
-
     def _add_environment_filter(self, queryset, environment_id):
         """\
         Filter a queryset by the provided `environment_id`, handling
