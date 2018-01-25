@@ -62,7 +62,7 @@ class UserDetailsTest(APITestCase):
 
 class UserUpdateTest(APITestCase):
     def setUp(self):
-        self.user = self.create_user(email='a@example.com', name='example name')
+        self.user = self.create_user(email='a@example.com', is_managed=False, name='example name')
         self.login_as(user=self.user)
         self.url = reverse(
             'sentry-api-0-user-details', kwargs={
@@ -146,6 +146,7 @@ class UserUpdateTest(APITestCase):
             )
             assert resp.status_code == 200
 
+            # name remains unchanged
             user = User.objects.get(id=self.user.id)
             assert user.name == 'example name'
 
@@ -157,7 +158,41 @@ class UserUpdateTest(APITestCase):
         })
         assert response.status_code == 400
 
+    def test_managed_unable_change_password(self):
+        user = self.create_user(email='new@example.com', is_managed=True)
+        self.login_as(user)
+        url = reverse(
+            'sentry-api-0-user-details', kwargs={
+                'user_id': user.id,
+            }
+        )
+
+        response = self.client.put(url, data={
+            'password': 'newpassword',
+            'passwordVerify': 'newpassword',
+        })
+        assert response.status_code == 409
+
+    def test_unusable_password_unable_change_password(self):
+        user = self.create_user(email='new@example.com')
+        user.set_unusable_password()
+        user.save()
+        self.login_as(user)
+
+        url = reverse(
+            'sentry-api-0-user-details', kwargs={
+                'user_id': user.id,
+            }
+        )
+
+        response = self.client.put(url, data={
+            'password': 'newpassword',
+            'passwordVerify': 'newpassword',
+        })
+        assert response.status_code == 400
+
     def test_change_privileged_and_unprivileged(self):
+        self.login_as(self.user)
         user = User.objects.get(id=self.user.id)
         old_password = user.password
 
