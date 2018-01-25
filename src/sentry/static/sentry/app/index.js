@@ -158,7 +158,7 @@ export default {
     U2fSign: require('./components/u2fsign').default,
     Badge: require('./components/badge').default,
     Switch: require('./components/switch').default,
-    SudoModal: require('./components/modals/sudoModal').default,
+    GlobalModal: require('./components/globalModal').default,
     SetupWizard: require('./components/setupWizard').default,
     utils: {
       errorHandler: require('./utils/errorHandler').default,
