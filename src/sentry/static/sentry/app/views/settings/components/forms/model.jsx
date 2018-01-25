@@ -262,12 +262,24 @@ class FormModel {
     // Save field + value
     this.setSaving(id, true);
 
-    // Transform data before saving, this uses `getValue` defined when declaring the form
     let fieldDescriptor = this.fieldDescriptor.get(id);
+
+    // Check if field needs to handle
+    let getData =
+      typeof fieldDescriptor.getData === 'function' ? fieldDescriptor.getData : a => a;
+
+    // Transform data before saving, this uses `getValue` defined when declaring the form
     let serializer =
       typeof fieldDescriptor.getValue === 'function' ? fieldDescriptor.getValue : a => a;
 
-    return this.doApiRequest({data: {[id]: serializer(newValue)}})
+    let request = this.doApiRequest({
+      data: getData(
+        {[id]: serializer(newValue)},
+        {model: this, id, form: this.getData().toJSON()}
+      ),
+    });
+
+    request
       .then(data => {
         this.setSaving(id, false);
 
@@ -310,6 +322,8 @@ class FormModel {
         // eslint-disable-next-line no-console
         console.error('Error saving form field', resp && resp.responseJSON);
       });
+
+    return request;
   }
 
   /**
