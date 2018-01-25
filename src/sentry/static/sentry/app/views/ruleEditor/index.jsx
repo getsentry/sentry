@@ -118,14 +118,13 @@ const RuleEditor = createReactClass({
         browserHistory.replace(
           `/${org.slug}/${project.slug}/settings/alerts/rules/${resp.id}/`
         );
+        IndicatorStore.remove(loadingIndicator);
       },
       error: response => {
         this.setState({
           error: response.responseJSON || {__all__: 'Unknown error'},
           loading: false,
         });
-      },
-      complete: () => {
         IndicatorStore.remove(loadingIndicator);
       },
     });
