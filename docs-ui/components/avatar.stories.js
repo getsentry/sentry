@@ -4,6 +4,7 @@ import {storiesOf} from '@storybook/react';
 import {withInfo} from '@storybook/addon-info';
 
 import Avatar from 'sentry-ui/avatar';
+import TeamAvatar from 'sentry-ui/teamAvatar';
 
 const USER = {
   id: 1,
@@ -45,5 +46,15 @@ storiesOf('Avatar', module)
         },
       });
       return <Avatar user={user} />;
+    })
+  )
+  .add(
+    'Team Avatar',
+    withInfo('Avatar for teams')(() => {
+      let team = {
+        name: 'Captain Planet',
+        slug: 'captain-planet',
+      };
+      return <TeamAvatar team={team} />;
     })
   );
