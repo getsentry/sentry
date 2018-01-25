@@ -148,6 +148,8 @@ class GroupSerializer(Serializer):
             environment = self.environment_func()
         except Environment.DoesNotExist:
             user_counts = {}
+            first_seen = {}
+            last_seen = {}
             times_seen = {}
         else:
             project_id = item_list[0].project_id
@@ -157,14 +159,26 @@ class GroupSerializer(Serializer):
                 item_ids,
                 environment_id=environment and environment.id,
             )
+            first_seen = {}
+            last_seen = {}
+            times_seen = {}
             if environment is not None:
-                times_seen = tagstore.get_groups_times_seen_by_environment_name(
+                environment_tagvalues = tagstore.get_group_list_tag_value(
                     project_id,
                     item_ids,
+                    environment.id,
+                    'environment',
                     environment.name,
                 )
+                for item_id, value in environment_tagvalues.items():
+                    first_seen[item_id] = value.first_seen
+                    last_seen[item_id] = value.last_seen
+                    times_seen[item_id] = value.times_seen
             else:
-                times_seen = {item.id: item.times_seen for item in item_list}
+                for item in item_list:
+                    first_seen[item.id] = item.first_seen
+                    last_seen[item.id] = item.last_seen
+                    times_seen[item.id] = item.times_seen
 
         ignore_items = {g.group_id: g for g in GroupSnooze.objects.filter(
             group__in=item_list,
@@ -233,6 +247,8 @@ class GroupSerializer(Serializer):
                 'resolution_actor': resolution_actor,
                 'share_id': share_ids.get(item.id),
                 'times_seen': times_seen.get(item.id, 0),
+                'first_seen': first_seen.get(item.id),  # TODO: missing?
+                'last_seen': last_seen.get(item.id),
             }
         return result
 
@@ -322,8 +338,8 @@ class GroupSerializer(Serializer):
             'title': obj.title,
             'culprit': obj.culprit,
             'permalink': permalink,
-            'firstSeen': obj.first_seen,
-            'lastSeen': obj.last_seen,
+            'firstSeen': attrs['first_seen'],
+            'lastSeen': attrs['last_seen'],
             'logger': obj.logger or None,
             'level': LOG_LEVELS.get(obj.level, 'unknown'),
             'status': status_label,
