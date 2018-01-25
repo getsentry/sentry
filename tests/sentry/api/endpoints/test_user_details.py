@@ -194,6 +194,7 @@ class UserUpdateTest(APITestCase):
 
         user = User.objects.get(id=self.user.id)
         assert user.password != old_password
+        assert user.password != 'newpassword'
         assert user.name == 'new name'
 
 

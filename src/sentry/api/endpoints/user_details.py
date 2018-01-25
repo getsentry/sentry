@@ -62,22 +62,30 @@ class AdminUserSerializer(BaseUserSerializer):
 
 
 class UserSudoSerializer(BaseUserSerializer):
+    # Required because this serializer only handles password changes
+    passwordVerify = serializers.CharField(max_length=128, required=False)
+    password = serializers.CharField(max_length=128, required=False)
+
     class Meta:
         model = User
-        fields = ('password',)
+        fields = ('password', 'passwordVerify')
 
     def validate_password(self, attrs, source):
         # this will raise a ValidationError if password is invalid
         password_validation.validate_password(attrs[source])
 
+        if self.context['is_managed'] or not self.context['has_usable_password']:
+            raise serializers.ValidationError('Not allowed to change password')
+
         return attrs
 
-    def update(self, instance, validated_data):
-        new_password = validated_data.get('password', None)
-        if new_password is not None:
-            instance.set_password(new_password)
+    def validate(self, attrs):
+        # make sure `password` matches `passwordVerify`
+        if 'password' in attrs and attrs.get('password') != attrs.get('passwordVerify'):
+            raise serializers.ValidationError('New password does not match verified password.')
 
-        return instance
+        attrs = super(UserSudoSerializer, self).validate(attrs)
+        return attrs
 
 
 class UserDetailsEndpoint(UserEndpoint):
@@ -87,33 +95,32 @@ class UserDetailsEndpoint(UserEndpoint):
 
     @sudo_required
     def protected_put(self, request, user):
-        serializer = UserSudoSerializer(user, data=request.DATA, partial=True)
+        # pass some context to serializer otherwise when we create a new serializer instance,
+        # user.password gets set to new plaintext password from request and
+        # `user.has_usable_password` becomes False
+        serializer = UserSudoSerializer(user, data=request.DATA, partial=True, context={
+            'is_managed': user.is_managed,
+            'has_usable_password': user.has_usable_password(),
+        })
 
         if not serializer.is_valid():
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
         result = serializer.object
 
-        if request.DATA.get('password'):
-            if request.DATA.get('password') != request.DATA.get('passwordVerify'):
-                return Response({"detail": "New password does not match verified password"},
-                                status=status.HTTP_400_BAD_REQUEST)
+        if result.password:
+            user.set_password(result.password)
+            user.refresh_session_nonce(request._request)
 
-            if request.user.is_managed or not request.user.has_usable_password():
-                return Response({"detail": "Not allowed to change password"},
-                                status=status.HTTP_400_BAD_REQUEST)
-
-            result.refresh_session_nonce(request._request)
+            user = serializer.save()
 
             capture_security_activity(
-                account=result,
+                account=user,
                 type='password-changed',
-                actor=result,
+                actor=request.user,
                 ip_address=request.META['REMOTE_ADDR'],
                 send_email=True,
             )
-
-        serializer.save()
 
         # Proceed to update unprivileged fields
         return self.update_unprivileged_details(request, user)
