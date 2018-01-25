@@ -85,7 +85,7 @@ class TeamManager(BaseManager):
             ).values_list('project_id', 'team_id'):
                 teams_by_project[project_id].add(team_id)
 
-            projects_by_team = {t.id: [] for t in team_list}
+            projects_by_team = defaultdict(list)
             for project in project_list:
                 for team_id in teams_by_project[project.id]:
                     projects_by_team[team_id].append(project)
