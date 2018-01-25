@@ -31,7 +31,7 @@ def _get_service_hooks(project_id):
     if result is None:
         result = [(h.id, h.events) for h in
                   ServiceHook.objects.filter(project_id=project_id)]
-        cache.set(result, 60)
+        cache.set(cache_key, result, 60)
     return result
 
 
