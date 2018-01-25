@@ -86,7 +86,8 @@ class UserUpdateTest(APITestCase):
 
         user = User.objects.get(id=self.user.id)
         assert user.name == 'hello world'
-        assert user.email == 'b@example.com'
+        # note: email should not change, removed support for email changing from this endpoint
+        assert user.email == 'a@example.com'
         assert user.username == user.email
         assert UserOption.objects.get_value(
             user=user,
@@ -94,6 +95,7 @@ class UserUpdateTest(APITestCase):
         ) is True
 
     def test_superuser(self):
+        # superuser should be able to change self.user's name
         superuser = self.create_user(email='b@example.com', is_superuser=True)
         self.login_as(user=superuser, superuser=True)
 
@@ -117,23 +119,10 @@ class UserUpdateTest(APITestCase):
 
         user = User.objects.get(id=self.user.id)
         assert user.name == 'hello world'
-        assert user.email == 'c@example.com'
-        assert user.username == 'foo'
-        assert not user.is_active
-
-    def test_duplicate_username(self):
-        self.create_user(email='dupe@example.com')
-
-        resp = self.client.put(
-            self.url,
-            data={
-                'username': 'dupe@example.com',
-            }
-        )
-        assert resp.status_code == 400
-
-        user = User.objects.get(id=self.user.id)
+        # note: email should not change, removed support for email changing from this endpoint
+        assert user.email == 'a@example.com'
         assert user.username == 'a@example.com'
+        assert not user.is_active
 
     def test_managed_fields(self):
         assert self.user.name == 'example name'
@@ -171,7 +160,7 @@ class UserUpdateTest(APITestCase):
             'password': 'newpassword',
             'passwordVerify': 'newpassword',
         })
-        assert response.status_code == 409
+        assert response.status_code == 400
 
     def test_unusable_password_unable_change_password(self):
         user = self.create_user(email='new@example.com')
@@ -253,50 +242,3 @@ class UserSudoUpdateTest(APITestCase):
             assert response.status_code == 200
             user = User.objects.get(id=self.user.id)
             assert user.password != old_password
-
-    def test_change_email_requires_sudo(self):
-        with self.settings(MIDDLEWARE_CLASSES=tuple(self.sudo_middleware)):
-            response = self.client.put(self.url, data={
-                'email': 'new@example.com',
-            })
-
-            assert response.status_code == 401
-            assert response.data['sudoRequired']
-
-            # Now try to gain sudo access
-            response = self.client.post(self.sudo_url, {
-                'username': 'foo@example.com',
-                'password': 'admin',
-            })
-            assert response.status_code == 204
-
-            response = self.client.put(self.url, data={
-                'email': 'new@example.com',
-            })
-            assert response.status_code == 200
-            user = User.objects.get(id=self.user.id)
-            assert user.email == 'new@example.com'
-
-    def test_change_username_requires_sudo(self):
-        with self.settings(MIDDLEWARE_CLASSES=tuple(self.sudo_middleware)):
-            response = self.client.put(self.url, data={
-                'username': 'new@example.com',
-            })
-
-            assert response.status_code == 401
-            assert response.data['sudoRequired']
-
-            # Now try to gain sudo access
-            response = self.client.post(self.sudo_url, {
-                'email': 'foo@example.com',
-                'password': 'admin',
-            })
-            assert response.status_code == 204
-
-            response = self.client.put(self.url, data={
-                'username': 'new@example.com',
-            })
-            assert response.status_code == 200
-            user = User.objects.get(id=self.user.id)
-            assert user.username == 'new@example.com'
-            assert user.email == 'new@example.com'

@@ -57,7 +57,7 @@ class AdminUserSerializer(BaseUserSerializer):
         model = User
         # no idea wtf is up with django rest framework, but we need is_active
         # and isActive
-        fields = ('name', 'isActive', 'username', 'email')
+        fields = ('name', 'isActive')
         # write_only_fields = ('password',)
 
 
