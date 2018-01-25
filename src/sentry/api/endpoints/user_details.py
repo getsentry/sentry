@@ -57,20 +57,27 @@ class AdminUserSerializer(BaseUserSerializer):
         model = User
         # no idea wtf is up with django rest framework, but we need is_active
         # and isActive
-        fields = ('name', 'isActive')
+        fields = ('name', 'isActive', 'username', 'email')
         # write_only_fields = ('password',)
 
 
 class UserSudoSerializer(BaseUserSerializer):
     class Meta:
         model = User
-        fields = ('password', 'username', 'email')
+        fields = ('password',)
 
     def validate_password(self, attrs, source):
         # this will raise a ValidationError if password is invalid
         password_validation.validate_password(attrs[source])
 
         return attrs
+
+    def update(self, instance, validated_data):
+        new_password = validated_data.get('password', None)
+        if new_password is not None:
+            instance.set_password(new_password)
+
+        return instance
 
 
 class UserDetailsEndpoint(UserEndpoint):
@@ -92,13 +99,11 @@ class UserDetailsEndpoint(UserEndpoint):
                 return Response({"detail": "New password does not match verified password"},
                                 status=status.HTTP_400_BAD_REQUEST)
 
-            # TODO(billy): Why is `user.has_usable_password()` false here
-            if user.is_managed:
+            if request.user.is_managed or not request.user.has_usable_password():
                 return Response({"detail": "Not allowed to change password"},
                                 status=status.HTTP_400_BAD_REQUEST)
 
-            user.set_password(result.password)
-            user.refresh_session_nonce(request._request)
+            result.refresh_session_nonce(request._request)
 
             capture_security_activity(
                 account=result,
@@ -114,11 +119,8 @@ class UserDetailsEndpoint(UserEndpoint):
         return self.update_unprivileged_details(request, user)
 
     def put(self, request, user):
-        # Changing `password`, `email`, or `username` requires sudo
-        if request.DATA.get('passwordVerify') or \
-                request.DATA.get('password') or \
-                request.DATA.get('username') or \
-                request.DATA.get('email'):
+        # Changing `password` requires sudo
+        if request.DATA.get('password'):
             return self.protected_put(request, user)
         else:
             return self.update_unprivileged_details(request, user)
@@ -130,6 +132,7 @@ class UserDetailsEndpoint(UserEndpoint):
             serializer_cls = UserSerializer
         serializer = serializer_cls(user, data=request.DATA, partial=True)
 
+        # This serializer should NOT include privileged fields e.g. password
         if serializer.is_valid():
             user = serializer.save()
 
