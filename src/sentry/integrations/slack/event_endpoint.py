@@ -99,9 +99,9 @@ class SlackEventEndpoint(Endpoint):
         # authed_users = data.get('authed_users')
 
         logging_data.update({
-            'team_id': team_id,
-            'api_app_id': api_app_id,
-            'event_id': event_id,
+            'slack_team_id': team_id,
+            'slack_api_app_id': api_app_id,
+            'slack_event_id': event_id,
         })
 
         token = data.get('token')
@@ -134,7 +134,7 @@ class SlackEventEndpoint(Endpoint):
             logger.error('slack.event.invalid-event-type', extra=logging_data)
             return self.respond(status=400)
 
-        logging_data['event_type'] = event_type
+        logging_data['slack_event_type'] = event_type
         if event_type == 'link_shared':
             resp = self.on_link_shared(request, integration, token, event_data)
         else:
