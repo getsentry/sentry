@@ -1,0 +1,16 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`TeamAvatar render() renders 1`] = `
+<span
+  className="avatar"
+>
+  <Tooltip
+    title="Team Name"
+  >
+    <LetterAvatar
+      displayName="Team Name"
+      identifier="team-slug"
+    />
+  </Tooltip>
+</span>
+`;
