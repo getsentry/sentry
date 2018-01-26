@@ -94,11 +94,11 @@
     <h6 class="nav-header">{% trans "Integrations" %}</h6>
     <ul class="nav nav-stacked">
       <li>
-        <a href="{% absolute_uri '/{}/{}/settings/plugins/' project.organization.slug project.slug %}">{% trans "All Integrations" %}</a>
+        <a href="{% absolute_uri '/{}/{}/settings/plugins/{}/' project.organization.slug project.slug %}">{% trans "All Integrations" %}</a>
       </li>
       {% for p in plugins %}
         <li>
-          <a href="{% absolute_uri '/{}/{}/settings/plugins/' project.organization.slug project.slug p.slug %}">{{ p.get_title }}</a>
+          <a href="{% absolute_uri '/{}/{}/settings/plugins/{}/' project.organization.slug project.slug p.slug %}">{{ p.get_title }}</a>
         </li>
       {% endfor %}
     </ul>
