@@ -7,3 +7,11 @@ export function setActiveEnvironment(environment) {
 export function clearActiveEnvironment() {
   EnvironmentActions.clearActive();
 }
+
+export function loadEnvironments(data) {
+  EnvironmentActions.loadData(data);
+}
+
+export function setDefaultEnvironment(env) {
+  EnvironmentActions.setDefault(env);
+}

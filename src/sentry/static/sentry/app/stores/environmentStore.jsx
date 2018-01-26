@@ -1,6 +1,10 @@
 import Reflux from 'reflux';
 import {toTitleCase} from '../utils';
+
 import ProjectActions from '../actions/projectActions';
+import EnvironmentActions from '../actions/environmentActions';
+
+import {setDefaultEnvironment} from '../actionCreators/environments';
 
 const PRODUCTION_ENV_NAMES = new Set([
   'production',
@@ -17,6 +21,7 @@ const EnvironmentStore = Reflux.createStore({
   init() {
     this.items = [];
     this.defaultEnvironment = null;
+    this.listenTo(EnvironmentActions.loadData, this.loadInitialData);
     this.listenTo(ProjectActions.setActive, this.onSetActiveProject);
   },
 
@@ -32,6 +37,9 @@ const EnvironmentStore = Reflux.createStore({
       },
     }));
     this.trigger(this.items, 'initial');
+
+    // Update the default environment in the latest context store
+    setDefaultEnvironment(this.getDefault());
   },
 
   getByName(name) {
