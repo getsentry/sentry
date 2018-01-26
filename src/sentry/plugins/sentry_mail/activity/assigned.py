@@ -12,6 +12,8 @@ class AssignedActivityEmail(ActivityEmail):
         return 'Assigned'
 
     def get_description(self):
+        # TODO(mattrobenolt): Handle when assignee is Team
+
         activity = self.activity
         data = activity.data
         if activity.user_id and six.text_type(activity.user_id) == data['assignee']:

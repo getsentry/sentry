@@ -21,12 +21,21 @@ from sentry.signals import issue_assigned
 
 class GroupAssigneeManager(BaseManager):
     def assign(self, group, assigned_to, acting_user=None):
+        from sentry.models import User, Team
+
+        if isinstance(assigned_to, User):
+            assignee_type = 'user'
+        elif isinstance(assigned_to, Team):
+            assignee_type = 'team'
+        else:
+            raise AssertionError('Invalid type to assign to: %r' % type(assigned_to))
+
         now = timezone.now()
         assignee, created = GroupAssignee.objects.get_or_create(
             group=group,
             defaults={
                 'project': group.project,
-                'user': assigned_to,
+                assignee_type: assigned_to,
                 'date_added': now,
             }
         )
@@ -34,11 +43,12 @@ class GroupAssigneeManager(BaseManager):
         if not created:
             affected = GroupAssignee.objects.filter(
                 group=group,
-            ).exclude(
-                user=assigned_to,
-            ).update(
-                user=assigned_to, date_added=now
-            )
+            ).exclude(**{
+                assignee_type: assigned_to,
+            }).update(**{
+                assignee_type: assigned_to,
+                'date_added': now,
+            })
         else:
             affected = True
             issue_assigned.send(project=group.project, group=group, sender=acting_user)
@@ -51,8 +61,9 @@ class GroupAssigneeManager(BaseManager):
                 user=acting_user,
                 data={
                     'assignee': six.text_type(assigned_to.id),
-                    'assigneeEmail': assigned_to.email,
-                }
+                    'assigneeEmail': getattr(assigned_to, 'email', None),
+                    'assigneeType': assignee_type,
+                },
             )
             activity.send_notification()
 
@@ -76,7 +87,7 @@ class GroupAssigneeManager(BaseManager):
 
 class GroupAssignee(Model):
     """
-    Identifies an assignment relationship between a user and an
+    Identifies an assignment relationship between a user/team and an
     aggregated event (Group).
     """
     __core__ = False
@@ -85,11 +96,19 @@ class GroupAssignee(Model):
 
     project = FlexibleForeignKey('sentry.Project', related_name="assignee_set")
     group = FlexibleForeignKey('sentry.Group', related_name="assignee_set", unique=True)
-    user = FlexibleForeignKey(settings.AUTH_USER_MODEL, related_name="sentry_assignee_set")
+    user = FlexibleForeignKey(
+        settings.AUTH_USER_MODEL,
+        related_name="sentry_assignee_set",
+        null=True)
+    team = FlexibleForeignKey('sentry.Team', null=True)
     date_added = models.DateTimeField(default=timezone.now)
 
     class Meta:
         app_label = 'sentry'
         db_table = 'sentry_groupasignee'
 
-    __repr__ = sane_repr('group_id', 'user_id')
+    __repr__ = sane_repr('group_id', 'user_id', 'team_id')
+
+    def save(self, *args, **kwargs):
+        assert self.user_id or self.team_id
+        super(GroupAssignee, self).save(*args, **kwargs)
