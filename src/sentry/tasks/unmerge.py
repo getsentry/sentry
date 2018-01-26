@@ -396,14 +396,13 @@ def repair_group_environment_data(caches, project, events):
             # exists on the manager) to avoid reading cached data that was
             # written prior to the truncation at the beginning of the unmerge
             # task.
-            instance, _ = GroupEnvironment.objects.get_or_create(
+            group_environments[key], _ = GroupEnvironment.objects.get_or_create(
                 group_id=group_id,
                 environment_id=caches['Environment'](
                     project.organization_id,
                     environment_name,
                 ).id,
             )
-            group_environments[key] = instance
 
 
 def get_event_user_from_interface(value):
