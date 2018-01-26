@@ -71,7 +71,7 @@ export default class Form extends React.Component {
     let curData = this.state.data;
     let newData = {};
     Object.keys(curData).forEach(k => {
-      if (data.hasOwnProperty(k)) newData[k] = data[k];
+      if (data && data.hasOwnProperty(k)) newData[k] = data[k];
       else newData[k] = curData[k];
     });
 
