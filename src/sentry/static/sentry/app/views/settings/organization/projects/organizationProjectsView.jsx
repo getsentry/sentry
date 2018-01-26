@@ -68,8 +68,7 @@ const OrganizationProjectsViewContainer = createReactClass({
     });
   },
 
-  onProjectUpdate(projects) {
-    // loadInitialData returns a list of ids
+  onProjectUpdate() {
     this.setState({
       projects: ProjectsStore.getAll(),
     });

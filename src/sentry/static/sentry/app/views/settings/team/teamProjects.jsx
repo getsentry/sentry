@@ -48,13 +48,13 @@ const TeamProjects = createReactClass({
     }
   },
 
-  onProjectUpdate(projects) {
+  onProjectUpdate() {
     this.setState({
       allProjects: ProjectsStore.getAll(),
     });
   },
 
-  onTeamUpdate(teams) {
+  onTeamUpdate() {
     this.setState({
       projectListLinked: TeamStore.getBySlug(this.props.params.teamId).projects,
     });
