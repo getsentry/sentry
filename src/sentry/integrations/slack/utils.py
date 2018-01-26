@@ -157,7 +157,7 @@ def build_attachment(group, event=None, identity=None, actions=None):
     if status == GroupStatus.RESOLVED:
         resolve_button.update({
             'name': 'status',
-            'text': 'Unresolve Issue',
+            'text': 'Unresolve',
             'value': 'unresolved',
         })
 
