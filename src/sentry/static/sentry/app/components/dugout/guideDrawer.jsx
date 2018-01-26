@@ -8,7 +8,6 @@ const GuideDrawer = createReactClass({
   propTypes: {
     guide: PropTypes.object.isRequired,
     step: PropTypes.number.isRequired,
-    onClick: PropTypes.func.isRequired,
     nextHandler: PropTypes.func.isRequired,
     closeHandler: PropTypes.func.isRequired,
   },
@@ -16,7 +15,7 @@ const GuideDrawer = createReactClass({
   render() {
     const step = this.props.step;
     return (
-      <div className="dugout-drawer" onClick={this.props.onClick}>
+      <div className="dugout-drawer">
         <div className="dugout-drawer-title">{this.props.guide.steps[step].title}</div>
         <div className="dugout-drawer-message">
           {this.props.guide.steps[step].message}

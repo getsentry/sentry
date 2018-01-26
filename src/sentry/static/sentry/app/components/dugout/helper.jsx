@@ -2,6 +2,7 @@ import React from 'react';
 import {browserHistory} from 'react-router';
 import createReactClass from 'create-react-class';
 import Reflux from 'reflux';
+import $ from 'jquery';
 import DugoutHandle from './handle';
 import SupportDrawer from './supportDrawer';
 import GuideDrawer from './guideDrawer';
@@ -62,6 +63,7 @@ const DugoutHelper = createReactClass({
             'See which line in your code caused the error and the entire call ' +
             'stack at that point. Get additional context like stack locals, ' +
             'browser environment, and any custom data sent by the client.',
+          elementID: 'exception',
         },
         {
           title: '2. Breadcrumbs',
@@ -71,6 +73,7 @@ const DugoutHelper = createReactClass({
             'and includes things like HTTP requests, database calls, and any other ' +
             'custom data you record. Breadcrumbs also integrate seamlessly with many ' +
             'popular web frameworks.',
+          elementID: 'breadcrumbs',
         },
       ],
     },
@@ -91,17 +94,32 @@ const DugoutHelper = createReactClass({
     if (this.isFirstStep()) GuideStore.completeStep();
   },
 
+  maybeScroll(nextStep) {
+    const elementID = this.state.guide && this.state.guide.steps[nextStep].elementID;
+    if (elementID) {
+      $('html, body').animate(
+        {
+          scrollTop: $('#' + elementID).offset().top,
+        },
+        1000
+      );
+    }
+  },
+
   onButtonClick() {
     this.setState({
       isDrawerOpen: true,
       currentStep: 0,
     });
+    this.maybeScroll(0);
   },
 
   nextHandler() {
+    const nextStep = this.state.currentStep + 1;
     this.setState({
-      currentStep: this.state.currentStep + 1,
+      currentStep: nextStep,
     });
+    this.maybeScroll(nextStep);
   },
 
   closeHandler() {
@@ -118,14 +136,13 @@ const DugoutHelper = createReactClass({
           <div className="dugout-drawer">
             {this.state.guide ? (
               <GuideDrawer
-                onClick={this.onDrawerClick}
                 guide={this.state.guide}
                 step={this.state.currentStep}
                 nextHandler={this.nextHandler}
                 closeHandler={this.closeHandler}
               />
             ) : (
-              <SupportDrawer onClick={this.onDrawerClick} />
+              <SupportDrawer />
             )}
           </div>
         ) : (
