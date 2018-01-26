@@ -58,10 +58,14 @@ class SlackNotifyServiceAction(EventAction):
 
     def after(self, event, state):
         channel = self.get_option('channel')
-        integration = Integration.objects.get(
-            provider='slack',
-            organizations=self.project.organization,
-        )
+        try:
+            integration = Integration.objects.get(
+                provider='slack',
+                organizations=self.project.organization,
+            )
+        except Integration.DoesNotExist:
+            self.logger.error('rule.fail.slack_notify.missing_integration')
+            return
 
         def send_notification(event, futures):
             attachment = build_attachment(event.group, event=event)
@@ -73,11 +77,11 @@ class SlackNotifyServiceAction(EventAction):
             }
 
             session = http.build_session()
-            req = session.get('https://slack.com/api/chat.postMessage', params=payload)
-            req.raise_for_status()
-            resp = req.json()
+            resp = session.post('https://slack.com/api/chat.postMessage', data=payload)
+            resp.raise_for_status()
+            resp = resp.json()
             if not resp.get('ok'):
-                self.logger.error('rule.fail.slack_post', error=resp.get('error'))
+                self.logger.error('rule.fail.slack_post', extra={'error': resp.get('error')})
 
         metrics.incr('notifications.sent')
         yield self.future(send_notification)
@@ -120,11 +124,11 @@ class SlackNotifyServiceAction(EventAction):
         }
 
         session = http.build_session()
-        req = session.get('https://slack.com/api/channels.list', params=payload)
-        req.raise_for_status()
-        resp = req.json()
+        resp = session.get('https://slack.com/api/channels.list', params=payload)
+        resp.raise_for_status()
+        resp = resp.json()
         if not resp.get('ok'):
-            self.logger.error('rule.slack.channel_list_failed', error=resp.get('error'))
+            self.logger.error('rule.slack.channel_list_failed', extra={'error': resp.get('error')})
             return None
 
         return {c['name']: c['id'] for c in resp['channels']}.get(value)
