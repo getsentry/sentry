@@ -207,10 +207,6 @@ const ProjectEvents = createReactClass({
             />
           </div>
         </div>
-        <div className="alert alert-block alert-info">
-          Psst! This feature is still a work-in-progress. Thanks for being an early
-          adopter!
-        </div>
         {this.renderStreamBody()}
         <Pagination pageLinks={this.state.pageLinks} />
       </div>
