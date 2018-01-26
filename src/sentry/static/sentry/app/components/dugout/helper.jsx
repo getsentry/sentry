@@ -15,10 +15,19 @@ const DugoutHelper = createReactClass({
   // mixins: [ApiMixin, Reflux.listenTo(GuideStore, 'onGuideChange')],
   mixins: [ApiMixin, Reflux.connect(GuideStore, 'guide')],
 
+  getInitialState() {
+    return {
+      pathname: null,
+      isDrawerOpen: false,
+      guide: null,
+      currentStep: null,
+    };
+  },
+
   componentWillMount() {
-    this.handleLocation(window.location);
-    this.unlisten = browserHistory.listen((location, action) => {
-      this.handleLocation(location);
+    this.handleLocationChange(window.location.pathname);
+    this.unlisten = browserHistory.listen(location => {
+      this.handleLocationChange(location.pathname);
     });
   },
 
@@ -26,27 +35,15 @@ const DugoutHelper = createReactClass({
     this.unlisten();
   },
 
-  isFirstStep() {
-    return GuideStore._internal.step == -1;
-  },
-
-  currentStep() {
-    return GuideStore.getCurrentStep() || GuideStore.getFirstStep();
-  },
-
-  currentGuide() {
-    return GuideStore.getCurrentGuide();
-  },
-
-  onGuideChange(guideState) {
-    if (GuideStore.getCurrentStep()) {
-      const {title, description} = GuideStore.getCurrentStep();
-      this.setState({title, description});
+  handleLocationChange(pathname) {
+    if (this.state.pathname == pathname) {
+      return;
     }
-  },
-
-  handleLocation(location) {
-    if (location.pathname.includes('/issues/')) {
+    this.setState({
+      pathname,
+      isDrawerOpen: false,
+    });
+    if (pathname.match(/\/issues\/\d+\/([?]|$)/)) {
       this.setState({guide: this.guides.issues});
     } else {
       this.setState({guide: null});
@@ -55,7 +52,7 @@ const DugoutHelper = createReactClass({
 
   guides: {
     issues: {
-      cue: 'Welcome to the Issue page. Click here for a tour!',
+      cue: 'Click here for a tour of the issue page',
       steps: [
         {
           title: '1. Stacktraces',
@@ -80,18 +77,12 @@ const DugoutHelper = createReactClass({
   },
 
   largeMessage() {
-    return this.isFirstStep() ? (
-      ''
-    ) : (
+    return (
       <div className="dugout-message-large">
         <div className="dugout-message-large-title">{this.state.guide.title}</div>
         <div className="dugout-message-large-text">{this.state.guide.description}</div>
       </div>
     );
-  },
-
-  clickedHandle() {
-    if (this.isFirstStep()) GuideStore.completeStep();
   },
 
   maybeScroll(nextStep) {
