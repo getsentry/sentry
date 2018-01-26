@@ -170,11 +170,17 @@ const ProjectSettings = createReactClass({
           </ul>
         </div>
         <div className="col-md-10">
-          {React.cloneElement(this.props.children, {
-            setProjectNavSection: this.props.setProjectNavSection,
-            project,
-            organization: this.context.organization,
-          })}
+          {access.has('project:write') ? (
+            React.cloneElement(this.props.children, {
+              setProjectNavSection: this.props.setProjectNavSection,
+              project,
+              organization: this.context.organization,
+            })
+          ) : (
+            <div className="alert alert-block">
+              {t('Ask mom or dad for access to this page.')}
+            </div>
+          )}
         </div>
       </div>
     );
