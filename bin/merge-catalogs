@@ -29,9 +29,9 @@ def cli(locale):
         return
 
     with open(catalog_file) as f:
-        catalog = read_po(f)
+        catalog = read_po(f, locale)
     with open(frontend_file) as f:
-        frontend = read_po(f)
+        frontend = read_po(f, locale)
 
     for frontend_msg in frontend:
         if frontend_msg.id == '':
