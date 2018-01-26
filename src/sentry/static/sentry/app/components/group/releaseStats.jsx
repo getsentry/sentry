@@ -139,6 +139,7 @@ const GroupReleaseStats = createReactClass({
 
     this.setState({
       data,
+      loading: false,
     });
   },
 
