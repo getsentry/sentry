@@ -48,7 +48,7 @@ const GroupReleaseStats = createReactClass({
   componentWillReceiveProps(nextProps) {
     let queryParams = nextProps.location.query;
     if (
-      queryParams.environment &&
+      'environment' in queryParams &&
       queryParams.environment !== this.props.location.query.environment
     ) {
       this.setState(
@@ -74,61 +74,72 @@ const GroupReleaseStats = createReactClass({
   getEnvironment(envName) {
     let defaultEnv = EnvironmentStore.getDefault();
     let queriedEnvironment = EnvironmentStore.getByName(envName);
+
     return queriedEnvironment || defaultEnv;
   },
 
   fetchData() {
+    if (this.state.environment) {
+      this.fetchEnvironmentData();
+    } else {
+      this.fetchAllEnvironmentsData();
+    }
+  },
+
+  fetchEnvironmentData() {
+    // due to the current stats logic in Sentry we need to extend the bounds
     let group = this.props.group;
     let env = this.state.environment;
 
-    if (env) {
-      // due to the current stats logic in Sentry we need to extend the bounds
-      let stats = group.stats['24h'];
-      let until = stats[stats.length - 1][0] + 1;
+    let stats = group.stats['24h'];
+    let until = stats[stats.length - 1][0] + 1;
 
-      this.api.request(`/issues/${group.id}/environments/${env.urlRoutingName}/`, {
-        query: {
-          until,
-        },
-        success: data => {
-          this.setState({
-            data,
-            loading: false,
-            error: false,
-          });
-        },
-        error: () => {
-          this.setState({
-            data: null,
-            loading: false,
-            error: true,
-          });
-        },
-      });
-    } else {
-      // Grab data for all environments and set on state, following the format of /issues/group/environments/{envnameA
-      let data = {
-        environment: {stats: group.stats},
+    this.api.request(`/issues/${group.id}/environments/${env.urlRoutingName}/`, {
+      query: {
+        until,
+      },
+      success: data => {
+        this.setState({
+          data,
+          loading: false,
+          error: false,
+        });
+      },
+      error: () => {
+        this.setState({
+          data: null,
+          loading: false,
+          error: true,
+        });
+      },
+    });
+  },
+
+  fetchAllEnvironmentsData() {
+    let group = this.props.group;
+
+    // Grab data for all environments and set on state, following the format of /issues/group/environments/{envnameA
+    let data = {
+      environment: {stats: group.stats},
+    };
+
+    if (group.firstRelease) {
+      data.firstRelease = {
+        release: group.firstRelease,
+        environment: getPath(group, 'firstRelease.lastDeploy.environment'),
       };
-
-      if (group.firstRelease) {
-        data.firstRelease = {
-          release: group.firstRelease,
-          environment: getPath(group, 'firstRelease.lastDeploy.environment'),
-        };
-      }
-
-      if (group.lastRelease) {
-        data.lastRelease = {
-          release: group.lastRelease,
-          environment: getPath(group, 'lastDeploy.lastDeploy.environment'),
-        };
-      }
-
-      this.setState({
-        data,
-      });
     }
+
+    if (group.lastRelease) {
+      data.lastRelease = {
+        release: group.lastRelease,
+        environment: getPath(group, 'lastDeploy.lastDeploy.environment'),
+      };
+    }
+
+    this.setState({
+      data,
+    });
   },
 
   switchEnv(env) {
@@ -169,20 +180,17 @@ const GroupReleaseStats = createReactClass({
         <h6>
           <span>
             <DropdownLink title={envName}>
-              <MenuItem
-                isActive={environment === null}
-                onClick={() => this.selectAllEnvs()}
-              >
+              <MenuItem isActive={environment === null} onClick={this.selectAllEnvs}>
                 {t('All Environments')}
               </MenuItem>
-              {envList.map(e => {
+              {envList.map(env => {
                 return (
                   <MenuItem
-                    key={e.name}
-                    isActive={e.name === envName}
-                    onClick={() => this.switchEnv(e.name)}
+                    key={env.name}
+                    isActive={env.name === envName}
+                    onClick={() => this.switchEnv(env.name)}
                   >
-                    {e.displayName}
+                    {env.displayName}
                   </MenuItem>
                 );
               })}
@@ -221,7 +229,7 @@ const GroupReleaseStats = createReactClass({
               />
               <h6>
                 <span>{t('First seen')}</span>
-                {environment ? <small>({environment.name})</small> : null}
+                {environment ? <small>({environment.displayName})</small> : null}
               </h6>
 
               <SeenInfo
@@ -237,7 +245,7 @@ const GroupReleaseStats = createReactClass({
 
               <h6>
                 <span>{t('Last seen')}</span>
-                {environment ? <small>({envName})</small> : null}
+                {environment ? <small>({environment.displayName})</small> : null}
               </h6>
               <SeenInfo
                 orgId={orgId}
