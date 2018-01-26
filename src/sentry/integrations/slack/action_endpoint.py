@@ -89,6 +89,7 @@ class SlackActionEndpoint(Endpoint):
         callback_id = json.dumps({
             'issue': group.id,
             'orig_response_url': data['response_url'],
+            'is_message': self.is_message(data),
         })
 
         dialog = {
@@ -111,6 +112,27 @@ class SlackActionEndpoint(Endpoint):
             logger.error('slack.action.response-error', extra={
                 'error': resp.get('error'),
             })
+
+    def construct_reply(self, attachment, is_message=False):
+        # XXX(epurkhiser): Slack is inconsistent about it's expected responses
+        # for interactive action requests.
+        #
+        #  * For _unfurled_ action responses, slack expects the entire
+        #    attachment body used to replace the unfurled attachment to be at
+        #    the top level of the json response body.
+        #
+        #  * For _bot posted message_ action responses, slack expects the
+        #    attachment body used to replace the attachment to be within an
+        #    `attachments` array.
+        if is_message:
+            attachment = {'attachments': [attachment]}
+
+        return attachment
+
+    def is_message(self, data):
+        # XXX(epurkhsier): Used in coordination with construct_reply. Bot
+        # posted messages will have he type at all.
+        return data.get('original_message', {}).get('type') == 'message'
 
     def post(self, request):
         logging_data = {}
@@ -209,9 +231,12 @@ class SlackActionEndpoint(Endpoint):
 
             attachment = build_attachment(group, identity=identity, actions=[action])
 
+            # XXX(epurkhiser): See construct_reply
+            body = self.construct_reply(attachment, is_message=callback_data['is_message'])
+
             # use the original response_url to update the link attachment
             session = http.build_session()
-            req = session.post(callback_data['orig_response_url'], json=attachment)
+            req = session.post(callback_data['orig_response_url'], json=body)
             resp = req.json()
             if not resp.get('ok'):
                 logger.error('slack.action.response-error', extra={
@@ -249,5 +274,8 @@ class SlackActionEndpoint(Endpoint):
         # Reload group as it may have been mutated by the action
         group = Group.objects.get(id=group.id)
 
+        # XXX(epurkhiser): See construct_reply
         attachment = build_attachment(group, identity=identity, actions=action_list)
-        return self.respond(attachment)
+        body = self.construct_reply(attachment, is_message=self.is_message(data))
+
+        return self.respond(body)
