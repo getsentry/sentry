@@ -197,7 +197,8 @@ class AuditLogEntry(Model):
         elif self.event == AuditLogEntryEvent.ORG_ADD:
             return 'created the organization'
         elif self.event == AuditLogEntryEvent.ORG_EDIT:
-            return 'edited the organization'
+            return 'edited the organization setting(s): ' + (', '.join('{} {}'.format(k, v)
+                                                                       for k, v in self.data.items()))
         elif self.event == AuditLogEntryEvent.ORG_REMOVE:
             return 'removed the organization'
         elif self.event == AuditLogEntryEvent.ORG_RESTORE:

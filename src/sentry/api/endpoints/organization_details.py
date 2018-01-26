@@ -1,6 +1,7 @@
 from __future__ import absolute_import
 
 import logging
+import six
 
 from rest_framework import serializers, status
 from rest_framework.response import Response
@@ -12,7 +13,8 @@ from sentry.api.bases.organization import OrganizationEndpoint
 from sentry.api.decorators import sudo_required
 from sentry.api.fields import AvatarField
 from sentry.api.serializers import serialize
-from sentry.api.serializers.models.organization import (DetailedOrganizationSerializer)
+from sentry.api.serializers.models.organization import (
+    DetailedOrganizationSerializer)
 from sentry.api.serializers.rest_framework import ListField
 from sentry.constants import RESERVED_ORGANIZATION_SLUGS
 from sentry.models import (
@@ -63,8 +65,10 @@ def update_organization_scenario(runner):
 class OrganizationSerializer(serializers.Serializer):
     name = serializers.CharField(max_length=64)
     slug = serializers.RegexField(r'^[a-z0-9_\-]+$', max_length=50)
-    accountRateLimit = serializers.IntegerField(min_value=0, max_value=1000000, required=False)
-    projectRateLimit = serializers.IntegerField(min_value=50, max_value=100, required=False)
+    accountRateLimit = serializers.IntegerField(
+        min_value=0, max_value=1000000, required=False)
+    projectRateLimit = serializers.IntegerField(
+        min_value=50, max_value=100, required=False)
     avatar = AvatarField(required=False)
     avatarType = serializers.ChoiceField(
         choices=(('upload', 'upload'), ('letter_avatar', 'letter_avatar'), ), required=False
@@ -140,6 +144,29 @@ class OrganizationSerializer(serializers.Serializer):
 
     def save(self):
         org = self.context['organization']
+        changed_data = {}
+
+        for key, option, type_ in ORG_OPTIONS:
+            if key not in self.init_data:
+                continue
+            try:
+                option_inst = OrganizationOption.objects.get(
+                    organization=org, key=option)
+            except OrganizationOption.DoesNotExist:
+                OrganizationOption.objects.set_value(
+                    organization=org,
+                    key=option,
+                    value=type_(self.init_data[key]),
+                )
+                changed_data[key] = self.init_data[key]
+            else:
+                option_inst.value = self.init_data[key]
+                # check if ORG_OPTIONS changed
+                if option_inst.has_changed('value'):
+                    old_val = option_inst.old_value('value')
+                    changed_data[key] = 'from {} to {}'.format(old_val, option_inst.value)
+                option_inst.save()
+
         if 'openMembership' in self.init_data:
             org.flags.allow_joinleave = self.init_data['openMembership']
         if 'allowSharedIssues' in self.init_data:
@@ -154,14 +181,33 @@ class OrganizationSerializer(serializers.Serializer):
             org.name = self.init_data['name']
         if 'slug' in self.init_data:
             org.slug = self.init_data['slug']
+
+        org_tracked_field = {
+            'name': org.name,
+            'slug': org.slug,
+            'default_role': org.default_role,
+            'flag_field': {
+                'allow_joinleave': org.flags.allow_joinleave.is_set,
+                'enhanced_privacy': org.flags.enhanced_privacy.is_set,
+                'disable_shared_issues': org.flags.disable_shared_issues.is_set,
+                'early_adopter': org.flags.early_adopter.is_set
+            }
+        }
+
+        # check if fields changed
+        for f, v in six.iteritems(org_tracked_field):
+            if f is not 'flag_field':
+                if org.has_changed(f):
+                    old_val = org.old_value(f)
+                    changed_data[f] = 'from {} to {}'.format(old_val, v)
+            else:
+                # check if flag fields changed
+                for f, v in six.iteritems(org_tracked_field['flag_field']):
+                    if org.flag_has_changed(f):
+                        changed_data[f] = 'to {}'.format(v)
+
         org.save()
-        for key, option, type_ in ORG_OPTIONS:
-            if key in self.init_data:
-                OrganizationOption.objects.set_value(
-                    organization=org,
-                    key=option,
-                    value=type_(self.init_data[key]),
-                )
+
         if 'avatar' in self.init_data or 'avatarType' in self.init_data:
             OrganizationAvatar.save_avatar(
                 relation={'organization': org},
@@ -171,7 +217,7 @@ class OrganizationSerializer(serializers.Serializer):
             )
         if 'require2FA' in self.init_data and self.init_data['require2FA'] is True:
             org.send_setup_2fa_emails()
-        return org
+        return org, changed_data
 
 
 class OwnerOrganizationSerializer(OrganizationSerializer):
@@ -240,7 +286,7 @@ class OrganizationDetailsEndpoint(OrganizationEndpoint):
             context={'organization': organization, 'user': request.user},
         )
         if serializer.is_valid():
-            organization = serializer.save()
+            organization, changed_data = serializer.save()
 
             if was_pending_deletion and organization.status == OrganizationStatus.VISIBLE:
                 self.create_audit_entry(
@@ -263,7 +309,7 @@ class OrganizationDetailsEndpoint(OrganizationEndpoint):
                 organization=organization,
                 target_object=organization.id,
                 event=AuditLogEntryEvent.ORG_EDIT,
-                data=organization.get_audit_log_data(),
+                data=changed_data
             )
 
             return Response(
@@ -273,7 +319,6 @@ class OrganizationDetailsEndpoint(OrganizationEndpoint):
                     DetailedOrganizationSerializer(),
                 )
             )
-
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
     @sudo_required
