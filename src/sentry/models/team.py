@@ -82,6 +82,7 @@ class TeamManager(BaseManager):
             teams_by_project = defaultdict(set)
             for project_id, team_id in ProjectTeam.objects.filter(
                 project__in=project_list,
+                team__in=team_list,
             ).values_list('project_id', 'team_id'):
                 teams_by_project[project_id].add(team_id)
 
