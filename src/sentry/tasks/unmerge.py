@@ -12,8 +12,8 @@ from sentry.event_manager import (
     ScoreClause, generate_culprit, get_fingerprint_for_event, get_hashes_from_fingerprint, md5_from_hash
 )
 from sentry.models import (
-    Activity, Environment, Event, EventMapping, EventUser, Group, GroupHash, GroupRelease,
-    Project, Release, UserReport
+    Activity, Environment, Event, EventMapping, EventUser, Group,
+    GroupEnvironment, GroupHash, GroupRelease, Project, Release, UserReport
 )
 from sentry.similarity import features
 from sentry.tasks.base import instrumented_task
@@ -249,6 +249,10 @@ def truncate_denormalizations(group):
         group_id=group.id,
     ).delete()
 
+    GroupEnvironment.objects.filter(
+        group_id=group.id,
+    ).delete()
+
     environment_ids = list(
         Environment.objects.filter(
             projects=group.project
@@ -382,6 +386,26 @@ def repair_group_release_data(caches, project, events):
             instance.update(first_seen=first_seen)
 
 
+def repair_group_environment_data(caches, project, events):
+    group_environments = {}
+    for event in events:
+        key = group_id, environment_name, = (event.group_id, get_environment_name(event))
+        if key not in group_environments:
+            # NOTE: This doesn't use the `get_or_create` method that is defined
+            # on the `GroupEnvironment` (instead using the default version that
+            # exists on the manager) to avoid reading cached data that was
+            # written prior to the truncation at the beginning of the unmerge
+            # task.
+            instance, _ = GroupEnvironment.objects.get_or_create(
+                group_id=group_id,
+                environment_id=caches['Environment'](
+                    project.organization_id,
+                    environment_name,
+                ).id,
+            )
+            group_environments[key] = instance
+
+
 def get_event_user_from_interface(value):
     return EventUser(
         ident=value.get('id'),
@@ -468,6 +492,7 @@ def repair_tsdb_data(caches, project, events):
 
 def repair_denormalizations(caches, project, events):
     repair_tag_data(caches, project, events)
+    repair_group_environment_data(caches, project, events)
     repair_group_release_data(caches, project, events)
     repair_tsdb_data(caches, project, events)
 
