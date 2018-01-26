@@ -35,9 +35,6 @@ const GroupTags = createReactClass({
     // is not performant
     this.api.request('/issues/' + this.getGroup().id + '/tags/', {
       success: data => {
-        if (!this.isMounted()) {
-          return;
-        }
         this.setState({
           tagList: data,
           error: false,
@@ -45,9 +42,6 @@ const GroupTags = createReactClass({
         });
       },
       error: error => {
-        if (!this.isMounted()) {
-          return;
-        }
         this.setState({
           error: true,
           loading: false,
