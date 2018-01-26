@@ -1,7 +1,6 @@
 import PropTypes from 'prop-types';
 import React from 'react';
 import {Link} from 'react-router';
-import classNames from 'classnames';
 
 import ProjectSelector from './projectSelector';
 import BookmarkToggle from '../projects/bookmarkToggle';
@@ -39,13 +38,11 @@ class ProjectHeader extends React.Component {
     // TODO: remove when feature is released
     let hasEnvironmentsFeature = new Set(org.features).has('environments');
 
+    let showEnvironmentsToggle = hasEnvironmentsFeature && navSection !== 'settings';
+
     let activeEnvironmentTitle = activeEnvironment
       ? activeEnvironment.name
       : allEnvironmentsLabel;
-
-    let projectIconClass = classNames('project-select-bookmark icon icon-star-solid', {
-      active: project.isBookmarked,
-    });
 
     return (
       <div className="sub-header flex flex-container flex-vertically-centered">
@@ -53,9 +50,7 @@ class ProjectHeader extends React.Component {
           <div className="project-header-main">
             <div className="project-select-wrapper">
               <ProjectSelector organization={org} projectId={project.slug} />
-              <BookmarkToggle orgId={org.slug} project={project}>
-                <a className={projectIconClass} />
-              </BookmarkToggle>
+              <BookmarkToggle />
             </div>
 
             <ul className="nav nav-tabs">
@@ -89,7 +84,7 @@ class ProjectHeader extends React.Component {
               )}
             </ul>
           </div>
-          {hasEnvironmentsFeature && (
+          {showEnvironmentsToggle && (
             <div className="project-header-toggle">
               <label>Environment</label>
               <DropdownLink

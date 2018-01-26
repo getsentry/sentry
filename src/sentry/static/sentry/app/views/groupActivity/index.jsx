@@ -105,7 +105,7 @@ const GroupActivity = createReactClass({
             {
               author,
               count: data.ignoreUserCount,
-              duration: <Duration seconds={data.ignoreUserWindow * 3600} />,
+              duration: <Duration seconds={data.ignoreUserWindow * 60} />,
             }
           );
         } else if (data.ignoreUserCount) {

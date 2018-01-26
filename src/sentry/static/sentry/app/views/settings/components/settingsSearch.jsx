@@ -1,24 +1,19 @@
 import {Link, browserHistory} from 'react-router';
 import {css} from 'emotion';
+import PropTypes from 'prop-types';
 import React from 'react';
+import Reflux from 'reflux';
+import createReactClass from 'create-react-class';
 import styled from 'react-emotion';
 
-import AutoComplete from '../../../components/autoComplete';
-import InlineSvg from '../../../components/inlineSvg';
-import {searchIndex as orgSearchIndex} from '../../../data/forms/organizationGeneralSettings';
-import {searchIndex as teamSearchIndex} from '../../../data/forms/teamSettingsFields';
-import {searchIndex as accountAppearanceSearchIndex} from '../../../data/forms/accountAppearance';
+import {loadSearchMap} from '../../../actionCreators/formSearch';
 import {t} from '../../../locale';
+import AutoComplete from '../../../components/autoComplete';
+import FormSearchStore from '../../../stores/formSearchStore';
+import InlineSvg from '../../../components/inlineSvg';
 import replaceRouterParams from '../../../utils/replaceRouterParams';
 
 const MIN_SEARCH_LENGTH = 2;
-
-const searchIndex = Object.assign(
-  {},
-  orgSearchIndex,
-  teamSearchIndex,
-  accountAppearanceSearchIndex
-);
 
 const SearchInputWrapper = styled.div`
   position: relative;
@@ -64,7 +59,7 @@ const DropdownBox = styled.div`
   border-radius: 5px;
 `;
 
-const SettingsSearchContainer = styled.div`
+const SettingsSearchWrapper = styled.div`
   position: relative;
 `;
 
@@ -97,7 +92,17 @@ const SearchDetail = styled.div`
 `;
 
 class SettingsSearch extends React.Component {
-  static propTypes = {};
+  static propTypes = {
+    searchMap: PropTypes.object,
+  };
+
+  static defaultProps = {
+    searchMap: {},
+  };
+
+  componentDidMount() {
+    loadSearchMap();
+  }
 
   handleSelect = (item, state) => {
     if (!item) return;
@@ -109,10 +114,7 @@ class SettingsSearch extends React.Component {
   };
 
   render() {
-    let {params} = this.props;
-
-    // TODO Create search index based on route
-    // (i.e. can only search project settings when a project is in context)
+    let {searchMap, params} = this.props;
 
     return (
       <AutoComplete
@@ -135,22 +137,22 @@ class SettingsSearch extends React.Component {
           let matches =
             isValidSearch &&
             isOpen &&
-            Object.keys(searchIndex)
+            Object.keys(searchMap)
               .filter(key => key.indexOf(inputValue.toLowerCase()) > -1)
               .filter(key => {
                 // TODO: Open up a confirm to ask which project/team/org to use
                 // The route doesn't have all params to continue, don't show in search results
                 return (
-                  !searchIndex[key].requireParams ||
-                  !searchIndex[key].requireParams.length ||
-                  !searchIndex[key].requireParams.find(
+                  !searchMap[key].requireParams ||
+                  !searchMap[key].requireParams.length ||
+                  !searchMap[key].requireParams.find(
                     param => typeof params[param] === 'undefined'
                   )
                 );
               });
 
           return (
-            <SettingsSearchContainer>
+            <SettingsSearchWrapper>
               <SearchInputWrapper>
                 <SearchInputIcon size="14px" />
                 <SearchInput
@@ -165,7 +167,7 @@ class SettingsSearch extends React.Component {
                 <DropdownBox>
                   {matches && matches.length ? (
                     matches.map((key, index) => {
-                      let item = searchIndex[key];
+                      let item = searchMap[key];
                       let {route, field} = item;
                       let to = `${replaceRouterParams(
                         route,
@@ -197,7 +199,7 @@ class SettingsSearch extends React.Component {
                   )}
                 </DropdownBox>
               ) : null}
-            </SettingsSearchContainer>
+            </SettingsSearchWrapper>
           );
         }}
       </AutoComplete>
@@ -205,4 +207,12 @@ class SettingsSearch extends React.Component {
   }
 }
 
-export default SettingsSearch;
+const SettingsSearchContainer = createReactClass({
+  displayName: 'SettingsSearchContainer',
+  mixins: [Reflux.connect(FormSearchStore, 'searchMap')],
+  render() {
+    return <SettingsSearch searchMap={this.state.searchMap} {...this.props} />;
+  },
+});
+
+export default SettingsSearchContainer;

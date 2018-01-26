@@ -1,5 +1,6 @@
 import PropTypes from 'prop-types';
 import React from 'react';
+import {Link} from 'react-router';
 import createReactClass from 'create-react-class';
 
 import {t} from '../locale';
@@ -61,7 +62,7 @@ const RuleRow = createReactClass({
       <div className="box">
         <div className="box-header">
           <div className="pull-right">
-            <Button style={{marginRight: 5}} size="small" href={editLink}>
+            <Button style={{marginRight: 5}} size="small" to={editLink}>
               {t('Edit Rule')}
             </Button>
 
@@ -75,7 +76,7 @@ const RuleRow = createReactClass({
             </Confirm>
           </div>
           <h3>
-            <a href={editLink}>{data.name}</a>
+            <Link to={editLink}>{data.name}</Link>
           </h3>
         </div>
         <div className="box-content with-padding">
@@ -87,13 +88,15 @@ const RuleRow = createReactClass({
                     When <strong>{data.actionMatch}</strong> of these conditions are met:
                   </h6>
                   <table className="conditions-list table">
-                    {data.conditions.map((condition, i) => {
-                      return (
-                        <tr key={i}>
-                          <td>{condition.name}</td>
-                        </tr>
-                      );
-                    })}
+                    <tbody>
+                      {data.conditions.map((condition, i) => {
+                        return (
+                          <tr key={i}>
+                            <td>{condition.name}</td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
                   </table>
                 </div>
               )}
@@ -109,13 +112,15 @@ const RuleRow = createReactClass({
                     for an issue:
                   </h6>
                   <table className="actions-list table">
-                    {data.actions.map((action, i) => {
-                      return (
-                        <tr key={i}>
-                          <td>{action.name}</td>
-                        </tr>
-                      );
-                    })}
+                    <tbody>
+                      {data.actions.map((action, i) => {
+                        return (
+                          <tr key={i}>
+                            <td>{action.name}</td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
                   </table>
                 </div>
               )}
@@ -223,7 +228,7 @@ const ProjectAlertRules = createReactClass({
           title={t('Alerts')}
           action={
             <Button
-              href={`/${orgId}/${projectId}/settings/alerts/rules/new/`}
+              to={`/${orgId}/${projectId}/settings/alerts/rules/new/`}
               priority="primary"
               size="small"
               className="pull-right"

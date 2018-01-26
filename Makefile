@@ -123,7 +123,7 @@ test-cli:
 
 test-js:
 	@echo "--> Building static assets"
-	@${NPM_ROOT}/.bin/webpack
+	@${NPM_ROOT}/.bin/webpack --profile --json > webpack-stats.json
 	@echo "--> Running JavaScript tests"
 	@npm run test-ci
 	@echo ""
@@ -163,7 +163,7 @@ lint-python:
 
 lint-js:
 	@echo "--> Linting javascript"
-	bash -eo pipefail -c "bin/lint --js --parseable | tee eslint.codestyle.xml"
+	bash -eo pipefail -c "bin/lint --js --parseable | tee eslint.checkstyle.xml"
 	@echo ""
 
 coverage: develop

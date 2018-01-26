@@ -2,12 +2,14 @@ import jQuery from 'jquery';
 import sinon from 'sinon';
 import ConfigStore from 'app/stores/configStore';
 import MockDate from 'mockdate';
+import PropTypes from 'prop-types';
 
 import Enzyme from 'enzyme';
-import Adapter from 'enzyme-adapter-react-15';
+import Adapter from 'enzyme-adapter-react-16';
 
 jest.mock('app/translations');
 jest.mock('app/api');
+jest.mock('scroll-to-element', () => {});
 
 const constantDate = new Date('2017-10-17T04:41:20'); //National Pasta Day
 MockDate.set(constantDate);
@@ -33,9 +35,21 @@ window.TestStubs = {
     isActive: sinon.spy(),
     createHref: sinon.spy(),
   }),
+
   location: () => ({
     query: {},
     pathame: '/mock-pathname/',
+  }),
+
+  routerContext: () => ({
+    context: {
+      location: TestStubs.location(),
+      router: TestStubs.router(),
+    },
+    childContextTypes: {
+      router: PropTypes.object,
+      location: PropTypes.object,
+    },
   }),
 
   AccountAppearance: () => {
@@ -58,6 +72,14 @@ window.TestStubs = {
     };
   },
 
+  ApiToken: () => {
+    return {
+      token: 'apitoken123',
+      dateCreated: new Date('Thu Jan 11 2018 18:01:41 GMT-0800 (PST)'),
+      scopes: ['scope1', 'scope2'],
+    };
+  },
+
   AuthProviders: () => {
     return [['dummy', 'Dummy']];
   },
@@ -77,11 +99,62 @@ window.TestStubs = {
     };
   },
 
-  Team: params => {
+  AccountEmails: () => {
+    return [
+      {
+        email: 'primary@example.com',
+        isPrimary: true,
+        isVerified: true,
+      },
+      {
+        email: 'secondary1@example.com',
+        isPrimary: false,
+        isVerified: true,
+      },
+      {
+        email: 'secondary2@example.com',
+        isPrimary: false,
+        isVerified: false,
+      },
+    ];
+  },
+
+  GitHubRepositoryProvider: params => {
     return {
-      id: '1',
-      slug: 'team-slug',
-      name: 'Team Name',
+      id: 'github',
+      name: 'GitHub',
+      config: [
+        {
+          name: 'name',
+          label: 'Repository Name',
+          type: 'text',
+          placeholder: 'e.g. getsentry/sentry',
+          help: 'Enter your repository name, including the owner.',
+          required: true,
+        },
+      ],
+      ...params,
+    };
+  },
+
+  GitHubIntegrationProvider: params => {
+    return {
+      key: 'github',
+      name: 'GitHub',
+      config: [],
+      setupUri: '/github-integration-setup-uri/',
+      ...params,
+    };
+  },
+
+  Integration: params => {
+    return {
+      id: '4',
+      name: 'repo-name',
+      provider: {
+        key: 'github',
+        name: 'GitHub',
+      },
       ...params,
     };
   },
@@ -140,17 +213,6 @@ window.TestStubs = {
     },
   ],
 
-  Project: params => {
-    return {
-      id: '2',
-      slug: 'project-slug',
-      name: 'Project Name',
-      subjectTemplate: '[$project] ${tag:level}: $title',
-      digestsMinDelay: 5,
-      digestsMaxDelay: 60,
-      ...params,
-    };
-  },
   Organization: params => {
     return {
       id: '3',
@@ -177,56 +239,7 @@ window.TestStubs = {
       ...params,
     };
   },
-  Repository: params => {
-    return {
-      id: '4',
-      name: 'repo-name',
-      provider: 'github',
-      url: 'https://github.com/example/repo-name',
-      status: 'active',
-      ...params,
-    };
-  },
-  GitHubRepositoryProvider: params => {
-    return {
-      id: 'github',
-      name: 'GitHub',
-      config: [
-        {
-          name: 'name',
-          label: 'Repository Name',
-          type: 'text',
-          placeholder: 'e.g. getsentry/sentry',
-          help: 'Enter your repository name, including the owner.',
-          required: true,
-        },
-      ],
-      ...params,
-    };
-  },
-  Integration: params => {
-    return {
-      id: '4',
-      name: 'repo-name',
-      provider: {
-        key: 'github',
-        name: 'GitHub',
-      },
-      ...params,
-    };
-  },
-  GitHubIntegrationProvider: params => {
-    return {
-      key: 'github',
-      name: 'GitHub',
-      config: [],
-      setupUri: '/github-integration-setup-uri/',
-      ...params,
-    };
-  },
-  Tags: () => {
-    return [{key: 'browser', name: 'Browser'}, {key: 'device', name: 'Device'}];
-  },
+
   Plugin: params => {
     return {
       author: {url: 'https://github.com/getsentry/sentry', name: 'Sentry Team'},
@@ -241,6 +254,7 @@ window.TestStubs = {
       ...params,
     };
   },
+
   Plugins: () => {
     return [
       {
@@ -265,6 +279,115 @@ window.TestStubs = {
         canDisable: false,
       },
     ];
+  },
+
+  Project: params => {
+    return {
+      id: '2',
+      slug: 'project-slug',
+      name: 'Project Name',
+      subjectTemplate: '[$project] ${tag:level}: $title',
+      digestsMinDelay: 5,
+      digestsMaxDelay: 60,
+      ...params,
+    };
+  },
+
+  Repository: params => {
+    return {
+      id: '4',
+      name: 'repo-name',
+      provider: 'github',
+      url: 'https://github.com/example/repo-name',
+      status: 'active',
+      ...params,
+    };
+  },
+
+  Searches: params => [
+    {
+      name: 'Needs Triage',
+      dateCreated: '2017-11-14T02:22:58.026Z',
+      isUserDefault: false,
+      isPrivate: false,
+      query: 'is:unresolved is:unassigned',
+      id: '2',
+      isDefault: true,
+    },
+    {
+      name: 'Unresolved Issues',
+      dateCreated: '2017-11-14T02:22:58.022Z',
+      isUserDefault: true,
+      isPrivate: false,
+      query: 'is:unresolved',
+      id: '1',
+      isDefault: false,
+    },
+  ],
+
+  Subscriptions: () => {
+    return [
+      {
+        subscribedDate: '2018-01-08T05:14:59.102Z',
+        subscribed: true,
+        listDescription:
+          'Everything you need to know about Sentry features, integrations, partnerships, and launches.',
+        listId: 2,
+        unsubscribedDate: null,
+        listName: 'Product & Feature Updates',
+        email: 'test@sentry.io',
+      },
+      {
+        subscribedDate: null,
+        subscribed: false,
+        listDescription:
+          "Our monthly update on what's new with Sentry and the community.",
+        listId: 1,
+        unsubscribedDate: '2018-01-08T19:31:42.546Z',
+        listName: 'Sentry Newsletter',
+        email: 'test@sentry.io',
+      },
+    ];
+  },
+
+  Tags: () => {
+    return [
+      {key: 'browser', name: 'Browser', canDelete: true},
+      {key: 'device', name: 'Device', canDelete: true},
+      {key: 'environment', name: 'Environment', canDelete: false},
+    ];
+  },
+
+  Team: params => {
+    return {
+      id: '1',
+      slug: 'team-slug',
+      name: 'Team Name',
+      ...params,
+    };
+  },
+  ProjectAlertRule: () => {
+    return {
+      id: '1',
+    };
+  },
+  ProjectAlertRuleConfiguration: () => {
+    return {
+      actions: [
+        {
+          html: 'Send a notification for all services',
+          id: 'sentry.rules.actions.notify1',
+          label: 'Send a notification for all services',
+        },
+      ],
+      conditions: [
+        {
+          html: 'An event is seen',
+          id: 'sentry.rules.conditions.1',
+          label: 'An event is seen',
+        },
+      ],
+    };
   },
 };
 

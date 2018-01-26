@@ -1,16 +1,14 @@
 // Jest Snapshot v1, https://goo.gl/fbAQLP
 
 exports[`TextCopyInput renders 1`] = `
-<Styled(Base)>
-  <Styled(Base)
-    flex="1"
-  >
-    <Styled(AutoSelectText)
-      innerRef={[Function]}
-    >
-      Text to Copy
-    </Styled(AutoSelectText)>
-  </Styled(Base)>
+<Flex>
+  <Styled(div)>
+    <Styled(Component)
+      onClick={[Function]}
+      readOnly={true}
+      value="Text to Copy"
+    />
+  </Styled(div)>
   <Clipboard
     errorMessage="Error copying to clipboard"
     hideMessages={false}
@@ -19,20 +17,15 @@ exports[`TextCopyInput renders 1`] = `
     successMessage="Copied to clipboard"
     value="Text to Copy"
   >
-    <Flex
-      shrink="0"
+    <Styled(Button)
+      onClick={[Function]}
+      size="xsmall"
     >
-      <Button
-        borderless={true}
-        disabled={false}
-        onClick={[Function]}
-        size="xsmall"
-      >
-        <InlineSvg
-          src="icon-copy"
-        />
-      </Button>
-    </Flex>
+      <InlineSvg
+        size="1.25em"
+        src="icon-clipboard"
+      />
+    </Styled(Button)>
   </Clipboard>
-</Styled(Base)>
+</Flex>
 `;

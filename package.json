@@ -18,6 +18,7 @@
     "babel-plugin-transform-class-properties": "^6.24.1",
     "babel-plugin-transform-decorators-legacy": "^1.3.4",
     "babel-plugin-transform-object-rest-spread": "^6.20.2",
+    "babel-plugin-transform-runtime": "^6.23.0",
     "babel-polyfill": "6.20.0",
     "babel-preset-latest": "^6.16.0",
     "babel-preset-react": "^6.16.0",
@@ -31,8 +32,8 @@
     "diff": "^3.3.0",
     "emotion": "^8.0.2-12",
     "emotion-theming": "^8.0.2-10",
-    "enzyme-adapter-react-15": "^1.0.5",
-    "enzyme-to-json": "3.2.2",
+    "enzyme-adapter-react-16": "^1.1.1",
+    "enzyme-to-json": "3.3.1",
     "extract-text-webpack-plugin": "^3.0.0",
     "file-loader": "0.8.4",
     "gettext-parser": "1.1.1",
@@ -60,20 +61,19 @@
     "prop-types": "^15.6.0",
     "query-string": "2.4.2",
     "raven-js": "3.19.1",
-    "react": "15.6.2",
+    "react": "16.2.0",
     "react-addons-css-transition-group": "15.6.2",
-    "react-addons-test-utils": "15.6.2",
-    "react-bootstrap": "^0.29.5",
-    "react-document-title": "1.0.4",
-    "react-dom": "15.6.2",
+    "react-bootstrap": "^0.32.0",
+    "react-document-title": "2.0.3",
+    "react-dom": "16.2.0",
     "react-emotion": "^8.0.2-12 ",
-    "react-hot-loader": "^3.0.0-beta.7",
+    "react-hot-loader": "^3.1.3",
     "react-icon-base": "^2.0.4",
-    "react-lazy-load": "3.0.10",
+    "react-lazy-load": "3.0.13",
     "react-mentions": "^1.0.0",
     "react-router": "3.2.0",
-    "react-sparklines": "1.6.0",
-    "react-sticky": "5.0.4",
+    "react-sparklines": "1.7.0",
+    "react-sticky": "6.0.1",
     "reflux": "0.4.1",
     "scroll-to-element": "^2.0.0",
     "select2": "3.5.1",
@@ -92,11 +92,11 @@
   "APIMethod": "stub",
   "proxyURL": "http://localhost:8000",
   "scripts": {
-    "test": "npm run jest -- tests/js/spec",
-    "test-ci": "npm run test -- --runInBand",
+    "test": "node scripts/test.js",
+    "test-ci": "npm run test -- --runInBand --ci --coverage --testResultsProcessor=jest-junit",
     "test-watch": "npm run test -- --watch",
-    "jest": "NODE_ENV=test node_modules/.bin/jest",
-    "jest-debug": "NODE_ENV=test node --inspect-brk node_modules/.bin/jest --runInBand",
+    "jest": "node scripts/test.js",
+    "jest-debug": "node --inspect-brk scripts/test.js --runInBand",
     "lint": "node_modules/.bin/eslint tests/js src/sentry/static/sentry/app --ext .jsx",
     "dev-proxy": "node scripts/devproxy.js",
     "dev-server": "webpack-dev-server",
@@ -105,11 +105,19 @@
     "webpack-profile": "yarn -s webpack --profile --json > stats.json"
   },
   "jest": {
+    "collectCoverageFrom": [
+      "tests/js/spec/**/*.{js,jsx}",
+      "src/sentry/static/sentry/app/**/*.{js,jsx}"
+    ],
+    "coverageReporters": [
+      "lcov",
+      "cobertura"
+    ],
     "snapshotSerializers": [
       "enzyme-to-json/serializer"
     ],
     "moduleNameMapper": {
-      "\\.(css|less)$": "<rootDir>/tests/js/helpers/importStyleMock.js",
+      "\\.(css|less|png)$": "<rootDir>/tests/js/helpers/importStyleMock.js",
       "\\.(svg)$": "<rootDir>/tests/js/helpers/svgMock.js",
       "jquery": "<rootDir>/src/sentry/static/sentry/__mocks__/jquery.jsx",
       "integration-docs-platforms": "<rootDir>/tests/fixtures/integration-docs/_platforms.json"
@@ -121,6 +129,9 @@
       "<rootDir>/tests/js/setup.js"
     ],
     "setupTestFrameworkScriptFile": "<rootDir>/tests/js/setupFramework.js",
+    "testMatch": [
+      "<rootDir>/tests/js/**/?(*.)(spec|test).js?(x)"
+    ],
     "testPathIgnorePatterns": [
       "<rootDir>/tests/sentry/lang/javascript/"
     ],
@@ -136,7 +147,7 @@
     "@storybook/addon-knobs": "^3.2.17",
     "@storybook/react": "^3.2.17",
     "babel-eslint": "7.2.3",
-    "babel-jest": "21.2.0",
+    "babel-jest": "22.1.0",
     "chai": "3.4.1",
     "enzyme": "3.2.0",
     "eslint": "4.4.1",
@@ -146,10 +157,11 @@
     "eslint-plugin-getsentry": "1.0.0",
     "eslint-plugin-import": "^2.7.0",
     "eslint-plugin-react": "7.4.0",
-    "jest": "21.2.1",
+    "jest": "22.1.2",
     "jest-glamor-react": "^3.1.2",
+    "jest-junit": "^3.4.1",
     "prettier": "1.7.4",
-    "react-test-renderer": "15.6.2",
+    "react-test-renderer": "16.2.0",
     "sinon": "1.17.2",
     "sinon-chai": "2.8.0",
     "webpack-dev-server": "^2.7.1"

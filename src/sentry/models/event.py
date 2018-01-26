@@ -258,6 +258,17 @@ class Event(Model):
             128,
         ).encode('utf-8')
 
+    def get_environment(self):
+        from sentry.models import Environment
+
+        if not hasattr(self, '_environment_cache'):
+            self._environment_cache = Environment.objects.get(
+                organization_id=self.project.organization_id,
+                name=Environment.get_name_or_default(self.get_tag('environment')),
+            )
+
+        return self._environment_cache
+
 
 class EventSubjectTemplate(string.Template):
     idpattern = r'(tag:)?[_a-z][_a-z0-9]*'
@@ -284,6 +295,8 @@ class EventSubjectTemplateData(object):
             return self.event.project.get_full_name()
         elif name == 'projectID':
             return self.event.project.slug
+        elif name == 'shortID':
+            return self.event.group.qualified_short_id
         elif name == 'orgID':
             return self.event.organization.slug
         elif name == 'title':
@@ -291,4 +304,4 @@ class EventSubjectTemplateData(object):
         raise KeyError
 
 
-DEFAULT_SUBJECT_TEMPLATE = EventSubjectTemplate('[$project] ${tag:level}: $title')
+DEFAULT_SUBJECT_TEMPLATE = EventSubjectTemplate('$shortID - $title')

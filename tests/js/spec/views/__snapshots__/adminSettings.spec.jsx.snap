@@ -1,7 +1,7 @@
 // Jest Snapshot v1, https://goo.gl/fbAQLP
 
 exports[`AdminSettings render() renders 1`] = `
-<DocumentTitle
+<SideEffect(DocumentTitle)
   title="Sentry"
 >
   <div>
@@ -175,5 +175,5 @@ exports[`AdminSettings render() renders 1`] = `
       />
     </ApiForm>
   </div>
-</DocumentTitle>
+</SideEffect(DocumentTitle)>
 `;

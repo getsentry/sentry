@@ -1,7 +1,7 @@
 // Jest Snapshot v1, https://goo.gl/fbAQLP
 
 exports[`AccountAuthorizations renders empty 1`] = `
-<DocumentTitle
+<SideEffect(DocumentTitle)
   title="Approved Applications - Sentry"
 >
   <div>
@@ -49,12 +49,16 @@ exports[`AccountAuthorizations renders empty 1`] = `
           </Box>
         </Flex>
       </PanelHeader>
-      <Styled(div)>
+      <PanelBody
+        direction="column"
+        disablePadding={true}
+        flex={false}
+      >
         <Styled(div)>
           You haven't approved any third party applications.
         </Styled(div)>
-      </Styled(div)>
+      </PanelBody>
     </Styled(div)>
   </div>
-</DocumentTitle>
+</SideEffect(DocumentTitle)>
 `;

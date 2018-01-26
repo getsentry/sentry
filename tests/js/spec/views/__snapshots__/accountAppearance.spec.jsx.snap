@@ -1,7 +1,7 @@
 // Jest Snapshot v1, https://goo.gl/fbAQLP
 
 exports[`AccountAppearance renders 1`] = `
-<DocumentTitle
+<SideEffect(DocumentTitle)
   title="Sentry"
 >
   <div>
@@ -20,6 +20,9 @@ exports[`AccountAppearance renders 1`] = `
           "timezone": "US/Pacific",
         }
       }
+      onSubmit={[Function]}
+      onSubmitError={[Function]}
+      onSubmitSuccess={[Function]}
       requireChanges={false}
       saveOnBlur={true}
       submitDisabled={false}
@@ -1858,5 +1861,5 @@ exports[`AccountAppearance renders 1`] = `
       </Box>
     </Form>
   </div>
-</DocumentTitle>
+</SideEffect(DocumentTitle)>
 `;

@@ -224,3 +224,9 @@ class GroupTest(TestCase):
         assert group.first_release is None
         assert group.get_first_release() is None
         assert group.get_last_release() is None
+
+    def test_get_email_subject(self):
+        project = self.create_project()
+        group = self.create_group(project=project)
+
+        assert group.get_email_subject() == '%s - %s' % (group.qualified_short_id, group.title)

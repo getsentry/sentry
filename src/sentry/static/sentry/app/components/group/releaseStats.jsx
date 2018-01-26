@@ -12,18 +12,7 @@ import GroupState from '../../mixins/groupState';
 import GroupReleaseChart from './releaseChart';
 import MenuItem from '../menuItem';
 import SeenInfo from './seenInfo';
-import {toTitleCase} from '../../utils';
 import {t} from '../../locale';
-
-const DEFAULT_ENV_NAME = '(Default Environment)';
-
-const PRODUCTION_ENV_NAMES = new Set([
-  'production',
-  'prod',
-  'release',
-  'master',
-  'trunk',
-]);
 
 // TODO(dcramer): this should listen to EnvironmentStore
 // changes
@@ -31,49 +20,21 @@ const GroupReleaseStats = createReactClass({
   displayName: 'GroupReleaseStats',
 
   propTypes: {
-    defaultEnvironment: PropTypes.string,
     group: PropTypes.object,
   },
 
   mixins: [ApiMixin, GroupState],
 
-  getDefaultProps() {
-    return {
-      defaultEnvironment: '',
-    };
-  },
-
   getInitialState() {
     let envList = EnvironmentStore.getAll();
-    let queryParams = this.props.location.query;
-
-    let selectedEnvironment =
-      'environment' in queryParams
-        ? queryParams.environment
-        : this.props.defaultEnvironment;
-
-    if (
-      selectedEnvironment &&
-      envList.filter(e => e.name === selectedEnvironment).length === 0
-    ) {
-      selectedEnvironment = null;
-    }
-
-    if (!selectedEnvironment) {
-      let prodEnvs = envList.filter(e => PRODUCTION_ENV_NAMES.has(e.name));
-      selectedEnvironment = prodEnvs.length && prodEnvs[0].name;
-    }
-
-    if (!selectedEnvironment) {
-      selectedEnvironment = envList.length && envList[0].name;
-    }
+    let environmentQueryParam = this.props.location.query.environment;
 
     return {
       loading: true,
       error: false,
       data: null,
       envList,
-      environment: selectedEnvironment || '',
+      environment: this.getEnvironment(environmentQueryParam),
     };
   },
 
@@ -88,7 +49,7 @@ const GroupReleaseStats = createReactClass({
     if (queryParams.environment !== this.props.location.query.environment) {
       this.setState(
         {
-          environment: queryParams.environment,
+          environment: this.getEnvironment(queryParams.environment),
           loading: true,
           error: false,
         },
@@ -106,15 +67,22 @@ const GroupReleaseStats = createReactClass({
     );
   },
 
+  getEnvironment(envName) {
+    let defaultEnv = EnvironmentStore.getDefault();
+    let queriedEnvironment = EnvironmentStore.getByName(envName);
+    return queriedEnvironment || defaultEnv;
+  },
+
   fetchData() {
     let group = this.props.group;
-    let env = this.state.environment || 'none';
+    let env = this.state.environment || {};
+    let envName = env.urlRoutingName;
     let stats = this.props.group.stats['24h'];
 
     // due to the current stats logic in Sentry we need to extend the bounds
     let until = stats[stats.length - 1][0] + 1;
 
-    this.api.request(`/issues/${group.id}/environments/${env}/`, {
+    this.api.request(`/issues/${group.id}/environments/${envName}/`, {
       query: {
         until,
       },
@@ -163,17 +131,15 @@ const GroupReleaseStats = createReactClass({
       <div className="env-stats">
         <h6>
           <span>
-            <DropdownLink
-              title={environment ? toTitleCase(environment) : DEFAULT_ENV_NAME}
-            >
+            <DropdownLink title={environment && environment.displayName}>
               {envList.map(e => {
                 return (
                   <MenuItem
                     key={e.name}
-                    isActive={environment === e.name}
-                    onClick={this.switchEnv.bind(this, e.name)}
+                    isActive={environment.name === e.name}
+                    onClick={() => this.switchEnv(e.name)}
                   >
-                    {toTitleCase(e.name) || DEFAULT_ENV_NAME}
+                    {e.displayName}
                   </MenuItem>
                 );
               })}
@@ -189,7 +155,7 @@ const GroupReleaseStats = createReactClass({
             <div>
               <GroupReleaseChart
                 group={group}
-                environment={environment}
+                environment={environment.name}
                 environmentStats={data.environment.stats}
                 release={data.currentRelease ? data.currentRelease.release : null}
                 releaseStats={data.currentRelease ? data.currentRelease.stats : null}
@@ -201,7 +167,7 @@ const GroupReleaseStats = createReactClass({
 
               <GroupReleaseChart
                 group={group}
-                environment={environment}
+                environment={environment.name}
                 environmentStats={data.environment.stats}
                 release={data.currentRelease ? data.currentRelease.release : null}
                 releaseStats={data.currentRelease ? data.currentRelease.stats : null}
@@ -214,7 +180,7 @@ const GroupReleaseStats = createReactClass({
 
               <h6>
                 <span>{t('First seen')}</span>
-                {environment && <small>({environment})</small>}
+                {environment.name && <small>({environment.name})</small>}
               </h6>
 
               <SeenInfo
@@ -223,14 +189,14 @@ const GroupReleaseStats = createReactClass({
                 date={firstSeenEnv}
                 dateGlobal={group.firstSeen}
                 hasRelease={hasRelease}
-                environment={environment}
+                environment={environment.name}
                 release={data.firstRelease ? data.firstRelease.release : null}
                 title={t('First seen')}
               />
 
               <h6>
                 <span>{t('Last seen')}</span>
-                {environment && <small>({environment})</small>}
+                {environment.name && <small>({environment.name})</small>}
               </h6>
               <SeenInfo
                 orgId={orgId}
@@ -238,7 +204,7 @@ const GroupReleaseStats = createReactClass({
                 date={lastSeenEnv}
                 dateGlobal={group.lastSeen}
                 hasRelease={hasRelease}
-                environment={environment}
+                environment={environment.name}
                 release={data.lastRelease ? data.lastRelease.release : null}
                 title={t('Last seen')}
               />

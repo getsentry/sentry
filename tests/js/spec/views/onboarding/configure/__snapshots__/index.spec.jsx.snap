@@ -82,24 +82,28 @@ exports[`Configure should render correctly render() should render platform docs 
           }
         }
       >
-        <DocumentTitle
+        <SideEffect(DocumentTitle)
           title="undefined / Test Project"
         >
-          <ProjectDocsContext>
-            <LoadingIndicator>
-              <div
-                className="loading"
-              >
+          <DocumentTitle
+            title="undefined / Test Project"
+          >
+            <ProjectDocsContext>
+              <LoadingIndicator>
                 <div
-                  className="loading-indicator"
-                />
-                <div
-                  className="loading-message"
-                />
-              </div>
-            </LoadingIndicator>
-          </ProjectDocsContext>
-        </DocumentTitle>
+                  className="loading"
+                >
+                  <div
+                    className="loading-indicator"
+                  />
+                  <div
+                    className="loading-message"
+                  />
+                </div>
+              </LoadingIndicator>
+            </ProjectDocsContext>
+          </DocumentTitle>
+        </SideEffect(DocumentTitle)>
       </ProjectContext>
       <Waiting
         hasEvent={false}

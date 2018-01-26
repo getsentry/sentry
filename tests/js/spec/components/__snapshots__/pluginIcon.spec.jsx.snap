@@ -1,0 +1,8 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`PluginIcon renders 1`] = `
+<Styled(div)
+  image="github"
+  size={20}
+/>
+`;

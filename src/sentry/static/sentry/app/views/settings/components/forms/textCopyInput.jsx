@@ -6,25 +6,34 @@ import styled from 'react-emotion';
 
 import {inputStyles} from './styled/styles';
 import {selectText} from '../../../../utils/selectText';
-import AutoSelectText from '../../../../components/autoSelectText';
 import Button from '../../../../components/buttons/button';
 import Clipboard from '../../../../components/clipboard';
 import InlineSvg from '../../../../components/inlineSvg';
 
-const StyledAutoSelectText = styled(AutoSelectText)`
+const StyledInput = styled(props => {
+  return <input {...props} />;
+})`
   ${inputStyles};
-  display: inline-block;
-  width: auto;
-  padding: 0;
+  border-right-width: 0;
+  border-top-right-radius: 0;
+  border-bottom-right-radius: 0;
+
+  &:hover,
+  &:focus {
+    background-color: ${p => p.theme.offWhite};
+    border-right-width: 0;
+  }
 `;
 
-const OverflowContainer = styled(Flex)`
-  overflow: hidden;
-  text-overflow: ellipsis;
+const OverflowContainer = styled('div')`
+  flex-grow: 1;
+  border: none;
 `;
 
-const Wrapper = styled(Flex)`
-  overflow: hidden;
+const StyledCopyButton = styled(Button)`
+  flex-shrink: 1;
+  border-radius: 0 0.25em 0.25em 0;
+  box-shadow: none;
 `;
 
 class TextCopyInput extends React.Component {
@@ -54,14 +63,20 @@ class TextCopyInput extends React.Component {
 
     let {onCopy} = this.props;
 
-    // We use findDOMNode here because `this.textRef` is not a dom node,
-    // it's a ref to AutoSelectText
-    // eslint-disable-next-line react/no-find-dom-node
-    selectText(ReactDOM.findDOMNode(this.textRef));
+    this.handleSelectText();
 
     onCopy(this.props.children, e);
 
     e.stopPropagation();
+  };
+
+  handleSelectText = () => {
+    if (!this.textRef) return;
+
+    // We use findDOMNode here because `this.textRef` is not a dom node,
+    // it's a ref to AutoSelectText
+    // eslint-disable-next-line react/no-find-dom-node
+    selectText(ReactDOM.findDOMNode(this.textRef));
   };
 
   handleAutoMount = ref => {
@@ -72,20 +87,22 @@ class TextCopyInput extends React.Component {
     let {style, children} = this.props;
 
     return (
-      <Wrapper>
-        <OverflowContainer flex="1">
-          <StyledAutoSelectText innerRef={this.handleAutoMount} style={style}>
-            {children}
-          </StyledAutoSelectText>
+      <Flex>
+        <OverflowContainer>
+          <StyledInput
+            readOnly
+            ref={this.handleAutoMount}
+            style={style}
+            value={children}
+            onClick={this.handleSelectText}
+          />
         </OverflowContainer>
         <Clipboard hideUnsupported onClick={this.handleCopyClick} value={children}>
-          <Flex shrink="0">
-            <Button borderless size="xsmall" onClick={this.handleCopyClick}>
-              <InlineSvg src="icon-copy" />
-            </Button>
-          </Flex>
+          <StyledCopyButton size="xsmall" onClick={this.handleCopyClick}>
+            <InlineSvg src="icon-clipboard" size="1.25em" />
+          </StyledCopyButton>
         </Clipboard>
-      </Wrapper>
+      </Flex>
     );
   }
 }

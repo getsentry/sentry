@@ -16,6 +16,7 @@ export default class Form extends React.Component {
     submitDisabled: PropTypes.bool,
     submitLabel: PropTypes.string,
     footerClass: PropTypes.string,
+    footerStyle: PropTypes.object,
     extraButton: PropTypes.element,
     initialData: PropTypes.object,
     requireChanges: PropTypes.bool,
@@ -35,6 +36,9 @@ export default class Form extends React.Component {
     requireChanges: false,
     allowUndo: false,
     saveOnBlur: false,
+    onSubmit: () => {},
+    onSubmitSuccess: () => {},
+    onSubmitError: () => {},
   };
 
   static childContextTypes = {
@@ -90,12 +94,12 @@ export default class Form extends React.Component {
 
   onSubmitSuccess = data => {
     this.model.submitSuccess(data);
-    this.props.onSubmitSuccess && this.props.onSubmitSuccess(data, this.model);
+    this.props.onSubmitSuccess(data, this.model);
   };
 
   onSubmitError = error => {
     this.model.submitError(error);
-    this.props.onSubmitError && this.props.onSubmitError(error, this.model);
+    this.props.onSubmitError(error, this.model);
   };
 
   render() {
@@ -104,6 +108,7 @@ export default class Form extends React.Component {
       className,
       children,
       footerClass,
+      footerStyle,
       submitDisabled,
       submitLabel,
       cancelLabel,
@@ -119,7 +124,7 @@ export default class Form extends React.Component {
         {children}
 
         {shouldShowFooter && (
-          <div className={footerClass} style={{marginTop: 25}}>
+          <div className={footerClass} style={{marginTop: 25, ...footerStyle}}>
             <Observer>
               {() => (
                 <Button

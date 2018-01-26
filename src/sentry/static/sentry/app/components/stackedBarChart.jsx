@@ -31,7 +31,6 @@ const StackedBarChart = createReactClass({
         label: PropTypes.string,
       })
     ),
-    interval: PropTypes.string,
     height: PropTypes.number,
     width: PropTypes.number,
     placement: PropTypes.string,
@@ -351,14 +350,12 @@ const StackedBarChart = createReactClass({
   },
 
   render() {
-    let figureClass = [this.props.className, 'barchart'].join(' ');
+    let {className, style, height, width} = this.props;
+    let figureClass = [className, 'barchart'].join(' ');
     let maxval = this.maxPointValue();
 
     return (
-      <figure
-        className={figureClass}
-        style={{height: this.props.height, width: this.props.width}}
-      >
+      <figure className={figureClass} style={{height, width, ...style}}>
         <span className="max-y">
           <Count value={maxval} />
         </span>

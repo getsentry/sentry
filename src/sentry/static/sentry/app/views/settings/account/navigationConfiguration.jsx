@@ -23,8 +23,29 @@ const accountNavigation = [
         title: t('Emails'),
       },
       {
+        path: `${pathPrefix}/subscriptions/`,
+        title: t('Subscriptions'),
+      },
+      {
         path: `${pathPrefix}/authorizations/`,
         title: t('Authorized Applications'),
+      },
+      {
+        path: `${pathPrefix}/identities/`,
+        title: t('Identities'),
+      },
+    ],
+  },
+  {
+    name: t('API'),
+    items: [
+      {
+        path: `${pathPrefix}/api/applications/`,
+        title: t('Applications'),
+      },
+      {
+        path: `${pathPrefix}/api/auth-tokens/`,
+        title: t('Auth Tokens'),
       },
     ],
   },

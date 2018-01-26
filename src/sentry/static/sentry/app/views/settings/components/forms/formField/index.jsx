@@ -17,15 +17,18 @@ import FormFieldWrapper from './formFieldWrapper';
 import FormState from '../../../../../components/forms/state';
 import InlineSvg from '../../../../../components/inlineSvg';
 import Spinner from '../styled/spinner';
+import returnButton from '../returnButton';
 
 // This wraps Control + ControlError message
 // * can NOT be a flex box have because of position: absolute on "control error message"
 // * can NOT have overflow hidden because "control error message" overflows
-const FormFieldControlErrorWrapper = styled(Box)`
+const FormFieldControlErrorWrapper = styled(({inline, ...props}) => <Box {...props} />)`
   ${p => (p.inline ? 'width: 50%; padding-left: 10px;' : '')};
 `;
 
-const FormFieldControlStyled = styled(FormFieldControl)`
+const FormFieldControlStyled = styled(({alignRight, ...props}) => (
+  <FormFieldControl {...props} />
+))`
   display: flex;
   flex-direction: column;
   ${p => (p.alignRight ? 'align-items: flex-end;' : '')};
@@ -67,6 +70,12 @@ const FormSpinner = styled(Spinner)`
   margin-left: 0;
 `;
 
+const ReturnButtonStyled = styled(returnButton)`
+  position: absolute;
+  right: 0;
+  top: 0;
+`;
+
 /**
  * Some fields don't need to implement their own onChange handlers, in
  * which case we will receive an Event, but if they do we should handle
@@ -92,6 +101,7 @@ class FormField extends React.Component {
     defaultValue: PropTypes.any,
     disabled: PropTypes.oneOfType([PropTypes.bool, PropTypes.func]),
     disabledReason: PropTypes.string,
+    showReturnButton: PropTypes.bool,
     help: PropTypes.oneOfType([PropTypes.string, PropTypes.element]),
     required: PropTypes.bool,
     hideErrorMessage: PropTypes.bool,
@@ -124,6 +134,11 @@ class FormField extends React.Component {
     location: PropTypes.object,
     form: PropTypes.object,
   };
+
+  constructor(props) {
+    super(props);
+    this.state = {showReturnButton: false};
+  }
 
   componentDidMount() {
     // this.attachTooltips();
@@ -159,7 +174,7 @@ class FormField extends React.Component {
   // Only works for styled inputs
   handleInputMount = ref => {
     if (ref && !this.input) {
-      let hash = this.context.location.hash;
+      let hash = this.context.location && this.context.location.hash;
 
       if (!hash) return;
       if (hash !== `#${this.props.name}`) return;
@@ -177,6 +192,8 @@ class FormField extends React.Component {
     let {name, onChange} = this.props;
     let {value, event} = getValueFromEvent(...args);
     let model = this.getModel();
+
+    if (this.props.showReturnButton) this.setState({showReturnButton: true});
 
     if (onChange) {
       onChange(value, event);
@@ -226,6 +243,7 @@ class FormField extends React.Component {
       inline,
       disabled,
       disabledReason,
+      showReturnButton,
       hideErrorMessage,
       help,
       alignRight,
@@ -236,7 +254,7 @@ class FormField extends React.Component {
 
     return (
       <FormFieldWrapper inline={inline} highlighted={highlighted}>
-        <FormFieldDescription inline={inline}>
+        <FormFieldDescription inline={inline} htmlFor={id}>
           {label && (
             <FormFieldLabel>
               {label} {required && <FormFieldRequiredBadge />}
@@ -278,6 +296,8 @@ class FormField extends React.Component {
                     <span className="icon-question" />
                   </span>
                 )}
+
+              {showReturnButton && this.state.showReturnButton && <ReturnButtonStyled />}
             </FormFieldControlStyled>
 
             <FormFieldControlState justify="center" align="center">

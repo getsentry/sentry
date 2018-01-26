@@ -333,6 +333,16 @@ def fetch_file(url, project=None, release=None, dist=None, allow_scraping=True):
             z_body = zlib.compress(result.body)
             cache.set(cache_key, (url, result.headers, z_body, result.status, result.encoding), 60)
 
+    # If we did not get a 200 OK we just raise a cannot fetch here.
+    if result.status != 200:
+        raise http.CannotFetch(
+            {
+                'type': EventError.FETCH_INVALID_HTTP_CODE,
+                'value': result.status,
+                'url': http.expose_url(url),
+            }
+        )
+
     # Make sure the file we're getting back is six.binary_type. The only
     # reason it'd not be binary would be from old cached blobs, so
     # for compatibility with current cached files, let's coerce back to

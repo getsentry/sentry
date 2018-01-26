@@ -4,6 +4,7 @@ import {mount} from 'enzyme';
 import {Client} from 'app/api';
 import ConfigStore from 'app/stores/configStore';
 import App from 'app/views/app';
+import {SudoModal} from 'app/components/modals/sudoModal';
 
 jest.mock('jquery');
 
@@ -30,6 +31,10 @@ describe('Sudo Modal', function() {
         sudoRequired: true,
       },
     });
+    Client.addMockResponse({
+      url: '/authenticators/',
+      body: [],
+    });
   });
 
   afterEach(function() {
@@ -55,12 +60,10 @@ describe('Sudo Modal', function() {
       error: errorCb,
     });
 
-    setTimeout(() => {
+    SudoModal.prototype.componentDidMount = function() {
       try {
-        // SudoModal
         const $input = $('.modal input');
         expect($input.length).toBe(1);
-
         // Original callbacks should not have been called
         expect(successCb).not.toBeCalled();
         expect(errorCb).not.toBeCalled();
@@ -82,39 +85,44 @@ describe('Sudo Modal', function() {
 
         // "Sudo" auth
         $input.val('password');
-        $('.modal [type="submit"]').click();
 
-        expect(sudoMock).toHaveBeenCalledWith(
-          '/sudo/',
-          expect.objectContaining({
-            method: 'POST',
-            // XXX: This doesn't submit with password in tests because modal is rendered outside of
-            // react tree. So we can't simulate react events on input
-            // data: {
-            // password: 'password',
-            // },
-          })
-        );
+        $('.modal form').on('submit', () => {
+          setTimeout(() => {
+            expect(sudoMock).toHaveBeenCalledWith(
+              '/sudo/',
+              expect.objectContaining({
+                method: 'POST',
+                // XXX: This doesn't submit with password in tests because modal is rendered outside of
+                // react tree. So we can't simulate react events on input
+                // data: {
+                // password: 'password',
+                // },
+              })
+            );
+
+            // Check for original API request to be retried
+            setTimeout(() => {
+              try {
+                // Retry API request
+                expect(successCb).toHaveBeenCalled();
+                expect(orgDeleteMock).toHaveBeenCalledWith(
+                  '/organizations/org-slug/',
+                  expect.objectContaining({
+                    method: 'DELETE',
+                  })
+                );
+              } catch (err) {
+                done(err);
+              }
+              done();
+            }, 1);
+          }, 1);
+        });
+
+        $('.modal [type="submit"]').click();
       } catch (err) {
         done(err);
       }
-      setTimeout(() => {
-        try {
-          // Modal can be around but should be "busy"
-
-          // Retry API request
-          expect(successCb).toHaveBeenCalled();
-          expect(orgDeleteMock).toHaveBeenCalledWith(
-            '/organizations/org-slug/',
-            expect.objectContaining({
-              method: 'DELETE',
-            })
-          );
-        } catch (err) {
-          done(err);
-        }
-        done();
-      }, 1);
-    }, 1);
+    };
   });
 });

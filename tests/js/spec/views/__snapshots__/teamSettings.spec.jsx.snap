@@ -1,7 +1,7 @@
 // Jest Snapshot v1, https://goo.gl/fbAQLP
 
 exports[`TeamSettings render() renders 1`] = `
-<DocumentTitle
+<SideEffect(DocumentTitle)
   title="Team Settings"
 >
   <div
@@ -49,5 +49,5 @@ exports[`TeamSettings render() renders 1`] = `
       </ApiForm>
     </div>
   </div>
-</DocumentTitle>
+</SideEffect(DocumentTitle)>
 `;

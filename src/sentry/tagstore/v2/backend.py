@@ -40,6 +40,7 @@ class V2TagStorage(TagStorage):
 
     def setup(self):
         self.setup_deletions(
+            tagkey_model=TagKey,
             tagvalue_model=TagValue,
             grouptagkey_model=GroupTagKey,
             grouptagvalue_model=GroupTagValue,
@@ -66,14 +67,26 @@ class V2TagStorage(TagStorage):
         super(V2TagStorage, self).setup_deletions(**kwargs)
 
         from sentry.deletions import default_manager as deletion_manager
-        from sentry.deletions.defaults import BulkModelDeletionTask
-        from sentry.deletions.base import ModelRelation
-        from sentry.models import Project
+        from sentry.deletions.base import ModelRelation, ModelDeletionTask
 
-        deletion_manager.register(TagKey, BulkModelDeletionTask)
-        deletion_manager.add_dependencies(Project, [
-            lambda instance: ModelRelation(TagKey, {'project_id': instance.id}),
-        ])
+        class TagKeyDeletionTask(ModelDeletionTask):
+            def get_child_relations(self, instance):
+                # in bulk
+                model_list = (GroupTagValue, GroupTagKey, TagValue)
+                relations = [
+                    ModelRelation(m, {
+                        'project_id': instance.project_id,
+                        'key_id': instance.id,
+                    }) for m in model_list
+                ]
+                return relations
+
+            def mark_deletion_in_progress(self, instance_list):
+                for instance in instance_list:
+                    if instance.status != TagKeyStatus.DELETION_IN_PROGRESS:
+                        instance.update(status=TagKeyStatus.DELETION_IN_PROGRESS)
+
+        deletion_manager.register(TagKey, TagKeyDeletionTask)
 
     def setup_receivers(self, **kwargs):
         super(V2TagStorage, self).setup_receivers(**kwargs)
@@ -643,14 +656,14 @@ class V2TagStorage(TagStorage):
             _key__key='sentry:user',
         ).order_by('-last_seen')[:limit])
 
-    def get_group_ids_for_search_filter(self, project_id, environment_id, tags):
+    def get_group_ids_for_search_filter(self, project_id, environment_id, tags, limit=1000):
         from sentry.search.base import ANY, EMPTY
         # Django doesnt support union, so we limit results and try to find
         # reasonable matches
 
         # ANY matches should come last since they're the least specific and
         # will provide the largest range of matches
-        tag_lookups = sorted(six.iteritems(tags), key=lambda x: x != ANY)
+        tag_lookups = sorted(six.iteritems(tags), key=lambda (k, v): v == ANY)
 
         # get initial matches to start the filter
         matches = None
@@ -682,7 +695,7 @@ class V2TagStorage(TagStorage):
                 # restrict matches to only the most recently seen issues
                 base_qs = base_qs.order_by('-last_seen')
 
-            matches = list(base_qs.values_list('group_id', flat=True)[:1000])
+            matches = list(base_qs.values_list('group_id', flat=True)[:limit])
 
             if not matches:
                 return None

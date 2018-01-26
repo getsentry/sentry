@@ -39,7 +39,7 @@ class ProjectTeam(Model):
     # removed when the UI is updated to handle multiple teams
     # per project. This is just to prevent wonky behavior in
     # the mean time.
-    project = FlexibleForeignKey('sentry.Project', unique=True)
+    project = FlexibleForeignKey('sentry.Project')
     team = FlexibleForeignKey('sentry.Team')
 
     class Meta:
@@ -92,7 +92,8 @@ class Project(Model):
     name = models.CharField(max_length=200)
     forced_color = models.CharField(max_length=6, null=True, blank=True)
     organization = FlexibleForeignKey('sentry.Organization')
-    team = FlexibleForeignKey('sentry.Team')
+    # DEPRECATED. use teams instead.
+    team = FlexibleForeignKey('sentry.Team', null=True)
     teams = models.ManyToManyField(
         'sentry.Team', related_name='teams', through=ProjectTeam
     )
@@ -321,6 +322,12 @@ class Project(Model):
             return False
         else:
             return True
+
+    def remove_team(self, team):
+        ProjectTeam.objects.filter(
+            project=self,
+            team=team,
+        ).delete()
 
     def get_security_token(self):
         lock = locks.get(self.get_lock_key(), duration=5)

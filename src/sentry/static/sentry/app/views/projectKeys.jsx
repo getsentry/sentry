@@ -165,7 +165,10 @@ const KeyRow = createReactClass({
             <AutoSelectText className="form-control disabled">
               <DynamicWrapper
                 value={data.dsn.secret}
-                fixed={data.dsn.secret.replace(data.projectId, '<<projectId>>')}
+                fixed={data.dsn.secret.replace(
+                  new RegExp(`\/${data.projectId}$`),
+                  '/<<projectId>>'
+                )}
               />
             </AutoSelectText>
           </div>
@@ -175,7 +178,10 @@ const KeyRow = createReactClass({
             <AutoSelectText className="form-control disabled">
               <DynamicWrapper
                 value={data.dsn.public}
-                fixed={data.dsn.public.replace(data.projectId, '<<projectId>>')}
+                fixed={data.dsn.public.replace(
+                  new RegExp(`\/${data.projectId}$`),
+                  '/<<projectId>>'
+                )}
               />
             </AutoSelectText>
             <div className="help-block">

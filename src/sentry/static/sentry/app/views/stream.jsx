@@ -85,7 +85,6 @@ const Stream = createReactClass({
       tags: StreamTagStore.getAllTags(),
       tagsLoading: true,
       isSidebarVisible: false,
-      isStickyHeader: false,
       processingIssues: null,
       ...this.getQueryState(),
     };
@@ -509,12 +508,6 @@ const Stream = createReactClass({
     });
   },
 
-  onStickyStateChange(state) {
-    this.setState({
-      isStickyHeader: state,
-    });
-  },
-
   /**
    * Returns true if all results in the current query are visible/on this page
    */
@@ -769,9 +762,9 @@ const Stream = createReactClass({
               isSearchDisabled={this.state.isSidebarVisible}
               savedSearchList={this.state.savedSearchList}
             />
-            <Sticky onStickyStateChange={this.onStickyStateChange}>
-              <div className="group-header">
-                <div className={this.state.isStickyHeader ? 'container' : null}>
+            <Sticky topOffset={59}>
+              {props => (
+                <div className={classNames('group-header', {sticky: props.isSticky})}>
                   <StreamActions
                     orgId={params.orgId}
                     projectId={params.projectId}
@@ -786,7 +779,7 @@ const Stream = createReactClass({
                     allResultsVisible={this.allResultsVisible()}
                   />
                 </div>
-              </div>
+              )}
             </Sticky>
             {this.renderProcessingIssuesHint()}
             {this.renderStreamBody()}

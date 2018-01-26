@@ -31,7 +31,7 @@ def _get_service_hooks(project_id):
     if result is None:
         result = [(h.id, h.events) for h in
                   ServiceHook.objects.filter(project_id=project_id)]
-        cache.set(result, 60)
+        cache.set(cache_key, result, 60)
     return result
 
 
@@ -52,7 +52,7 @@ def _capture_stats(event, is_new):
 
 
 @instrumented_task(name='sentry.tasks.post_process.post_process_group')
-def post_process_group(event, is_new, is_regression, is_sample, **kwargs):
+def post_process_group(event, is_new, is_regression, is_sample, is_new_group_environment, **kwargs):
     """
     Fires post processing hooks for a group.
     """
@@ -83,7 +83,7 @@ def post_process_group(event, is_new, is_regression, is_sample, **kwargs):
     # we process snoozes before rules as it might create a regression
     process_snoozes(event.group)
 
-    rp = RuleProcessor(event, is_new, is_regression)
+    rp = RuleProcessor(event, is_new, is_regression, is_new_group_environment)
     has_alert = False
     # TODO(dcramer): ideally this would fanout, but serializing giant
     # objects back and forth isn't super efficient
@@ -95,9 +95,7 @@ def post_process_group(event, is_new, is_regression, is_sample, **kwargs):
         'projects:servicehooks',
         project=event.project,
     ):
-        allowed_events = set()
-        if is_new:
-            allowed_events.add('event.created')
+        allowed_events = set(['event.created'])
         if has_alert:
             allowed_events.add('event.alert')
 
@@ -105,7 +103,7 @@ def post_process_group(event, is_new, is_regression, is_sample, **kwargs):
             for servicehook_id, events in _get_service_hooks(project_id=event.project_id):
                 if any(e in allowed_events for e in events):
                     process_service_hook.delay(
-                        hook_id=servicehook_id,
+                        servicehook_id=servicehook_id,
                         event=event,
                     )
 

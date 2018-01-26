@@ -125,6 +125,12 @@ TAG_LABELS = {
     'server_name': 'Server',
 }
 
+PROTECTED_TAG_KEYS = frozenset([
+    'environment',
+    'release',
+    'sentry:release',
+])
+
 # TODO(dcramer): once this is more flushed out we want this to be extendable
 SENTRY_RULES = (
     'sentry.rules.actions.notify_event.NotifyEventAction',
@@ -208,6 +214,7 @@ MAX_SYM = 256
 KNOWN_DSYM_TYPES = {
     'text/x-breakpad': 'breakpad',
     'application/x-mach-binary': 'macho',
+    'application/x-elf-binary': 'elf',
     'text/x-proguard+plain': 'proguard',
 }
 

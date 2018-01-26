@@ -14,6 +14,10 @@ export default function getConfiguration({project}) {
           title: t('General'),
         },
         {
+          path: `${pathPrefix}/teams/`,
+          title: t('Teams'),
+        },
+        {
           path: `${pathPrefix}/alerts/`,
           title: t('Alerts'),
         },

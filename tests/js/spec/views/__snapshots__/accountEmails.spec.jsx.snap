@@ -1,0 +1,87 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`AccountEmails renders with emails 1`] = `
+<SideEffect(DocumentTitle)
+  title="Sentry"
+>
+  <div>
+    <SettingsPageHeading
+      title="Emails"
+    />
+    <Styled(div)>
+      <PanelHeader>
+        Emails
+      </PanelHeader>
+      <PanelBody
+        direction="column"
+        disablePadding={true}
+        flex={false}
+      >
+        <EmailRow
+          email="primary@example.com"
+          isPrimary={true}
+          isVerified={true}
+          onRemove={[Function]}
+        />
+        <EmailRow
+          email="secondary1@example.com"
+          isPrimary={false}
+          isVerified={true}
+          key="secondary1@example.com"
+          onRemove={[Function]}
+          onSetPrimary={[Function]}
+        />
+        <EmailRow
+          email="secondary2@example.com"
+          isPrimary={false}
+          isVerified={false}
+          key="secondary2@example.com"
+          onRemove={[Function]}
+          onSetPrimary={[Function]}
+        />
+      </PanelBody>
+    </Styled(div)>
+    <Form
+      allowUndo={false}
+      apiEndpoint="/users/me/emails/"
+      apiMethod="POST"
+      cancelLabel="Cancel"
+      className="form-stacked"
+      footerClass="form-actions align-right"
+      onSubmit={[Function]}
+      onSubmitError={[Function]}
+      onSubmitSuccess={[Function]}
+      requireChanges={false}
+      saveOnBlur={true}
+      submitDisabled={false}
+      submitLabel="Save Changes"
+    >
+      <JsonForm
+        forms={
+          Array [
+            Object {
+              "fields": Array [
+                Object {
+                  "help": "Designate an alternative email for this account",
+                  "label": "Additional Email",
+                  "name": "email",
+                  "placeholder": "e.g. secondary@example.com",
+                  "showReturnButton": true,
+                  "type": "string",
+                },
+              ],
+              "title": "Add Secondary Emails",
+            },
+          ]
+        }
+      />
+    </Form>
+    <Styled(Component)
+      icon="icon-stack"
+      to="/settings/account/notifications"
+    >
+      Wanna change how many emails you get? Use the notifications panel.
+    </Styled(Component)>
+  </div>
+</SideEffect(DocumentTitle)>
+`;

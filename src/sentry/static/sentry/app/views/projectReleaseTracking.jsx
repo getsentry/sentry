@@ -5,13 +5,19 @@ import createReactClass from 'create-react-class';
 import {t, tct} from '../locale';
 import AlertActions from '../actions/alertActions';
 import ApiMixin from '../mixins/apiMixin';
+import DynamicWrapper from '../components/dynamicWrapper';
 import LoadingError from '../components/loadingError';
 import LoadingIndicator from '../components/loadingIndicator';
+import Panel from './settings/components/panel';
+import PanelBody from './settings/components/panelBody';
+import PanelHeader from './settings/components/panelHeader';
 import PluginList from '../components/pluginList';
 import SentryTypes from '../proptypes';
 import SettingsPageHeader from './settings/components/settingsPageHeader';
 import TextBlock from './settings/components/text/textBlock';
 import withPlugins from '../utils/withPlugins';
+
+const noMargin = {margin: 0};
 
 const ProjectReleaseTracking = createReactClass({
   displayName: 'ProjectReleaseTracking',
@@ -19,7 +25,7 @@ const ProjectReleaseTracking = createReactClass({
   propTypes: {
     organization: PropTypes.object,
     project: PropTypes.object,
-    plugins: PropTypes.arrayOf(SentryTypes.PluginShape),
+    plugins: SentryTypes.PluginsStore,
   },
 
   mixins: [ApiMixin],
@@ -139,11 +145,10 @@ const ProjectReleaseTracking = createReactClass({
             'Configure release tracking for this project to automatically record new releases of your application.'
           )}
         </TextBlock>
-        <div className="box">
-          <div className="box-header">
-            <h3>{t('Client Configuration')}</h3>
-          </div>
-          <div className="box-content with-padding">
+
+        <Panel>
+          <PanelHeader>{t('Client Configuration')}</PanelHeader>
+          <PanelBody disablePadding={false} flex>
             <p>
               {tct('Start by binding the [release] attribute in your application:', {
                 release: <code>release</code>,
@@ -155,19 +160,17 @@ const ProjectReleaseTracking = createReactClass({
                 "This will annotate each event with the version of your application, as well as automatically create a release entity in the system the first time it's seen."
               )}
             </p>
-            <p>
+            <div>
               {t(
                 'In addition you may configure a release hook (or use our API) to push a release and include additional metadata with it.'
               )}
-            </p>
-          </div>
-        </div>
+            </div>
+          </PanelBody>
+        </Panel>
 
-        <div className="box">
-          <div className="box-header">
-            <h3>{t('Token')}</h3>
-          </div>
-          <div className="box-content with-padding">
+        <Panel>
+          <PanelHeader>{t('Token')}</PanelHeader>
+          <PanelBody disablePadding={false} flex>
             <form>
               <p>
                 {t(
@@ -176,10 +179,10 @@ const ProjectReleaseTracking = createReactClass({
               </p>
               <p>
                 <code style={{display: 'inlineBlock'}} className="auto-select">
-                  {this.state.token}
+                  <DynamicWrapper value={this.state.token} fixed="__TOKEN__" />
                 </code>
               </p>
-              <p>
+              <div>
                 <button
                   type="submit"
                   className="btn btn-sm btn-danger"
@@ -187,18 +190,16 @@ const ProjectReleaseTracking = createReactClass({
                   value="regenerate-token"
                   onClick={this.onSubmit}
                 >
-                  Regenerate Token
+                  {t('Regenerate Token')}
                 </button>
-              </p>
+              </div>
             </form>
-          </div>
-        </div>
+          </PanelBody>
+        </Panel>
 
-        <div className="box">
-          <div className="box-header">
-            <h3>{t('Webhook')}</h3>
-          </div>
-          <div className="box-content with-padding">
+        <Panel>
+          <PanelHeader>{t('Webhook')}</PanelHeader>
+          <PanelBody disablePadding={false} flex>
             <form>
               <p>
                 {t(
@@ -206,7 +207,10 @@ const ProjectReleaseTracking = createReactClass({
                 )}
               </p>
 
-              <pre className="auto-select">{this.state.webhookUrl}</pre>
+              <DynamicWrapper
+                value={<pre className="auto-select">{this.state.webhookUrl}</pre>}
+                fixed={<pre className="auto-select">__WEBHOOK_URL__</pre>}
+              />
 
               <p>
                 {t(
@@ -214,10 +218,24 @@ const ProjectReleaseTracking = createReactClass({
                 )}
               </p>
 
-              <pre className="auto-select">{this.getReleaseWebhookIntructions()}</pre>
+              <DynamicWrapper
+                value={
+                  <pre style={noMargin} className="auto-select">
+                    {this.getReleaseWebhookIntructions()}
+                  </pre>
+                }
+                fixed={
+                  <pre style={noMargin} className="auto-select">
+                    {`curl __WEBHOOK_URL__ \\
+  -X POST \\
+  -H 'Content-Type: application/json' \\
+  -d \'{"version": "abcdefg"}\'`}
+                  </pre>
+                }
+              />
             </form>
-          </div>
-        </div>
+          </PanelBody>
+        </Panel>
 
         <PluginList
           organization={organization}
@@ -225,26 +243,24 @@ const ProjectReleaseTracking = createReactClass({
           pluginList={pluginList}
         />
 
-        <div className="box">
-          <div className="box-header">
-            <h3>{t('API')}</h3>
-          </div>
-          <div className="box-content with-padding">
+        <Panel>
+          <PanelHeader>{t('API')}</PanelHeader>
+          <PanelBody disablePadding={false} flex>
             <p>
               {t(
                 'You can notify Sentry when you release new versions of your application via our HTTP API.'
               )}
             </p>
 
-            <p>
+            <div>
               {t('See the ')}
               <a href="https://docs.sentry.io/hosted/api/releases/">
                 {t('Releases API documentation')}
               </a>{' '}
               {t('for more information.')}
-            </p>
-          </div>
-        </div>
+            </div>
+          </PanelBody>
+        </Panel>
       </div>
     );
   },

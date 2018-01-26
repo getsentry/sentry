@@ -16,10 +16,10 @@ from .operations import DatabaseOperations
 __all__ = ('DatabaseWrapper', )
 
 
-def escape_null(value):
+def remove_null(value):
     if not isinstance(value, string_types):
         return value
-    return value.replace('\x00', '\\x00')
+    return value.replace('\x00', '')
 
 
 class CursorWrapper(object):
@@ -50,7 +50,7 @@ class CursorWrapper(object):
                 # NULL byte in a parameter would start raising a ValueError.
                 # psycopg2 chose to do this rather than let Postgres silently
                 # truncate the data, which is it's behavior when it sees a
-                # NULL byte. But for us, we'd rather munge the value so it's
+                # NULL byte. But for us, we'd rather remove the null value so it's
                 # somewhat legible rather than error. Considering this is better
                 # behavior than the database truncating, seems good to do this
                 # rather than attempting to sanitize all data inputs now manually.
@@ -60,7 +60,7 @@ class CursorWrapper(object):
                 # address that later rather than potentially catch incorrect behavior.
                 if e.message != 'A string literal cannot contain NUL (0x00) characters.':
                     raise
-                return self.cursor.execute(sql, [escape_null(param) for param in params])
+                return self.cursor.execute(sql, [remove_null(param) for param in params])
         return self.cursor.execute(sql)
 
     @capture_transaction_exceptions

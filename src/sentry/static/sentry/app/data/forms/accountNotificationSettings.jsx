@@ -1,4 +1,7 @@
-const forms = [
+// Export route to make these forms searchable by label/help
+export const route = '/settings/account/notifications/';
+
+const formGroups = [
   {
     title: 'Alerts',
     fields: [
@@ -85,4 +88,4 @@ const forms = [
   },
 ];
 
-export default forms;
+export default formGroups;
