@@ -91,6 +91,9 @@ const TeamDetails = createReactClass({
     let routePrefix = recreateRoute('', {routes, params, stepBack: -1}); //`/organizations/${orgId}/teams/${teamId}`;
     let access = this.getAccess();
 
+    //TODO(maxbittker) remove hack to not show this page on old settings
+    let onNewSettings = routePrefix.startsWith('/settings/');
+
     return (
       <div>
         <h3>{team.name}</h3>
@@ -104,7 +107,9 @@ const TeamDetails = createReactClass({
         <ul className="nav nav-tabs border-bottom">
           <ListLink to={`${routePrefix}settings/`}>{t('Settings')}</ListLink>
           <ListLink to={`${routePrefix}members/`}>{t('Members')}</ListLink>
-          <ListLink to={`${routePrefix}projects/`}>{t('Projects')}</ListLink>
+          {onNewSettings ? (
+            <ListLink to={`${routePrefix}projects/`}>{t('Projects')}</ListLink>
+          ) : null}
         </ul>
 
         {children &&

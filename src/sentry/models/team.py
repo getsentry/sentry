@@ -89,7 +89,7 @@ class TeamManager(BaseManager):
             projects_by_team = {t.id: [] for t in team_list}
             for project in project_list:
                 for team_id in teams_by_project[project.id]:
-                    projects_by_team.get(team_id, []).append(project)
+                    projects_by_team[team_id].append(project)
 
             # these kinds of queries make people sad :(
             for idx, team in enumerate(results):

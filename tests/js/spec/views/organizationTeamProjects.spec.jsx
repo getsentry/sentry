@@ -18,11 +18,11 @@ describe('OrganizationTeamProjects', function() {
 
     let project = TestStubs.Project();
     ProjectsStore.loadInitialData([project]);
-    // org = TestStubs.Organization();
 
     Client.addMockResponse({
       method: 'PUT',
       url: '/projects/org-slug/project-slug/',
+      body: project,
     });
 
     Client.addMockResponse({
@@ -39,8 +39,8 @@ describe('OrganizationTeamProjects', function() {
     sandbox.restore();
   });
 
-  describe('fetchStats()', function() {
-    it('should make a request to the organizations endpoint', function() {
+  describe('OrganizationTeamProjects', function() {
+    it('Should render', function() {
       let wrapper = mount(
         <OrganizationTeamProjects params={{orgId: 'org-slug', teamId: team.slug}} />,
         {
@@ -50,14 +50,39 @@ describe('OrganizationTeamProjects', function() {
 
       expect(wrapper).toMatchSnapshot();
       expect(wrapper.find('.project-name').text()).toBe('Project Name');
+    });
+
+    it('Should allow bookmarking', function() {
+      let wrapper = mount(
+        <OrganizationTeamProjects params={{orgId: 'org-slug', teamId: team.slug}} />,
+        {
+          context: {organization: {id: '1337', slug: 'org-slug'}},
+        }
+      );
 
       let star = wrapper.find('.icon-star-outline');
       expect(star.length).toBe(1);
       star.simulate('click');
+
       star = wrapper.find('.icon-star-outline');
       expect(star.length).toBe(0);
       star = wrapper.find('.icon-star-solid');
       expect(star.length).toBe(1);
+
+      expect(
+        Client.findMockResponse('/projects/org-slug/project-slug/', {
+          method: 'PUT',
+        })[0].callCount
+      ).toBe(1);
+    });
+
+    it('Adding and removing projects works', function(done) {
+      let wrapper = mount(
+        <OrganizationTeamProjects params={{orgId: 'org-slug', teamId: team.slug}} />,
+        {
+          context: {organization: {id: '1337', slug: 'org-slug'}},
+        }
+      );
 
       let add = wrapper.find('.button-label');
       expect(add.length).toBe(1);
@@ -65,7 +90,6 @@ describe('OrganizationTeamProjects', function() {
       add.simulate('click');
 
       wrapper.update();
-      console.log(wrapper.state());
 
       expect(
         Client.findMockResponse(`/projects/org-slug/project-slug/teams/${team.slug}/`, {
@@ -73,28 +97,22 @@ describe('OrganizationTeamProjects', function() {
         })[0].callCount
       ).toBe(1);
 
-      let remove = wrapper.find('.button-label');
-      expect(remove.length).toBe(1);
-      expect(remove.text()).toBe('Remove');
+      setTimeout(() => {
+        wrapper.update();
+        let remove = wrapper.find('.flow-layout .button-label');
+        expect(remove.length).toBe(1);
 
-      // remove.simulate('click');
+        expect(remove.text()).toBe('Remove');
+        remove.simulate('click');
 
-      // remove = wrapper.find('.icon-remove-outline');
-      // expect(remove.length).toBe(0);
+        expect(
+          Client.findMockResponse(`/projects/org-slug/project-slug/teams/${team.slug}/`, {
+            method: 'DELETE',
+          })[0].callCount
+        ).toBe(1);
 
-      // remove = wrapper.find('.icon-remove-solid');
-      // expect(remove.length).toBe(1);
-
-      // ).toBe('Project Name');
-
-      // NOTE: creation of OrganizationTeams causes a bunch of API requests to fire ...
-      //       reset th e request stub so that we can get an accurate count
-      // stubbedApiRequest.reset();
-
-      // organizationTeams.fetchStats();
-
-      // expect(stubbedApiRequest.callCount).toEqual(1);
-      // expect(stubbedApiRequest.getCall(0).args[0]).toEqual('/organizations/123/stats/');
+        done();
+      }, 1);
     });
   });
 });

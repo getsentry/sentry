@@ -1,6 +1,6 @@
 // Jest Snapshot v1, https://goo.gl/fbAQLP
 
-exports[`OrganizationTeamProjects fetchStats() should make a request to the organizations endpoint 1`] = `
+exports[`OrganizationTeamProjects OrganizationTeamProjects Should render 1`] = `
 .glamor-9 {
   background: #fff;
   border: 1px solid;
