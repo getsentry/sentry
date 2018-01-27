@@ -1,34 +1,59 @@
 import React from 'react';
 import {browserHistory} from 'react-router';
 import createReactClass from 'create-react-class';
-import Reflux from 'reflux';
 import $ from 'jquery';
 import DugoutHandle from './handle';
 import SupportDrawer from './supportDrawer';
 import GuideDrawer from './guideDrawer';
 import ApiMixin from '../../mixins/apiMixin';
-import GuideStore from '../../stores/guideStore';
 
 const DugoutHelper = createReactClass({
   displayName: 'DugoutHelper',
 
-  // mixins: [ApiMixin, Reflux.listenTo(GuideStore, 'onGuideChange')],
-  mixins: [ApiMixin, Reflux.connect(GuideStore, 'guide')],
+  mixins: [ApiMixin],
 
   getInitialState() {
     return {
+      // Current URL. Determines which guide should be shown.
       pathname: null,
       isDrawerOpen: false,
-      guide: null,
+      // All available guides.
+      allGuides: null,
+      // We record guides seen on the server, but immediately after a user completes a guide
+      // it may not have been synced to the server, so the local copy helps in filtering correctly.
+      guidesSeen: new Set(),
+      // The 0-based index of the current step of the current guide.
+      // Null if the drawer is not open.
       currentStep: null,
     };
   },
 
   componentWillMount() {
+    this.fetchGuides();
     this.handleLocationChange(window.location.pathname);
     this.unlisten = browserHistory.listen(location => {
       this.handleLocationChange(location.pathname);
     });
+  },
+
+  componentDidUpdate(prevProps, prevState) {
+    const guide = this.currentGuide();
+    // Scroll to the element referenced by the current guide.
+    if (
+      guide &&
+      this.state.isDrawerOpen &&
+      this.state.currentStep !== prevState.currentStep
+    ) {
+      const elementID = guide.steps[this.state.currentStep].elementID;
+      if (elementID) {
+        $('html, body').animate(
+          {
+            scrollTop: $('#' + elementID).offset().top,
+          },
+          1000
+        );
+      }
+    }
   },
 
   componentWillUnmount() {
@@ -36,108 +61,114 @@ const DugoutHelper = createReactClass({
   },
 
   handleLocationChange(pathname) {
-    if (this.state.pathname == pathname) {
-      return;
+    if (this.state.pathname != pathname) {
+      this.setState({
+        pathname,
+        isDrawerOpen: false,
+        currentStep: null,
+      });
     }
-    this.setState({
-      pathname,
-      isDrawerOpen: false,
+  },
+
+  // Return the guide to show on the current page.
+  currentGuide() {
+    if (!this.state.allGuides) {
+      return null;
+    }
+    if (
+      this.state.pathname.match(/\/issues\/\d+\/([?]|$)/) &&
+      this.state.allGuides.issue &&
+      !this.state.guidesSeen.has(this.state.allGuides.issue.id)
+    ) {
+      return this.state.allGuides.issue;
+    }
+    return null;
+  },
+
+  fetchGuides() {
+    this.api.request('/assistant/', {
+      method: 'GET',
+      success: response => {
+        this.setState({
+          allGuides: response,
+        });
+      },
     });
-    if (pathname.match(/\/issues\/\d+\/([?]|$)/)) {
-      this.setState({guide: this.guides.issues});
-    } else {
-      this.setState({guide: null});
-    }
   },
 
-  guides: {
-    issues: {
-      cue: 'Click here for a tour of the issue page',
-      steps: [
-        {
-          title: '1. Stacktraces',
-          message:
-            'See which line in your code caused the error and the entire call ' +
-            'stack at that point. Get additional context like stack locals, ' +
-            'browser environment, and any custom data sent by the client.',
-          elementID: 'exception',
-        },
-        {
-          title: '2. Breadcrumbs',
-          message:
-            'Breadcrumbs allow you to see the events that happened before the error. ' +
-            'This is often useful to understand what may have triggered the error ' +
-            'and includes things like HTTP requests, database calls, and any other ' +
-            'custom data you record. Breadcrumbs also integrate seamlessly with many ' +
-            'popular web frameworks.',
-          elementID: 'breadcrumbs',
-        },
-      ],
-    },
-  },
-
-  largeMessage() {
-    return (
-      <div className="dugout-message-large">
-        <div className="dugout-message-large-title">{this.state.guide.title}</div>
-        <div className="dugout-message-large-text">{this.state.guide.description}</div>
-      </div>
-    );
-  },
-
-  maybeScroll(nextStep) {
-    const elementID = this.state.guide && this.state.guide.steps[nextStep].elementID;
-    if (elementID) {
-      $('html, body').animate(
-        {
-          scrollTop: $('#' + elementID).offset().top,
-        },
-        1000
-      );
-    }
-  },
-
-  onButtonClick() {
+  onDrawerOpen() {
     this.setState({
       isDrawerOpen: true,
-      currentStep: 0,
     });
-    this.maybeScroll(0);
+    const guide = this.currentGuide();
+    if (guide) {
+      this.setState({
+        currentStep: 0,
+      });
+    }
+  },
+
+  onDrawerClose() {
+    const guide = this.currentGuide();
+    if (guide) {
+      if (this.state.currentStep < guide.steps.length - 1) {
+        // User dismissed the guide before completing it.
+        // TODO(adhiraj): Retry logic?
+        this.api.request('/assistant/', {
+          method: 'PUT',
+          data: {
+            status: 'dismissed',
+            guide_id: guide.id,
+          },
+        });
+      } else {
+        // User completed the guide.
+        this.api.request('/assistant/', {
+          method: 'PUT',
+          data: {
+            status: 'viewed',
+            guide_id: guide.id,
+          },
+        });
+      }
+      this.setState({
+        guidesSeen: this.state.guidesSeen.add(guide.id),
+      });
+    }
+    this.setState({
+      isDrawerOpen: false,
+      currentStep: null,
+    });
   },
 
   nextHandler() {
-    const nextStep = this.state.currentStep + 1;
-    this.setState({
-      currentStep: nextStep,
-    });
-    this.maybeScroll(nextStep);
-  },
-
-  closeHandler() {
-    this.setState({
-      isDrawerOpen: false,
+    this.setState(prevState => {
+      return {
+        currentStep: prevState.currentStep + 1,
+      };
     });
   },
 
   render() {
-    const cue = this.state.guide ? this.state.guide.cue : 'Need Help?';
+    const guide = this.currentGuide();
+    const cue = guide ? guide.cue : 'Need Help?';
     return (
       <div className="dugout-container">
         {this.state.isDrawerOpen ? (
           <div className="dugout-drawer">
-            {this.state.guide ? (
+            {guide ? (
               <GuideDrawer
-                guide={this.state.guide}
+                guide={guide}
                 step={this.state.currentStep}
                 nextHandler={this.nextHandler}
-                closeHandler={this.closeHandler}
+                closeHandler={this.onDrawerClose}
               />
             ) : (
               <SupportDrawer />
             )}
           </div>
         ) : (
-          <DugoutHandle cue={cue} onClick={this.onButtonClick} />
+          <DugoutHandle cue={cue} onClick={this.onDrawerOpen} />
         )}
       </div>
     );
