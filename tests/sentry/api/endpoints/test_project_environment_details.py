@@ -34,6 +34,18 @@ class ProjectEnvironmentsTest(APITestCase):
             'is_hidden': False,
         }
 
+        assert self.client.get(
+            reverse(
+                'sentry-api-0-project-environment-details',
+                kwargs={
+                    'organization_slug': project.organization.slug,
+                    'project_slug': project.slug,
+                    'environment': 'invalid',
+                }
+            ),
+            format='json',
+        ).status_code == 404
+
     def test_put(self):
         project = self.create_project()
 
@@ -61,3 +73,16 @@ class ProjectEnvironmentsTest(APITestCase):
             project=project,
             environment=environment,
         ).is_hidden is True
+
+        assert self.client.put(
+            reverse(
+                'sentry-api-0-project-environment-details',
+                kwargs={
+                    'organization_slug': project.organization.slug,
+                    'project_slug': project.slug,
+                    'environment': 'invalid',
+                }
+            ),
+            {'is_hidden': True},
+            format='json',
+        ).status_code == 404
