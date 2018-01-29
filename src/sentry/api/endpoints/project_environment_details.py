@@ -4,6 +4,7 @@ from rest_framework import serializers
 from rest_framework.response import Response
 
 from sentry.api.bases.project import ProjectEndpoint
+from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.serializers import serialize
 from sentry.models import EnvironmentProject
 
@@ -14,18 +15,24 @@ class ProjectEnvironmentSerializer(serializers.Serializer):
 
 class ProjectEnvironmentDetailsEndpoint(ProjectEndpoint):
     def get(self, request, project, environment):
-        instance = EnvironmentProject.objects.select_related('environment').get(
-            project=project,
-            environment__name=environment,
-        )
+        try:
+            instance = EnvironmentProject.objects.select_related('environment').get(
+                project=project,
+                environment__name=environment,
+            )
+        except EnvironmentProject.DoesNotExist:
+            raise ResourceDoesNotExist
 
         return Response(serialize(instance, request.user))
 
     def put(self, request, project, environment):
-        instance = EnvironmentProject.objects.select_related('environment').get(
-            project=project,
-            environment__name=environment,
-        )
+        try:
+            instance = EnvironmentProject.objects.select_related('environment').get(
+                project=project,
+                environment__name=environment,
+            )
+        except EnvironmentProject.DoesNotExist:
+            raise ResourceDoesNotExist
 
         serializer = ProjectEnvironmentSerializer(data=request.DATA, partial=True)
         if not serializer.is_valid():
