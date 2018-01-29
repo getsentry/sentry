@@ -67,7 +67,8 @@ const GroupReleaseStats = createReactClass({
       this.state.loading !== nextState.loading ||
       this.state.error !== nextState.error ||
       this.state.environment !== nextState.environment ||
-      this.props.group.id !== nextProps.group.id
+      this.props.group.id !== nextProps.group.id ||
+      this.state.data !== nextState.data
     );
   },
 
@@ -118,7 +119,7 @@ const GroupReleaseStats = createReactClass({
   fetchAllEnvironmentsData() {
     let group = this.props.group;
 
-    // Grab data for all environments and set on state, following the format of /issues/group/environments/{envnameA
+    // Grab data for all environments and set on state, following the format of /issues/group/environments/{envname}
     let data = {
       environment: {stats: group.stats},
     };
@@ -136,6 +137,9 @@ const GroupReleaseStats = createReactClass({
         environment: getPath(group, 'lastDeploy.lastDeploy.environment'),
       };
     }
+
+    data.firstSeen = group.firstSeen;
+    data.lastSeen = group.lastSeen;
 
     this.setState({
       data,
