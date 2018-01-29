@@ -42,7 +42,7 @@ class ProjectHeader extends React.Component {
     let showEnvironmentsToggle = hasEnvironmentsFeature && pageHasEnvironments;
 
     let activeEnvironmentTitle = activeEnvironment
-      ? activeEnvironment.name
+      ? activeEnvironment.displayName
       : allEnvironmentsLabel;
 
     return (
@@ -98,7 +98,7 @@ class ProjectHeader extends React.Component {
                 </MenuItem>
                 {environments.map(env => (
                   <MenuItem key={env.id} onClick={() => setActiveEnvironment(env)}>
-                    {env.name}
+                    {env.displayName}
                   </MenuItem>
                 ))}
               </DropdownLink>
