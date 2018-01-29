@@ -14,8 +14,8 @@ const PRODUCTION_ENV_NAMES = new Set([
   'trunk',
 ]);
 
-const DEFAULT_ENV_NAME = '(Default Environment)';
-const DEFAULT_ROUTING_NAME = 'none';
+const DEFAULT_EMPTY_ENV_NAME = '(No Environment)';
+const DEFAULT_EMPTY_ROUTING_NAME = 'none';
 
 const EnvironmentStore = Reflux.createStore({
   init() {
@@ -30,10 +30,10 @@ const EnvironmentStore = Reflux.createStore({
       id: item.id,
       name: item.name,
       get displayName() {
-        return toTitleCase(item.name) || DEFAULT_ENV_NAME;
+        return toTitleCase(item.name) || DEFAULT_EMPTY_ENV_NAME;
       },
       get urlRoutingName() {
-        return item.name || DEFAULT_ROUTING_NAME;
+        return item.name || DEFAULT_EMPTY_ROUTING_NAME;
       },
     }));
     this.trigger(this.items, 'initial');
