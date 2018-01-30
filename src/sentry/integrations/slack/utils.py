@@ -76,7 +76,7 @@ def build_assigned_text(identity, assignee):
         )
 
     try:
-        assignee_user = User.objects.get(email=assignee)
+        assignee_user = User.objects.get(username=assignee)
     except User.DoesNotExist:
         return
 
