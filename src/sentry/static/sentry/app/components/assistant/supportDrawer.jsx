@@ -2,32 +2,31 @@ import PropTypes from 'prop-types';
 import React from 'react';
 import createReactClass from 'create-react-class';
 import $ from 'jquery';
+import HookStore from '../../stores/hookStore';
 
 const SupportDrawer = createReactClass({
   displayName: 'SupportDrawer',
 
   propTypes: {
     closeHandler: PropTypes.func.isRequired,
+    subscription: PropTypes.object,
   },
 
   getInitialState() {
     return {
-      helpText: '',
+      inputVal: '',
       docResults: [],
       helpcenterResults: [],
     };
   },
 
-  handleInput(event) {
-    // Handles input event to update state
-    this.setState({
-      helpText: event.currentTarget.value,
-    });
+  componentWillReceiveProps(props) {
+    this.setState({inputVal: ''});
   },
 
-  handleSearch(event) {
-    event.preventDefault();
-    let term = encodeURIComponent(this.state.helpText);
+  handleInput(evt) {
+    evt.preventDefault();
+    let term = encodeURIComponent(evt.currentTarget.value);
     $.get(
       `https://rigidsearch.getsentry.net/api/search?q=${term}&page=1&section=hosted`,
       data => {
@@ -40,24 +39,77 @@ const SupportDrawer = createReactClass({
         this.setState({helpcenterResults: data.results});
       }
     );
+    this.setState({
+      inputVal: evt.currentTarget.value,
+    });
   },
+
+  renderDocsResults() {
+    return this.state.docResults.map((result, i) => {
+      let {title} = result;
+      let link = `https://docs.sentry.io/${result.path}/`;
+
+      return (
+        <a href={link} key={i + 'doc'}>
+          <li className="search-tag search-tag-docs search-autocomplete-item">
+            <span className="title">{title}</span>
+          </li>
+        </a>
+      );
+    });
+  },
+
+  renderHelpCenterResults() {
+    return this.state.helpcenterResults.map((result, i) => {
+      return (
+        <a href={result.html_url} key={i}>
+          <li className="search-tag search-tag-qa search-autocomplete-item">
+            <span className="title">{result.title}</span>
+          </li>
+        </a>
+      );
+    });
+  },
+
+  renderDropdownResults() {
+    let docsResults = this.renderDocsResults();
+    let helpcenterResults = this.renderHelpCenterResults();
+    let results = helpcenterResults.concat(docsResults);
+
+    return (
+      <div
+        className="results"
+        style={{
+          visibility: this.state.inputVal.length > 2 ? 'visible' : 'hidden',
+        }}
+      >
+        <ul className="search-autocomplete-list">{results}</ul>
+      </div>
+    );
+  },
+
+  zendeskHandler() {},
 
   render() {
     return (
-      <div>
-        <div className="search">
-          <form onSubmit={this.handleSearch}>
-            <input
-              className="search-input form-control"
-              type="text"
-              placeholder="Search FAQs and docs..."
-              onChange={this.handleInput}
-              value={this.state.helpText}
-            />
-            <span className="icon-search" />
-          </form>
-        </div>
-        <div onClick={this.props.closeHandler}>Close</div>
+      <div className="search">
+        <form>
+          <input
+            className="search-input form-control"
+            type="text"
+            placeholder="Search FAQs and docs..."
+            onChange={this.handleInput}
+            value={this.state.inputVal}
+          />
+          <span className="icon-search" />
+          <span
+            className="icon-close pull-right search-close"
+            onClick={this.props.closeHandler}
+            style={{cursor: 'pointer'}}
+          />
+          {this.renderDropdownResults()}
+        </form>
+        {HookStore.get('assistant:support-button').map(cb => cb())}
       </div>
     );
   },

@@ -129,8 +129,25 @@
 
   display: flex;
   align-items: center;
-  justify-content: flex-start;
-  flex-direction: column;
+  justify-content: center;
+  //flex-direction: column;
+
+  .search {
+    flex-basis: 50%;
+
+    .search-close {
+      color: #89779a;
+      position: absolute;
+      top: 12px;
+      right: 14px;
+      font-size: 14px;
+    }
+
+    .results {
+      height: 240px;
+      overflow: scroll;
+    }
+  }
 }
 
 .assistant-drawer-message {

@@ -2,6 +2,7 @@ import Reflux from 'reflux';
 import _ from 'lodash';
 
 let validHookNames = new Set([
+  'assistant:support-button',
   'component:org-members-view',
   'footer',
   'settings:organization-navigation',
