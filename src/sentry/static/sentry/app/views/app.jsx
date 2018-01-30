@@ -14,7 +14,7 @@ import ApiMixin from '../mixins/apiMixin';
 import ConfigStore from '../stores/configStore';
 import Indicators from '../components/indicators';
 import InstallWizard from './installWizard';
-import DugoutHelper from '../components/dugout/helper';
+import AssistantHelper from '../components/assistant/helper';
 import LoadingIndicator from '../components/loadingIndicator';
 import OrganizationsLoader from '../components/organizations/organizationsLoader';
 import OrganizationsStore from '../stores/organizationsStore';
@@ -152,7 +152,7 @@ const App = createReactClass({
           <Alerts className="messages-container" />
           <Indicators className="indicators-container" />
           {this.props.children}
-          <DugoutHelper organizationId={2} />
+          <AssistantHelper organizationId={2} />
         </OrganizationsLoader>
       </ThemeProvider>
     );

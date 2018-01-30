@@ -18,8 +18,8 @@ const GuideDrawer = createReactClass({
     const step = this.props.step;
     return (
       <div>
-        <div className="dugout-drawer-title">{this.props.guide.steps[step].title}</div>
-        <div className="dugout-drawer-message">
+        <div className="assistant-drawer-title">{this.props.guide.steps[step].title}</div>
+        <div className="assistant-drawer-message">
           {this.props.guide.steps[step].message}
         </div>
         <div>

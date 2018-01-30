@@ -2,13 +2,13 @@ import React from 'react';
 import {browserHistory} from 'react-router';
 import createReactClass from 'create-react-class';
 import $ from 'jquery';
-import DugoutHandle from './handle';
+import AssistantHandle from './handle';
 import SupportDrawer from './supportDrawer';
 import GuideDrawer from './guideDrawer';
 import ApiMixin from '../../mixins/apiMixin';
 
-const DugoutHelper = createReactClass({
-  displayName: 'DugoutHelper',
+const AssistantHelper = createReactClass({
+  displayName: 'AssistantHelper',
 
   mixins: [ApiMixin],
 
@@ -167,9 +167,9 @@ const DugoutHelper = createReactClass({
     const guide = this.currentGuide();
     const cue = guide ? guide.cue : 'Need Help?';
     return (
-      <div className="dugout-container">
+      <div className="assistant-container">
         {this.state.isDrawerOpen ? (
-          <div className="dugout-drawer">
+          <div className="assistant-drawer">
             {guide ? (
               <GuideDrawer
                 guide={guide}
@@ -184,11 +184,11 @@ const DugoutHelper = createReactClass({
             )}
           </div>
         ) : (
-          <DugoutHandle cue={cue} onClick={this.onDrawerOpen} />
+          <AssistantHandle cue={cue} onClick={this.onDrawerOpen} />
         )}
       </div>
     );
   },
 });
 
-export default DugoutHelper;
+export default AssistantHelper;
