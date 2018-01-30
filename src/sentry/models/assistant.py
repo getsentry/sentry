@@ -16,8 +16,15 @@ class AssistantActivity(Model):
     viewed_ts = models.DateTimeField(null=True)
     dismissed_ts = models.DateTimeField(null=True)
     snoozed_until_ts = models.DateTimeField(null=True)
+    useful = models.NullBooleanField(default=False, null=True)
 
-    __repr__ = sane_repr('user', 'guide_id', 'viewed_ts', 'dismissed_ts', 'snoozed_until_ts')
+    __repr__ = sane_repr(
+        'user',
+        'guide_id',
+        'viewed_ts',
+        'dismissed_ts',
+        'snoozed_until_ts',
+        'useful')
 
     class Meta:
         app_label = 'sentry'

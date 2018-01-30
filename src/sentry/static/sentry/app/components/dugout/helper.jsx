@@ -108,28 +108,34 @@ const DugoutHelper = createReactClass({
     }
   },
 
-  onDrawerClose() {
+  onDrawerClose(useful = null) {
+    // `useful` is a boolean if the user was on the last step of the guide and
+    // submitted feedback about whether the guide was useful. Otherwise it's null.
     const guide = this.currentGuide();
     if (guide) {
       if (this.state.currentStep < guide.steps.length - 1) {
         // User dismissed the guide before completing it.
         // TODO(adhiraj): Retry logic?
-        this.api.request('/assistant/', {
+        /*this.api.request('/assistant/', {
           method: 'PUT',
           data: {
-            status: 'dismissed',
             guide_id: guide.id,
+            status: 'dismissed',
           },
-        });
+        });*/
       } else {
         // User completed the guide.
-        this.api.request('/assistant/', {
+        const data = {
+          guide_id: guide.id,
+          status: 'viewed',
+        };
+        if (useful !== null) {
+          data.useful = useful;
+        }
+        /*this.api.request('/assistant/', {
           method: 'PUT',
-          data: {
-            status: 'viewed',
-            guide_id: guide.id,
-          },
-        });
+          data: data,
+        });*/
       }
       this.setState({
         guidesSeen: this.state.guidesSeen.add(guide.id),
@@ -149,6 +155,14 @@ const DugoutHelper = createReactClass({
     });
   },
 
+  usefulHandler() {
+    this.onDrawerClose(true);
+  },
+
+  notUsefulHandler() {
+    this.onDrawerClose(false);
+  },
+
   render() {
     const guide = this.currentGuide();
     const cue = guide ? guide.cue : 'Need Help?';
@@ -161,7 +175,9 @@ const DugoutHelper = createReactClass({
                 guide={guide}
                 step={this.state.currentStep}
                 nextHandler={this.nextHandler}
-                closeHandler={this.onDrawerClose}
+                dismissHandler={() => this.onDrawerClose()}
+                usefulHandler={this.usefulHandler}
+                notUsefulHandler={this.notUsefulHandler}
               />
             ) : (
               <SupportDrawer closeHandler={this.onDrawerClose} />

@@ -48,10 +48,13 @@ const SupportDrawer = createReactClass({
         <div className="search">
           <form onSubmit={this.handleSearch}>
             <input
-              style={{color: 'black'}}
+              className="search-input form-control"
+              type="text"
+              placeholder="Search FAQs and docs..."
               onChange={this.handleInput}
               value={this.state.helpText}
             />
+            <span className="icon-search" />
           </form>
         </div>
         <div onClick={this.props.closeHandler}>Close</div>

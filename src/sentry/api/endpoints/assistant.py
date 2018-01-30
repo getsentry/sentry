@@ -39,6 +39,7 @@ class AssistantEndpoint(Endpoint):
         Request is of the form {
             'guide_id': <guide_id>,
             'status': 'viewed' / 'dismissed' / 'snoozed',
+            'useful': true / false / null,
             'duration_hours': <if snoozed, for how many hours>,
         }
         """
@@ -46,18 +47,24 @@ class AssistantEndpoint(Endpoint):
         guide_id = req['guide_id']
         status = req['status']
         duration_hours = req.get('duration_hours')
+        useful = req.get('useful')
 
         guide_ids = set(v['id'] for v in GUIDES.values())
-        if guide_id not in guide_ids or status not in VALID_STATUSES or (
-                status == 'snoozed' and duration_hours not in VALID_SNOOZE_DURATION_HOURS):
+        if (guide_id not in guide_ids or
+            status not in VALID_STATUSES or
+            (status == 'snoozed' and duration_hours not in VALID_SNOOZE_DURATION_HOURS) or
+                useful not in (None, True, False)):
             return Response(status=400)
 
+        fields = {}
+        if useful is not None:
+            fields['useful'] = useful
         if status == 'viewed':
-            fields = {'viewed_ts': timezone.now()}
+            fields['viewed_ts'] = timezone.now()
         elif status == 'dismissed':
-            fields = {'dismissed_ts': timezone.now()}
+            fields['dismissed_ts'] = timezone.now()
         else:
-            fields = {'snoozed_until_ts': timezone.now() + timedelta(hours=duration_hours)}
+            fields['snoozed_until_ts'] = timezone.now() + timedelta(hours=duration_hours)
 
         AssistantActivity.objects.get_or_create(
             user=request.user, guide_id=guide_id, **fields

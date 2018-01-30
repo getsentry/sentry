@@ -9,13 +9,15 @@ const GuideDrawer = createReactClass({
     guide: PropTypes.object.isRequired,
     step: PropTypes.number.isRequired,
     nextHandler: PropTypes.func.isRequired,
-    closeHandler: PropTypes.func.isRequired,
+    dismissHandler: PropTypes.func.isRequired,
+    usefulHandler: PropTypes.func.isRequired,
+    notUsefulHandler: PropTypes.func.isRequired,
   },
 
   render() {
     const step = this.props.step;
     return (
-      <div className="dugout-drawer">
+      <div>
         <div className="dugout-drawer-title">{this.props.guide.steps[step].title}</div>
         <div className="dugout-drawer-message">
           {this.props.guide.steps[step].message}
@@ -26,14 +28,20 @@ const GuideDrawer = createReactClass({
               <a className="btn btn-default" onClick={this.props.nextHandler}>
                 Next &rarr;
               </a>
-              <a className="btn btn-default" onClick={this.props.closeHandler}>
+              <a className="btn btn-default" onClick={this.props.dismissHandler}>
                 Dismiss
               </a>
             </div>
           ) : (
-            <a className="btn btn-default" onClick={this.props.closeHandler}>
-              Done &#x2713;
-            </a>
+            <div>
+              <p>Did you find this guide useful?</p>
+              <a className="btn btn-default" onClick={this.props.usefulHandler}>
+                Yes &nbsp; &#x2714;
+              </a>
+              <a className="btn btn-default" onClick={this.props.notUsefulHandler}>
+                No &nbsp; &#x2716;
+              </a>
+            </div>
           )}
         </div>
       </div>
