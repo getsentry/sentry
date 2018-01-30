@@ -135,10 +135,10 @@ export default class IgnoreActions extends React.Component {
             alwaysRenderMenu
             disabled={disabled}
           >
-            <MenuItem header={true}>Ignore Until</MenuItem>
+            <MenuItem header={true}>Ignore</MenuItem>
             <li className="dropdown-submenu">
               <DropdownLink
-                title="This occurs again after .."
+                title="For..."
                 caret={false}
                 isNestedDropdown={true}
                 alwaysRenderMenu
@@ -163,7 +163,7 @@ export default class IgnoreActions extends React.Component {
             </li>
             <li className="dropdown-submenu">
               <DropdownLink
-                title="This occurs again .."
+                title="Until this occurs again .."
                 caret={false}
                 isNestedDropdown={true}
                 alwaysRenderMenu
@@ -213,7 +213,7 @@ export default class IgnoreActions extends React.Component {
             </li>
             <li className="dropdown-submenu">
               <DropdownLink
-                title="This affects an additional .."
+                title="Until this affects an additional .."
                 caret={false}
                 isNestedDropdown={true}
                 alwaysRenderMenu

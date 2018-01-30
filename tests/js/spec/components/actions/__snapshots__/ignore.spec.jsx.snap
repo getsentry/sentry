@@ -362,7 +362,7 @@ exports[`IgnoreActions with confirmation step renders 1`] = `
                   role="presentation"
                   title={null}
                 >
-                  Ignore Until
+                  Ignore
                 </li>
               </MenuItem>
               <li
@@ -374,7 +374,7 @@ exports[`IgnoreActions with confirmation step renders 1`] = `
                   caret={false}
                   disabled={false}
                   isNestedDropdown={true}
-                  title="This occurs again after .."
+                  title="For..."
                 >
                   <DropdownMenu
                     isNestedDropdown={true}
@@ -393,7 +393,7 @@ exports[`IgnoreActions with confirmation step renders 1`] = `
                           className="dropdown-actor-title"
                         >
                           <span>
-                            This occurs again after ..
+                            For...
                           </span>
                         </div>
                       </a>
@@ -912,7 +912,7 @@ exports[`IgnoreActions with confirmation step renders 1`] = `
                   caret={false}
                   disabled={false}
                   isNestedDropdown={true}
-                  title="This occurs again .."
+                  title="Until this occurs again .."
                 >
                   <DropdownMenu
                     isNestedDropdown={true}
@@ -931,7 +931,7 @@ exports[`IgnoreActions with confirmation step renders 1`] = `
                           className="dropdown-actor-title"
                         >
                           <span>
-                            This occurs again ..
+                            Until this occurs again ..
                           </span>
                         </div>
                       </a>
@@ -2950,7 +2950,7 @@ exports[`IgnoreActions with confirmation step renders 1`] = `
                   caret={false}
                   disabled={false}
                   isNestedDropdown={true}
-                  title="This affects an additional .."
+                  title="Until this affects an additional .."
                 >
                   <DropdownMenu
                     isNestedDropdown={true}
@@ -2969,7 +2969,7 @@ exports[`IgnoreActions with confirmation step renders 1`] = `
                           className="dropdown-actor-title"
                         >
                           <span>
-                            This affects an additional ..
+                            Until this affects an additional ..
                           </span>
                         </div>
                       </a>
@@ -5286,7 +5286,7 @@ exports[`IgnoreActions without confirmation renders 1`] = `
                   role="presentation"
                   title={null}
                 >
-                  Ignore Until
+                  Ignore
                 </li>
               </MenuItem>
               <li
@@ -5298,7 +5298,7 @@ exports[`IgnoreActions without confirmation renders 1`] = `
                   caret={false}
                   disabled={false}
                   isNestedDropdown={true}
-                  title="This occurs again after .."
+                  title="For..."
                 >
                   <DropdownMenu
                     isNestedDropdown={true}
@@ -5317,7 +5317,7 @@ exports[`IgnoreActions without confirmation renders 1`] = `
                           className="dropdown-actor-title"
                         >
                           <span>
-                            This occurs again after ..
+                            For...
                           </span>
                         </div>
                       </a>
@@ -5531,7 +5531,7 @@ exports[`IgnoreActions without confirmation renders 1`] = `
                   caret={false}
                   disabled={false}
                   isNestedDropdown={true}
-                  title="This occurs again .."
+                  title="Until this occurs again .."
                 >
                   <DropdownMenu
                     isNestedDropdown={true}
@@ -5550,7 +5550,7 @@ exports[`IgnoreActions without confirmation renders 1`] = `
                           className="dropdown-actor-title"
                         >
                           <span>
-                            This occurs again ..
+                            Until this occurs again ..
                           </span>
                         </div>
                       </a>
@@ -6349,7 +6349,7 @@ exports[`IgnoreActions without confirmation renders 1`] = `
                   caret={false}
                   disabled={false}
                   isNestedDropdown={true}
-                  title="This affects an additional .."
+                  title="Until this affects an additional .."
                 >
                   <DropdownMenu
                     isNestedDropdown={true}
@@ -6368,7 +6368,7 @@ exports[`IgnoreActions without confirmation renders 1`] = `
                           className="dropdown-actor-title"
                         >
                           <span>
-                            This affects an additional ..
+                            Until this affects an additional ..
                           </span>
                         </div>
                       </a>
