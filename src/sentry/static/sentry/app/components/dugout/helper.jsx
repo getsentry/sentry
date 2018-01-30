@@ -164,7 +164,7 @@ const DugoutHelper = createReactClass({
                 closeHandler={this.onDrawerClose}
               />
             ) : (
-              <SupportDrawer />
+              <SupportDrawer closeHandler={this.onDrawerClose} />
             )}
           </div>
         ) : (
