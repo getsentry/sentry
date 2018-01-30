@@ -36,12 +36,18 @@ const ProjectDashboard = createReactClass({
     return {
       statsPeriod: this.props.defaultStatsPeriod,
       activeEnvironment: null,
+      hasEnvironmentsFeature: new Set(this.context.organization.features).has(
+        'environments'
+      ),
       ...this.getQueryStringState(),
     };
   },
 
   componentWillMount() {
     this.props.setProjectNavSection('dashboard');
+
+    // Manually fire onLatestContextChange
+    this.onLatestContextChange(LatestContextStore.getInitialState());
   },
 
   componentWillReceiveProps(nextProps) {
@@ -124,9 +130,11 @@ const ProjectDashboard = createReactClass({
   },
 
   onLatestContextChange(context) {
-    this.setState({
-      activeEnvironment: context.environment,
-    });
+    if (this.state.hasEnvironmentsFeature) {
+      this.setState({
+        activeEnvironment: context.environment,
+      });
+    }
   },
 
   render() {
