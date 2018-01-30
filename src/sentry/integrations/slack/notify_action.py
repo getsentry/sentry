@@ -60,15 +60,12 @@ class SlackNotifyServiceAction(EventAction):
     def after(self, event, state):
         integration_id = self.get_option('team')
         channel = self.get_option('channel')
-        try:
-            integration = Integration.objects.get(
-                provider='slack',
-                organizations=self.project.organization,
-                id=integration_id
-            )
-        except Integration.DoesNotExist:
-            self.logger.error('rule.fail.slack_notify.missing_integration')
-            return
+
+        integration = Integration.objects.get(
+            provider='slack',
+            organizations=self.project.organization,
+            id=integration_id
+        )
 
         def send_notification(event, futures):
             attachment = build_attachment(event.group, event=event)
