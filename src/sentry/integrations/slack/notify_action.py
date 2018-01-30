@@ -51,7 +51,7 @@ class SlackNotifyServiceForm(forms.Form):
 
 class SlackNotifyServiceAction(EventAction):
     form_cls = SlackNotifyServiceForm
-    label = 'Send a notification to the Slack {team} team in {channel}'
+    label = u'Send a notification to the Slack {team} team in {channel}'
 
     def is_enabled(self):
         return self.get_integrations().exists()
