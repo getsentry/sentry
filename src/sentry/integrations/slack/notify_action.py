@@ -84,7 +84,7 @@ class SlackNotifyServiceAction(EventAction):
             resp.raise_for_status()
             resp = resp.json()
             if not resp.get('ok'):
-                self.logger.error('rule.fail.slack_post', extra={'error': resp.get('error')})
+                self.logger.info('rule.fail.slack_post', extra={'error': resp.get('error')})
 
         metrics.incr('notifications.sent', instance='slack.notification')
         yield self.future(send_notification)
