@@ -5,12 +5,13 @@ import six
 from collections import defaultdict
 from six.moves import zip
 
+from sentry import roles
 from sentry.app import env
 from sentry.api.serializers import Serializer, register, serialize
 from sentry.auth.superuser import is_active_superuser
 from sentry.models import (
-    OrganizationAccessRequest, OrganizationMemberTeam, ProjectStatus,
-    ProjectTeam, Team
+    OrganizationAccessRequest, OrganizationMember, OrganizationMemberTeam,
+    ProjectStatus, ProjectTeam, Team
 )
 
 
@@ -38,15 +39,29 @@ class TeamSerializer(Serializer):
         else:
             access_requests = frozenset()
 
+        if user.is_authenticated():
+            # map of org id to role
+            org_roles = {
+                om.organization_id: om.role for om in
+                OrganizationMember.objects.filter(
+                    user=user,
+                    organization__in=set([t.organization_id for t in item_list]),
+                )}
+        else:
+            org_roles = {}
+
         is_superuser = (request and is_active_superuser(request) and request.user == user)
         result = {}
         for team in item_list:
             is_member = team.id in memberships
+            org_role = org_roles.get(team.organization_id)
             if is_member:
                 has_access = True
             elif is_superuser:
                 has_access = True
             elif team.organization.flags.allow_joinleave:
+                has_access = True
+            elif org_role and roles.get(org_role).is_global:
                 has_access = True
             else:
                 has_access = False
