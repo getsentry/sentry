@@ -15,6 +15,8 @@ import ProjectListItem from '../components/settingsProjectItem';
 import Panel from '../components/panel';
 import PanelItem from '../components/panelItem';
 import PanelHeader from '../components/panelHeader';
+import PanelBody from '../components/panelBody';
+
 import {sortProjects} from '../../../utils';
 import {t} from '../../../locale';
 
@@ -80,10 +82,10 @@ const TeamProjects = createReactClass({
   projectPanelcontents(projects, direction) {
     return sortProjects(projects).map((project, i) => (
       <PanelItem key={project.id} align="center">
-        <Box w={1 / 2} p={2}>
+        <Box w={1 / 2} p={2} flex="1">
           <ProjectListItem project={project} organization={this.context.organization} />
         </Box>
-        <Box w={1 / 2} p={2} style={{textAlign: 'right'}}>
+        <Box w={1 / 2} p={2}>
           <Button
             size="small"
             className="pull-right"
@@ -115,11 +117,11 @@ const TeamProjects = createReactClass({
       <div>
         <Panel>
           <PanelHeader>{t('Associated Projects:')}</PanelHeader>
-          {this.projectPanelcontents(linkedProjects, 'Remove')}
+          <PanelBody>{this.projectPanelcontents(linkedProjects, 'Remove')}</PanelBody>
         </Panel>
         <Panel>
           <PanelHeader>{t('Other Projects:')}</PanelHeader>
-          {this.projectPanelcontents(otherProjects, 'Add')}
+          <PanelBody>{this.projectPanelcontents(otherProjects, 'Add')}</PanelBody>
         </Panel>
       </div>
     );

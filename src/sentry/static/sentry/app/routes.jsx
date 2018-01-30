@@ -102,8 +102,8 @@ import Stream from './views/stream';
 import TeamCreate from './views/teamCreate';
 import TeamDetails from './views/teamDetails';
 import TeamMembers from './views/teamMembers';
-import TeamProjects from './views/teamProjects';
 import TeamSettings from './views/teamSettings';
+import TeamProjects from './views/settings/team/teamProjects';
 import errorHandler from './utils/errorHandler';
 
 function appendTrailingSlash(nextState, replace) {

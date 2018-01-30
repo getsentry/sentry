@@ -43,9 +43,7 @@ describe('OrganizationTeamProjects', function() {
   it('Should render', function() {
     let wrapper = mount(
       <OrganizationTeamProjects params={{orgId: 'org-slug', teamId: team.slug}} />,
-      {
-        context: {organization: {id: '1337', slug: 'org-slug'}},
-      }
+      TestStubs.routerOrganizationContext()
     );
 
     expect(wrapper).toMatchSnapshot();
@@ -55,9 +53,7 @@ describe('OrganizationTeamProjects', function() {
   it('Should allow bookmarking', function() {
     let wrapper = mount(
       <OrganizationTeamProjects params={{orgId: 'org-slug', teamId: team.slug}} />,
-      {
-        context: {organization: {id: '1337', slug: 'org-slug'}},
-      }
+      TestStubs.routerOrganizationContext()
     );
 
     let star = wrapper.find('.icon-star-outline');
@@ -75,9 +71,7 @@ describe('OrganizationTeamProjects', function() {
   it('Adding and removing projects works', function(done) {
     let wrapper = mount(
       <OrganizationTeamProjects params={{orgId: 'org-slug', teamId: team.slug}} />,
-      {
-        context: {organization: {id: '1337', slug: 'org-slug'}},
-      }
+      TestStubs.routerOrganizationContext()
     );
 
     let add = wrapper.find('.button-label');
