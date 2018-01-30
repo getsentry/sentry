@@ -1,28 +1,110 @@
 from __future__ import absolute_import
 
 from django.db import transaction
+from rest_framework import status
+from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 
-from sentry.api.bases.user import UserEndpoint
-from sentry.api.permissions import SuperuserPermission
+from sentry.api.bases.user import UserEndpoint, UserPermission
+from sentry.api.decorators import sudo_required
+from sentry.api.serializers import serialize
 from sentry.models import Authenticator
 from sentry.security import capture_security_activity
 
 
 class UserAuthenticatorDetailsEndpoint(UserEndpoint):
-    # XXX(dcramer): this requires superuser until we sort out how it will be
-    # used from the React app (which will require some kind of double
-    # verification)
-    permission_classes = (SuperuserPermission, )
+    permission_classes = (IsAuthenticated, UserPermission, )
 
+    # @sudo_required
+    def get(self, request, user, auth_id):
+        """
+        Get Authenticator Interface
+        ```````````````````````````
+
+        Retrieves authenticator interface details for user depending on user enrollment status
+
+        :pparam string user_id: user id or "me" for current user
+        :pparam string auth_id: authenticator model id
+
+        :auth: required
+        """
+
+        try:
+            authenticator = Authenticator.objects.get(user=user, id=int(auth_id))
+        except ValueError:
+            return Response(status=status.HTTP_400_BAD_REQUEST)
+        except Authenticator.DoesNotExist:
+            return Response(status=status.HTTP_404_NOT_FOUND)
+
+        interface = authenticator.interface
+
+        # User is enrolled to auth interface:
+        # - display interface details
+        # - show enrolled specific details like:
+        #    - created at, last used dates
+        #    - phone number for SMS
+        #    - recovery codes
+        response = serialize(interface)
+
+        if interface.interface_id == 'recovery':
+            response['codes'] = interface.get_unused_codes()
+        if interface.interface_id == 'sms':
+            response['phone'] = interface.phone_number
+        if interface.interface_id == 'u2f':
+            response['devices'] = interface.get_registered_devices()
+
+        return Response(response)
+
+    @sudo_required
+    def put(self, request, user, auth_id):
+        """
+        Modify authenticator interface
+        ``````````````````````````````
+
+        Currently, only supports regenerating recovery codes
+
+        :pparam string user_id: user id or 'me' for current user
+        :pparam int auth_id: authenticator model id
+
+        :auth required:
+        """
+
+        try:
+            authenticator = Authenticator.objects.get(
+                user=user,
+                id=auth_id,
+            )
+        except ValueError:
+            return Response(status=status.HTTP_400_BAD_REQUEST)
+        except Authenticator.DoesNotExist:
+            return Response(status=status.HTTP_404_NOT_FOUND)
+
+        interface = authenticator.interface
+
+        if interface.interface_id == 'recovery':
+            interface.regenerate_codes()
+
+        return Response(serialize(interface))
+
+    @sudo_required
     def delete(self, request, user, auth_id):
+        """
+        Remove authenticator
+        ````````````````````
+
+        :pparam string user_id: user id or 'me' for current user
+        :pparam string auth_id: authenticator model id
+
+        :auth required:
+        """
+
         try:
             authenticator = Authenticator.objects.get(
                 user=user,
                 id=auth_id,
             )
         except Authenticator.DoesNotExist:
-            return Response(status=404)
+            return Response(status=status.HTTP_404_NOT_FOUND)
 
         with transaction.atomic():
             authenticator.delete()
@@ -62,4 +144,4 @@ class UserAuthenticatorDetailsEndpoint(UserEndpoint):
                 send_email=not authenticator.interface.is_backup_interface,
             )
 
-        return Response(status=204)
+        return Response(status=status.HTTP_204_NO_CONTENT)
