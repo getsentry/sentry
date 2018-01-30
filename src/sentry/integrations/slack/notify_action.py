@@ -20,6 +20,7 @@ class SlackNotifyServiceForm(forms.Form):
     ))
 
     def __init__(self, *args, **kwargs):
+        # NOTE: Team maps directly to the integration ID
         team_list = [(i.id, i.name) for i in kwargs.pop('integrations')]
         self.channel_transformer = kwargs.pop('channel_transformer')
 
@@ -29,8 +30,8 @@ class SlackNotifyServiceForm(forms.Form):
         self.fields['team'].widget.choices = self.fields['team'].choices
 
     def clean_channel(self):
-        channel = self.cleaned_data.get('channel', '').lstrip('#')
         team = self.cleaned_data.get('team')
+        channel = self.cleaned_data.get('channel', '').lstrip('#')
 
         channel_id = self.channel_transformer(team, channel)
 
@@ -57,11 +58,13 @@ class SlackNotifyServiceAction(EventAction):
         return self.get_integrations().exists()
 
     def after(self, event, state):
+        integration_id = self.get_option('team')
         channel = self.get_option('channel')
         try:
             integration = Integration.objects.get(
                 provider='slack',
                 organizations=self.project.organization,
+                id=integration_id
             )
         except Integration.DoesNotExist:
             self.logger.error('rule.fail.slack_notify.missing_integration')
