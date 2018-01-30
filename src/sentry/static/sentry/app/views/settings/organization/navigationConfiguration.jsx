@@ -8,7 +8,7 @@ const organizationNavigation = [
     items: [
       {
         path: `${pathPrefix}/settings/`,
-        title: 'General Settings',
+        title: t('General Settings'),
         show: ({access}) => access.has('org:write'),
       },
       {
@@ -22,7 +22,7 @@ const organizationNavigation = [
       },
       {
         path: `${pathPrefix}/members/`,
-        title: 'Members',
+        title: t('Members'),
         // eslint-disable-next-line no-shadow
         badge: ({organization, access, features}) => {
           if (!access.has('org:write')) return null;
@@ -34,32 +34,32 @@ const organizationNavigation = [
       },
       {
         path: `${pathPrefix}/auth/`,
-        title: 'Auth',
+        title: t('Auth'),
         show: ({access, features}) => features.has('sso') && access.has('org:admin'),
       },
       {
         path: `${pathPrefix}/api-keys/`,
-        title: 'API Keys',
+        title: t('API Keys'),
         show: ({access, features}) => features.has('api-keys') && access.has('org:admin'),
       },
       {
         path: `${pathPrefix}/audit-log/`,
-        title: 'Audit Log',
+        title: t('Audit Log'),
         show: ({access}) => access.has('org:write'),
       },
       {
         path: `${pathPrefix}/rate-limits/`,
-        title: 'Rate Limits',
+        title: t('Rate Limits'),
         show: ({access}) => access.has('org:write'),
       },
       {
         path: `${pathPrefix}/repos/`,
-        title: 'Repositories',
+        title: t('Repositories'),
         show: ({access}) => access.has('org:write'),
       },
       {
         path: `${pathPrefix}/integrations/`,
-        title: 'Integrations',
+        title: t('Integrations'),
         show: ({access, features}) =>
           features.has('integrations-v3') && access.has('org:integrations'),
       },
