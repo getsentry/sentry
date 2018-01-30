@@ -86,7 +86,7 @@ class UserAuthenticatorEnrollTest(APITestCase):
             })
             assert send_text.call_count == 1
             assert validate_otp.call_count == 0
-            assert resp.status_code == 200
+            assert resp.status_code == 204
 
             resp = self.client.post(url, data={
                 "secret": "secret12",

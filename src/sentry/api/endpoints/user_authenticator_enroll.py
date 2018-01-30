@@ -153,16 +153,9 @@ class UserAuthenticatorEnrollEndpoint(UserEndpoint):
             # Disregarding value of 'otp', if no OTP was provided,
             # send text message to phone number with OTP
             if 'otp' not in request.DATA:
-                response = serialize(interface)
-                response['secret'] = request.DATA['secret']
-                response['form'] = get_serializer_field_metadata(
-                    serializer_map[interface_id]
-                )
-
                 if interface.send_text(for_enrollment=True, request=request._request):
-                    return Response(response)
+                    return Response(status=status.HTTP_204_NO_CONTENT)
                 else:
-                    return Response(response)
                     # Error sending text message
                     return Response(status=status.HTTP_400_BAD_REQUEST)
 
