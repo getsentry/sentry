@@ -4,12 +4,14 @@ from south.db import db
 from south.v2 import SchemaMigration
 from django.db import models
 
+from sentry.utils.db import is_postgres
+
 
 class Migration(SchemaMigration):
 
     # Flag to indicate if this migration is too risky
     # to run online and needs to be coordinated for offline
-    is_dangerous = False
+    is_dangerous = True
 
     def forwards(self, orm):
         # Adding field 'GroupEnvironment.first_release_id'
@@ -18,8 +20,20 @@ class Migration(SchemaMigration):
                       keep_default=False)
 
         # Adding index on 'GroupEnvironment', fields ['environment_id', 'first_release_id']
-        db.create_index('sentry_groupenvironment', ['environment_id', 'first_release_id'])
-
+        table = 'sentry_groupenvironment'
+        fields = ['environment_id', 'first_release_id']
+        if is_postgres():
+            db.commit_transaction()
+            db.execute(
+                "CREATE INDEX CONCURRENTLY {name} ON {table} ({fields})".format(
+                    name=db.create_index_name(table, fields),
+                    table=table,
+                    fields=', '.join(fields),
+                )
+            )
+            db.start_transaction()
+        else:
+            db.create_index(table, fields)
 
     def backwards(self, orm):
         # Removing index on 'GroupEnvironment', fields ['environment_id', 'first_release_id']
@@ -27,7 +41,6 @@ class Migration(SchemaMigration):
 
         # Deleting field 'GroupEnvironment.first_release_id'
         db.delete_column('sentry_groupenvironment', 'first_release_id')
-
 
     models = {
         'sentry.activity': {
