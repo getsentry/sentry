@@ -14,6 +14,9 @@ class GroupEnvironment(Model):
     class Meta:
         app_label = 'sentry'
         db_table = 'sentry_groupenvironment'
+        index_together = [
+            ('environment_id', 'first_release_id'),
+        ]
         unique_together = [
             ('group_id', 'environment_id'),
         ]
