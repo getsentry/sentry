@@ -110,7 +110,7 @@ class SlackNotifyServiceAction(EventAction):
             organizations=self.project.organization,
         )
 
-    def get_channel_id(self, integration_id, value):
+    def get_channel_id(self, integration_id, channel_name):
         try:
             integration = Integration.objects.get(
                 provider='slack',
@@ -134,7 +134,7 @@ class SlackNotifyServiceAction(EventAction):
             self.logger.error('rule.slack.channel_list_failed', extra={'error': resp.get('error')})
             return None
 
-        return {c['name']: c['id'] for c in resp['channels']}.get(value)
+        return {c['name']: c['id'] for c in resp['channels']}.get(channel_name)
 
     def get_form_instance(self):
         return self.form_cls(
