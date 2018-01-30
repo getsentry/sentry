@@ -10,6 +10,7 @@ import LoadingError from '../../components/loadingError';
 import LoadingIndicator from '../../components/loadingIndicator';
 import OrganizationState from '../../mixins/organizationState';
 import PluginNavigation from './pluginNavigation';
+import ExternalLink from '../../components/externalLink';
 
 const ProjectSettings = createReactClass({
   displayName: 'ProjectSettings',
@@ -178,7 +179,12 @@ const ProjectSettings = createReactClass({
             })
           ) : (
             <div className="alert alert-block">
-              {t('Ask mom or dad for access to this page.')}
+              {t(
+                'You’re restricted from accessing this page based on your organization role. Read more here: '
+              )}
+              <ExternalLink href="https://docs.sentry.io/learn/membership/">
+                https://docs.sentry.io/learn/membership/
+              </ExternalLink>
             </div>
           )}
         </div>
