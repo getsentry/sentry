@@ -33,24 +33,11 @@ class DuplicateEmailError(Exception):
 
 
 class EmailSerializer(serializers.Serializer):
-    email = serializers.EmailField(required=False)
+    email = serializers.EmailField(required=True)
+    newsletter = serializers.BooleanField(required=False, default=False)
 
 
-def get_email(request):
-    """
-    Returns None if invalid email else returns a normalized email (lowercase + whitespace strip)
-    """
-
-    serializer = EmailSerializer(data=request.DATA)
-
-    # Bad email
-    if not serializer.is_valid():
-        return None
-
-    return serializer.object['email'].lower().strip()
-
-
-def add_email(email, user):
+def add_email(email, user, subscribe_newsletter=False):
     """
     Adds an email to user account
 
@@ -72,9 +59,11 @@ def add_email(email, user):
         user.send_confirm_email_singular(new_email)
 
         # Update newsletter subscription and mark as unverified
-        newsletter.update_subscription(user=user,
-                                       verified=False,
-                                       )
+        if subscribe_newsletter:
+            newsletter.update_subscription(user=user,
+                                           verified=False,
+                                           list_id=1,
+                                           )
         return new_email
 
 
@@ -105,10 +94,16 @@ class UserEmailsEndpoint(UserEndpoint):
         :auth required:
         """
 
-        email = get_email(request)
+        serializer = EmailSerializer(data=request.DATA)
+
+        if not serializer.is_valid():
+            return InvalidEmailResponse()
 
         try:
-            new_email = add_email(email, user)
+            new_email = add_email(
+                serializer.object['email'].lower().strip(),
+                user,
+                serializer.object['newsletter'])
         except (InvalidEmailError, DuplicateEmailError):
             return InvalidEmailResponse()
         else:
@@ -135,18 +130,24 @@ class UserEmailsEndpoint(UserEndpoint):
         :auth required:
         """
 
-        new_email = get_email(request)
+        serializer = EmailSerializer(data=request.DATA)
+
+        if not serializer.is_valid():
+            return InvalidEmailResponse()
+
         old_email = user.email
 
-        if new_email is None:
+        if not serializer.is_valid():
             return InvalidEmailResponse()
+
+        new_email = serializer.object['email'].lower().strip()
 
         # If email doesn't exist for user, attempt to add new email
         if not UserEmail.objects.filter(
             user=user, email__iexact=new_email
         ).exists():
             try:
-                added_email = add_email(new_email, user)
+                added_email = add_email(new_email, user, serializer.object['newsletter'])
             except InvalidEmailError:
                 return InvalidEmailResponse()
             except DuplicateEmailError:
