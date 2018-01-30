@@ -61,7 +61,7 @@ exports[`OrganizationProjectsView render() Should render the projects in the sto
           >
             <tbody>
               <ProjectListItem
-                key="0"
+                key="2"
                 organization={
                   Object {
                     "access": Array [

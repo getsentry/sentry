@@ -1,6 +1,6 @@
 // Jest Snapshot v1, https://goo.gl/fbAQLP
 
-exports[`OrganizationTeamProjects OrganizationTeamProjects Should render 1`] = `
+exports[`OrganizationTeamProjects Should render 1`] = `
 .glamor-9 {
   background: #fff;
   border: 1px solid;
@@ -33,7 +33,7 @@ exports[`OrganizationTeamProjects OrganizationTeamProjects Should render 1`] = `
   margin: 0;
 }
 
-.glamor-26 {
+.glamor-30 {
   box-sizing: border-box;
   display: -webkit-box;
   display: -webkit-flex;
@@ -46,18 +46,28 @@ exports[`OrganizationTeamProjects OrganizationTeamProjects Should render 1`] = `
   border-bottom: 1px solid;
 }
 
-.glamor-26:last-child {
+.glamor-30:last-child {
   border: 0;
 }
 
-.glamor-22 {
+.glamor-26 {
   box-sizing: border-box;
   width: 50%;
   padding: 16px;
 }
 
-.glamor-20 {
+.glamor-22 {
+  color: #645574;
+}
+
+.glamor-24 {
   margin: 0;
+}
+
+.glamor-20 {
+  border: none;
+  background-color: inherit;
+  padding: 0;
 }
 
 <TeamProjects
@@ -127,14 +137,14 @@ exports[`OrganizationTeamProjects OrganizationTeamProjects Should render 1`] = `
         </PanelHeader>
         <Styled(Base)
           align="center"
-          key="0"
+          key="2"
         >
           <Base
             align="center"
-            className="glamor-26 glamor-27"
+            className="glamor-30 glamor-31"
           >
             <div
-              className="glamor-26 glamor-27"
+              className="glamor-30 glamor-31"
               is={null}
             >
               <Box
@@ -142,12 +152,12 @@ exports[`OrganizationTeamProjects OrganizationTeamProjects Should render 1`] = `
                 w={0.5}
               >
                 <Base
-                  className="glamor-22"
+                  className="glamor-26"
                   p={2}
                   w={0.5}
                 >
                   <div
-                    className="glamor-22"
+                    className="glamor-26"
                     is={null}
                   >
                     <ProjectItem
@@ -174,20 +184,33 @@ exports[`OrganizationTeamProjects OrganizationTeamProjects Should render 1`] = `
                       >
                         <Styled(h5)>
                           <h5
-                            className="glamor-20 glamor-21"
+                            className="glamor-24 glamor-25"
                           >
-                            <a
-                              className="tip"
-                              onClick={[Function]}
+                            <Tooltip
+                              title="Add to bookmarks"
                             >
-                              <span
-                                className="icon-star-outline bookmark"
-                              />
-                            </a>
+                              <Styled(button)
+                                className="tip"
+                                onClick={[Function]}
+                                title="Add to bookmarks"
+                              >
+                                <button
+                                  className="tip glamor-20 glamor-21"
+                                  onClick={[Function]}
+                                  title="Add to bookmarks"
+                                >
+                                  <span
+                                    className="icon-star-outline bookmark"
+                                  />
+                                </button>
+                              </Styled(button)>
+                            </Tooltip>
                             <Link
+                              className="glamor-22"
                               to="/settings/organization/org-slug/project/project-slug/"
                             >
                               <a
+                                className="glamor-22"
                                 href="/settings/organization/org-slug/project/project-slug/"
                               >
                                 <ProjectLabel
@@ -237,7 +260,7 @@ exports[`OrganizationTeamProjects OrganizationTeamProjects Should render 1`] = `
                 w={0.5}
               >
                 <Base
-                  className="glamor-22"
+                  className="glamor-26"
                   p={2}
                   style={
                     Object {
@@ -247,7 +270,7 @@ exports[`OrganizationTeamProjects OrganizationTeamProjects Should render 1`] = `
                   w={0.5}
                 >
                   <div
-                    className="glamor-22"
+                    className="glamor-26"
                     is={null}
                     style={
                       Object {

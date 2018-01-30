@@ -8,7 +8,6 @@ import ProjectsStore from '../../../stores/projectsStore';
 import TeamStore from '../../../stores/teamStore';
 import IndicatorStore from '../../../stores/indicatorStore';
 import TeamActions from '../../../actions/teamActions';
-
 import Button from '../../../components/buttons/button';
 import LoadingError from '../../../components/loadingError';
 import OrganizationState from '../../../mixins/organizationState';
@@ -16,8 +15,7 @@ import ProjectListItem from '../components/settingsProjectItem';
 import Panel from '../components/panel';
 import PanelItem from '../components/panelItem';
 import PanelHeader from '../components/panelHeader';
-
-import {sortProjects} from '../../../utils.jsx';
+import {sortProjects} from '../../../utils';
 import {t} from '../../../locale';
 
 const TeamProjects = createReactClass({
@@ -60,7 +58,7 @@ const TeamProjects = createReactClass({
     });
   },
 
-  linkProject(project, value) {
+  handleLinkProject(project, value) {
     let {orgId, teamId} = this.props.params;
     this.api.request(`/projects/${orgId}/${project.slug}/teams/${teamId}/`, {
       method: value === 'Add' ? 'POST' : 'DELETE',
@@ -81,7 +79,7 @@ const TeamProjects = createReactClass({
 
   projectPanelcontents(projects, direction) {
     return sortProjects(projects).map((project, i) => (
-      <PanelItem key={i} align="center">
+      <PanelItem key={project.id} align="center">
         <Box w={1 / 2} p={2}>
           <ProjectListItem project={project} organization={this.context.organization} />
         </Box>
@@ -90,7 +88,7 @@ const TeamProjects = createReactClass({
             size="small"
             className="pull-right"
             onClick={() => {
-              this.linkProject(project, direction);
+              this.handleLinkProject(project, direction);
             }}
           >
             {direction}

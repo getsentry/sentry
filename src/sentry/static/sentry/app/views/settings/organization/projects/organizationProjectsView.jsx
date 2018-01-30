@@ -10,7 +10,7 @@ import ProjectListItem from './components/projectListItem';
 import ProjectsStore from '../../../../stores/projectsStore';
 import SentryTypes from '../../../../proptypes';
 import SpreadLayout from '../../../../components/spreadLayout';
-import {sortProjects} from '../../../../utils.jsx';
+import {sortProjects} from '../../../../utils';
 
 class OrganizationProjectsView extends OrganizationSettingsView {
   static contextTypes = {
@@ -35,7 +35,7 @@ class OrganizationProjectsView extends OrganizationSettingsView {
           <tbody>
             {sortProjects(projects).map((project, i) => (
               <ProjectListItem
-                key={i}
+                key={project.id}
                 project={project}
                 organization={this.context.organization}
               />

@@ -8,111 +8,98 @@ import ProjectsStore from 'app/stores/projectsStore';
 import OrganizationTeamProjects from 'app/views/settings/team/teamProjects';
 
 describe('OrganizationTeamProjects', function() {
-  let sandbox;
-  // let stubbedApiRequest;
   let team;
+  let putMock;
+  let postMock;
+  let deleteMock;
   beforeEach(function() {
-    sandbox = sinon.sandbox.create();
     team = TestStubs.Team();
     TeamStore.loadInitialData([team]);
 
     let project = TestStubs.Project();
     ProjectsStore.loadInitialData([project]);
 
-    Client.addMockResponse({
+    putMock = Client.addMockResponse({
       method: 'PUT',
       url: '/projects/org-slug/project-slug/',
       body: project,
     });
 
-    Client.addMockResponse({
+    postMock = Client.addMockResponse({
       method: 'POST',
       url: `/projects/org-slug/project-slug/teams/${team.slug}/`,
     });
-    Client.addMockResponse({
+
+    deleteMock = Client.addMockResponse({
       method: 'DELETE',
       url: `/projects/org-slug/project-slug/teams/${team.slug}/`,
     });
   });
 
   afterEach(function() {
-    sandbox.restore();
+    Client.clearMockResponses();
   });
 
-  describe('OrganizationTeamProjects', function() {
-    it('Should render', function() {
-      let wrapper = mount(
-        <OrganizationTeamProjects params={{orgId: 'org-slug', teamId: team.slug}} />,
-        {
-          context: {organization: {id: '1337', slug: 'org-slug'}},
-        }
-      );
+  it('Should render', function() {
+    let wrapper = mount(
+      <OrganizationTeamProjects params={{orgId: 'org-slug', teamId: team.slug}} />,
+      {
+        context: {organization: {id: '1337', slug: 'org-slug'}},
+      }
+    );
 
-      expect(wrapper).toMatchSnapshot();
-      expect(wrapper.find('.project-name').text()).toBe('Project Name');
-    });
+    expect(wrapper).toMatchSnapshot();
+    expect(wrapper.find('.project-name').text()).toBe('Project Name');
+  });
 
-    it('Should allow bookmarking', function() {
-      let wrapper = mount(
-        <OrganizationTeamProjects params={{orgId: 'org-slug', teamId: team.slug}} />,
-        {
-          context: {organization: {id: '1337', slug: 'org-slug'}},
-        }
-      );
+  it('Should allow bookmarking', function() {
+    let wrapper = mount(
+      <OrganizationTeamProjects params={{orgId: 'org-slug', teamId: team.slug}} />,
+      {
+        context: {organization: {id: '1337', slug: 'org-slug'}},
+      }
+    );
 
-      let star = wrapper.find('.icon-star-outline');
-      expect(star.length).toBe(1);
-      star.simulate('click');
+    let star = wrapper.find('.icon-star-outline');
+    expect(star.length).toBe(1);
+    star.simulate('click');
 
-      star = wrapper.find('.icon-star-outline');
-      expect(star.length).toBe(0);
-      star = wrapper.find('.icon-star-solid');
-      expect(star.length).toBe(1);
+    star = wrapper.find('.icon-star-outline');
+    expect(star.length).toBe(0);
+    star = wrapper.find('.icon-star-solid');
+    expect(star.length).toBe(1);
 
-      expect(
-        Client.findMockResponse('/projects/org-slug/project-slug/', {
-          method: 'PUT',
-        })[0].callCount
-      ).toBe(1);
-    });
+    expect(putMock).toHaveBeenCalledTimes(1);
+  });
 
-    it('Adding and removing projects works', function(done) {
-      let wrapper = mount(
-        <OrganizationTeamProjects params={{orgId: 'org-slug', teamId: team.slug}} />,
-        {
-          context: {organization: {id: '1337', slug: 'org-slug'}},
-        }
-      );
+  it('Adding and removing projects works', function(done) {
+    let wrapper = mount(
+      <OrganizationTeamProjects params={{orgId: 'org-slug', teamId: team.slug}} />,
+      {
+        context: {organization: {id: '1337', slug: 'org-slug'}},
+      }
+    );
 
-      let add = wrapper.find('.button-label');
-      expect(add.length).toBe(1);
-      expect(add.text()).toBe('Add');
-      add.simulate('click');
+    let add = wrapper.find('.button-label');
+    expect(add.length).toBe(1);
+    expect(add.text()).toBe('Add');
+    add.simulate('click');
 
+    wrapper.update();
+
+    expect(postMock).toHaveBeenCalledTimes(1);
+
+    setTimeout(() => {
       wrapper.update();
+      let remove = wrapper.find('.flow-layout .button-label');
+      expect(remove.length).toBe(1);
 
-      expect(
-        Client.findMockResponse(`/projects/org-slug/project-slug/teams/${team.slug}/`, {
-          method: 'POST',
-        })[0].callCount
-      ).toBe(1);
+      expect(remove.text()).toBe('Remove');
+      remove.simulate('click');
 
-      setTimeout(() => {
-        wrapper.update();
-        let remove = wrapper.find('.flow-layout .button-label');
-        expect(remove.length).toBe(1);
+      expect(deleteMock).toHaveBeenCalledTimes(1);
 
-        expect(remove.text()).toBe('Remove');
-        remove.simulate('click');
-
-        expect(
-          Client.findMockResponse(`/projects/org-slug/project-slug/teams/${team.slug}/`, {
-            method: 'DELETE',
-          })[0].callCount
-        ).toBe(1);
-
-        done();
-      }, 1);
-    });
+      done();
+    }, 1);
   });
 });

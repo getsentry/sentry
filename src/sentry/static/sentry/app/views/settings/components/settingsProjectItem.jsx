@@ -1,21 +1,25 @@
 import styled from 'react-emotion';
-
 import React from 'react';
 
 import createReactClass from 'create-react-class';
+import theme from '../../../utils/theme';
 
 import {update} from '../../../actionCreators/projects';
 import ApiMixin from '../../../mixins/apiMixin';
-import TooltipMixin from '../../../mixins/tooltip';
+import Tooltip from '../../../components/tooltip';
 import Link from '../../../components/link';
 import ProjectLabel from '../../../components/projectLabel';
 import SentryTypes from '../../../proptypes';
 
-const StyledH5 = styled('h5')`
+const Header = styled('h5')`
   margin: 0;
-  a {
-    color: ${t => t.theme.gray3};
-  }
+`;
+
+const InlineButton = styled('button')`
+  color: ${p => p.theme.gray3};
+  border: none;
+  background-color: inherit;
+  padding: 0;
 `;
 
 const ProjectItem = createReactClass({
@@ -26,43 +30,32 @@ const ProjectItem = createReactClass({
     organization: SentryTypes.Organization,
   },
 
-  mixins: [
-    ApiMixin,
-    TooltipMixin(function() {
-      return {
-        selector: '.tip',
-        title: function(instance) {
-          return this.getAttribute('data-isbookmarked') === 'true'
-            ? 'Remove from bookmarks'
-            : 'Add to bookmarks';
-        },
-      };
-    }),
-  ],
+  mixins: [ApiMixin],
 
   getInitialState() {
     return {
-      bookmarked: null,
+      isBookmarked: this.props.project.isBookmarked,
     };
   },
 
   componentWillReceiveProps(nextProps) {
     // Local bookmarked state should be unset when the project data changes
     // Local state is used for optimistic UI update
-    if (nextProps.project.isBookmarked !== this.props.project.isBookmarked) {
-      this.setState({bookmarked: null});
+    if (this.state.isBookmarked !== nextProps.project.isBookmarked) {
+      this.setState({isBookmarked: nextProps.project.isBookmarked});
     }
   },
 
-  toggleBookmark() {
+  handleToggleBookmark() {
     let {project, organization} = this.props;
+    let {isBookmarked} = this.state;
 
-    this.setState({bookmarked: !project.isBookmarked}, () =>
+    this.setState({isBookmarked: !isBookmarked}, () =>
       update(this.api, {
         orgId: organization.slug,
         projectId: project.slug,
         data: {
-          isBookmarked: !project.isBookmarked,
+          isBookmarked: this.state.isBookmarked,
         },
       })
     );
@@ -71,26 +64,27 @@ const ProjectItem = createReactClass({
   render() {
     let {project, organization} = this.props;
     let org = organization;
-    let isBookmarked = this.state.bookmarked || project.isBookmarked;
+    let {isBookmarked} = this.state;
 
     return (
       <div key={project.id} className={isBookmarked ? 'isBookmarked' : null}>
-        <StyledH5>
-          <a
-            onClick={this.toggleBookmark}
-            className="tip"
-            data-isbookmarked={isBookmarked}
+        <Header>
+          <Tooltip title={isBookmarked ? 'Remove from bookmarks' : 'Add to bookmarks'}>
+            <InlineButton onClick={() => this.handleToggleBookmark()}>
+              {isBookmarked ? (
+                <span className="icon-star-solid bookmark" />
+              ) : (
+                <span className="icon-star-outline bookmark" />
+              )}
+            </InlineButton>
+          </Tooltip>
+          <Link
+            to={`/settings/organization/${org.slug}/project/${project.slug}/`}
+            css={{color: theme.gray3}}
           >
-            {isBookmarked ? (
-              <span className="icon-star-solid bookmark" />
-            ) : (
-              <span className="icon-star-outline bookmark" />
-            )}
-          </a>
-          <Link to={`/settings/organization/${org.slug}/project/${project.slug}/`}>
             <ProjectLabel project={project} organization={this.props.organization} />
           </Link>
-        </StyledH5>
+        </Header>
       </div>
     );
   },
