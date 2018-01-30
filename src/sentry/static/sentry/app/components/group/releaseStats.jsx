@@ -24,6 +24,11 @@ const GroupReleaseStats = createReactClass({
 
   propTypes: {
     group: PropTypes.object,
+    location: PropTypes.object,
+  },
+
+  contextTypes: {
+    organization: PropTypes.object,
   },
 
   mixins: [
@@ -186,9 +191,7 @@ const GroupReleaseStats = createReactClass({
 
   render() {
     let group = this.props.group;
-    let environment = this.state.environment;
-    let data = this.state.data;
-    let hasEnvironmentsFeature = this.state.hasEnvironmentsFeature;
+    let {environment, data, hasEnvironmentsFeature} = this.state;
 
     let envList = this.state.envList;
 
