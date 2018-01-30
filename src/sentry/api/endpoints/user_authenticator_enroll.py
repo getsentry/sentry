@@ -68,7 +68,7 @@ def get_serializer_field_metadata(serializer, fields=None):
 class UserAuthenticatorEnrollEndpoint(UserEndpoint):
     permission_classes = (IsAuthenticated, UserPermission, )
 
-    # @sudo_required
+    @sudo_required
     def get(self, request, user, interface_id):
         """
         Get Authenticator Interface

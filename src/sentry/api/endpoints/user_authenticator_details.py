@@ -15,7 +15,7 @@ from sentry.security import capture_security_activity
 class UserAuthenticatorDetailsEndpoint(UserEndpoint):
     permission_classes = (IsAuthenticated, UserPermission, )
 
-    # @sudo_required
+    @sudo_required
     def get(self, request, user, auth_id):
         """
         Get Authenticator Interface
