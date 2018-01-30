@@ -26,6 +26,11 @@ from sentry.runner.decorators import configuration, log_options
     help='Automatic browser refreshing on webpack builds'
 )
 @click.option(
+    '--prefix/--no-prefix',
+    default=True,
+    help='Show the service name prefix and timestamp'
+)
+@click.option(
     '--styleguide/--no-styleguide',
     default=False,
     help='Start local styleguide web server on port 9001'
@@ -34,7 +39,7 @@ from sentry.runner.decorators import configuration, log_options
 @click.argument('bind', default='127.0.0.1:8000', metavar='ADDRESS')
 @log_options()
 @configuration
-def devserver(reload, watchers, workers, browser_reload, styleguide, environment, bind):
+def devserver(reload, watchers, workers, browser_reload, styleguide, prefix, environment, bind):
     "Starts a lightweight web server for development."
     if ':' in bind:
         host, port = bind.split(':', 1)
@@ -157,6 +162,7 @@ def devserver(reload, watchers, workers, browser_reload, styleguide, environment
     import sys
     from subprocess import list2cmdline
     from honcho.manager import Manager
+    from honcho.printer import Printer
 
     os.environ['PYTHONUNBUFFERED'] = 'true'
 
@@ -172,7 +178,7 @@ def devserver(reload, watchers, workers, browser_reload, styleguide, environment
 
     cwd = os.path.realpath(os.path.join(settings.PROJECT_ROOT, os.pardir, os.pardir))
 
-    manager = Manager()
+    manager = Manager(Printer(prefix=prefix))
     for name, cmd in daemons:
         manager.add_process(
             name,
