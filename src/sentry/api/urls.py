@@ -120,7 +120,7 @@ from .endpoints.filechange import CommitFileChangeEndpoint
 from .endpoints.issues_resolved_in_release import IssuesResolvedInReleaseEndpoint
 from .endpoints.release_deploys import ReleaseDeploysEndpoint
 from .endpoints.dsym_files import DSymFilesEndpoint, \
-    UnknownDSymFilesEndpoint, AssociateDSymFilesEndpoint
+    UnknownDSymFilesEndpoint, AssociateDSymFilesEndpoint, DSymAssembleEndpoint
 from .endpoints.shared_group_details import SharedGroupDetailsEndpoint
 from .endpoints.system_health import SystemHealthEndpoint
 from .endpoints.system_options import SystemOptionsEndpoint
@@ -527,6 +527,11 @@ urlpatterns = patterns(
     url(
         r'^projects/(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/files/dsyms/$',
         DSymFilesEndpoint.as_view(),
+        name='sentry-api-0-dsym-files'
+    ),
+    url(
+        r'^projects/(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/files/dsyms/assemble/$',
+        DSymAssembleEndpoint.as_view(),
         name='sentry-api-0-dsym-files'
     ),
     url(

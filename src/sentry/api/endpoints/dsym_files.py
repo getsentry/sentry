@@ -6,13 +6,14 @@ from rest_framework.response import Response
 from rest_framework import serializers
 
 from sentry import ratelimits
+from sentry.utils import json
 from sentry.api.base import DocSection
 from sentry.api.bases.project import ProjectEndpoint, ProjectReleasePermission
 from sentry.api.content_negotiation import ConditionalContentNegotiation
 from sentry.api.serializers import serialize
 from sentry.api.serializers.rest_framework import ListField
 from sentry.models import ProjectDSymFile, create_files_from_dsym_zip, \
-    VersionDSymFile, DSymApp, DSYM_PLATFORMS
+    VersionDSymFile, DSymApp, DSYM_PLATFORMS, FileBlob
 try:
     from django.http import (
         CompatibleStreamingHttpResponse as StreamingHttpResponse, HttpResponse, Http404)
@@ -42,6 +43,44 @@ def upload_from_request(request, project):
     fileobj = request.FILES['file']
     files = create_files_from_dsym_zip(fileobj, project=project)
     return Response(serialize(files, request.user), status=201)
+
+
+class DSymAssembleEndpoint(ProjectEndpoint):
+    permission_classes = (ProjectReleasePermission, )
+
+    content_negotiation_class = ConditionalContentNegotiation
+
+    def post(self, request, project):
+        try:
+            data = json.loads(request.body)
+        except BaseException:
+            return Response({'error': 'invalid body data'},
+                            status=400)
+
+        from sentry.tasks.assemble import dif_chunks
+
+        # We have all chunks, assemble in worker
+        for to_assemble in data.get('files', []):
+            checksums = to_assemble.get('chunks', [])
+            file_blobs = FileBlob.objects.filter(
+                checksum__in=checksums
+            ).values_list('id', 'checksum')
+
+            if len(file_blobs) != len(checksums):
+                return Response({'error': 'chunks missing'},
+                                status=400)
+
+            file_blob_ids = [x[0] for x in sorted(
+                file_blobs, key=lambda c: checksums.index(c[1])
+            )]
+
+            dif_chunks.delay(
+                file_blob_ids=file_blob_ids,
+                name=to_assemble.get('name', ''),
+                checksum=to_assemble.get('checksum', None),
+            )
+
+        return Response(status=200)
 
 
 class DSymFilesEndpoint(ProjectEndpoint):

@@ -45,13 +45,13 @@ class ChunkUploadEndpoint(Endpoint):
         checksum_list = []
         for chunk in files:
             if chunk._size > MAX_CHUNK_SIZE:
-                return Response({'error': 'Chunk size too big'},
+                return Response({'error': 'Chunk size too large'},
                                 status=status.HTTP_400_BAD_REQUEST)
             total_size += chunk._size
             checksum_list.append(chunk._name)
 
         if total_size > MAX_CHUNKS_PER_REQUEST * MAX_CHUNK_SIZE:
-            return Response({'error': 'Total requst too big'},
+            return Response({'error': 'Total request too large'},
                             status=status.HTTP_400_BAD_REQUEST)
 
         for chunk in files:
