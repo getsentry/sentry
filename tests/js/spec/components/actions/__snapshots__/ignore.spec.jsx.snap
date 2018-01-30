@@ -254,7 +254,7 @@ exports[`IgnoreActions with confirmation step renders 1`] = `
             onClick={[Function]}
             title="Ignore"
           >
-             
+
             <span
               className="icon-ban"
               style={
@@ -431,7 +431,7 @@ exports[`IgnoreActions with confirmation step renders 1`] = `
                                   onClick={[Function]}
                                   title="Ignore"
                                 >
-                                   
+
                                   <Duration
                                     seconds={1800}
                                   >
@@ -525,7 +525,7 @@ exports[`IgnoreActions with confirmation step renders 1`] = `
                                   onClick={[Function]}
                                   title="Ignore"
                                 >
-                                   
+
                                   <Duration
                                     seconds={7200}
                                   >
@@ -619,7 +619,7 @@ exports[`IgnoreActions with confirmation step renders 1`] = `
                                   onClick={[Function]}
                                   title="Ignore"
                                 >
-                                   
+
                                   <Duration
                                     seconds={21600}
                                   >
@@ -713,7 +713,7 @@ exports[`IgnoreActions with confirmation step renders 1`] = `
                                   onClick={[Function]}
                                   title="Ignore"
                                 >
-                                   
+
                                   <Duration
                                     seconds={86400}
                                   >
@@ -807,7 +807,7 @@ exports[`IgnoreActions with confirmation step renders 1`] = `
                                   onClick={[Function]}
                                   title="Ignore"
                                 >
-                                   
+
                                   <Duration
                                     seconds={604800}
                                   >
@@ -1006,7 +1006,7 @@ exports[`IgnoreActions with confirmation step renders 1`] = `
                                             onClick={[Function]}
                                             title="Ignore"
                                           >
-                                             
+
                                             from now
                                           </a>
                                           <Modal
@@ -1094,7 +1094,7 @@ exports[`IgnoreActions with confirmation step renders 1`] = `
                                             onClick={[Function]}
                                             title="Ignore"
                                           >
-                                             
+
                                             per hour
                                           </a>
                                           <Modal
@@ -1182,7 +1182,7 @@ exports[`IgnoreActions with confirmation step renders 1`] = `
                                             onClick={[Function]}
                                             title="Ignore"
                                           >
-                                             
+
                                             per day
                                           </a>
                                           <Modal
@@ -1270,7 +1270,7 @@ exports[`IgnoreActions with confirmation step renders 1`] = `
                                             onClick={[Function]}
                                             title="Ignore"
                                           >
-                                             
+
                                             per week
                                           </a>
                                           <Modal
@@ -1400,7 +1400,7 @@ exports[`IgnoreActions with confirmation step renders 1`] = `
                                             onClick={[Function]}
                                             title="Ignore"
                                           >
-                                             
+
                                             from now
                                           </a>
                                           <Modal
@@ -1488,7 +1488,7 @@ exports[`IgnoreActions with confirmation step renders 1`] = `
                                             onClick={[Function]}
                                             title="Ignore"
                                           >
-                                             
+
                                             per hour
                                           </a>
                                           <Modal
@@ -1576,7 +1576,7 @@ exports[`IgnoreActions with confirmation step renders 1`] = `
                                             onClick={[Function]}
                                             title="Ignore"
                                           >
-                                             
+
                                             per day
                                           </a>
                                           <Modal
@@ -1664,7 +1664,7 @@ exports[`IgnoreActions with confirmation step renders 1`] = `
                                             onClick={[Function]}
                                             title="Ignore"
                                           >
-                                             
+
                                             per week
                                           </a>
                                           <Modal
@@ -1794,7 +1794,7 @@ exports[`IgnoreActions with confirmation step renders 1`] = `
                                             onClick={[Function]}
                                             title="Ignore"
                                           >
-                                             
+
                                             from now
                                           </a>
                                           <Modal
@@ -1882,7 +1882,7 @@ exports[`IgnoreActions with confirmation step renders 1`] = `
                                             onClick={[Function]}
                                             title="Ignore"
                                           >
-                                             
+
                                             per hour
                                           </a>
                                           <Modal
@@ -1970,7 +1970,7 @@ exports[`IgnoreActions with confirmation step renders 1`] = `
                                             onClick={[Function]}
                                             title="Ignore"
                                           >
-                                             
+
                                             per day
                                           </a>
                                           <Modal
@@ -2058,7 +2058,7 @@ exports[`IgnoreActions with confirmation step renders 1`] = `
                                             onClick={[Function]}
                                             title="Ignore"
                                           >
-                                             
+
                                             per week
                                           </a>
                                           <Modal
@@ -2188,7 +2188,7 @@ exports[`IgnoreActions with confirmation step renders 1`] = `
                                             onClick={[Function]}
                                             title="Ignore"
                                           >
-                                             
+
                                             from now
                                           </a>
                                           <Modal
@@ -2276,7 +2276,7 @@ exports[`IgnoreActions with confirmation step renders 1`] = `
                                             onClick={[Function]}
                                             title="Ignore"
                                           >
-                                             
+
                                             per hour
                                           </a>
                                           <Modal
@@ -2364,7 +2364,7 @@ exports[`IgnoreActions with confirmation step renders 1`] = `
                                             onClick={[Function]}
                                             title="Ignore"
                                           >
-                                             
+
                                             per day
                                           </a>
                                           <Modal
@@ -2452,7 +2452,7 @@ exports[`IgnoreActions with confirmation step renders 1`] = `
                                             onClick={[Function]}
                                             title="Ignore"
                                           >
-                                             
+
                                             per week
                                           </a>
                                           <Modal
@@ -2582,7 +2582,7 @@ exports[`IgnoreActions with confirmation step renders 1`] = `
                                             onClick={[Function]}
                                             title="Ignore"
                                           >
-                                             
+
                                             from now
                                           </a>
                                           <Modal
@@ -2670,7 +2670,7 @@ exports[`IgnoreActions with confirmation step renders 1`] = `
                                             onClick={[Function]}
                                             title="Ignore"
                                           >
-                                             
+
                                             per hour
                                           </a>
                                           <Modal
@@ -2758,7 +2758,7 @@ exports[`IgnoreActions with confirmation step renders 1`] = `
                                             onClick={[Function]}
                                             title="Ignore"
                                           >
-                                             
+
                                             per day
                                           </a>
                                           <Modal
@@ -2846,7 +2846,7 @@ exports[`IgnoreActions with confirmation step renders 1`] = `
                                             onClick={[Function]}
                                             title="Ignore"
                                           >
-                                             
+
                                             per week
                                           </a>
                                           <Modal
@@ -3044,7 +3044,7 @@ exports[`IgnoreActions with confirmation step renders 1`] = `
                                             onClick={[Function]}
                                             title="Ignore"
                                           >
-                                             
+
                                             from now
                                           </a>
                                           <Modal
@@ -3132,7 +3132,7 @@ exports[`IgnoreActions with confirmation step renders 1`] = `
                                             onClick={[Function]}
                                             title="Ignore"
                                           >
-                                             
+
                                             per hour
                                           </a>
                                           <Modal
@@ -3220,7 +3220,7 @@ exports[`IgnoreActions with confirmation step renders 1`] = `
                                             onClick={[Function]}
                                             title="Ignore"
                                           >
-                                             
+
                                             per day
                                           </a>
                                           <Modal
@@ -3308,7 +3308,7 @@ exports[`IgnoreActions with confirmation step renders 1`] = `
                                             onClick={[Function]}
                                             title="Ignore"
                                           >
-                                             
+
                                             per week
                                           </a>
                                           <Modal
@@ -3438,7 +3438,7 @@ exports[`IgnoreActions with confirmation step renders 1`] = `
                                             onClick={[Function]}
                                             title="Ignore"
                                           >
-                                             
+
                                             from now
                                           </a>
                                           <Modal
@@ -3526,7 +3526,7 @@ exports[`IgnoreActions with confirmation step renders 1`] = `
                                             onClick={[Function]}
                                             title="Ignore"
                                           >
-                                             
+
                                             per hour
                                           </a>
                                           <Modal
@@ -3614,7 +3614,7 @@ exports[`IgnoreActions with confirmation step renders 1`] = `
                                             onClick={[Function]}
                                             title="Ignore"
                                           >
-                                             
+
                                             per day
                                           </a>
                                           <Modal
@@ -3702,7 +3702,7 @@ exports[`IgnoreActions with confirmation step renders 1`] = `
                                             onClick={[Function]}
                                             title="Ignore"
                                           >
-                                             
+
                                             per week
                                           </a>
                                           <Modal
@@ -3832,7 +3832,7 @@ exports[`IgnoreActions with confirmation step renders 1`] = `
                                             onClick={[Function]}
                                             title="Ignore"
                                           >
-                                             
+
                                             from now
                                           </a>
                                           <Modal
@@ -3920,7 +3920,7 @@ exports[`IgnoreActions with confirmation step renders 1`] = `
                                             onClick={[Function]}
                                             title="Ignore"
                                           >
-                                             
+
                                             per hour
                                           </a>
                                           <Modal
@@ -4008,7 +4008,7 @@ exports[`IgnoreActions with confirmation step renders 1`] = `
                                             onClick={[Function]}
                                             title="Ignore"
                                           >
-                                             
+
                                             per day
                                           </a>
                                           <Modal
@@ -4096,7 +4096,7 @@ exports[`IgnoreActions with confirmation step renders 1`] = `
                                             onClick={[Function]}
                                             title="Ignore"
                                           >
-                                             
+
                                             per week
                                           </a>
                                           <Modal
@@ -4226,7 +4226,7 @@ exports[`IgnoreActions with confirmation step renders 1`] = `
                                             onClick={[Function]}
                                             title="Ignore"
                                           >
-                                             
+
                                             from now
                                           </a>
                                           <Modal
@@ -4314,7 +4314,7 @@ exports[`IgnoreActions with confirmation step renders 1`] = `
                                             onClick={[Function]}
                                             title="Ignore"
                                           >
-                                             
+
                                             per hour
                                           </a>
                                           <Modal
@@ -4402,7 +4402,7 @@ exports[`IgnoreActions with confirmation step renders 1`] = `
                                             onClick={[Function]}
                                             title="Ignore"
                                           >
-                                             
+
                                             per day
                                           </a>
                                           <Modal
@@ -4490,7 +4490,7 @@ exports[`IgnoreActions with confirmation step renders 1`] = `
                                             onClick={[Function]}
                                             title="Ignore"
                                           >
-                                             
+
                                             per week
                                           </a>
                                           <Modal
@@ -4620,7 +4620,7 @@ exports[`IgnoreActions with confirmation step renders 1`] = `
                                             onClick={[Function]}
                                             title="Ignore"
                                           >
-                                             
+
                                             from now
                                           </a>
                                           <Modal
@@ -4708,7 +4708,7 @@ exports[`IgnoreActions with confirmation step renders 1`] = `
                                             onClick={[Function]}
                                             title="Ignore"
                                           >
-                                             
+
                                             per hour
                                           </a>
                                           <Modal
@@ -4796,7 +4796,7 @@ exports[`IgnoreActions with confirmation step renders 1`] = `
                                             onClick={[Function]}
                                             title="Ignore"
                                           >
-                                             
+
                                             per day
                                           </a>
                                           <Modal
@@ -4884,7 +4884,7 @@ exports[`IgnoreActions with confirmation step renders 1`] = `
                                             onClick={[Function]}
                                             title="Ignore"
                                           >
-                                             
+
                                             per week
                                           </a>
                                           <Modal
