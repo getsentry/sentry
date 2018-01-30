@@ -9,6 +9,7 @@ class GroupEnvironment(Model):
 
     group_id = BoundedPositiveIntegerField()
     environment_id = BoundedPositiveIntegerField()
+    first_release_id = BoundedPositiveIntegerField(null=True)
 
     class Meta:
         app_label = 'sentry'
