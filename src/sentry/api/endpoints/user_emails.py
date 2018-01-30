@@ -96,6 +96,9 @@ class UserEmailsEndpoint(UserEndpoint):
 
         serializer = EmailSerializer(data=request.DATA)
 
+        if not serializer.is_valid():
+            return InvalidEmailResponse()
+
         try:
             new_email = add_email(
                 serializer.object['email'].lower().strip(),
@@ -128,6 +131,10 @@ class UserEmailsEndpoint(UserEndpoint):
         """
 
         serializer = EmailSerializer(data=request.DATA)
+
+        if not serializer.is_valid():
+            return InvalidEmailResponse()
+
         old_email = user.email
 
         if not serializer.is_valid():
