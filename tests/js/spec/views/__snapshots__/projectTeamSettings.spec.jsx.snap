@@ -8,7 +8,7 @@ exports[`ProjectTeamsSettings render() renders 1`] = `
     <SettingsPageHeading
       title="Teams"
     />
-    <Styled(div)>
+    <Panel>
       <PanelHeader
         key="header"
       >
@@ -56,7 +56,7 @@ exports[`ProjectTeamsSettings render() renders 1`] = `
           }
         />
       </PanelBody>
-    </Styled(div)>
+    </Panel>
   </div>
 </SideEffect(DocumentTitle)>
 `;

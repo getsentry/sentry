@@ -160,7 +160,7 @@ exports[`ProjectSavedSearches renders 1`] = `
     <SettingsPageHeading
       title="Saved Searches"
     >
-      <Styled(div)>
+      <Wrapper>
         <div
           className="glamor-4 glamor-5"
         >
@@ -175,37 +175,37 @@ exports[`ProjectSavedSearches renders 1`] = `
                 className="glamor-2"
                 is={null}
               >
-                <Styled(div)>
+                <Title>
                   <div
                     className="glamor-0 glamor-1"
                   >
                     Saved Searches
                   </div>
-                </Styled(div)>
+                </Title>
               </div>
             </Base>
           </Flex>
         </div>
-      </Styled(div)>
+      </Wrapper>
     </SettingsPageHeading>
-    <Styled(div)>
+    <Panel>
       <div
         className="glamor-59 glamor-60"
       >
         <PanelHeader
           disablePadding={true}
         >
-          <Styled(div)
+          <StyledPanelHeader
             disablePadding={true}
           >
             <div
               className="glamor-25 glamor-26"
             >
-              <Styled(Component)>
+              <StyledPanelHeading>
                 <Component
                   className="glamor-21 glamor-18"
                 >
-                  <Styled(div)
+                  <_default
                     className="glamor-21 glamor-18"
                   >
                     <div
@@ -311,11 +311,11 @@ exports[`ProjectSavedSearches renders 1`] = `
                         </Base>
                       </Flex>
                     </div>
-                  </Styled(div)>
+                  </_default>
                 </Component>
-              </Styled(Component)>
+              </StyledPanelHeading>
             </div>
-          </Styled(div)>
+          </StyledPanelHeader>
         </PanelHeader>
         <PanelBody
           direction="column"
@@ -363,7 +363,7 @@ exports[`ProjectSavedSearches renders 1`] = `
                 p={0}
                 py={2}
               >
-                <Styled(Base)
+                <StyledRow
                   align="center"
                   p={0}
                   py={2}
@@ -393,13 +393,13 @@ exports[`ProjectSavedSearches renders 1`] = `
                             className="glamor-29"
                             is={null}
                           >
-                            <Styled(div)>
+                            <SearchTitle>
                               <div
                                 className="glamor-27 glamor-28"
                               >
                                 Needs Triage
                               </div>
-                            </Styled(div)>
+                            </SearchTitle>
                             <code>
                               is:unresolved is:unassigned
                             </code>
@@ -576,7 +576,7 @@ exports[`ProjectSavedSearches renders 1`] = `
                       </Flex>
                     </div>
                   </Base>
-                </Styled(Base)>
+                </StyledRow>
               </Row>
             </SavedSearchRow>
             <SavedSearchRow
@@ -617,7 +617,7 @@ exports[`ProjectSavedSearches renders 1`] = `
                 p={0}
                 py={2}
               >
-                <Styled(Base)
+                <StyledRow
                   align="center"
                   p={0}
                   py={2}
@@ -647,13 +647,13 @@ exports[`ProjectSavedSearches renders 1`] = `
                             className="glamor-29"
                             is={null}
                           >
-                            <Styled(div)>
+                            <SearchTitle>
                               <div
                                 className="glamor-27 glamor-28"
                               >
                                 Unresolved Issues
                               </div>
-                            </Styled(div)>
+                            </SearchTitle>
                             <code>
                               is:unresolved
                             </code>
@@ -830,13 +830,13 @@ exports[`ProjectSavedSearches renders 1`] = `
                       </Flex>
                     </div>
                   </Base>
-                </Styled(Base)>
+                </StyledRow>
               </Row>
             </SavedSearchRow>
           </div>
         </PanelBody>
       </div>
-    </Styled(div)>
+    </Panel>
   </div>
 </ProjectSavedSearches>
 `;
@@ -881,7 +881,7 @@ exports[`ProjectSavedSearches renders empty 1`] = `
     <SettingsPageHeading
       title="Saved Searches"
     >
-      <Styled(div)>
+      <Wrapper>
         <div
           className="glamor-4 glamor-5"
         >
@@ -896,18 +896,18 @@ exports[`ProjectSavedSearches renders empty 1`] = `
                 className="glamor-2"
                 is={null}
               >
-                <Styled(div)>
+                <Title>
                   <div
                     className="glamor-0 glamor-1"
                   >
                     Saved Searches
                   </div>
-                </Styled(div)>
+                </Title>
               </div>
             </Base>
           </Flex>
         </div>
-      </Styled(div)>
+      </Wrapper>
     </SettingsPageHeading>
     <div
       className="box empty-stream"

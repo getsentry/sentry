@@ -3,7 +3,7 @@
 exports[`InactivePlugins renders null when no plugins 1`] = `""`;
 
 exports[`InactivePlugins renders plugins list 1`] = `
-<Styled(div)>
+<Panel>
   <PanelHeader>
     Inactive Integrations
   </PanelHeader>
@@ -21,7 +21,7 @@ exports[`InactivePlugins renders plugins list 1`] = `
         key="amazon-sqs"
         m={1}
       >
-        <Styled(button)
+        <IntegrationButton
           className="ref-plugin-enable-amazon-sqs"
           onClick={[Function]}
         >
@@ -38,17 +38,17 @@ exports[`InactivePlugins renders plugins list 1`] = `
                 size={20}
               />
             </Flex>
-            <Styled(div)>
+            <TextOverflow>
               Amazon SQS
-            </Styled(div)>
+            </TextOverflow>
           </Flex>
-        </Styled(button)>
+        </IntegrationButton>
       </Box>
       <Box
         key="github"
         m={1}
       >
-        <Styled(button)
+        <IntegrationButton
           className="ref-plugin-enable-github"
           onClick={[Function]}
         >
@@ -65,13 +65,13 @@ exports[`InactivePlugins renders plugins list 1`] = `
                 size={20}
               />
             </Flex>
-            <Styled(div)>
+            <TextOverflow>
               GitHub
-            </Styled(div)>
+            </TextOverflow>
           </Flex>
-        </Styled(button)>
+        </IntegrationButton>
       </Box>
     </Flex>
   </PanelBody>
-</Styled(div)>
+</Panel>
 `;

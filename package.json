@@ -97,7 +97,7 @@
     "test-watch": "npm run test -- --watch",
     "jest": "node scripts/test.js",
     "jest-debug": "node --inspect-brk scripts/test.js --runInBand",
-    "lint": "node_modules/.bin/eslint tests/js src/sentry/static/sentry/app --ext .jsx",
+    "lint": "node_modules/.bin/eslint tests/js src/sentry/static/sentry/app --ext .js,.jsx",
     "dev-proxy": "node scripts/devproxy.js",
     "dev-server": "webpack-dev-server",
     "storybook": "start-storybook -p 9001 -c .storybook",

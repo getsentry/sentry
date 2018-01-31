@@ -177,7 +177,7 @@ exports[`OrganizationApiKeysList renders 1`] = `
           onClick={undefined}
           priority="link"
         >
-          <Styled(span)
+          <PlusIcon
             className="icon-plus"
           />
            
@@ -186,7 +186,7 @@ exports[`OrganizationApiKeysList renders 1`] = `
       }
       title="API Keys"
     >
-      <Styled(div)>
+      <Wrapper>
         <div
           className="glamor-6 glamor-7"
         >
@@ -201,13 +201,13 @@ exports[`OrganizationApiKeysList renders 1`] = `
                 className="glamor-4"
                 is={null}
               >
-                <Styled(div)>
+                <Title>
                   <div
                     className="glamor-0 glamor-1"
                   >
                     API Keys
                   </div>
-                </Styled(div)>
+                </Title>
                 <div>
                   <Button
                     disabled={false}
@@ -228,13 +228,13 @@ exports[`OrganizationApiKeysList renders 1`] = `
                           <span
                             className="button-label"
                           >
-                            <Styled(span)
+                            <PlusIcon
                               className="icon-plus"
                             >
                               <span
                                 className="icon-plus glamor-2 glamor-3"
                               />
-                            </Styled(span)>
+                            </PlusIcon>
                              
                             New API Key
                           </span>
@@ -247,9 +247,9 @@ exports[`OrganizationApiKeysList renders 1`] = `
             </Base>
           </Flex>
         </div>
-      </Styled(div)>
+      </Wrapper>
     </SettingsPageHeading>
-    <Styled(p)>
+    <TextBlock>
       <p
         className="glamor-8 glamor-9"
       >
@@ -288,7 +288,7 @@ exports[`OrganizationApiKeysList renders 1`] = `
           </span>
         </span>
       </p>
-    </Styled(p)>
+    </TextBlock>
     <div
       className="alert alert-block alert-info"
     >
@@ -321,24 +321,24 @@ exports[`OrganizationApiKeysList renders 1`] = `
         </span>
       </span>
     </div>
-    <Styled(div)>
+    <Panel>
       <div
         className="glamor-41 glamor-42"
       >
         <PanelHeader
           disablePadding={true}
         >
-          <Styled(div)
+          <StyledPanelHeader
             disablePadding={true}
           >
             <div
               className="glamor-27 glamor-28"
             >
-              <Styled(Component)>
+              <StyledPanelHeading>
                 <Component
                   className="glamor-23 glamor-20"
                 >
-                  <Styled(div)
+                  <_default
                     className="glamor-23 glamor-20"
                   >
                     <div
@@ -426,11 +426,11 @@ exports[`OrganizationApiKeysList renders 1`] = `
                         </Base>
                       </Flex>
                     </div>
-                  </Styled(div)>
+                  </_default>
                 </Component>
-              </Styled(Component)>
+              </StyledPanelHeading>
             </div>
-          </Styled(div)>
+          </StyledPanelHeader>
         </PanelHeader>
         <PanelBody
           direction="column"
@@ -440,7 +440,7 @@ exports[`OrganizationApiKeysList renders 1`] = `
           <div
             className=""
           >
-            <Styled(Base)
+            <Row
               align="center"
               key="1"
               py={1}
@@ -612,11 +612,11 @@ exports[`OrganizationApiKeysList renders 1`] = `
                   </Box>
                 </div>
               </Base>
-            </Styled(Base)>
+            </Row>
           </div>
         </PanelBody>
       </div>
-    </Styled(div)>
+    </Panel>
   </div>
 </OrganizationApiKeysList>
 `;

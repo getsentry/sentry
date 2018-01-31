@@ -3,7 +3,7 @@
 exports[`OrganizationAccessRequests renders empty 1`] = `""`;
 
 exports[`OrganizationAccessRequests renders list 1`] = `
-<Styled(div)>
+<Panel>
   <PanelHeader
     disablePadding={true}
   >
@@ -21,7 +21,7 @@ exports[`OrganizationAccessRequests renders list 1`] = `
     disablePadding={true}
     flex={false}
   >
-    <Styled(Base)
+    <_default
       align="center"
       key="id"
     >
@@ -78,7 +78,7 @@ exports[`OrganizationAccessRequests renders list 1`] = `
           Deny
         </Button>
       </Box>
-    </Styled(Base)>
+    </_default>
   </PanelBody>
-</Styled(div)>
+</Panel>
 `;

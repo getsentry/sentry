@@ -19,10 +19,10 @@ exports[`ApiTokens renders empty result 1`] = `
       }
       title="Auth Tokens"
     />
-    <Styled(div)>
+    <TextBlock>
       Authentication tokens allow you to perform actions against the Sentry API on behalf of your account. They're the easiest way to get started using the API.
-    </Styled(div)>
-    <Styled(div)>
+    </TextBlock>
+    <TextBlock>
       <span
         key="5"
       >
@@ -47,8 +47,8 @@ exports[`ApiTokens renders empty result 1`] = `
           .
         </span>
       </span>
-    </Styled(div)>
-    <Styled(div)>
+    </TextBlock>
+    <TextBlock>
       <small>
         psst. Looking for the 
         <strong>
@@ -61,8 +61,8 @@ exports[`ApiTokens renders empty result 1`] = `
         </strong>
         .
       </small>
-    </Styled(div)>
-    <Styled(div)>
+    </TextBlock>
+    <Panel>
       <PanelHeader
         disablePadding={true}
       >
@@ -82,11 +82,11 @@ exports[`ApiTokens renders empty result 1`] = `
         disablePadding={true}
         flex={false}
       >
-        <Styled(div)>
+        <EmptyMessage>
           You haven't created any authentication tokens yet.
-        </Styled(div)>
+        </EmptyMessage>
       </PanelBody>
-    </Styled(div)>
+    </Panel>
   </div>
 </SideEffect(DocumentTitle)>
 `;
@@ -291,7 +291,7 @@ exports[`ApiTokens renders with result 1`] = `
           }
           title="Auth Tokens"
         >
-          <Styled(div)>
+          <Wrapper>
             <div
               className="glamor-4 glamor-5"
             >
@@ -306,13 +306,13 @@ exports[`ApiTokens renders with result 1`] = `
                     className="glamor-2"
                     is={null}
                   >
-                    <Styled(div)>
+                    <Title>
                       <div
                         className="glamor-0 glamor-1"
                       >
                         Auth Tokens
                       </div>
-                    </Styled(div)>
+                    </Title>
                     <div>
                       <Button
                         className="ref-create-token"
@@ -358,16 +358,16 @@ exports[`ApiTokens renders with result 1`] = `
                 </Base>
               </Flex>
             </div>
-          </Styled(div)>
+          </Wrapper>
         </SettingsPageHeading>
-        <Styled(div)>
+        <TextBlock>
           <div
             className="glamor-6 glamor-7"
           >
             Authentication tokens allow you to perform actions against the Sentry API on behalf of your account. They're the easiest way to get started using the API.
           </div>
-        </Styled(div)>
-        <Styled(div)>
+        </TextBlock>
+        <TextBlock>
           <div
             className="glamor-6 glamor-7"
           >
@@ -396,8 +396,8 @@ exports[`ApiTokens renders with result 1`] = `
               </span>
             </span>
           </div>
-        </Styled(div)>
-        <Styled(div)>
+        </TextBlock>
+        <TextBlock>
           <div
             className="glamor-6 glamor-7"
           >
@@ -414,25 +414,25 @@ exports[`ApiTokens renders with result 1`] = `
               .
             </small>
           </div>
-        </Styled(div)>
-        <Styled(div)>
+        </TextBlock>
+        <Panel>
           <div
             className="glamor-47 glamor-48"
           >
             <PanelHeader
               disablePadding={true}
             >
-              <Styled(div)
+              <StyledPanelHeader
                 disablePadding={true}
               >
                 <div
                   className="glamor-23 glamor-24"
                 >
-                  <Styled(Component)>
+                  <StyledPanelHeading>
                     <Component
                       className="glamor-19 glamor-16"
                     >
-                      <Styled(div)
+                      <_default
                         className="glamor-19 glamor-16"
                       >
                         <div
@@ -470,11 +470,11 @@ exports[`ApiTokens renders with result 1`] = `
                             </Base>
                           </Flex>
                         </div>
-                      </Styled(div)>
+                      </_default>
                     </Component>
-                  </Styled(Component)>
+                  </StyledPanelHeading>
                 </div>
-              </Styled(div)>
+              </StyledPanelHeader>
             </PanelHeader>
             <PanelBody
               direction="column"
@@ -504,7 +504,7 @@ exports[`ApiTokens renders with result 1`] = `
                     px={2}
                     py={2}
                   >
-                    <Styled(Base)
+                    <StyledRow
                       justify="space-between"
                       p={2}
                       px={2}
@@ -553,11 +553,11 @@ exports[`ApiTokens renders with result 1`] = `
                                             className="glamor-31"
                                             is={null}
                                           >
-                                            <Styled(div)>
+                                            <OverflowContainer>
                                               <div
                                                 className="glamor-29 glamor-30"
                                               >
-                                                <Styled(Component)
+                                                <StyledInput
                                                   onClick={[Function]}
                                                   readOnly={true}
                                                   value="apitoken123"
@@ -575,9 +575,9 @@ exports[`ApiTokens renders with result 1`] = `
                                                       value="apitoken123"
                                                     />
                                                   </Component>
-                                                </Styled(Component)>
+                                                </StyledInput>
                                               </div>
-                                            </Styled(div)>
+                                            </OverflowContainer>
                                             <Clipboard
                                               errorMessage="Error copying to clipboard"
                                               hideMessages={false}
@@ -599,7 +599,7 @@ exports[`ApiTokens renders with result 1`] = `
                                     }
                                   }
                                 >
-                                  <Styled(div)>
+                                  <Created>
                                     <div
                                       className="glamor-33 glamor-34"
                                     >
@@ -614,16 +614,16 @@ exports[`ApiTokens renders with result 1`] = `
                                         </time>
                                       </DateTime>
                                     </div>
-                                  </Styled(div)>
+                                  </Created>
                                 </div>
                                 <div>
-                                  <Styled(div)>
+                                  <ScopeList>
                                     <div
                                       className="glamor-35 glamor-36"
                                     >
                                       scope1, scope2
                                     </div>
-                                  </Styled(div)>
+                                  </ScopeList>
                                 </div>
                               </div>
                             </Base>
@@ -685,13 +685,13 @@ exports[`ApiTokens renders with result 1`] = `
                           </Flex>
                         </div>
                       </Base>
-                    </Styled(Base)>
+                    </StyledRow>
                   </Row>
                 </ApiTokenRow>
               </div>
             </PanelBody>
           </div>
-        </Styled(div)>
+        </Panel>
       </div>
     </DocumentTitle>
   </SideEffect(DocumentTitle)>

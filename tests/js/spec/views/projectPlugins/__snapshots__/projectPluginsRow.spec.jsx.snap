@@ -8,7 +8,7 @@ exports[`ProjectPluginRow renders 1`] = `
   <td
     colSpan={2}
   >
-    <Styled(PluginIcon)
+    <StyledPluginIcon
       pluginId="amazon-sqs"
       size={48}
     />
