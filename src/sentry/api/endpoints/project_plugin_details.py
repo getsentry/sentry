@@ -100,6 +100,7 @@ class ProjectPluginDetailsEndpoint(ProjectEndpoint):
             for c in plugin.get_config(
                 project=project,
                 user=request.user,
+                initial=request.DATA,
             )
         ]
 
