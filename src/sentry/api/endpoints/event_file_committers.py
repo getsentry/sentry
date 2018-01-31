@@ -166,8 +166,8 @@ class EventFileCommittersEndpoint(ProjectEndpoint):
             return Response({'detail': 'No Commits found for Release'}, status=404)
 
         frames = self._get_frame_paths(event)
-        frame_limit = 15
-        app_frames = [frame for frame in frames if frame['in_app']][:frame_limit]
+        frame_limit = 25
+        app_frames = [frame for frame in frames if frame['in_app']][-frame_limit:]
 
         # TODO(maxbittker) return this set instead of annotated frames
         path_set = {frame['abs_path'] for frame in app_frames}
