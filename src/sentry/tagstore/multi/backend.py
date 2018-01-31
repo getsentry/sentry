@@ -174,6 +174,9 @@ class MultiTagStorage(TagStorage):
     def get_group_tag_values(self, *args, **kwargs):
         return self._call_one_backend('get_group_tag_values', *args, **kwargs)
 
+    def get_group_list_tag_value(self, *args, **kwargs):
+        return self._call_one_backend('get_group_list_tag_value', *args, **kwargs)
+
     def delete_tag_key(self, *args, **kwargs):
         return self._call_all_backends('delete_tag_key', *args, **kwargs)
 
