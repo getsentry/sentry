@@ -176,7 +176,7 @@ const ProjectReleases = createReactClass({
           <div className="col-sm-5 release-search">
             <SearchBar
               defaultQuery=""
-              placeholder={t('Search for a release.')}
+              placeholder={t('Search for a release')}
               query={this.state.query}
               onSearch={this.onSearch}
             />
