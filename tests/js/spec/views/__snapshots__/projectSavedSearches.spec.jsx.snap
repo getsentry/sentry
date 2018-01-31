@@ -28,7 +28,7 @@ exports[`ProjectSavedSearches renders 1`] = `
   flex: 1;
 }
 
-.glamor-61 {
+.glamor-59 {
   background: #fff;
   border: 1px solid;
   margin-bottom: 30px;
@@ -38,9 +38,10 @@ exports[`ProjectSavedSearches renders 1`] = `
 .glamor-25 {
   border-bottom: 1px solid;
   border-radius: 0 0;
-  background: padding:15px 0;
   text-transform: uppercase;
   font-size: 13px;
+  line-height: 1;
+  padding: 15px 0;
 }
 
 .glamor-21 {
@@ -189,7 +190,7 @@ exports[`ProjectSavedSearches renders 1`] = `
     </SettingsPageHeading>
     <Styled(div)>
       <div
-        className="glamor-61 glamor-62"
+        className="glamor-59 glamor-60"
       >
         <PanelHeader
           disablePadding={true}
@@ -316,9 +317,13 @@ exports[`ProjectSavedSearches renders 1`] = `
             </div>
           </Styled(div)>
         </PanelHeader>
-        <Styled(div)>
+        <PanelBody
+          direction="column"
+          disablePadding={true}
+          flex={false}
+        >
           <div
-            className="glamor-59 glamor-60"
+            className=""
           >
             <SavedSearchRow
               access={
@@ -504,64 +509,63 @@ exports[`ProjectSavedSearches renders 1`] = `
                                                 <span
                                                   className="icon icon-trash"
                                                 />
-                                                <Modal
-                                                  animation={false}
-                                                  autoFocus={true}
-                                                  backdrop={true}
-                                                  bsClass="modal"
-                                                  dialogComponentClass={[Function]}
-                                                  enforceFocus={true}
-                                                  key="confirm"
-                                                  keyboard={true}
-                                                  manager={
-                                                    ModalManager {
-                                                      "add": [Function],
-                                                      "containers": Array [],
-                                                      "data": Array [],
-                                                      "handleContainerOverflow": true,
-                                                      "hideSiblingNodes": true,
-                                                      "isTopModal": [Function],
-                                                      "modals": Array [],
-                                                      "remove": [Function],
-                                                    }
-                                                  }
-                                                  onHide={[Function]}
-                                                  renderBackdrop={[Function]}
-                                                  restoreFocus={true}
-                                                  show={false}
-                                                >
-                                                  <Modal
-                                                    autoFocus={true}
-                                                    backdrop={true}
-                                                    backdropClassName="modal-backdrop"
-                                                    containerClassName="modal-open"
-                                                    enforceFocus={true}
-                                                    keyboard={true}
-                                                    manager={
-                                                      ModalManager {
-                                                        "add": [Function],
-                                                        "containers": Array [],
-                                                        "data": Array [],
-                                                        "handleContainerOverflow": true,
-                                                        "hideSiblingNodes": true,
-                                                        "isTopModal": [Function],
-                                                        "modals": Array [],
-                                                        "remove": [Function],
-                                                      }
-                                                    }
-                                                    onEntering={[Function]}
-                                                    onExited={[Function]}
-                                                    onHide={[Function]}
-                                                    renderBackdrop={[Function]}
-                                                    restoreFocus={true}
-                                                    show={false}
-                                                  />
-                                                </Modal>
                                               </span>
                                             </div>
                                           </FlowLayout>
                                         </button>
                                       </Button>
+                                      <Modal
+                                        animation={false}
+                                        autoFocus={true}
+                                        backdrop={true}
+                                        bsClass="modal"
+                                        dialogComponentClass={[Function]}
+                                        enforceFocus={true}
+                                        keyboard={true}
+                                        manager={
+                                          ModalManager {
+                                            "add": [Function],
+                                            "containers": Array [],
+                                            "data": Array [],
+                                            "handleContainerOverflow": true,
+                                            "hideSiblingNodes": true,
+                                            "isTopModal": [Function],
+                                            "modals": Array [],
+                                            "remove": [Function],
+                                          }
+                                        }
+                                        onHide={[Function]}
+                                        renderBackdrop={[Function]}
+                                        restoreFocus={true}
+                                        show={false}
+                                      >
+                                        <Modal
+                                          autoFocus={true}
+                                          backdrop={true}
+                                          backdropClassName="modal-backdrop"
+                                          containerClassName="modal-open"
+                                          enforceFocus={true}
+                                          keyboard={true}
+                                          manager={
+                                            ModalManager {
+                                              "add": [Function],
+                                              "containers": Array [],
+                                              "data": Array [],
+                                              "handleContainerOverflow": true,
+                                              "hideSiblingNodes": true,
+                                              "isTopModal": [Function],
+                                              "modals": Array [],
+                                              "remove": [Function],
+                                            }
+                                          }
+                                          onEntering={[Function]}
+                                          onExited={[Function]}
+                                          onHide={[Function]}
+                                          renderBackdrop={[Function]}
+                                          restoreFocus={true}
+                                          show={false}
+                                        />
+                                      </Modal>
                                     </Confirm>
                                   </div>
                                 </Base>
@@ -759,64 +763,63 @@ exports[`ProjectSavedSearches renders 1`] = `
                                                 <span
                                                   className="icon icon-trash"
                                                 />
-                                                <Modal
-                                                  animation={false}
-                                                  autoFocus={true}
-                                                  backdrop={true}
-                                                  bsClass="modal"
-                                                  dialogComponentClass={[Function]}
-                                                  enforceFocus={true}
-                                                  key="confirm"
-                                                  keyboard={true}
-                                                  manager={
-                                                    ModalManager {
-                                                      "add": [Function],
-                                                      "containers": Array [],
-                                                      "data": Array [],
-                                                      "handleContainerOverflow": true,
-                                                      "hideSiblingNodes": true,
-                                                      "isTopModal": [Function],
-                                                      "modals": Array [],
-                                                      "remove": [Function],
-                                                    }
-                                                  }
-                                                  onHide={[Function]}
-                                                  renderBackdrop={[Function]}
-                                                  restoreFocus={true}
-                                                  show={false}
-                                                >
-                                                  <Modal
-                                                    autoFocus={true}
-                                                    backdrop={true}
-                                                    backdropClassName="modal-backdrop"
-                                                    containerClassName="modal-open"
-                                                    enforceFocus={true}
-                                                    keyboard={true}
-                                                    manager={
-                                                      ModalManager {
-                                                        "add": [Function],
-                                                        "containers": Array [],
-                                                        "data": Array [],
-                                                        "handleContainerOverflow": true,
-                                                        "hideSiblingNodes": true,
-                                                        "isTopModal": [Function],
-                                                        "modals": Array [],
-                                                        "remove": [Function],
-                                                      }
-                                                    }
-                                                    onEntering={[Function]}
-                                                    onExited={[Function]}
-                                                    onHide={[Function]}
-                                                    renderBackdrop={[Function]}
-                                                    restoreFocus={true}
-                                                    show={false}
-                                                  />
-                                                </Modal>
                                               </span>
                                             </div>
                                           </FlowLayout>
                                         </button>
                                       </Button>
+                                      <Modal
+                                        animation={false}
+                                        autoFocus={true}
+                                        backdrop={true}
+                                        bsClass="modal"
+                                        dialogComponentClass={[Function]}
+                                        enforceFocus={true}
+                                        keyboard={true}
+                                        manager={
+                                          ModalManager {
+                                            "add": [Function],
+                                            "containers": Array [],
+                                            "data": Array [],
+                                            "handleContainerOverflow": true,
+                                            "hideSiblingNodes": true,
+                                            "isTopModal": [Function],
+                                            "modals": Array [],
+                                            "remove": [Function],
+                                          }
+                                        }
+                                        onHide={[Function]}
+                                        renderBackdrop={[Function]}
+                                        restoreFocus={true}
+                                        show={false}
+                                      >
+                                        <Modal
+                                          autoFocus={true}
+                                          backdrop={true}
+                                          backdropClassName="modal-backdrop"
+                                          containerClassName="modal-open"
+                                          enforceFocus={true}
+                                          keyboard={true}
+                                          manager={
+                                            ModalManager {
+                                              "add": [Function],
+                                              "containers": Array [],
+                                              "data": Array [],
+                                              "handleContainerOverflow": true,
+                                              "hideSiblingNodes": true,
+                                              "isTopModal": [Function],
+                                              "modals": Array [],
+                                              "remove": [Function],
+                                            }
+                                          }
+                                          onEntering={[Function]}
+                                          onExited={[Function]}
+                                          onHide={[Function]}
+                                          renderBackdrop={[Function]}
+                                          restoreFocus={true}
+                                          show={false}
+                                        />
+                                      </Modal>
                                     </Confirm>
                                   </div>
                                 </Base>
@@ -831,7 +834,7 @@ exports[`ProjectSavedSearches renders 1`] = `
               </Row>
             </SavedSearchRow>
           </div>
-        </Styled(div)>
+        </PanelBody>
       </div>
     </Styled(div)>
   </div>
