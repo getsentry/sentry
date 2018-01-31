@@ -750,9 +750,20 @@ class Stacktrace(Interface):
             if len(frames) / float(total_frames) < 0.10:
                 return []
 
+        if not frames:
+            return []
+
         output = []
-        for frame in frames:
-            output.extend(frame.get_hash(platform))
+
+        # stacktraces that only differ by the number of recursive calls should
+        # hash the same, so we squash recursive calls by comparing each frame
+        # to the previous frame
+        output.extend(frames[0].get_hash(platform))
+        prev_frame = frames[0]
+        for frame in frames[1:]:
+            if not frame == prev_frame:
+                output.extend(frame.get_hash(platform))
+            prev_frame = frame
         return output
 
     def to_string(self, event, is_public=False, **kwargs):
