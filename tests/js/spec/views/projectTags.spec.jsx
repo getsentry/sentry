@@ -6,17 +6,16 @@ import {mount} from 'enzyme';
 import ProjectTags from 'app/views/projectTags';
 
 describe('ProjectTags', function() {
-  let org, project, tags, wrapper;
+  let org, project, wrapper;
 
   beforeEach(function() {
     org = TestStubs.Organization();
     project = TestStubs.Project();
-    tags = TestStubs.Tags();
 
     MockApiClient.addMockResponse({
       url: `/projects/${org.slug}/${project.slug}/tags/`,
       method: 'GET',
-      body: tags,
+      body: TestStubs.Tags(),
     });
     MockApiClient.addMockResponse({
       url: `/projects/${org.slug}/${project.slug}/tags/browser/`,
