@@ -27,6 +27,12 @@ const SupportDrawer = createReactClass({
   handleInput(evt) {
     evt.preventDefault();
     let term = encodeURIComponent(evt.currentTarget.value);
+    this.setState({
+      inputVal: evt.currentTarget.value,
+    });
+    if (term == '') {
+      return;
+    }
     $.get(
       `https://rigidsearch.getsentry.net/api/search?q=${term}&page=1&section=hosted`,
       data => {
@@ -39,9 +45,6 @@ const SupportDrawer = createReactClass({
         this.setState({helpcenterResults: data.results});
       }
     );
-    this.setState({
-      inputVal: evt.currentTarget.value,
-    });
   },
 
   renderDocsResults() {
@@ -109,7 +112,7 @@ const SupportDrawer = createReactClass({
           />
           {this.renderDropdownResults()}
         </form>
-        {HookStore.get('assistant:support-button').map(cb => cb())}
+        {HookStore.get('assistant:support-button').map(cb => cb(this.state.inputVal))}
       </div>
     );
   },
