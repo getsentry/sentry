@@ -20,6 +20,7 @@ export default class Form extends React.Component {
     extraButton: PropTypes.element,
     initialData: PropTypes.object,
     requireChanges: PropTypes.bool,
+    hideFooter: PropTypes.bool,
     model: PropTypes.object,
     allowUndo: PropTypes.bool,
     saveOnBlur: PropTypes.bool,
@@ -116,8 +117,9 @@ export default class Form extends React.Component {
       extraButton,
       requireChanges,
       saveOnBlur,
+      hideFooter,
     } = this.props;
-    let shouldShowFooter = !saveOnBlur;
+    let shouldShowFooter = typeof hideFooter !== 'undefined' ? !hideFooter : !saveOnBlur;
 
     return (
       <form onSubmit={this.onSubmit} className={className}>

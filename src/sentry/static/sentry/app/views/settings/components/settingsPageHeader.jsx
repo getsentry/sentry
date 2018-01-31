@@ -5,7 +5,7 @@ import {Flex} from 'grid-emotion';
 
 class SettingsPageHeading extends React.Component {
   static propTypes = {
-    title: PropTypes.string,
+    title: PropTypes.node,
     action: PropTypes.node,
     tabs: PropTypes.node,
   };

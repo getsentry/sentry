@@ -51,12 +51,11 @@ class AsyncComponent extends React.Component {
     return state;
   }
 
-  remountComponent() {
+  remountComponent = () => {
     this.setState(this.getDefaultState(), this.fetchData);
-  }
+  };
 
-  // TODO(dcramer): we'd like to support multiple initial api requests
-  fetchData() {
+  fetchData = () => {
     let endpoints = this.getEndpoints();
 
     if (!endpoints.length) {
@@ -117,7 +116,7 @@ class AsyncComponent extends React.Component {
         },
       });
     });
-  }
+  };
 
   // DEPRECATED: use getEndpoints()
   getEndpointParams() {
