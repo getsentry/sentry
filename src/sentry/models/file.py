@@ -254,32 +254,6 @@ class File(Model):
             self.save()
         return results
 
-    def assemble_from_file_blob_ids(self, file_blob_ids, checksum, commit=True):
-        """
-        This creates a file, from file blobs
-        """
-        file_blobs = FileBlob.objects.filter(id__in=file_blob_ids).all()
-        file_blobs = sorted(file_blobs, key=lambda blob: file_blob_ids.index(blob.id))
-
-        new_checksum = sha1(b'')
-        offset = 0
-        for blob in file_blobs:
-            offset += blob.size
-            FileBlobIndex.objects.create(
-                file=self,
-                blob=blob,
-                offset=offset,
-            )
-            for chunk in blob.getfile().chunks():
-                new_checksum.update(chunk)
-
-        self.size = offset
-        self.checksum = new_checksum.hexdigest()
-        # TODO(hazat): If checksum missmatch
-        metrics.timing('filestore.file-size', offset)
-        if commit:
-            self.save()
-
 
 class FileBlobIndex(Model):
     __core__ = False
