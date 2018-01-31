@@ -761,7 +761,7 @@ class Stacktrace(Interface):
         output.extend(frames[0].get_hash(platform))
         prev_frame = frames[0]
         for frame in frames[1:]:
-            if not frame == prev_frame:
+            if frame != prev_frame:
                 output.extend(frame.get_hash(platform))
             prev_frame = frame
         return output
