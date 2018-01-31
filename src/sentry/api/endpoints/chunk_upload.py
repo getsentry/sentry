@@ -10,9 +10,7 @@ from sentry.models.file import DEFAULT_BLOB_SIZE
 from sentry.api.base import Endpoint
 from sentry.api.bases.project import ProjectReleasePermission
 
-UPLOAD_ENDPOINT_SETTING = options.get('system.upload-url-prefix')
-UPLOAD_ENDPOINT = UPLOAD_ENDPOINT_SETTING if UPLOAD_ENDPOINT_SETTING else options.get(
-    'system.url-prefix')
+
 MAX_CHUNKS_PER_REQUEST = 16
 MAX_CONCURRENCY = 4
 HASH_ALGORITHM = 'sha1'
@@ -22,9 +20,14 @@ class ChunkUploadEndpoint(Endpoint):
     permission_classes = (ProjectReleasePermission, )
 
     def get(self, request):
+        endpoint = options.get('system.upload-url-prefix')
+        # We fallback to default system url if config is not set
+        if len(endpoint) == 0:
+            endpoint = options.get('system.url-prefix')
+
         return Response(
             {
-                'url': UPLOAD_ENDPOINT,
+                'url': endpoint,
                 'chunkSize': DEFAULT_BLOB_SIZE,
                 'chunksPerRequest': MAX_CHUNKS_PER_REQUEST,
                 'concurrency': MAX_CONCURRENCY,

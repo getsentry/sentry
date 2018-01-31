@@ -5,11 +5,12 @@ from hashlib import sha1
 from django.core.urlresolvers import reverse
 from django.core.files.uploadedfile import SimpleUploadedFile
 
+from sentry import options
 from sentry.models import ApiToken, FileBlob
 from sentry.models.file import DEFAULT_BLOB_SIZE
 from sentry.testutils import APITestCase
 from sentry.api.endpoints.chunk_upload import (MAX_CHUNKS_PER_REQUEST, MAX_CONCURRENCY,
-                                               HASH_ALGORITHM, UPLOAD_ENDPOINT)
+                                               HASH_ALGORITHM)
 
 
 class ChunkUploadTest(APITestCase):
@@ -18,6 +19,7 @@ class ChunkUploadTest(APITestCase):
             user=self.user,
             scope_list=['project:releases'],
         )
+
         url = reverse('sentry-api-0-chunk-upload')
         response = self.client.get(
             url,
@@ -25,12 +27,26 @@ class ChunkUploadTest(APITestCase):
             format='json'
         )
 
+        endpoint = options.get('system.upload-url-prefix')
+        # We fallback to default system url if config is not set
+        if len(endpoint) == 0:
+            endpoint = options.get('system.url-prefix')
+
         assert response.status_code == 200, response.content
         assert response.data['chunkSize'] == DEFAULT_BLOB_SIZE
         assert response.data['chunksPerRequest'] == MAX_CHUNKS_PER_REQUEST
         assert response.data['concurrency'] == MAX_CONCURRENCY
         assert response.data['hashAlgorithm'] == HASH_ALGORITHM
-        assert response.data['url'] == UPLOAD_ENDPOINT
+        assert response.data['url'] == options.get('system.url-prefix')
+
+        options.set('system.upload-url-prefix', 'test')
+        response = self.client.get(
+            url,
+            HTTP_AUTHORIZATION='Bearer {}'.format(token.token),
+            format='json'
+        )
+
+        assert response.data['url'] == options.get('system.upload-url-prefix')
 
     def test_wrong_api_token(self):
         token = ApiToken.objects.create(
