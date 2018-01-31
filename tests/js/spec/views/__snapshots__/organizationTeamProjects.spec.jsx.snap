@@ -1,7 +1,7 @@
 // Jest Snapshot v1, https://goo.gl/fbAQLP
 
 exports[`OrganizationTeamProjects Should render 1`] = `
-.glamor-31 {
+.glamor-29 {
   text-align: right;
 }
 
@@ -37,7 +37,7 @@ exports[`OrganizationTeamProjects Should render 1`] = `
   margin: 0;
 }
 
-.glamor-32 {
+.glamor-30 {
   box-sizing: border-box;
   display: -webkit-box;
   display: -webkit-flex;
@@ -50,11 +50,11 @@ exports[`OrganizationTeamProjects Should render 1`] = `
   border-bottom: 1px solid;
 }
 
-.glamor-32:last-child {
+.glamor-30:last-child {
   border: 0;
 }
 
-.glamor-27 {
+.glamor-25 {
   box-sizing: border-box;
   width: 50%;
   padding: 16px;
@@ -67,17 +67,13 @@ exports[`OrganizationTeamProjects Should render 1`] = `
   color: #645574;
 }
 
-.glamor-25 {
-  margin: 0;
-}
-
 .glamor-20 {
   border: none;
   background-color: inherit;
   padding: 0;
 }
 
-.glamor-29 {
+.glamor-27 {
   box-sizing: border-box;
   width: 50%;
   padding: 16px;
@@ -93,20 +89,20 @@ exports[`OrganizationTeamProjects Should render 1`] = `
   }
 >
   <div>
-    <Styled(div)>
+    <Panel>
       <div
         className="glamor-9 glamor-10"
       >
         <PanelHeader>
-          <Styled(div)>
+          <StyledPanelHeader>
             <div
               className="glamor-7 glamor-8"
             >
-              <Styled(Component)>
+              <StyledPanelHeading>
                 <Component
                   className="glamor-3 glamor-0"
                 >
-                  <Styled(div)
+                  <_default
                     className="glamor-3 glamor-0"
                   >
                     <div
@@ -114,11 +110,11 @@ exports[`OrganizationTeamProjects Should render 1`] = `
                     >
                       Associated Projects:
                     </div>
-                  </Styled(div)>
+                  </_default>
                 </Component>
-              </Styled(Component)>
+              </StyledPanelHeading>
             </div>
-          </Styled(div)>
+          </StyledPanelHeader>
         </PanelHeader>
         <PanelBody
           direction="column"
@@ -130,21 +126,21 @@ exports[`OrganizationTeamProjects Should render 1`] = `
           />
         </PanelBody>
       </div>
-    </Styled(div)>
-    <Styled(div)>
+    </Panel>
+    <Panel>
       <div
         className="glamor-9 glamor-10"
       >
         <PanelHeader>
-          <Styled(div)>
+          <StyledPanelHeader>
             <div
               className="glamor-7 glamor-8"
             >
-              <Styled(Component)>
+              <StyledPanelHeading>
                 <Component
                   className="glamor-3 glamor-0"
                 >
-                  <Styled(div)
+                  <_default
                     className="glamor-3 glamor-0"
                   >
                     <div
@@ -152,11 +148,11 @@ exports[`OrganizationTeamProjects Should render 1`] = `
                     >
                       Other Projects:
                     </div>
-                  </Styled(div)>
+                  </_default>
                 </Component>
-              </Styled(Component)>
+              </StyledPanelHeading>
             </div>
-          </Styled(div)>
+          </StyledPanelHeader>
         </PanelHeader>
         <PanelBody
           direction="column"
@@ -166,16 +162,16 @@ exports[`OrganizationTeamProjects Should render 1`] = `
           <div
             className=""
           >
-            <Styled(Base)
+            <_default
               align="center"
               key="2"
             >
               <Base
                 align="center"
-                className="glamor-32 glamor-33"
+                className="glamor-30 glamor-31"
               >
                 <div
-                  className="glamor-32 glamor-33"
+                  className="glamor-30 glamor-31"
                   is={null}
                 >
                   <Box
@@ -184,13 +180,13 @@ exports[`OrganizationTeamProjects Should render 1`] = `
                     w={0.5}
                   >
                     <Base
-                      className="glamor-27"
+                      className="glamor-25"
                       flex="1"
                       p={2}
                       w={0.5}
                     >
                       <div
-                        className="glamor-27"
+                        className="glamor-25"
                         is={null}
                       >
                         <ProjectItem
@@ -234,113 +230,107 @@ exports[`OrganizationTeamProjects Should render 1`] = `
                             className={null}
                             key="2"
                           >
-                            <Styled(h5)>
-                              <h5
-                                className="glamor-25 glamor-26"
+                            <Tooltip
+                              title="Add to bookmarks"
+                            >
+                              <InlineButton
+                                className="tip"
+                                onClick={[Function]}
+                                title="Add to bookmarks"
                               >
-                                <Tooltip
+                                <button
+                                  className="tip glamor-20 glamor-21"
+                                  onClick={[Function]}
                                   title="Add to bookmarks"
                                 >
-                                  <Styled(button)
-                                    className="tip"
-                                    onClick={[Function]}
-                                    title="Add to bookmarks"
+                                  <span
+                                    className="icon-star-outline bookmark"
+                                  />
+                                </button>
+                              </InlineButton>
+                            </Tooltip>
+                            <Link
+                              className="glamor-22"
+                              to="/settings/organization/org-slug/project/project-slug/"
+                            >
+                              <Link
+                                className="glamor-22"
+                                onlyActiveOnIndex={false}
+                                style={Object {}}
+                                to="/settings/organization/org-slug/project/project-slug/"
+                              >
+                                <a
+                                  className="glamor-22"
+                                  onClick={[Function]}
+                                  style={Object {}}
+                                >
+                                  <ProjectLabel
+                                    organization={
+                                      Object {
+                                        "access": Array [
+                                          "org:read",
+                                          "org:write",
+                                          "org:admin",
+                                          "project:read",
+                                          "project:write",
+                                          "project:admin",
+                                          "team:read",
+                                          "team:write",
+                                          "team:admin",
+                                        ],
+                                        "features": Array [],
+                                        "id": "3",
+                                        "name": "Organization Name",
+                                        "onboardingTasks": Array [],
+                                        "slug": "org-slug",
+                                        "status": Object {
+                                          "id": "active",
+                                          "name": "active",
+                                        },
+                                        "teams": Array [],
+                                      }
+                                    }
+                                    project={
+                                      Object {
+                                        "digestsMaxDelay": 60,
+                                        "digestsMinDelay": 5,
+                                        "id": "2",
+                                        "name": "Project Name",
+                                        "slug": "project-slug",
+                                        "subjectTemplate": "[$project] \${tag:level}: $title",
+                                      }
+                                    }
                                   >
-                                    <button
-                                      className="tip glamor-20 glamor-21"
-                                      onClick={[Function]}
-                                      title="Add to bookmarks"
+                                    <span
+                                      className="project-label"
                                     >
                                       <span
-                                        className="icon-star-outline bookmark"
-                                      />
-                                    </button>
-                                  </Styled(button)>
-                                </Tooltip>
-                                <Link
-                                  className="glamor-22"
-                                  to="/settings/organization/org-slug/project/project-slug/"
-                                >
-                                  <Link
-                                    className="glamor-22"
-                                    onlyActiveOnIndex={false}
-                                    style={Object {}}
-                                    to="/settings/organization/org-slug/project/project-slug/"
-                                  >
-                                    <a
-                                      className="glamor-22"
-                                      onClick={[Function]}
-                                      style={Object {}}
-                                    >
-                                      <ProjectLabel
-                                        organization={
-                                          Object {
-                                            "access": Array [
-                                              "org:read",
-                                              "org:write",
-                                              "org:admin",
-                                              "project:read",
-                                              "project:write",
-                                              "project:admin",
-                                              "team:read",
-                                              "team:write",
-                                              "team:admin",
-                                            ],
-                                            "features": Array [],
-                                            "id": "3",
-                                            "name": "Organization Name",
-                                            "onboardingTasks": Array [],
-                                            "slug": "org-slug",
-                                            "status": Object {
-                                              "id": "active",
-                                              "name": "active",
-                                            },
-                                            "teams": Array [],
-                                          }
-                                        }
-                                        project={
-                                          Object {
-                                            "digestsMaxDelay": 60,
-                                            "digestsMinDelay": 5,
-                                            "id": "2",
-                                            "name": "Project Name",
-                                            "slug": "project-slug",
-                                            "subjectTemplate": "[$project] \${tag:level}: $title",
-                                          }
-                                        }
+                                        className="project-name"
                                       >
-                                        <span
-                                          className="project-label"
-                                        >
-                                          <span
-                                            className="project-name"
-                                          >
-                                            Project Name
-                                          </span>
-                                        </span>
-                                      </ProjectLabel>
-                                    </a>
-                                  </Link>
-                                </Link>
-                              </h5>
-                            </Styled(h5)>
+                                        Project Name
+                                      </span>
+                                    </span>
+                                  </ProjectLabel>
+                                </a>
+                              </Link>
+                            </Link>
                           </div>
                         </ProjectItem>
                       </div>
                     </Base>
                   </Box>
                   <Box
-                    className="glamor-31"
+                    className="glamor-29"
                     p={2}
                     w={0.5}
                   >
                     <Base
-                      className="glamor-29"
+                      className="glamor-27"
                       p={2}
                       w={0.5}
                     >
                       <div
-                        className="glamor-29"
+                        className="glamor-27"
                         is={null}
                       >
                         <Button
@@ -374,11 +364,11 @@ exports[`OrganizationTeamProjects Should render 1`] = `
                   </Box>
                 </div>
               </Base>
-            </Styled(Base)>
+            </_default>
           </div>
         </PanelBody>
       </div>
-    </Styled(div)>
+    </Panel>
   </div>
 </TeamProjects>
 `;

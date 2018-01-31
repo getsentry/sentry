@@ -12,10 +12,6 @@ import Link from '../../../components/link';
 import ProjectLabel from '../../../components/projectLabel';
 import SentryTypes from '../../../proptypes';
 
-const Header = styled('h5')`
-  margin: 0;
-`;
-
 const InlineButton = styled('button')`
   color: ${p => p.theme.gray3};
   border: none;
@@ -69,23 +65,21 @@ const ProjectItem = createReactClass({
 
     return (
       <div key={project.id} className={isBookmarked ? 'isBookmarked' : null}>
-        <Header>
-          <Tooltip title={isBookmarked ? 'Remove from bookmarks' : 'Add to bookmarks'}>
-            <InlineButton onClick={() => this.handleToggleBookmark()}>
-              {isBookmarked ? (
-                <span className="icon-star-solid bookmark" />
-              ) : (
-                <span className="icon-star-outline bookmark" />
-              )}
-            </InlineButton>
-          </Tooltip>
-          <Link
-            to={`/settings/organization/${org.slug}/project/${project.slug}/`}
-            css={{color: theme.gray3}}
-          >
-            <ProjectLabel project={project} organization={this.props.organization} />
-          </Link>
-        </Header>
+        <Tooltip title={isBookmarked ? 'Remove from bookmarks' : 'Add to bookmarks'}>
+          <InlineButton onClick={() => this.handleToggleBookmark()}>
+            {isBookmarked ? (
+              <span className="icon-star-solid bookmark" />
+            ) : (
+              <span className="icon-star-outline bookmark" />
+            )}
+          </InlineButton>
+        </Tooltip>
+        <Link
+          to={`/settings/organization/${org.slug}/project/${project.slug}/`}
+          css={{color: theme.gray3}}
+        >
+          <ProjectLabel project={project} organization={this.props.organization} />
+        </Link>
       </div>
     );
   },

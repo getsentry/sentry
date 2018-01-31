@@ -1,11 +1,11 @@
 // Jest Snapshot v1, https://goo.gl/fbAQLP
 
 exports[`OrganizationProjectsView render() Should render the projects in the store 1`] = `
-.glamor-24 {
+.glamor-22 {
   width: 100%;
 }
 
-.glamor-26 {
+.glamor-24 {
   background: #fff;
   border: 1px solid;
   margin-bottom: 30px;
@@ -37,7 +37,7 @@ exports[`OrganizationProjectsView render() Should render the projects in the sto
   margin: 0;
 }
 
-.glamor-20 {
+.glamor-18 {
   box-sizing: border-box;
   display: -webkit-box;
   display: -webkit-flex;
@@ -50,11 +50,11 @@ exports[`OrganizationProjectsView render() Should render the projects in the sto
   border-bottom: 1px solid;
 }
 
-.glamor-20:last-child {
+.glamor-18:last-child {
   border: 0;
 }
 
-.glamor-16 {
+.glamor-14 {
   box-sizing: border-box;
   width: 50%;
   padding: 16px;
@@ -67,17 +67,13 @@ exports[`OrganizationProjectsView render() Should render the projects in the sto
   color: #645574;
 }
 
-.glamor-14 {
-  margin: 0;
-}
-
 .glamor-9 {
   border: none;
   background-color: inherit;
   padding: 0;
 }
 
-.glamor-18 {
+.glamor-16 {
   box-sizing: border-box;
   width: 50%;
   padding: 16px;
@@ -116,22 +112,22 @@ exports[`OrganizationProjectsView render() Should render the projects in the sto
         title="Organization Name Projects"
       >
         <div>
-          <Styled(div)
+          <Panel
             className="table table-no-top-border m-b-0"
           >
             <div
-              className="table table-no-top-border m-b-0 glamor-26 glamor-27"
+              className="table table-no-top-border m-b-0 glamor-24 glamor-25"
             >
               <PanelHeader>
-                <Styled(div)>
+                <StyledPanelHeader>
                   <div
                     className="glamor-7 glamor-8"
                   >
-                    <Styled(Component)>
+                    <StyledPanelHeading>
                       <Component
                         className="glamor-3 glamor-0"
                       >
-                        <Styled(div)
+                        <_default
                           className="glamor-3 glamor-0"
                         >
                           <div
@@ -139,31 +135,31 @@ exports[`OrganizationProjectsView render() Should render the projects in the sto
                           >
                             Projects
                           </div>
-                        </Styled(div)>
+                        </_default>
                       </Component>
-                    </Styled(Component)>
+                    </StyledPanelHeading>
                   </div>
-                </Styled(div)>
+                </StyledPanelHeader>
               </PanelHeader>
               <PanelBody
-                className="glamor-24"
+                className="glamor-22"
                 direction="column"
                 disablePadding={true}
                 flex={false}
               >
                 <div
-                  className="glamor-24"
+                  className="glamor-22"
                 >
-                  <Styled(Base)
+                  <_default
                     align="center"
                     key="2"
                   >
                     <Base
                       align="center"
-                      className="glamor-20 glamor-21"
+                      className="glamor-18 glamor-19"
                     >
                       <div
-                        className="glamor-20 glamor-21"
+                        className="glamor-18 glamor-19"
                         is={null}
                       >
                         <Box
@@ -172,13 +168,13 @@ exports[`OrganizationProjectsView render() Should render the projects in the sto
                           w={0.5}
                         >
                           <Base
-                            className="glamor-16"
+                            className="glamor-14"
                             flex="1"
                             p={2}
                             w={0.5}
                           >
                             <div
-                              className="glamor-16"
+                              className="glamor-14"
                               is={null}
                             >
                               <ProjectItem
@@ -222,96 +218,90 @@ exports[`OrganizationProjectsView render() Should render the projects in the sto
                                   className={null}
                                   key="2"
                                 >
-                                  <Styled(h5)>
-                                    <h5
-                                      className="glamor-14 glamor-15"
+                                  <Tooltip
+                                    title="Add to bookmarks"
+                                  >
+                                    <InlineButton
+                                      className="tip"
+                                      onClick={[Function]}
+                                      title="Add to bookmarks"
                                     >
-                                      <Tooltip
+                                      <button
+                                        className="tip glamor-9 glamor-10"
+                                        onClick={[Function]}
                                         title="Add to bookmarks"
                                       >
-                                        <Styled(button)
-                                          className="tip"
-                                          onClick={[Function]}
-                                          title="Add to bookmarks"
+                                        <span
+                                          className="icon-star-outline bookmark"
+                                        />
+                                      </button>
+                                    </InlineButton>
+                                  </Tooltip>
+                                  <Link
+                                    className="glamor-11"
+                                    to="/settings/organization/org-slug/project/project-slug/"
+                                  >
+                                    <Link
+                                      className="glamor-11"
+                                      onlyActiveOnIndex={false}
+                                      style={Object {}}
+                                      to="/settings/organization/org-slug/project/project-slug/"
+                                    >
+                                      <a
+                                        className="glamor-11"
+                                        onClick={[Function]}
+                                        style={Object {}}
+                                      >
+                                        <ProjectLabel
+                                          organization={
+                                            Object {
+                                              "access": Array [
+                                                "org:read",
+                                                "org:write",
+                                                "org:admin",
+                                                "project:read",
+                                                "project:write",
+                                                "project:admin",
+                                                "team:read",
+                                                "team:write",
+                                                "team:admin",
+                                              ],
+                                              "features": Array [],
+                                              "id": "3",
+                                              "name": "Organization Name",
+                                              "onboardingTasks": Array [],
+                                              "slug": "org-slug",
+                                              "status": Object {
+                                                "id": "active",
+                                                "name": "active",
+                                              },
+                                              "teams": Array [],
+                                            }
+                                          }
+                                          project={
+                                            Object {
+                                              "digestsMaxDelay": 60,
+                                              "digestsMinDelay": 5,
+                                              "id": "2",
+                                              "name": "Project Name",
+                                              "slug": "project-slug",
+                                              "subjectTemplate": "[$project] \${tag:level}: $title",
+                                            }
+                                          }
                                         >
-                                          <button
-                                            className="tip glamor-9 glamor-10"
-                                            onClick={[Function]}
-                                            title="Add to bookmarks"
+                                          <span
+                                            className="project-label"
                                           >
                                             <span
-                                              className="icon-star-outline bookmark"
-                                            />
-                                          </button>
-                                        </Styled(button)>
-                                      </Tooltip>
-                                      <Link
-                                        className="glamor-11"
-                                        to="/settings/organization/org-slug/project/project-slug/"
-                                      >
-                                        <Link
-                                          className="glamor-11"
-                                          onlyActiveOnIndex={false}
-                                          style={Object {}}
-                                          to="/settings/organization/org-slug/project/project-slug/"
-                                        >
-                                          <a
-                                            className="glamor-11"
-                                            onClick={[Function]}
-                                            style={Object {}}
-                                          >
-                                            <ProjectLabel
-                                              organization={
-                                                Object {
-                                                  "access": Array [
-                                                    "org:read",
-                                                    "org:write",
-                                                    "org:admin",
-                                                    "project:read",
-                                                    "project:write",
-                                                    "project:admin",
-                                                    "team:read",
-                                                    "team:write",
-                                                    "team:admin",
-                                                  ],
-                                                  "features": Array [],
-                                                  "id": "3",
-                                                  "name": "Organization Name",
-                                                  "onboardingTasks": Array [],
-                                                  "slug": "org-slug",
-                                                  "status": Object {
-                                                    "id": "active",
-                                                    "name": "active",
-                                                  },
-                                                  "teams": Array [],
-                                                }
-                                              }
-                                              project={
-                                                Object {
-                                                  "digestsMaxDelay": 60,
-                                                  "digestsMinDelay": 5,
-                                                  "id": "2",
-                                                  "name": "Project Name",
-                                                  "slug": "project-slug",
-                                                  "subjectTemplate": "[$project] \${tag:level}: $title",
-                                                }
-                                              }
+                                              className="project-name"
                                             >
-                                              <span
-                                                className="project-label"
-                                              >
-                                                <span
-                                                  className="project-name"
-                                                >
-                                                  Project Name
-                                                </span>
-                                              </span>
-                                            </ProjectLabel>
-                                          </a>
-                                        </Link>
-                                      </Link>
-                                    </h5>
-                                  </Styled(h5)>
+                                              Project Name
+                                            </span>
+                                          </span>
+                                        </ProjectLabel>
+                                      </a>
+                                    </Link>
+                                  </Link>
                                 </div>
                               </ProjectItem>
                             </div>
@@ -322,12 +312,12 @@ exports[`OrganizationProjectsView render() Should render the projects in the sto
                           w={0.5}
                         >
                           <Base
-                            className="glamor-18"
+                            className="glamor-16"
                             p={2}
                             w={0.5}
                           >
                             <div
-                              className="glamor-18"
+                              className="glamor-16"
                               is={null}
                             >
                               <ProjectListItem
@@ -350,11 +340,11 @@ exports[`OrganizationProjectsView render() Should render the projects in the sto
                         </Box>
                       </div>
                     </Base>
-                  </Styled(Base)>
+                  </_default>
                 </div>
               </PanelBody>
             </div>
-          </Styled(div)>
+          </Panel>
         </div>
       </DocumentTitle>
     </SideEffect(DocumentTitle)>
