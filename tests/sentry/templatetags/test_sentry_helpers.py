@@ -27,6 +27,8 @@ def test_system_origin():
         ("{% absolute_uri '/foo/{}/' xxx %}", 'http://testserver/foo//'),
         # String substitution with multple vars
         ("{% absolute_uri '/{}/{}/' who desc %}", 'http://testserver/matt/awesome/'),
+        # Using a variable as the format string
+        ("{% absolute_uri link who %}", 'http://testserver/matt/'),
         # Empty tag, as other var
         ("{% absolute_uri as uri %}hello {{ uri }}!", 'hello http://testserver!'),
         # Basic, as other var
@@ -37,12 +39,16 @@ def test_system_origin():
         ("{% absolute_uri '/{}/' who as uri %}hello {{ uri }}!", 'hello http://testserver/matt/!'),
         # Mix it all up
         ("{% absolute_uri '/{}/{}/{}/{}/' who 'xxx' nope desc as uri %}hello {{ uri }}!",
-         'hello http://testserver/matt/xxx//awesome/!')
+         'hello http://testserver/matt/xxx//awesome/!'),
     )
 )
 def test_absolute_uri(input, output):
     prefix = '{% load sentry_helpers %}'
     result = Template(prefix + input).render(
-        Context({'who': 'matt', 'desc': 'awesome'})
+        Context({
+            'who': 'matt',
+            'desc': 'awesome',
+            'link': '/{}/',
+        })
     ).strip()
     assert result == output
