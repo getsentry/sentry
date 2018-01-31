@@ -55,7 +55,6 @@ class AsyncComponent extends React.Component {
     this.setState(this.getDefaultState(), this.fetchData);
   };
 
-  // TODO(dcramer): we'd like to support multiple initial api requests
   fetchData = () => {
     let endpoints = this.getEndpoints();
 
