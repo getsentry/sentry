@@ -170,22 +170,39 @@ exports[`ProjectTags renders 1`] = `
           <div
             className="glamor-6 glamor-7"
           >
-            Each event in Sentry may be annotated with various tags (key and value pairs). Learn how to
-             
-            <ExternalLink
-              href="https://docs.sentry.io/hosted/learn/context/"
-              rel="noreferrer noopener"
-              target="_blank"
+            <span
+              key="5"
             >
-              <a
+              <span
+                key="0"
+              >
+                Each event in Sentry may be annotated with various tags (key and value pairs).
+          Learn how to 
+              </span>
+              <ExternalLink
                 href="https://docs.sentry.io/hosted/learn/context/"
+                key="2"
                 rel="noreferrer noopener"
                 target="_blank"
               >
-                add custom tags
-              </a>
-            </ExternalLink>
-            .
+                <a
+                  href="https://docs.sentry.io/hosted/learn/context/"
+                  rel="noreferrer noopener"
+                  target="_blank"
+                >
+                  <span
+                    key="1"
+                  >
+                    add custom tags
+                  </span>
+                </a>
+              </ExternalLink>
+              <span
+                key="3"
+              >
+                .
+              </span>
+            </span>
           </div>
         </Styled(div)>
         <Styled(div)>

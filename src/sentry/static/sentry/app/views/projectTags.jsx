@@ -2,8 +2,9 @@ import {Box, Flex} from 'grid-emotion';
 import React from 'react';
 import styled from 'react-emotion';
 
-import {t} from '../locale';
+import {t, tct} from '../locale';
 import AsyncView from './asyncView';
+import EmptyMessage from './settings/components/emptyMessage';
 import ExternalLink from '../components/externalLink';
 import LinkWithConfirmation from '../components/linkWithConfirmation';
 import Panel from './settings/components/panel';
@@ -60,16 +61,20 @@ export default class ProjectTags extends AsyncView {
   }
 
   renderBody() {
+    let {tags} = this.state;
+    let isEmpty = !tags || tags.length === 0;
+
     return (
       <div>
         <SettingsPageHeader title={t('Tags')} />
         <TextBlock>
-          Each event in Sentry may be annotated with various tags (key and value pairs).
-          Learn how to{' '}
-          <ExternalLink href="https://docs.sentry.io/hosted/learn/context/">
-            add custom tags
-          </ExternalLink>
-          .
+          {tct(
+            `Each event in Sentry may be annotated with various tags (key and value pairs).
+          Learn how to [link:add custom tags].`,
+            {
+              link: <ExternalLink href="https://docs.sentry.io/hosted/learn/context/" />,
+            }
+          )}
         </TextBlock>
 
         <Panel>
@@ -80,25 +85,36 @@ export default class ProjectTags extends AsyncView {
           </PanelHeader>
 
           <PanelBody>
-            {this.state.tags.map(({key, name, canDelete}, idx) => {
-              return (
-                <Row p={0} key={key} className="ref-tag-row">
-                  <Box align="flex-end" flex="1" p={2}>
-                    <span>{name}</span>
-                    <Description>{key}</Description>
-                  </Box>
-                  <Flex align="center" p={2}>
-                    {canDelete ? (
-                      this.renderLink(key, canDelete, idx)
-                    ) : (
-                      <Tooltip title={t('This tag cannot be deleted.')}>
-                        <span>{this.renderLink(key, canDelete, idx)}</span>
-                      </Tooltip>
-                    )}
-                  </Flex>
-                </Row>
-              );
-            })}
+            {isEmpty && (
+              <EmptyMessage>
+                {tct('There are no tags, [link:learn to add tags]', {
+                  link: (
+                    <ExternalLink href="https://docs.sentry.io/hosted/learn/context/" />
+                  ),
+                })}
+              </EmptyMessage>
+            )}
+
+            {!isEmpty &&
+              tags.map(({key, name, canDelete}, idx) => {
+                return (
+                  <Row p={0} key={key} className="ref-tag-row">
+                    <Box align="flex-end" flex="1" p={2}>
+                      <span>{name}</span>
+                      <Description>{key}</Description>
+                    </Box>
+                    <Flex align="center" p={2}>
+                      {canDelete ? (
+                        this.renderLink(key, canDelete, idx)
+                      ) : (
+                        <Tooltip title={t('This tag cannot be deleted.')}>
+                          <span>{this.renderLink(key, canDelete, idx)}</span>
+                        </Tooltip>
+                      )}
+                    </Flex>
+                  </Row>
+                );
+              })}
           </PanelBody>
         </Panel>
       </div>

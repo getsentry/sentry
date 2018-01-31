@@ -12,6 +12,7 @@ describe('ProjectTags', function() {
     org = TestStubs.Organization();
     project = TestStubs.Project();
 
+    MockApiClient.clearMockResponses();
     MockApiClient.addMockResponse({
       url: `/projects/${org.slug}/${project.slug}/tags/`,
       method: 'GET',
@@ -22,11 +23,26 @@ describe('ProjectTags', function() {
       method: 'DELETE',
     });
 
-    wrapper = mount(<ProjectTags params={{orgId: org.slug, projectId: project.slug}} />, {
-      context: {
-        router: TestStubs.router(),
-      },
+    wrapper = mount(
+      <ProjectTags params={{orgId: org.slug, projectId: project.slug}} />,
+      TestStubs.routerContext()
+    );
+  });
+
+  it.skip('renders empty', function() {
+    MockApiClient.clearMockResponses();
+    MockApiClient.addMockResponse({
+      url: `/projects/${org.slug}/${project.slug}/tags/`,
+      method: 'GET',
+      body: [],
     });
+
+    wrapper = mount(
+      <ProjectTags params={{orgId: org.slug, projectId: project.slug}} />,
+      TestStubs.routerContext()
+    );
+
+    expect(wrapper.find('EmptyMessage')).toHaveLength(1);
   });
 
   it('renders', function() {
