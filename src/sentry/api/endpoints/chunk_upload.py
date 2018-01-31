@@ -4,13 +4,15 @@ from __future__ import absolute_import
 from rest_framework import status
 from rest_framework.response import Response
 
+from sentry import options
 from sentry.models import FileBlob
 from sentry.models.file import DEFAULT_BLOB_SIZE
 from sentry.api.base import Endpoint
 from sentry.api.bases.project import ProjectReleasePermission
 
-
-UPLOAD_ENDPOINT = 'https://sentry.io'
+UPLOAD_ENDPOINT_SETTING = options.get('system.upload-url-prefix')
+UPLOAD_ENDPOINT = UPLOAD_ENDPOINT_SETTING if UPLOAD_ENDPOINT_SETTING else options.get(
+    'system.url-prefix')
 MAX_CHUNKS_PER_REQUEST = 16
 MAX_CONCURRENCY = 4
 HASH_ALGORITHM = 'sha1'
