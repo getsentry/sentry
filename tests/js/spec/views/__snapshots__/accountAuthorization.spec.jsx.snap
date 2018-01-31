@@ -8,7 +8,7 @@ exports[`AccountAuthorizations renders empty 1`] = `
     <SettingsPageHeading
       title="Authorized Applications"
     />
-    <Styled(p)>
+    <Description>
       <span
         key="5"
       >
@@ -33,8 +33,8 @@ exports[`AccountAuthorizations renders empty 1`] = `
           .
         </span>
       </span>
-    </Styled(p)>
-    <Styled(div)>
+    </Description>
+    <Panel>
       <PanelHeader
         disablePadding={true}
       >
@@ -54,11 +54,11 @@ exports[`AccountAuthorizations renders empty 1`] = `
         disablePadding={true}
         flex={false}
       >
-        <Styled(div)>
+        <EmptyMessage>
           You haven't approved any third party applications.
-        </Styled(div)>
+        </EmptyMessage>
       </PanelBody>
-    </Styled(div)>
+    </Panel>
   </div>
 </SideEffect(DocumentTitle)>
 `;

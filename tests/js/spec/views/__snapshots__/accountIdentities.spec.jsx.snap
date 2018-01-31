@@ -8,7 +8,7 @@ exports[`AccountIdentities renders empty 1`] = `
     <SettingsPageHeading
       title="Identities"
     />
-    <Styled(div)>
+    <Panel>
       <PanelHeader
         disablePadding={true}
       >
@@ -23,11 +23,11 @@ exports[`AccountIdentities renders empty 1`] = `
         disablePadding={true}
         flex={false}
       >
-        <Styled(div)>
+        <EmptyMessage>
           There are no identities associated with this account
-        </Styled(div)>
+        </EmptyMessage>
       </PanelBody>
-    </Styled(div)>
+    </Panel>
   </div>
 </SideEffect(DocumentTitle)>
 `;
@@ -40,7 +40,7 @@ exports[`AccountIdentities renders list 1`] = `
     <SettingsPageHeading
       title="Identities"
     />
-    <Styled(div)>
+    <Panel>
       <PanelHeader
         disablePadding={true}
       >
@@ -79,7 +79,7 @@ exports[`AccountIdentities renders list 1`] = `
           </Box>
         </Row>
       </PanelBody>
-    </Styled(div)>
+    </Panel>
   </div>
 </SideEffect(DocumentTitle)>
 `;

@@ -2,13 +2,13 @@
 
 exports[`TextCopyInput renders 1`] = `
 <Flex>
-  <Styled(div)>
-    <Styled(Component)
+  <OverflowContainer>
+    <StyledInput
       onClick={[Function]}
       readOnly={true}
       value="Text to Copy"
     />
-  </Styled(div)>
+  </OverflowContainer>
   <Clipboard
     errorMessage="Error copying to clipboard"
     hideMessages={false}
@@ -17,7 +17,7 @@ exports[`TextCopyInput renders 1`] = `
     successMessage="Copied to clipboard"
     value="Text to Copy"
   >
-    <Styled(Button)
+    <StyledCopyButton
       onClick={[Function]}
       size="xsmall"
     >
@@ -25,7 +25,7 @@ exports[`TextCopyInput renders 1`] = `
         size="1.25em"
         src="icon-clipboard"
       />
-    </Styled(Button)>
+    </StyledCopyButton>
   </Clipboard>
 </Flex>
 `;

@@ -4,7 +4,7 @@ exports[`RadioGroup render() can select a different item 1`] = `
 <div
   role="radiogroup"
 >
-  <Styled(div)
+  <RadioLineItem
     aria-checked={false}
     index={0}
     key="0"
@@ -12,12 +12,12 @@ exports[`RadioGroup render() can select a different item 1`] = `
     role="radio"
     tabIndex={-1}
   >
-    <Styled(div) />
-    <Styled(div)>
+    <RadioLineButton />
+    <RadioLineText>
       Choice One
-    </Styled(div)>
-  </Styled(div)>
-  <Styled(div)
+    </RadioLineText>
+  </RadioLineItem>
+  <RadioLineItem
     aria-checked={false}
     index={1}
     key="1"
@@ -25,12 +25,12 @@ exports[`RadioGroup render() can select a different item 1`] = `
     role="radio"
     tabIndex={-1}
   >
-    <Styled(div) />
-    <Styled(div)>
+    <RadioLineButton />
+    <RadioLineText>
       Choice Two
-    </Styled(div)>
-  </Styled(div)>
-  <Styled(div)
+    </RadioLineText>
+  </RadioLineItem>
+  <RadioLineItem
     aria-checked={true}
     index={2}
     key="2"
@@ -38,15 +38,15 @@ exports[`RadioGroup render() can select a different item 1`] = `
     role="radio"
     tabIndex={0}
   >
-    <Styled(div)>
-      <Styled(div)
+    <RadioLineButton>
+      <RadioLineButtonFill
         animate={true}
       />
-    </Styled(div)>
-    <Styled(div)>
+    </RadioLineButton>
+    <RadioLineText>
       Choice Three
-    </Styled(div)>
-  </Styled(div)>
+    </RadioLineText>
+  </RadioLineItem>
 </div>
 `;
 
@@ -54,7 +54,7 @@ exports[`RadioGroup render() renders 1`] = `
 <div
   role="radiogroup"
 >
-  <Styled(div)
+  <RadioLineItem
     aria-checked={true}
     index={0}
     key="0"
@@ -62,16 +62,16 @@ exports[`RadioGroup render() renders 1`] = `
     role="radio"
     tabIndex={0}
   >
-    <Styled(div)>
-      <Styled(div)
+    <RadioLineButton>
+      <RadioLineButtonFill
         animate={true}
       />
-    </Styled(div)>
-    <Styled(div)>
+    </RadioLineButton>
+    <RadioLineText>
       Choice One
-    </Styled(div)>
-  </Styled(div)>
-  <Styled(div)
+    </RadioLineText>
+  </RadioLineItem>
+  <RadioLineItem
     aria-checked={false}
     index={1}
     key="1"
@@ -79,12 +79,12 @@ exports[`RadioGroup render() renders 1`] = `
     role="radio"
     tabIndex={-1}
   >
-    <Styled(div) />
-    <Styled(div)>
+    <RadioLineButton />
+    <RadioLineText>
       Choice Two
-    </Styled(div)>
-  </Styled(div)>
-  <Styled(div)
+    </RadioLineText>
+  </RadioLineItem>
+  <RadioLineItem
     aria-checked={false}
     index={2}
     key="2"
@@ -92,10 +92,10 @@ exports[`RadioGroup render() renders 1`] = `
     role="radio"
     tabIndex={-1}
   >
-    <Styled(div) />
-    <Styled(div)>
+    <RadioLineButton />
+    <RadioLineText>
       Choice Three
-    </Styled(div)>
-  </Styled(div)>
+    </RadioLineText>
+  </RadioLineItem>
 </div>
 `;
