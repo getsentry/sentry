@@ -187,7 +187,7 @@ exports[`OrganizationMembersView No Require Link does not have 2fa warning if us
           }
           title="Members"
         >
-          <Styled(div)>
+          <Wrapper>
             <div
               className="glamor-4 glamor-5"
             >
@@ -202,13 +202,13 @@ exports[`OrganizationMembersView No Require Link does not have 2fa warning if us
                     className="glamor-2"
                     is={null}
                   >
-                    <Styled(div)>
+                    <Title>
                       <div
                         className="glamor-0 glamor-1"
                       >
                         Members
                       </div>
-                    </Styled(div)>
+                    </Title>
                     <div>
                       <Button
                         disabled={false}
@@ -257,7 +257,7 @@ exports[`OrganizationMembersView No Require Link does not have 2fa warning if us
                 </Base>
               </Flex>
             </div>
-          </Styled(div)>
+          </Wrapper>
         </SettingsPageHeading>
         <OrganizationAccessRequests
           accessRequestBusy={Map {}}
@@ -265,24 +265,24 @@ exports[`OrganizationMembersView No Require Link does not have 2fa warning if us
           onDeny={[Function]}
           requestList={Array []}
         />
-        <Styled(div)>
+        <Panel>
           <div
             className="glamor-85 glamor-86"
           >
             <PanelHeader
               disablePadding={true}
             >
-              <Styled(div)
+              <StyledPanelHeader
                 disablePadding={true}
               >
                 <div
                   className="glamor-23 glamor-24"
                 >
-                  <Styled(Component)>
+                  <StyledPanelHeading>
                     <Component
                       className="glamor-19 glamor-16"
                     >
-                      <Styled(div)
+                      <_default
                         className="glamor-19 glamor-16"
                       >
                         <div
@@ -371,11 +371,11 @@ exports[`OrganizationMembersView No Require Link does not have 2fa warning if us
                             </Base>
                           </Flex>
                         </div>
-                      </Styled(div)>
+                      </_default>
                     </Component>
-                  </Styled(Component)>
+                  </StyledPanelHeading>
                 </div>
-              </Styled(div)>
+              </StyledPanelHeader>
             </PanelHeader>
             <PanelBody
               direction="column"
@@ -446,7 +446,7 @@ exports[`OrganizationMembersView No Require Link does not have 2fa warning if us
                     p={0}
                     py={2}
                   >
-                    <Styled(Base)
+                    <StyledRow
                       align="center"
                       p={0}
                       py={2}
@@ -533,7 +533,7 @@ exports[`OrganizationMembersView No Require Link does not have 2fa warning if us
                                     }
                                   }
                                 >
-                                  <Styled(Link)
+                                  <UserName
                                     to="1"
                                   >
                                     <Link
@@ -545,13 +545,13 @@ exports[`OrganizationMembersView No Require Link does not have 2fa warning if us
                                         href="1"
                                       />
                                     </Link>
-                                  </Styled(Link)>
+                                  </UserName>
                                 </h5>
-                                <Styled(div)>
+                                <Email>
                                   <div
                                     className="glamor-31 glamor-32"
                                   />
-                                </Styled(div)>
+                                </Email>
                               </div>
                             </Base>
                           </Box>
@@ -649,7 +649,7 @@ exports[`OrganizationMembersView No Require Link does not have 2fa warning if us
                           </Box>
                         </div>
                       </Base>
-                    </Styled(Base)>
+                    </StyledRow>
                   </Row>
                 </OrganizationMemberRow>
                 <OrganizationMemberRow
@@ -713,7 +713,7 @@ exports[`OrganizationMembersView No Require Link does not have 2fa warning if us
                     p={0}
                     py={2}
                   >
-                    <Styled(Base)
+                    <StyledRow
                       align="center"
                       p={0}
                       py={2}
@@ -800,7 +800,7 @@ exports[`OrganizationMembersView No Require Link does not have 2fa warning if us
                                     }
                                   }
                                 >
-                                  <Styled(Link)
+                                  <UserName
                                     to="2"
                                   >
                                     <Link
@@ -812,13 +812,13 @@ exports[`OrganizationMembersView No Require Link does not have 2fa warning if us
                                         href="2"
                                       />
                                     </Link>
-                                  </Styled(Link)>
+                                  </UserName>
                                 </h5>
-                                <Styled(div)>
+                                <Email>
                                   <div
                                     className="glamor-31 glamor-32"
                                   />
-                                </Styled(div)>
+                                </Email>
                               </div>
                             </Base>
                           </Box>
@@ -911,7 +911,7 @@ exports[`OrganizationMembersView No Require Link does not have 2fa warning if us
                           </Box>
                         </div>
                       </Base>
-                    </Styled(Base)>
+                    </StyledRow>
                   </Row>
                 </OrganizationMemberRow>
                 <OrganizationMemberRow
@@ -975,7 +975,7 @@ exports[`OrganizationMembersView No Require Link does not have 2fa warning if us
                     p={0}
                     py={2}
                   >
-                    <Styled(Base)
+                    <StyledRow
                       align="center"
                       p={0}
                       py={2}
@@ -1062,7 +1062,7 @@ exports[`OrganizationMembersView No Require Link does not have 2fa warning if us
                                     }
                                   }
                                 >
-                                  <Styled(Link)
+                                  <UserName
                                     to="3"
                                   >
                                     <Link
@@ -1074,13 +1074,13 @@ exports[`OrganizationMembersView No Require Link does not have 2fa warning if us
                                         href="3"
                                       />
                                     </Link>
-                                  </Styled(Link)>
+                                  </UserName>
                                 </h5>
-                                <Styled(div)>
+                                <Email>
                                   <div
                                     className="glamor-31 glamor-32"
                                   />
-                                </Styled(div)>
+                                </Email>
                               </div>
                             </Base>
                           </Box>
@@ -1173,13 +1173,13 @@ exports[`OrganizationMembersView No Require Link does not have 2fa warning if us
                           </Box>
                         </div>
                       </Base>
-                    </Styled(Base)>
+                    </StyledRow>
                   </Row>
                 </OrganizationMemberRow>
               </div>
             </PanelBody>
           </div>
-        </Styled(div)>
+        </Panel>
         <Pagination
           onCursor={[Function]}
         />
@@ -1376,7 +1376,7 @@ exports[`OrganizationMembersView Require Link does not have 2fa warning if user 
           }
           title="Members"
         >
-          <Styled(div)>
+          <Wrapper>
             <div
               className="glamor-4 glamor-5"
             >
@@ -1391,13 +1391,13 @@ exports[`OrganizationMembersView Require Link does not have 2fa warning if user 
                     className="glamor-2"
                     is={null}
                   >
-                    <Styled(div)>
+                    <Title>
                       <div
                         className="glamor-0 glamor-1"
                       >
                         Members
                       </div>
-                    </Styled(div)>
+                    </Title>
                     <div>
                       <Button
                         disabled={false}
@@ -1446,7 +1446,7 @@ exports[`OrganizationMembersView Require Link does not have 2fa warning if user 
                 </Base>
               </Flex>
             </div>
-          </Styled(div)>
+          </Wrapper>
         </SettingsPageHeading>
         <OrganizationAccessRequests
           accessRequestBusy={Map {}}
@@ -1454,24 +1454,24 @@ exports[`OrganizationMembersView Require Link does not have 2fa warning if user 
           onDeny={[Function]}
           requestList={Array []}
         />
-        <Styled(div)>
+        <Panel>
           <div
             className="glamor-85 glamor-86"
           >
             <PanelHeader
               disablePadding={true}
             >
-              <Styled(div)
+              <StyledPanelHeader
                 disablePadding={true}
               >
                 <div
                   className="glamor-23 glamor-24"
                 >
-                  <Styled(Component)>
+                  <StyledPanelHeading>
                     <Component
                       className="glamor-19 glamor-16"
                     >
-                      <Styled(div)
+                      <_default
                         className="glamor-19 glamor-16"
                       >
                         <div
@@ -1560,11 +1560,11 @@ exports[`OrganizationMembersView Require Link does not have 2fa warning if user 
                             </Base>
                           </Flex>
                         </div>
-                      </Styled(div)>
+                      </_default>
                     </Component>
-                  </Styled(Component)>
+                  </StyledPanelHeading>
                 </div>
-              </Styled(div)>
+              </StyledPanelHeader>
             </PanelHeader>
             <PanelBody
               direction="column"
@@ -1635,7 +1635,7 @@ exports[`OrganizationMembersView Require Link does not have 2fa warning if user 
                     p={0}
                     py={2}
                   >
-                    <Styled(Base)
+                    <StyledRow
                       align="center"
                       p={0}
                       py={2}
@@ -1722,7 +1722,7 @@ exports[`OrganizationMembersView Require Link does not have 2fa warning if user 
                                     }
                                   }
                                 >
-                                  <Styled(Link)
+                                  <UserName
                                     to="1"
                                   >
                                     <Link
@@ -1734,13 +1734,13 @@ exports[`OrganizationMembersView Require Link does not have 2fa warning if user 
                                         href="1"
                                       />
                                     </Link>
-                                  </Styled(Link)>
+                                  </UserName>
                                 </h5>
-                                <Styled(div)>
+                                <Email>
                                   <div
                                     className="glamor-31 glamor-32"
                                   />
-                                </Styled(div)>
+                                </Email>
                               </div>
                             </Base>
                           </Box>
@@ -1869,7 +1869,7 @@ exports[`OrganizationMembersView Require Link does not have 2fa warning if user 
                           </Box>
                         </div>
                       </Base>
-                    </Styled(Base)>
+                    </StyledRow>
                   </Row>
                 </OrganizationMemberRow>
                 <OrganizationMemberRow
@@ -1933,7 +1933,7 @@ exports[`OrganizationMembersView Require Link does not have 2fa warning if user 
                     p={0}
                     py={2}
                   >
-                    <Styled(Base)
+                    <StyledRow
                       align="center"
                       p={0}
                       py={2}
@@ -2020,7 +2020,7 @@ exports[`OrganizationMembersView Require Link does not have 2fa warning if user 
                                     }
                                   }
                                 >
-                                  <Styled(Link)
+                                  <UserName
                                     to="2"
                                   >
                                     <Link
@@ -2032,13 +2032,13 @@ exports[`OrganizationMembersView Require Link does not have 2fa warning if user 
                                         href="2"
                                       />
                                     </Link>
-                                  </Styled(Link)>
+                                  </UserName>
                                 </h5>
-                                <Styled(div)>
+                                <Email>
                                   <div
                                     className="glamor-31 glamor-32"
                                   />
-                                </Styled(div)>
+                                </Email>
                               </div>
                             </Base>
                           </Box>
@@ -2167,7 +2167,7 @@ exports[`OrganizationMembersView Require Link does not have 2fa warning if user 
                           </Box>
                         </div>
                       </Base>
-                    </Styled(Base)>
+                    </StyledRow>
                   </Row>
                 </OrganizationMemberRow>
                 <OrganizationMemberRow
@@ -2231,7 +2231,7 @@ exports[`OrganizationMembersView Require Link does not have 2fa warning if user 
                     p={0}
                     py={2}
                   >
-                    <Styled(Base)
+                    <StyledRow
                       align="center"
                       p={0}
                       py={2}
@@ -2318,7 +2318,7 @@ exports[`OrganizationMembersView Require Link does not have 2fa warning if user 
                                     }
                                   }
                                 >
-                                  <Styled(Link)
+                                  <UserName
                                     to="3"
                                   >
                                     <Link
@@ -2330,13 +2330,13 @@ exports[`OrganizationMembersView Require Link does not have 2fa warning if user 
                                         href="3"
                                       />
                                     </Link>
-                                  </Styled(Link)>
+                                  </UserName>
                                 </h5>
-                                <Styled(div)>
+                                <Email>
                                   <div
                                     className="glamor-31 glamor-32"
                                   />
-                                </Styled(div)>
+                                </Email>
                               </div>
                             </Base>
                           </Box>
@@ -2429,13 +2429,13 @@ exports[`OrganizationMembersView Require Link does not have 2fa warning if user 
                           </Box>
                         </div>
                       </Base>
-                    </Styled(Base)>
+                    </StyledRow>
                   </Row>
                 </OrganizationMemberRow>
               </div>
             </PanelBody>
           </div>
-        </Styled(div)>
+        </Panel>
         <Pagination
           onCursor={[Function]}
         />

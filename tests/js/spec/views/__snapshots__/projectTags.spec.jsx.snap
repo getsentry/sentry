@@ -138,7 +138,7 @@ exports[`ProjectTags renders 1`] = `
         <SettingsPageHeading
           title="Tags"
         >
-          <Styled(div)>
+          <Wrapper>
             <div
               className="glamor-4 glamor-5"
             >
@@ -153,20 +153,20 @@ exports[`ProjectTags renders 1`] = `
                     className="glamor-2"
                     is={null}
                   >
-                    <Styled(div)>
+                    <Title>
                       <div
                         className="glamor-0 glamor-1"
                       >
                         Tags
                       </div>
-                    </Styled(div)>
+                    </Title>
                   </div>
                 </Base>
               </Flex>
             </div>
-          </Styled(div)>
+          </Wrapper>
         </SettingsPageHeading>
-        <Styled(div)>
+        <TextBlock>
           <div
             className="glamor-6 glamor-7"
           >
@@ -204,21 +204,21 @@ exports[`ProjectTags renders 1`] = `
               </span>
             </span>
           </div>
-        </Styled(div)>
-        <Styled(div)>
+        </TextBlock>
+        <Panel>
           <div
             className="glamor-51 glamor-52"
           >
             <PanelHeader>
-              <Styled(div)>
+              <StyledPanelHeader>
                 <div
                   className="glamor-19 glamor-20"
                 >
-                  <Styled(Component)>
+                  <StyledPanelHeading>
                     <Component
                       className="glamor-15 glamor-12"
                     >
-                      <Styled(div)
+                      <_default
                         className="glamor-15 glamor-12"
                       >
                         <div
@@ -251,11 +251,11 @@ exports[`ProjectTags renders 1`] = `
                             </Base>
                           </Flex>
                         </div>
-                      </Styled(div)>
+                      </_default>
                     </Component>
-                  </Styled(Component)>
+                  </StyledPanelHeading>
                 </div>
-              </Styled(div)>
+              </StyledPanelHeader>
             </PanelHeader>
             <PanelBody
               direction="column"
@@ -270,7 +270,7 @@ exports[`ProjectTags renders 1`] = `
                   key="browser"
                   p={0}
                 >
-                  <Styled(Base)
+                  <StyledRow
                     className="ref-tag-row"
                     p={0}
                   >
@@ -300,13 +300,13 @@ exports[`ProjectTags renders 1`] = `
                               <span>
                                 Browser
                               </span>
-                              <Styled(span)>
+                              <Description>
                                 <span
                                   className="glamor-21 glamor-22"
                                 >
                                   browser
                                 </span>
-                              </Styled(span)>
+                              </Description>
                             </div>
                           </Base>
                         </Box>
@@ -407,14 +407,14 @@ exports[`ProjectTags renders 1`] = `
                         </Flex>
                       </div>
                     </Base>
-                  </Styled(Base)>
+                  </StyledRow>
                 </Row>
                 <Row
                   className="ref-tag-row"
                   key="device"
                   p={0}
                 >
-                  <Styled(Base)
+                  <StyledRow
                     className="ref-tag-row"
                     p={0}
                   >
@@ -444,13 +444,13 @@ exports[`ProjectTags renders 1`] = `
                               <span>
                                 Device
                               </span>
-                              <Styled(span)>
+                              <Description>
                                 <span
                                   className="glamor-21 glamor-22"
                                 >
                                   device
                                 </span>
-                              </Styled(span)>
+                              </Description>
                             </div>
                           </Base>
                         </Box>
@@ -551,14 +551,14 @@ exports[`ProjectTags renders 1`] = `
                         </Flex>
                       </div>
                     </Base>
-                  </Styled(Base)>
+                  </StyledRow>
                 </Row>
                 <Row
                   className="ref-tag-row"
                   key="environment"
                   p={0}
                 >
-                  <Styled(Base)
+                  <StyledRow
                     className="ref-tag-row"
                     p={0}
                   >
@@ -588,13 +588,13 @@ exports[`ProjectTags renders 1`] = `
                               <span>
                                 Environment
                               </span>
-                              <Styled(span)>
+                              <Description>
                                 <span
                                   className="glamor-21 glamor-22"
                                 >
                                   environment
                                 </span>
-                              </Styled(span)>
+                              </Description>
                             </div>
                           </Base>
                         </Box>
@@ -704,12 +704,12 @@ exports[`ProjectTags renders 1`] = `
                         </Flex>
                       </div>
                     </Base>
-                  </Styled(Base)>
+                  </StyledRow>
                 </Row>
               </div>
             </PanelBody>
           </div>
-        </Styled(div)>
+        </Panel>
       </div>
     </DocumentTitle>
   </SideEffect(DocumentTitle)>

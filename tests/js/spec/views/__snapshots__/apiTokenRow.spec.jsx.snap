@@ -34,19 +34,19 @@ exports[`ApiTokenRow renders 1`] = `
         }
       }
     >
-      <Styled(div)>
+      <Created>
         Created
          
         <DateTime
           date={2018-01-12T02:01:41.000Z}
           seconds={true}
         />
-      </Styled(div)>
+      </Created>
     </div>
     <div>
-      <Styled(div)>
+      <ScopeList>
         scope1, scope2
-      </Styled(div)>
+      </ScopeList>
     </div>
   </Box>
   <Flex

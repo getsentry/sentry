@@ -39,7 +39,7 @@
     "test": {
       "presets": ["react", "latest"],
       "plugins": [
-        "emotion",
+        ["emotion", {"autoLabel": true}],
         "transform-decorators-legacy",
         "transform-class-properties",
         "transform-object-rest-spread",

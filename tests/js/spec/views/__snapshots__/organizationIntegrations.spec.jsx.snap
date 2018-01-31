@@ -231,7 +231,7 @@ exports[`OrganizationIntegrations render() with a provider renders with a reposi
                     pluginId="github"
                     size={24}
                   >
-                    <Styled(div)
+                    <IntegrationIcon
                       image={Object {}}
                       size={24}
                     >
@@ -239,7 +239,7 @@ exports[`OrganizationIntegrations render() with a provider renders with a reposi
                         className="glamor-0 glamor-1"
                         size={24}
                       />
-                    </Styled(div)>
+                    </IntegrationIcon>
                   </PluginIcon>
                 </td>
                 <td>
