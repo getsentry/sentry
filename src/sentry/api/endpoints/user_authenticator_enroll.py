@@ -1,12 +1,11 @@
 from __future__ import absolute_import
 
 from rest_framework import serializers, status
-from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 
 import petname
 
-from sentry.api.bases.user import UserEndpoint, UserPermission
+from sentry.api.bases.user import UserEndpoint
 from sentry.api.decorators import sudo_required
 from sentry.api.serializers import serialize
 from sentry.models import Authenticator
@@ -66,8 +65,6 @@ def get_serializer_field_metadata(serializer, fields=None):
 
 
 class UserAuthenticatorEnrollEndpoint(UserEndpoint):
-    permission_classes = (IsAuthenticated, UserPermission, )
-
     @sudo_required
     def get(self, request, user, interface_id):
         """
