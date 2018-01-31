@@ -59,7 +59,7 @@ class SavedSearchRow extends React.Component {
     let {data, canModify} = this.props;
 
     return (
-      <Row py={2} align="center">
+      <Row p={0} py={2} align="center">
         <Flex flex="1" px={2} direction="column">
           <SearchTitle>{data.name}</SearchTitle>
           <code>{data.query}</code>

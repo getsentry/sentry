@@ -109,7 +109,7 @@ exports[`ProjectSavedSearches renders 1`] = `
 
 .glamor-39 {
   box-sizing: border-box;
-  padding: 16px;
+  padding: 0px;
   padding-top: 16px;
   padding-bottom: 16px;
   display: -webkit-box;
@@ -360,18 +360,18 @@ exports[`ProjectSavedSearches renders 1`] = `
             >
               <Row
                 align="center"
-                p={2}
+                p={0}
                 py={2}
               >
                 <Styled(Base)
                   align="center"
-                  p={2}
+                  p={0}
                   py={2}
                 >
                   <Base
                     align="center"
                     className="glamor-39 glamor-40"
-                    p={2}
+                    p={0}
                     py={2}
                   >
                     <div
@@ -614,18 +614,18 @@ exports[`ProjectSavedSearches renders 1`] = `
             >
               <Row
                 align="center"
-                p={2}
+                p={0}
                 py={2}
               >
                 <Styled(Base)
                   align="center"
-                  p={2}
+                  p={0}
                   py={2}
                 >
                   <Base
                     align="center"
                     className="glamor-39 glamor-40"
-                    p={2}
+                    p={0}
                     py={2}
                   >
                     <div
