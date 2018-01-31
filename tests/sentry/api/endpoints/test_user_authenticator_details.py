@@ -13,6 +13,18 @@ class UserAuthenticatorDetailsTest(APITestCase):
         self.user = self.create_user(email='test@example.com', is_superuser=False)
         self.login_as(user=self.user)
 
+    def test_wrong_auth_id(self):
+        url = reverse(
+            'sentry-api-0-user-authenticator-details',
+            kwargs={
+                'user_id': self.user.id,
+                'auth_id': 'totp',
+            }
+        )
+
+        resp = self.client.get(url)
+        assert resp.status_code == 404
+
     def test_get_authenticator_details(self):
         interface = TotpInterface()
         interface.enroll(self.user)
