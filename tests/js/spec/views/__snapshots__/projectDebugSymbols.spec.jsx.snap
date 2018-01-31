@@ -1,0 +1,610 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`ProjectDebugSymbols renders 1`] = `
+.glamor-4 {
+  font-size: 14px;
+  box-shadow: inset 0 -1px 0;
+  margin: -20px 0 30px;
+}
+
+.glamor-2 {
+  box-sizing: border-box;
+  display: -webkit-box;
+  display: -webkit-flex;
+  display: -ms-flexbox;
+  display: flex;
+  -webkit-align-items: center;
+  -webkit-box-align: center;
+  -ms-flex-align: center;
+  align-items: center;
+}
+
+.glamor-0 {
+  font-size: 20px;
+  font-weight: bold;
+  margin: 20px 0;
+  -webkit-flex: 1;
+  -ms-flex: 1;
+  flex: 1;
+}
+
+.glamor-6 {
+  line-height: 1.5;
+  margin-bottom: 30px;
+}
+
+.glamor-41 {
+  background: #fff;
+  border: 1px solid;
+  margin-bottom: 30px;
+  position: relative;
+}
+
+.glamor-15 {
+  border-bottom: 1px solid;
+  border-radius: 0 0;
+  text-transform: uppercase;
+  font-size: 13px;
+  line-height: 1;
+  padding: 15px 20px;
+}
+
+.glamor-11 {
+  font-size: inherit;
+  text-transform: inherit;
+  margin: 0;
+}
+
+.glamor-9 {
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  margin-bottom: 20px;
+  font-size: inherit;
+  text-transform: inherit;
+  margin: 0;
+}
+
+.glamor-37 {
+  box-sizing: border-box;
+  padding: 16px;
+  display: -webkit-box;
+  display: -webkit-flex;
+  display: -ms-flexbox;
+  display: flex;
+  -webkit-flex-direction: column;
+  -ms-flex-direction: column;
+  flex-direction: column;
+  border-bottom: 1px solid;
+}
+
+.glamor-37:last-child {
+  border: 0;
+}
+
+.glamor-33 {
+  cursor: pointer;
+  -webkit-transition: all 0s ease-in-out;
+  transition: all 0s ease-in-out;
+}
+
+.glamor-28 {
+  box-sizing: border-box;
+  padding: 16px;
+  display: -webkit-box;
+  display: -webkit-flex;
+  display: -ms-flexbox;
+  display: flex;
+  border-bottom: 1px solid;
+  cursor: pointer;
+  -webkit-transition: all 0s ease-in-out;
+  transition: all 0s ease-in-out;
+}
+
+.glamor-28:last-child {
+  border: 0;
+}
+
+.glamor-23 {
+  box-sizing: border-box;
+  padding: 16px;
+  -webkit-flex: 1;
+  -ms-flex: 1;
+  flex: 1;
+  display: -webkit-box;
+  display: -webkit-flex;
+  display: -ms-flexbox;
+  display: flex;
+  -webkit-flex-direction: column;
+  -ms-flex-direction: column;
+  flex-direction: column;
+}
+
+.glamor-19 {
+  box-sizing: border-box;
+  display: -webkit-box;
+  display: -webkit-flex;
+  display: -ms-flexbox;
+  display: flex;
+  -webkit-align-items: center;
+  -webkit-box-align: center;
+  -ms-flex-align: center;
+  align-items: center;
+  font-size: 12px;
+}
+
+.glamor-17 {
+  margin-right: 4px;
+}
+
+.glamor-25 {
+  box-sizing: border-box;
+  padding: 16px;
+  display: -webkit-box;
+  display: -webkit-flex;
+  display: -ms-flexbox;
+  display: flex;
+}
+
+<ProjectDebugSymbols
+  params={
+    Object {
+      "orgId": "org",
+      "projectId": "project",
+    }
+  }
+>
+  <div>
+    <SettingsPageHeading
+      title="Debug Information Files"
+    >
+      <Styled(div)>
+        <div
+          className="glamor-4 glamor-5"
+        >
+          <Flex
+            align="center"
+          >
+            <Base
+              align="center"
+              className="glamor-2"
+            >
+              <div
+                className="glamor-2"
+                is={null}
+              >
+                <Styled(div)>
+                  <div
+                    className="glamor-0 glamor-1"
+                  >
+                    Debug Information Files
+                  </div>
+                </Styled(div)>
+              </div>
+            </Base>
+          </Flex>
+        </div>
+      </Styled(div)>
+    </SettingsPageHeading>
+    <Styled(div)>
+      <div
+        className="glamor-6 glamor-7"
+      >
+        
+          Here you can find uploaded debug information (for instance debug
+          symbol files or proguard mappings).  This is used to convert
+          addresses and minified function names from crash dumps
+          into function names and locations.  For JavaScript debug support
+          look at releases instead.
+        
+      </div>
+    </Styled(div)>
+    <Styled(div)
+      key="1"
+      style={
+        Object {
+          "marginBottom": 40,
+        }
+      }
+    >
+      <div
+        className="glamor-41 glamor-42"
+        style={
+          Object {
+            "marginBottom": 40,
+          }
+        }
+      >
+        <PanelHeader>
+          <Styled(div)>
+            <div
+              className="glamor-15 glamor-16"
+            >
+              <Styled(Component)>
+                <Component
+                  className="glamor-11 glamor-8"
+                >
+                  <Styled(div)
+                    className="glamor-11 glamor-8"
+                  >
+                    <div
+                      className="glamor-8 glamor-9 glamor-10"
+                    >
+                      <div
+                        className="app-icon"
+                        style={null}
+                      />
+                      MyApp
+                       
+                      <small>
+                        (
+                        com.example.myapp
+                        )
+                      </small>
+                    </div>
+                  </Styled(div)>
+                </Component>
+              </Styled(Component)>
+            </div>
+          </Styled(div)>
+        </PanelHeader>
+        <PanelBody
+          direction="column"
+          disablePadding={true}
+          flex={false}
+        >
+          <div
+            className=""
+          >
+            <Row
+              direction="column"
+              key="1.0"
+              p={2}
+            >
+              <Styled(Base)
+                direction="column"
+                p={2}
+              >
+                <Base
+                  className="glamor-37 glamor-29"
+                  direction="column"
+                  p={2}
+                >
+                  <div
+                    className="glamor-37 glamor-29"
+                    is={null}
+                  >
+                    <Styled(Row)
+                      className="hoverable"
+                      onClick={[Function]}
+                    >
+                      <Row
+                        className="hoverable glamor-33 glamor-27"
+                        onClick={[Function]}
+                        p={2}
+                      >
+                        <Styled(Base)
+                          className="hoverable glamor-33 glamor-27"
+                          onClick={[Function]}
+                          p={2}
+                        >
+                          <Base
+                            className="hoverable glamor-27 glamor-28 glamor-29"
+                            onClick={[Function]}
+                            p={2}
+                          >
+                            <div
+                              className="hoverable glamor-27 glamor-28 glamor-29"
+                              is={null}
+                              onClick={[Function]}
+                            >
+                              <Flex
+                                direction="column"
+                                flex="1"
+                                p={2}
+                              >
+                                <Base
+                                  className="glamor-23"
+                                  direction="column"
+                                  flex="1"
+                                  p={2}
+                                >
+                                  <div
+                                    className="glamor-23"
+                                    is={null}
+                                  >
+                                    <h3
+                                      className="truncate"
+                                    >
+                                      1.0
+                                    </h3>
+                                    <div
+                                      className="event-message"
+                                    >
+                                      Builds
+                                      : 
+                                      1
+                                    </div>
+                                    <Styled(Base)
+                                      align="center"
+                                    >
+                                      <Base
+                                        align="center"
+                                        className="glamor-19 glamor-20"
+                                      >
+                                        <div
+                                          className="glamor-19 glamor-20"
+                                          is={null}
+                                        >
+                                          <Styled(span)
+                                            className="icon icon-clock"
+                                          >
+                                            <span
+                                              className="icon icon-clock glamor-17 glamor-18"
+                                            />
+                                          </Styled(span)>
+                                          <TimeSince
+                                            date="2018-01-31T07:16:26.072Z"
+                                            suffix="ago"
+                                          >
+                                            <time
+                                              dateTime="2018-01-31T07:16:26.072Z"
+                                              title="January 31, 2018 7:16 AM UTC"
+                                            >
+                                              in 3 months
+                                            </time>
+                                          </TimeSince>
+                                        </div>
+                                      </Base>
+                                    </Styled(Base)>
+                                  </div>
+                                </Base>
+                              </Flex>
+                              <Flex
+                                p={2}
+                              >
+                                <Base
+                                  className="glamor-25"
+                                  p={2}
+                                >
+                                  <div
+                                    className="glamor-25"
+                                    is={null}
+                                  >
+                                    Debug Information Files
+                                    : 
+                                    1
+                                  </div>
+                                </Base>
+                              </Flex>
+                            </div>
+                          </Base>
+                        </Styled(Base)>
+                      </Row>
+                    </Styled(Row)>
+                  </div>
+                </Base>
+              </Styled(Base)>
+            </Row>
+          </div>
+        </PanelBody>
+      </div>
+    </Styled(div)>
+    <div>
+      <SettingsPageHeading
+        title="Unreferenced Debug Information Files"
+      >
+        <Styled(div)>
+          <div
+            className="glamor-4 glamor-5"
+          >
+            <Flex
+              align="center"
+            >
+              <Base
+                align="center"
+                className="glamor-2"
+              >
+                <div
+                  className="glamor-2"
+                  is={null}
+                >
+                  <Styled(div)>
+                    <div
+                      className="glamor-0 glamor-1"
+                    >
+                      Unreferenced Debug Information Files
+                    </div>
+                  </Styled(div)>
+                </div>
+              </Base>
+            </Flex>
+          </div>
+        </Styled(div)>
+      </SettingsPageHeading>
+      <Styled(div)>
+        <div
+          className="glamor-6 glamor-7"
+        >
+          
+          This list represents all Debug Information Files which are not assigned to an
+          app version. We will still find these debug symbols for symbolication
+          but we can't tell you which versions they belong to.  This happens
+          if you upload them with an old verison of sentry-cli or if sentry-cli
+          can't locate the Info.plist file at the time of upload.
+        
+        </div>
+      </Styled(div)>
+      <table
+        className="table"
+      >
+        <thead>
+          <tr>
+            <th>
+              UUID
+            </th>
+            <th>
+              Object
+            </th>
+            <th>
+              Type
+            </th>
+            <th>
+              Uploaded
+            </th>
+            <th>
+              Size
+            </th>
+            <th />
+          </tr>
+        </thead>
+        <tbody />
+      </table>
+    </div>
+    <Modal
+      animation={false}
+      autoFocus={true}
+      backdrop="static"
+      bsClass="modal"
+      bsSize="lg"
+      dialogComponentClass={[Function]}
+      enforceFocus={false}
+      keyboard={true}
+      manager={
+        ModalManager {
+          "add": [Function],
+          "containers": Array [],
+          "data": Array [],
+          "handleContainerOverflow": true,
+          "hideSiblingNodes": true,
+          "isTopModal": [Function],
+          "modals": Array [],
+          "remove": [Function],
+        }
+      }
+      onHide={[Function]}
+      renderBackdrop={[Function]}
+      restoreFocus={true}
+      show={false}
+    >
+      <Modal
+        autoFocus={true}
+        backdrop="static"
+        backdropClassName="modal-backdrop"
+        containerClassName="modal-open"
+        enforceFocus={false}
+        keyboard={true}
+        manager={
+          ModalManager {
+            "add": [Function],
+            "containers": Array [],
+            "data": Array [],
+            "handleContainerOverflow": true,
+            "hideSiblingNodes": true,
+            "isTopModal": [Function],
+            "modals": Array [],
+            "remove": [Function],
+          }
+        }
+        onEntering={[Function]}
+        onExited={[Function]}
+        onHide={[Function]}
+        renderBackdrop={[Function]}
+        restoreFocus={true}
+        show={false}
+      />
+    </Modal>
+  </div>
+</ProjectDebugSymbols>
+`;
+
+exports[`ProjectDebugSymbols renders empty 1`] = `
+<div>
+  <SettingsPageHeading
+    title="Debug Information Files"
+  />
+  <Styled(div)>
+    
+          Here you can find uploaded debug information (for instance debug
+          symbol files or proguard mappings).  This is used to convert
+          addresses and minified function names from crash dumps
+          into function names and locations.  For JavaScript debug support
+          look at releases instead.
+        
+  </Styled(div)>
+  <div
+    className="box"
+  >
+    <LoadingIndicator />
+  </div>
+  <Modal
+    animation={false}
+    autoFocus={true}
+    backdrop="static"
+    bsClass="modal"
+    bsSize="lg"
+    dialogComponentClass={[Function]}
+    enforceFocus={false}
+    keyboard={true}
+    manager={
+      ModalManager {
+        "add": [Function],
+        "containers": Array [],
+        "data": Array [],
+        "handleContainerOverflow": true,
+        "hideSiblingNodes": true,
+        "isTopModal": [Function],
+        "modals": Array [],
+        "remove": [Function],
+      }
+    }
+    onHide={[Function]}
+    renderBackdrop={[Function]}
+    restoreFocus={true}
+    show={false}
+  >
+    <ModalHeader
+      bsClass="modal-header"
+      closeButton={true}
+      closeLabel="Close"
+    >
+      <ModalTitle
+        bsClass="modal-title"
+        componentClass="h4"
+      >
+         (
+        )
+      </ModalTitle>
+    </ModalHeader>
+    <ModalBody
+      bsClass="modal-body"
+      componentClass="div"
+    >
+      <table
+        className="table"
+      >
+        <thead>
+          <tr>
+            <th>
+              UUID
+            </th>
+            <th>
+              Object
+            </th>
+            <th>
+              Type
+            </th>
+            <th>
+              Uploaded
+            </th>
+            <th>
+              Size
+            </th>
+          </tr>
+        </thead>
+        <tbody />
+      </table>
+    </ModalBody>
+  </Modal>
+</div>
+`;

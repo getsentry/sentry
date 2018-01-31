@@ -1,5 +1,6 @@
 const theme = {
   offWhite: '#FAF9FB',
+  whiteDark: '#fbfbfc',
 
   gray1: '#BDB4C7',
   gray2: '#9585A3',
@@ -37,6 +38,7 @@ const theme = {
   pinkDark: '#DF4FA3',
 
   purple: '#6C5FC7',
+  purple2: '#6f617c', // This is from event-details
   purplelightest: '#9F92FA',
   purpleLight: '#8679E1',
   purpleDark: '#5346AE',
