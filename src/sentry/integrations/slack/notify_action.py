@@ -128,7 +128,7 @@ class SlackNotifyServiceAction(EventAction):
         resp.raise_for_status()
         resp = resp.json()
         if not resp.get('ok'):
-            self.logger.error('rule.slack.channel_list_failed', extra={'error': resp.get('error')})
+            self.logger.info('rule.slack.channel_list_failed', extra={'error': resp.get('error')})
             return None
 
         return {c['name']: c['id'] for c in resp['channels']}.get(channel_name)
