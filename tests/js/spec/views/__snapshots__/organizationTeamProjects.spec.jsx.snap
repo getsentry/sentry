@@ -1,6 +1,10 @@
 // Jest Snapshot v1, https://goo.gl/fbAQLP
 
 exports[`OrganizationTeamProjects Should render 1`] = `
+.glamor-31 {
+  text-align: right;
+}
+
 .glamor-9 {
   background: #fff;
   border: 1px solid;
@@ -33,7 +37,7 @@ exports[`OrganizationTeamProjects Should render 1`] = `
   margin: 0;
 }
 
-.glamor-31 {
+.glamor-32 {
   box-sizing: border-box;
   display: -webkit-box;
   display: -webkit-flex;
@@ -46,7 +50,7 @@ exports[`OrganizationTeamProjects Should render 1`] = `
   border-bottom: 1px solid;
 }
 
-.glamor-31:last-child {
+.glamor-32:last-child {
   border: 0;
 }
 
@@ -77,6 +81,7 @@ exports[`OrganizationTeamProjects Should render 1`] = `
   box-sizing: border-box;
   width: 50%;
   padding: 16px;
+  text-align: right;
 }
 
 <TeamProjects
@@ -167,10 +172,10 @@ exports[`OrganizationTeamProjects Should render 1`] = `
             >
               <Base
                 align="center"
-                className="glamor-31 glamor-32"
+                className="glamor-32 glamor-33"
               >
                 <div
-                  className="glamor-31 glamor-32"
+                  className="glamor-32 glamor-33"
                   is={null}
                 >
                   <Box
@@ -325,6 +330,7 @@ exports[`OrganizationTeamProjects Should render 1`] = `
                     </Base>
                   </Box>
                   <Box
+                    className="glamor-31"
                     p={2}
                     w={0.5}
                   >
@@ -338,13 +344,12 @@ exports[`OrganizationTeamProjects Should render 1`] = `
                         is={null}
                       >
                         <Button
-                          className="pull-right"
                           disabled={false}
                           onClick={[Function]}
                           size="small"
                         >
                           <button
-                            className="pull-right button button-default button-sm"
+                            className="button button-default button-sm"
                             disabled={false}
                             onClick={[Function]}
                             role="button"

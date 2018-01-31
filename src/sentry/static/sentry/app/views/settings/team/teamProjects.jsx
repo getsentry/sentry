@@ -85,10 +85,9 @@ const TeamProjects = createReactClass({
         <Box w={1 / 2} p={2} flex="1">
           <ProjectListItem project={project} organization={this.context.organization} />
         </Box>
-        <Box w={1 / 2} p={2}>
+        <Box w={1 / 2} p={2} css={{textAlign: 'right'}}>
           <Button
             size="small"
-            className="pull-right"
             onClick={() => {
               this.handleLinkProject(project, direction);
             }}

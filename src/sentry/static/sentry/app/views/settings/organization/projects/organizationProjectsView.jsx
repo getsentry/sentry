@@ -1,16 +1,21 @@
 import React from 'react';
 import createReactClass from 'create-react-class';
 import Reflux from 'reflux';
+import {Box} from 'grid-emotion';
 
 import {loadStats} from '../../../../actionCreators/projects';
 import {t} from '../../../../locale';
 import ApiMixin from '../../../../mixins/apiMixin';
 import OrganizationSettingsView from '../../../organizationSettingsView';
-import ProjectListItem from './components/projectListItem';
+import ProjectStatsGraph from './projectStatsGraph';
 import ProjectsStore from '../../../../stores/projectsStore';
 import SentryTypes from '../../../../proptypes';
-import SpreadLayout from '../../../../components/spreadLayout';
 import {sortProjects} from '../../../../utils';
+import Panel from '../../components/panel';
+import PanelItem from '../../components/panelItem';
+import PanelHeader from '../../components/panelHeader';
+import PanelBody from '../../components/panelBody';
+import ProjectListItem from '../../../settings/components/settingsProjectItem';
 
 class OrganizationProjectsView extends OrganizationSettingsView {
   static contextTypes = {
@@ -27,21 +32,24 @@ class OrganizationProjectsView extends OrganizationSettingsView {
 
     return (
       <div>
-        <SpreadLayout className="page-header">
-          <h3>{t('Projects')}</h3>
-        </SpreadLayout>
-
-        <table className="table table-no-top-border m-b-0">
-          <tbody>
+        <Panel className="table table-no-top-border m-b-0">
+          <PanelHeader>{t('Projects')}</PanelHeader>
+          <PanelBody css={{width: '100%'}}>
             {sortProjects(projects).map((project, i) => (
-              <ProjectListItem
-                key={project.id}
-                project={project}
-                organization={this.context.organization}
-              />
+              <PanelItem key={project.id} align="center">
+                <Box w={1 / 2} p={2} flex="1">
+                  <ProjectListItem
+                    project={project}
+                    organization={this.context.organization}
+                  />
+                </Box>
+                <Box w={1 / 2} p={2}>
+                  <ProjectStatsGraph key={project.id} project={project} />
+                </Box>
+              </PanelItem>
             ))}
-          </tbody>
-        </table>
+          </PanelBody>
+        </Panel>
       </div>
     );
   }

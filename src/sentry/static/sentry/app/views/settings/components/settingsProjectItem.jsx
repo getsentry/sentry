@@ -7,6 +7,7 @@ import theme from '../../../utils/theme';
 import {update} from '../../../actionCreators/projects';
 import ApiMixin from '../../../mixins/apiMixin';
 import Tooltip from '../../../components/tooltip';
+
 import Link from '../../../components/link';
 import ProjectLabel from '../../../components/projectLabel';
 import SentryTypes from '../../../proptypes';
