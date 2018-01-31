@@ -249,18 +249,20 @@ exports[`ProjectTags renders 1`] = `
                 className=""
               >
                 <Row
+                  className="ref-tag-row"
                   key="browser"
                   p={0}
                 >
                   <Styled(Base)
+                    className="ref-tag-row"
                     p={0}
                   >
                     <Base
-                      className="glamor-27 glamor-28"
+                      className="ref-tag-row glamor-27 glamor-28"
                       p={0}
                     >
                       <div
-                        className="glamor-27 glamor-28"
+                        className="ref-tag-row glamor-27 glamor-28"
                         is={null}
                       >
                         <Box
@@ -391,18 +393,20 @@ exports[`ProjectTags renders 1`] = `
                   </Styled(Base)>
                 </Row>
                 <Row
+                  className="ref-tag-row"
                   key="device"
                   p={0}
                 >
                   <Styled(Base)
+                    className="ref-tag-row"
                     p={0}
                   >
                     <Base
-                      className="glamor-27 glamor-28"
+                      className="ref-tag-row glamor-27 glamor-28"
                       p={0}
                     >
                       <div
-                        className="glamor-27 glamor-28"
+                        className="ref-tag-row glamor-27 glamor-28"
                         is={null}
                       >
                         <Box
@@ -533,18 +537,20 @@ exports[`ProjectTags renders 1`] = `
                   </Styled(Base)>
                 </Row>
                 <Row
+                  className="ref-tag-row"
                   key="environment"
                   p={0}
                 >
                   <Styled(Base)
+                    className="ref-tag-row"
                     p={0}
                   >
                     <Base
-                      className="glamor-27 glamor-28"
+                      className="ref-tag-row glamor-27 glamor-28"
                       p={0}
                     >
                       <div
-                        className="glamor-27 glamor-28"
+                        className="ref-tag-row glamor-27 glamor-28"
                         is={null}
                       >
                         <Box

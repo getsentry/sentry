@@ -82,7 +82,7 @@ export default class ProjectTags extends AsyncView {
           <PanelBody>
             {this.state.tags.map(({key, name, canDelete}, idx) => {
               return (
-                <Row p={0} key={key}>
+                <Row p={0} key={key} className="ref-tag-row">
                   <Box align="flex-end" flex="1" p={2}>
                     <span>{name}</span>
                     <Description>{key}</Description>
