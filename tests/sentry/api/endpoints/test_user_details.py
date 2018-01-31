@@ -41,6 +41,7 @@ class UserDetailsTest(APITestCase):
         assert resp.data['id'] == six.text_type(user.id)
         assert resp.data['options']['timezone'] == 'UTC'
         assert resp.data['options']['language'] == 'en'
+        assert resp.data['options']['stacktraceOrder'] == -1
         assert not resp.data['options']['clock24Hours']
 
     def test_superuser(self):
