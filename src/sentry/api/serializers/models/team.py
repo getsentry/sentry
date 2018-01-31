@@ -78,13 +78,10 @@ class TeamWithProjectsSerializer(TeamSerializer):
             ).order_by('project__name', 'project__slug').select_related('project')
         )
 
-        team_map = {i.id: i for i in item_list}
         # TODO(dcramer): we should query in bulk for ones we're missing here
         orgs = {i.organization_id: i.organization for i in item_list}
 
         for project_team in project_teams:
-            # TODO(jess): remove when we've completely deprecated Project.team
-            project_team.project._team_cache = team_map[project_team.project.team_id]
             project_team.project._organization_cache = orgs[project_team.project.organization_id]
 
         projects = [pt.project for pt in project_teams]
