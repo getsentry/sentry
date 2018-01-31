@@ -98,7 +98,7 @@ const theme = {
 
 // Aliases
 theme.textColor = theme.gray5;
-theme.disabled = theme.red;
-theme.enabled = theme.green;
+theme.success = theme.green;
+theme.error = theme.red;
 
 export default theme;
