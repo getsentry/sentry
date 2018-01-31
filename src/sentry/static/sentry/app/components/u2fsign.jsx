@@ -4,6 +4,16 @@ import React from 'react';
 import U2fInterface from './u2finterface';
 import {t} from '../locale';
 
+const MESSAGES = {
+  signin: t(
+    'Insert your U2F device or tap the button on it to confirm the sign-in request.'
+  ),
+  sudo: t('Alternatively you can use your U2F device to confirm the action.'),
+  enroll: t(
+    'To enroll your U2F device insert it now or tap the button on it to activate it.'
+  ),
+};
+
 class U2fSign extends React.Component {
   static propTypes = {
     challengeData: PropTypes.object,
@@ -15,29 +25,15 @@ class U2fSign extends React.Component {
   };
 
   render() {
-    const {displayMode, ...props} = this.props;
+    let {displayMode, ...props} = this.props;
+    let flowMode = displayMode === 'enroll' ? 'enroll' : 'sign';
     return (
       <U2fInterface
         {...props}
         silentIfUnsupported={displayMode === 'sudo'}
-        flowMode={'sign'}
+        flowMode={flowMode}
       >
-        <p>
-          {displayMode === 'signin'
-            ? t(
-                `
-            Insert your U2F device or tap the button on it to confirm the
-            sign-in request.
-          `
-              )
-            : displayMode === 'sudo'
-              ? t(
-                  `
-            Alternatively you can use your U2F device to confirm the action.
-          `
-                )
-              : null}
-        </p>
+        <p>{MESSAGES[displayMode] || null}</p>
       </U2fInterface>
     );
   }
