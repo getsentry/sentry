@@ -1,17 +1,47 @@
 from __future__ import absolute_import
 
+from datetime import datetime
+
+import pytz
 from django.conf import settings
+from django.utils.translation import ugettext_lazy as _
 from rest_framework import serializers, status
 from rest_framework.response import Response
 
 from sentry.api.bases.user import UserEndpoint
-from sentry.api.decorators import sudo_required
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.user import DetailedUserSerializer
-from sentry.auth import password_validation
 from sentry.auth.superuser import is_active_superuser
+from sentry.constants import LANGUAGES
 from sentry.models import User, UserOption
-from sentry.security import capture_security_activity
+
+
+def _get_timezone_choices():
+    results = []
+    for tz in pytz.common_timezones:
+        now = datetime.now(pytz.timezone(tz))
+        offset = now.strftime('%z')
+        results.append((int(offset), tz, '(UTC%s) %s' % (offset, tz)))
+    results.sort()
+
+    for i in range(len(results)):
+        results[i] = results[i][1:]
+    return results
+
+
+TIMEZONE_CHOICES = _get_timezone_choices()
+
+
+class UserOptionsSerializer(serializers.Serializer):
+    language = serializers.ChoiceField(choices=LANGUAGES, required=False)
+    stacktraceOrder = serializers.ChoiceField(choices=(
+        ('-1', _('Default (let Sentry decide)')),
+        ('1', _('Most recent call last')),
+        ('2', _('Most recent call first')),
+    ), required=False)
+    timezone = serializers.ChoiceField(choices=TIMEZONE_CHOICES, required=False)
+    clock24Hours = serializers.BooleanField(required=False)
+    seenReleaseBroadcast = serializers.BooleanField(required=False)
 
 
 class BaseUserSerializer(serializers.ModelSerializer):
@@ -26,6 +56,7 @@ class BaseUserSerializer(serializers.ModelSerializer):
 
         if self.object.email == self.object.username:
             if attrs.get('username', self.object.email) != self.object.email:
+                # ... this probably needs to handle newsletters and such?
                 attrs.setdefault('email', attrs['username'])
 
         return attrs
@@ -39,15 +70,13 @@ class BaseUserSerializer(serializers.ModelSerializer):
 class UserSerializer(BaseUserSerializer):
     class Meta:
         model = User
-        fields = ('name', )
+        fields = ('name', 'username')
 
     def validate(self, attrs):
         for field in settings.SENTRY_MANAGED_USER_FIELDS:
             attrs.pop(field, None)
 
-        attrs = super(UserSerializer, self).validate(attrs)
-
-        return attrs
+        return super(UserSerializer, self).validate(attrs)
 
 
 class AdminUserSerializer(BaseUserSerializer):
@@ -57,99 +86,70 @@ class AdminUserSerializer(BaseUserSerializer):
         model = User
         # no idea wtf is up with django rest framework, but we need is_active
         # and isActive
-        fields = ('name', 'isActive')
+        fields = ('name', 'username', 'isActive')
         # write_only_fields = ('password',)
-
-
-class UserSudoSerializer(BaseUserSerializer):
-    # Required because this serializer only handles password changes
-    passwordVerify = serializers.CharField(max_length=128, required=False)
-    password = serializers.CharField(max_length=128, required=False)
-
-    class Meta:
-        model = User
-        fields = ('password', 'passwordVerify')
-
-    def validate_password(self, attrs, source):
-        # this will raise a ValidationError if password is invalid
-        password_validation.validate_password(attrs[source])
-
-        if self.context['is_managed'] or not self.context['has_usable_password']:
-            raise serializers.ValidationError('Not allowed to change password')
-
-        return attrs
-
-    def validate(self, attrs):
-        # make sure `password` matches `passwordVerify`
-        if 'password' in attrs and attrs.get('password') != attrs.get('passwordVerify'):
-            raise serializers.ValidationError('New password does not match verified password.')
-
-        attrs = super(UserSudoSerializer, self).validate(attrs)
-        return attrs
 
 
 class UserDetailsEndpoint(UserEndpoint):
     def get(self, request, user):
-        data = serialize(user, request.user, DetailedUserSerializer())
-        return Response(data)
+        """
+        Retrieve User Details
+        `````````````````````
 
-    @sudo_required
-    def protected_put(self, request, user):
-        # pass some context to serializer otherwise when we create a new serializer instance,
-        # user.password gets set to new plaintext password from request and
-        # `user.has_usable_password` becomes False
-        serializer = UserSudoSerializer(user, data=request.DATA, partial=True, context={
-            'is_managed': user.is_managed,
-            'has_usable_password': user.has_usable_password(),
-        })
+        Return details for an account's details and options such as: full name, timezone, 24hr times, language,
+        stacktrace_order.
 
-        if not serializer.is_valid():
-            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-
-        result = serializer.object
-
-        if result.password:
-            user.set_password(result.password)
-            user.refresh_session_nonce(request._request)
-
-            user = serializer.save()
-
-            capture_security_activity(
-                account=user,
-                type='password-changed',
-                actor=request.user,
-                ip_address=request.META['REMOTE_ADDR'],
-                send_email=True,
-            )
-
-        # Proceed to update unprivileged fields
-        return self.update_unprivileged_details(request, user)
+        :auth: required
+        """
+        return Response(serialize(user, request.user, DetailedUserSerializer()))
 
     def put(self, request, user):
-        # Changing `password` requires sudo
-        if request.DATA.get('password'):
-            return self.protected_put(request, user)
-        else:
-            return self.update_unprivileged_details(request, user)
+        """
+        Update Account Appearance options
+        `````````````````````````````````
 
-    def update_unprivileged_details(self, request, user):
+        Update account appearance options. Only supplied values are updated.
+
+        :pparam string user_id: user id
+        :param string language: language preference
+        :param string stacktrace_order: One of -1 (default), 1 (most recent call last), 2 (most recent call first).
+        :param string timezone: timezone option
+        :param clock_24_hours boolean: use 24 hour clock
+        :auth: required
+        """
+
         if is_active_superuser(request):
             serializer_cls = AdminUserSerializer
         else:
             serializer_cls = UserSerializer
         serializer = serializer_cls(user, data=request.DATA, partial=True)
 
-        # This serializer should NOT include privileged fields e.g. password
-        if serializer.is_valid():
-            user = serializer.save()
+        serializer_options = UserOptionsSerializer(
+            data=request.DATA.get('options', {}), partial=True)
 
-            options = request.DATA.get('options', {})
-            if options.get('seenReleaseBroadcast'):
+        # This serializer should NOT include privileged fields e.g. password
+        if not serializer.is_valid() or not serializer_options.is_valid():
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+        # map API keys to keys in model
+        key_map = {
+            'language': 'language',
+            'timezone': 'timezone',
+            'stacktraceOrder': 'stacktrace_order',
+            'clock24Hours': 'clock_24_hours',
+            'seenReleaseBroadcast': 'seen_release_broadcast',
+        }
+
+        options_result = serializer_options.object
+
+        for key in key_map:
+            if key in options_result:
                 UserOption.objects.set_value(
                     user=user,
-                    key='seen_release_broadcast',
-                    value=options.get('seenReleaseBroadcast'),
+                    key=key_map.get(key, key),
+                    value=options_result.get(key),
                 )
-            return Response(serialize(user, request.user))
 
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        user = serializer.save()
+
+        return Response(serialize(user, request.user, DetailedUserSerializer()))

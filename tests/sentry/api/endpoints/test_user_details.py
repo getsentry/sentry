@@ -3,7 +3,6 @@ from __future__ import absolute_import
 import six
 
 from django.core.urlresolvers import reverse
-from django.conf import settings
 
 from sentry.models import User, UserOption
 from sentry.testutils import APITestCase
@@ -40,6 +39,9 @@ class UserDetailsTest(APITestCase):
 
         assert resp.status_code == 200, resp.content
         assert resp.data['id'] == six.text_type(user.id)
+        assert resp.data['options']['timezone'] == 'UTC'
+        assert resp.data['options']['language'] == 'en'
+        assert not resp.data['options']['clock24Hours']
 
     def test_superuser(self):
         user = self.create_user(email='a@example.com')
@@ -75,9 +77,13 @@ class UserUpdateTest(APITestCase):
             self.url,
             data={
                 'name': 'hello world',
-                'username': 'b@example.com',
                 'options': {
-                    'seenReleaseBroadcast': True
+                    'timezone': 'UTC',
+                    'stacktraceOrder': '2',
+                    'language': 'fr',
+                    'clock24Hours': True,
+                    'extra': True,
+                    'seenReleaseBroadcast': True,
                 }
             }
         )
@@ -88,11 +94,16 @@ class UserUpdateTest(APITestCase):
         assert user.name == 'hello world'
         # note: email should not change, removed support for email changing from this endpoint
         assert user.email == 'a@example.com'
-        assert user.username == user.email
+        assert user.username == 'a@example.com'
         assert UserOption.objects.get_value(
             user=user,
             key='seen_release_broadcast',
         ) is True
+        assert UserOption.objects.get_value(user=self.user, key='timezone') == 'UTC'
+        assert UserOption.objects.get_value(user=self.user, key='stacktrace_order') == '2'
+        assert UserOption.objects.get_value(user=self.user, key='language') == 'fr'
+        assert UserOption.objects.get_value(user=self.user, key='clock_24_hours')
+        assert not UserOption.objects.get_value(user=self.user, key='extra')
 
     def test_superuser(self):
         # superuser should be able to change self.user's name
@@ -110,7 +121,6 @@ class UserUpdateTest(APITestCase):
             data={
                 'name': 'hello world',
                 'email': 'c@example.com',
-                'username': 'foo',
                 'isActive': 'false',
             }
         )
@@ -137,109 +147,41 @@ class UserUpdateTest(APITestCase):
 
             # name remains unchanged
             user = User.objects.get(id=self.user.id)
-            assert user.name == 'example name'
+            assert user
 
-    def test_verifies_mismatch_password(self):
-        # Password mismatch
-        response = self.client.put(self.url, data={
-            'password': 'testpassword',
-            'passwordVerify': 'passworddoesntmatch',
-        })
-        assert response.status_code == 400
+    def test_change_username_when_different(self):
+        # if email != username and we change username, only username should change
+        user = self.create_user(email="c@example.com", username="diff@example.com")
+        self.login_as(user=user, superuser=False)
 
-    def test_managed_unable_change_password(self):
-        user = self.create_user(email='new@example.com', is_managed=True)
-        self.login_as(user)
-        url = reverse(
-            'sentry-api-0-user-details', kwargs={
-                'user_id': user.id,
+        resp = self.client.put(
+            self.url,
+            data={
+                'username': 'new@example.com',
             }
         )
+        assert resp.status_code == 200, resp.content
 
-        response = self.client.put(url, data={
-            'password': 'newpassword',
-            'passwordVerify': 'newpassword',
-        })
-        assert response.status_code == 400
+        user = User.objects.get(id=user.id)
 
-    def test_unusable_password_unable_change_password(self):
-        user = self.create_user(email='new@example.com')
-        user.set_unusable_password()
-        user.save()
-        self.login_as(user)
+        assert user.email == 'c@example.com'
+        assert user.username == 'new@example.com'
 
-        url = reverse(
-            'sentry-api-0-user-details', kwargs={
-                'user_id': user.id,
+    def test_change_username_when_same(self):
+        # if email == username and we change username,
+        # keep email in sync
+        user = self.create_user(email="c@example.com", username="c@example.com")
+        self.login_as(user=user)
+
+        resp = self.client.put(
+            self.url,
+            data={
+                'username': 'new@example.com',
             }
         )
+        assert resp.status_code == 200, resp.content
 
-        response = self.client.put(url, data={
-            'password': 'newpassword',
-            'passwordVerify': 'newpassword',
-        })
-        assert response.status_code == 400
+        user = User.objects.get(id=user.id)
 
-    def test_change_privileged_and_unprivileged(self):
-        self.login_as(self.user)
-        user = User.objects.get(id=self.user.id)
-        old_password = user.password
-
-        response = self.client.put(self.url, data={
-            'password': 'newpassword',
-            'passwordVerify': 'newpassword',
-            'name': 'new name',
-        })
-        assert response.status_code == 200
-
-        user = User.objects.get(id=self.user.id)
-        assert user.password != old_password
-        assert user.password != 'newpassword'
-        assert user.name == 'new name'
-
-
-class UserSudoUpdateTest(APITestCase):
-    def setUp(self):
-        self.user = self.create_user(email='a@example.com')
-        self.login_as(user=self.user)
-
-        self.url = reverse(
-            'sentry-api-0-user-details', kwargs={
-                'user_id': self.user.id,
-            }
-        )
-
-        middleware = list(settings.MIDDLEWARE_CLASSES)
-        index = middleware.index('sentry.testutils.middleware.SudoMiddleware')
-        middleware[index] = 'sentry.middleware.sudo.SudoMiddleware'
-        self.sudo_middleware = tuple(middleware)
-
-        self.sudo_url = reverse('sentry-api-0-sudo', kwargs={})
-
-    def test_change_password_requires_sudo(self):
-        user = User.objects.get(id=self.user.id)
-        old_password = user.password
-        with self.settings(MIDDLEWARE_CLASSES=tuple(self.sudo_middleware)):
-            response = self.client.put(self.url, data={
-                'password': 'testpassword',
-                'passwordVerify': 'testpassword',
-            })
-
-            assert response.status_code == 401
-            assert response.data['sudoRequired']
-
-            # Now try to gain sudo access
-            response = self.client.post(self.sudo_url, {
-                'username': 'foo@example.com',
-                'password': 'admin',
-            })
-            assert response.status_code == 204
-
-            # correct password change
-            response = self.client.put(self.url, data={
-                'password': 'testpassword',
-                'passwordVerify': 'testpassword',
-            })
-            assert response.status_code == 200
-            user = User.objects.get(id=self.user.id)
-            assert user.password != old_password
+        assert user.email == 'new@example.com'
+        assert user.username == 'new@example.com'
