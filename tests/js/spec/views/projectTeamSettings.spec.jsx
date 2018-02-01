@@ -78,10 +78,13 @@ describe('ProjectTeamsSettings', function() {
       expect(mock).not.toHaveBeenCalled();
 
       // open modal
-      wrapper.find('Button').simulate('click');
+      wrapper.find('.button-default').simulate('click');
 
-      // click confrim
-      wrapper.find('button.button-primary').simulate('click');
+      // click confirm
+      wrapper
+        .find('.modal-footer')
+        .find('button.button-primary')
+        .simulate('click');
 
       expect(mock).toHaveBeenCalledWith(
         endpoint,
