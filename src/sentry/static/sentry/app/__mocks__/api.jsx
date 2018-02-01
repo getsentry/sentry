@@ -27,6 +27,7 @@ class Client {
         statusCode: 200,
         body: '',
         method: 'GET',
+        callCount: 0,
         ...response,
       },
       mock,
@@ -40,7 +41,7 @@ class Client {
       return url === response.url && (options.method || 'GET') === response.method;
     });
   }
-
+  // In the real client, this clears in-flight responses. It's NOT clearMockResponses. You probably don't want to call this from a test.
   clear() {}
 
   static mockAsync = false;
@@ -89,7 +90,6 @@ class Client {
 
       // mock gets returned when we add a mock response, will represent calls to api.request
       mock(url, options);
-
       if (response.statusCode !== 200) {
         response.callCount++;
         let resp = {

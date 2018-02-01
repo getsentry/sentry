@@ -103,6 +103,7 @@ import TeamCreate from './views/teamCreate';
 import TeamDetails from './views/teamDetails';
 import TeamMembers from './views/teamMembers';
 import TeamSettings from './views/teamSettings';
+import TeamProjects from './views/settings/team/teamProjects';
 import errorHandler from './utils/errorHandler';
 
 function appendTrailingSlash(nextState, replace) {
@@ -479,6 +480,7 @@ function routes() {
         <IndexRedirect to="settings/" />
         <Route path="settings/" name="Settings" component={errorHandler(TeamSettings)} />
         <Route path="members/" name="Members" component={errorHandler(TeamMembers)} />
+        <Route path="projects/" name="Projects" component={errorHandler(TeamProjects)} />
       </Route>
     </Route>,
 
