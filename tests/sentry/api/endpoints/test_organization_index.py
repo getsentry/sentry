@@ -46,11 +46,11 @@ class OrganizationsListTest(APITestCase):
         assert response.status_code == 200
         assert len(response.data) == 3
         assert response.data[0]['organization']['id'] == six.text_type(org.id)
-        assert response.data[0]['single_owner'] is True
+        assert response.data[0]['singleOwner'] is True
         assert response.data[1]['organization']['id'] == six.text_type(org2.id)
-        assert response.data[1]['single_owner'] is False
+        assert response.data[1]['singleOwner'] is False
         assert response.data[2]['organization']['id'] == six.text_type(org3.id)
-        assert response.data[2]['single_owner'] is False
+        assert response.data[2]['singleOwner'] is False
 
     def test_status_query(self):
         org = self.create_organization(owner=self.user, status=OrganizationStatus.PENDING_DELETION)

@@ -78,7 +78,7 @@ class OrganizationIndexEndpoint(Endpoint):
                 # O(N) query
                 org_results.append({
                     'organization': serialize(org),
-                    'single_owner': org.has_single_owner(),
+                    'singleOwner': org.has_single_owner(),
                 })
 
             return Response(org_results)
