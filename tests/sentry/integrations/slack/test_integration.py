@@ -72,7 +72,7 @@ class SlackIntegrationTest(IntegrationTestCase):
             'access_token': 'xoxp-xxxxxxxxx-xxxxxxxxxx-xxxxxxxxxxxx',
             'bot_access_token': 'xoxb-xxxxxxxxx-xxxxxxxxxx-xxxxxxxxxxxx',
             'bot_user_id': 'UXXXXXXX2',
-            'scopes': list(self.provider.identity_oauth_scopes),
+            'scopes': sorted(self.provider.identity_oauth_scopes),
         }
         oi = OrganizationIntegration.objects.get(
             integration=integration,
@@ -90,7 +90,7 @@ class SlackIntegrationTest(IntegrationTestCase):
             external_id='UXXXXXXX1',
         )
         assert identity.status == IdentityStatus.VALID
-        assert identity.scopes == list(self.provider.identity_oauth_scopes)
+        assert identity.scopes == sorted(self.provider.identity_oauth_scopes)
         assert identity.data == {
             'access_token': 'xoxp-xxxxxxxxx-xxxxxxxxxx-xxxxxxxxxxxx',
         }
