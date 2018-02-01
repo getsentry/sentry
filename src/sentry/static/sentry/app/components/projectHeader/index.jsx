@@ -87,7 +87,7 @@ class ProjectHeader extends React.Component {
           </div>
           {showEnvironmentsToggle && (
             <div className="project-header-toggle">
-              <label>Environment</label>
+              <label>{t('Environment')}</label>
               <DropdownLink
                 anchorRight={true}
                 title={activeEnvironmentTitle}

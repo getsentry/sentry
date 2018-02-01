@@ -296,24 +296,24 @@ const ProjectUserReportSettings = createReactClass({
         <SettingsPageHeader title={t('User Feedback')} />
 
         <div className="alert alert-block alert-info">
-          Psst! This feature is still a work-in-progress. Thanks for being an early
-          adopter!
+          {t(`Psst! This feature is still a work-in-progress. Thanks for being an early
+          adopter!`)}
         </div>
 
         <TextBlock>
-          Enabling User Feedback allows you to interact with your users on an
+          {t(`Enabling User Feedback allows you to interact with your users on an
           unprecedented level. Collect additional details about issues affecting them, and
-          more importantly reach out to them with resolutions.
+          more importantly reach out to them with resolutions.`)}
         </TextBlock>
         <TextBlock>
-          When configured, your users will be presented with a dialog prompting them for
+          {t(`When configured, your users will be presented with a dialog prompting them for
           additional information. That information will get attached to the issue in
-          Sentry
+          Sentry`)}
         </TextBlock>
 
         <p>
           <a className="btn btn-primary" onClick={this.handleClick}>
-            See the report dialog in action
+            {t('See the report dialog in action')}
           </a>
         </p>
 
@@ -324,14 +324,14 @@ const ProjectUserReportSettings = createReactClass({
 
           <div className="box-content with-padding">
             <TextBlock>
-              The following example uses our Django integration. Check the documentation
-              for the SDK you're using for more details.
+              {t(`The following example uses our Django integration. Check the documentation
+              for the SDK you're using for more details.`)}
             </TextBlock>
             <pre>{this.getInstructions()}</pre>
 
             <TextBlock>
-              If you're capturing an error with our Browser JS SDK, things get even
-              simpler:
+              {t(`If you're capturing an error with our Browser JS SDK, things get even
+              simpler:`)}
             </TextBlock>
 
             <pre>{this.getBrowserJSInstructions()}</pre>
