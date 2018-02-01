@@ -1,36 +1,36 @@
 // Jest Snapshot v1, https://goo.gl/fbAQLP
 
 exports[`Qrcode renders 1`] = `
-<Styled(table)>
+<Table>
   <tbody>
     <tr
       key="0"
     >
-      <Styled(td)
+      <WhiteCell
         key="0"
       />
-      <Styled(td)
+      <BlackCell
         key="1"
       />
-      <Styled(td)
+      <BlackCell
         key="2"
       />
-      <Styled(td)
+      <WhiteCell
         key="3"
       />
-      <Styled(td)
+      <WhiteCell
         key="4"
       />
-      <Styled(td)
+      <WhiteCell
         key="5"
       />
-      <Styled(td)
+      <WhiteCell
         key="6"
       />
-      <Styled(td)
+      <WhiteCell
         key="7"
       />
     </tr>
   </tbody>
-</Styled(table)>
+</Table>
 `;
