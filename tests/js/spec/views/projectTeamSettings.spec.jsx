@@ -91,4 +91,45 @@ describe('ProjectTeamsSettings', function() {
       );
     });
   });
+
+  describe('ProjectTeams.handleAdd()', function() {
+    it('can add a team', function() {
+      let endpoint = `/projects/${org.slug}/${project.slug}/teams/${team2.slug}/`;
+      let mock = Client.addMockResponse({
+        url: endpoint,
+        method: 'POST',
+        statusCode: 200,
+      });
+
+      let wrapper = mount(
+        <ProjectTeams
+          params={{orgId: org.slug, projectId: project.slug}}
+          organization={org}
+        />,
+        {
+          context: {
+            router: TestStubs.router(),
+          },
+        }
+      );
+
+      expect(mock).not.toHaveBeenCalled();
+
+      // open dropdown
+      wrapper.find('DropdownLink').simulate('click');
+
+      // click a team
+      wrapper
+        .find('MenuItem')
+        .find('a')
+        .simulate('click');
+
+      expect(mock).toHaveBeenCalledWith(
+        endpoint,
+        expect.objectContaining({
+          method: 'POST',
+        })
+      );
+    });
+  });
 });
