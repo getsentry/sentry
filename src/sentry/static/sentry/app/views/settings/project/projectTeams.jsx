@@ -1,4 +1,4 @@
-import {Box, Flex} from 'grid-emotion';
+import {Box} from 'grid-emotion';
 import PropTypes from 'prop-types';
 import React from 'react';
 import createReactClass from 'create-react-class';
@@ -107,13 +107,7 @@ class ProjectTeams extends AsyncView {
     let access = new Set(this.props.organization.access);
 
     return [
-      <PanelHeader key={'header'}>
-        <Flex align="center">
-          <Box px={2} flex="1">
-            {t('Team')}
-          </Box>
-        </Flex>
-      </PanelHeader>,
+      <PanelHeader key={'header'}>{t('Team')}</PanelHeader>,
       <PanelBody key={'body'}>
         {this.state.teams.map(team => {
           return (
