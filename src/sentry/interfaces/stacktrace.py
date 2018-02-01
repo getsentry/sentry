@@ -44,6 +44,18 @@ _java_enhancer_re = re.compile(r'''
 # Clojure anon functions are compiled down to myapp.mymodule$fn__12345
 _clojure_enhancer_re = re.compile(r'''(\$fn__)\d+''', re.X)
 
+# fields that need to be the same between frames for them to be considered
+# recursive calls
+RECURSION_COMPARISON_FIELDS = [
+    'abs_path',
+    'package',
+    'module',
+    'filename',
+    'function',
+    'lineno',
+    'colno',
+]
+
 
 def max_addr(cur, addr):
     if addr is None:
@@ -250,6 +262,15 @@ def handle_nan(value):
         if value != value:
             return '<nan>'
     return value
+
+
+def is_recursion(frame1, frame2):
+    "Returns a boolean indicating whether frames are recursive calls."
+    for field in RECURSION_COMPARISON_FIELDS:
+        if getattr(frame1, field, None) != getattr(frame2, field, None):
+            return False
+
+    return True
 
 
 class Frame(Interface):
@@ -761,7 +782,7 @@ class Stacktrace(Interface):
         output.extend(frames[0].get_hash(platform))
         prev_frame = frames[0]
         for frame in frames[1:]:
-            if frame != prev_frame:
+            if not is_recursion(frame, prev_frame):
                 output.extend(frame.get_hash(platform))
             prev_frame = frame
         return output
