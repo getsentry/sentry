@@ -23,9 +23,7 @@ class Qrcode extends React.Component {
     /**
      * Takes a multidimensional array representing a 2-bit, 2d matrix
      */
-    code: PropTypes.arrayOf(
-      PropTypes.arrayOf(PropTypes.oneOfType([PropTypes.number, PropTypes.bool]))
-    ),
+    code: PropTypes.arrayOf(PropTypes.arrayOf(PropTypes.number)),
   };
 
   render() {
