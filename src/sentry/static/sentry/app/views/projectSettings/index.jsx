@@ -104,6 +104,9 @@ const ProjectSettings = createReactClass({
             >
               {t('Alerts')}
             </ListLink>
+            <ListLink to={`/${orgId}/${projectId}/settings/environments/`}>
+              {t('Environments')}
+            </ListLink>
             <ListLink to={`/${orgId}/${projectId}/settings/tags/`}>{t('Tags')}</ListLink>
             <ListLink to={`/${orgId}/${projectId}/settings/issue-tracking/`}>
               {t('Issue Tracking')}

@@ -60,6 +60,7 @@ import OrganizationTeams from './views/organizationTeams';
 import ProjectAlertRules from './views/projectAlertRules';
 import ProjectAlertRuleDetails from './views/projectAlertRuleDetails';
 import ProjectAlertSettings from './views/projectAlertSettings';
+import ProjectEnvironments from './views/projectEnvironments';
 import ProjectTags from './views/projectTags';
 import ProjectChooser from './views/projectChooser';
 import ProjectCspSettings from './views/projectCspSettings';
@@ -242,6 +243,12 @@ const projectSettingsRoutes = [
     name="Alerts"
     path="alerts/"
     component={errorHandler(ProjectAlertSettings)}
+  />,
+  <Route
+    key="environments/"
+    name="Environments"
+    path="environments/"
+    component={errorHandler(ProjectEnvironments)}
   />,
   <Route key="tags/" name="Tags" path="tags/" component={errorHandler(ProjectTags)} />,
   <Route
