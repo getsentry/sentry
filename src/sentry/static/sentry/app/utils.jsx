@@ -269,6 +269,17 @@ export function extractMultilineFields(value) {
     .filter(f => f !== '');
 }
 
+function projectDisplayCompare(a, b) {
+  if (a.isBookmarked !== b.isBookmarked) {
+    return a.isBookmarked ? -1 : 1;
+  }
+  return a.id < b.id;
+}
+
+// Sort a list of projects by bookmarkedness, then by id
+export function sortProjects(projects) {
+  return projects.sort(projectDisplayCompare);
+}
 // re-export under utils
 export {parseLinkHeader, deviceNameMapper, Collection, PendingChangeQueue, CursorPoller};
 

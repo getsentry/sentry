@@ -31,6 +31,7 @@ const TeamStore = Reflux.createStore({
     if (!response) return;
 
     let item = this.getBySlug(itemId);
+
     if (!item) {
       this.items.push(response);
     } else {

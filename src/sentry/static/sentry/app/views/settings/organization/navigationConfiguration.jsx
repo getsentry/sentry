@@ -12,8 +12,12 @@ const organizationNavigation = [
         show: ({access}) => access.has('org:write'),
       },
       {
+        path: `${pathPrefix}/projects/`,
+        title: t('Projects'),
+      },
+      {
         path: `${pathPrefix}/teams/`,
-        title: t('Projects & Teams'),
+        title: t('Teams'),
       },
       {
         path: `${pathPrefix}/stats/`,

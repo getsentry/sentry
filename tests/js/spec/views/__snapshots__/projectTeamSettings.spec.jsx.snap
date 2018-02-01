@@ -51,6 +51,7 @@ exports[`ProjectTeamsSettings render() renders 1`] = `
             Object {
               "id": "1",
               "name": "Team Name",
+              "projects": Array [],
               "slug": "team-slug",
             }
           }
