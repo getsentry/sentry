@@ -6,6 +6,26 @@ exports[`ProjectTeamsSettings render() renders 1`] = `
 >
   <div>
     <SettingsPageHeading
+      action={
+        <DropdownLink
+          alwaysRenderMenu={true}
+          anchorRight={true}
+          caret={true}
+          className="btn btn-primary btn-sm"
+          disabled={false}
+          title="Add Team"
+        >
+          <MenuItem
+            noAnchor={true}
+          >
+            <a
+              onClick={[Function]}
+            >
+              Team Name 2
+            </a>
+          </MenuItem>
+        </DropdownLink>
+      }
       title="Teams"
     />
     <Panel>
