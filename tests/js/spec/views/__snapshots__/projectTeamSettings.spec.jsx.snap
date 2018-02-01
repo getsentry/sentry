@@ -24,6 +24,26 @@ exports[`ProjectTeamsSettings render() renders 1`] = `
               Team Name 2
             </a>
           </MenuItem>
+          <MenuItem
+            divider={true}
+          />
+          <div
+            style={
+              Object {
+                "padding": "5px 0px",
+                "textAlign": "center",
+              }
+            }
+          >
+            <Button
+              disabled={false}
+              priority="primary"
+              size="small"
+              to="/organizations/org-slug/teams/new/"
+            >
+              Create a new team
+            </Button>
+          </div>
         </DropdownLink>
       }
       title="Teams"
