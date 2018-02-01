@@ -12,16 +12,7 @@ exports[`ProjectTeamsSettings render() renders 1`] = `
       <PanelHeader
         key="header"
       >
-        <Flex
-          align="center"
-        >
-          <Box
-            flex="1"
-            px={2}
-          >
-            Team
-          </Box>
-        </Flex>
+        Team
       </PanelHeader>
       <PanelBody
         direction="column"
