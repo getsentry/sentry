@@ -13,14 +13,13 @@ class DebugMetaInterface extends React.Component {
     data: PropTypes.object.isRequired,
   };
 
-  getImageDetail = (img, evt) => {
+  getImageDetail(img, evt) {
     // in particular proguard images do not have a name, skip them
     if (img.name === null || img.type === 'proguard') {
       return null;
     }
 
-    let name = img.name.split('/').pop();
-
+    let name = img.name.split(/^[a-z]:\\/i.test(img.name) ? '\\' : '/').pop();
     if (name == 'dyld_sim') return null; // this is only for simulator builds
 
     let version = null;
@@ -39,7 +38,7 @@ class DebugMetaInterface extends React.Component {
     if (version) return [name, version];
 
     return null;
-  };
+  }
 
   render() {
     let data = this.props.data;

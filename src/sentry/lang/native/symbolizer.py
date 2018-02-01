@@ -36,6 +36,7 @@ LINUX_SYS_PATHS = (
     '/usr/lib/',
     'linux-gate.so',
 )
+WINDOWS_SYS_PATH = re.compile(r'^[a-z]:\\windows', re.IGNORECASE)
 
 _internal_function_re = re.compile(
     r'(kscm_|kscrash_|KSCrash |SentryClient |RNSentry )')
@@ -159,6 +160,8 @@ class Symbolizer(object):
         if sdk_name == 'macos' and MAC_OS_PATH in obj_path:
             return True
         if sdk_name == 'linux' and not obj_path.startswith(LINUX_SYS_PATHS):
+            return True
+        if sdk_name == 'windows' and not WINDOWS_SYS_PATH.match(obj_path):
             return True
 
         return False
