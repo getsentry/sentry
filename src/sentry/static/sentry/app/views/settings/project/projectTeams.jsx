@@ -162,6 +162,7 @@ class ProjectTeams extends AsyncView {
   }
 
   renderBody() {
+    let {orgId} = this.props.params;
     let body;
 
     if (this.state.projectTeams.length > 0) body = this.renderResults();
@@ -195,6 +196,16 @@ class ProjectTeams extends AsyncView {
                   <a>{t('No available teams')}</a>
                 </MenuItem>
               )}
+              <MenuItem divider={true} />
+              <div style={{textAlign: 'center', padding: '5px 0px'}}>
+                <Button
+                  to={`/organizations/${orgId}/teams/new/`}
+                  priority="primary"
+                  size="small"
+                >
+                  {t('Create a new team')}
+                </Button>
+              </div>
             </DropdownLink>
           }
         />
