@@ -51,10 +51,12 @@ class OrganizationIndexEndpoint(Endpoint):
 
         :qparam bool member: restrict results to organizations which you have
                              membership
+        :qparam bool owner: restrict results to organizations which are owner
 
         :auth: required
         """
         member_only = request.GET.get('member') in ('1', 'true')
+        owner_only = request.GET.get('owner') in ('1', 'true')
 
         queryset = Organization.objects.all()
 
@@ -63,6 +65,24 @@ class OrganizationIndexEndpoint(Endpoint):
                 queryset = queryset.filter(id=request.auth.project.organization_id)
             elif request.auth.organization is not None:
                 queryset = queryset.filter(id=request.auth.organization.id)
+
+        elif owner_only:
+            # This is used when closing an account
+            queryset = queryset.filter(
+                member_set__role=roles.get_top_dog().id,
+                member_set__user=request.user,
+                status=OrganizationStatus.VISIBLE,
+            )
+            org_results = []
+            for org in sorted(queryset, key=lambda x: x.name):
+                # O(N) query
+                org_results.append({
+                    'organization': serialize(org),
+                    'single_owner': org.has_single_owner(),
+                })
+
+            return Response(org_results)
+
         elif member_only or not is_active_superuser(request):
             queryset = queryset.filter(
                 id__in=OrganizationMember.objects.filter(
