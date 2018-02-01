@@ -109,7 +109,7 @@ const ExpandedTeamList = createReactClass({
     // TODO: make this cleaner
     let access = this.props.access;
     return (
-      <Panel>
+      <Panel key={team.id}>
         <PanelHeader>
           <div className="pull-right actions hidden-xs">
             <TeamHeaderLink onClick={this.leaveTeam.bind(this, team)}>
