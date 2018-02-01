@@ -10,7 +10,7 @@ from .endpoints.auth_index import AuthIndexEndpoint
 from .endpoints.authenticator_index import AuthenticatorIndexEndpoint
 from .endpoints.broadcast_index import BroadcastIndexEndpoint
 from .endpoints.catchall import CatchallEndpoint
-from .endpoints.chunk_upload import ChunkUploadEndpoint
+from .endpoints.chunk import ChunkAssembleEndpoint, ChunkUploadEndpoint
 from .endpoints.event_details import EventDetailsEndpoint
 from .endpoints.event_apple_crash_report import EventAppleCrashReportEndpoint
 from .endpoints.group_details import GroupDetailsEndpoint
@@ -184,10 +184,15 @@ urlpatterns = patterns(
     url(r'^broadcasts/$', BroadcastIndexEndpoint.as_view(),
         name='sentry-api-0-broadcast-index'),
 
-    # Chunk upload
+    # Chunk
     url(r'^chunk-upload/$',
         ChunkUploadEndpoint.as_view(),
         name='sentry-api-0-chunk-upload'
+        ),
+
+    url(r'^chunk-assemble/$',
+        ChunkAssembleEndpoint.as_view(),
+        name='sentry-api-0-chunk-assemble'
         ),
 
     # Users
