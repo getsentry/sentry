@@ -15,10 +15,9 @@ import ContextLine from './contextLine';
 import FrameVariables from './frameVariables';
 
 export function trimPackage(pkg) {
-  let pieces = pkg.split(/\//g);
-  let rv = pieces[pieces.length - 1] || pieces[pieces.length - 2] || pkg;
-  let match = rv.match(/^(.*?)\.(dylib|so|a)$/);
-  return (match && match[1]) || rv;
+  let pieces = pkg.split(/^[a-z]:\\/i.test(pkg) ? '\\' : '/');
+  let filename = pieces[pieces.length - 1] || pieces[pieces.length - 2] || pkg;
+  return filename.replace(/\.(dylib|so|a|dll|exe)$/, '');
 }
 
 const Frame = createReactClass({
