@@ -64,5 +64,3 @@ const OrganizationsStore = Reflux.createStore({
 });
 
 export default OrganizationsStore;
-
-window.o = OrganizationsStore;
