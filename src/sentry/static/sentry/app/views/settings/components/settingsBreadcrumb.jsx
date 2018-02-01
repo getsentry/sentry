@@ -12,6 +12,7 @@ import SettingsBreadcrumbDropdown from './settingsBreadcrumbDropdown';
 import recreateRoute from '../../../utils/recreateRoute';
 import replaceRouterParams from '../../../utils/replaceRouterParams';
 import withLatestContext from '../../../utils/withLatestContext';
+import withProjects from '../../../utils/withProjects';
 
 const Breadcrumbs = styled.div`
   display: flex;
@@ -53,68 +54,68 @@ const ProjectName = styled.div`
 
 // `organizationDetails` to differeniate from the organization that comes from `OrganizationsStore` which only has
 // a fraction of an org's properties
-const ProjectCrumb = withLatestContext(
-  ({
-    team,
-    organization: latestOrganization,
-    project: latestProject,
-    params,
-    routes,
-    route,
-    ...props
-  }) => {
-    if (!latestOrganization) return null;
+const ProjectCrumb = withProjects(
+  withLatestContext(
+    ({
+      organization: latestOrganization,
+      project: latestProject,
+      projects,
+      params,
+      routes,
+      route,
+      ...props
+    }) => {
+      if (!latestOrganization) return null;
 
-    let {teams} = latestOrganization;
-    let teamFromOrg = (teams && teams.find(({slug}) => slug === team.slug)) || {};
-    let {projects} = teamFromOrg;
+      // let {projects} = teamFromOrg;
 
-    if (!projects) return null;
+      if (!projects) return null;
 
-    let hasMenu = projects && projects.length > 1;
+      let hasMenu = projects && projects.length > 1;
 
-    return (
-      <SettingsBreadcrumbDropdown
-        hasMenu={hasMenu}
-        route={route}
-        name={
-          <ProjectName>
-            {!latestProject ? (
-              <LoadingIndicator mini />
-            ) : (
-              <div>
-                <StyledLink
-                  to={replaceRouterParams(
-                    '/settings/organization/:orgId/project/:projectId/',
-                    {
-                      orgId: latestOrganization.slug,
-                      projectId: latestProject.slug,
-                    }
-                  )}
-                >
-                  {`${teamFromOrg.name} / ${latestProject.name}`}
-                </StyledLink>
-              </div>
-            )}
-          </ProjectName>
-        }
-        {...props}
-      >
-        {projects.map(project => (
-          <MenuItem
-            to={recreateRoute(route, {
-              routes,
-              params: {...params, projectId: project.slug},
-            })}
-            active={project.slug === params.projectId}
-            key={project.slug}
-          >
-            {project.name}
-          </MenuItem>
-        ))}
-      </SettingsBreadcrumbDropdown>
-    );
-  }
+      return (
+        <SettingsBreadcrumbDropdown
+          hasMenu={hasMenu}
+          route={route}
+          name={
+            <ProjectName>
+              {!latestProject ? (
+                <LoadingIndicator mini />
+              ) : (
+                <div>
+                  <StyledLink
+                    to={replaceRouterParams(
+                      '/settings/organization/:orgId/project/:projectId/',
+                      {
+                        orgId: latestOrganization.slug,
+                        projectId: latestProject.slug,
+                      }
+                    )}
+                  >
+                    {`${latestProject.name}`}
+                  </StyledLink>
+                </div>
+              )}
+            </ProjectName>
+          }
+          {...props}
+        >
+          {projects.map(project => (
+            <MenuItem
+              to={recreateRoute(route, {
+                routes,
+                params: {...params, projectId: project.slug},
+              })}
+              active={project.slug === params.projectId}
+              key={project.slug}
+            >
+              {project.name}
+            </MenuItem>
+          ))}
+        </SettingsBreadcrumbDropdown>
+      );
+    }
+  )
 );
 
 ProjectCrumb.displayName = 'ProjectCrumb';
