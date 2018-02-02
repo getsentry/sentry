@@ -10,7 +10,7 @@ from rest_framework.response import Response
 from sentry import options
 from sentry.utils import json
 from sentry.models import File, FileBlob
-from sentry.models.file import DEFAULT_BLOB_SIZE
+from sentry.models.file import DEFAULT_BLOB_SIZE, ChunkFileState, ChunkAssembleType
 from sentry.api.base import Endpoint
 from sentry.api.bases.project import ProjectReleasePermission
 
@@ -80,6 +80,7 @@ class ChunkAssembleEndpoint(Endpoint):
                 "properties": {
                     "type": {"type": "string"},
                     "name": {"type": "string"},
+                    "params": {"type": "object"},
                     "chunks": {
                         "type": "array",
                         "items": {"type": "string"}
@@ -103,12 +104,15 @@ class ChunkAssembleEndpoint(Endpoint):
 
         from sentry.tasks.assemble import dif_chunks
         for checksum, file_to_assemble in six.iteritems(files):
+            name = file_to_assemble.get('name', '')
+            type = file_to_assemble.get('type', ChunkAssembleType.GENERIC)
+
             try:
                 file = File.objects.filter(
                     checksum=checksum
                 ).get()
                 file_response[checksum] = {
-                    'state': file.headers.get('state', 'OK'),
+                    'state': file.headers.get('state', ChunkFileState.OK),
                     'missingChunks': []
                 }
                 continue
@@ -119,7 +123,7 @@ class ChunkAssembleEndpoint(Endpoint):
 
             if len(chunks) == 0:
                 file_response[checksum] = {
-                    'state': 'NOT_FOUND',
+                    'state': ChunkFileState.NOT_FOUND,
                     'missingChunks': []
                 }
                 continue
@@ -134,16 +138,16 @@ class ChunkAssembleEndpoint(Endpoint):
 
             if len(missing_chunks) > 0:
                 file_response[checksum] = {
-                    'state': 'NOT_FOUND',
+                    'state': ChunkFileState.NOT_FOUND,
                     'missingChunks': missing_chunks
                 }
                 continue
 
             file = File.objects.create(
-                name=file_to_assemble.get('name', ''),
+                name=name,
                 checksum=checksum,
                 type='chunked',
-                headers={'state': 'CREATED'}
+                headers={'state': ChunkFileState.CREATED}
             )
 
             # We need to make sure the blobs are in the order in which
@@ -152,16 +156,17 @@ class ChunkAssembleEndpoint(Endpoint):
                 file_blobs, key=lambda blob: chunks.index(blob[1])
             )]
 
-            if file.headers.get('state') == 'CREATED':
+            if file.headers.get('state') == ChunkFileState.CREATED:
                 # Start the actual worker which does the assembling.
                 dif_chunks.delay(
+                    type=type,
                     file_id=file.id,
                     file_blob_ids=file_blob_ids,
                     checksum=checksum,
                 )
 
             file_response[checksum] = {
-                'state': file.headers.get('state', 'CREATED'),
+                'state': file.headers.get('state', ChunkFileState.CREATED),
                 'missingChunks': missing_chunks
             }
 

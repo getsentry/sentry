@@ -35,6 +35,23 @@ ONE_DAY = 60 * 60 * 24
 DEFAULT_BLOB_SIZE = 1024 * 1024  # one mb
 
 
+def enum(**named_values):
+    return type('Enum', (), named_values)
+
+ChunkAssembleType = enum(
+    GENERIC='generic',
+    DIF='dif',
+)
+
+ChunkFileState = enum(
+    OK='ok',
+    NOT_FOUND='not_found',
+    CREATED='created',
+    ASSEMBLING='assembling',
+    ERROR='error'
+)
+
+
 def get_storage():
     from sentry import options
     backend = options.get('filestore.backend')
@@ -264,7 +281,6 @@ class File(Model):
         new_checksum = sha1(b'')
         offset = 0
         for blob in file_blobs:
-            offset += blob.size
             FileBlobIndex.objects.create(
                 file=self,
                 blob=blob,
@@ -272,13 +288,13 @@ class File(Model):
             )
             for chunk in blob.getfile().chunks():
                 new_checksum.update(chunk)
+            offset += blob.size
 
         self.size = offset
         self.checksum = new_checksum.hexdigest()
 
-        self.headers['state'] = 'ASSEMBLED'
         if checksum != self.checksum:
-            self.headers['state'] = 'ERROR'
+            self.headers['state'] = ChunkFileState.ERROR
             self.headers['error'] = 'invalid_checksum'
 
         metrics.timing('filestore.file-size', offset)
