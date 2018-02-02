@@ -19,6 +19,15 @@ const SettingsIndicatorStore = Reflux.createStore({
     this.id = options.id;
 
     this.state = {
+      options: {
+        ...options,
+
+        // Use options, else default to disable if model does not exist
+        disableUndo:
+          typeof options.disableUndo !== 'undefined'
+            ? options.disableUndo
+            : !options.model,
+      },
       message,
       type,
     };
