@@ -55,7 +55,7 @@ const MergedToolbar = createReactClass({
     let entries = this.state.unmergeList.entries();
 
     // `unmergeList` should only have 2 items in map
-    if (entries.length !== 2) return;
+    if (this.state.unmergeList.size !== 2) return;
 
     // only need eventId, not fingerprint
     let [baseEventId, targetEventId] = Array.from(entries).map(([, eventId]) => eventId);
