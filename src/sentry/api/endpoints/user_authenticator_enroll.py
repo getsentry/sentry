@@ -187,7 +187,7 @@ class UserAuthenticatorEnrollEndpoint(UserEndpoint):
                 },
                 send_email=False,
             )
-
+            request.user.clear_lost_passwords()
             request.user.refresh_session_nonce(self.request)
             request.user.save()
             Authenticator.objects.auto_add_recovery_codes(request.user)
