@@ -2,6 +2,7 @@ import PropTypes from 'prop-types';
 import React from 'react';
 import SentryTypes from '../../proptypes';
 import {t} from '../../locale';
+import GuideAnchor from '../../components/assistant/guideAnchor';
 
 class GroupEventDataSection extends React.Component {
   static propTypes = {
@@ -47,6 +48,9 @@ class GroupEventDataSection extends React.Component {
             <a href={'#' + this.props.type} className="permalink">
               <em className="icon-anchor" />
             </a>
+            {this.props.type === 'extra' ? (
+              <GuideAnchor step={2} target="extra" type="text" />
+            ) : null}
             {this.props.wrapTitle ? (
               <h3>{this.props.title}</h3>
             ) : (

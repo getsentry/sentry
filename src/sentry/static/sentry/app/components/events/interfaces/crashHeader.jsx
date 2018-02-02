@@ -4,6 +4,7 @@ import createReactClass from 'create-react-class';
 import SentryTypes from '../../../proptypes';
 import TooltipMixin from '../../../mixins/tooltip';
 import {t} from '../../../locale';
+import GuideAnchor from '../../../components/assistant/guideAnchor';
 
 const CrashHeader = createReactClass({
   displayName: 'CrashHeader',
@@ -93,12 +94,16 @@ const CrashHeader = createReactClass({
 
   render() {
     let {stackView, stackType, newestFirst} = this.props;
+    let crashTitle = this.props.title !== undefined ? this.props.title : t('Exception');
 
     return (
       <div className="crash-title">
         {this.props.beforeTitle}
+        {crashTitle === 'Exception' ? (
+          <GuideAnchor step={0} target="breadcrumbs" type="text" />
+        ) : null}
         <h3 className="pull-left">
-          {this.props.title !== undefined ? this.props.title : t('Exception')}
+          {crashTitle}
           <small style={{marginLeft: 5}}>
             (<a
               onClick={this.toggleOrder}
