@@ -6,6 +6,7 @@ import {Box} from 'grid-emotion';
 import {loadStats} from '../../../../actionCreators/projects';
 import {t} from '../../../../locale';
 import ApiMixin from '../../../../mixins/apiMixin';
+import {getOrganizationState} from '../../../../mixins/organizationState';
 import OrganizationSettingsView from '../../../organizationSettingsView';
 import ProjectStatsGraph from './projectStatsGraph';
 import ProjectsStore from '../../../../stores/projectsStore';
@@ -18,6 +19,7 @@ import PanelBody from '../../components/panelBody';
 import ProjectListItem from '../../../settings/components/settingsProjectItem';
 import SettingsPageHeader from '../../components/settingsPageHeader';
 import Button from '../../../../components/buttons/button';
+import EmptyMessage from '../../components/emptyMessage';
 
 class OrganizationProjectsView extends OrganizationSettingsView {
   static contextTypes = {
@@ -32,8 +34,9 @@ class OrganizationProjectsView extends OrganizationSettingsView {
   renderBody() {
     let {projects} = this.props;
     let {organization} = this.context;
-    let {access} = organization;
-    let canCreateProjects = access.indexOf('org:write') > -1;
+    let canCreateProjects = getOrganizationState(this.context.organization)
+      .getAccess()
+      .has('project:admin');
 
     let action = (
       <Button
@@ -73,7 +76,7 @@ class OrganizationProjectsView extends OrganizationSettingsView {
             {projects.length === 0 && (
               <PanelItem align="center">
                 <Box w={1 / 2} p={2} flex="1">
-                  <span>{t('No projects found.')}</span>
+                  <EmptyMessage>{t('No projects found.')}</EmptyMessage>
                 </Box>
               </PanelItem>
             )}
