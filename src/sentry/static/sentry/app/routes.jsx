@@ -154,22 +154,6 @@ const accountSettingsRoutes = [
     componentPromise={() => import('./views/settings/account/accountEmails')}
     component={errorHandler(LazyLoad)}
   />,
-  <Route
-    key="avatar/"
-    path="avatar/"
-    name="Avatar"
-    componentPromise={() => import('./views/settings/account/avatar')}
-    component={errorHandler(LazyLoad)}
-  />,
-
-  <Route
-    key="appearance/"
-    path="appearance/"
-    name="Appearance"
-    componentPromise={() =>
-      import(/*webpackChunkName: "AccountAppearance"*/ './views/settings/account/accountAppearance')}
-    component={errorHandler(LazyLoad)}
-  />,
 
   <Route
     key="authorizations/"
