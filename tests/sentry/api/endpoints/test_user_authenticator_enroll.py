@@ -79,7 +79,6 @@ class UserAuthenticatorEnrollTest(APITestCase):
             assert resp.data['form']
             assert resp.data['secret']
 
-            #
             resp = self.client.post(url, data={
                 "secret": "secret12",
                 "phone": "1231234",

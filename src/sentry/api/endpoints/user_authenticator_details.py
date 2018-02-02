@@ -28,7 +28,7 @@ class UserAuthenticatorDetailsEndpoint(UserEndpoint):
 
         try:
             authenticator = Authenticator.objects.get(user=user, id=auth_id)
-        except ValueError, Authenticator.DoesNotExist:
+        except (ValueError, Authenticator.DoesNotExist):
             return Response(status=status.HTTP_404_NOT_FOUND)
 
         interface = authenticator.interface
@@ -69,7 +69,7 @@ class UserAuthenticatorDetailsEndpoint(UserEndpoint):
                 user=user,
                 id=auth_id,
             )
-        except ValueError, Authenticator.DoesNotExist:
+        except (ValueError, Authenticator.DoesNotExist):
             return Response(status=status.HTTP_404_NOT_FOUND)
 
         interface = authenticator.interface
@@ -96,7 +96,7 @@ class UserAuthenticatorDetailsEndpoint(UserEndpoint):
                 user=user,
                 id=auth_id,
             )
-        except ValueError, Authenticator.DoesNotExist:
+        except (ValueError, Authenticator.DoesNotExist):
             return Response(status=status.HTTP_404_NOT_FOUND)
 
         with transaction.atomic():
