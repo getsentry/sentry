@@ -142,7 +142,7 @@ const NoteInput = createReactClass({
       method: 'POST',
       data: {
         text: this.cleanMarkdown(this.state.value),
-        memberMentions: this.finalizeMentions(memberMentions),
+        mentions: this.finalizeMentions(memberMentions),
         teamMentions: this.finalizeMentions(teamMentions),
       },
       error: error => {

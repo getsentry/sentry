@@ -7,10 +7,10 @@ from .list import ListField
 
 class NoteSerializer(serializers.Serializer):
     text = serializers.CharField()
-    memberMentions = ListField(required=False)
+    mentions = ListField(required=False)
     teamMentions = ListField(required=False)
 
-    def validate_memberMentions(self, attrs, source):
+    def validate_mentions(self, attrs, source):
         if source in attrs and 'group' in self.context:
             memberMentions = attrs[source]
             project = self.context['group'].project

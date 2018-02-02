@@ -37,7 +37,7 @@ class GroupNotesEndpoint(GroupEndpoint):
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
         data = dict(serializer.object)
-        member_mentions = data.pop('memberMentions', [])
+        member_mentions = data.pop('mentions', [])
         team_mentions = data.pop('teamMentions', [])
 
         if Activity.objects.filter(
