@@ -9,11 +9,14 @@ class AsyncView extends AsyncComponent {
   }
 
   getTitle() {
-    return 'Sentry';
+    return '';
   }
   render() {
+    let title = this.getTitle();
     return (
-      <DocumentTitle title={this.getTitle()}>{this.renderComponent()}</DocumentTitle>
+      <DocumentTitle title={`${title ? `${title} - ` : ''}Sentry`}>
+        {this.renderComponent()}
+      </DocumentTitle>
     );
   }
 }

@@ -2,7 +2,7 @@
 
 exports[`AccountEmails renders with emails 1`] = `
 <SideEffect(DocumentTitle)
-  title="Sentry"
+  title="Emails - Sentry"
 >
   <div>
     <SettingsPageHeading

@@ -2,7 +2,7 @@
 
 exports[`AccountIdentities renders empty 1`] = `
 <SideEffect(DocumentTitle)
-  title="Sentry"
+  title="Identities - Sentry"
 >
   <div>
     <SettingsPageHeading
@@ -34,7 +34,7 @@ exports[`AccountIdentities renders empty 1`] = `
 
 exports[`AccountIdentities renders list 1`] = `
 <SideEffect(DocumentTitle)
-  title="Sentry"
+  title="Identities - Sentry"
 >
   <div>
     <SettingsPageHeading

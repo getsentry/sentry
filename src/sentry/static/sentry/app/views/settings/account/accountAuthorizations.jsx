@@ -66,7 +66,7 @@ class AccountAuthorizations extends AsyncView {
   }
 
   getTitle() {
-    return 'Approved Applications - Sentry';
+    return 'Approved Applications';
   }
 
   handleRevoke = authorization => {

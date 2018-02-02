@@ -34,6 +34,10 @@ class AccountSubscriptions extends AsyncView {
     return [['subscriptions', ENDPOINT]];
   }
 
+  getTitle() {
+    return 'Subscriptions';
+  }
+
   handleToggle = (subscription, index, e) => {
     let subscribed = !subscription.subscribed;
     let oldSubscriptions = this.state.subscriptions;

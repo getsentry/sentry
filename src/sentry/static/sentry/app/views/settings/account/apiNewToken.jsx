@@ -28,7 +28,7 @@ export default class ApiNewToken extends React.Component {
 
   render() {
     return (
-      <DocumentTitle title="Create API Token">
+      <DocumentTitle title="Create API Token - Sentry">
         <div>
           <SettingsPageHeader title={t('Create New Token')} />
           <TextBlock>

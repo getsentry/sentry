@@ -126,7 +126,7 @@ const ApiApplicationDetails = createReactClass({
   onRemoveApplication(app) {},
 
   getTitle() {
-    return 'Application Details - Sentry';
+    return 'Application Details';
   },
 
   render() {

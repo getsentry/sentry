@@ -177,7 +177,7 @@ const ApiTokens = createReactClass({
   },
 
   getTitle() {
-    return 'API Tokens - Sentry';
+    return 'API Tokens';
   },
 
   render() {

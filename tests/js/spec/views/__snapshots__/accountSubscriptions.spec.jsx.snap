@@ -2,7 +2,7 @@
 
 exports[`AccountSubscriptions renders empty 1`] = `
 <SideEffect(DocumentTitle)
-  title="Sentry"
+  title="Subscriptions - Sentry"
 >
   <div>
     <SettingsPageHeading
@@ -193,10 +193,10 @@ exports[`AccountSubscriptions renders list and can toggle 1`] = `
 
 <AccountSubscriptions>
   <SideEffect(DocumentTitle)
-    title="Sentry"
+    title="Subscriptions - Sentry"
   >
     <DocumentTitle
-      title="Sentry"
+      title="Subscriptions - Sentry"
     >
       <div>
         <SettingsPageHeading

@@ -9,10 +9,10 @@ exports[`OrganizationIntegrations render() with a provider renders 1`] = `
   }
 >
   <SideEffect(DocumentTitle)
-    title="Integrations"
+    title="Integrations - Sentry"
   >
     <DocumentTitle
-      title="Integrations"
+      title="Integrations - Sentry"
     >
       <div
         className="ref-organization-integrations"
@@ -135,10 +135,10 @@ exports[`OrganizationIntegrations render() with a provider renders with a reposi
   }
 >
   <SideEffect(DocumentTitle)
-    title="Integrations"
+    title="Integrations - Sentry"
   >
     <DocumentTitle
-      title="Integrations"
+      title="Integrations - Sentry"
     >
       <div
         className="ref-organization-integrations"
@@ -340,7 +340,7 @@ exports[`OrganizationIntegrations render() with a provider renders with a reposi
 
 exports[`OrganizationIntegrations render() without any providers is loading when initially rendering 1`] = `
 <SideEffect(DocumentTitle)
-  title="Integrations"
+  title="Integrations - Sentry"
 >
   <div
     className="ref-organization-integrations"
@@ -398,10 +398,10 @@ exports[`OrganizationIntegrations render() without any providers renders 1`] = `
   }
 >
   <SideEffect(DocumentTitle)
-    title="Integrations"
+    title="Integrations - Sentry"
   >
     <DocumentTitle
-      title="Integrations"
+      title="Integrations - Sentry"
     >
       <div
         className="ref-organization-integrations"

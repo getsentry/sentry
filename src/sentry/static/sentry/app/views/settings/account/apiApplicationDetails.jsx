@@ -37,7 +37,7 @@ class ApiApplicationDetails extends AsyncView {
   }
 
   getTitle() {
-    return 'Application Details - Sentry';
+    return 'Application Details';
   }
 
   handleSubmitSuccess = (change, model, id) => {

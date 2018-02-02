@@ -177,7 +177,7 @@ const ApiApplications = createReactClass({
   },
 
   getTitle() {
-    return 'API Applications - Sentry';
+    return 'API Applications';
   },
 
   render() {
