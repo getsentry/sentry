@@ -4,7 +4,7 @@ import six
 
 from django.core.urlresolvers import reverse
 
-from sentry.models import User, UserOption
+from sentry.models import Organization, OrganizationStatus, User, UserOption
 from sentry.testutils import APITestCase
 
 
@@ -186,3 +186,57 @@ class UserUpdateTest(APITestCase):
 
         assert user.email == 'new@example.com'
         assert user.username == 'new@example.com'
+
+    def test_close_account(self):
+        self.login_as(user=self.user)
+        org_single_owner = self.create_organization(name="A", owner=self.user)
+        user2 = self.create_user(email="user2@example.com")
+        org_with_other_owner = self.create_organization(name="B", owner=self.user)
+        org_as_other_owner = self.create_organization(name="C", owner=user2)
+        not_owned_org = self.create_organization(name="D", owner=user2)
+
+        self.create_member(
+            user=user2,
+            organization=org_with_other_owner,
+            role='owner',
+        )
+
+        self.create_member(
+            user=self.user,
+            organization=org_as_other_owner,
+            role='owner',
+        )
+
+        url = reverse(
+            'sentry-api-0-user-details', kwargs={
+                'user_id': self.user.id,
+            }
+        )
+
+        # test validations
+        response = self.client.delete(url, data={
+        })
+        assert response.status_code == 400
+        response = self.client.delete(url, data={
+            'organizations': None
+        })
+        assert response.status_code == 400
+
+        # test actual delete
+        response = self.client.delete(url, data={
+            'organizations': [org_with_other_owner.slug, org_as_other_owner.slug, not_owned_org.slug]
+        })
+
+        # deletes org_single_owner even though it wasn't specified in array
+        # because it has a single owner
+        assert Organization.objects.get(
+            id=org_single_owner.id).status == OrganizationStatus.PENDING_DELETION
+        # should delete org_with_other_owner, and org_as_other_owner
+        assert Organization.objects.get(
+            id=org_with_other_owner.id).status == OrganizationStatus.PENDING_DELETION
+        assert Organization.objects.get(
+            id=org_as_other_owner.id).status == OrganizationStatus.PENDING_DELETION
+        # should NOT delete `not_owned_org`
+        assert Organization.objects.get(id=not_owned_org.id).status == OrganizationStatus.ACTIVE
+
+        assert response.status_code == 204
