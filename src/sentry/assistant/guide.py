@@ -37,13 +37,13 @@ GUIDES = {
         'cue': 'Click here for a tour of the Settings page',
         'steps': [
             {
-                'title': 'Alerts',
+                'title': '1. Alerts',
                 'message': (
                     'Create powerful custom rules that will notify you when errors reach '
                     'a certain threshold.'),
             },
             {
-                'title': 'Integrations',
+                'title': '2. Integrations',
                 'message': (
                     'Integrate seamlessly with your favorite apps so you can stay in the flow.'),
             },

@@ -1,52 +1,24 @@
 import Reflux from 'reflux';
-import ApiMixin from '../mixins/apiMixin';
 
 const GuideStore = Reflux.createStore({
   init() {
     this._internal = {
       step: -1,
-      guide: {
-        starting_message: 'Need help?',
-        complete_message: 'Go to docs.sentry.io/learn/releases to learn more.',
-        steps: [],
-      },
+      guide: '',
     };
   },
 
-  mixins: [ApiMixin],
-
-  loadData(guide) {
-    if (guide && JSON.stringify(this._internal.guide) != JSON.stringify(guide)) {
-      this._internal.guide = guide;
-      this.trigger(this._internal);
-    }
-  },
-
-  set(guide) {
+  setGuide(guide) {
     this._internal.guide = guide;
+    this._internal.step = 0;
+    this.trigger(this._internal);
   },
 
-  getCurrentStep() {
-    if (this._internal.step >= 0) {
-      return this._internal.guide.steps[this._internal.step];
-    }
-    return null;
-  },
-
-  getFirstStep() {
-    return this._internal.guide.steps[0]; //will only have one step here
-  },
-
-  getCurrentGuide() {
-    return this._internal.guide || null;
-  },
-
-  completeStep() {
-    this._internal.step++;
-    if (this._internal.step < this._internal.guide.steps.length) {
-      this.trigger(this._internal);
-    }
+  setStep(step) {
+    this._internal.step = step;
+    this.trigger(this._internal);
   },
 });
 
 export default GuideStore;
+window.gs = GuideStore;

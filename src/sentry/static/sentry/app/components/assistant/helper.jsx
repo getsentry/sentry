@@ -5,6 +5,7 @@ import $ from 'jquery';
 import AssistantHandle from './handle';
 import SupportDrawer from './supportDrawer';
 import GuideDrawer from './guideDrawer';
+import GuideStore from '../../stores/guideStore';
 import ApiMixin from '../../mixins/apiMixin';
 
 const AssistantHelper = createReactClass({
@@ -45,6 +46,7 @@ const AssistantHelper = createReactClass({
       this.state.currentStep !== prevState.currentStep
     ) {
       const elementID = guide.steps[this.state.currentStep].elementID;
+      GuideStore.setStep(this.state.currentStep);
       if (elementID) {
         $('html, body').animate(
           {
@@ -102,6 +104,7 @@ const AssistantHelper = createReactClass({
     });
     const guide = this.currentGuide();
     if (guide) {
+      GuideStore.setGuide(guide);
       this.setState({
         currentStep: 0,
       });
