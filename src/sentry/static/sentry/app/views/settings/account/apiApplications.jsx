@@ -107,7 +107,7 @@ class ApiApplications extends AsyncView {
   }
 
   getTitle() {
-    return 'API Applications - Sentry';
+    return 'API Applications';
   }
 
   handleCreateApplication = () => {

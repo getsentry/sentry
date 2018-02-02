@@ -2,7 +2,7 @@
 
 exports[`TeamSettings render() renders 1`] = `
 <SideEffect(DocumentTitle)
-  title="Team Settings"
+  title="Team Settings - Sentry"
 >
   <div
     className="box"

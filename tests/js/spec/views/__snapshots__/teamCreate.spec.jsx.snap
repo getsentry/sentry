@@ -2,7 +2,7 @@
 
 exports[`TeamCreate render() renders correctly 1`] = `
 <SideEffect(DocumentTitle)
-  title="Create Team"
+  title="Create Team - Sentry"
 >
   <NarryLayout>
     <h3>
