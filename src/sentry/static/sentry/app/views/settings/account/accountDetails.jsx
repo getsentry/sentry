@@ -1,10 +1,13 @@
 import React from 'react';
 
+import {updateUser} from '../../../actionCreators/account';
+import AccountAvatar from '../account/avatar';
 import AsyncView from '../../asyncView';
 import Form from '../components/forms/form';
 import JsonForm from '../components/forms/jsonForm';
 import SettingsPageHeader from '../components/settingsPageHeader';
 import accountDetailsFields from '../../../data/forms/accountDetails';
+import accountPreferencesFields from '../../../data/forms/accountPreferences';
 
 const ENDPOINT = '/users/me/';
 
@@ -13,22 +16,12 @@ class AccountDetails extends AsyncView {
     return [['user', ENDPOINT]];
   }
 
-  handleSubmitSuccess = (change, model, id) => {
-    // special logic for linked password fields
-    if (id === 'passwordVerify' || id === 'password') {
-      model.setValue('password', '');
-      model.setValue('passwordVerify', '');
-    } else {
-      model.setValue(id, '');
-    }
+  handleSubmitSuccess = user => {
+    updateUser(user);
+    this.setState({user});
   };
 
-  handleSubmitError = (resp, model, id) => {
-    // Backend only uses `password` field since we always have to send both when changing a password
-    if (id === 'passwordVerify' && resp.responseJSON.password) {
-      model.setError(id, resp.responseJSON.password[0]);
-    }
-  };
+  handleSubmitError = (resp, model, id) => {};
 
   renderBody() {
     let {user} = this.state;
@@ -51,6 +44,18 @@ class AccountDetails extends AsyncView {
             additionalFieldProps={{user}}
           />
         </Form>
+
+        <Form
+          apiMethod="PUT"
+          apiEndpoint={ENDPOINT}
+          saveOnBlur
+          allowUndo
+          initialData={this.state.user.options}
+        >
+          <JsonForm location={this.props.location} forms={accountPreferencesFields} />
+        </Form>
+
+        <AccountAvatar onSave={this.handleSubmitSuccess} user={user} />
       </div>
     );
   }

@@ -8,15 +8,7 @@ const accountNavigation = [
     items: [
       {
         path: `${pathPrefix}/details/`,
-        title: t('Account'),
-      },
-      {
-        path: `${pathPrefix}/avatar/`,
-        title: t('Avatar'),
-      },
-      {
-        path: `${pathPrefix}/appearance/`,
-        title: t('Appearance'),
+        title: t('Account Details'),
       },
       {
         path: `${pathPrefix}/notifications/`,
