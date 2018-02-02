@@ -25,8 +25,10 @@ class GroupAssigneeManager(BaseManager):
 
         if isinstance(assigned_to, User):
             assignee_type = 'user'
+            other_type = 'team'
         elif isinstance(assigned_to, Team):
             assignee_type = 'team'
+            other_type = 'user'
         else:
             raise AssertionError('Invalid type to assign to: %r' % type(assigned_to))
 
@@ -47,6 +49,7 @@ class GroupAssigneeManager(BaseManager):
                 assignee_type: assigned_to,
             }).update(**{
                 assignee_type: assigned_to,
+                other_type: None,
                 'date_added': now,
             })
         else:
@@ -110,5 +113,8 @@ class GroupAssignee(Model):
     __repr__ = sane_repr('group_id', 'user_id', 'team_id')
 
     def save(self, *args, **kwargs):
-        assert self.user_id or self.team_id
+        assert (
+            not (self.user_id is not None and self.team_id is not None) and
+            not (self.user_id is None and self.team_id is None)
+        ), 'Must have Team or User, not both'
         super(GroupAssignee, self).save(*args, **kwargs)
