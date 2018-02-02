@@ -750,6 +750,7 @@ SENTRY_FEATURES = {
     'organizations:new-settings': False,
     'organizations:require-2fa': False,
     'organizations:environments': False,
+    'organizations:internal-catchall': False,
     'projects:global-events': False,
     'projects:plugins': True,
     'projects:dsym': False,
