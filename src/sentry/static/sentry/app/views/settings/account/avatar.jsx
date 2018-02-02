@@ -47,9 +47,7 @@ const AccountAvatar = createReactClass({
 
   componentWillReceiveProps(nextProps) {
     // Update local state if defined in props
-    if (typeof nextProps.user !== 'undefined') {
-      this.setState({user: nextProps.user});
-    }
+    this.setState({user: nextProps.user});
   },
 
   getEndpoint() {

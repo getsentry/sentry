@@ -25,8 +25,6 @@ describe('AccountDetails', function() {
     let wrapper = mount(<AccountDetails location={{}} />, TestStubs.routerContext());
 
     expect(wrapper.find('input[name="name"]')).toHaveLength(1);
-    // expect(wrapper.find('input[name="password"]')).toHaveLength(1);
-    // expect(wrapper.find('input[name="passwordVerify"]')).toHaveLength(1);
     expect(wrapper).toMatchSnapshot();
   });
 
