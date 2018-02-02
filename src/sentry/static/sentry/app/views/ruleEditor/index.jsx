@@ -6,8 +6,8 @@ import {browserHistory} from 'react-router';
 import $ from 'jquery';
 import ApiMixin from '../../mixins/apiMixin';
 import IndicatorStore from '../../stores/indicatorStore';
-import SelectInput from '../../components/selectInput';
-import {t, tct} from '../../locale';
+import {Select2Field} from '../../components/forms';
+import {t} from '../../locale';
 import LoadingIndicator from '../../components/loadingIndicator';
 import RuleNodeList from './ruleNodeList';
 
@@ -89,16 +89,8 @@ const RuleEditor = createReactClass({
     form.find('.rule-action-list .rule-form').each((_, el) => {
       actions.push(this.serializeNode(el));
     });
-    let actionMatch = $(ReactDOM.findDOMNode(this.refs.actionMatch)).val();
-    let frequency = $(ReactDOM.findDOMNode(this.refs.frequency)).val();
-    let name = $(ReactDOM.findDOMNode(this.refs.name)).val();
-    let data = {
-      actionMatch,
-      actions,
-      conditions,
-      frequency,
-      name,
-    };
+    let data = {...this.state.rule, actions, conditions};
+
     let rule = this.state.rule;
     let project = this.props.project;
     let org = this.props.organization;
@@ -136,12 +128,34 @@ const RuleEditor = createReactClass({
     return !!error[field];
   },
 
+  updateRule(prop, val) {
+    let rule = {...this.state.rule};
+    rule[prop] = val;
+    this.setState({
+      rule,
+    });
+  },
+
   render() {
     if (!this.state.rule) return <LoadingIndicator />;
 
     let rule = this.state.rule;
     let {loading, error} = this.state;
     let {actionMatch, actions, conditions, frequency, name} = rule;
+
+    let frequencyChoices = [
+      ['5', t('5 minutes')],
+      ['10', t('10 minutes')],
+      ['30', t('30 minutes')],
+      ['60', t('60 minutes')],
+      ['180', t('3 hours')],
+      ['720', t('12 hours')],
+      ['1440', t('24 hours')],
+      ['10080', t('one week')],
+      ['43200', t('30 days')],
+    ];
+
+    let actionMatchChoices = [['all', t('all')], ['any', t('any')], ['none', t('none')]];
 
     return (
       <form onSubmit={this.onSubmit} ref="form">
@@ -162,32 +176,30 @@ const RuleEditor = createReactClass({
             <h6>{t('Rule name')}:</h6>
             <div className="control-group">
               <input
-                ref="name"
                 type="text"
                 className="form-control"
                 defaultValue={name}
                 required={true}
                 placeholder={t('My Rule Name')}
+                onChange={e => this.updateRule('name', e.target.value)}
               />
             </div>
 
             <hr />
 
             <div className="node-match-selector">
-              <h6>
+              <h6 style={{display: 'flex', alignItems: 'center'}}>
                 {t(
                   'Every time %s of these conditions are met:',
-                  <SelectInput
-                    ref="actionMatch"
+                  <Select2Field
                     className={this.hasError('actionMatch') ? ' error' : ''}
+                    style={{marginBottom: 0, marginLeft: 5, marginRight: 5}}
+                    name="actionMatch"
                     value={actionMatch}
-                    style={{width: 80}}
                     required={true}
-                  >
-                    <option value="all">{t('all')}</option>
-                    <option value="any">{t('any')}</option>
-                    <option value="none">{t('none')}</option>
-                  </SelectInput>
+                    choices={actionMatchChoices}
+                    onChange={val => this.updateRule('actionMatch', val)}
+                  />
                 )}
               </h6>
             </div>
@@ -200,7 +212,6 @@ const RuleEditor = createReactClass({
               nodes={this.props.conditions}
               initialItems={conditions}
               className="rule-condition-list"
-              onChange={this.onConditionsChange}
             />
 
             <hr />
@@ -215,36 +226,23 @@ const RuleEditor = createReactClass({
               nodes={this.props.actions}
               initialItems={actions}
               className="rule-action-list"
-              onChange={this.onActionsChange}
             />
 
             <hr />
 
             <div className="node-frequency-selector">
-              <h6>
-                {tct(
-                  'Perform these actions at most once every [frequency] for an issue.',
-                  {
-                    frequency: (
-                      <SelectInput
-                        ref="frequency"
-                        className={this.hasError('frequency') ? ' error' : ''}
-                        value={frequency}
-                        style={{width: 150}}
-                        required={true}
-                      >
-                        <option value="5">{t('5 minutes')}</option>
-                        <option value="10">{t('10 minutes')}</option>
-                        <option value="30">{t('30 minutes')}</option>
-                        <option value="60">{t('60 minutes')}</option>
-                        <option value="180">{t('3 hours')}</option>
-                        <option value="720">{t('12 hours')}</option>
-                        <option value="1440">{t('24 hours')}</option>
-                        <option value="10080">{t('one week')}</option>
-                        <option value="43200">{t('30 days')}</option>
-                      </SelectInput>
-                    ),
-                  }
+              <h6 style={{display: 'flex', alignItems: 'center'}}>
+                {t(
+                  'Perform these actions at most once every %s for an issue.',
+                  <Select2Field
+                    name="frequency"
+                    className={this.hasError('frequency') ? ' error' : ''}
+                    value={frequency}
+                    style={{marginBottom: 0, marginLeft: 5, marginRight: 5, width: 140}}
+                    required={true}
+                    choices={frequencyChoices}
+                    onChange={val => this.updateRule('frequency', val)}
+                  />
                 )}
               </h6>
             </div>

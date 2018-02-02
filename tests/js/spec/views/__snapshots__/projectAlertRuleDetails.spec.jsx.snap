@@ -102,6 +102,7 @@ exports[`ProjectAlertRuleDetails Edit alert rule renders 1`] = `
                 <input
                   className="form-control"
                   defaultValue=""
+                  onChange={[Function]}
                   placeholder="My Rule Name"
                   required={true}
                   type="text"
@@ -111,54 +112,98 @@ exports[`ProjectAlertRuleDetails Edit alert rule renders 1`] = `
               <div
                 className="node-match-selector"
               >
-                <h6>
+                <h6
+                  style={
+                    Object {
+                      "alignItems": "center",
+                      "display": "flex",
+                    }
+                  }
+                >
                   Every time 
-                  <SelectInput
+                  <Select2Field
+                    allowClear={false}
+                    allowEmpty={false}
+                    choices={
+                      Array [
+                        Array [
+                          "all",
+                          "all",
+                        ],
+                        Array [
+                          "any",
+                          "any",
+                        ],
+                        Array [
+                          "none",
+                          "none",
+                        ],
+                      ]
+                    }
                     className=""
                     disabled={false}
+                    escapeMarkup={true}
+                    hideErrorMessage={false}
                     key="1"
                     multiple={false}
+                    name="actionMatch"
                     onChange={[Function]}
-                    placeholder="Select an option..."
+                    placeholder="--"
                     required={true}
                     style={
                       Object {
-                        "width": 80,
+                        "marginBottom": 0,
+                        "marginLeft": 5,
+                        "marginRight": 5,
                       }
                     }
                     value="all"
                   >
-                    <select
-                      className=""
-                      disabled={false}
-                      multiple={false}
-                      onChange={[Function]}
-                      placeholder="Select an option..."
-                      required={true}
+                    <div
+                      className="control-group required"
                       style={
                         Object {
-                          "width": 80,
+                          "marginBottom": 0,
+                          "marginLeft": 5,
+                          "marginRight": 5,
                         }
                       }
-                      value="all"
                     >
-                      <option
-                        value="all"
+                      <div
+                        className="controls"
                       >
-                        all
-                      </option>
-                      <option
-                        value="any"
-                      >
-                        any
-                      </option>
-                      <option
-                        value="none"
-                      >
-                        none
-                      </option>
-                    </select>
-                  </SelectInput>
+                        <select
+                          className="form-control"
+                          disabled={false}
+                          id="id-actionMatch"
+                          multiple={false}
+                          onChange={[Function]}
+                          placeholder="--"
+                          required={true}
+                          value="all"
+                        >
+                          <option
+                            key="all"
+                            value="all"
+                          >
+                            all
+                          </option>
+                          <option
+                            key="any"
+                            value="any"
+                          >
+                            any
+                          </option>
+                          <option
+                            key="none"
+                            value="none"
+                          >
+                            none
+                          </option>
+                        </select>
+                      </div>
+                    </div>
+                  </Select2Field>
                    of these conditions are met:
                 </h6>
               </div>
@@ -308,97 +353,161 @@ exports[`ProjectAlertRuleDetails Edit alert rule renders 1`] = `
               <div
                 className="node-frequency-selector"
               >
-                <h6>
-                  <span
-                    key="4"
+                <h6
+                  style={
+                    Object {
+                      "alignItems": "center",
+                      "display": "flex",
+                    }
+                  }
+                >
+                  Perform these actions at most once every 
+                  <Select2Field
+                    allowClear={false}
+                    allowEmpty={false}
+                    choices={
+                      Array [
+                        Array [
+                          "5",
+                          "5 minutes",
+                        ],
+                        Array [
+                          "10",
+                          "10 minutes",
+                        ],
+                        Array [
+                          "30",
+                          "30 minutes",
+                        ],
+                        Array [
+                          "60",
+                          "60 minutes",
+                        ],
+                        Array [
+                          "180",
+                          "3 hours",
+                        ],
+                        Array [
+                          "720",
+                          "12 hours",
+                        ],
+                        Array [
+                          "1440",
+                          "24 hours",
+                        ],
+                        Array [
+                          "10080",
+                          "one week",
+                        ],
+                        Array [
+                          "43200",
+                          "30 days",
+                        ],
+                      ]
+                    }
+                    className=""
+                    disabled={false}
+                    escapeMarkup={true}
+                    hideErrorMessage={false}
+                    key="1"
+                    multiple={false}
+                    name="frequency"
+                    onChange={[Function]}
+                    placeholder="--"
+                    required={true}
+                    style={
+                      Object {
+                        "marginBottom": 0,
+                        "marginLeft": 5,
+                        "marginRight": 5,
+                        "width": 140,
+                      }
+                    }
+                    value={30}
                   >
-                    <span
-                      key="0"
-                    >
-                      Perform these actions at most once every 
-                    </span>
-                    <SelectInput
-                      className=""
-                      disabled={false}
-                      key="1"
-                      multiple={false}
-                      onChange={[Function]}
-                      placeholder="Select an option..."
-                      required={true}
+                    <div
+                      className="control-group required"
                       style={
                         Object {
-                          "width": 150,
+                          "marginBottom": 0,
+                          "marginLeft": 5,
+                          "marginRight": 5,
+                          "width": 140,
                         }
                       }
-                      value={30}
                     >
-                      <select
-                        className=""
-                        disabled={false}
-                        multiple={false}
-                        onChange={[Function]}
-                        placeholder="Select an option..."
-                        required={true}
-                        style={
-                          Object {
-                            "width": 150,
-                          }
-                        }
-                        value={30}
+                      <div
+                        className="controls"
                       >
-                        <option
-                          value="5"
+                        <select
+                          className="form-control"
+                          disabled={false}
+                          id="id-frequency"
+                          multiple={false}
+                          onChange={[Function]}
+                          placeholder="--"
+                          required={true}
+                          value={30}
                         >
-                          5 minutes
-                        </option>
-                        <option
-                          value="10"
-                        >
-                          10 minutes
-                        </option>
-                        <option
-                          value="30"
-                        >
-                          30 minutes
-                        </option>
-                        <option
-                          value="60"
-                        >
-                          60 minutes
-                        </option>
-                        <option
-                          value="180"
-                        >
-                          3 hours
-                        </option>
-                        <option
-                          value="720"
-                        >
-                          12 hours
-                        </option>
-                        <option
-                          value="1440"
-                        >
-                          24 hours
-                        </option>
-                        <option
-                          value="10080"
-                        >
-                          one week
-                        </option>
-                        <option
-                          value="43200"
-                        >
-                          30 days
-                        </option>
-                      </select>
-                    </SelectInput>
-                    <span
-                      key="2"
-                    >
-                       for an issue.
-                    </span>
-                  </span>
+                          <option
+                            key="5"
+                            value="5"
+                          >
+                            5 minutes
+                          </option>
+                          <option
+                            key="10"
+                            value="10"
+                          >
+                            10 minutes
+                          </option>
+                          <option
+                            key="30"
+                            value="30"
+                          >
+                            30 minutes
+                          </option>
+                          <option
+                            key="60"
+                            value="60"
+                          >
+                            60 minutes
+                          </option>
+                          <option
+                            key="180"
+                            value="180"
+                          >
+                            3 hours
+                          </option>
+                          <option
+                            key="720"
+                            value="720"
+                          >
+                            12 hours
+                          </option>
+                          <option
+                            key="1440"
+                            value="1440"
+                          >
+                            24 hours
+                          </option>
+                          <option
+                            key="10080"
+                            value="10080"
+                          >
+                            one week
+                          </option>
+                          <option
+                            key="43200"
+                            value="43200"
+                          >
+                            30 days
+                          </option>
+                        </select>
+                      </div>
+                    </div>
+                  </Select2Field>
+                   for an issue.
                 </h6>
               </div>
               <div
@@ -522,6 +631,7 @@ exports[`ProjectAlertRuleDetails New alert rule renders 1`] = `
                 <input
                   className="form-control"
                   defaultValue=""
+                  onChange={[Function]}
                   placeholder="My Rule Name"
                   required={true}
                   type="text"
@@ -531,54 +641,98 @@ exports[`ProjectAlertRuleDetails New alert rule renders 1`] = `
               <div
                 className="node-match-selector"
               >
-                <h6>
+                <h6
+                  style={
+                    Object {
+                      "alignItems": "center",
+                      "display": "flex",
+                    }
+                  }
+                >
                   Every time 
-                  <SelectInput
+                  <Select2Field
+                    allowClear={false}
+                    allowEmpty={false}
+                    choices={
+                      Array [
+                        Array [
+                          "all",
+                          "all",
+                        ],
+                        Array [
+                          "any",
+                          "any",
+                        ],
+                        Array [
+                          "none",
+                          "none",
+                        ],
+                      ]
+                    }
                     className=""
                     disabled={false}
+                    escapeMarkup={true}
+                    hideErrorMessage={false}
                     key="1"
                     multiple={false}
+                    name="actionMatch"
                     onChange={[Function]}
-                    placeholder="Select an option..."
+                    placeholder="--"
                     required={true}
                     style={
                       Object {
-                        "width": 80,
+                        "marginBottom": 0,
+                        "marginLeft": 5,
+                        "marginRight": 5,
                       }
                     }
                     value="all"
                   >
-                    <select
-                      className=""
-                      disabled={false}
-                      multiple={false}
-                      onChange={[Function]}
-                      placeholder="Select an option..."
-                      required={true}
+                    <div
+                      className="control-group required"
                       style={
                         Object {
-                          "width": 80,
+                          "marginBottom": 0,
+                          "marginLeft": 5,
+                          "marginRight": 5,
                         }
                       }
-                      value="all"
                     >
-                      <option
-                        value="all"
+                      <div
+                        className="controls"
                       >
-                        all
-                      </option>
-                      <option
-                        value="any"
-                      >
-                        any
-                      </option>
-                      <option
-                        value="none"
-                      >
-                        none
-                      </option>
-                    </select>
-                  </SelectInput>
+                        <select
+                          className="form-control"
+                          disabled={false}
+                          id="id-actionMatch"
+                          multiple={false}
+                          onChange={[Function]}
+                          placeholder="--"
+                          required={true}
+                          value="all"
+                        >
+                          <option
+                            key="all"
+                            value="all"
+                          >
+                            all
+                          </option>
+                          <option
+                            key="any"
+                            value="any"
+                          >
+                            any
+                          </option>
+                          <option
+                            key="none"
+                            value="none"
+                          >
+                            none
+                          </option>
+                        </select>
+                      </div>
+                    </div>
+                  </Select2Field>
                    of these conditions are met:
                 </h6>
               </div>
@@ -728,97 +882,161 @@ exports[`ProjectAlertRuleDetails New alert rule renders 1`] = `
               <div
                 className="node-frequency-selector"
               >
-                <h6>
-                  <span
-                    key="4"
+                <h6
+                  style={
+                    Object {
+                      "alignItems": "center",
+                      "display": "flex",
+                    }
+                  }
+                >
+                  Perform these actions at most once every 
+                  <Select2Field
+                    allowClear={false}
+                    allowEmpty={false}
+                    choices={
+                      Array [
+                        Array [
+                          "5",
+                          "5 minutes",
+                        ],
+                        Array [
+                          "10",
+                          "10 minutes",
+                        ],
+                        Array [
+                          "30",
+                          "30 minutes",
+                        ],
+                        Array [
+                          "60",
+                          "60 minutes",
+                        ],
+                        Array [
+                          "180",
+                          "3 hours",
+                        ],
+                        Array [
+                          "720",
+                          "12 hours",
+                        ],
+                        Array [
+                          "1440",
+                          "24 hours",
+                        ],
+                        Array [
+                          "10080",
+                          "one week",
+                        ],
+                        Array [
+                          "43200",
+                          "30 days",
+                        ],
+                      ]
+                    }
+                    className=""
+                    disabled={false}
+                    escapeMarkup={true}
+                    hideErrorMessage={false}
+                    key="1"
+                    multiple={false}
+                    name="frequency"
+                    onChange={[Function]}
+                    placeholder="--"
+                    required={true}
+                    style={
+                      Object {
+                        "marginBottom": 0,
+                        "marginLeft": 5,
+                        "marginRight": 5,
+                        "width": 140,
+                      }
+                    }
+                    value={30}
                   >
-                    <span
-                      key="0"
-                    >
-                      Perform these actions at most once every 
-                    </span>
-                    <SelectInput
-                      className=""
-                      disabled={false}
-                      key="1"
-                      multiple={false}
-                      onChange={[Function]}
-                      placeholder="Select an option..."
-                      required={true}
+                    <div
+                      className="control-group required"
                       style={
                         Object {
-                          "width": 150,
+                          "marginBottom": 0,
+                          "marginLeft": 5,
+                          "marginRight": 5,
+                          "width": 140,
                         }
                       }
-                      value={30}
                     >
-                      <select
-                        className=""
-                        disabled={false}
-                        multiple={false}
-                        onChange={[Function]}
-                        placeholder="Select an option..."
-                        required={true}
-                        style={
-                          Object {
-                            "width": 150,
-                          }
-                        }
-                        value={30}
+                      <div
+                        className="controls"
                       >
-                        <option
-                          value="5"
+                        <select
+                          className="form-control"
+                          disabled={false}
+                          id="id-frequency"
+                          multiple={false}
+                          onChange={[Function]}
+                          placeholder="--"
+                          required={true}
+                          value={30}
                         >
-                          5 minutes
-                        </option>
-                        <option
-                          value="10"
-                        >
-                          10 minutes
-                        </option>
-                        <option
-                          value="30"
-                        >
-                          30 minutes
-                        </option>
-                        <option
-                          value="60"
-                        >
-                          60 minutes
-                        </option>
-                        <option
-                          value="180"
-                        >
-                          3 hours
-                        </option>
-                        <option
-                          value="720"
-                        >
-                          12 hours
-                        </option>
-                        <option
-                          value="1440"
-                        >
-                          24 hours
-                        </option>
-                        <option
-                          value="10080"
-                        >
-                          one week
-                        </option>
-                        <option
-                          value="43200"
-                        >
-                          30 days
-                        </option>
-                      </select>
-                    </SelectInput>
-                    <span
-                      key="2"
-                    >
-                       for an issue.
-                    </span>
-                  </span>
+                          <option
+                            key="5"
+                            value="5"
+                          >
+                            5 minutes
+                          </option>
+                          <option
+                            key="10"
+                            value="10"
+                          >
+                            10 minutes
+                          </option>
+                          <option
+                            key="30"
+                            value="30"
+                          >
+                            30 minutes
+                          </option>
+                          <option
+                            key="60"
+                            value="60"
+                          >
+                            60 minutes
+                          </option>
+                          <option
+                            key="180"
+                            value="180"
+                          >
+                            3 hours
+                          </option>
+                          <option
+                            key="720"
+                            value="720"
+                          >
+                            12 hours
+                          </option>
+                          <option
+                            key="1440"
+                            value="1440"
+                          >
+                            24 hours
+                          </option>
+                          <option
+                            key="10080"
+                            value="10080"
+                          >
+                            one week
+                          </option>
+                          <option
+                            key="43200"
+                            value="43200"
+                          >
+                            30 days
+                          </option>
+                        </select>
+                      </div>
+                    </div>
+                  </Select2Field>
+                   for an issue.
                 </h6>
               </div>
               <div
