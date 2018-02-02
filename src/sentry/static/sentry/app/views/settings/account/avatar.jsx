@@ -1,45 +1,55 @@
 import PropTypes from 'prop-types';
 import React from 'react';
-import styled from 'react-emotion';
 import createReactClass from 'create-react-class';
+import styled from 'react-emotion';
 
+import {
+  addErrorMessage,
+  addSuccessMessage,
+} from '../../../actionCreators/settingsIndicator';
+import {t} from '../../../locale';
+import ApiMixin from '../../../mixins/apiMixin';
+import Avatar from '../../../components/avatar';
+import AvatarCropper from '../../../components/avatarCropper';
+import LoadingError from '../../../components/loadingError';
+import LoadingIndicator from '../../../components/loadingIndicator';
 import Panel from '../components/panel';
 import PanelBody from '../components/panelBody';
 import PanelHeader from '../components/panelHeader';
-import AlertActions from '../../../actions/alertActions';
-import ApiMixin from '../../../mixins/apiMixin';
-import AvatarCropper from '../../../components/avatarCropper';
 import RadioGroup from '../components/forms/radioGroup';
-import LoadingError from '../../../components/loadingError';
-import LoadingIndicator from '../../../components/loadingIndicator';
-import {t} from '../../../locale';
+import SentryTypes from '../../../proptypes';
 
-const AvatarSettings = createReactClass({
-  displayName: 'AvatarSettings',
+const AccountAvatar = createReactClass({
+  displayName: 'AccountAvatar',
 
   propTypes: {
     userId: PropTypes.number,
+    user: SentryTypes.User,
+    onSave: PropTypes.func,
   },
 
   mixins: [ApiMixin],
 
+  getDefaultProps() {
+    return {
+      onSave: () => {},
+    };
+  },
+
   getInitialState() {
     return {
-      user: null,
+      user: this.props.user,
       savedDataUrl: null,
       dataUrl: null,
       hasError: false,
     };
   },
 
-  componentDidMount() {
-    this.api.request(this.getEndpoint(), {
-      method: 'GET',
-      success: this.updateUserState,
-      error: () => {
-        this.setState({hasError: true});
-      },
-    });
+  componentWillReceiveProps(nextProps) {
+    // Update local state if defined in props
+    if (typeof nextProps.user !== 'undefined') {
+      this.setState({user: nextProps.user});
+    }
   },
 
   getEndpoint() {
@@ -55,18 +65,15 @@ const AvatarSettings = createReactClass({
   },
 
   handleError(msg) {
-    AlertActions.addAlert({
-      message: t(msg),
-      type: 'error',
-    });
+    addErrorMessage(t(msg));
   },
 
   handleSuccess(user) {
+    let {onSave} = this.props;
     this.setState({user});
-    AlertActions.addAlert({
-      message: t('Successfully saved avatar preferences'),
-      type: 'success',
-      expireAfrer: 3000,
+    onSave(user);
+    addSuccessMessage(t('Successfully saved avatar preferences'), undefined, {
+      disableUndo: true,
     });
   },
 
@@ -113,21 +120,34 @@ const AvatarSettings = createReactClass({
       </div>
     );
 
+    let isLetter = this.state.user.avatar.avatarType == 'letter_avatar';
+
     return (
       <Panel>
         <PanelHeader>Avatar</PanelHeader>
         <PanelBody>
           <AvatarForm>
-            <RadioGroup
-              choices={[
-                ['letter_avatar', 'Use my initials'],
-                ['upload', 'Upload a Photo'],
-                ['gravatar', 'Use Gravatar'],
-              ]}
-              value={this.state.user.avatar.avatarType || 'letter_avatar'}
-              label="Avatar Type"
-              onChange={id => this.handleChange(id)}
-            />
+            <AvatarGroup inline={isLetter}>
+              <RadioGroup
+                style={{flex: 1}}
+                choices={[
+                  ['letter_avatar', 'Use my initials'],
+                  ['upload', 'Upload a Photo'],
+                  ['gravatar', 'Use Gravatar'],
+                ]}
+                value={this.state.user.avatar.avatarType || 'letter_avatar'}
+                label="Avatar Type"
+                onChange={id => this.handleChange(id)}
+              />
+
+              {isLetter && (
+                <Avatar
+                  gravatar={false}
+                  style={{width: 90, height: 90}}
+                  user={this.state.user}
+                />
+              )}
+            </AvatarGroup>
 
             <AvatarUploadSection>
               {this.state.user.avatar.avatarType === 'gravatar' && gravatarMessage}
@@ -142,7 +162,7 @@ const AvatarSettings = createReactClass({
               )}
               <AvatarSubmit className="form-actions">
                 <button className="btn btn-primary" onClick={this.saveSettings}>
-                  {t('Done')}
+                  {t('Save Avatar')}
                 </button>
               </AvatarSubmit>
             </AvatarUploadSection>
@@ -152,6 +172,11 @@ const AvatarSettings = createReactClass({
     );
   },
 });
+
+const AvatarGroup = styled.div`
+  display: flex;
+  flex-direction: ${p => (p.inline ? 'row' : 'column')};
+`;
 
 const AvatarForm = styled('form')`
   line-height: 1.5em;
@@ -166,4 +191,4 @@ const AvatarUploadSection = styled('div')`
   margin-top: 1em;
 `;
 
-export default AvatarSettings;
+export default AccountAvatar;
