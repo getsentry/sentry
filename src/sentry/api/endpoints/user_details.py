@@ -17,6 +17,7 @@ from sentry.api.bases.user import UserEndpoint
 from sentry.api.decorators import sudo_required
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.user import DetailedUserSerializer
+from sentry.api.serializers.rest_framework import ListField
 from sentry.auth.superuser import is_active_superuser
 from sentry.constants import LANGUAGES
 from sentry.models import Organization, OrganizationMember, OrganizationStatus, User, UserOption
@@ -98,6 +99,10 @@ class AdminUserSerializer(BaseUserSerializer):
         # write_only_fields = ('password',)
 
 
+class OrganizationsSerializer(serializers.Serializer):
+    organizations = ListField(child=serializers.CharField(), required=True)
+
+
 class UserDetailsEndpoint(UserEndpoint):
     def get(self, request, user):
         """
@@ -173,14 +178,14 @@ class UserDetailsEndpoint(UserEndpoint):
         :auth required:
         """
 
-        # be strict since we're removing orgs
-        if 'organizations' not in request.DATA or not isinstance(
-                request.DATA.get('organizations'), list):
+        serializer = OrganizationsSerializer(data=request.DATA)
+
+        if not serializer.is_valid():
             return Response(status=status.HTTP_400_BAD_REQUEST)
 
         # from `frontend/remove_account.py`
         org_list = Organization.objects.filter(
-            member_set__role=roles.get_top_dog().id,
+            member_set__role__in=[x.id for x in roles.with_scope('org:admin')],
             member_set__user=user,
             status=OrganizationStatus.VISIBLE,
         )
@@ -193,7 +198,7 @@ class UserDetailsEndpoint(UserEndpoint):
             })
 
         avail_org_slugs = set([o['organization'].slug for o in org_results])
-        orgs_to_remove = set(request.DATA.get('organizations', [])).intersection(avail_org_slugs)
+        orgs_to_remove = set(serializer.object.get('organizations')).intersection(avail_org_slugs)
 
         for result in org_results:
             if result['single_owner']:
