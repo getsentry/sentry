@@ -22,6 +22,36 @@ class OrganizationsListTest(APITestCase):
         assert len(response.data) == 1
         assert response.data[0]['id'] == six.text_type(org.id)
 
+    def test_ownership(self):
+        org = self.create_organization(name="A", owner=self.user)
+        user2 = self.create_user(email="user2@example.com")
+        org2 = self.create_organization(name="B", owner=self.user)
+        org3 = self.create_organization(name="C", owner=user2)
+        self.create_organization(name="D", owner=user2)
+
+        self.create_member(
+            user=user2,
+            organization=org2,
+            role='owner',
+        )
+
+        self.create_member(
+            user=self.user,
+            organization=org3,
+            role='owner',
+        )
+
+        self.login_as(user=self.user)
+        response = self.client.get('{}?owner=1'.format(self.path))
+        assert response.status_code == 200
+        assert len(response.data) == 3
+        assert response.data[0]['organization']['id'] == six.text_type(org.id)
+        assert response.data[0]['singleOwner'] is True
+        assert response.data[1]['organization']['id'] == six.text_type(org2.id)
+        assert response.data[1]['singleOwner'] is False
+        assert response.data[2]['organization']['id'] == six.text_type(org3.id)
+        assert response.data[2]['singleOwner'] is False
+
     def test_status_query(self):
         org = self.create_organization(owner=self.user, status=OrganizationStatus.PENDING_DELETION)
         self.login_as(user=self.user)
