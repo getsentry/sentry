@@ -9,7 +9,7 @@ from sentry.api.base import DocSection
 from sentry.api.bases.group import GroupEndpoint
 from sentry.api.serializers import serialize
 from sentry.api.serializers.rest_framework.group_notes import NoteSerializer
-from sentry.models import Activity, GroupSubscription, GroupSubscriptionReason, User
+from sentry.models import Activity, GroupSubscription, GroupSubscriptionReason, User, Team
 from sentry.utils.functional import extract_lazy_object
 
 
@@ -37,7 +37,8 @@ class GroupNotesEndpoint(GroupEndpoint):
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
         data = dict(serializer.object)
-        mentions = data.pop('mentions', [])
+        member_mentions = data.pop('memberMentions', [])
+        team_mentions = data.pop('teamMentions', [])
 
         if Activity.objects.filter(
             group=group,
@@ -57,14 +58,29 @@ class GroupNotesEndpoint(GroupEndpoint):
             reason=GroupSubscriptionReason.comment,
         )
 
-        if mentions:
-            users = User.objects.filter(id__in=mentions)
+        subscribed_user_ids = set()
+        if member_mentions:
+            users = User.objects.filter(id__in=member_mentions)
             for user in users:
                 GroupSubscription.objects.subscribe(
                     group=group,
                     user=user,
                     reason=GroupSubscriptionReason.mentioned,
                 )
+                subscribed_user_ids.add(user.id)
+
+        if team_mentions:
+            teams = Team.objects.filter(organization=group.organization.id, id__in=team_mentions)
+
+            for team in teams:
+                for user in [member.user for member in team.member_set
+                             if member.user.id not in subscribed_user_ids]:
+                    GroupSubscription.objects.subscribe(
+                        group=group,
+                        user=user,
+                        reason=GroupSubscriptionReason.team_mentioned,
+                    )
+                    subscribed_user_ids.add(user.id)
 
         activity = Activity.objects.create(
             group=group,

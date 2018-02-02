@@ -3,9 +3,11 @@ import React from 'react';
 import createReactClass from 'create-react-class';
 import marked from 'marked';
 import {MentionsInput, Mention} from 'react-mentions';
+import _ from 'lodash';
 
 import ApiMixin from '../../mixins/apiMixin';
 import GroupStore from '../../stores/groupStore';
+import TeamStore from '../../stores/teamStore';
 import IndicatorStore from '../../stores/indicatorStore';
 import {logException} from '../../utils/logging';
 import localStorage from '../../utils/localStorage';
@@ -30,19 +32,10 @@ const NoteInput = createReactClass({
   },
 
   mixins: [ApiMixin],
-
   getInitialState() {
     let {item, group} = this.props;
     let updating = !!item;
     let defaultText = '';
-
-    let mentionsList = this.props.memberList
-      .filter(member => this.props.sessionUser.id !== member.id)
-      .map(member => ({
-        id: member.id,
-        display: member.name,
-        email: member.email,
-      }));
 
     if (updating) {
       defaultText = item.data.text;
@@ -56,6 +49,22 @@ const NoteInput = createReactClass({
       }
     }
 
+    let memberMentionableList = _.uniqBy(this.props.memberList, ({id}) => id)
+      .filter(member => this.props.sessionUser.id !== member.id)
+      .map(member => ({
+        id: member.id,
+        display: member.name,
+        email: member.email,
+      }));
+
+    let teamMentionableList = _.uniqBy(TeamStore.getAll(), ({id}) => id)
+      .filter(({projects}) => projects.find(p => p.slug === group.project.slug) !== -1)
+      .map(team => ({
+        id: team.id,
+        display: team.name,
+        email: team.id,
+      }));
+
     return {
       loading: false,
       error: false,
@@ -64,8 +73,10 @@ const NoteInput = createReactClass({
       preview: false,
       updating,
       value: defaultText,
-      mentionsList,
-      mentions: [],
+      memberMentionableList,
+      teamMentionableList,
+      memberMentions: [],
+      teamMentions: [],
     };
   },
 
@@ -117,17 +128,22 @@ const NoteInput = createReactClass({
     }
   },
 
+  cleanMarkdown(text) {
+    return text.replace(/\[sentry\.strip:(team|member)\]/g, '');
+  },
+
   create() {
     let {group} = this.props;
-    let mentions = this.finalMentions();
+    let {memberMentions, teamMentions} = this.state;
 
     let loadingIndicator = IndicatorStore.add(t('Posting comment..'));
 
     this.api.request('/issues/' + group.id + '/comments/', {
       method: 'POST',
       data: {
-        text: this.state.value,
-        mentions,
+        text: this.cleanMarkdown(this.state.value),
+        memberMentions: this.finalizeMentions(memberMentions),
+        teamMentions: this.finalizeMentions(teamMentions),
       },
       error: error => {
         this.setState({
@@ -202,18 +218,25 @@ const NoteInput = createReactClass({
     this.finish();
   },
 
-  onAdd(id, display) {
-    let mentions = this.state.mentions.concat([[id, display]]);
-    this.setState({mentions});
+  onAddMember(id, display) {
+    this.setState(({memberMentions}) => ({
+      memberMentions: [...memberMentions, [id, display]],
+    }));
+  },
+
+  onAddTeam(id, display) {
+    this.setState(({teamMentions}) => ({
+      teamMentions: [...teamMentions, [id, display]],
+    }));
   },
 
   finish() {
     this.props.onFinish && this.props.onFinish();
   },
 
-  finalMentions() {
-    // mention = [id, display]
-    return this.state.mentions
+  finalizeMentions(mentions) {
+    // each mention looks like [id, display]
+    return mentions
       .filter(mention => this.state.value.indexOf(mention[1]) !== -1)
       .map(mention => mention[0]);
   },
@@ -239,7 +262,16 @@ const NoteInput = createReactClass({
   },
 
   render() {
-    let {error, errorJSON, loading, preview, updating, value, mentionsList} = this.state;
+    let {
+      error,
+      errorJSON,
+      loading,
+      preview,
+      updating,
+      value,
+      memberMentionableList,
+      teamMentionableList,
+    } = this.state;
     let classNames = 'activity-field';
     if (error) {
       classNames += ' error';
@@ -280,13 +312,21 @@ const NoteInput = createReactClass({
               value={value}
               required={true}
               autoFocus={true}
-              displayTransform={(id, display) => `@${display}`}
-              markup="**__display__**"
+              allowSpaceInQuery={true}
+              markup="**__display__[sentry.strip:__type__]**"
             >
               <Mention
+                type="member"
                 trigger="@"
-                data={mentionsList}
-                onAdd={this.onAdd}
+                data={memberMentionableList}
+                onAdd={this.onAddMember}
+                appendSpaceOnAdd={true}
+              />
+              <Mention
+                type="team"
+                trigger="#"
+                data={teamMentionableList}
+                onAdd={this.onAddTeam}
                 appendSpaceOnAdd={true}
               />
             </MentionsInput>

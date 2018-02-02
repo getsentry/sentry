@@ -22,6 +22,7 @@ class GroupSubscriptionReason(object):
     status_change = 4
     deploy_setting = 5
     mentioned = 6
+    team_mentioned = 7
 
     descriptions = {
         implicit:
@@ -43,6 +44,8 @@ class GroupSubscriptionReason(object):
         u"opted to receive all deploy notifications for this organization",
         mentioned:
         u"have been mentioned in this issue",
+        team_mentioned:
+        u"member of a team mentioned in this issue",
     }
 
 

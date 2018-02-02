@@ -44,9 +44,9 @@ exports[`NoteInput renders 1`] = `
       </li>
     </ul>
     <withDefaultStyle(MentionsInput)
+      allowSpaceInQuery={true}
       autoFocus={true}
-      displayTransform={[Function]}
-      markup="**__display__**"
+      markup="**__display__[sentry.strip:__type__]**"
       onChange={[Function]}
       onKeyDown={[Function]}
       placeholder="Add details or updates to this event"
@@ -118,6 +118,17 @@ exports[`NoteInput renders 1`] = `
         onRemove={[Function]}
         renderSuggestion={null}
         trigger="@"
+        type="member"
+      />
+      <withDefaultStyle()
+        appendSpaceOnAdd={true}
+        data={Array []}
+        isLoading={false}
+        onAdd={[Function]}
+        onRemove={[Function]}
+        renderSuggestion={null}
+        trigger="#"
+        type="team"
       />
     </withDefaultStyle(MentionsInput)>
     <div
