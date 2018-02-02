@@ -124,7 +124,7 @@ class Project(Model):
     class Meta:
         app_label = 'sentry'
         db_table = 'sentry_project'
-        unique_together = (('team', 'slug'), ('organization', 'slug'))
+        unique_together = (('organization', 'slug'),)
 
     __repr__ = sane_repr('team_id', 'name', 'slug')
 
