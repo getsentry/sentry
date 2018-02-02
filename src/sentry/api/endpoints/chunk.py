@@ -24,6 +24,7 @@ class ChunkUploadEndpoint(Endpoint):
     permission_classes = (ProjectReleasePermission, )
 
     def get(self, request):
+        # TODO(hazat): This should be the full url to the upload endpoint
         endpoint = options.get('system.upload-url-prefix')
         # We fallback to default system url if config is not set
         if len(endpoint) == 0:
@@ -102,10 +103,11 @@ class ChunkAssembleEndpoint(Endpoint):
 
         file_response = {}
 
-        from sentry.tasks.assemble import dif_chunks
+        from sentry.tasks.assemble import assemble_chunks
         for checksum, file_to_assemble in six.iteritems(files):
             name = file_to_assemble.get('name', '')
             type = file_to_assemble.get('type', ChunkAssembleType.GENERIC)
+            params = file_to_assemble.get('params', {})
 
             try:
                 file = File.objects.filter(
@@ -158,8 +160,9 @@ class ChunkAssembleEndpoint(Endpoint):
 
             if file.headers.get('state') == ChunkFileState.CREATED:
                 # Start the actual worker which does the assembling.
-                dif_chunks.delay(
+                assemble_chunks.delay(
                     type=type,
+                    params=params,
                     file_id=file.id,
                     file_blob_ids=file_blob_ids,
                     checksum=checksum,

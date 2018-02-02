@@ -329,13 +329,16 @@ def detect_dif_from_filename(filename):
         return objs
 
 
-def create_dsym_from_dif(to_create, project):
+def create_dsym_from_dif(to_create, project, overwrite_filename=None):
     # TODO(hazat): docs
     rv = []
     for dsym_type, cpu, file_uuid, filename in to_create:
         with open(filename, 'rb') as f:
+            result_filename = os.path.basename(filename)
+            if overwrite_filename is not None:
+                result_filename = overwrite_filename
             dsym, created = _create_dsym_from_uuid(
-                project, dsym_type, cpu, file_uuid, f, os.path.basename(filename)
+                project, dsym_type, cpu, file_uuid, f, result_filename
             )
             if created:
                 rv.append(dsym)
