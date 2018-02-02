@@ -18,6 +18,7 @@ from django import template
 from django.conf import settings
 from django.template.defaultfilters import stringfilter
 from django.utils import timezone
+from django.utils.encoding import force_text
 from django.utils.html import escape
 from django.utils.safestring import mark_safe
 from django.utils.translation import ugettext as _
@@ -84,7 +85,7 @@ class AbsoluteUriNode(template.Node):
             try:
                 arg = template.Variable(arg).resolve(context)
             except template.VariableDoesNotExist:
-                arg = ''
+                arg = u''
             args.append(arg)
 
         # No args is just fine
@@ -92,9 +93,9 @@ class AbsoluteUriNode(template.Node):
             rv = ''
         # If there's only 1 argument, there's nothing to format
         elif len(args) == 1:
-            rv = args[0]
+            rv = force_text(args[0])
         else:
-            rv = args[0].format(*args[1:])
+            rv = force_text(args[0]).format(*args[1:])
 
         rv = absolute_uri(rv)
 
