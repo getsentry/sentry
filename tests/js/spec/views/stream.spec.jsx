@@ -134,6 +134,27 @@ describe('Stream', function() {
 
       expect(stream.lastRequest).toBeNull();
     });
+
+    it('sends environment attribute if one is set', function() {
+      stubbedApiRequest.restore();
+
+      let requestCancel = sandbox.stub();
+      let requestOptions;
+      sandbox.stub(Client.prototype, 'request', function(url, options) {
+        requestOptions = options;
+        return {
+          cancel: requestCancel,
+        };
+      });
+
+      let stream = wrapper.instance();
+      stream.state.activeEnvironment = {name: 'prod'};
+      stream.state.query = 'is:unresolved environment:prod';
+      stream.fetchData();
+
+      expect(requestOptions.data.query).toContain('environment:prod');
+      expect(requestOptions.data.environment).toBe('prod');
+    });
   });
 
   describe('render()', function() {
