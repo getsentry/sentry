@@ -19,6 +19,10 @@ class AccountIdentities extends AsyncView {
     return [['identities', ENDPOINT]];
   }
 
+  getTitle() {
+    return 'Identities';
+  }
+
   getDefaultState() {
     return {
       identities: [],

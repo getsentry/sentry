@@ -2,7 +2,7 @@
 
 exports[`ApiNewToken render() renders 1`] = `
 <SideEffect(DocumentTitle)
-  title="Create API Token"
+  title="Create API Token - Sentry"
 >
   <NarryLayout>
     <h3>

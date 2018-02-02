@@ -236,10 +236,10 @@ exports[`ProjectPluginDetails renders 1`] = `
     }
   >
     <SideEffect(DocumentTitle)
-      title="Sentry"
+      title="Sentry - Sentry"
     >
       <DocumentTitle
-        title="Sentry"
+        title="Sentry - Sentry"
       >
         <div>
           <SettingsPageHeading
