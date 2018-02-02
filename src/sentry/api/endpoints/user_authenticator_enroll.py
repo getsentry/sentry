@@ -118,6 +118,9 @@ class UserAuthenticatorEnrollEndpoint(UserEndpoint):
         :auth: required
         """
 
+        # Using `request.user` here because doesn't seem like a superuser should be able to
+        # set a user's 2fa?
+
         # start activation
         serializer_cls = serializer_map.get(interface_id, None)
 
@@ -129,7 +132,7 @@ class UserAuthenticatorEnrollEndpoint(UserEndpoint):
         if not serializer.is_valid():
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
-        interface = Authenticator.objects.get_interface(user, interface_id)
+        interface = Authenticator.objects.get_interface(request.user, interface_id)
 
         # Not all interfaces allow multi enrollment
         #
