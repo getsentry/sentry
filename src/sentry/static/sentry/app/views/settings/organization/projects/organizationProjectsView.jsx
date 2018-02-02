@@ -16,6 +16,8 @@ import PanelItem from '../../components/panelItem';
 import PanelHeader from '../../components/panelHeader';
 import PanelBody from '../../components/panelBody';
 import ProjectListItem from '../../../settings/components/settingsProjectItem';
+import SettingsPageHeader from '../../components/settingsPageHeader';
+import Button from '../../../../components/buttons/button';
 
 class OrganizationProjectsView extends OrganizationSettingsView {
   static contextTypes = {
@@ -29,9 +31,29 @@ class OrganizationProjectsView extends OrganizationSettingsView {
 
   renderBody() {
     let {projects} = this.props;
+    let {organization} = this.context;
+    let {access} = organization;
+    let canCreateProjects = access.indexOf('org:write') > -1;
+
+    let action = (
+      <Button
+        priority="primary"
+        size="small"
+        disabled={!canCreateProjects}
+        title={
+          !canCreateProjects
+            ? t('You do not have permission to create projects')
+            : undefined
+        }
+        to={`/organizations/${organization.slug}/projects/new/`}
+      >
+        <span className="icon-plus" /> {t('Create Project')}
+      </Button>
+    );
 
     return (
       <div>
+        <SettingsPageHeader title="Projects" action={action} />
         <Panel className="table table-no-top-border m-b-0">
           <PanelHeader>{t('Projects')}</PanelHeader>
           <PanelBody css={{width: '100%'}}>
@@ -48,6 +70,13 @@ class OrganizationProjectsView extends OrganizationSettingsView {
                 </Box>
               </PanelItem>
             ))}
+            {projects.length === 0 && (
+              <PanelItem align="center">
+                <Box w={1 / 2} p={2} flex="1">
+                  <span>{t('No projects found.')}</span>
+                </Box>
+              </PanelItem>
+            )}
           </PanelBody>
         </Panel>
       </div>
