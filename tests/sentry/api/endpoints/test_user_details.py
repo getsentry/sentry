@@ -213,6 +213,16 @@ class UserUpdateTest(APITestCase):
             }
         )
 
+        # test validations
+        response = self.client.delete(url, data={
+        })
+        assert response.status_code == 400
+        response = self.client.delete(url, data={
+            'organizations': None
+        })
+        assert response.status_code == 400
+
+        # test actual delete
         response = self.client.delete(url, data={
             'organizations': [org_with_other_owner.slug, org_as_other_owner.slug, not_owned_org.slug]
         })

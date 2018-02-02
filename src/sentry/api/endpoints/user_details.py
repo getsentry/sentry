@@ -173,22 +173,27 @@ class UserDetailsEndpoint(UserEndpoint):
         :auth required:
         """
 
+        # be strict since we're removing orgs
+        if 'organizations' not in request.DATA or not isinstance(
+                request.DATA.get('organizations'), list):
+            return Response(status=status.HTTP_400_BAD_REQUEST)
+
         # from `frontend/remove_account.py`
         org_list = Organization.objects.filter(
             member_set__role=roles.get_top_dog().id,
             member_set__user=user,
             status=OrganizationStatus.VISIBLE,
         )
+
         org_results = []
-        for org in sorted(org_list, key=lambda x: x.name):
-            # O(N) query
+        for org in org_list:
             org_results.append({
                 'organization': org,
                 'single_owner': org.has_single_owner(),
             })
 
         avail_org_slugs = set([o['organization'].slug for o in org_results])
-        orgs_to_remove = set(request.DATA.get('organizations')).intersection(avail_org_slugs)
+        orgs_to_remove = set(request.DATA.get('organizations', [])).intersection(avail_org_slugs)
 
         for result in org_results:
             if result['single_owner']:
