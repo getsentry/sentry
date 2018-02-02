@@ -16,6 +16,7 @@ class ProjectIssuesTest(AcceptanceTestCase):
             teams=[self.team],
             name='Bengal',
         )
+        self.environment = self.create_environment(name="staging")
         self.login_as(self.user)
         self.path = '/{}/{}/'.format(self.org.slug, self.project.slug)
 
