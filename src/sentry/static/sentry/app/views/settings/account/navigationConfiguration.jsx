@@ -34,6 +34,10 @@ const accountNavigation = [
         path: `${pathPrefix}/identities/`,
         title: t('Identities'),
       },
+      {
+        path: `${pathPrefix}/close-account/`,
+        title: t('Close Account'),
+      },
     ],
   },
   {

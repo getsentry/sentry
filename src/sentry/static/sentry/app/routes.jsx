@@ -3,7 +3,6 @@ import React from 'react';
 
 import AccountAuthorizations from './views/accountAuthorizations';
 import AccountLayout from './views/accountLayout';
-
 import AdminBuffer from './views/adminBuffer';
 import AdminLayout from './views/adminLayout';
 import AdminOrganizations from './views/adminOrganizations';
@@ -220,6 +219,15 @@ const accountSettingsRoutes = [
       />
     </Route>
   </Route>,
+
+  <Route
+    key="close-account/"
+    path="close-account/"
+    name="Close Account"
+    componentPromise={() =>
+      import(/*webpackChunkName: "AccountClose"*/ './views/settings/account/accountClose')}
+    component={errorHandler(LazyLoad)}
+  />,
 ];
 
 const projectSettingsRoutes = [
