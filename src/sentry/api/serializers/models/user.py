@@ -85,12 +85,6 @@ class UserSerializer(Serializer):
                 )
             }
             stacktrace_order = int(options.get('stacktrace_order', -1) or -1)
-            if stacktrace_order == -1:
-                stacktrace_order = 'default'
-            elif stacktrace_order == 2:
-                stacktrace_order = 'newestFirst'
-            elif stacktrace_order == 1:
-                stacktrace_order = 'newestLast'
 
             d['options'] = {
                 'language': options.get('language') or 'en',
