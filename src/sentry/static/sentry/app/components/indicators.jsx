@@ -1,4 +1,5 @@
 import React from 'react';
+import PropTypes from 'prop-types';
 import createReactClass from 'create-react-class';
 import Reflux from 'reflux';
 import ReactCSSTransitionGroup from 'react-addons-css-transition-group';
@@ -8,25 +9,31 @@ import ToastIndicator from '../components/alerts/toastIndicator';
 
 import IndicatorStore from '../stores/indicatorStore';
 
-const Indicators = createReactClass({
-  displayName: 'Indicators',
-  mixins: [Reflux.connect(IndicatorStore, 'items')],
+class Indicators extends React.Component {
+  static propTypes = {
+    items: PropTypes.arrayOf(
+      PropTypes.shape({
+        type: PropTypes.oneOf(['error', 'success', '']),
+        id: PropTypes.string,
+        message: PropTypes.node,
+      })
+    ),
+  };
 
-  getInitialState() {
-    return {
-      items: [],
-    };
-  },
+  static defaultProps = {
+    items: [],
+  };
 
   render() {
+    let {items, ...props} = this.props;
     return (
-      <div {...this.props}>
+      <div {...props}>
         <ReactCSSTransitionGroup
           transitionName="toast"
           transitionEnter={false}
           transitionLeaveTimeout={500}
         >
-          {this.state.items.map(indicator => {
+          {items.map(indicator => {
             if (indicator.type === 'error' || indicator.type === 'success') {
               return (
                 <ToastIndicator type={indicator.type} key={indicator.id}>
@@ -44,7 +51,23 @@ const Indicators = createReactClass({
         </ReactCSSTransitionGroup>
       </div>
     );
+  }
+}
+
+const IndicatorsContainer = createReactClass({
+  displayName: 'IndicatorsContainer',
+  mixins: [Reflux.connect(IndicatorStore, 'items')],
+
+  getInitialState() {
+    return {
+      items: [],
+    };
+  },
+
+  render() {
+    return <Indicators {...this.props} items={this.state.items} />;
   },
 });
 
-export default Indicators;
+export default IndicatorsContainer;
+export {Indicators};
