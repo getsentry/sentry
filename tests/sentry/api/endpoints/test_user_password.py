@@ -1,10 +1,13 @@
 from __future__ import absolute_import
 
+import mock
+
 from django.core.urlresolvers import reverse
 from django.conf import settings
 
 from sentry.models import User
 from sentry.testutils import APITestCase
+from sentry.auth.password_validation import MinimumLengthValidator
 
 
 class UserPasswordTest(APITestCase):
@@ -34,6 +37,19 @@ class UserPasswordTest(APITestCase):
         user = User.objects.get(id=self.user.id)
         assert response.status_code == 204
         assert old_password != user.password
+
+    # Not sure why but sentry.auth.password_validation._default_password_validators is [] instead of None and not
+    # using `settings.AUTH_PASSWORD_VALIDATORS`
+    @mock.patch('sentry.auth.password_validation.get_default_password_validators', mock.Mock(return_value=[
+        MinimumLengthValidator(min_length=6)
+    ]))
+    def test_password_too_short(self):
+        response = self.client.put(self.url, data={
+            'password': 'helloworld!',
+            'passwordNew': 'hi',
+            'passwordVerify': 'hi',
+        })
+        assert response.status_code == 400
 
     def test_no_password(self):
         response = self.client.put(self.url, data={

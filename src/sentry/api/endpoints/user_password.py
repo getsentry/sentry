@@ -20,7 +20,7 @@ class UserPasswordSerializer(serializers.ModelSerializer):
         model = User
         fields = ('password', 'passwordNew', 'passwordVerify', )
 
-    def validate_password(self, attrs, source):
+    def validate_passwordNew(self, attrs, source):
         # this will raise a ValidationError if password is invalid
         password_validation.validate_password(attrs[source])
 
