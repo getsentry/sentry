@@ -846,26 +846,6 @@ table.integrations {
     }
   }
 
-  &.success {
-    background: @green;
-    color: @white;
-    .icon:before {
-      content: '\e60a'; // checkmark
-    }
-  }
-  &.error {
-    background: @red;
-    color: @white;
-    .icon:before {
-      content: '\e615'; // exclamation
-    }
-  }
-  &.success.toast-leave,
-  &.error.toast-leave {
-    opacity: 0;
-    .transition(opacity 0.2s linear);
-  }
-
   .loading-indicator {
     border-color: rgba(255, 255, 255, 0.4);
     border-left-color: rgba(255, 255, 255, 1);

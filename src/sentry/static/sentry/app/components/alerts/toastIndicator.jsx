@@ -13,7 +13,11 @@ const Toast = styled.div`
   height: 40px;
   padding: 0 15px 0 10px;
   background: #fff;
-  background-image: linear-gradient(-180deg, rgba(255, 255, 255, 0.12) 0%, #f0eef5 100%);
+  background-image: linear-gradient(
+    -180deg,
+    rgba(255, 255, 255, 0.12) 0%,
+    rgba(240, 238, 245, 0.35) 98%
+  );
   color: ${p => p.theme.gray5};
   border-radius: 44px 5px 5px 44px;
   box-shadow: 0 0 0 1px rgba(47, 40, 55, 0.12), 0 1px 2px 0 rgba(47, 40, 55, 0.12),
@@ -34,7 +38,7 @@ const Message = styled.div`
   flex: 1;
 `;
 
-function ToastIndicator({type, children}) {
+function ToastIndicator({type, children, ...props}) {
   let icon;
 
   if (type == 'success') {
@@ -43,7 +47,7 @@ function ToastIndicator({type, children}) {
     icon = <InlineSvg src="icon-circle-close" size="24px" />;
   }
   return (
-    <Toast>
+    <Toast {...props}>
       <Icon type={type}>{icon}</Icon>
       <Message>{children}</Message>
     </Toast>
