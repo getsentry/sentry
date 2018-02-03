@@ -56,6 +56,7 @@ const theme = {
     header: 1000,
     dropdown: 1001,
     modal: 10000,
+    toast: 10001,
   },
 
   alert: {
