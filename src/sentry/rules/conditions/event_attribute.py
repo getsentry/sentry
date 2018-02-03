@@ -8,10 +8,7 @@ sentry.rules.conditions.tagged_event
 
 from __future__ import absolute_import
 
-import json
-
 from collections import OrderedDict
-from django import forms
 
 from sentry.rules.conditions.base import EventCondition
 
@@ -59,36 +56,6 @@ ATTR_CHOICES = [
 ]
 
 
-class FixedTypeaheadInput(forms.TextInput):
-    def __init__(self, choices, *args, **kwargs):
-        super(FixedTypeaheadInput, self).__init__(*args, **kwargs)
-        self.attrs['data-choices'] = json.dumps(choices)
-        self.attrs['class'] = self.attrs.get('class', '') + ' typeahead'
-
-
-class EventAttributeForm(forms.Form):
-    attribute = forms.CharField(
-        widget=FixedTypeaheadInput(
-            attrs={'style': 'width:200px',
-                   'placeholder': 'i.e. exception.type'},
-            choices=[{
-                'id': a,
-                'text': a
-            } for a in ATTR_CHOICES],
-        )
-    )
-    match = forms.ChoiceField(
-        MATCH_CHOICES.items(), widget=forms.Select(
-            attrs={'style': 'width:150px'},
-        )
-    )
-    value = forms.CharField(
-        widget=forms.TextInput(
-            attrs={'placeholder': 'value'},
-        ), required=False
-    )
-
-
 class EventAttributeCondition(EventCondition):
     """
     Attributes are a mapping of <logical-key>.<property>.
@@ -105,7 +72,22 @@ class EventAttributeCondition(EventCondition):
     """
     # TODO(dcramer): add support for stacktrace.vars.[name]
 
-    form_cls = EventAttributeForm
+    form_fields = {
+        'attribute': {
+            'type': 'choice',
+            'placeholder': 'i.e. exception.type',
+            'choices': [[a, a] for a in ATTR_CHOICES]
+        },
+        'match': {
+            'type': 'choice',
+            'choices': MATCH_CHOICES.items()
+        },
+        'value': {
+            'type': 'string',
+            'placeholder': 'value'
+        }
+    }
+
     label = u'An event\'s {attribute} value {match} {value}'
 
     def _get_attribute_values(self, event, attr):

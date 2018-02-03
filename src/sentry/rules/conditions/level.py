@@ -10,7 +10,6 @@ from __future__ import absolute_import
 
 from collections import OrderedDict
 
-from django import forms
 from sentry.constants import LOG_LEVELS, LOG_LEVELS_MAP
 
 from sentry.rules.conditions.base import EventCondition
@@ -34,20 +33,18 @@ MATCH_CHOICES = OrderedDict(
 )
 
 
-class LevelEventForm(forms.Form):
-    level = forms.ChoiceField(
-        choices=LEVEL_CHOICES.items(),
-        initial=30,
-    )
-    match = forms.ChoiceField(
-        choices=MATCH_CHOICES.items(),
-        initial=MatchType.GREATER_OR_EQUAL,
-    )
-
-
 class LevelCondition(EventCondition):
-    form_cls = LevelEventForm
     label = 'An event\'s level is {match} {level}'
+    form_fields = {
+        'level': {
+            'type': 'choice',
+            'choices': LEVEL_CHOICES.items()
+        },
+        'match': {
+            'type': 'choice',
+            'choices': MATCH_CHOICES.items()
+        }
+    }
 
     def passes(self, event, state, **kwargs):
         desired_level = self.get_option('level')

@@ -8,29 +8,22 @@ sentry.rules.actions.notify_event_service
 
 from __future__ import absolute_import
 
-from django import forms
-
 from sentry.plugins import plugins
 from sentry.rules.actions.base import EventAction
 from sentry.utils.safe import safe_execute
 from sentry.utils import metrics
 
 
-class NotifyEventServiceForm(forms.Form):
-    service = forms.ChoiceField(choices=())
-
-    def __init__(self, *args, **kwargs):
-        service_choices = [(plugin.slug, plugin.get_title()) for plugin in kwargs.pop('plugins')]
-
-        super(NotifyEventServiceForm, self).__init__(*args, **kwargs)
-
-        self.fields['service'].choices = service_choices
-        self.fields['service'].widget.choices = self.fields['service'].choices
-
-
 class NotifyEventServiceAction(EventAction):
-    form_cls = NotifyEventServiceForm
-    label = 'Send a notification via {service}'
+    def __init__(self, *args, **kwargs):
+        super(NotifyEventServiceAction, self).__init__(*args, **kwargs)
+        self.label = 'Send a notification via {service}'
+        self.form_fields = {
+            'service': {
+                'type': 'choice',
+                'choices': [[i.slug, i.title] for i in self.get_plugins()]
+            }
+        }
 
     def after(self, event, state):
         service = self.get_option('service')

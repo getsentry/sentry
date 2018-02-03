@@ -3,11 +3,14 @@ import React from 'react';
 import ReactDOM from 'react-dom';
 import $ from 'jquery';
 
+import * as utils from './utils';
+
 class RuleNode extends React.Component {
   static propTypes = {
     data: PropTypes.object.isRequired,
     node: PropTypes.shape({
-      html: PropTypes.string.isRequired,
+      label: PropTypes.string.isRequired,
+      formFields: PropTypes.object,
     }).isRequired,
     onDelete: PropTypes.func.isRequired,
   };
@@ -40,11 +43,13 @@ class RuleNode extends React.Component {
 
   render() {
     let {data, node} = this.props;
+    let html = utils.getHtmlForNode(node);
+
     return (
       <tr>
         <td className="rule-form">
           <input type="hidden" name="id" value={data.id} />
-          <span ref="html" dangerouslySetInnerHTML={{__html: node.html}} />
+          <span ref="html" dangerouslySetInnerHTML={{__html: html}} />
         </td>
         <td className="align-right">
           <a onClick={this.props.onDelete}>

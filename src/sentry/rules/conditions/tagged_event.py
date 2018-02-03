@@ -37,18 +37,28 @@ MATCH_CHOICES = OrderedDict(
 
 
 class TaggedEventForm(forms.Form):
-    key = forms.CharField(widget=forms.TextInput(attrs={'placeholder': 'key'}))
     match = forms.ChoiceField(
-        MATCH_CHOICES.items(), widget=forms.Select(
-            attrs={'style': 'width:150px'},
-        )
+        MATCH_CHOICES.items(), widget=forms.Select()
     )
-    value = forms.CharField(widget=forms.TextInput(attrs={'placeholder': 'value'}))
 
 
 class TaggedEventCondition(EventCondition):
-    form_cls = TaggedEventForm
     label = u'An event\'s tags match {key} {match} {value}'
+    form_cls = TaggedEventForm
+    form_fields = {
+        'key': {
+            'type': 'string',
+            'placeholder': 'key'
+        },
+        'match': {
+            'type': 'choice',
+            'choices': MATCH_CHOICES.items()
+        },
+        'value': {
+            'type': 'string',
+            'placeholder': 'value',
+        }
+    }
 
     def passes(self, event, state, **kwargs):
         key = self.get_option('key')
