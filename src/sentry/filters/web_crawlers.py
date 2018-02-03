@@ -19,6 +19,7 @@ CRAWLERS = re.compile(
             r'Google',
             # Bing search
             r'BingBot',
+            r'BingPreview',
             # Baidu search
             r'Baiduspider',
             # Yahoo
