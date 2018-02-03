@@ -45,7 +45,7 @@ class GroupSubscriptionReason(object):
         mentioned:
         u"have been mentioned in this issue",
         team_mentioned:
-        u"member of a team mentioned in this issue",
+        u"are a member of a team mentioned in this issue",
     }
 
 
