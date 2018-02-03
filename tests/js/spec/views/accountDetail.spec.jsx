@@ -25,7 +25,12 @@ describe('AccountDetails', function() {
     let wrapper = mount(<AccountDetails location={{}} />, TestStubs.routerContext());
 
     expect(wrapper.find('input[name="name"]')).toHaveLength(1);
-    expect(wrapper).toMatchSnapshot();
+
+    // Stacktrace order, language, timezone
+    expect(wrapper.find('select')).toHaveLength(3);
+
+    expect(wrapper.find('BooleanField')).toHaveLength(1);
+    expect(wrapper.find('RadioGroup')).toHaveLength(1);
   });
 
   it('has username field if it is different than email', function() {
