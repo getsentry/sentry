@@ -18,7 +18,7 @@ class StatsdMetricsBackend(MetricsBackend):
         return key
 
     def incr(self, key, instance=None, tags=None, amount=1, sample_rate=1):
-        self.client.incr(self._full_key(self._get_key(key)), amount, sample_rate)
+        self.client.incr(self._full_key(self._get_key(key), instance), amount, sample_rate)
 
     def timing(self, key, value, instance=None, tags=None, sample_rate=1):
-        self.client.timing(self._full_key(self._get_key(key)), value, sample_rate)
+        self.client.timing(self._full_key(self._get_key(key), instance), value, sample_rate)
