@@ -14,9 +14,9 @@ import OrganizationState from '../../mixins/organizationState';
 import SentryTypes from '../../proptypes';
 import TeamStore from '../../stores/teamStore';
 import ProjectsStore from '../../stores/projectsStore';
-import {loadEnvironments} from '../../actionCreators/environments';
-import {setActiveProject} from '../../actionCreators/projects';
-import {t} from '../../locale';
+import { loadEnvironments } from '../../actionCreators/environments';
+import { setActiveProject } from '../../actionCreators/projects';
+import { t } from '../../locale';
 
 const ERROR_TYPES = {
   MISSING_MEMBERSHIP: 'MISSING_MEMBERSHIP',
@@ -118,7 +118,7 @@ const ProjectContext = createReactClass({
     if (!itemIds.has(this.state.team.id)) return;
 
     this.setState({
-      team: {...TeamStore.getById(this.state.team.id)},
+      team: { ...TeamStore.getById(this.state.team.id) },
     });
   },
 
@@ -127,12 +127,12 @@ const ProjectContext = createReactClass({
     if (!projectIds.has(this.state.project.id)) return;
 
     this.setState({
-      project: {...ProjectsStore.getById(this.state.project.id)},
+      project: { ...ProjectsStore.getById(this.state.project.id) },
     });
   },
 
   identifyProject() {
-    let {projectId} = this.props;
+    let { projectId } = this.props;
     let projectSlug = projectId;
     let activeProject = null;
     let activeTeam = null;
@@ -149,7 +149,7 @@ const ProjectContext = createReactClass({
   },
 
   fetchData() {
-    let {orgId, projectId} = this.props;
+    let { orgId, projectId } = this.props;
     // we fetch core access/information from the global organization data
     let [activeTeam, activeProject] = this.identifyProject();
     let hasAccess = activeTeam && activeTeam.hasAccess;
@@ -198,7 +198,7 @@ const ProjectContext = createReactClass({
       this.setState({
         loading: false,
       });
-    } else if (activeTeam && activeTeam.isMember) {
+    } else if (activeTeam && !activeTeam.isMember) {
       this.setState({
         loading: false,
         error: true,
@@ -214,12 +214,12 @@ const ProjectContext = createReactClass({
   },
 
   getEnvironmentListEndpoint() {
-    let {orgId, projectId} = this.props;
+    let { orgId, projectId } = this.props;
     return `/projects/${orgId}/${projectId}/environments/`;
   },
 
   getMemberListEndpoint() {
-    let {orgId, projectId} = this.props;
+    let { orgId, projectId } = this.props;
     return `/projects/${orgId}/${projectId}/members/`;
   },
 
