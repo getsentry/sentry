@@ -1,6 +1,6 @@
 Version 8.23 (Unreleased)
 -------------------------
-- Experiemental implementation of slack actions via a new Integrations and Identity API.
+- Experimental implementation of Slack actions via a new Integrations and Identity API.
 - Display the organization setting that was updated, along with the old/new value, in the Audit Log.
 
 Schema Changes
