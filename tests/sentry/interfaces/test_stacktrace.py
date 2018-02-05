@@ -500,6 +500,81 @@ class StacktraceTest(TestCase):
         result = interface.get_hash()
         assert result == []
 
+    def test_collapse_recursion(self):
+        interface = Stacktrace.to_python(
+            {
+                'frames': [
+                    {
+                        'abs_path': 'Application.java',
+                        'filename': 'Application.java',
+                        'function': 'main',
+                        'in_app': False,
+                        'lineno': 13,
+                        'module': 'io.sentry.example.Application'
+                    },
+                    {
+                        'abs_path': 'Application.java',
+                        'filename': 'Application.java',
+                        'function': 'normalFunc',
+                        'in_app': False,
+                        'lineno': 20,
+                        'module': 'io.sentry.example.Application'
+                    },
+                    {
+                        'abs_path': 'Application.java',
+                        'filename': 'Application.java',
+                        'function': 'recurFunc',
+                        'in_app': False,
+                        'lineno': 27,
+                        'module': 'io.sentry.example.Application'
+                    },
+                    {
+                        'abs_path': 'Application.java',
+                        'filename': 'Application.java',
+                        'function': 'recurFunc',
+                        'in_app': False,
+                        'lineno': 27,
+                        'module': 'io.sentry.example.Application'
+                    },
+                    {
+                        'abs_path': 'Application.java',
+                        'filename': 'Application.java',
+                        'function': 'recurFunc',
+                        'in_app': False,
+                        'lineno': 27,
+                        'module': 'io.sentry.example.Application'
+                    },
+                    {
+                        'abs_path': 'Application.java',
+                        'filename': 'Application.java',
+                        'function': 'recurFunc',
+                        'in_app': False,
+                        'lineno': 25,
+                        'module': 'io.sentry.example.Application'
+                    },
+                    {
+                        'abs_path': 'Application.java',
+                        'filename': 'Application.java',
+                        'function': 'throwError',
+                        'in_app': False,
+                        'lineno': 32,
+                        'module': 'io.sentry.example.Application'
+                    }
+                ]
+            }
+        )
+        result = interface.get_hash()
+        self.assertEquals(result, [
+            'io.sentry.example.Application', 'main',
+            'io.sentry.example.Application', 'normalFunc',
+            # first call to recursive function
+            'io.sentry.example.Application', 'recurFunc',
+            # (exact) recursive frames omitted here
+            # call from *different location* in recursive function
+            'io.sentry.example.Application', 'recurFunc',
+            'io.sentry.example.Application', 'throwError'
+        ])
+
     def test_get_hash_ignores_safari_native_code(self):
         interface = Frame.to_python(
             {
