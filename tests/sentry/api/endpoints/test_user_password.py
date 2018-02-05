@@ -149,7 +149,7 @@ class UserSudoUpdateTest(APITestCase):
                 'username': 'foo@example.com',
                 'password': 'admin',
             })
-            assert response.status_code == 200
+            assert response.status_code == 204
 
             # correct password change
             response = self.client.put(self.url, data={
