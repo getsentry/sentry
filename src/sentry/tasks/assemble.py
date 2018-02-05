@@ -10,17 +10,25 @@ logger = logging.getLogger(__name__)
 
 @instrumented_task(name='sentry.tasks.assemble.assemble_chunks', queue='assemble')
 def assemble_chunks(type, params, file_id, file_blob_ids, checksum, **kwargs):
-    '''type= ChunkAssembleType'''
-    logger.warning('sentry.tasks.assemble.assemble_chunks', extra={'file_blob_ids': file_blob_ids})
+    '''This assembles multiple chunks into on File.
+    The type is a File.ChunkAssembleType
+    '''
+    if len(file_blob_ids) == 0:
+        logger.warning('sentry.tasks.assemble.assemble_chunks', extra={
+            'error': 'Empty file blobs'
+        })
+
     from sentry.models import File
     from sentry.models.file import ChunkFileState, ChunkAssembleType
     file = File.objects.filter(
         id=file_id,
     ).get()
+
     file.headers['state'] = ChunkFileState.ASSEMBLING
+    # Do the actual assembling here
     file.assemble_from_file_blob_ids(file_blob_ids, checksum)
-    if file.headers.get('state', '') == 'ERROR':
-        logger.warning(
+    if file.headers.get('state', '') == ChunkFileState.ERROR:
+        logger.error(
             'sentry.tasks.assemble.assemble_chunks',
             extra={
                 'error': file.headers.get('error', ''),
@@ -29,7 +37,10 @@ def assemble_chunks(type, params, file_id, file_blob_ids, checksum, **kwargs):
         )
         return
 
+    # Depending on the type, we want to do additional stuff
+    # Default: Generic = Do nothing since the file is already assembled
     if type == ChunkAssembleType.DIF:
+        # Assemble a dif here, we need to create Dsyms and symcache
         assemble_dif(file, params)
 
 
@@ -39,7 +50,14 @@ def assemble_dif(file, params):
     organization_slug = params.get('org', None)
     if project_slug is None or organization_slug is None:
         file.headers['state'] = ChunkFileState.ERROR
-        file.headers['error'] = 'missing org/project'
+        file.headers['error'] = 'Missing org/project'
+        logger.error(
+            'sentry.tasks.assemble.assemble_chunks',
+            extra={
+                'error': file.headers.get('error', ''),
+                'file_id': file.id
+            }
+        )
         return
 
     from sentry.models import dsymfile, Project
@@ -67,4 +85,11 @@ def assemble_dif(file, params):
             file.delete()
         else:
             file.headers['state'] = ChunkFileState.ERROR
-            file.headers['error'] = 'invalid object file'
+            file.headers['error'] = 'Invalid object file'
+            logger.error(
+                'sentry.tasks.assemble.assemble_chunks',
+                extra={
+                    'error': file.headers.get('error', ''),
+                    'file_id': file.id
+                }
+            )

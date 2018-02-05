@@ -3,9 +3,9 @@ from __future__ import absolute_import
 import six
 import jsonschema
 
-# from rest_framework.permissions import IsAuthenticated
 from rest_framework import status
 from rest_framework.response import Response
+from django.core.urlresolvers import reverse
 
 from sentry import options
 from sentry.utils import json
@@ -24,7 +24,6 @@ class ChunkUploadEndpoint(Endpoint):
     permission_classes = (ProjectReleasePermission, )
 
     def get(self, request):
-        # TODO(hazat): This should be the full url to the upload endpoint
         endpoint = options.get('system.upload-url-prefix')
         # We fallback to default system url if config is not set
         if len(endpoint) == 0:
@@ -32,7 +31,7 @@ class ChunkUploadEndpoint(Endpoint):
 
         return Response(
             {
-                'url': endpoint,
+                'url': '{}{}'.format(endpoint, reverse('sentry-api-0-chunk-upload')),
                 'chunkSize': DEFAULT_BLOB_SIZE,
                 'chunksPerRequest': MAX_CHUNKS_PER_REQUEST,
                 'concurrency': MAX_CONCURRENCY,
@@ -72,22 +71,38 @@ class ChunkUploadEndpoint(Endpoint):
 class ChunkAssembleEndpoint(Endpoint):
     permission_classes = (ProjectReleasePermission, )
 
+    def create_file_response(self, state, missing_chunks=[]):
+        return {
+            'state': state,
+            'missingChunks': missing_chunks
+        }
+
     def post(self, request):
         schema = {
             "type": "object",
             "additionalProperties": {
-                "type": "object",
-                "required": ["type", "name", "chunks"],
-                "properties": {
-                    "type": {"type": "string"},
-                    "name": {"type": "string"},
-                    "params": {"type": "object"},
-                    "chunks": {
-                        "type": "array",
-                        "items": {"type": "string"}
+                "anyOf": [
+                    {
+                        # The actual assemble request.
+                        "type": "object",
+                        "required": ["type", "name", "chunks"],
+                        "properties": {
+                            "type": {"type": "string"},
+                            "name": {"type": "string"},
+                            "params": {"type": "object"},
+                            "chunks": {
+                                "type": "array",
+                                "items": {"type": "string"}
+                            }
+                        },
+                        "additionalProperties": False
+                    },
+                    {
+                        # This is used for checking if the file already exists.
+                        "type": "boolean"
                     }
-                },
-                "additionalProperties": False
+                ]
+
             }
         }
 
@@ -105,32 +120,43 @@ class ChunkAssembleEndpoint(Endpoint):
 
         from sentry.tasks.assemble import assemble_chunks
         for checksum, file_to_assemble in six.iteritems(files):
-            name = file_to_assemble.get('name', '')
-            type = file_to_assemble.get('type', ChunkAssembleType.GENERIC)
-            params = file_to_assemble.get('params', {})
-            chunks = file_to_assemble.get('chunks', [])
+
+            # We want to skip assembling of since it's on the check if the file
+            # already exsists.
+            skip_assembling = isinstance(file_to_assemble, bool)
 
             # If we find a file with the same checksum we return it
             try:
                 file = File.objects.filter(
                     checksum=checksum
                 ).get()
-                file_response[checksum] = {
-                    'state': file.headers.get('state', ChunkFileState.OK),
-                    'missingChunks': []
-                }
+                file_response[checksum] = self.create_file_response(
+                    file.headers.get('state', ChunkFileState.OK)
+                )
                 continue
             except File.DoesNotExist:
                 pass
+
+            # If we should skip assembling because it's a bool and the file
+            # hasn't been found, we return here.
+            if skip_assembling:
+                file_response[checksum] = self.create_file_response(
+                    ChunkFileState.NOT_FOUND
+                )
+                continue
+
+            name = file_to_assemble.get('name', None)
+            type = file_to_assemble.get('type', ChunkAssembleType.GENERIC)
+            params = file_to_assemble.get('params', {})
+            chunks = file_to_assemble.get('chunks', [])
 
             # If the request does not cotain any chunks for a file
             # we return nothing since this should never happen only
             # if the client sends an invalid request
             if len(chunks) == 0:
-                file_response[checksum] = {
-                    'state': ChunkFileState.NOT_FOUND,
-                    'missingChunks': []
-                }
+                file_response[checksum] = self.create_file_response(
+                    file.headers.get('state', ChunkFileState.NOT_FOUND)
+                )
                 continue
 
             # Load all FileBlobs from db
@@ -147,10 +173,10 @@ class ChunkAssembleEndpoint(Endpoint):
             # If we have any missing chunks at all, return it to the client
             # that we need them to assemble the file
             if len(missing_chunks) > 0:
-                file_response[checksum] = {
-                    'state': ChunkFileState.NOT_FOUND,
-                    'missingChunks': missing_chunks
-                }
+                file_response[checksum] = self.create_file_response(
+                    file.headers.get('state', ChunkFileState.NOT_FOUND),
+                    missing_chunks
+                )
                 continue
 
             # If we have all chunks and the file wasn't found before
@@ -181,9 +207,9 @@ class ChunkAssembleEndpoint(Endpoint):
                 checksum=checksum,
             )
 
-            file_response[checksum] = {
-                'state': file.headers.get('state', ChunkFileState.CREATED),
-                'missingChunks': missing_chunks
-            }
+            file_response[checksum] = self.create_file_response(
+                file.headers.get('state', ChunkFileState.CREATED),
+                missing_chunks
+            )
 
         return Response(file_response, status=200)

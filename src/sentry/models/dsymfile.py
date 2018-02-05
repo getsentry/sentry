@@ -305,7 +305,10 @@ def _analyze_progard_filename(filename):
 
 
 def detect_dif_from_filename(filename):
-    # TODO(hazat): docs
+    """This detects which kind of dif (Debug Information File) the filename
+    provided is. It returns an array since a FatObject can contain more than
+    on dif.
+    """
     # proguard files (proguard/UUID.txt) or
     # (proguard/mapping-UUID.txt).
     proguard_uuid = _analyze_progard_filename(filename)
@@ -322,6 +325,7 @@ def detect_dif_from_filename(filename):
         # macho file.
         # XXX: log?
         logger.warning('dsymfile.bad-fat-object', exc_info=True)
+        return []
     else:
         objs = []
         for obj in fo.iter_objects():
@@ -330,7 +334,9 @@ def detect_dif_from_filename(filename):
 
 
 def create_dsym_from_dif(to_create, project, overwrite_filename=None):
-    # TODO(hazat): docs
+    """Create a ProjectDSymFile from a dif (Debug Information File) and
+    return an array of created objects.
+    """
     rv = []
     for dsym_type, cpu, file_uuid, filename in to_create:
         with open(filename, 'rb') as f:
