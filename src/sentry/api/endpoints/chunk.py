@@ -24,6 +24,11 @@ class ChunkUploadEndpoint(Endpoint):
     permission_classes = (ProjectReleasePermission, )
 
     def get(self, request):
+        """
+        Return chunk upload parameters
+        ``````````````````````````````
+        :auth: required
+        """
         endpoint = options.get('system.upload-url-prefix')
         # We fallback to default system url if config is not set
         if len(endpoint) == 0:
@@ -40,6 +45,16 @@ class ChunkUploadEndpoint(Endpoint):
         )
 
     def post(self, request):
+        """
+        Upload chunks and store them as FileBlobs
+        `````````````````````````````````````````
+
+        :pparam file file: The filename should be sha1 hash of the content.
+                            Also not you can add up to MAX_CHUNKS_PER_REQUEST files
+                            in this request.
+
+        :auth: required
+        """
         files = request.FILES.getlist('file')
 
         if len(files) > MAX_CHUNKS_PER_REQUEST:
@@ -72,38 +87,57 @@ class ChunkAssembleEndpoint(Endpoint):
     permission_classes = (ProjectReleasePermission, )
 
     def create_file_response(self, state, missing_chunks=[]):
+        """
+        Helper function to create response for assemble endpoint
+        """
         return {
             'state': state,
             'missingChunks': missing_chunks
         }
 
     def post(self, request):
+        """
+        Assmble one or multiple chunks (FileBlob) into Files
+        ````````````````````````````````````````````````````
+
+        This request has 2 modes.
+        1. To check if Files already exsist
+            which is { checksum: bool }
+        2. To assemble and check for missing chunks per file
+            which is { checksum: object }
+
+        For more details see json scheme below.
+
+        :auth: required
+        """
         schema = {
             "type": "object",
-            "additionalProperties": {
-                "anyOf": [
-                    {
-                        # The actual assemble request.
-                        "type": "object",
-                        "required": ["type", "name", "chunks"],
-                        "properties": {
-                            "type": {"type": "string"},
-                            "name": {"type": "string"},
-                            "params": {"type": "object"},
-                            "chunks": {
-                                "type": "array",
-                                "items": {"type": "string"}
-                            }
+            "patternProperties": {
+                "^[0-9a-f]{40}$": {
+                    "anyOf": [
+                        {
+                            # The actual assemble request.
+                            "type": "object",
+                            "required": ["type", "name", "chunks"],
+                            "properties": {
+                                "type": {"type": "string"},
+                                "name": {"type": "string"},
+                                "params": {"type": "object"},
+                                "chunks": {
+                                    "type": "array",
+                                    "items": {"type": "string"}
+                                }
+                            },
+                            "additionalProperties": False
                         },
-                        "additionalProperties": False
-                    },
-                    {
-                        # This is used for checking if the file already exists.
-                        "type": "boolean"
-                    }
-                ]
-
-            }
+                        {
+                            # This is used for checking if the file already exists.
+                            "type": "boolean"
+                        }
+                    ]
+                }
+            },
+            "additionalProperties": False
         }
 
         try:
@@ -155,7 +189,7 @@ class ChunkAssembleEndpoint(Endpoint):
             # if the client sends an invalid request
             if len(chunks) == 0:
                 file_response[checksum] = self.create_file_response(
-                    file.headers.get('state', ChunkFileState.NOT_FOUND)
+                    ChunkFileState.NOT_FOUND
                 )
                 continue
 
@@ -174,7 +208,7 @@ class ChunkAssembleEndpoint(Endpoint):
             # that we need them to assemble the file
             if len(missing_chunks) > 0:
                 file_response[checksum] = self.create_file_response(
-                    file.headers.get('state', ChunkFileState.NOT_FOUND),
+                    ChunkFileState.NOT_FOUND,
                     missing_chunks
                 )
                 continue
