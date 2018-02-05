@@ -198,7 +198,7 @@ const ProjectContext = createReactClass({
       this.setState({
         loading: false,
       });
-    } else if (activeTeam && activeTeam.isMember) {
+    } else if (activeTeam && !activeTeam.isMember) {
       this.setState({
         loading: false,
         error: true,
