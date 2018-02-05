@@ -23,18 +23,17 @@ const SupportDrawer = createReactClass({
     this.setState({inputVal: ''});
   },
 
-  handleChange(evt) {
-    console.log('handleChange');
+  handleSubmit(evt) {
     evt.preventDefault();
+  },
+
+  handleChange(evt) {
+    evt.preventDefault();
+    let term = encodeURIComponent(evt.currentTarget.value);
+
     this.setState({
       inputVal: evt.currentTarget.value,
     });
-  },
-
-  handleSubmit(evt) {
-    console.log('handleSubmit');
-    evt.preventDefault();
-    let term = encodeURIComponent(evt.currentTarget.value);
 
     if (term == '') {
       return;
