@@ -1,5 +1,6 @@
 from __future__ import absolute_import
 
+from mock import patch
 from hashlib import sha1
 
 from django.core.urlresolvers import reverse
@@ -7,7 +8,7 @@ from django.core.files.base import ContentFile
 from django.core.files.uploadedfile import SimpleUploadedFile
 
 from sentry import options
-from sentry.models import ApiToken, FileBlob, File
+from sentry.models import ApiToken, FileBlob, File, FileBlobIndex
 from sentry.models.file import DEFAULT_BLOB_SIZE, ChunkFileState
 from sentry.testutils import APITestCase
 from sentry.api.endpoints.chunk_upload import (MAX_CHUNKS_PER_REQUEST, MAX_CONCURRENCY,
@@ -265,70 +266,90 @@ class ChunkAssembleEndpoint(APITestCase):
         assert response.data[not_found_checksum]['state'] == ChunkFileState.NOT_FOUND
         assert response.data[not_found_checksum]['missingChunks'] == []
 
-    # @patch('sentry.tasks.assemble.assemble_chunks')
-    # def test_assemble(self, mock_assemble_chunks):
-    #     content1 = 'foo'.encode('utf-8')
-    #     fileobj1 = ContentFile(content1)
-    #     checksum1 = sha1(content1).hexdigest()
+    @patch('sentry.tasks.assemble.assemble_chunks')
+    def test_assemble(self, mock_assemble_chunks):
+        content1 = 'foo'.encode('utf-8')
+        fileobj1 = ContentFile(content1)
+        checksum1 = sha1(content1).hexdigest()
 
-    #     content2 = 'bar'.encode('utf-8')
-    #     fileobj2 = ContentFile(content2)
-    #     checksum2 = sha1(content2).hexdigest()
+        content2 = 'bar'.encode('utf-8')
+        fileobj2 = ContentFile(content2)
+        checksum2 = sha1(content2).hexdigest()
 
-    #     content3 = 'baz'.encode('utf-8')
-    #     fileobj3 = ContentFile(content3)
-    #     checksum3 = sha1(content3).hexdigest()
+        content3 = 'baz'.encode('utf-8')
+        fileobj3 = ContentFile(content3)
+        checksum3 = sha1(content3).hexdigest()
 
-    #     total_checksum = sha1(content2 + content1 + content3).hexdigest()
+        total_checksum = sha1(content2 + content1 + content3).hexdigest()
 
-    #     # Fake checksum to check response
-    #     checksum4 = sha1('1').hexdigest()
+        # Fake checksum to check response
+        checksum4 = sha1('1').hexdigest()
 
-    #     # The order here is on purpose
-    #     blob3 = FileBlob.from_file(fileobj3)
-    #     blob2 = FileBlob.from_file(fileobj1)
-    #     blob1 = FileBlob.from_file(fileobj2)
+        # The order here is on purpose because we check for the order of checksums
+        FileBlob.from_file(fileobj1)
+        FileBlob.from_file(fileobj3)
+        FileBlob.from_file(fileobj2)
 
-    #     token = ApiToken.objects.create(
-    #         user=self.user,
-    #         scope_list=['project:releases'],
-    #     )
+        token = ApiToken.objects.create(
+            user=self.user,
+            scope_list=['project:releases'],
+        )
 
-    #     url = reverse('sentry-api-0-chunk-assemble')
-    #     response = self.client.post(
-    #         url,
-    #         data={
-    #             total_checksum: {
-    #                 'type': 'dif',
-    #                 'name': 'test',
-    #                 'chunks': [
-    #                     checksum4, checksum1, checksum3
-    #                 ]
-    #             }
-    #         },
-    #         HTTP_AUTHORIZATION='Bearer {}'.format(token.token)
-    #     )
-    #     assert response.status_code == 200, response.content
-    #     assert response.data[total_checksum]['state'] == ChunkFileState.NOT_FOUND
-    #     assert response.data[total_checksum]['missingChunks'] == [checksum4]
+        url = reverse('sentry-api-0-chunk-assemble')
+        response = self.client.post(
+            url,
+            data={
+                total_checksum: {
+                    'type': 'dif',
+                    'name': 'test',
+                    'chunks': [
+                        checksum4, checksum1, checksum3
+                    ]
+                }
+            },
+            HTTP_AUTHORIZATION='Bearer {}'.format(token.token)
+        )
+        assert response.status_code == 200, response.content
+        assert response.data[total_checksum]['state'] == ChunkFileState.NOT_FOUND
+        assert response.data[total_checksum]['missingChunks'] == [checksum4]
 
-    #     response = self.client.post(
-    #         url,
-    #         data={
-    #             total_checksum: {
-    #                 'type': 'dif',
-    #                 'name': 'test',
-    #                 'chunks': [
-    #                     checksum2, checksum1, checksum3
-    #                 ]
-    #             }
-    #         },
-    #         HTTP_AUTHORIZATION='Bearer {}'.format(token.token)
-    #     )
-    #     assert response.status_code == 200, response.content
-    #     assert response.data[total_checksum]['state'] == ChunkFileState.CREATED
-    #     assert response.data[total_checksum]['missingChunks'] == []
+        response = self.client.post(
+            url,
+            data={
+                total_checksum: {
+                    'type': 'dif',
+                    'name': 'test',
+                    'chunks': [
+                        checksum2, checksum1, checksum3
+                    ],
+                    'params': {
+                        'test': 1
+                    }
+                }
+            },
+            HTTP_AUTHORIZATION='Bearer {}'.format(token.token)
+        )
+        assert response.status_code == 200, response.content
+        assert response.data[total_checksum]['state'] == ChunkFileState.CREATED
+        assert response.data[total_checksum]['missingChunks'] == []
 
-    #     mock_assemble_chunks.apply_async.assert_called_once_with(
-    #         kwargs={}
-    #     )
+        file_blob_id_order = [3, 1, 2]
+
+        mock_assemble_chunks.apply_async.assert_called_once_with(
+            checksum='1151b375328103094a99201c2ce4788ea3ea11c9',
+            file_blob_ids=file_blob_id_order,
+            params={
+                'test': 1
+            },
+            file_id=1,
+            type='dif'
+        )
+
+        file = File.objects.filter(
+            id=1,
+        ).get()
+        file.assemble_from_file_blob_ids(file_blob_id_order, total_checksum)
+        assert file.checksum == total_checksum
+
+        file_blob_index = FileBlobIndex.objects.all()
+        assert len(file_blob_index) == 3

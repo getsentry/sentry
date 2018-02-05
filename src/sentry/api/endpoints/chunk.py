@@ -233,7 +233,7 @@ class ChunkAssembleEndpoint(Endpoint):
 
             # Start the actual worker which does the assembling.
             # The worker decides depending on the type how to assemble it.
-            assemble_chunks.delay(
+            assemble_chunks.apply_async(
                 type=type,
                 params=params,
                 file_id=file.id,
