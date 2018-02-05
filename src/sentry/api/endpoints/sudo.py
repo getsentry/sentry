@@ -1,6 +1,7 @@
 from __future__ import absolute_import
 
 from django.contrib import auth
+from rest_framework import status
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
 from sudo.utils import grant_sudo_privileges
@@ -37,6 +38,7 @@ class SudoEndpoint(Endpoint):
 
         if authenticated:
             grant_sudo_privileges(request._request)
-            return Response(status=200)
+            return Response(status=status.HTTP_204_NO_CONTENT)
 
-        return Response({'allowFail': True}, content_type="application/json", status=401)
+        return Response({'allowFail': True}, content_type="application/json",
+                        status=status.HTTP_401_UNAUTHORIZED)

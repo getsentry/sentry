@@ -15,7 +15,7 @@ import TextBlock from '../components/text/textBlock';
 
 class ApiTokens extends AsyncView {
   getTitle() {
-    return 'API Tokens - Sentry';
+    return 'API Tokens';
   }
 
   getDefaultState() {

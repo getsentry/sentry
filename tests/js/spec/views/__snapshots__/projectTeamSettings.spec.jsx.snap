@@ -6,22 +6,53 @@ exports[`ProjectTeamsSettings render() renders 1`] = `
 >
   <div>
     <SettingsPageHeading
+      action={
+        <DropdownLink
+          alwaysRenderMenu={true}
+          anchorRight={true}
+          caret={true}
+          className="btn btn-primary btn-sm"
+          disabled={false}
+          title="Add Team"
+        >
+          <MenuItem
+            noAnchor={true}
+          >
+            <a
+              onClick={[Function]}
+            >
+              Team Name 2
+            </a>
+          </MenuItem>
+          <MenuItem
+            divider={true}
+          />
+          <div
+            style={
+              Object {
+                "padding": "5px 0px",
+                "textAlign": "center",
+              }
+            }
+          >
+            <Button
+              disabled={false}
+              priority="primary"
+              size="small"
+              to="/organizations/org-slug/teams/new/"
+            >
+              Create a new team
+            </Button>
+          </div>
+        </DropdownLink>
+      }
       title="Teams"
     />
     <Panel>
       <PanelHeader
         key="header"
       >
-        <Flex
-          align="center"
-        >
-          <Box
-            flex="1"
-            px={2}
-          >
-            Team
-          </Box>
-        </Flex>
+        Team
       </PanelHeader>
       <PanelBody
         direction="column"
@@ -51,6 +82,7 @@ exports[`ProjectTeamsSettings render() renders 1`] = `
             Object {
               "id": "1",
               "name": "Team Name",
+              "projects": Array [],
               "slug": "team-slug",
             }
           }

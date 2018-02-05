@@ -105,11 +105,12 @@ const RateLimitView = createReactClass({
           success: data => {
             // TODO(dcramer): propagate this change correctly (how??)
             IndicatorStore.remove(loadingIndicator);
-            this.props.organization.quota = data.quota;
+            let quota = data && data.quota;
+            this.props.organization.quota = quota;
             this.setState({
               saving: false,
-              savedProjectLimit: data.quota.projectLimit,
-              savedAccountLimit: data.quota.accountLimit,
+              savedProjectLimit: quota && quota.projectLimit,
+              savedAccountLimit: quota && quota.accountLimit,
             });
           },
           error: () => {

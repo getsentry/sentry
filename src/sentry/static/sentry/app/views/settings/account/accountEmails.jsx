@@ -80,6 +80,10 @@ class AccountEmails extends AsyncView {
     return [['emails', ENDPOINT]];
   }
 
+  getTitle() {
+    return 'Emails';
+  }
+
   handleSubmitSuccess = (change, model, id) => {
     model.setValue(id, '');
     this.remountComponent();

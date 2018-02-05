@@ -10,14 +10,15 @@ class SlackIntegration(Integration):
     key = 'slack'
     name = 'Slack'
 
-    identity_oauth_scopes = (
+    identity_oauth_scopes = frozenset([
         'bot',
+        'channels:read',
         'chat:write:bot',
         'commands',
         'links:read',
         'links:write',
         'team:read',
-    )
+    ])
 
     def get_pipeline_views(self):
         identity_pipeline_config = {

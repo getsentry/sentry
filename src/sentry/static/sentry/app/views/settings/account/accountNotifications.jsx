@@ -23,6 +23,10 @@ export default class AccountNotifications extends AsyncView {
     return [['data', '/users/me/notifications/']];
   }
 
+  getTitle() {
+    return 'Notifications';
+  }
+
   renderBody() {
     return (
       <div>
