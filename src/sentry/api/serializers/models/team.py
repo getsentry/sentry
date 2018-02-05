@@ -15,19 +15,40 @@ from sentry.models import (
 )
 
 
+def get_team_memberships(team_list, user):
+    if user.is_authenticated():
+        memberships = frozenset(
+            OrganizationMemberTeam.objects.filter(
+                organizationmember__user=user,
+                team__in=team_list,
+            ).values_list('team', flat=True)
+        )
+    else:
+        memberships = frozenset()
+
+    return memberships
+
+
+def get_org_roles(org_ids, user):
+    if user.is_authenticated():
+        # map of org id to role
+        org_roles = {
+            om.organization_id: om.role for om in
+            OrganizationMember.objects.filter(
+                user=user,
+                organization__in=set(org_ids),
+            )}
+    else:
+        org_roles = {}
+
+    return org_roles
+
+
 @register(Team)
 class TeamSerializer(Serializer):
     def get_attrs(self, item_list, user):
         request = env.request
-        if user.is_authenticated():
-            memberships = frozenset(
-                OrganizationMemberTeam.objects.filter(
-                    organizationmember__user=user,
-                    team__in=item_list,
-                ).values_list('team', flat=True)
-            )
-        else:
-            memberships = frozenset()
+        memberships = get_team_memberships(item_list, user)
 
         if user.is_authenticated():
             access_requests = frozenset(
@@ -39,16 +60,7 @@ class TeamSerializer(Serializer):
         else:
             access_requests = frozenset()
 
-        if user.is_authenticated():
-            # map of org id to role
-            org_roles = {
-                om.organization_id: om.role for om in
-                OrganizationMember.objects.filter(
-                    user=user,
-                    organization__in=set([t.organization_id for t in item_list]),
-                )}
-        else:
-            org_roles = {}
+        org_roles = get_org_roles([t.organization_id for t in item_list], user)
 
         is_superuser = (request and is_active_superuser(request) and request.user == user)
         result = {}
