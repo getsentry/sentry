@@ -341,7 +341,7 @@ def fetch_file(url, project=None, release=None, dist=None, allow_scraping=True):
                  z_body,
                  result.status,
                  result.encoding),
-                get_max_age(headers))
+                get_max_age(result.headers))
 
     # If we did not get a 200 OK we just raise a cannot fetch here.
     if result.status != 200:
@@ -395,15 +395,11 @@ def get_max_age(headers):
     cache_control = 'cache-control'
     max_age = CACHE_CONTROL_MIN
 
-    if has_header(headers, cache_control):
-        match = re.search(CACHE_CONTROL_RE, headers[cache_control])
+    if cache_control in headers:
+        match = CACHE_CONTROL_RE.search(headers[cache_control])
         if match:
             max_age = max(CACHE_CONTROL_MIN, int(match.group(1)))
     return min(max_age, CACHE_CONTROL_MAX)
-
-
-def has_header(headers, header_name):
-    return header_name.lower() in {header.lower() for header in headers}
 
 
 def fetch_sourcemap(url, project=None, release=None, dist=None, allow_scraping=True):
