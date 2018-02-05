@@ -66,9 +66,6 @@ const ProjectCrumb = withProjects(
       ...props
     }) => {
       if (!latestOrganization) return null;
-
-      // let {projects} = teamFromOrg;
-
       if (!projects) return null;
 
       let hasMenu = projects && projects.length > 1;
