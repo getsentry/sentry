@@ -126,6 +126,7 @@ const AssistantHelper = createReactClass({
             status: 'dismissed',
           },
         });*/
+        GuideStore.unSetGuide(guide);
       } else {
         // User completed the guide.
         const data = {

@@ -14,6 +14,12 @@ const GuideStore = Reflux.createStore({
     this.trigger(this._internal);
   },
 
+  unSetGuide(guide) {
+    this._internal.guide = '';
+    this._internal.step = -1;
+    this.trigger(this._internal);
+  },
+
   setStep(step) {
     this._internal.step = step;
     this.trigger(this._internal);
