@@ -168,7 +168,7 @@ class File(Model):
     headers = JSONField()
     blobs = models.ManyToManyField('sentry.FileBlob', through='sentry.FileBlobIndex')
     size = BoundedPositiveIntegerField(null=True)
-    checksum = models.CharField(max_length=40, null=True)
+    checksum = models.CharField(max_length=40, null=True, db_index=True)
 
     # <Legacy fields>
     # Remove in 8.1
