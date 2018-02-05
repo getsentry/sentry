@@ -9,7 +9,6 @@ const SupportDrawer = createReactClass({
 
   propTypes: {
     closeHandler: PropTypes.func.isRequired,
-    subscription: PropTypes.object,
   },
 
   getInitialState() {
