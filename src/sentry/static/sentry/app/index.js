@@ -116,6 +116,7 @@ export default {
 
     Alerts: require('./components/alerts').default,
     AlertActions: require('./actions/alertActions').default,
+    AsyncComponent: require('./components/asyncComponent').default,
     // TODO: remove when old personal settings are deprecated
     AvatarSettings: require('./components/avatarSettings').default,
     mixins: {
@@ -146,10 +147,15 @@ export default {
       .default,
     OrganizationMembersView: require('./views/settings/organization/members/organizationMembersView')
       .default,
+    Panel: require('./views/settings/components/panel').default,
+    PanelHeader: require('./views/settings/components/panelHeader').default,
+    PanelBody: require('./views/settings/components/panelBody').default,
+    PanelItem: require('./views/settings/components/panelItem').default,
     Pagination: require('./components/pagination').default,
     PluginConfig: require('./components/pluginConfig').default,
     ProjectIssueTracking: require('./views/projectIssueTracking').default,
     ProjectSelector: require('./components/projectHeader/projectSelector').default,
+    SettingsPageHeader: require('./views/settings/components/settingsPageHeader').default,
     Sidebar: require('./components/sidebar').default,
     StackedBarChart: require('./components/stackedBarChart').default,
     TimeSince: require('./components/timeSince').default,
