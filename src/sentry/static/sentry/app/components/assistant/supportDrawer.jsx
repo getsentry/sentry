@@ -98,9 +98,16 @@ const SupportDrawer = createReactClass({
 
   zendeskHandler() {},
 
+  handleKeyUp(evt) {
+    if (evt.key == 'Escape') {
+      evt.preventDefault();
+      this.props.closeHandler();
+    }
+  },
+
   render() {
     return (
-      <div className="search">
+      <div className="search" onKeyUp={this.handleKeyUp}>
         <form onSubmit={this.handleSubmit}>
           <input
             className="search-input form-control"
