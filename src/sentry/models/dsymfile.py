@@ -325,7 +325,6 @@ def detect_dif_from_filename(filename):
         # macho file.
         # XXX: log?
         logger.warning('dsymfile.bad-fat-object', exc_info=True)
-        return []
     else:
         objs = []
         for obj in fo.iter_objects():
@@ -364,7 +363,10 @@ def create_files_from_dsym_zip(fileobj, project,
         for dirpath, dirnames, filenames in os.walk(scratchpad):
             for fn in filenames:
                 fn = os.path.join(dirpath, fn)
-                to_create = to_create + detect_dif_from_filename(fn)
+                difs = detect_dif_from_filename(fn)
+                if difs is None:
+                    difs = []
+                to_create = to_create + difs
 
         rv = create_dsym_from_dif(to_create, project)
 
