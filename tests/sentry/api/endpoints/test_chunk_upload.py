@@ -336,13 +336,15 @@ class ChunkAssembleEndpoint(APITestCase):
         file_blob_id_order = [3, 1, 2]
 
         mock_assemble_chunks.apply_async.assert_called_once_with(
-            checksum='1151b375328103094a99201c2ce4788ea3ea11c9',
-            file_blob_ids=file_blob_id_order,
-            params={
-                'test': 1
-            },
-            file_id=1,
-            type='dif'
+            kwargs={
+                'checksum': '1151b375328103094a99201c2ce4788ea3ea11c9',
+                'file_blob_ids': file_blob_id_order,
+                'params': {
+                    'test': 1
+                },
+                'file_id': 1,
+                'type': 'dif'
+            }
         )
 
         file = File.objects.filter(
