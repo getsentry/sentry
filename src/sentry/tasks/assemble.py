@@ -42,6 +42,9 @@ def assemble_chunks(type, params, file_id, file_blob_ids, checksum, **kwargs):
     if type == ChunkAssembleType.DIF:
         # Assemble a dif here, we need to create Dsyms and symcache
         assemble_dif(file, params)
+    else:
+        file.headers['state'] = ChunkFileState.OK
+        file.save()
 
 
 def assemble_dif(file, params):
