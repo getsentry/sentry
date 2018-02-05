@@ -821,43 +821,6 @@ table.integrations {
   transition: opacity 300ms ease-in;
 }
 
-.toast {
-  .loading.mini();
-  padding: 20px 30px;
-  font-size: 15px;
-  z-index: 100000;
-  border-radius: 3px;
-
-  position: fixed;
-  bottom: 20px;
-  right: 20px;
-  color: #fff;
-  opacity: 1;
-
-  .toast-message {
-    display: inline-block;
-    padding-left: 15px;
-  }
-
-  &.loading {
-    background: rgba(52, 60, 69, 0.8);
-    &.toast-leave {
-      display: none; /* hides immediately*/
-    }
-  }
-
-  .loading-indicator {
-    border-color: rgba(255, 255, 255, 0.4);
-    border-left-color: rgba(255, 255, 255, 1);
-    top: 20px;
-    left: 24px;
-  }
-
-  .loading-message {
-    padding-left: 24px;
-  }
-}
-
 // Loading Gif
 
 .loading.triangle {
