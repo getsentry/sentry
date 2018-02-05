@@ -12,9 +12,9 @@ from sentry.security import capture_security_activity
 
 
 class UserPasswordSerializer(serializers.ModelSerializer):
-    passwordVerify = serializers.CharField(max_length=128, required=True)
-    passwordNew = serializers.CharField(max_length=128, required=True)
-    password = serializers.CharField(max_length=128, required=True)
+    passwordVerify = serializers.CharField(required=True)
+    passwordNew = serializers.CharField(required=True)
+    password = serializers.CharField(required=True)
 
     class Meta:
         model = User
