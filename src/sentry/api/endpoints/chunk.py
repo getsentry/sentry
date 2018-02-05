@@ -234,11 +234,13 @@ class ChunkAssembleEndpoint(Endpoint):
             # Start the actual worker which does the assembling.
             # The worker decides depending on the type how to assemble it.
             assemble_chunks.apply_async(
-                type=type,
-                params=params,
-                file_id=file.id,
-                file_blob_ids=file_blob_ids,
-                checksum=checksum,
+                kwargs={
+                    'type': type,
+                    'params': params,
+                    'file_id': file.id,
+                    'file_blob_ids': file_blob_ids,
+                    'checksum': checksum,
+                }
             )
 
             file_response[checksum] = self.create_file_response(

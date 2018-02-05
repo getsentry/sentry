@@ -11,8 +11,8 @@ from sentry import options
 from sentry.models import ApiToken, FileBlob, File, FileBlobIndex
 from sentry.models.file import DEFAULT_BLOB_SIZE, ChunkFileState
 from sentry.testutils import APITestCase
-from sentry.api.endpoints.chunk_upload import (MAX_CHUNKS_PER_REQUEST, MAX_CONCURRENCY,
-                                               HASH_ALGORITHM)
+from sentry.api.endpoints.chunk import (MAX_CHUNKS_PER_REQUEST, MAX_CONCURRENCY,
+                                        HASH_ALGORITHM)
 
 
 class ChunkUploadTest(APITestCase):

@@ -39,16 +39,16 @@ def enum(**named_values):
     return type('Enum', (), named_values)
 
 ChunkAssembleType = enum(
-    GENERIC='generic',
-    DIF='dif',
+    GENERIC='generic',  # Generic file
+    DIF='dif',  # Debug information file
 )
 
 ChunkFileState = enum(
-    OK='ok',
-    NOT_FOUND='not_found',
-    CREATED='created',
-    ASSEMBLING='assembling',
-    ERROR='error'
+    OK='ok',  # File in database
+    NOT_FOUND='not_found',  # File not found in database
+    CREATED='created',  # File was created in the request and send to the worker for assembling
+    ASSEMBLING='assembling',  # File still being processed by worker
+    ERROR='error'  # Error happened during assembling
 )
 
 
