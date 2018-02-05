@@ -3,11 +3,17 @@ import PropTypes from 'prop-types';
 import createReactClass from 'create-react-class';
 import Reflux from 'reflux';
 import ReactCSSTransitionGroup from 'react-addons-css-transition-group';
+import styled from 'react-emotion';
 
-import LoadingIndicator from '../components/loadingIndicator';
 import ToastIndicator from '../components/alerts/toastIndicator';
 
 import IndicatorStore from '../stores/indicatorStore';
+
+const Toasts = styled.div`
+  position: fixed;
+  right: 30px;
+  bottom: 30px;
+`;
 
 class Indicators extends React.Component {
   static propTypes = {
@@ -27,29 +33,21 @@ class Indicators extends React.Component {
   render() {
     let {items, ...props} = this.props;
     return (
-      <div {...props}>
+      <Toasts {...props}>
         <ReactCSSTransitionGroup
           transitionName="toast"
-          transitionEnter={false}
-          transitionLeaveTimeout={500}
+          transitionEnterTimeout={6000}
+          transitionLeaveTimeout={200}
         >
           {items.map(indicator => {
-            if (indicator.type === 'error' || indicator.type === 'success') {
-              return (
-                <ToastIndicator type={indicator.type} key={indicator.id}>
-                  {indicator.message}
-                </ToastIndicator>
-              );
-            } else {
-              return (
-                <LoadingIndicator className="toast" key={indicator.id}>
-                  {indicator.message}
-                </LoadingIndicator>
-              );
-            }
+            return (
+              <ToastIndicator type={indicator.type} key={indicator.id}>
+                {indicator.message}
+              </ToastIndicator>
+            );
           })}
         </ReactCSSTransitionGroup>
-      </div>
+      </Toasts>
     );
   }
 }

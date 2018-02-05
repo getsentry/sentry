@@ -5,13 +5,11 @@ import styled from 'react-emotion';
 import InlineSvg from '../inlineSvg';
 
 const Toast = styled.div`
-  position: fixed;
-  right: 30px;
-  bottom: 30px;
   display: flex;
   align-items: center;
   height: 40px;
   padding: 0 15px 0 10px;
+  margin-top: 15px;
   background: #fff;
   background-image: linear-gradient(
     -180deg,
@@ -23,6 +21,23 @@ const Toast = styled.div`
   box-shadow: 0 0 0 1px rgba(47, 40, 55, 0.12), 0 1px 2px 0 rgba(47, 40, 55, 0.12),
     0 4px 12px 0 rgba(47, 40, 55, 0.16);
   z-index: ${p => p.theme.zIndex.toast};
+  transition: opacity 0.25s linear;
+
+  &.toast-enter {
+    opacity: 0;
+  }
+
+  &.toast-enter-active {
+    opacity: 1;
+  }
+
+  &.toast-leave {
+    opacity: 1;
+  }
+
+  &.toast-leave-active {
+    opacity: 0;
+  }
 `;
 
 const Icon = styled.div`
