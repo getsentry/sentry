@@ -8,7 +8,7 @@ from sentry.api.serializers import Serializer, register, serialize
 from sentry.auth import access
 from sentry.models import (
     ApiKey, Organization, OrganizationAccessRequest, OrganizationAvatar, OrganizationOnboardingTask,
-    OrganizationOption, OrganizationStatus, Team, TeamStatus
+    OrganizationOption, OrganizationStatus, Project, ProjectStatus, Team, TeamStatus
 )
 
 
@@ -75,8 +75,17 @@ class DetailedOrganizationSerializer(OrganizationSerializer):
             organization=obj,
             status=TeamStatus.VISIBLE,
         ))
+
         for team in team_list:
             team._organization_cache = obj
+
+        project_list = list(Project.objects.filter(
+            organization=obj,
+            status=ProjectStatus.VISIBLE,
+        ))
+
+        for project in project_list:
+            project._organization_cache = obj
 
         onboarding_tasks = list(
             OrganizationOnboardingTask.objects.filter(
@@ -153,7 +162,9 @@ class DetailedOrganizationSerializer(OrganizationSerializer):
             'safeFields': obj.get_option('sentry:safe_fields', None) or [],
             'scrubIPAddresses': bool(obj.get_option('sentry:require_scrub_ip_address', False)),
         })
+        # TODO(jess): make this the basic team serializer eventually?
         context['teams'] = serialize(team_list, user, TeamWithProjectsSerializer())
+        context['projects'] = serialize(project_list, user)
         if env.request:
             context['access'] = access.from_request(env.request, obj).scopes
         else:
