@@ -98,7 +98,7 @@ class ChunkAssembleEndpoint(Endpoint):
             return Response({'error': str(e).splitlines()[0]},
                             status=400)
         except BaseException as e:
-            return Response({'error': 'invalid body data'},
+            return Response({'error': 'Invalid json body'},
                             status=400)
 
         file_response = {}
@@ -108,7 +108,9 @@ class ChunkAssembleEndpoint(Endpoint):
             name = file_to_assemble.get('name', '')
             type = file_to_assemble.get('type', ChunkAssembleType.GENERIC)
             params = file_to_assemble.get('params', {})
+            chunks = file_to_assemble.get('chunks', [])
 
+            # If we find a file with the same checksum we return it
             try:
                 file = File.objects.filter(
                     checksum=checksum
@@ -121,8 +123,9 @@ class ChunkAssembleEndpoint(Endpoint):
             except File.DoesNotExist:
                 pass
 
-            chunks = file_to_assemble.get('chunks', [])
-
+            # If the request does not cotain any chunks for a file
+            # we return nothing since this should never happen only
+            # if the client sends an invalid request
             if len(chunks) == 0:
                 file_response[checksum] = {
                     'state': ChunkFileState.NOT_FOUND,
@@ -130,14 +133,19 @@ class ChunkAssembleEndpoint(Endpoint):
                 }
                 continue
 
+            # Load all FileBlobs from db
             file_blobs = FileBlob.objects.filter(
                 checksum__in=chunks
             ).values_list('id', 'checksum')
 
+            # Create a missing chunks array which we return as response
+            # so the client knows which chunks to reupload
             missing_chunks = list(chunks)
             for blob in file_blobs:
                 del missing_chunks[missing_chunks.index(blob[1])]
 
+            # If we have any missing chunks at all, return it to the client
+            # that we need them to assemble the file
             if len(missing_chunks) > 0:
                 file_response[checksum] = {
                     'state': ChunkFileState.NOT_FOUND,
@@ -145,6 +153,9 @@ class ChunkAssembleEndpoint(Endpoint):
                 }
                 continue
 
+            # If we have all chunks and the file wasn't found before
+            # we create a new file here with the state CREATED
+            # Note that this file only exsists while the assemble tasks run
             file = File.objects.create(
                 name=name,
                 checksum=checksum,
@@ -154,19 +165,21 @@ class ChunkAssembleEndpoint(Endpoint):
 
             # We need to make sure the blobs are in the order in which
             # we received them from the request.
+            # Otherwise it could happen that we assemble the file in the wrong order
+            # and get an garbage file.
             file_blob_ids = [x[0] for x in sorted(
                 file_blobs, key=lambda blob: chunks.index(blob[1])
             )]
 
-            if file.headers.get('state') == ChunkFileState.CREATED:
-                # Start the actual worker which does the assembling.
-                assemble_chunks.delay(
-                    type=type,
-                    params=params,
-                    file_id=file.id,
-                    file_blob_ids=file_blob_ids,
-                    checksum=checksum,
-                )
+            # Start the actual worker which does the assembling.
+            # The worker decides depending on the type how to assemble it.
+            assemble_chunks.delay(
+                type=type,
+                params=params,
+                file_id=file.id,
+                file_blob_ids=file_blob_ids,
+                checksum=checksum,
+            )
 
             file_response[checksum] = {
                 'state': file.headers.get('state', ChunkFileState.CREATED),
