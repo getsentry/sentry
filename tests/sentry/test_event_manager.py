@@ -40,6 +40,12 @@ class EventManagerTest(TransactionTestCase):
         result.update(kwargs)
         return result
 
+    def make_release_event(self, release_name, project_id):
+        manager = EventManager(self.make_event(release=release_name))
+        manager.normalize()
+        event = manager.save(project_id)
+        return event
+
     def test_key_id_remains_in_data(self):
         manager = EventManager(self.make_event(key_id=12345))
         manager.normalize()
@@ -534,14 +540,13 @@ class EventManagerTest(TransactionTestCase):
         assert data['version'] == '6'
 
     def test_first_release(self):
-        manager = EventManager(self.make_event(release='1.0'))
-        event = manager.save(1)
+        project_id = 1
+        event = self.make_release_event('1.0', project_id)
 
         group = event.group
         assert group.first_release.version == '1.0'
 
-        manager = EventManager(self.make_event(release='2.0'))
-        event = manager.save(1)
+        event = self.make_release_event('2.0', project_id)
 
         group = event.group
         assert group.first_release.version == '1.0'
@@ -551,38 +556,36 @@ class EventManagerTest(TransactionTestCase):
         release = Release.objects.create(version='foo-1.0', organization=project.organization)
         release.add_project(project)
 
-        manager = EventManager(self.make_event(release='1.0'))
-        event = manager.save(project.id)
+        event = self.make_release_event('1.0', project.id)
 
         group = event.group
         assert group.first_release.version == 'foo-1.0'
         release_tag = [v for k, v in event.tags if k == 'sentry:release'][0]
         assert release_tag == 'foo-1.0'
 
-        manager = EventManager(self.make_event(release='2.0'))
-        event = manager.save(project.id)
+        event = self.make_release_event('2.0', project.id)
 
         group = event.group
         assert group.first_release.version == 'foo-1.0'
 
     def test_release_project_slug_long(self):
         project = self.create_project(name='foo')
+        partial_version_len = VERSION_LENGTH - 4
         release = Release.objects.create(
-            version='foo-%s' % ('a' * (VERSION_LENGTH - 4), ), organization=project.organization
+            version='foo-%s' % ('a' * partial_version_len, ), organization=project.organization
         )
         release.add_project(project)
 
-        manager = EventManager(self.make_event(release=('a' * (VERSION_LENGTH - 3))))
-        event = manager.save(project.id)
+        event = self.make_release_event('a' * partial_version_len, project.id)
 
         group = event.group
-        assert group.first_release.version == 'foo-%s' % ('a' * (VERSION_LENGTH - 4), )
+        assert group.first_release.version == 'foo-%s' % ('a' * partial_version_len, )
         release_tag = [v for k, v in event.tags if k == 'sentry:release'][0]
-        assert release_tag == 'foo-%s' % ('a' * (VERSION_LENGTH - 4), )
+        assert release_tag == 'foo-%s' % ('a' * partial_version_len, )
 
     def test_group_release_no_env(self):
-        manager = EventManager(self.make_event(release='1.0'))
-        event = manager.save(1)
+        project_id = 1
+        event = self.make_release_event('1.0', project_id)
 
         release = Release.objects.get(version='1.0', projects=event.project_id)
 
@@ -593,8 +596,7 @@ class EventManagerTest(TransactionTestCase):
         ).exists()
 
         # ensure we're not erroring on second creation
-        manager = EventManager(self.make_event(release='1.0'))
-        manager.save(1)
+        event = self.make_release_event('1.0', project_id)
 
     def test_group_release_with_env(self):
         manager = EventManager(

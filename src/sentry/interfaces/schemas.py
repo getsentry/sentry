@@ -20,7 +20,6 @@ from sentry.constants import (
     MAX_TAG_KEY_LENGTH,
     MAX_TAG_VALUE_LENGTH,
     VALID_PLATFORMS,
-    VERSION_LENGTH,
 )
 from sentry.interfaces.base import InterfaceValidationError
 from sentry.models import EventError
@@ -43,6 +42,13 @@ PAIRS = {
         'maxItems': 2,
         'items': {'type': 'string'}
     }
+}
+
+TAG_VALUE = {
+    'type': 'string',
+    'pattern': '^[^\n]*\Z',  # \Z because $ matches before a trailing newline
+    'minLength': 1,
+    'maxLength': MAX_TAG_VALUE_LENGTH,
 }
 
 HTTP_INTERFACE_SCHEMA = {
@@ -220,12 +226,7 @@ TAGS_DICT_SCHEMA = {
             'type': 'object',
             # TODO with draft 6 support, we can just use propertyNames/maxLength
             'patternProperties': {
-                '^[a-zA-Z0-9_\.:-]{1,%d}$' % MAX_TAG_KEY_LENGTH: {
-                    'type': 'string',
-                    'minLength': 1,
-                    'maxLength': MAX_TAG_VALUE_LENGTH,
-                    'pattern': '^[^\n]+\Z',  # \Z because $ matches before trailing newline
-                }
+                '^[a-zA-Z0-9_\.:-]{1,%d}$' % MAX_TAG_KEY_LENGTH: TAG_VALUE,
             },
             'additionalProperties': False,
         },
@@ -329,11 +330,8 @@ EVENT_SCHEMA = {
             # 'maxLength': MAX_CULPRIT_LENGTH,
             'default': lambda: apierror('Invalid value for culprit'),
         },
-        'server_name': {'type': 'string'},
-        'release': {
-            'type': 'string',
-            'maxLength': VERSION_LENGTH,
-        },
+        'server_name': TAG_VALUE,
+        'release': TAG_VALUE,
         'dist': {
             'type': 'string',
             'pattern': '^[a-zA-Z0-9_.-]+$',
@@ -387,7 +385,7 @@ EVENT_SCHEMA = {
         'key_id': {},
         'errors': {'type': 'array'},
         'checksum': {},
-        'site': {},
+        'site': TAG_VALUE,
         'received': {},
     },
     'required': ['platform', 'event_id'],
