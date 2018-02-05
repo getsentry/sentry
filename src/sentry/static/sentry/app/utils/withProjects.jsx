@@ -24,8 +24,7 @@ const withProjects = WrappedComponent =>
 
     onProjectUpdate() {
       this.setState({
-        // TODO(billy): Needs to be updated after max's PR
-        projects: Array.from(ProjectsStore.getAll()),
+        projects: ProjectsStore.getAll(),
       });
     },
     render() {
