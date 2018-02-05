@@ -35,9 +35,13 @@ stories
   )
   .add(
     'interactive',
-    withInfo('Toast Indicators')(() => {
+    withInfo({
+      propTablesExclude: [Button],
+      text: 'Toast Indicators',
+    })(() => {
       let success;
       let error;
+      let loading;
 
       return (
         <div style={{backgroundColor: 'white', padding: 12}}>
@@ -52,6 +56,18 @@ stories
             }}
           >
             Toggle Success
+          </Button>
+          <Button
+            onClick={() => {
+              if (loading) {
+                IndicatorStore.remove(loading);
+                loading = null;
+              } else {
+                loading = IndicatorStore.add('Loading', 'loading');
+              }
+            }}
+          >
+            Toggle Loading
           </Button>
           <Button
             onClick={() => {

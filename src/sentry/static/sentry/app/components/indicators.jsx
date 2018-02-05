@@ -19,8 +19,8 @@ class Indicators extends React.Component {
   static propTypes = {
     items: PropTypes.arrayOf(
       PropTypes.shape({
-        type: PropTypes.oneOf(['error', 'success', '']),
-        id: PropTypes.string,
+        type: PropTypes.oneOf(['error', 'success', 'loading', '']),
+        id: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
         message: PropTypes.node,
       })
     ),
