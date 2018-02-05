@@ -24,12 +24,19 @@ const SupportDrawer = createReactClass({
     this.setState({inputVal: ''});
   },
 
-  handleInput(evt) {
+  handleChange(evt) {
+    console.log('handleChange');
     evt.preventDefault();
-    let term = encodeURIComponent(evt.currentTarget.value);
     this.setState({
       inputVal: evt.currentTarget.value,
     });
+  },
+
+  handleSubmit(evt) {
+    console.log('handleSubmit');
+    evt.preventDefault();
+    let term = encodeURIComponent(evt.currentTarget.value);
+
     if (term == '') {
       return;
     }
@@ -53,7 +60,7 @@ const SupportDrawer = createReactClass({
       let link = `https://docs.sentry.io/${result.path}/`;
 
       return (
-        <a href={link} key={i + 'doc'}>
+        <a href={link} target="_blank" key={i + 'doc'}>
           <li className="search-tag search-tag-docs search-autocomplete-item">
             <span className="title">{title}</span>
           </li>
@@ -65,7 +72,7 @@ const SupportDrawer = createReactClass({
   renderHelpCenterResults() {
     return this.state.helpcenterResults.map((result, i) => {
       return (
-        <a href={result.html_url} key={i}>
+        <a href={result.html_url} target="_blank" key={i}>
           <li className="search-tag search-tag-qa search-autocomplete-item">
             <span className="title">{result.title}</span>
           </li>
@@ -96,13 +103,14 @@ const SupportDrawer = createReactClass({
   render() {
     return (
       <div className="search">
-        <form>
+        <form onSubmit={this.handleSubmit}>
           <input
             className="search-input form-control"
             type="text"
             placeholder="Search FAQs and docs..."
-            onChange={this.handleInput}
+            onChange={this.handleChange}
             value={this.state.inputVal}
+            autoFocus
           />
           <span className="icon-search" />
           <span
