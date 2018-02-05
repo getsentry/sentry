@@ -3,6 +3,7 @@ import React from 'react';
 import styled from 'react-emotion';
 
 import InlineSvg from '../inlineSvg';
+import LoadingIndicator from '../../components/loadingIndicator';
 
 const Toast = styled.div`
   display: flex;
@@ -63,7 +64,7 @@ function ToastIndicator({type, children, ...props}) {
   }
   return (
     <Toast {...props}>
-      <Icon type={type}>{icon}</Icon>
+      {type == 'loading' ? <LoadingIndicator mini /> : <Icon type={type}>{icon}</Icon>}
       <Message>{children}</Message>
     </Toast>
   );
