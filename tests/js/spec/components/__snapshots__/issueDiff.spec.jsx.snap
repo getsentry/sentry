@@ -24,7 +24,7 @@ exports[`IssueDiff can dynamically import SplitDiff 1`] = `
   targetEventId="latest"
   targetIssueId="target"
 >
-  <Styled(div)
+  <IssueDiffWrapper
     loading={false}
   >
     <div
@@ -184,14 +184,14 @@ exports[`IssueDiff can dynamically import SplitDiff 1`] = `
         </table>
       </SplitDiff>
     </div>
-  </Styled(div)>
+  </IssueDiffWrapper>
 </IssueDiff>
 `;
 
 exports[`IssueDiff is loading when initially rendering 1`] = `
-<Styled(div)
+<IssueDiffWrapper
   loading={true}
 >
   <LoadingIndicator />
-</Styled(div)>
+</IssueDiffWrapper>
 `;
