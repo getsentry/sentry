@@ -7,7 +7,7 @@ import mock
 import pytest
 
 from django.core.exceptions import SuspiciousOperation
-from sentry.constants import VERSION_LENGTH
+from sentry.constants import VERSION_LENGTH, MAX_CULPRIT_LENGTH
 from uuid import UUID
 
 from sentry.coreapi import (
@@ -283,6 +283,42 @@ class ValidateDataTest(BaseAPITest):
             'extra': 'bar',
         })
         assert data['extra'] == {}
+
+    def test_release_tag_max_len(self):
+        release_key = u'sentry:release'
+        release_value = ('a' * VERSION_LENGTH)
+        data = self.validate_and_normalize({
+            'message': 'foo',
+            'tags': [
+                [release_key, release_value],
+            ],
+        })
+        assert not data['errors']
+        assert data['tags'] == [(release_key, release_value)]
+
+    def test_server_name_too_long(self):
+        key = u'server_name'
+        value = ('a' * (MAX_CULPRIT_LENGTH + 1))
+        data = self.validate_and_normalize({
+            key: value,
+        })
+        assert not data.get(key)
+        assert len(data['errors']) == 1
+        assert data['errors'][0]['type'] == 'value_too_long'
+        assert data['errors'][0]['name'] == key
+        assert data['errors'][0]['value'] == value
+
+    def test_site_too_long(self):
+        key = u'site'
+        value = ('a' * (MAX_CULPRIT_LENGTH + 1))
+        data = self.validate_and_normalize({
+            key: value,
+        })
+        assert not data.get(key)
+        assert len(data['errors']) == 1
+        assert data['errors'][0]['type'] == 'value_too_long'
+        assert data['errors'][0]['name'] == key
+        assert data['errors'][0]['value'] == value
 
     def test_release_too_long(self):
         data = self.validate_and_normalize({
