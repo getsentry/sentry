@@ -286,9 +286,9 @@ class ChunkAssembleEndpoint(APITestCase):
         checksum4 = sha1('1').hexdigest()
 
         # The order here is on purpose because we check for the order of checksums
-        FileBlob.from_file(fileobj1)
-        FileBlob.from_file(fileobj3)
-        FileBlob.from_file(fileobj2)
+        bolb1 = FileBlob.from_file(fileobj1)
+        bolb3 = FileBlob.from_file(fileobj3)
+        bolb2 = FileBlob.from_file(fileobj2)
 
         token = ApiToken.objects.create(
             user=self.user,
@@ -333,7 +333,7 @@ class ChunkAssembleEndpoint(APITestCase):
         assert response.data[total_checksum]['state'] == ChunkFileState.CREATED
         assert response.data[total_checksum]['missingChunks'] == []
 
-        file_blob_id_order = [3, 1, 2]
+        file_blob_id_order = [bolb2.id, bolb1.id, bolb3.id]
 
         mock_assemble_chunks.apply_async.assert_called_once_with(
             kwargs={
