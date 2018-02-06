@@ -324,3 +324,27 @@ class ProjectPermissionNoJoinLeaveTest(ProjectPermissionBase):
             teams=[self.team],
         )
         assert self.has_object_perm('POST', self.project, user=user)
+
+    def test_manager_when_project_has_no_teams(self):
+        project = self.create_project(organization=self.org, teams=[])
+        user = self.create_user(is_superuser=False)
+        self.create_member(
+            user=user,
+            organization=self.org,
+            role='manager',
+        )
+        # managers should be able to act on teams/projects they
+        # don't have access to
+        assert self.has_object_perm('POST', project, user=user)
+
+    def test_owner_when_project_has_no_teams(self):
+        project = self.create_project(organization=self.org, teams=[])
+        user = self.create_user(is_superuser=False)
+        self.create_member(
+            user=user,
+            organization=self.org,
+            role='owner',
+        )
+        # owners should be able to act on teams/projects they
+        # don't have access to
+        assert self.has_object_perm('POST', project, user=user)
