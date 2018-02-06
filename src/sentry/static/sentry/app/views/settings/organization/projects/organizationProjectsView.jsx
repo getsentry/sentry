@@ -74,11 +74,7 @@ class OrganizationProjectsView extends OrganizationSettingsView {
               </PanelItem>
             ))}
             {projects.length === 0 && (
-              <PanelItem align="center">
-                <Box w={1 / 2} p={2} flex="1">
-                  <EmptyMessage>{t('No projects found.')}</EmptyMessage>
-                </Box>
-              </PanelItem>
+              <EmptyMessage>{t('No projects found.')}</EmptyMessage>
             )}
           </PanelBody>
         </Panel>
