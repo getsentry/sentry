@@ -7,7 +7,7 @@ import '../../../less/components/modals/diffModal.less';
 
 class DiffModal extends React.Component {
   static propTypes = {
-    Body: PropTypes.node,
+    Body: PropTypes.func,
   };
 
   render() {
