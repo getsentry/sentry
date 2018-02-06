@@ -7,6 +7,7 @@ const PanelAlertWrapper = styled.div`
   margin: -17px -17px 30px;
   padding: 16px;
   font-size: 14px;
+  box-shadow: ${p => p.theme.dropShadowLight};
 
   ${p => {
     switch (p.type) {
