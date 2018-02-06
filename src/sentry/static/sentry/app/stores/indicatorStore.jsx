@@ -33,7 +33,7 @@ const IndicatorStore = Reflux.createStore({
         this.remove(indicator);
       }, options.duration);
     }
-    this.items = [indicator]; // replace
+    this.items = [...this.items, indicator]; // replace
     this.trigger(this.items);
     return indicator;
   },
