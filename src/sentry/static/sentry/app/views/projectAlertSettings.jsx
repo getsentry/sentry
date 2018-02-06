@@ -7,6 +7,7 @@ import AsyncView from './asyncView';
 import Button from '../components/buttons/button';
 import ListLink from '../components/listLink';
 import Panel from './settings/components/panel';
+import PanelAlert from './settings/components/panelAlert';
 import PanelBody from './settings/components/panelBody';
 import PanelHeader from './settings/components/panelHeader';
 import PluginList from '../components/pluginList';
@@ -26,7 +27,7 @@ class DigestSettings extends React.Component {
       <Panel>
         <PanelHeader>{t('Digests')}</PanelHeader>
         <PanelBody px={2} pt={2} flex>
-          <p>
+          <PanelAlert type="info">
             {t(
               'Sentry will automatically digest alerts sent ' +
                 'by some services to avoid flooding your inbox ' +
@@ -34,7 +35,7 @@ class DigestSettings extends React.Component {
                 'how frequently notifications are delivered, use ' +
                 'the sliders below.'
             )}
-          </p>
+          </PanelAlert>
           <ApiForm
             onSubmitSuccess={onSave}
             apiMethod="PUT"
