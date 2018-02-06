@@ -6,22 +6,24 @@ import ReactCSSTransitionGroup from 'react-addons-css-transition-group';
 import styled from 'react-emotion';
 
 import ToastIndicator from '../components/alerts/toastIndicator';
-
 import IndicatorStore from '../stores/indicatorStore';
+import {remove} from '../actionCreators/indicator';
 
 const Toasts = styled.div`
   position: fixed;
   right: 30px;
   bottom: 30px;
+  z-index: ${p => p.theme.zIndex.toast};
 `;
 
 class Indicators extends React.Component {
   static propTypes = {
     items: PropTypes.arrayOf(
       PropTypes.shape({
-        type: PropTypes.oneOf(['error', 'success', 'loading', '']),
+        type: PropTypes.oneOf(['error', 'success', 'loading', 'undo', '']),
         id: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
         message: PropTypes.node,
+        options: PropTypes.object,
       })
     ),
   };
@@ -30,20 +32,26 @@ class Indicators extends React.Component {
     items: [],
   };
 
+  handleDismiss = indicator => {
+    remove(indicator);
+  };
+
   render() {
     let {items, ...props} = this.props;
     return (
       <Toasts {...props}>
         <ReactCSSTransitionGroup
           transitionName="toast"
-          transitionEnterTimeout={6000}
+          transitionEnterTimeout={200}
           transitionLeaveTimeout={200}
         >
           {items.map(indicator => {
             return (
-              <ToastIndicator type={indicator.type} key={indicator.id}>
-                {indicator.message}
-              </ToastIndicator>
+              <ToastIndicator
+                onDismiss={this.handleDismiss}
+                indicator={indicator}
+                key={indicator.id}
+              />
             );
           })}
         </ReactCSSTransitionGroup>
