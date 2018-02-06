@@ -9,6 +9,7 @@ import Duration from '../duration';
 import CustomIgnoreCountModal from '../customIgnoreCountModal';
 import CustomIgnoreDurationModal from '../customIgnoreDurationModal';
 import ActionLink from './actionLink';
+import Tooltip from '../tooltip';
 
 export default class IgnoreActions extends React.Component {
   static propTypes = {
@@ -80,13 +81,11 @@ export default class IgnoreActions extends React.Component {
     if (isIgnored) {
       return (
         <div className="btn-group">
-          <a
-            className={linkClassName + ' tip'}
-            title={t('Change status to unresolved')}
-            onClick={() => onUpdate({status: 'unresolved'})}
-          >
-            <span className="icon-ban" />
-          </a>
+          <Tooltip title={t('Change status to unresolved')}>
+            <a className={linkClassName} onClick={() => onUpdate({status: 'unresolved'})}>
+              <span className="icon-ban" />
+            </a>
+          </Tooltip>
         </div>
       );
     }

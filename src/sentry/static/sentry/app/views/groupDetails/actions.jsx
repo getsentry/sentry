@@ -15,7 +15,6 @@ import IssuePluginActions from '../../components/group/issuePluginActions';
 import LinkWithConfirmation from '../../components/linkWithConfirmation';
 import MenuItem from '../../components/menuItem';
 import ShareIssue from '../../components/shareIssue';
-import TooltipMixin from '../../mixins/tooltip';
 
 import ResolveActions from '../../components/actions/resolve';
 import IgnoreActions from '../../components/actions/ignore';
@@ -86,14 +85,7 @@ class DeleteActions extends React.Component {
 const GroupDetailsActions = createReactClass({
   displayName: 'GroupDetailsActions',
 
-  mixins: [
-    ApiMixin,
-    GroupState,
-    TooltipMixin({
-      selector: '.tip',
-      container: 'body',
-    }),
-  ],
+  mixins: [ApiMixin, GroupState],
 
   getInitialState() {
     return {ignoreModal: null, shareBusy: false};
