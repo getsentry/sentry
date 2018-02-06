@@ -65,7 +65,7 @@ class DeleteOrganizationTest(TestCase):
         with self.tasks():
             with patch.object(DummyRepositoryProvider, 'delete_repository') as mock_delete_repo:
                 delete_organization(object_id=org.id, actor_id=user.id)
-                mock_delete_repo.assert_called_once()  # NOQA
+                assert mock_delete_repo.call_count == 1
 
         assert not Organization.objects.filter(id=org.id).exists()
         assert not Environment.objects.filter(id=env.id).exists()
