@@ -227,8 +227,9 @@ class Project(Model):
         }
 
     def get_full_name(self):
-        if self.team.name not in self.name:
-            return '%s %s' % (self.team.name, self.name)
+        team_name = self.teams.values_list('name', flat=True).first()
+        if team_name is not None and team_name not in self.name:
+            return '%s %s' % (team_name, self.name)
         return self.name
 
     def get_notification_recipients(self, user_option):
