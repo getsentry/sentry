@@ -1,6 +1,17 @@
 // Jest Snapshot v1, https://goo.gl/fbAQLP
 
 exports[`ProjectAlertRuleDetails Edit alert rule renders 1`] = `
+.glamor-0 {
+  display: -webkit-box;
+  display: -webkit-flex;
+  display: -ms-flexbox;
+  display: flex;
+  -webkit-align-items: center;
+  -webkit-box-align: center;
+  -ms-flex-align: center;
+  align-items: center;
+}
+
 <ProjectAlertRuleDetails
   params={
     Object {
@@ -112,55 +123,40 @@ exports[`ProjectAlertRuleDetails Edit alert rule renders 1`] = `
               <div
                 className="node-match-selector"
               >
-                <h6
-                  style={
-                    Object {
-                      "alignItems": "center",
-                      "display": "flex",
-                    }
-                  }
-                >
-                  Every time 
-                  <Select2Field
-                    allowClear={false}
-                    allowEmpty={false}
-                    choices={
-                      Array [
-                        Array [
-                          "all",
-                          "all",
-                        ],
-                        Array [
-                          "any",
-                          "any",
-                        ],
-                        Array [
-                          "none",
-                          "none",
-                        ],
-                      ]
-                    }
-                    className=""
-                    disabled={false}
-                    escapeMarkup={true}
-                    hideErrorMessage={false}
-                    key="1"
-                    multiple={false}
-                    name="actionMatch"
-                    onChange={[Function]}
-                    placeholder="--"
-                    required={true}
-                    style={
-                      Object {
-                        "marginBottom": 0,
-                        "marginLeft": 5,
-                        "marginRight": 5,
-                      }
-                    }
-                    value="all"
+                <AlertRuleRow>
+                  <h6
+                    className="glamor-0 glamor-1"
                   >
-                    <div
-                      className="control-group required"
+                    Every time 
+                    <Select2Field
+                      allowClear={false}
+                      allowEmpty={false}
+                      choices={
+                        Array [
+                          Array [
+                            "all",
+                            "all",
+                          ],
+                          Array [
+                            "any",
+                            "any",
+                          ],
+                          Array [
+                            "none",
+                            "none",
+                          ],
+                        ]
+                      }
+                      className=""
+                      disabled={false}
+                      escapeMarkup={true}
+                      hideErrorMessage={false}
+                      key="1"
+                      multiple={false}
+                      name="actionMatch"
+                      onChange={[Function]}
+                      placeholder="--"
+                      required={true}
                       style={
                         Object {
                           "marginBottom": 0,
@@ -168,44 +164,56 @@ exports[`ProjectAlertRuleDetails Edit alert rule renders 1`] = `
                           "marginRight": 5,
                         }
                       }
+                      value="all"
                     >
                       <div
-                        className="controls"
+                        className="control-group required"
+                        style={
+                          Object {
+                            "marginBottom": 0,
+                            "marginLeft": 5,
+                            "marginRight": 5,
+                          }
+                        }
                       >
-                        <select
-                          className="form-control"
-                          disabled={false}
-                          id="id-actionMatch"
-                          multiple={false}
-                          onChange={[Function]}
-                          placeholder="--"
-                          required={true}
-                          value="all"
+                        <div
+                          className="controls"
                         >
-                          <option
-                            key="all"
+                          <select
+                            className="form-control"
+                            disabled={false}
+                            id="id-actionMatch"
+                            multiple={false}
+                            onChange={[Function]}
+                            placeholder="--"
+                            required={true}
                             value="all"
                           >
-                            all
-                          </option>
-                          <option
-                            key="any"
-                            value="any"
-                          >
-                            any
-                          </option>
-                          <option
-                            key="none"
-                            value="none"
-                          >
-                            none
-                          </option>
-                        </select>
+                            <option
+                              key="all"
+                              value="all"
+                            >
+                              all
+                            </option>
+                            <option
+                              key="any"
+                              value="any"
+                            >
+                              any
+                            </option>
+                            <option
+                              key="none"
+                              value="none"
+                            >
+                              none
+                            </option>
+                          </select>
+                        </div>
                       </div>
-                    </div>
-                  </Select2Field>
-                   of these conditions are met:
-                </h6>
+                    </Select2Field>
+                     of these conditions are met:
+                  </h6>
+                </AlertRuleRow>
               </div>
               <RuleNodeList
                 className="rule-condition-list"
@@ -353,80 +361,64 @@ exports[`ProjectAlertRuleDetails Edit alert rule renders 1`] = `
               <div
                 className="node-frequency-selector"
               >
-                <h6
-                  style={
-                    Object {
-                      "alignItems": "center",
-                      "display": "flex",
-                    }
-                  }
-                >
-                  Perform these actions at most once every 
-                  <Select2Field
-                    allowClear={false}
-                    allowEmpty={false}
-                    choices={
-                      Array [
-                        Array [
-                          "5",
-                          "5 minutes",
-                        ],
-                        Array [
-                          "10",
-                          "10 minutes",
-                        ],
-                        Array [
-                          "30",
-                          "30 minutes",
-                        ],
-                        Array [
-                          "60",
-                          "60 minutes",
-                        ],
-                        Array [
-                          "180",
-                          "3 hours",
-                        ],
-                        Array [
-                          "720",
-                          "12 hours",
-                        ],
-                        Array [
-                          "1440",
-                          "24 hours",
-                        ],
-                        Array [
-                          "10080",
-                          "one week",
-                        ],
-                        Array [
-                          "43200",
-                          "30 days",
-                        ],
-                      ]
-                    }
-                    className=""
-                    disabled={false}
-                    escapeMarkup={true}
-                    hideErrorMessage={false}
-                    key="1"
-                    multiple={false}
-                    name="frequency"
-                    onChange={[Function]}
-                    placeholder="--"
-                    required={true}
-                    style={
-                      Object {
-                        "marginBottom": 0,
-                        "marginLeft": 5,
-                        "marginRight": 5,
-                        "width": 140,
-                      }
-                    }
-                    value={30}
+                <AlertRuleRow>
+                  <h6
+                    className="glamor-0 glamor-1"
                   >
-                    <div
-                      className="control-group required"
+                    Perform these actions at most once every 
+                    <Select2Field
+                      allowClear={false}
+                      allowEmpty={false}
+                      choices={
+                        Array [
+                          Array [
+                            "5",
+                            "5 minutes",
+                          ],
+                          Array [
+                            "10",
+                            "10 minutes",
+                          ],
+                          Array [
+                            "30",
+                            "30 minutes",
+                          ],
+                          Array [
+                            "60",
+                            "60 minutes",
+                          ],
+                          Array [
+                            "180",
+                            "3 hours",
+                          ],
+                          Array [
+                            "720",
+                            "12 hours",
+                          ],
+                          Array [
+                            "1440",
+                            "24 hours",
+                          ],
+                          Array [
+                            "10080",
+                            "one week",
+                          ],
+                          Array [
+                            "43200",
+                            "30 days",
+                          ],
+                        ]
+                      }
+                      className=""
+                      disabled={false}
+                      escapeMarkup={true}
+                      hideErrorMessage={false}
+                      key="1"
+                      multiple={false}
+                      name="frequency"
+                      onChange={[Function]}
+                      placeholder="--"
+                      required={true}
                       style={
                         Object {
                           "marginBottom": 0,
@@ -435,80 +427,93 @@ exports[`ProjectAlertRuleDetails Edit alert rule renders 1`] = `
                           "width": 140,
                         }
                       }
+                      value={30}
                     >
                       <div
-                        className="controls"
+                        className="control-group required"
+                        style={
+                          Object {
+                            "marginBottom": 0,
+                            "marginLeft": 5,
+                            "marginRight": 5,
+                            "width": 140,
+                          }
+                        }
                       >
-                        <select
-                          className="form-control"
-                          disabled={false}
-                          id="id-frequency"
-                          multiple={false}
-                          onChange={[Function]}
-                          placeholder="--"
-                          required={true}
-                          value={30}
+                        <div
+                          className="controls"
                         >
-                          <option
-                            key="5"
-                            value="5"
+                          <select
+                            className="form-control"
+                            disabled={false}
+                            id="id-frequency"
+                            multiple={false}
+                            onChange={[Function]}
+                            placeholder="--"
+                            required={true}
+                            value={30}
                           >
-                            5 minutes
-                          </option>
-                          <option
-                            key="10"
-                            value="10"
-                          >
-                            10 minutes
-                          </option>
-                          <option
-                            key="30"
-                            value="30"
-                          >
-                            30 minutes
-                          </option>
-                          <option
-                            key="60"
-                            value="60"
-                          >
-                            60 minutes
-                          </option>
-                          <option
-                            key="180"
-                            value="180"
-                          >
-                            3 hours
-                          </option>
-                          <option
-                            key="720"
-                            value="720"
-                          >
-                            12 hours
-                          </option>
-                          <option
-                            key="1440"
-                            value="1440"
-                          >
-                            24 hours
-                          </option>
-                          <option
-                            key="10080"
-                            value="10080"
-                          >
-                            one week
-                          </option>
-                          <option
-                            key="43200"
-                            value="43200"
-                          >
-                            30 days
-                          </option>
-                        </select>
+                            <option
+                              key="5"
+                              value="5"
+                            >
+                              5 minutes
+                            </option>
+                            <option
+                              key="10"
+                              value="10"
+                            >
+                              10 minutes
+                            </option>
+                            <option
+                              key="30"
+                              value="30"
+                            >
+                              30 minutes
+                            </option>
+                            <option
+                              key="60"
+                              value="60"
+                            >
+                              60 minutes
+                            </option>
+                            <option
+                              key="180"
+                              value="180"
+                            >
+                              3 hours
+                            </option>
+                            <option
+                              key="720"
+                              value="720"
+                            >
+                              12 hours
+                            </option>
+                            <option
+                              key="1440"
+                              value="1440"
+                            >
+                              24 hours
+                            </option>
+                            <option
+                              key="10080"
+                              value="10080"
+                            >
+                              one week
+                            </option>
+                            <option
+                              key="43200"
+                              value="43200"
+                            >
+                              30 days
+                            </option>
+                          </select>
+                        </div>
                       </div>
-                    </div>
-                  </Select2Field>
-                   for an issue.
-                </h6>
+                    </Select2Field>
+                     for an issue.
+                  </h6>
+                </AlertRuleRow>
               </div>
               <div
                 className="actions"
@@ -530,6 +535,17 @@ exports[`ProjectAlertRuleDetails Edit alert rule renders 1`] = `
 `;
 
 exports[`ProjectAlertRuleDetails New alert rule renders 1`] = `
+.glamor-0 {
+  display: -webkit-box;
+  display: -webkit-flex;
+  display: -ms-flexbox;
+  display: flex;
+  -webkit-align-items: center;
+  -webkit-box-align: center;
+  -ms-flex-align: center;
+  align-items: center;
+}
+
 <ProjectAlertRuleDetails
   params={
     Object {
@@ -641,55 +657,40 @@ exports[`ProjectAlertRuleDetails New alert rule renders 1`] = `
               <div
                 className="node-match-selector"
               >
-                <h6
-                  style={
-                    Object {
-                      "alignItems": "center",
-                      "display": "flex",
-                    }
-                  }
-                >
-                  Every time 
-                  <Select2Field
-                    allowClear={false}
-                    allowEmpty={false}
-                    choices={
-                      Array [
-                        Array [
-                          "all",
-                          "all",
-                        ],
-                        Array [
-                          "any",
-                          "any",
-                        ],
-                        Array [
-                          "none",
-                          "none",
-                        ],
-                      ]
-                    }
-                    className=""
-                    disabled={false}
-                    escapeMarkup={true}
-                    hideErrorMessage={false}
-                    key="1"
-                    multiple={false}
-                    name="actionMatch"
-                    onChange={[Function]}
-                    placeholder="--"
-                    required={true}
-                    style={
-                      Object {
-                        "marginBottom": 0,
-                        "marginLeft": 5,
-                        "marginRight": 5,
-                      }
-                    }
-                    value="all"
+                <AlertRuleRow>
+                  <h6
+                    className="glamor-0 glamor-1"
                   >
-                    <div
-                      className="control-group required"
+                    Every time 
+                    <Select2Field
+                      allowClear={false}
+                      allowEmpty={false}
+                      choices={
+                        Array [
+                          Array [
+                            "all",
+                            "all",
+                          ],
+                          Array [
+                            "any",
+                            "any",
+                          ],
+                          Array [
+                            "none",
+                            "none",
+                          ],
+                        ]
+                      }
+                      className=""
+                      disabled={false}
+                      escapeMarkup={true}
+                      hideErrorMessage={false}
+                      key="1"
+                      multiple={false}
+                      name="actionMatch"
+                      onChange={[Function]}
+                      placeholder="--"
+                      required={true}
                       style={
                         Object {
                           "marginBottom": 0,
@@ -697,44 +698,56 @@ exports[`ProjectAlertRuleDetails New alert rule renders 1`] = `
                           "marginRight": 5,
                         }
                       }
+                      value="all"
                     >
                       <div
-                        className="controls"
+                        className="control-group required"
+                        style={
+                          Object {
+                            "marginBottom": 0,
+                            "marginLeft": 5,
+                            "marginRight": 5,
+                          }
+                        }
                       >
-                        <select
-                          className="form-control"
-                          disabled={false}
-                          id="id-actionMatch"
-                          multiple={false}
-                          onChange={[Function]}
-                          placeholder="--"
-                          required={true}
-                          value="all"
+                        <div
+                          className="controls"
                         >
-                          <option
-                            key="all"
+                          <select
+                            className="form-control"
+                            disabled={false}
+                            id="id-actionMatch"
+                            multiple={false}
+                            onChange={[Function]}
+                            placeholder="--"
+                            required={true}
                             value="all"
                           >
-                            all
-                          </option>
-                          <option
-                            key="any"
-                            value="any"
-                          >
-                            any
-                          </option>
-                          <option
-                            key="none"
-                            value="none"
-                          >
-                            none
-                          </option>
-                        </select>
+                            <option
+                              key="all"
+                              value="all"
+                            >
+                              all
+                            </option>
+                            <option
+                              key="any"
+                              value="any"
+                            >
+                              any
+                            </option>
+                            <option
+                              key="none"
+                              value="none"
+                            >
+                              none
+                            </option>
+                          </select>
+                        </div>
                       </div>
-                    </div>
-                  </Select2Field>
-                   of these conditions are met:
-                </h6>
+                    </Select2Field>
+                     of these conditions are met:
+                  </h6>
+                </AlertRuleRow>
               </div>
               <RuleNodeList
                 className="rule-condition-list"
@@ -882,80 +895,64 @@ exports[`ProjectAlertRuleDetails New alert rule renders 1`] = `
               <div
                 className="node-frequency-selector"
               >
-                <h6
-                  style={
-                    Object {
-                      "alignItems": "center",
-                      "display": "flex",
-                    }
-                  }
-                >
-                  Perform these actions at most once every 
-                  <Select2Field
-                    allowClear={false}
-                    allowEmpty={false}
-                    choices={
-                      Array [
-                        Array [
-                          "5",
-                          "5 minutes",
-                        ],
-                        Array [
-                          "10",
-                          "10 minutes",
-                        ],
-                        Array [
-                          "30",
-                          "30 minutes",
-                        ],
-                        Array [
-                          "60",
-                          "60 minutes",
-                        ],
-                        Array [
-                          "180",
-                          "3 hours",
-                        ],
-                        Array [
-                          "720",
-                          "12 hours",
-                        ],
-                        Array [
-                          "1440",
-                          "24 hours",
-                        ],
-                        Array [
-                          "10080",
-                          "one week",
-                        ],
-                        Array [
-                          "43200",
-                          "30 days",
-                        ],
-                      ]
-                    }
-                    className=""
-                    disabled={false}
-                    escapeMarkup={true}
-                    hideErrorMessage={false}
-                    key="1"
-                    multiple={false}
-                    name="frequency"
-                    onChange={[Function]}
-                    placeholder="--"
-                    required={true}
-                    style={
-                      Object {
-                        "marginBottom": 0,
-                        "marginLeft": 5,
-                        "marginRight": 5,
-                        "width": 140,
-                      }
-                    }
-                    value={30}
+                <AlertRuleRow>
+                  <h6
+                    className="glamor-0 glamor-1"
                   >
-                    <div
-                      className="control-group required"
+                    Perform these actions at most once every 
+                    <Select2Field
+                      allowClear={false}
+                      allowEmpty={false}
+                      choices={
+                        Array [
+                          Array [
+                            "5",
+                            "5 minutes",
+                          ],
+                          Array [
+                            "10",
+                            "10 minutes",
+                          ],
+                          Array [
+                            "30",
+                            "30 minutes",
+                          ],
+                          Array [
+                            "60",
+                            "60 minutes",
+                          ],
+                          Array [
+                            "180",
+                            "3 hours",
+                          ],
+                          Array [
+                            "720",
+                            "12 hours",
+                          ],
+                          Array [
+                            "1440",
+                            "24 hours",
+                          ],
+                          Array [
+                            "10080",
+                            "one week",
+                          ],
+                          Array [
+                            "43200",
+                            "30 days",
+                          ],
+                        ]
+                      }
+                      className=""
+                      disabled={false}
+                      escapeMarkup={true}
+                      hideErrorMessage={false}
+                      key="1"
+                      multiple={false}
+                      name="frequency"
+                      onChange={[Function]}
+                      placeholder="--"
+                      required={true}
                       style={
                         Object {
                           "marginBottom": 0,
@@ -964,80 +961,93 @@ exports[`ProjectAlertRuleDetails New alert rule renders 1`] = `
                           "width": 140,
                         }
                       }
+                      value={30}
                     >
                       <div
-                        className="controls"
+                        className="control-group required"
+                        style={
+                          Object {
+                            "marginBottom": 0,
+                            "marginLeft": 5,
+                            "marginRight": 5,
+                            "width": 140,
+                          }
+                        }
                       >
-                        <select
-                          className="form-control"
-                          disabled={false}
-                          id="id-frequency"
-                          multiple={false}
-                          onChange={[Function]}
-                          placeholder="--"
-                          required={true}
-                          value={30}
+                        <div
+                          className="controls"
                         >
-                          <option
-                            key="5"
-                            value="5"
+                          <select
+                            className="form-control"
+                            disabled={false}
+                            id="id-frequency"
+                            multiple={false}
+                            onChange={[Function]}
+                            placeholder="--"
+                            required={true}
+                            value={30}
                           >
-                            5 minutes
-                          </option>
-                          <option
-                            key="10"
-                            value="10"
-                          >
-                            10 minutes
-                          </option>
-                          <option
-                            key="30"
-                            value="30"
-                          >
-                            30 minutes
-                          </option>
-                          <option
-                            key="60"
-                            value="60"
-                          >
-                            60 minutes
-                          </option>
-                          <option
-                            key="180"
-                            value="180"
-                          >
-                            3 hours
-                          </option>
-                          <option
-                            key="720"
-                            value="720"
-                          >
-                            12 hours
-                          </option>
-                          <option
-                            key="1440"
-                            value="1440"
-                          >
-                            24 hours
-                          </option>
-                          <option
-                            key="10080"
-                            value="10080"
-                          >
-                            one week
-                          </option>
-                          <option
-                            key="43200"
-                            value="43200"
-                          >
-                            30 days
-                          </option>
-                        </select>
+                            <option
+                              key="5"
+                              value="5"
+                            >
+                              5 minutes
+                            </option>
+                            <option
+                              key="10"
+                              value="10"
+                            >
+                              10 minutes
+                            </option>
+                            <option
+                              key="30"
+                              value="30"
+                            >
+                              30 minutes
+                            </option>
+                            <option
+                              key="60"
+                              value="60"
+                            >
+                              60 minutes
+                            </option>
+                            <option
+                              key="180"
+                              value="180"
+                            >
+                              3 hours
+                            </option>
+                            <option
+                              key="720"
+                              value="720"
+                            >
+                              12 hours
+                            </option>
+                            <option
+                              key="1440"
+                              value="1440"
+                            >
+                              24 hours
+                            </option>
+                            <option
+                              key="10080"
+                              value="10080"
+                            >
+                              one week
+                            </option>
+                            <option
+                              key="43200"
+                              value="43200"
+                            >
+                              30 days
+                            </option>
+                          </select>
+                        </div>
                       </div>
-                    </div>
-                  </Select2Field>
-                   for an issue.
-                </h6>
+                    </Select2Field>
+                     for an issue.
+                  </h6>
+                </AlertRuleRow>
               </div>
               <div
                 className="actions"
