@@ -184,17 +184,6 @@ urlpatterns = patterns(
     url(r'^broadcasts/$', BroadcastIndexEndpoint.as_view(),
         name='sentry-api-0-broadcast-index'),
 
-    # Chunk
-    url(r'^chunk-upload/$',
-        ChunkUploadEndpoint.as_view(),
-        name='sentry-api-0-chunk-upload'
-        ),
-
-    url(r'^chunk-assemble/$',
-        ChunkAssembleEndpoint.as_view(),
-        name='sentry-api-0-chunk-assemble'
-        ),
-
     # Users
     url(r'^users/$', UserIndexEndpoint.as_view(), name='sentry-api-0-user-index'),
     url(
@@ -252,6 +241,17 @@ urlpatterns = patterns(
     ),
 
     # Organizations
+
+    url(
+        r'^organizations/(?P<organization_slug>[^\/]+)/chunk-upload/$',
+        ChunkUploadEndpoint.as_view(),
+        name='sentry-api-0-chunk-upload'
+    ),
+    url(
+        r'^organizations/(?P<organization_slug>[^\/]+)/chunk-assemble/$',
+        ChunkAssembleEndpoint.as_view(),
+        name='sentry-api-0-chunk-assemble'
+    ),
     url(
         r'^organizations/$', OrganizationIndexEndpoint.as_view(), name='sentry-api-0-organizations'
     ),

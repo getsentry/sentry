@@ -11,8 +11,8 @@ from sentry import options
 from sentry.utils import json
 from sentry.models import File, FileBlob
 from sentry.models.file import DEFAULT_BLOB_SIZE, ChunkFileState, ChunkAssembleType
-from sentry.api.base import Endpoint
-from sentry.api.bases.project import ProjectReleasePermission
+from sentry.api.bases.organization import OrganizationEndpoint
+from sentry.api.bases.organization import OrganizationPermission
 
 
 MAX_CHUNKS_PER_REQUEST = 16
@@ -20,10 +20,10 @@ MAX_CONCURRENCY = 4
 HASH_ALGORITHM = 'sha1'
 
 
-class ChunkUploadEndpoint(Endpoint):
-    permission_classes = (ProjectReleasePermission, )
+class ChunkUploadEndpoint(OrganizationEndpoint):
+    permission_classes = (OrganizationPermission, )
 
-    def get(self, request):
+    def get(self, request, organization):
         """
         Return chunk upload parameters
         ``````````````````````````````
@@ -36,7 +36,7 @@ class ChunkUploadEndpoint(Endpoint):
 
         return Response(
             {
-                'url': '{}{}'.format(endpoint, reverse('sentry-api-0-chunk-upload')),
+                'url': '{}{}'.format(endpoint, reverse('sentry-api-0-chunk-upload', args=[organization.slug])),
                 'chunkSize': DEFAULT_BLOB_SIZE,
                 'chunksPerRequest': MAX_CHUNKS_PER_REQUEST,
                 'concurrency': MAX_CONCURRENCY,
@@ -44,7 +44,7 @@ class ChunkUploadEndpoint(Endpoint):
             }
         )
 
-    def post(self, request):
+    def post(self, request, organization):
         """
         Upload chunks and store them as FileBlobs
         `````````````````````````````````````````
@@ -83,8 +83,8 @@ class ChunkUploadEndpoint(Endpoint):
         return Response(status=status.HTTP_200_OK)
 
 
-class ChunkAssembleEndpoint(Endpoint):
-    permission_classes = (ProjectReleasePermission, )
+class ChunkAssembleEndpoint(OrganizationEndpoint):
+    permission_classes = (OrganizationPermission, )
 
     def create_file_response(self, state, missing_chunks=[]):
         """
@@ -95,18 +95,10 @@ class ChunkAssembleEndpoint(Endpoint):
             'missingChunks': missing_chunks
         }
 
-    def post(self, request):
+    def post(self, request, organization):
         """
         Assmble one or multiple chunks (FileBlob) into Files
         ````````````````````````````````````````````````````
-
-        This request has 2 modes.
-        1. To check if Files already exsist
-            which is { checksum: bool }
-        2. To assemble and check for missing chunks per file
-            which is { checksum: object }
-
-        For more details see json scheme below.
 
         :auth: required
         """
@@ -114,27 +106,18 @@ class ChunkAssembleEndpoint(Endpoint):
             "type": "object",
             "patternProperties": {
                 "^[0-9a-f]{40}$": {
-                    "anyOf": [
-                        {
-                            # The actual assemble request.
-                            "type": "object",
-                            "required": ["type", "name", "chunks"],
-                            "properties": {
-                                "type": {"type": "string"},
-                                "name": {"type": "string"},
-                                "params": {"type": "object"},
-                                "chunks": {
-                                    "type": "array",
-                                    "items": {"type": "string"}
-                                }
-                            },
-                            "additionalProperties": False
-                        },
-                        {
-                            # This is used for checking if the file already exists.
-                            "type": "boolean"
+                    "type": "object",
+                    "required": ["type", "name", "chunks"],
+                    "properties": {
+                        "type": {"type": "string"},
+                        "name": {"type": "string"},
+                        "params": {"type": "object"},
+                        "chunks": {
+                            "type": "array",
+                            "items": {"type": "string"}
                         }
-                    ]
+                    },
+                    "additionalProperties": False
                 }
             },
             "additionalProperties": False
@@ -154,11 +137,6 @@ class ChunkAssembleEndpoint(Endpoint):
 
         from sentry.tasks.assemble import assemble_chunks
         for checksum, file_to_assemble in six.iteritems(files):
-
-            # We want to skip assembling of since it's on the check if the file
-            # already exsists.
-            skip_assembling = isinstance(file_to_assemble, bool)
-
             # If we find a file with the same checksum we return it
             try:
                 file = File.objects.filter(
@@ -170,14 +148,6 @@ class ChunkAssembleEndpoint(Endpoint):
                 continue
             except File.DoesNotExist:
                 pass
-
-            # If we should skip assembling because it's a bool and the file
-            # hasn't been found, we return here.
-            if skip_assembling:
-                file_response[checksum] = self.create_file_response(
-                    ChunkFileState.NOT_FOUND
-                )
-                continue
 
             name = file_to_assemble.get('name', None)
             type = file_to_assemble.get('type', ChunkAssembleType.GENERIC)
