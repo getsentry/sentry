@@ -1,9 +1,11 @@
 from __future__ import absolute_import
 
+from sentry import roles
 from sentry.api.base import Endpoint
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.app import raven
-from sentry.models import Project, ProjectStatus
+from sentry.auth.superuser import is_active_superuser
+from sentry.models import OrganizationMember, Project, ProjectStatus
 
 from .organization import OrganizationPermission
 from .team import has_team_permission
@@ -24,9 +26,26 @@ class ProjectPermission(OrganizationPermission):
         if not result:
             return result
 
-        return any(
-            has_team_permission(request, team, self.scope_map) for team in project.teams.all()
-        )
+        if project.teams.exists():
+            return any(
+                has_team_permission(request, team, self.scope_map) for team in project.teams.all()
+            )
+        elif request.user.is_authenticated():
+            # this is only for team-less projects
+            if is_active_superuser(request):
+                return True
+            try:
+                role = OrganizationMember.objects.filter(
+                    organization=project.organization,
+                    user=request.user,
+                ).values_list('role', flat=True).get()
+            except OrganizationMember.DoesNotExist:
+                # this should probably never happen?
+                return False
+
+            return roles.get(role).is_global
+
+        return False
 
 
 class StrictProjectPermission(ProjectPermission):
