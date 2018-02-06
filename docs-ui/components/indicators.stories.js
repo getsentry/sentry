@@ -5,6 +5,11 @@ import {select} from '@storybook/addon-knobs';
 
 import IndicatorContainer, {Indicators} from 'sentry-ui/indicators';
 import IndicatorStore from 'application-root/stores/indicatorStore';
+import {
+  addSuccessMessage,
+  addErrorMessage,
+  addMessage,
+} from 'application-root/actionCreators/indicator';
 import Button from 'sentry-ui/buttons/button';
 
 const stories = storiesOf('Toast Indicators', module);
@@ -51,7 +56,7 @@ stories
                 IndicatorStore.remove(success);
                 success = null;
               } else {
-                success = IndicatorStore.addSuccess('Success');
+                success = addSuccessMessage('Success');
               }
             }}
           >
@@ -63,7 +68,7 @@ stories
                 IndicatorStore.remove(loading);
                 loading = null;
               } else {
-                loading = IndicatorStore.add('Loading', 'loading');
+                loading = addMessage('Loading', 'loading');
               }
             }}
           >
@@ -75,7 +80,7 @@ stories
                 IndicatorStore.remove(error);
                 error = null;
               } else {
-                error = IndicatorStore.addError('Error');
+                error = addErrorMessage('Error');
               }
             }}
           >
