@@ -392,11 +392,11 @@ def fetch_file(url, project=None, release=None, dist=None, allow_scraping=True):
 
 
 def get_max_age(headers):
-    cache_control = 'cache-control'
+    cache_control = headers.get('cache-control')
     max_age = CACHE_CONTROL_MIN
 
-    if cache_control in headers:
-        match = CACHE_CONTROL_RE.search(headers[cache_control])
+    if cache_control:
+        match = CACHE_CONTROL_RE.search(cache_control)
         if match:
             max_age = max(CACHE_CONTROL_MIN, int(match.group(1)))
     return min(max_age, CACHE_CONTROL_MAX)
