@@ -9,7 +9,7 @@ from django.core.urlresolvers import reverse
 
 from sentry import options
 from sentry.utils import json
-from sentry.models import File, FileBlob
+from sentry.models import File, FileBlob, FileBlobOwner
 from sentry.models.file import DEFAULT_BLOB_SIZE, ChunkFileState, ChunkAssembleType
 from sentry.api.bases.organization import OrganizationEndpoint
 from sentry.api.bases.organization import OrganizationPermission
@@ -48,7 +48,6 @@ class ChunkUploadEndpoint(OrganizationEndpoint):
         """
         Upload chunks and store them as FileBlobs
         `````````````````````````````````````````
-
         :pparam file file: The filename should be sha1 hash of the content.
                             Also not you can add up to MAX_CHUNKS_PER_REQUEST files
                             in this request.
@@ -56,7 +55,6 @@ class ChunkUploadEndpoint(OrganizationEndpoint):
         :auth: required
         """
         files = request.FILES.getlist('file')
-
         if len(files) > MAX_CHUNKS_PER_REQUEST:
             return Response({'error': 'Too many chunks'},
                             status=status.HTTP_400_BAD_REQUEST)
@@ -73,8 +71,13 @@ class ChunkUploadEndpoint(OrganizationEndpoint):
             checksum_list.append(chunk._name)
 
         for chunk in files:
-            # Here we create the actual file
+            # Here we create the actual blob
             blob = FileBlob.from_file(chunk)
+            # Add ownership to the blob here
+            FileBlobOwner.objects.get_or_create(
+                organization=organization,
+                blob=blob
+            )
             if blob.checksum not in checksum_list:
                 # We do not clean up here since we have a cleanup job
                 return Response({'error': 'Checksum missmatch'},
@@ -141,11 +144,17 @@ class ChunkAssembleEndpoint(OrganizationEndpoint):
             try:
                 file = File.objects.filter(
                     checksum=checksum
-                ).get()
-                file_response[checksum] = self.create_file_response(
-                    file.headers.get('state', ChunkFileState.OK)
-                )
-                continue
+                ).select_related('blobs').get()
+                all_blobs = file.blobs.all()
+                owned_blobs = FileBlobOwner.objects.filter(
+                    blob__in=all_blobs,
+                    organization=organization
+                ).all()
+                if len(all_blobs) == len(owned_blobs):
+                    file_response[checksum] = self.create_file_response(
+                        file.headers.get('state', ChunkFileState.OK)
+                    )
+                    continue
             except File.DoesNotExist:
                 pass
 

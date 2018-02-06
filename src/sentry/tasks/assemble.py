@@ -14,7 +14,7 @@ def assemble_chunks(type, params, file_id, file_blob_ids, checksum, **kwargs):
     The type is a File.ChunkAssembleType
     '''
     if len(file_blob_ids) == 0:
-        logger.warning('sentry.tasks.assemble.assemble_chunks', extra={
+        logger.warning('assemble_chunks.empty_file_blobs', extra={
             'error': 'Empty file blobs'
         })
 
@@ -29,7 +29,7 @@ def assemble_chunks(type, params, file_id, file_blob_ids, checksum, **kwargs):
     file.assemble_from_file_blob_ids(file_blob_ids, checksum)
     if file.headers.get('state', '') == ChunkFileState.ERROR:
         logger.error(
-            'sentry.tasks.assemble.assemble_chunks',
+            'assemble_chunks.assemble_error',
             extra={
                 'error': file.headers.get('error', ''),
                 'file_id': file.id
@@ -55,7 +55,7 @@ def assemble_dif(file, params):
         file.headers['state'] = ChunkFileState.ERROR
         file.headers['error'] = 'Missing org/project'
         logger.error(
-            'sentry.tasks.assemble.assemble_chunks',
+            'assemble_chunks.missing_params',
             extra={
                 'error': file.headers.get('error', ''),
                 'file_id': file.id
@@ -90,7 +90,7 @@ def assemble_dif(file, params):
             file.headers['state'] = ChunkFileState.ERROR
             file.headers['error'] = 'Invalid object file'
             logger.error(
-                'sentry.tasks.assemble.assemble_chunks',
+                'assemble_chunks.invalid_object_file',
                 extra={
                     'error': file.headers.get('error', ''),
                     'file_id': file.id

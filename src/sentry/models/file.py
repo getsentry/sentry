@@ -464,3 +464,16 @@ class ChunkedFileBlobIndexWrapper(object):
                     result.extend(blob_result)
 
         return bytes(result)
+
+
+class FileBlobOwner(Model):
+    __core__ = False
+
+    blob = FlexibleForeignKey('sentry.FileBlob')
+    organization = FlexibleForeignKey('sentry.Organization')
+    public = models.BooleanField(default=False)
+
+    class Meta:
+        app_label = 'sentry'
+        db_table = 'sentry_fileblobowner'
+        unique_together = (('blob', 'organization'), )
