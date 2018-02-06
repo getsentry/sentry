@@ -10,7 +10,7 @@ from sentry.models import ApiToken, FileBlob
 from sentry.models.file import DEFAULT_BLOB_SIZE
 from sentry.testutils import APITestCase
 from sentry.api.endpoints.chunk import (MAX_CHUNKS_PER_REQUEST, MAX_CONCURRENCY,
-                                        HASH_ALGORITHM)
+                                        HASH_ALGORITHM, MAX_REQUEST_SIZE)
 
 
 class ChunkUploadTest(APITestCase):
@@ -36,7 +36,8 @@ class ChunkUploadTest(APITestCase):
 
         assert response.status_code == 200, response.content
         assert response.data['chunkSize'] == DEFAULT_BLOB_SIZE
-        assert response.data['maxRequestSize'] == MAX_CHUNKS_PER_REQUEST * DEFAULT_BLOB_SIZE
+        assert response.data['chunksPerRequest'] == MAX_CHUNKS_PER_REQUEST
+        assert response.data['maxRequestSize'] == MAX_REQUEST_SIZE
         assert response.data['concurrency'] == MAX_CONCURRENCY
         assert response.data['hashAlgorithm'] == HASH_ALGORITHM
         assert response.data['url'] == options.get('system.url-prefix') + self.url
@@ -88,12 +89,31 @@ class ChunkUploadTest(APITestCase):
         assert file_blobs[0].checksum == checksum1
         assert file_blobs[1].checksum == checksum2
 
+    def test_too_many_chunks(self):
+        files = []
+
+        # Exactly the limit
+        for x in range(0, MAX_CHUNKS_PER_REQUEST + 1):
+            content = "x"
+            files.append(SimpleUploadedFile(sha1(content).hexdigest(), content))
+
+        response = self.client.post(
+            self.url,
+            data={
+                'file': files
+            },
+            HTTP_AUTHORIZATION='Bearer {}'.format(self.token.token),
+            format='multipart'
+        )
+
+        assert response.status_code == 400, response.content
+
     def test_too_large_request(self):
         files = []
 
         # Exactly the limit
-        for x in range(0, MAX_CHUNKS_PER_REQUEST * 2):
-            content = "x" * (DEFAULT_BLOB_SIZE / 2)
+        for x in range(0, MAX_CHUNKS_PER_REQUEST):
+            content = "x" * (MAX_REQUEST_SIZE / MAX_CHUNKS_PER_REQUEST)
             files.append(SimpleUploadedFile(sha1(content).hexdigest(), content))
 
         response = self.client.post(

@@ -3,10 +3,11 @@ from __future__ import absolute_import
 import six
 import jsonschema
 
-from six.moves.urllib.parse import urljoin
 from rest_framework import status
+from six.moves.urllib.parse import urljoin
 from rest_framework.response import Response
 from django.core.urlresolvers import reverse
+from django.db import IntegrityError, transaction
 
 from sentry import options
 from sentry.utils import json
@@ -16,7 +17,8 @@ from sentry.api.bases.organization import (OrganizationEndpoint,
                                            OrganizationReleasePermission)
 
 
-MAX_CHUNKS_PER_REQUEST = 16
+MAX_CHUNKS_PER_REQUEST = 40
+MAX_REQUEST_SIZE = 32 * 1024 * 1024
 MAX_CONCURRENCY = 4
 HASH_ALGORITHM = 'sha1'
 
@@ -42,7 +44,8 @@ class ChunkUploadEndpoint(OrganizationEndpoint):
             {
                 'url': endpoint,
                 'chunkSize': DEFAULT_BLOB_SIZE,
-                'maxRequestSize': MAX_CHUNKS_PER_REQUEST * DEFAULT_BLOB_SIZE,
+                'chunksPerRequest': MAX_CHUNKS_PER_REQUEST,
+                'maxRequestSize': MAX_REQUEST_SIZE,
                 'concurrency': MAX_CONCURRENCY,
                 'hashAlgorithm': HASH_ALGORITHM,
             }
@@ -65,20 +68,34 @@ class ChunkUploadEndpoint(OrganizationEndpoint):
 
         # Validate file size
         checksum_list = []
+        size = 0
         for chunk in files:
+            size += chunk._size
             if chunk._size > DEFAULT_BLOB_SIZE:
                 return Response({'error': 'Chunk size too large'},
                                 status=status.HTTP_400_BAD_REQUEST)
             checksum_list.append(chunk._name)
 
+        if size > MAX_REQUEST_SIZE:
+            return Response({'error': 'Request too large'},
+                            status=status.HTTP_400_BAD_REQUEST)
+
+        if len(files) > MAX_CHUNKS_PER_REQUEST:
+            return Response({'error': 'Too many chunks'},
+                            status=status.HTTP_400_BAD_REQUEST)
+
         for chunk in files:
             # Here we create the actual blob
             blob = FileBlob.from_file(chunk)
             # Add ownership to the blob here
-            FileBlobOwner.objects.get_or_create(
-                organization=organization,
-                blob=blob
-            )
+            try:
+                with transaction.atomic():
+                    FileBlobOwner.objects.create(
+                        organization=organization,
+                        blob=blob
+                    )
+            except IntegrityError:
+                pass
             if blob.checksum not in checksum_list:
                 # We do not clean up here since we have a cleanup job
                 return Response({'error': 'Checksum missmatch'},
