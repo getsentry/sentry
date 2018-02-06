@@ -61,7 +61,7 @@ const NoteInput = createReactClass({
       .filter(({projects}) => projects.find(p => p.slug === group.project.slug) !== -1)
       .map(team => ({
         id: team.id,
-        display: team.name,
+        display: team.slug,
         email: team.id,
       }));
 

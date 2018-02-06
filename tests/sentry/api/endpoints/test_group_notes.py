@@ -2,7 +2,7 @@ from __future__ import absolute_import
 
 import six
 
-from sentry.models import Activity
+from sentry.models import Activity, GroupSubscription, GroupSubscriptionReason
 from sentry.testutils import APITestCase
 
 
@@ -118,3 +118,57 @@ class GroupNoteCreateTest(APITestCase):
         )
 
         assert response.content == '{"mentions": ["Cannot mention a non-team member"]}'
+
+    def test_with_team_mentions(self):
+        user = self.create_user(email='redTeamUser@example.com')
+
+        self.org = self.create_organization(
+            name='Gnarly Org',
+            owner=None,
+        )
+        # team that IS part of the project
+        self.team = self.create_team(organization=self.org, name='Red Team', members=[user])
+        # team that IS NOT part of the project
+        self.team2 = self.create_team(organization=self.org, name='Blue Team')
+
+        # ProjectTeam.objects.create(
+        # project=self.group.project,
+        # team_id=self.team2.id,
+        # )
+
+        self.create_member(
+            user=self.user,
+            organization=self.org,
+            role='member',
+            teams=[self.team],
+        )
+
+        group = self.group
+
+        self.login_as(user=self.user)
+
+        url = '/api/0/issues/{}/comments/'.format(group.id)
+
+        # mentioning a team that does not exist returns 400
+        response = self.client.post(
+            url,
+            format='json',
+            data={'text': 'hey **blue-team** fix this bug',
+                  'teamMentions': [u'%s' % self.team2.id]}
+        )
+        assert response.status_code == 400, response.content
+
+        assert response.content == '{"teamMentions": ["Mentioned team not found"]}'
+
+        # mentioning a team in the project returns 201
+        response = self.client.post(
+            url,
+            format='json',
+            data={'text': 'hey **red-team** fix this bug',
+                  'teamMentions': [u'%s' % self.team.id]}
+        )
+        assert response.status_code == 201, response.content
+        assert len(
+            GroupSubscription.objects.filter(
+                group=group,
+                reason=GroupSubscriptionReason.team_mentioned)) == 1
