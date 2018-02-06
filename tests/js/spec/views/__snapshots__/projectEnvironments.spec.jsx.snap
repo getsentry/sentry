@@ -28,7 +28,7 @@ exports[`ProjectEnvironments render() renders empty message 1`] = `
   flex: 1;
 }
 
-.glamor-17 {
+.glamor-19 {
   background: #fff;
   border: 1px solid;
   margin-bottom: 30px;
@@ -60,7 +60,7 @@ exports[`ProjectEnvironments render() renders empty message 1`] = `
   margin: 0;
 }
 
-.glamor-15 {
+.glamor-17 {
   display: -webkit-box;
   display: -webkit-flex;
   display: -ms-flexbox;
@@ -187,29 +187,33 @@ exports[`ProjectEnvironments render() renders empty message 1`] = `
     </SettingsPageHeading>
     <Panel>
       <div
-        className="glamor-17 glamor-18"
+        className="glamor-19 glamor-20"
       >
         <PanelHeader>
           <StyledPanelHeader>
-            <div
+            <Component
               className="glamor-13 glamor-14"
             >
-              <StyledPanelHeading>
-                <Component
-                  className="glamor-9 glamor-6"
-                >
-                  <_default
+              <div
+                className="glamor-13 glamor-14"
+              >
+                <StyledPanelHeading>
+                  <Component
                     className="glamor-9 glamor-6"
                   >
-                    <div
-                      className="glamor-6 glamor-7 glamor-8"
+                    <_default
+                      className="glamor-9 glamor-6"
                     >
-                      Environments
-                    </div>
-                  </_default>
-                </Component>
-              </StyledPanelHeading>
-            </div>
+                      <div
+                        className="glamor-6 glamor-7 glamor-8"
+                      >
+                        Environments
+                      </div>
+                    </_default>
+                  </Component>
+                </StyledPanelHeading>
+              </div>
+            </Component>
           </StyledPanelHeader>
         </PanelHeader>
         <PanelBody
@@ -222,7 +226,7 @@ exports[`ProjectEnvironments render() renders empty message 1`] = `
           >
             <EmptyMessage>
               <div
-                className="glamor-15 glamor-16"
+                className="glamor-17 glamor-18"
               >
                 You don't have any environments yet.
               </div>
@@ -263,7 +267,7 @@ exports[`ProjectEnvironments render() renders environment list 1`] = `
   flex: 1;
 }
 
-.glamor-19 {
+.glamor-21 {
   background: #fff;
   border: 1px solid;
   margin-bottom: 30px;
@@ -295,7 +299,7 @@ exports[`ProjectEnvironments render() renders environment list 1`] = `
   margin: 0;
 }
 
-.glamor-15 {
+.glamor-17 {
   box-sizing: border-box;
   padding: 16px;
   display: -webkit-box;
@@ -305,7 +309,7 @@ exports[`ProjectEnvironments render() renders environment list 1`] = `
   border-bottom: 1px solid;
 }
 
-.glamor-15:last-child {
+.glamor-17:last-child {
   border: 0;
 }
 
@@ -421,29 +425,33 @@ exports[`ProjectEnvironments render() renders environment list 1`] = `
     </SettingsPageHeading>
     <Panel>
       <div
-        className="glamor-19 glamor-20"
+        className="glamor-21 glamor-22"
       >
         <PanelHeader>
           <StyledPanelHeader>
-            <div
+            <Component
               className="glamor-13 glamor-14"
             >
-              <StyledPanelHeading>
-                <Component
-                  className="glamor-9 glamor-6"
-                >
-                  <_default
+              <div
+                className="glamor-13 glamor-14"
+              >
+                <StyledPanelHeading>
+                  <Component
                     className="glamor-9 glamor-6"
                   >
-                    <div
-                      className="glamor-6 glamor-7 glamor-8"
+                    <_default
+                      className="glamor-9 glamor-6"
                     >
-                      Environments
-                    </div>
-                  </_default>
-                </Component>
-              </StyledPanelHeading>
-            </div>
+                      <div
+                        className="glamor-6 glamor-7 glamor-8"
+                      >
+                        Environments
+                      </div>
+                    </_default>
+                  </Component>
+                </StyledPanelHeading>
+              </div>
+            </Component>
           </StyledPanelHeader>
         </PanelHeader>
         <PanelBody
@@ -462,11 +470,11 @@ exports[`ProjectEnvironments render() renders environment list 1`] = `
                 p={2}
               >
                 <Base
-                  className="glamor-15 glamor-16"
+                  className="glamor-17 glamor-18"
                   p={2}
                 >
                   <div
-                    className="glamor-15 glamor-16"
+                    className="glamor-17 glamor-18"
                     is={null}
                   >
                     Production
