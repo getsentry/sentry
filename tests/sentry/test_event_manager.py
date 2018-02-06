@@ -779,10 +779,13 @@ class EventManagerTest(TransactionTestCase):
 
     @mock.patch('sentry.event_manager.post_process_group.delay')
     def test_group_environment(self, mock_post_process_group_delay):
+        release_version = '1.0'
+
         def save_event():
             manager = EventManager(self.make_event(**{
                 'event_id': uuid.uuid1().hex,  # don't deduplicate
                 'environment': 'beta',
+                'release': release_version,
             }))
             manager.normalize()
             return manager.save(self.project.id)
@@ -790,13 +793,15 @@ class EventManagerTest(TransactionTestCase):
         event = save_event()
 
         # Ensure the `GroupEnvironment` record was created.
-        GroupEnvironment.objects.get(
+        instance = GroupEnvironment.objects.get(
             group_id=event.group_id,
             environment_id=Environment.objects.get(
                 organization_id=self.project.organization_id,
                 name=event.get_tag('environment'),
             ).id,
         )
+
+        assert Release.objects.get(id=instance.first_release_id).version == release_version
 
         # Ensure that the first event in the (group, environment) pair is
         # marked as being part of a new environment.
