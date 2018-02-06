@@ -2,12 +2,15 @@ import timezones from '../timezones';
 import languages from '../languages';
 
 // Export route to make these forms searchable by label/help
-export const route = '/settings/account/appearance/';
+export const route = '/settings/account/details/';
+
+// Called before sending API request, these fields need to be sent as an `options` object
+const transformOptions = data => ({options: data});
 
 const formGroups = [
   {
     // Form "section"/"panel"
-    title: 'Events',
+    title: 'Preferences',
     fields: [
       {
         name: 'stacktraceOrder',
@@ -22,30 +25,28 @@ const formGroups = [
         // additional data/props that is related to rendering of form field rather than data
         label: 'Stacktrace Order',
         help: 'Choose the default ordering of frames in stacktraces',
+        getData: transformOptions,
       },
-    ],
-  },
-
-  {
-    title: 'Localization',
-    fields: [
       {
         name: 'language',
         type: 'choice',
         label: 'Language',
         // seems weird to have choices in initial form data
         choices: languages,
+        getData: transformOptions,
       },
       {
         name: 'timezone',
         type: 'choice',
         label: 'Timezone',
         choices: timezones,
+        getData: transformOptions,
       },
       {
         name: 'clock24Hours',
         type: 'boolean',
         label: 'Use a 24-hour clock',
+        getData: transformOptions,
       },
     ],
   },
