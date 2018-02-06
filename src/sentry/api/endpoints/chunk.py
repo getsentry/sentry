@@ -3,6 +3,7 @@ from __future__ import absolute_import
 import six
 import jsonschema
 
+from six.moves.urllib.parse import urljoin
 from rest_framework import status
 from rest_framework.response import Response
 from django.core.urlresolvers import reverse
@@ -11,8 +12,8 @@ from sentry import options
 from sentry.utils import json
 from sentry.models import File, FileBlob, FileBlobOwner
 from sentry.models.file import DEFAULT_BLOB_SIZE, ChunkFileState, ChunkAssembleType
-from sentry.api.bases.organization import OrganizationEndpoint
-from sentry.api.bases.organization import OrganizationPermission
+from sentry.api.bases.organization import (OrganizationEndpoint,
+                                           OrganizationReleasePermission)
 
 
 MAX_CHUNKS_PER_REQUEST = 16
@@ -21,7 +22,7 @@ HASH_ALGORITHM = 'sha1'
 
 
 class ChunkUploadEndpoint(OrganizationEndpoint):
-    permission_classes = (OrganizationPermission, )
+    permission_classes = (OrganizationReleasePermission, )
 
     def get(self, request, organization):
         """
@@ -34,11 +35,15 @@ class ChunkUploadEndpoint(OrganizationEndpoint):
         if len(endpoint) == 0:
             endpoint = options.get('system.url-prefix')
 
+        url = reverse('sentry-api-0-chunk-upload', args=[organization.slug])
+        endpoint = urljoin(endpoint.rstrip('/') + '/', url.lstrip('/'))
+
         return Response(
             {
-                'url': '{}{}'.format(endpoint, reverse('sentry-api-0-chunk-upload', args=[organization.slug])),
+                'url': endpoint,
                 'chunkSize': DEFAULT_BLOB_SIZE,
                 'chunksPerRequest': MAX_CHUNKS_PER_REQUEST,
+                'maxRequestSize': MAX_CHUNKS_PER_REQUEST * DEFAULT_BLOB_SIZE,
                 'concurrency': MAX_CONCURRENCY,
                 'hashAlgorithm': HASH_ALGORITHM,
             }
@@ -87,9 +92,9 @@ class ChunkUploadEndpoint(OrganizationEndpoint):
 
 
 class ChunkAssembleEndpoint(OrganizationEndpoint):
-    permission_classes = (OrganizationPermission, )
+    permission_classes = (OrganizationReleasePermission, )
 
-    def create_file_response(self, state, missing_chunks=[]):
+    def _create_file_response(self, state, missing_chunks=[]):
         """
         Helper function to create response for assemble endpoint
         """
@@ -97,6 +102,68 @@ class ChunkAssembleEndpoint(OrganizationEndpoint):
             'state': state,
             'missingChunks': missing_chunks
         }
+
+    def _check_chunk_ownership(self, organization, file_blobs, chunks, file_exists):
+        # Check the ownership of these blobs with the org
+        all_owned_blobs = FileBlobOwner.objects.filter(
+            blob__in=file_blobs,
+            organization=organization
+        ).select_related('blob').all()
+
+        owned_blobs = []
+        for owned_blob in all_owned_blobs:
+            owned_blobs.append((owned_blob.blob.id, owned_blob.blob.checksum))
+
+        # If the request does not cotain any chunks for a file
+        # we return nothing since this should never happen only
+        # if the client sends an invalid request
+        if len(chunks) == 0:
+            return self._create_file_response(
+                ChunkFileState.NOT_FOUND
+            )
+        # Only if this org already has the ownership of all blobs
+        # and the count of chunks is the same as in the request
+        # and the file already exists, we say this file is OK
+        elif len(file_blobs) == len(owned_blobs) == len(chunks) and file_exists:
+            return self._create_file_response(
+                ChunkFileState.OK
+            )
+        # If the length of owned and sent chunks is not the same
+        # we return all missing blobs
+        elif len(owned_blobs) != len(chunks):
+            # Create a missing chunks array which we return as response
+            # so the client knows which chunks to reupload
+            missing_chunks = list(chunks)
+            for blob in owned_blobs:
+                if blob[1] in missing_chunks:
+                    del missing_chunks[missing_chunks.index(blob[1])]
+            # If we have any missing chunks at all, return it to the client
+            # that we need them to assemble the file
+            if len(missing_chunks) > 0:
+                return self._create_file_response(
+                    ChunkFileState.NOT_FOUND,
+                    missing_chunks
+                )
+
+    def _check_file_blobs(self, organization, checksum, chunks):
+        files = File.objects.filter(
+            checksum=checksum
+        ).select_related('blobs').all()
+        # If there is no file at all, we try to find chunks in the db and check
+        # their ownership
+        if len(files) == 0:
+            file_blobs = FileBlob.objects.filter(
+                checksum__in=chunks
+            ).all()
+            return self._check_chunk_ownership(organization, file_blobs, chunks, False)
+        # It is possible to have multiple files in the db because
+        # we do not have a unique on the checksum
+        for file in files:
+            # We need to fetch all blobs
+            file_blobs = file.blobs.all()
+            rv = self._check_chunk_ownership(organization, file_blobs, chunks, True)
+            if rv is not None:
+                return rv
 
     def post(self, request, organization):
         """
@@ -140,57 +207,26 @@ class ChunkAssembleEndpoint(OrganizationEndpoint):
 
         from sentry.tasks.assemble import assemble_chunks
         for checksum, file_to_assemble in six.iteritems(files):
-            # If we find a file with the same checksum we return it
-            try:
-                file = File.objects.filter(
-                    checksum=checksum
-                ).select_related('blobs').get()
-                all_blobs = file.blobs.all()
-                owned_blobs = FileBlobOwner.objects.filter(
-                    blob__in=all_blobs,
-                    organization=organization
-                ).all()
-                if len(all_blobs) == len(owned_blobs):
-                    file_response[checksum] = self.create_file_response(
-                        file.headers.get('state', ChunkFileState.OK)
-                    )
-                    continue
-            except File.DoesNotExist:
-                pass
 
             name = file_to_assemble.get('name', None)
             type = file_to_assemble.get('type', ChunkAssembleType.GENERIC)
             params = file_to_assemble.get('params', {})
+            # We inject the org slug into the params
+            params['org'] = organization.slug
             chunks = file_to_assemble.get('chunks', [])
 
-            # If the request does not cotain any chunks for a file
-            # we return nothing since this should never happen only
-            # if the client sends an invalid request
-            if len(chunks) == 0:
-                file_response[checksum] = self.create_file_response(
-                    ChunkFileState.NOT_FOUND
-                )
-                continue
-
-            # Load all FileBlobs from db
-            file_blobs = FileBlob.objects.filter(
-                checksum__in=chunks
-            ).values_list('id', 'checksum')
-
-            # Create a missing chunks array which we return as response
-            # so the client knows which chunks to reupload
-            missing_chunks = list(chunks)
-            for blob in file_blobs:
-                del missing_chunks[missing_chunks.index(blob[1])]
-
-            # If we have any missing chunks at all, return it to the client
-            # that we need them to assemble the file
-            if len(missing_chunks) > 0:
-                file_response[checksum] = self.create_file_response(
-                    ChunkFileState.NOT_FOUND,
-                    missing_chunks
-                )
-                continue
+            try:
+                result = self._check_file_blobs(organization, checksum, chunks)
+                # This either returns a file OK because we already own all chunks
+                # OR we return not_found with the missing chunks (or not owned)
+                if result is not None:
+                    file_response[checksum] = result
+                    continue
+            except File.MultipleObjectsReturned:
+                return Response({'error': 'Duplicate checksum'},
+                                status=400)
+            except File.DoesNotExist:
+                pass
 
             # If we have all chunks and the file wasn't found before
             # we create a new file here with the state CREATED
@@ -201,6 +237,12 @@ class ChunkAssembleEndpoint(OrganizationEndpoint):
                 type='chunked',
                 headers={'state': ChunkFileState.CREATED}
             )
+
+            # Load all FileBlobs from db since we can be sure here we already own all
+            # chunks need to build the file
+            file_blobs = FileBlob.objects.filter(
+                checksum__in=chunks
+            ).values_list('id', 'checksum')
 
             # We need to make sure the blobs are in the order in which
             # we received them from the request.
@@ -222,9 +264,8 @@ class ChunkAssembleEndpoint(OrganizationEndpoint):
                 }
             )
 
-            file_response[checksum] = self.create_file_response(
-                file.headers.get('state', ChunkFileState.CREATED),
-                missing_chunks
+            file_response[checksum] = self._create_file_response(
+                ChunkFileState.CREATED
             )
 
         return Response(file_response, status=200)

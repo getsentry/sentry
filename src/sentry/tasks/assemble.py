@@ -3,6 +3,7 @@ from __future__ import absolute_import, print_function
 import six
 import logging
 
+from django.db import transaction
 from sentry.tasks.base import instrumented_task
 
 logger = logging.getLogger(__name__)
@@ -26,25 +27,26 @@ def assemble_chunks(type, params, file_id, file_blob_ids, checksum, **kwargs):
 
     file.headers['state'] = ChunkFileState.ASSEMBLING
     # Do the actual assembling here
-    file.assemble_from_file_blob_ids(file_blob_ids, checksum)
-    if file.headers.get('state', '') == ChunkFileState.ERROR:
-        logger.error(
-            'assemble_chunks.assemble_error',
-            extra={
-                'error': file.headers.get('error', ''),
-                'file_id': file.id
-            }
-        )
-        return
+    with transaction.atomic():
+        file.assemble_from_file_blob_ids(file_blob_ids, checksum)
+        if file.headers.get('state', '') == ChunkFileState.ERROR:
+            logger.error(
+                'assemble_chunks.assemble_error',
+                extra={
+                    'error': file.headers.get('error', ''),
+                    'file_id': file.id
+                }
+            )
+            return
 
-    # Depending on the type, we want to do additional stuff
-    # Default: Generic = Do nothing since the file is already assembled
-    if type == ChunkAssembleType.DIF:
-        # Assemble a dif here, we need to create Dsyms and symcache
-        assemble_dif(file, params)
-    else:
-        file.headers['state'] = ChunkFileState.OK
-        file.save()
+        # Depending on the type, we want to do additional stuff
+        # Default: Generic = Do nothing since the file is already assembled
+        if type == ChunkAssembleType.DIF:
+            # Assemble a dif here, we need to create Dsyms and symcache
+            assemble_dif(file, params)
+        else:
+            file.headers['state'] = ChunkFileState.OK
+            file.save()
 
 
 def assemble_dif(file, params):

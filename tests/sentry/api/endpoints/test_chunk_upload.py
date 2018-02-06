@@ -18,7 +18,7 @@ class ChunkUploadTest(APITestCase):
         self.organization = self.create_organization(owner=self.user)
         self.token = ApiToken.objects.create(
             user=self.user,
-            scope_list=['org:write'],
+            scope_list=['project:write'],
         )
         self.url = reverse('sentry-api-0-chunk-upload', args=[self.organization.slug])
 
@@ -53,7 +53,7 @@ class ChunkUploadTest(APITestCase):
     def test_wrong_api_token(self):
         token = ApiToken.objects.create(
             user=self.user,
-            scope_list=['project:read'],
+            scope_list=['org:org'],
         )
         response = self.client.get(
             self.url,

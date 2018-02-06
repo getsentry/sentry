@@ -16,7 +16,7 @@ class ChunkAssembleEndpoint(APITestCase):
         self.organization = self.create_organization(owner=self.user)
         self.token = ApiToken.objects.create(
             user=self.user,
-            scope_list=['org:write'],
+            scope_list=['project:write'],
         )
         self.url = reverse('sentry-api-0-chunk-assemble', args=[self.organization.slug])
 
@@ -77,13 +77,20 @@ class ChunkAssembleEndpoint(APITestCase):
 
         checksum = sha1(content).hexdigest()
 
+        blobs = FileBlob.objects.all()
+        checksums = []
+        for blob in blobs:
+            checksums.append(blob.checksum)
+
+        # Request to see of file is there
+        # file exists but we have no overship for the chunks
         response = self.client.post(
             self.url,
             data={
                 checksum: {
                     'type': 'dif',
                     'name': 'dif',
-                    'chunks': [checksum],
+                    'chunks': checksums,
                 }
             },
             HTTP_AUTHORIZATION='Bearer {}'.format(self.token.token)
@@ -91,10 +98,9 @@ class ChunkAssembleEndpoint(APITestCase):
 
         assert response.status_code == 200, response.content
         assert response.data[checksum]['state'] == ChunkFileState.NOT_FOUND
-        assert response.data[checksum]['missingChunks'] == [checksum]
+        assert response.data[checksum]['missingChunks'] == checksums
 
         # Now we add ownership to the blob
-
         blobs = FileBlob.objects.all()
         for blob in blobs:
             FileBlobOwner.objects.create(
@@ -102,13 +108,14 @@ class ChunkAssembleEndpoint(APITestCase):
                 organization=self.organization
             )
 
+        # Request now tells us that everything is alright
         response = self.client.post(
             self.url,
             data={
                 checksum: {
                     'type': 'dif',
                     'name': 'dif',
-                    'chunks': [checksum],
+                    'chunks': checksums,
                 }
             },
             HTTP_AUTHORIZATION='Bearer {}'.format(self.token.token)
@@ -119,6 +126,7 @@ class ChunkAssembleEndpoint(APITestCase):
         assert response.data[checksum]['missingChunks'] == []
 
         not_found_checksum = sha1('1').hexdigest()
+
         response = self.client.post(
             self.url,
             data={
@@ -151,14 +159,20 @@ class ChunkAssembleEndpoint(APITestCase):
 
         total_checksum = sha1(content2 + content1 + content3).hexdigest()
 
-        # Fake checksum to check response
-        checksum4 = sha1('1').hexdigest()
-
         # The order here is on purpose because we check for the order of checksums
         bolb1 = FileBlob.from_file(fileobj1)
+        FileBlobOwner.objects.get_or_create(
+            organization=self.organization,
+            blob=bolb1
+        )
         bolb3 = FileBlob.from_file(fileobj3)
+        FileBlobOwner.objects.get_or_create(
+            organization=self.organization,
+            blob=bolb3
+        )
         bolb2 = FileBlob.from_file(fileobj2)
 
+        # we make a request now but we are missing ownership for chunk 2
         response = self.client.post(
             self.url,
             data={
@@ -166,7 +180,7 @@ class ChunkAssembleEndpoint(APITestCase):
                     'type': 'dif',
                     'name': 'test',
                     'chunks': [
-                        checksum4, checksum1, checksum3
+                        checksum2, checksum1, checksum3
                     ]
                 }
             },
@@ -174,8 +188,15 @@ class ChunkAssembleEndpoint(APITestCase):
         )
         assert response.status_code == 200, response.content
         assert response.data[total_checksum]['state'] == ChunkFileState.NOT_FOUND
-        assert response.data[total_checksum]['missingChunks'] == [checksum4]
+        assert response.data[total_checksum]['missingChunks'] == [checksum2]
 
+        # we add ownership to chunk 2
+        FileBlobOwner.objects.get_or_create(
+            organization=self.organization,
+            blob=bolb2
+        )
+
+        # new request, ownership for all chunks is there but file does not exist yet
         response = self.client.post(
             self.url,
             data={
@@ -202,7 +223,8 @@ class ChunkAssembleEndpoint(APITestCase):
             kwargs={
                 'type': 'dif',
                 'params': {
-                    'test': 1
+                    'test': 1,
+                    'org': self.organization.slug
                 },
                 'file_id': 1,
                 'file_blob_ids': file_blob_id_order,
