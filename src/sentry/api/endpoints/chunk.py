@@ -42,7 +42,6 @@ class ChunkUploadEndpoint(OrganizationEndpoint):
             {
                 'url': endpoint,
                 'chunkSize': DEFAULT_BLOB_SIZE,
-                'chunksPerRequest': MAX_CHUNKS_PER_REQUEST,
                 'maxRequestSize': MAX_CHUNKS_PER_REQUEST * DEFAULT_BLOB_SIZE,
                 'concurrency': MAX_CONCURRENCY,
                 'hashAlgorithm': HASH_ALGORITHM,
@@ -60,10 +59,7 @@ class ChunkUploadEndpoint(OrganizationEndpoint):
         :auth: required
         """
         files = request.FILES.getlist('file')
-        if len(files) > MAX_CHUNKS_PER_REQUEST:
-            return Response({'error': 'Too many chunks'},
-                            status=status.HTTP_400_BAD_REQUEST)
-        elif len(files) == 0:
+        if len(files) == 0:
             # No files uploaded is ok
             return Response(status=status.HTTP_200_OK)
 
