@@ -6,60 +6,53 @@ from hashlib import sha1
 from django.core.urlresolvers import reverse
 from django.core.files.base import ContentFile
 
-from sentry.models import ApiToken, FileBlob, File, FileBlobIndex
+from sentry.models import ApiToken, FileBlob, File, FileBlobIndex, FileBlobOwner
 from sentry.models.file import ChunkFileState
 from sentry.testutils import APITestCase
 
 
 class ChunkAssembleEndpoint(APITestCase):
-    def test_assemble_json_scheme(self):
-        token = ApiToken.objects.create(
+    def setUp(self):
+        self.organization = self.create_organization(owner=self.user)
+        self.token = ApiToken.objects.create(
             user=self.user,
-            scope_list=['project:releases'],
+            scope_list=['org:write'],
         )
+        self.url = reverse('sentry-api-0-chunk-assemble', args=[self.organization.slug])
 
-        url = reverse('sentry-api-0-chunk-assemble')
+    def test_assemble_json_scheme(self):
         response = self.client.post(
-            url,
+            self.url,
             data={
                 'lol': 'test'
             },
-            HTTP_AUTHORIZATION='Bearer {}'.format(token.token)
+            HTTP_AUTHORIZATION='Bearer {}'.format(self.token.token)
         )
         assert response.status_code == 400, response.content
 
         checksum = sha1('1').hexdigest()
         response = self.client.post(
-            url,
+            self.url,
             data={
                 checksum: 'test'
             },
-            HTTP_AUTHORIZATION='Bearer {}'.format(token.token)
+            HTTP_AUTHORIZATION='Bearer {}'.format(self.token.token)
         )
         assert response.status_code == 400, response.content
 
         response = self.client.post(
-            url,
-            data={
-                checksum: True
-            },
-            HTTP_AUTHORIZATION='Bearer {}'.format(token.token)
-        )
-        assert response.status_code == 200, response.content
-
-        response = self.client.post(
-            url,
+            self.url,
             data={
                 checksum: {
                     'type': 'dif'
                 }
             },
-            HTTP_AUTHORIZATION='Bearer {}'.format(token.token)
+            HTTP_AUTHORIZATION='Bearer {}'.format(self.token.token)
         )
         assert response.status_code == 400, response.content
 
         response = self.client.post(
-            url,
+            self.url,
             data={
                 checksum: {
                     'type': 'dif',
@@ -67,7 +60,7 @@ class ChunkAssembleEndpoint(APITestCase):
                     'chunks': [],
                 }
             },
-            HTTP_AUTHORIZATION='Bearer {}'.format(token.token)
+            HTTP_AUTHORIZATION='Bearer {}'.format(self.token.token)
         )
         assert response.status_code == 200, response.content
         assert response.data[checksum]['state'] == ChunkFileState.NOT_FOUND
@@ -84,18 +77,41 @@ class ChunkAssembleEndpoint(APITestCase):
 
         checksum = sha1(content).hexdigest()
 
-        token = ApiToken.objects.create(
-            user=self.user,
-            scope_list=['project:releases'],
+        response = self.client.post(
+            self.url,
+            data={
+                checksum: {
+                    'type': 'dif',
+                    'name': 'dif',
+                    'chunks': [checksum],
+                }
+            },
+            HTTP_AUTHORIZATION='Bearer {}'.format(self.token.token)
         )
 
-        url = reverse('sentry-api-0-chunk-assemble')
+        assert response.status_code == 200, response.content
+        assert response.data[checksum]['state'] == ChunkFileState.NOT_FOUND
+        assert response.data[checksum]['missingChunks'] == [checksum]
+
+        # Now we add ownership to the blob
+
+        blobs = FileBlob.objects.all()
+        for blob in blobs:
+            FileBlobOwner.objects.create(
+                blob=blob,
+                organization=self.organization
+            )
+
         response = self.client.post(
-            url,
+            self.url,
             data={
-                checksum: True
+                checksum: {
+                    'type': 'dif',
+                    'name': 'dif',
+                    'chunks': [checksum],
+                }
             },
-            HTTP_AUTHORIZATION='Bearer {}'.format(token.token)
+            HTTP_AUTHORIZATION='Bearer {}'.format(self.token.token)
         )
 
         assert response.status_code == 200, response.content
@@ -104,16 +120,20 @@ class ChunkAssembleEndpoint(APITestCase):
 
         not_found_checksum = sha1('1').hexdigest()
         response = self.client.post(
-            url,
+            self.url,
             data={
-                not_found_checksum: True
+                not_found_checksum: {
+                    'type': 'dif',
+                    'name': 'dif',
+                    'chunks': [not_found_checksum],
+                }
             },
-            HTTP_AUTHORIZATION='Bearer {}'.format(token.token)
+            HTTP_AUTHORIZATION='Bearer {}'.format(self.token.token)
         )
 
         assert response.status_code == 200, response.content
         assert response.data[not_found_checksum]['state'] == ChunkFileState.NOT_FOUND
-        assert response.data[not_found_checksum]['missingChunks'] == []
+        assert response.data[not_found_checksum]['missingChunks'] == [not_found_checksum]
 
     @patch('sentry.tasks.assemble.assemble_chunks')
     def test_assemble(self, mock_assemble_chunks):
@@ -139,14 +159,8 @@ class ChunkAssembleEndpoint(APITestCase):
         bolb3 = FileBlob.from_file(fileobj3)
         bolb2 = FileBlob.from_file(fileobj2)
 
-        token = ApiToken.objects.create(
-            user=self.user,
-            scope_list=['project:releases'],
-        )
-
-        url = reverse('sentry-api-0-chunk-assemble')
         response = self.client.post(
-            url,
+            self.url,
             data={
                 total_checksum: {
                     'type': 'dif',
@@ -156,14 +170,14 @@ class ChunkAssembleEndpoint(APITestCase):
                     ]
                 }
             },
-            HTTP_AUTHORIZATION='Bearer {}'.format(token.token)
+            HTTP_AUTHORIZATION='Bearer {}'.format(self.token.token)
         )
         assert response.status_code == 200, response.content
         assert response.data[total_checksum]['state'] == ChunkFileState.NOT_FOUND
         assert response.data[total_checksum]['missingChunks'] == [checksum4]
 
         response = self.client.post(
-            url,
+            self.url,
             data={
                 total_checksum: {
                     'type': 'dif',
@@ -176,7 +190,7 @@ class ChunkAssembleEndpoint(APITestCase):
                     }
                 }
             },
-            HTTP_AUTHORIZATION='Bearer {}'.format(token.token)
+            HTTP_AUTHORIZATION='Bearer {}'.format(self.token.token)
         )
         assert response.status_code == 200, response.content
         assert response.data[total_checksum]['state'] == ChunkFileState.CREATED

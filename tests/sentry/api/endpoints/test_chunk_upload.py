@@ -14,16 +14,18 @@ from sentry.api.endpoints.chunk import (MAX_CHUNKS_PER_REQUEST, MAX_CONCURRENCY,
 
 
 class ChunkUploadTest(APITestCase):
-    def test_chunk_parameters(self):
-        token = ApiToken.objects.create(
+    def setUp(self):
+        self.organization = self.create_organization(owner=self.user)
+        self.token = ApiToken.objects.create(
             user=self.user,
-            scope_list=['project:releases'],
+            scope_list=['org:write'],
         )
+        self.url = reverse('sentry-api-0-chunk-upload', args=[self.organization.slug])
 
-        url = reverse('sentry-api-0-chunk-upload')
+    def test_chunk_parameters(self):
         response = self.client.get(
-            url,
-            HTTP_AUTHORIZATION='Bearer {}'.format(token.token),
+            self.url,
+            HTTP_AUTHORIZATION='Bearer {}'.format(self.token.token),
             format='json'
         )
 
@@ -37,43 +39,37 @@ class ChunkUploadTest(APITestCase):
         assert response.data['chunksPerRequest'] == MAX_CHUNKS_PER_REQUEST
         assert response.data['concurrency'] == MAX_CONCURRENCY
         assert response.data['hashAlgorithm'] == HASH_ALGORITHM
-        assert response.data['url'] == options.get('system.url-prefix') + url
+        assert response.data['url'] == options.get('system.url-prefix') + self.url
 
         options.set('system.upload-url-prefix', 'test')
         response = self.client.get(
-            url,
-            HTTP_AUTHORIZATION='Bearer {}'.format(token.token),
+            self.url,
+            HTTP_AUTHORIZATION='Bearer {}'.format(self.token.token),
             format='json'
         )
 
-        assert response.data['url'] == options.get('system.upload-url-prefix') + url
+        assert response.data['url'] == options.get('system.upload-url-prefix') + self.url
 
     def test_wrong_api_token(self):
         token = ApiToken.objects.create(
             user=self.user,
+            scope_list=['project:read'],
         )
-        url = reverse('sentry-api-0-chunk-upload')
         response = self.client.get(
-            url,
+            self.url,
             HTTP_AUTHORIZATION='Bearer {}'.format(token.token),
         )
         assert response.status_code == 403, response.content
 
     def test_upload(self):
-        token = ApiToken.objects.create(
-            user=self.user,
-            scope_list=['project:releases'],
-        )
-
         string1 = '1 this is my testString'
         string2 = '2 this is my testString'
 
         checksum1 = sha1(string1).hexdigest()
         checksum2 = sha1(string2).hexdigest()
 
-        url = reverse('sentry-api-0-chunk-upload')
         response = self.client.post(
-            url,
+            self.url,
             data={
                 'file':
                 [
@@ -81,7 +77,7 @@ class ChunkUploadTest(APITestCase):
                     SimpleUploadedFile(checksum2, string2)
                 ]
             },
-            HTTP_AUTHORIZATION='Bearer {}'.format(token.token),
+            HTTP_AUTHORIZATION='Bearer {}'.format(self.token.token),
             format='multipart'
         )
 
@@ -93,67 +89,49 @@ class ChunkUploadTest(APITestCase):
         assert file_blobs[1].checksum == checksum2
 
     def test_too_many_chunks(self):
-        token = ApiToken.objects.create(
-            user=self.user,
-            scope_list=['project:releases'],
-        )
-
         files = []
         for x in range(0, MAX_CHUNKS_PER_REQUEST + 1):
             content = '%s' % x
             files.append(SimpleUploadedFile(sha1(content).hexdigest(), content))
 
-        url = reverse('sentry-api-0-chunk-upload')
         response = self.client.post(
-            url,
+            self.url,
             data={
                 'file': files
             },
-            HTTP_AUTHORIZATION='Bearer {}'.format(token.token),
+            HTTP_AUTHORIZATION='Bearer {}'.format(self.token.token),
             format='multipart'
         )
 
         assert response.status_code == 400, response.content
 
     def test_too_large_chunk(self):
-        token = ApiToken.objects.create(
-            user=self.user,
-            scope_list=['project:releases'],
-        )
-
         files = []
         content = "x" * (DEFAULT_BLOB_SIZE + 1)
         files.append(SimpleUploadedFile(sha1(content).hexdigest(), content))
 
-        url = reverse('sentry-api-0-chunk-upload')
         response = self.client.post(
-            url,
+            self.url,
             data={
                 'file': files
             },
-            HTTP_AUTHORIZATION='Bearer {}'.format(token.token),
+            HTTP_AUTHORIZATION='Bearer {}'.format(self.token.token),
             format='multipart'
         )
 
         assert response.status_code == 400, response.content
 
     def test_checksum_missmatch(self):
-        token = ApiToken.objects.create(
-            user=self.user,
-            scope_list=['project:releases'],
-        )
-
         files = []
         content = "x" * (DEFAULT_BLOB_SIZE + 1)
         files.append(SimpleUploadedFile('wrong checksum', content))
 
-        url = reverse('sentry-api-0-chunk-upload')
         response = self.client.post(
-            url,
+            self.url,
             data={
                 'file': files
             },
-            HTTP_AUTHORIZATION='Bearer {}'.format(token.token),
+            HTTP_AUTHORIZATION='Bearer {}'.format(self.token.token),
             format='multipart'
         )
 
