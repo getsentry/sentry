@@ -1,5 +1,6 @@
 import Reflux from 'reflux';
 
+import {defined} from '../utils';
 import SettingsIndicatorActions from '../actions/settingsIndicatorActions';
 
 const SettingsIndicatorStore = Reflux.createStore({
@@ -19,6 +20,12 @@ const SettingsIndicatorStore = Reflux.createStore({
     this.id = options.id;
 
     this.state = {
+      options: {
+        ...options,
+
+        // Use options, else default to disable if model does not exist
+        disableUndo: defined(options.disableUno) ? options.disableUndo : !options.model,
+      },
       message,
       type,
     };

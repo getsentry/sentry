@@ -51,7 +51,10 @@ const SettingsActivity = createReactClass({
       return null;
     }
 
-    let showUndo = activity.type !== 'error' && activity.type !== 'undo';
+    let showUndo =
+      !activity.options.disableUndo &&
+      activity.type !== 'error' &&
+      activity.type !== 'undo';
 
     return (
       <Container type={activity.type}>

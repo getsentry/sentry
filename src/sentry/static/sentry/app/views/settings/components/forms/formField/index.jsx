@@ -99,7 +99,6 @@ class FormField extends React.Component {
 
     label: PropTypes.string,
     defaultValue: PropTypes.any,
-    disabled: PropTypes.oneOfType([PropTypes.bool, PropTypes.func]),
     disabledReason: PropTypes.string,
     showReturnButton: PropTypes.bool,
     help: PropTypes.oneOfType([PropTypes.string, PropTypes.element]),
@@ -107,6 +106,15 @@ class FormField extends React.Component {
     hideErrorMessage: PropTypes.bool,
     highlighted: PropTypes.bool,
     alignRight: PropTypes.bool,
+
+    /**
+     * Should field be disabled?
+     */
+    disabled: PropTypes.oneOfType([PropTypes.bool, PropTypes.func]),
+    /**
+     * Should field be visible
+     */
+    visible: PropTypes.oneOfType([PropTypes.bool, PropTypes.func]),
 
     /**
      * Should control be inline with field label
@@ -128,6 +136,7 @@ class FormField extends React.Component {
     inline: true,
     disabled: false,
     required: false,
+    visible: true,
   };
 
   static contextTypes = {
@@ -247,10 +256,16 @@ class FormField extends React.Component {
       hideErrorMessage,
       help,
       alignRight,
+      visible,
     } = this.props;
     let id = this.getId();
     let model = this.getModel();
     let isDisabled = typeof disabled === 'function' ? disabled(this.props) : disabled;
+    let isVisible = typeof visible === 'function' ? visible(this.props) : visible;
+
+    if (!isVisible) {
+      return null;
+    }
 
     return (
       <FormFieldWrapper inline={inline} highlighted={highlighted}>

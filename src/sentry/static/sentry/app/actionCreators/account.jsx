@@ -1,4 +1,5 @@
 import {Client} from '../api';
+import ConfigStore from '../stores/configStore';
 import IndicatorStore from '../stores/indicatorStore';
 
 export function disconnectIdentity(identity) {
@@ -16,4 +17,9 @@ export function disconnectIdentity(identity) {
     });
 
   return request;
+}
+
+export function updateUser(user) {
+  // Ideally we'd fire an action but this is gonna get refactored soon anyway
+  ConfigStore.set('user', user);
 }

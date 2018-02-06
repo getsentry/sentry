@@ -57,6 +57,7 @@ exports[`AccountEmails renders with emails 1`] = `
       submitLabel="Save Changes"
     >
       <JsonForm
+        additionalFieldProps={Object {}}
         forms={
           Array [
             Object {

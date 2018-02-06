@@ -11,6 +11,14 @@ export function undo() {
   SettingsIndicatorActions.undo();
 }
 
+/**
+ *
+ * @params {string} msg Message
+ * @params {string} type ['success', 'error', '']
+ * @params {object} options
+ * @params {boolean} options.disableUndo Disables undo (default false)
+ * @params {number} options.duration Duration to show indicator, default in constants
+ */
 export function addMessage(msg, type, options = {}) {
   let {duration} = options;
 
