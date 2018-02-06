@@ -5,7 +5,6 @@ import React from 'react';
 import styled from 'react-emotion';
 
 import Alert from '../../components/alert';
-import SettingsActivity from './components/settingsActivity';
 import SettingsBreadcrumb from './components/settingsBreadcrumb';
 import SettingsHeader from './components/settingsHeader';
 import SettingsSearch from './components/settingsSearch';
@@ -84,7 +83,6 @@ class SettingsLayout extends React.Component {
             <NewSettingsWarning location={this.props.location} />
           </Content>
         </Flex>
-        <SettingsActivity />
       </div>
     );
   }

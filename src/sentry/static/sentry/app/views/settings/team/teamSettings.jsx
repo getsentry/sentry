@@ -2,10 +2,7 @@ import {Box} from 'grid-emotion';
 import PropTypes from 'prop-types';
 import React from 'react';
 
-import {
-  addErrorMessage,
-  addSuccessMessage,
-} from '../../../actionCreators/settingsIndicator';
+import {addErrorMessage, saveOnBlurUndoMessage} from '../../../actionCreators/indicator';
 import AsyncView from '../../asyncView';
 import Form from '../components/forms/form';
 import JsonForm from '../components/forms/jsonForm';
@@ -47,17 +44,7 @@ export default class TeamSettings extends AsyncView {
         saveOnBlur
         allowUndo
         onSubmitSuccess={(change, model, id) => {
-          if (!model) return;
-
-          let label = model.getDescriptor(id, 'label');
-
-          if (!label) return;
-
-          addSuccessMessage(
-            `Changed ${label} from "${change.old}" to "${change.new}"`,
-            TOAST_DURATION,
-            {model, id}
-          );
+          saveOnBlurUndoMessage(change, model, id);
         }}
         onSubmitError={() => addErrorMessage('Unable to save change', TOAST_DURATION)}
         initialData={{

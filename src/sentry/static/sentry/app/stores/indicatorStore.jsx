@@ -1,10 +1,13 @@
 import Reflux from 'reflux';
 import {t} from '../locale';
+import IndicatorActions from '../actions/indicatorActions';
 
 const IndicatorStore = Reflux.createStore({
   init() {
     this.items = [];
     this.lastId = 0;
+    this.listenTo(IndicatorActions.add, this.add);
+    this.listenTo(IndicatorActions.remove, this.remove);
   },
 
   addSuccess(message) {
@@ -26,7 +29,7 @@ const IndicatorStore = Reflux.createStore({
     };
 
     if (options.duration) {
-      setTimeout(() => {
+      options.clearId = setTimeout(() => {
         this.remove(indicator);
       }, options.duration);
     }
@@ -39,6 +42,12 @@ const IndicatorStore = Reflux.createStore({
     this.items = this.items.filter(item => {
       return item !== indicator;
     });
+
+    if (indicator.options.clearId) {
+      window.clearTimeout(indicator.options.clearId);
+      indicator.options.clearId = null;
+    }
+
     this.trigger(this.items);
   },
 });
