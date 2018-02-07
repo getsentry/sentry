@@ -1,5 +1,6 @@
 import {isEqual} from 'lodash';
 import PropTypes from 'prop-types';
+import Raven from 'raven-js';
 import React from 'react';
 
 import {Client} from '../api';
@@ -159,11 +160,14 @@ class AsyncComponent extends React.Component {
 
       return result && result.status === 403;
     });
+
     if (permissionErrors) {
+      // TODO(billy): Refactor this into a new PermissionDenied component
+      Raven.captureException(new Error('Permission Denied'), {});
       return (
         <LoadingError
           message={tct(
-            'You do not have permission to access this area, please read more about [link:organizational roles]',
+            'You do not have permission to access this, please read more about [link:organizational roles]',
             {
               link: <ExternalLink href="https://docs.sentry.io/learn/membership/" />,
             }
