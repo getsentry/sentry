@@ -83,6 +83,8 @@ const theme = {
     },
   },
 
+  grid: 8,
+
   text: {
     family: '"Rubik", "Avenir Next", sans-serif',
     familyMono: 'Monaco, Consolas, "Courier New", monospace',
