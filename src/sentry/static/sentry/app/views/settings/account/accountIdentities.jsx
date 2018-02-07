@@ -9,7 +9,7 @@ import EmptyMessage from '../components/emptyMessage';
 import Panel from '../components/panel';
 import PanelBody from '../components/panelBody';
 import PanelHeader from '../components/panelHeader';
-import Row from '../components/row';
+import PanelItem from '../components/panelItem';
 import SettingsPageHeader from '../components/settingsPageHeader';
 
 const ENDPOINT = '/users/me/social-identities/';
@@ -68,7 +68,7 @@ class AccountIdentities extends AsyncView {
 
             {!isEmpty &&
               this.state.identities.map(identity => (
-                <Row key={identity.id} align="center">
+                <PanelItem key={identity.id} align="center">
                   <Box flex="1" p={2}>
                     {identity.providerLabel}
                   </Box>
@@ -81,7 +81,7 @@ class AccountIdentities extends AsyncView {
                       {t('Disconnect')}
                     </Button>
                   </Box>
-                </Row>
+                </PanelItem>
               ))}
           </PanelBody>
         </Panel>

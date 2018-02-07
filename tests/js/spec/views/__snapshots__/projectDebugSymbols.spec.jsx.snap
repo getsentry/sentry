@@ -256,12 +256,12 @@ exports[`ProjectDebugSymbols renders 1`] = `
           <div
             className=""
           >
-            <Row
+            <PanelItem
               direction="column"
               key="1.0"
               p={2}
             >
-              <StyledRow
+              <StyledPanelItem
                 direction="column"
                 p={2}
               >
@@ -274,16 +274,16 @@ exports[`ProjectDebugSymbols renders 1`] = `
                     className="glamor-37 glamor-29"
                     is={null}
                   >
-                    <HoverableRow
+                    <HoverablePanelItem
                       className="hoverable"
                       onClick={[Function]}
                     >
-                      <Row
+                      <PanelItem
                         className="hoverable glamor-33 glamor-27"
                         onClick={[Function]}
                         p={2}
                       >
-                        <StyledRow
+                        <StyledPanelItem
                           className="hoverable glamor-33 glamor-27"
                           onClick={[Function]}
                           p={2}
@@ -379,13 +379,13 @@ exports[`ProjectDebugSymbols renders 1`] = `
                               </Flex>
                             </div>
                           </Base>
-                        </StyledRow>
-                      </Row>
-                    </HoverableRow>
+                        </StyledPanelItem>
+                      </PanelItem>
+                    </HoverablePanelItem>
                   </div>
                 </Base>
-              </StyledRow>
-            </Row>
+              </StyledPanelItem>
+            </PanelItem>
           </div>
         </PanelBody>
       </div>

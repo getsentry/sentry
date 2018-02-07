@@ -66,6 +66,7 @@ exports[`OrganizationProjectsView render() Should render the projects in the sto
 
 .glamor-24 {
   box-sizing: border-box;
+  padding: 0px;
   display: -webkit-box;
   display: -webkit-flex;
   display: -ms-flexbox;
@@ -85,9 +86,6 @@ exports[`OrganizationProjectsView render() Should render the projects in the sto
   box-sizing: border-box;
   width: 50%;
   padding: 16px;
-  -webkit-flex: 1;
-  -ms-flex: 1;
-  flex: 1;
 }
 
 .glamor-17 {
@@ -98,12 +96,6 @@ exports[`OrganizationProjectsView render() Should render the projects in the sto
   border: none;
   background-color: inherit;
   padding: 0;
-}
-
-.glamor-22 {
-  box-sizing: border-box;
-  width: 50%;
-  padding: 16px;
 }
 
 <OrganizationProjectsViewContainer
@@ -267,197 +259,202 @@ exports[`OrganizationProjectsView render() Should render the projects in the sto
                 <div
                   className="glamor-28"
                 >
-                  <_default
+                  <PanelItem
                     align="center"
                     key="2"
+                    p={0}
                   >
-                    <Base
+                    <StyledPanelItem
                       align="center"
-                      className="glamor-24 glamor-25"
+                      p={0}
                     >
-                      <div
+                      <Base
+                        align="center"
                         className="glamor-24 glamor-25"
-                        is={null}
+                        p={0}
                       >
-                        <Box
-                          flex="1"
-                          p={2}
-                          w={0.5}
+                        <div
+                          className="glamor-24 glamor-25"
+                          is={null}
                         >
-                          <Base
-                            className="glamor-20"
-                            flex="1"
+                          <Box
                             p={2}
                             w={0.5}
                           >
-                            <div
+                            <Base
                               className="glamor-20"
-                              is={null}
+                              p={2}
+                              w={0.5}
                             >
-                              <ProjectItem
-                                organization={
-                                  Object {
-                                    "access": Array [
-                                      "org:read",
-                                      "org:write",
-                                      "org:admin",
-                                      "project:read",
-                                      "project:write",
-                                      "project:admin",
-                                      "team:read",
-                                      "team:write",
-                                      "team:admin",
-                                    ],
-                                    "features": Array [],
-                                    "id": "3",
-                                    "name": "Organization Name",
-                                    "onboardingTasks": Array [],
-                                    "slug": "org-slug",
-                                    "status": Object {
-                                      "id": "active",
-                                      "name": "active",
-                                    },
-                                    "teams": Array [],
-                                  }
-                                }
-                                project={
-                                  Object {
-                                    "digestsMaxDelay": 60,
-                                    "digestsMinDelay": 5,
-                                    "id": "2",
-                                    "name": "Project Name",
-                                    "slug": "project-slug",
-                                    "subjectTemplate": "[$project] \${tag:level}: $title",
-                                  }
-                                }
+                              <div
+                                className="glamor-20"
+                                is={null}
                               >
-                                <div
-                                  className={null}
-                                  key="2"
+                                <ProjectItem
+                                  organization={
+                                    Object {
+                                      "access": Array [
+                                        "org:read",
+                                        "org:write",
+                                        "org:admin",
+                                        "project:read",
+                                        "project:write",
+                                        "project:admin",
+                                        "team:read",
+                                        "team:write",
+                                        "team:admin",
+                                      ],
+                                      "features": Array [],
+                                      "id": "3",
+                                      "name": "Organization Name",
+                                      "onboardingTasks": Array [],
+                                      "slug": "org-slug",
+                                      "status": Object {
+                                        "id": "active",
+                                        "name": "active",
+                                      },
+                                      "teams": Array [],
+                                    }
+                                  }
+                                  project={
+                                    Object {
+                                      "digestsMaxDelay": 60,
+                                      "digestsMinDelay": 5,
+                                      "id": "2",
+                                      "name": "Project Name",
+                                      "slug": "project-slug",
+                                      "subjectTemplate": "[$project] \${tag:level}: $title",
+                                    }
+                                  }
                                 >
-                                  <Tooltip
-                                    title="Add to bookmarks"
+                                  <div
+                                    className={null}
+                                    key="2"
                                   >
-                                    <InlineButton
-                                      className="tip"
-                                      onClick={[Function]}
+                                    <Tooltip
                                       title="Add to bookmarks"
                                     >
-                                      <button
-                                        className="tip glamor-15 glamor-16"
+                                      <InlineButton
+                                        className="tip"
                                         onClick={[Function]}
                                         title="Add to bookmarks"
                                       >
-                                        <span
-                                          className="icon-star-outline bookmark"
-                                        />
-                                      </button>
-                                    </InlineButton>
-                                  </Tooltip>
-                                  <Link
-                                    className="glamor-17"
-                                    to="/settings/organization/org-slug/project/project-slug/"
-                                  >
-                                    <Link
-                                      className="glamor-17"
-                                      onlyActiveOnIndex={false}
-                                      style={Object {}}
-                                      to="/settings/organization/org-slug/project/project-slug/"
-                                    >
-                                      <a
-                                        className="glamor-17"
-                                        onClick={[Function]}
-                                        style={Object {}}
-                                      >
-                                        <ProjectLabel
-                                          organization={
-                                            Object {
-                                              "access": Array [
-                                                "org:read",
-                                                "org:write",
-                                                "org:admin",
-                                                "project:read",
-                                                "project:write",
-                                                "project:admin",
-                                                "team:read",
-                                                "team:write",
-                                                "team:admin",
-                                              ],
-                                              "features": Array [],
-                                              "id": "3",
-                                              "name": "Organization Name",
-                                              "onboardingTasks": Array [],
-                                              "slug": "org-slug",
-                                              "status": Object {
-                                                "id": "active",
-                                                "name": "active",
-                                              },
-                                              "teams": Array [],
-                                            }
-                                          }
-                                          project={
-                                            Object {
-                                              "digestsMaxDelay": 60,
-                                              "digestsMinDelay": 5,
-                                              "id": "2",
-                                              "name": "Project Name",
-                                              "slug": "project-slug",
-                                              "subjectTemplate": "[$project] \${tag:level}: $title",
-                                            }
-                                          }
+                                        <button
+                                          className="tip glamor-15 glamor-16"
+                                          onClick={[Function]}
+                                          title="Add to bookmarks"
                                         >
                                           <span
-                                            className="project-label"
+                                            className="icon-star-outline bookmark"
+                                          />
+                                        </button>
+                                      </InlineButton>
+                                    </Tooltip>
+                                    <Link
+                                      className="glamor-17"
+                                      to="/settings/organization/org-slug/project/project-slug/"
+                                    >
+                                      <Link
+                                        className="glamor-17"
+                                        onlyActiveOnIndex={false}
+                                        style={Object {}}
+                                        to="/settings/organization/org-slug/project/project-slug/"
+                                      >
+                                        <a
+                                          className="glamor-17"
+                                          onClick={[Function]}
+                                          style={Object {}}
+                                        >
+                                          <ProjectLabel
+                                            organization={
+                                              Object {
+                                                "access": Array [
+                                                  "org:read",
+                                                  "org:write",
+                                                  "org:admin",
+                                                  "project:read",
+                                                  "project:write",
+                                                  "project:admin",
+                                                  "team:read",
+                                                  "team:write",
+                                                  "team:admin",
+                                                ],
+                                                "features": Array [],
+                                                "id": "3",
+                                                "name": "Organization Name",
+                                                "onboardingTasks": Array [],
+                                                "slug": "org-slug",
+                                                "status": Object {
+                                                  "id": "active",
+                                                  "name": "active",
+                                                },
+                                                "teams": Array [],
+                                              }
+                                            }
+                                            project={
+                                              Object {
+                                                "digestsMaxDelay": 60,
+                                                "digestsMinDelay": 5,
+                                                "id": "2",
+                                                "name": "Project Name",
+                                                "slug": "project-slug",
+                                                "subjectTemplate": "[$project] \${tag:level}: $title",
+                                              }
+                                            }
                                           >
                                             <span
-                                              className="project-name"
+                                              className="project-label"
                                             >
-                                              Project Name
+                                              <span
+                                                className="project-name"
+                                              >
+                                                Project Name
+                                              </span>
                                             </span>
-                                          </span>
-                                        </ProjectLabel>
-                                      </a>
+                                          </ProjectLabel>
+                                        </a>
+                                      </Link>
                                     </Link>
-                                  </Link>
-                                </div>
-                              </ProjectItem>
-                            </div>
-                          </Base>
-                        </Box>
-                        <Box
-                          p={2}
-                          w={0.5}
-                        >
-                          <Base
-                            className="glamor-22"
+                                  </div>
+                                </ProjectItem>
+                              </div>
+                            </Base>
+                          </Box>
+                          <Box
                             p={2}
                             w={0.5}
                           >
-                            <div
-                              className="glamor-22"
-                              is={null}
+                            <Base
+                              className="glamor-20"
+                              p={2}
+                              w={0.5}
                             >
-                              <ProjectListItem
-                                key="2"
-                                project={
-                                  Object {
-                                    "digestsMaxDelay": 60,
-                                    "digestsMinDelay": 5,
-                                    "id": "2",
-                                    "name": "Project Name",
-                                    "slug": "project-slug",
-                                    "subjectTemplate": "[$project] \${tag:level}: $title",
-                                  }
-                                }
+                              <div
+                                className="glamor-20"
+                                is={null}
                               >
-                                <div />
-                              </ProjectListItem>
-                            </div>
-                          </Base>
-                        </Box>
-                      </div>
-                    </Base>
-                  </_default>
+                                <ProjectListItem
+                                  key="2"
+                                  project={
+                                    Object {
+                                      "digestsMaxDelay": 60,
+                                      "digestsMinDelay": 5,
+                                      "id": "2",
+                                      "name": "Project Name",
+                                      "slug": "project-slug",
+                                      "subjectTemplate": "[$project] \${tag:level}: $title",
+                                    }
+                                  }
+                                >
+                                  <div />
+                                </ProjectListItem>
+                              </div>
+                            </Base>
+                          </Box>
+                        </div>
+                      </Base>
+                    </StyledPanelItem>
+                  </PanelItem>
                 </div>
               </PanelBody>
             </div>

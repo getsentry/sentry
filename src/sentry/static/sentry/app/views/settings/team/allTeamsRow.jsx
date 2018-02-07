@@ -99,11 +99,11 @@ const AllTeamsRow = createReactClass({
   render() {
     let {access, team, urlPrefix, openMembership} = this.props;
     return (
-      <PanelItem align="center">
-        <Box w={1 / 2} p={2}>
+      <PanelItem p={0} align="center">
+        <Box flex="1" p={2}>
           {team.name}
         </Box>
-        <Box w={1 / 2} p={2} style={{textAlign: 'right'}}>
+        <Box p={2}>
           {this.state.loading ? (
             <a className="btn btn-default btn-sm btn-loading btn-disabled">...</a>
           ) : team.isMember ? (
