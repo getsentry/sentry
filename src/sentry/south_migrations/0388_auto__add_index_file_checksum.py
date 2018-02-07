@@ -4,16 +4,27 @@ from south.db import db
 from south.v2 import SchemaMigration
 from django.db import models
 
+from sentry.utils.db import is_postgres
+
 
 class Migration(SchemaMigration):
 
     # Flag to indicate if this migration is too risky
     # to run online and needs to be coordinated for offline
-    is_dangerous = False
+    is_dangerous = True
 
     def forwards(self, orm):
         # Adding index on 'File', fields ['checksum']
-        db.create_index('sentry_file', ['checksum'])
+        if is_postgres():
+            db.commit_transaction()
+            db.execute(
+                "CREATE INDEX CONCURRENTLY {} ON sentry_file (checksum)".format(
+                    db.create_index_name('sentry_file', ['checksum']),
+                )
+            )
+            db.start_transaction()
+        else:
+            db.create_index('sentry_file', ['checksum'])
 
     def backwards(self, orm):
         # Removing index on 'File', fields ['checksum']
