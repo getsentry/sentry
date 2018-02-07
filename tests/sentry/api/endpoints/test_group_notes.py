@@ -131,11 +131,6 @@ class GroupNoteCreateTest(APITestCase):
         # team that IS NOT part of the project
         self.team2 = self.create_team(organization=self.org, name='Blue Team')
 
-        # ProjectTeam.objects.create(
-        # project=self.group.project,
-        # team_id=self.team2.id,
-        # )
-
         self.create_member(
             user=self.user,
             organization=self.org,
