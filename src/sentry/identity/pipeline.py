@@ -57,4 +57,7 @@ class IdentityProviderPipeline(Pipeline):
 
         self.state.clear()
 
-        return HttpResponseRedirect(reverse('sentry-account-settings-identities'))
+        # TODO(epurkhiser): When we have more identities and have built out an
+        # idententity managment page that supports these new identities (not
+        # social-auth ones), redirect to the identities page.
+        return HttpResponseRedirect(reverse('sentry-account-settings'))
