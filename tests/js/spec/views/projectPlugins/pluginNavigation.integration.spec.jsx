@@ -47,11 +47,9 @@ describe('PluginNavigation Integration', function() {
         </div>,
         {
           context: {
-            team: TestStubs.Team(),
             router: TestStubs.router(),
           },
           childContextTypes: {
-            team: PropTypes.object,
             router: PropTypes.object,
           },
         }
