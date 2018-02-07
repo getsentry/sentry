@@ -1,6 +1,27 @@
+import React from 'react';
+
 import {t} from '../../../locale';
+import withLatestContext from '../../../utils/withLatestContext';
+import SentryTypes from '../../../proptypes';
 
 const pathPrefix = '/settings/organization/:orgId';
+
+const Badge = withLatestContext(
+  class BadgeComponent extends React.Component {
+    static propTypes = {
+      organization: SentryTypes.Organization,
+    };
+
+    render() {
+      let {organization} = this.props;
+      if (!organization) return null;
+      let {pendingAccessRequests} = organization;
+      if (pendingAccessRequests <= 0) return null;
+      // cast to string
+      return `${pendingAccessRequests}`;
+    }
+  }
+);
 
 const organizationNavigation = [
   {
@@ -28,11 +49,9 @@ const organizationNavigation = [
         path: `${pathPrefix}/members/`,
         title: t('Members'),
         // eslint-disable-next-line no-shadow
-        badge: ({organization, access, features}) => {
+        badge: ({access}) => {
           if (!access.has('org:write')) return null;
-          if (organization.pendingAccessRequests <= 0) return null;
-
-          return `${organization.pendingAccessRequests}`;
+          return <Badge />;
         },
         show: ({access}) => access.has('member:read'),
       },
