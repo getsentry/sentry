@@ -30,7 +30,7 @@ class CreateProjectTest(AcceptanceTestCase):
         self.browser.snapshot(name='create project')
 
         self.browser.click('.new-project-submit')
-        self.browser.wait_until(title='Mariachi Band / Java')
+        self.browser.wait_until(title='Java')
 
         project = Project.objects.get(organization=self.org)
         assert project.name == 'Java'

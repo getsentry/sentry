@@ -33,12 +33,10 @@ describe('ProjectPluginsContainer', function() {
       {
         context: {
           router: TestStubs.router(),
-          team: TestStubs.Team(),
         },
 
         childContextTypes: {
           router: PropTypes.object,
-          team: PropTypes.object,
         },
       }
     );

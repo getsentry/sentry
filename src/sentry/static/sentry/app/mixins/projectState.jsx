@@ -1,8 +1,8 @@
 import SentryTypes from '../proptypes';
-import TeamState from './teamState';
+import OrganizationState from './organizationState';
 
 let ProjectState = {
-  mixins: [TeamState],
+  mixins: [OrganizationState],
 
   contextTypes: {
     project: SentryTypes.Project,

@@ -12,7 +12,6 @@ describe('GroupReleaseStats', function() {
         context: {
           organization: TestStubs.Organization(),
           project: TestStubs.Project(),
-          team: TestStubs.Team(),
           group: TestStubs.Group(),
         },
       }

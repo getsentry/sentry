@@ -117,7 +117,6 @@ const ProjectCrumb = withProjects(
 
 ProjectCrumb.displayName = 'ProjectCrumb';
 ProjectCrumb.propTypes = {
-  team: SentryTypes.Team,
   organizationDetails: SentryTypes.Organization,
   routes: PropTypes.array,
   route: PropTypes.object,
@@ -172,7 +171,6 @@ class SettingsBreadcrumb extends React.Component {
 
   static contextTypes = {
     organization: SentryTypes.Organization,
-    team: SentryTypes.Team,
   };
 
   render() {
@@ -205,7 +203,6 @@ class SettingsBreadcrumb extends React.Component {
           return (
             <CrumbPicker
               key={`${route.name}:${route.path}`}
-              team={this.context.team}
               routes={routes}
               params={params}
               route={route}
