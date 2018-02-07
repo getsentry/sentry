@@ -23,3 +23,13 @@ export function openSudo({retryRequest, onClose} = {}) {
       openModal(deps => <SudoModal {...deps} retryRequest={retryRequest} />, {onClose})
     );
 }
+
+export function openDiffModal(options) {
+  import('../components/modals/diffModal')
+    .then(mod => mod.default)
+    .then(Modal =>
+      openModal(deps => <Modal {...deps} {...options} />, {
+        modalClassName: 'diff-modal',
+      })
+    );
+}
