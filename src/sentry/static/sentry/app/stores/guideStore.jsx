@@ -45,7 +45,7 @@ const GuideStore = Reflux.createStore({
   },
 
   unregisterAnchor(anchor) {
-    this.data.anchors.pop(this.anchors.indexOf(anchor));
+    this.data.anchors.pop(this.data.anchors.indexOf(anchor));
     this.updateApplicableGuides();
     this.trigger(this.data);
   },
@@ -72,7 +72,9 @@ const GuideStore = Reflux.createStore({
     return this.data.currentGuide;
   },
 
-  getStep() { return this.data.currentStep},
+  getStep() {
+    return this.data.currentStep;
+  },
 
   setStep(step) {
     this.data.step = step;
