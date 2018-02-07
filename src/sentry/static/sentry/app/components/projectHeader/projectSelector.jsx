@@ -77,32 +77,27 @@ const ProjectSelector = createReactClass({
     let org = this.props.organization;
     let filter = state.filter.toLowerCase();
     let projectList = [];
-    // since projects can be part of many teams,
-    // de-dupe projects
-    let includedProjects = new Set();
 
     let activeTeam;
     let activeProject;
-    org.teams.forEach(team => {
-      if (!team.isMember) {
+
+    org.projects.forEach(project => {
+      // TODO(jess): stop relying on this soon
+      let team = project.team;
+      if (!project.isMember) {
         return;
       }
-      team.projects.forEach(project => {
-        if (project.slug == this.props.projectId) {
-          activeProject = project;
-          activeTeam = team;
-        }
-        let fullName = [team.name, project.name, team.slug, project.slug]
-          .join(' ')
-          .toLowerCase();
-        if (filter && fullName.indexOf(filter) === -1) {
-          return;
-        }
-        if (!includedProjects.has(project.slug)) {
-          projectList.push([team, project]);
-          includedProjects.add(project.slug);
-        }
-      });
+      if (project.slug === this.props.projectId) {
+        activeProject = project;
+        activeTeam = project.team;
+      }
+      let fullName = [team.name, project.name, team.slug, project.slug]
+        .join(' ')
+        .toLowerCase();
+      if (filter && fullName.indexOf(filter) === -1) {
+        return;
+      }
+      projectList.push([team, project]);
     });
     return {
       projectList,

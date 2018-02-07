@@ -24,6 +24,48 @@ describe('ProjectSelector', function() {
         ],
       },
     ],
+    projects: [
+      {
+        slug: 'test-project',
+        name: 'Test Project',
+        isMember: true,
+        team: {
+          name: 'Test Team',
+          slug: 'test-team',
+          isMember: true,
+          projects: [
+            {
+              slug: 'test-project',
+              name: 'Test Project',
+            },
+            {
+              slug: 'another-project',
+              name: 'Another Project',
+            },
+          ],
+        },
+      },
+      {
+        slug: 'another-project',
+        name: 'Another Project',
+        isMember: true,
+        team: {
+          name: 'Test Team',
+          slug: 'test-team',
+          isMember: true,
+          projects: [
+            {
+              slug: 'test-project',
+              name: 'Test Project',
+            },
+            {
+              slug: 'another-project',
+              name: 'Another Project',
+            },
+          ],
+        },
+      },
+    ],
     access: [],
   };
 
@@ -39,6 +81,7 @@ describe('ProjectSelector', function() {
             id: 'org',
             slug: 'org-slug',
             teams: [],
+            projects: [],
             access: [],
           }}
           projectId=""
@@ -57,6 +100,7 @@ describe('ProjectSelector', function() {
             id: 'org',
             slug: 'org-slug',
             teams: [],
+            projects: [],
             access: ['project:write'],
           }}
           projectId=""
