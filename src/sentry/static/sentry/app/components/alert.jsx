@@ -10,6 +10,7 @@ const AlertWrapper = styled.div`
   font-size: 15px;
   box-shadow: ${p => p.theme.dropShadowLight};
   display: flex;
+  border-radius: ${p => p.theme.borderRadius};
 
   svg {
   }
