@@ -1,4 +1,22 @@
-/*eslint no-use-before-define:0*/
+function getChoiceField(name, data) {
+  return `<select name="${name}">
+    ${data.choices.map(opt => `<option value=${opt[0]}>${opt[1]}</option>`)}
+  </select>`;
+}
+
+function getInputField(type, name, data) {
+  return `<input name="${name}" type="${type}" placeholder="${data.placeholder}"></input>`;
+}
+
+const getFieldTypes = {
+  choice: getChoiceField,
+  number: getInputField.bind(null, 'number'),
+  string: getInputField.bind(null, 'text'),
+};
+
+function getField(name, data) {
+  return getFieldTypes[data.type](name, data);
+}
 
 export function getHtmlForNode(node) {
   let {label, formFields} = node;
@@ -11,23 +29,4 @@ export function getHtmlForNode(node) {
       return str;
     }
   });
-}
-
-function getField(name, data) {
-  const getFieldTypes = {
-    choice: getChoiceField,
-    number: getInputField.bind(null, 'number'),
-    string: getInputField.bind(null, 'text'),
-  };
-  return getFieldTypes[data.type](name, data);
-}
-
-function getChoiceField(name, data) {
-  return `<select name="${name}">
-    ${data.choices.map(opt => `<option value=${opt[0]}>${opt[1]}</option>`)}
-  </select>`;
-}
-
-function getInputField(type, name, data) {
-  return `<input name="${name}" type="${type}" placeholder="${data.placeholder}"></input>`;
 }
