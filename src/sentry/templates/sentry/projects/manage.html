@@ -98,7 +98,7 @@
       </li>
       {% for p in plugins %}
         <li>
-          <a href="{% absolute_uri '/{}/{}/settings/plugins/' project.organization.slug project.slug p.slug %}">{{ p.get_title }}</a>
+          <a href="{% absolute_uri '/{}/{}/settings/plugins/{}/' project.organization.slug project.slug p.slug %}">{{ p.get_title }}</a>
         </li>
       {% endfor %}
     </ul>

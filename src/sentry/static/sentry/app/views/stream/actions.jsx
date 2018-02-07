@@ -5,7 +5,6 @@ import Reflux from 'reflux';
 import {capitalize} from 'lodash';
 
 import ApiMixin from '../../mixins/apiMixin';
-import TooltipMixin from '../../mixins/tooltip';
 import DropdownLink from '../../components/dropdownLink';
 import IndicatorStore from '../../stores/indicatorStore';
 import MenuItem from '../../components/menuItem';
@@ -18,6 +17,7 @@ import ToolbarHeader from '../../components/toolbarHeader';
 import ResolveActions from '../../components/actions/resolve';
 import IgnoreActions from '../../components/actions/ignore';
 import ActionLink from '../../components/actions/actionLink';
+import Tooltip from '../../components/tooltip';
 
 const BULK_LIMIT_STR = '1,000';
 
@@ -115,20 +115,7 @@ const StreamActions = createReactClass({
     latestRelease: PropTypes.object,
   },
 
-  mixins: [
-    ApiMixin,
-    TooltipMixin({
-      selector: '.tip',
-      placement: 'bottom',
-      container: 'body',
-      constraints: [
-        {
-          attachment: 'together',
-        },
-      ],
-    }),
-    Reflux.listenTo(SelectedGroupStore, 'onSelectedGroupChange'),
-  ],
+  mixins: [ApiMixin, Reflux.listenTo(SelectedGroupStore, 'onSelectedGroupChange')],
 
   getDefaultProps() {
     return {hasReleases: false, latestRelease: null};
@@ -143,14 +130,6 @@ const StreamActions = createReactClass({
       allInQuerySelected: false, // all in current search query selected (e.g. 1000+)
       selectedIds: new Set(),
     };
-  },
-
-  componentWillReceiveProps({realtimeActive}) {
-    // Need to re-attach tooltips
-    if (this.props.realtimeActive !== realtimeActive) {
-      this.removeTooltips();
-      this.attachTooltips();
-    }
   },
 
   selectAll() {
@@ -392,19 +371,22 @@ const StreamActions = createReactClass({
             </div>
 
             <div className="btn-group">
-              <a
-                className="btn btn-default btn-sm hidden-xs realtime-control tip"
+              <Tooltip
                 title={`${this.props.realtimeActive
                   ? 'Pause'
                   : 'Enable'} real-time updates`}
-                onClick={this.onRealtimeChange}
               >
-                {this.props.realtimeActive ? (
-                  <span className="icon icon-pause" />
-                ) : (
-                  <span className="icon icon-play" />
-                )}
-              </a>
+                <a
+                  className="btn btn-default btn-sm hidden-xs realtime-control"
+                  onClick={this.onRealtimeChange}
+                >
+                  {this.props.realtimeActive ? (
+                    <span className="icon icon-pause" />
+                  ) : (
+                    <span className="icon icon-play" />
+                  )}
+                </a>
+              </Tooltip>
             </div>
           </div>
           <div className="hidden-sm stream-actions-assignee col-md-1" />

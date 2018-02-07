@@ -3,7 +3,7 @@ import sinon from 'sinon';
 import ConfigStore from 'app/stores/configStore';
 import MockDate from 'mockdate';
 import PropTypes from 'prop-types';
-
+import SentryTypes from 'app/proptypes';
 import Enzyme from 'enzyme';
 import Adapter from 'enzyme-adapter-react-16';
 
@@ -45,10 +45,25 @@ window.TestStubs = {
     context: {
       location: TestStubs.location(),
       router: TestStubs.router(),
+      organization: TestStubs.Organization(),
     },
     childContextTypes: {
       router: PropTypes.object,
       location: PropTypes.object,
+      organization: PropTypes.object,
+    },
+  }),
+
+  routerOrganizationContext: () => ({
+    context: {
+      location: TestStubs.location(),
+      router: TestStubs.router(),
+      organization: TestStubs.Organization(),
+    },
+    childContextTypes: {
+      router: PropTypes.object,
+      location: PropTypes.object,
+      organization: SentryTypes.Organization,
     },
   }),
 
@@ -119,6 +134,42 @@ window.TestStubs = {
     ];
   },
 
+  DebugSymbols: params => ({
+    debugSymbols: [
+      {
+        dateAdded: '2018-01-31T07:16:26.072Z',
+        dsym: {
+          headers: {'Content-Type': 'text/x-proguard+plain'},
+          sha1: 'e6d3c5185dac63eddfdc1a5edfffa32d46103b44',
+          uuid: '6dc7fdb0-d2fb-4c8e-9d6b-bb1aa98929b1',
+          objectName: 'proguard-mapping',
+          dateCreated: '2018-01-31T07:16:26.010Z',
+          cpuName: 'any',
+          id: '1',
+          symbolType: 'proguard',
+          size: 212,
+        },
+        dsymAppId: 1,
+        version: '1.0',
+        build: '1',
+        id: '1',
+      },
+    ],
+    unreferencedDebugSymbols: [],
+    apps: [
+      {
+        lastSync: '2018-01-31T07:16:26.070Z',
+        name: 'MyApp',
+        iconUrl: null,
+        platforms: '',
+        platform: 'android',
+        appId: 'com.example.myapp',
+        id: '1',
+      },
+    ],
+    ...params,
+  }),
+
   GitHubRepositoryProvider: params => {
     return {
       id: 'github',
@@ -144,6 +195,16 @@ window.TestStubs = {
       config: [],
       setupUri: '/github-integration-setup-uri/',
       ...params,
+    };
+  },
+
+  Group: () => {
+    return {
+      id: '1',
+      stats: {
+        '24h': [[1517281200, 2], [1517310000, 1]],
+        '30d': [[1514764800, 1], [1515024000, 122]],
+      },
     };
   },
 
@@ -293,6 +354,31 @@ window.TestStubs = {
     };
   },
 
+  ProjectAlertRule: () => {
+    return {
+      id: '1',
+    };
+  },
+
+  ProjectAlertRuleConfiguration: () => {
+    return {
+      actions: [
+        {
+          html: 'Send a notification for all services',
+          id: 'sentry.rules.actions.notify1',
+          label: 'Send a notification for all services',
+        },
+      ],
+      conditions: [
+        {
+          html: 'An event is seen',
+          id: 'sentry.rules.conditions.1',
+          label: 'An event is seen',
+        },
+      ],
+    };
+  },
+
   Repository: params => {
     return {
       id: '4',
@@ -363,32 +449,42 @@ window.TestStubs = {
       id: '1',
       slug: 'team-slug',
       name: 'Team Name',
+      projects: [],
       ...params,
     };
   },
-  ProjectAlertRule: () => {
-    return {
-      id: '1',
-    };
-  },
-  ProjectAlertRuleConfiguration: () => {
-    return {
-      actions: [
-        {
-          html: 'Send a notification for all services',
-          id: 'sentry.rules.actions.notify1',
-          label: 'Send a notification for all services',
-        },
-      ],
-      conditions: [
-        {
-          html: 'An event is seen',
-          id: 'sentry.rules.conditions.1',
-          label: 'An event is seen',
-        },
-      ],
-    };
-  },
+
+  UserDetails: params => ({
+    username: 'billyfirefoxusername@test.com',
+    emails: [
+      {is_verified: false, id: '20', email: 'billyfirefox@test.com2'},
+      {is_verified: true, id: '8', email: 'billyfirefox2@test.com'},
+      {is_verified: false, id: '7', email: 'billyfirefox@test.com'},
+    ],
+    isManaged: false,
+    lastActive: '2018-01-25T21:00:19.946Z',
+    identities: [],
+    id: '4',
+    isActive: true,
+    has2fa: false,
+    name: 'Firefox Billy',
+    avatarUrl:
+      'https://secure.gravatar.com/avatar/5df53e28e63099658c1ba89b8e9a7cf4?s=32&d=mm',
+    authenticators: [],
+    dateJoined: '2018-01-11T00:30:41.366Z',
+    options: {
+      timezone: 'UTC',
+      seenReleaseBroadcast: null,
+      stacktraceOrder: 'default',
+      language: 'en',
+      clock24Hours: false,
+    },
+    avatar: {avatarUuid: null, avatarType: 'letter_avatar'},
+    lastLogin: '2018-01-25T19:57:46.973Z',
+    permissions: [],
+    email: 'billyfirefox@test.com',
+    ...params,
+  }),
 };
 
 // this is very commonly used, so expose it globally

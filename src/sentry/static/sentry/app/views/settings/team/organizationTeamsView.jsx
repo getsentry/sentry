@@ -3,7 +3,6 @@ import React from 'react';
 
 import SentryTypes from '../../../proptypes';
 import {t} from '../../../locale';
-import ExpandedTeamList from './expandedTeamList';
 import AllTeamsList from './allTeamsList';
 import ListLink from '../../../components/listLink';
 import recreateRoute from '../../../utils/recreateRoute';
@@ -13,7 +12,6 @@ class OrganizationTeamsView extends React.Component {
   static propTypes = {
     allTeams: PropTypes.arrayOf(SentryTypes.Team),
     activeTeams: PropTypes.arrayOf(SentryTypes.Team),
-    projectStats: PropTypes.array,
     organization: SentryTypes.Organization,
     access: PropTypes.object,
     features: PropTypes.object,
@@ -26,7 +24,6 @@ class OrganizationTeamsView extends React.Component {
     let {
       allTeams,
       activeTeams,
-      projectStats,
       organization,
       access,
       features,
@@ -52,25 +49,19 @@ class OrganizationTeamsView extends React.Component {
 
     return (
       <div className="team-list">
-        <SettingsPageHeader title={t('Projects & Teams')} tabs={tabs} />
-        {route.allTeams /* should be AllTeamsList */ ? (
-          <AllTeamsList
-            urlPrefix={urlPrefix}
-            organization={org}
-            teamList={allTeams}
-            access={access}
-            openMembership={features.has('open-membership') || access.has('org:write')}
-          />
-        ) : (
-          <ExpandedTeamList
-            urlPrefix={urlPrefix}
-            organization={org}
-            teamList={activeTeams}
-            projectStats={projectStats}
-            hasTeams={allTeams.length !== 0}
-            access={access}
-          />
-        )}
+        <SettingsPageHeader title={t('Teams')} tabs={tabs} />
+        <AllTeamsList
+          urlPrefix={urlPrefix}
+          organization={org}
+          teamList={route.allTeams ? allTeams : activeTeams}
+          access={access}
+          openMembership={
+            !!(
+              route.allTeams &&
+              (features.has('open-membership') || access.has('org:write'))
+            )
+          }
+        />
       </div>
     );
   }

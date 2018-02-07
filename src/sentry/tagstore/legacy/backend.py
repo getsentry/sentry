@@ -279,14 +279,18 @@ class LegacyTagStorage(TagStorage):
     def get_group_tag_value(self, project_id, group_id, environment_id, key, value):
         from sentry.tagstore.exceptions import GroupTagValueNotFound
 
-        try:
-            return GroupTagValue.objects.get(
-                group_id=group_id,
-                key=key,
-                value=value,
-            )
-        except GroupTagValue.DoesNotExist:
+        value = self.get_group_list_tag_value(
+            project_id,
+            [group_id],
+            environment_id,
+            key,
+            value,
+        ).get(group_id)
+
+        if value is None:
             raise GroupTagValueNotFound
+
+        return value
 
     def get_group_tag_values(self, project_id, group_id, environment_id, key):
         qs = GroupTagValue.objects.filter(
@@ -295,6 +299,14 @@ class LegacyTagStorage(TagStorage):
         )
 
         return list(qs)
+
+    def get_group_list_tag_value(self, project_id, group_id_list, environment_id, key, value):
+        qs = GroupTagValue.objects.filter(
+            group_id__in=group_id_list,
+            key=key,
+            value=value,
+        )
+        return {result.group_id: result for result in qs}
 
     def delete_tag_key(self, project_id, key):
         from sentry.tagstore.tasks import delete_tag_key as delete_tag_key_task

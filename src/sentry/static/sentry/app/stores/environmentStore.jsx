@@ -1,6 +1,10 @@
 import Reflux from 'reflux';
 import {toTitleCase} from '../utils';
+
 import ProjectActions from '../actions/projectActions';
+import EnvironmentActions from '../actions/environmentActions';
+
+import {setDefaultEnvironment} from '../actionCreators/environments';
 
 const PRODUCTION_ENV_NAMES = new Set([
   'production',
@@ -10,13 +14,14 @@ const PRODUCTION_ENV_NAMES = new Set([
   'trunk',
 ]);
 
-const DEFAULT_ENV_NAME = '(Default Environment)';
-const DEFAULT_ROUTING_NAME = 'none';
+const DEFAULT_EMPTY_ENV_NAME = '(No Environment)';
+const DEFAULT_EMPTY_ROUTING_NAME = 'none';
 
 const EnvironmentStore = Reflux.createStore({
   init() {
     this.items = [];
     this.defaultEnvironment = null;
+    this.listenTo(EnvironmentActions.loadData, this.loadInitialData);
     this.listenTo(ProjectActions.setActive, this.onSetActiveProject);
   },
 
@@ -25,13 +30,16 @@ const EnvironmentStore = Reflux.createStore({
       id: item.id,
       name: item.name,
       get displayName() {
-        return toTitleCase(item.name) || DEFAULT_ENV_NAME;
+        return toTitleCase(item.name) || DEFAULT_EMPTY_ENV_NAME;
       },
       get urlRoutingName() {
-        return item.name || DEFAULT_ROUTING_NAME;
+        return item.name || DEFAULT_EMPTY_ROUTING_NAME;
       },
     }));
     this.trigger(this.items, 'initial');
+
+    // Update the default environment in the latest context store
+    setDefaultEnvironment(this.getDefault());
   },
 
   getByName(name) {
@@ -57,12 +65,7 @@ const EnvironmentStore = Reflux.createStore({
 
     let prodEnvs = allEnvs.filter(e => PRODUCTION_ENV_NAMES.has(e.name));
 
-    return (
-      defaultEnv ||
-      (prodEnvs.length && prodEnvs[0]) ||
-      (allEnvs.length && allEnvs[0]) ||
-      null
-    );
+    return defaultEnv || (prodEnvs.length && prodEnvs[0]) || null;
   },
 });
 

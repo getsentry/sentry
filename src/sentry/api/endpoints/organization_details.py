@@ -164,7 +164,7 @@ class OrganizationSerializer(serializers.Serializer):
                 # check if ORG_OPTIONS changed
                 if option_inst.has_changed('value'):
                     old_val = option_inst.old_value('value')
-                    changed_data[key] = 'from {} to {}'.format(old_val, option_inst.value)
+                    changed_data[key] = u'from {} to {}'.format(old_val, option_inst.value)
                 option_inst.save()
 
         if 'openMembership' in self.init_data:
@@ -199,12 +199,12 @@ class OrganizationSerializer(serializers.Serializer):
             if f is not 'flag_field':
                 if org.has_changed(f):
                     old_val = org.old_value(f)
-                    changed_data[f] = 'from {} to {}'.format(old_val, v)
+                    changed_data[f] = u'from {} to {}'.format(old_val, v)
             else:
                 # check if flag fields changed
                 for f, v in six.iteritems(org_tracked_field['flag_field']):
                     if org.flag_has_changed(f):
-                        changed_data[f] = 'to {}'.format(v)
+                        changed_data[f] = u'to {}'.format(v)
 
         org.save()
 

@@ -57,6 +57,10 @@ class LazyLoad extends React.Component {
     );
   }
 
+  componentDidCatch(error, info) {
+    this.handleFetchError(error);
+  }
+
   getComponentGetter = () => this.props.component || this.props.route.componentPromise;
 
   handleFetchError = error => {

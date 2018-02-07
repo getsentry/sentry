@@ -40,7 +40,7 @@ exports[`OrganizationRepositories renders with a repository 1`] = `
     }
     title="Repositories"
   />
-  <Styled(div)>
+  <Panel>
     <PanelHeader
       disablePadding={true}
     >
@@ -58,7 +58,7 @@ exports[`OrganizationRepositories renders with a repository 1`] = `
       flex={false}
     >
       <Box>
-        <WithTheme(Styled(SpreadLayout))
+        <WithTheme(RepoRow)
           key="4"
         >
           <Box
@@ -110,10 +110,10 @@ exports[`OrganizationRepositories renders with a repository 1`] = `
               </Button>
             </Confirm>
           </Box>
-        </WithTheme(Styled(SpreadLayout))>
+        </WithTheme(RepoRow)>
       </Box>
     </PanelBody>
-  </Styled(div)>
+  </Panel>
 </div>
 `;
 
@@ -160,7 +160,7 @@ exports[`OrganizationRepositories renders with github provider 1`] = `
   <div
     className="m-b-2"
   >
-    <Styled(div)>
+    <TextBlock>
       Connecting a repository allows Sentry to capture commit data via webhooks. This enables features like suggested assignees and resolving issues via commit message. Once you've connected a repository, you can associate commits with releases via the API.
        
       <span
@@ -187,9 +187,9 @@ exports[`OrganizationRepositories renders with github provider 1`] = `
            for more details.
         </span>
       </span>
-    </Styled(div)>
+    </TextBlock>
   </div>
-  <Styled(div)
+  <Panel
     className="blankslate align-center p-x-2 p-y-1"
   >
     <div
@@ -198,9 +198,9 @@ exports[`OrganizationRepositories renders with github provider 1`] = `
     <h3>
       Sentry is better with commit data
     </h3>
-    <Styled(div)>
+    <TextBlock>
       Adding one or more repositories will enable enhanced releases and the ability to resolve Sentry Issues via git message.
-    </Styled(div)>
+    </TextBlock>
     <p
       className="m-b-1"
     >
@@ -211,7 +211,7 @@ exports[`OrganizationRepositories renders with github provider 1`] = `
         Learn more
       </a>
     </p>
-  </Styled(div)>
+  </Panel>
 </div>
 `;
 
@@ -233,7 +233,7 @@ exports[`OrganizationRepositories renders without providers 1`] = `
   <div
     className="m-b-2"
   >
-    <Styled(div)>
+    <TextBlock>
       Connecting a repository allows Sentry to capture commit data via webhooks. This enables features like suggested assignees and resolving issues via commit message. Once you've connected a repository, you can associate commits with releases via the API.
        
       <span
@@ -260,9 +260,9 @@ exports[`OrganizationRepositories renders without providers 1`] = `
            for more details.
         </span>
       </span>
-    </Styled(div)>
+    </TextBlock>
   </div>
-  <Styled(div)
+  <Panel
     className="blankslate align-center p-x-2 p-y-1"
   >
     <div
@@ -271,9 +271,9 @@ exports[`OrganizationRepositories renders without providers 1`] = `
     <h3>
       Sentry is better with commit data
     </h3>
-    <Styled(div)>
+    <TextBlock>
       Adding one or more repositories will enable enhanced releases and the ability to resolve Sentry Issues via git message.
-    </Styled(div)>
+    </TextBlock>
     <p
       className="m-b-1"
     >
@@ -284,6 +284,6 @@ exports[`OrganizationRepositories renders without providers 1`] = `
         Learn more
       </a>
     </p>
-  </Styled(div)>
+  </Panel>
 </div>
 `;

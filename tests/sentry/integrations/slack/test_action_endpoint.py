@@ -57,7 +57,7 @@ class BaseEventTest(APITestCase):
         self.response_url = 'https://hooks.slack.com/actions/T47563693/6204672533/x7ZLaiVMoECAW50Gw1ZYAXEM'
 
     def post_webhook(self, action_data=None, type='event_callback', data=None,
-                     token=None, team_id='TXXXXXXX1', callback_id=None, slack_user=None):
+                     token=None, team_id='TXXXXXXX1', callback_id=None, slack_user=None, original_message=None):
         if token is None:
             token = options.get('slack.verification-token')
 
@@ -66,6 +66,9 @@ class BaseEventTest(APITestCase):
 
         if callback_id is None:
             callback_id = json.dumps({'issue': self.group1.id})
+
+        if original_message is None:
+            original_message = {}
 
         payload = {
             'token': token,
@@ -81,7 +84,7 @@ class BaseEventTest(APITestCase):
             'callback_id': callback_id,
             'action_ts': '1458170917.164398',
             'message_ts': '1458170866.000004',
-            'original_message': {},  # unused
+            'original_message': original_message,
             'trigger_id': self.trigger_id,
             'response_url': self.response_url,
             'attachment_id': '1',
@@ -224,6 +227,24 @@ class StatusActionTest(BaseEventTest):
         )
 
         assert resp.data['text'].endswith(expect_status), resp.data['text']
+
+    def test_response_differs_on_bot_message(self):
+        status_action = {
+            'name': 'status',
+            'value': 'ignored',
+            'type': 'button'
+        }
+
+        original_message = {
+            'type': 'message',
+        }
+
+        resp = self.post_webhook(action_data=[status_action], original_message=original_message)
+        self.group1 = Group.objects.get(id=self.group1.id)
+
+        assert resp.status_code == 200, resp.content
+        assert 'attachments' in resp.data
+        assert resp.data['attachments'][0]['title'] == self.group1.title
 
     @responses.activate
     def test_resolve_issue(self):

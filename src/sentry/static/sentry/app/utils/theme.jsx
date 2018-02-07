@@ -1,5 +1,6 @@
 const theme = {
   offWhite: '#FAF9FB',
+  whiteDark: '#fbfbfc',
 
   gray1: '#BDB4C7',
   gray2: '#9585A3',
@@ -37,6 +38,7 @@ const theme = {
   pinkDark: '#DF4FA3',
 
   purple: '#6C5FC7',
+  purple2: '#6f617c', // This is from event-details
   purplelightest: '#9F92FA',
   purpleLight: '#8679E1',
   purpleDark: '#5346AE',
@@ -66,6 +68,7 @@ const theme = {
       backgroundLight: '#FFFDF7',
       background: '#f9a66d',
       border: '#E1D697',
+      textDark: '#D3BE2B',
     },
     success: {
       backgroundLight: '#F8FCF7',
@@ -82,7 +85,7 @@ const theme = {
 
   text: {
     family: '"Rubik", "Avenir Next", sans-serif',
-    familyMono: 'Monaco, monospace',
+    familyMono: 'Monaco, Consolas, "Courier New", monospace',
     lineHeightHeading: '1.15',
     lineHeightBody: '1.4',
     size: {
@@ -93,6 +96,9 @@ const theme = {
   },
 };
 
+// Aliases
 theme.textColor = theme.gray5;
+theme.success = theme.green;
+theme.error = theme.red;
 
 export default theme;

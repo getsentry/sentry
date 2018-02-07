@@ -12,13 +12,11 @@ const ProjectsStore = Reflux.createStore({
   },
 
   reset() {
-    this.items = [];
     this.itemsById = {};
   },
 
   loadInitialData(items) {
-    this.items = items;
-    this.itemsById = this.items.reduce((map, project) => {
+    this.itemsById = items.reduce((map, project) => {
       map[project.id] = project;
       return map;
     }, {});
@@ -26,7 +24,6 @@ const ProjectsStore = Reflux.createStore({
   },
 
   onCreateSuccess(project) {
-    this.items.push(project);
     this.itemsById[project.id] = project;
     this.trigger(new Set([project.id]));
   },
@@ -49,11 +46,11 @@ const ProjectsStore = Reflux.createStore({
   },
 
   getAll() {
-    return this.items;
+    return Object.values(this.itemsById);
   },
 
   getAllGroupedByOrganization() {
-    return this.items.reduce((acc, project) => {
+    return this.getAll().reduce((acc, project) => {
       const orgSlug = project.organization.slug;
       if (acc[orgSlug]) {
         acc[orgSlug].projects.push(project);
@@ -68,11 +65,11 @@ const ProjectsStore = Reflux.createStore({
   },
 
   getById(id) {
-    return this.items.find(project => project.id === id);
+    return this.getAll().find(project => project.id === id);
   },
 
   getBySlug(slug) {
-    return this.items.find(project => project.slug === slug);
+    return this.getAll().find(project => project.slug === slug);
   },
 });
 

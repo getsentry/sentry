@@ -263,8 +263,8 @@ const ProjectCspSettings = createReactClass({
         <SettingsPageHeader title={t('CSP Reports')} />
 
         <div className="alert alert-block alert-info">
-          Psst! This feature is still a work-in-progress. Thanks for being an early
-          adopter!
+          {t(`Psst! This feature is still a work-in-progress. Thanks for being an early
+          adopter!`)}
         </div>
 
         <TextBlock>

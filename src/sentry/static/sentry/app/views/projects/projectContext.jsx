@@ -5,7 +5,7 @@ import Reflux from 'reflux';
 import DocumentTitle from 'react-document-title';
 
 import ApiMixin from '../../mixins/apiMixin';
-import EnvironmentStore from '../../stores/environmentStore';
+
 import MemberListStore from '../../stores/memberListStore';
 import LoadingError from '../../components/loadingError';
 import LoadingIndicator from '../../components/loadingIndicator';
@@ -14,6 +14,7 @@ import OrganizationState from '../../mixins/organizationState';
 import SentryTypes from '../../proptypes';
 import TeamStore from '../../stores/teamStore';
 import ProjectsStore from '../../stores/projectsStore';
+import {loadEnvironments} from '../../actionCreators/environments';
 import {setActiveProject} from '../../actionCreators/projects';
 import {t} from '../../locale';
 
@@ -191,15 +192,13 @@ const ProjectContext = createReactClass({
       });
 
       this.api.request(this.getEnvironmentListEndpoint(), {
-        success: data => {
-          EnvironmentStore.loadInitialData(data);
-        },
+        success: loadEnvironments,
       });
 
       this.setState({
         loading: false,
       });
-    } else if (activeTeam && activeTeam.isMember) {
+    } else if (activeTeam && !activeTeam.isMember) {
       this.setState({
         loading: false,
         error: true,

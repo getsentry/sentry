@@ -2,13 +2,13 @@
 
 exports[`AccountEmails renders with emails 1`] = `
 <SideEffect(DocumentTitle)
-  title="Sentry"
+  title="Emails - Sentry"
 >
   <div>
     <SettingsPageHeading
       title="Emails"
     />
-    <Styled(div)>
+    <Panel>
       <PanelHeader>
         Emails
       </PanelHeader>
@@ -40,7 +40,7 @@ exports[`AccountEmails renders with emails 1`] = `
           onSetPrimary={[Function]}
         />
       </PanelBody>
-    </Styled(div)>
+    </Panel>
     <Form
       allowUndo={false}
       apiEndpoint="/users/me/emails/"
@@ -57,6 +57,7 @@ exports[`AccountEmails renders with emails 1`] = `
       submitLabel="Save Changes"
     >
       <JsonForm
+        additionalFieldProps={Object {}}
         forms={
           Array [
             Object {
@@ -76,12 +77,12 @@ exports[`AccountEmails renders with emails 1`] = `
         }
       />
     </Form>
-    <Styled(Component)
+    <AlertLink
       icon="icon-stack"
       to="/settings/account/notifications"
     >
       Wanna change how many emails you get? Use the notifications panel.
-    </Styled(Component)>
+    </AlertLink>
   </div>
 </SideEffect(DocumentTitle)>
 `;

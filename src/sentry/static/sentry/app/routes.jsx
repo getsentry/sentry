@@ -60,6 +60,7 @@ import OrganizationTeams from './views/organizationTeams';
 import ProjectAlertRules from './views/projectAlertRules';
 import ProjectAlertRuleDetails from './views/projectAlertRuleDetails';
 import ProjectAlertSettings from './views/projectAlertSettings';
+import ProjectEnvironments from './views/projectEnvironments';
 import ProjectTags from './views/projectTags';
 import ProjectChooser from './views/projectChooser';
 import ProjectCspSettings from './views/projectCspSettings';
@@ -103,6 +104,7 @@ import TeamCreate from './views/teamCreate';
 import TeamDetails from './views/teamDetails';
 import TeamMembers from './views/teamMembers';
 import TeamSettings from './views/teamSettings';
+import TeamProjects from './views/settings/team/teamProjects';
 import errorHandler from './utils/errorHandler';
 
 function appendTrailingSlash(nextState, replace) {
@@ -122,7 +124,16 @@ function appendTrailingSlash(nextState, replace) {
 const lazyLoad = cb => m => cb(null, m.default);
 
 const accountSettingsRoutes = [
-  <IndexRedirect key="account-settings-index" to="notifications/" />,
+  <IndexRedirect key="account-settings-index" to="details/" />,
+
+  <Route
+    key="details/"
+    path="details/"
+    name="Details"
+    componentPromise={() => import('./views/settings/account/accountDetails')}
+    component={errorHandler(LazyLoad)}
+  />,
+
   <Route key="notifications/" path="notifications/" name="Notifications">
     <IndexRoute
       componentPromise={() => import('./views/settings/account/accountNotifications')}
@@ -141,22 +152,6 @@ const accountSettingsRoutes = [
     path="emails/"
     name="Emails"
     componentPromise={() => import('./views/settings/account/accountEmails')}
-    component={errorHandler(LazyLoad)}
-  />,
-  <Route
-    key="avatar/"
-    path="avatar/"
-    name="Avatar"
-    componentPromise={() => import('./views/settings/account/avatar')}
-    component={errorHandler(LazyLoad)}
-  />,
-
-  <Route
-    key="appearance/"
-    path="appearance/"
-    name="Appearance"
-    componentPromise={() =>
-      import(/*webpackChunkName: "AccountAppearance"*/ './views/settings/account/accountAppearance')}
     component={errorHandler(LazyLoad)}
   />,
 
@@ -241,6 +236,12 @@ const projectSettingsRoutes = [
     name="Alerts"
     path="alerts/"
     component={errorHandler(ProjectAlertSettings)}
+  />,
+  <Route
+    key="environments/"
+    name="Environments"
+    path="environments/"
+    component={errorHandler(ProjectEnvironments)}
   />,
   <Route key="tags/" name="Tags" path="tags/" component={errorHandler(ProjectTags)} />,
   <Route
@@ -479,6 +480,7 @@ function routes() {
         <IndexRedirect to="settings/" />
         <Route path="settings/" name="Settings" component={errorHandler(TeamSettings)} />
         <Route path="members/" name="Members" component={errorHandler(TeamMembers)} />
+        <Route path="projects/" name="Projects" component={errorHandler(TeamProjects)} />
       </Route>
     </Route>,
 

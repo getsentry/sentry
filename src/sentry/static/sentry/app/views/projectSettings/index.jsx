@@ -10,6 +10,7 @@ import LoadingError from '../../components/loadingError';
 import LoadingIndicator from '../../components/loadingIndicator';
 import OrganizationState from '../../mixins/organizationState';
 import PluginNavigation from './pluginNavigation';
+import ExternalLink from '../../components/externalLink';
 
 const ProjectSettings = createReactClass({
   displayName: 'ProjectSettings',
@@ -103,6 +104,9 @@ const ProjectSettings = createReactClass({
             >
               {t('Alerts')}
             </ListLink>
+            <ListLink to={`/${orgId}/${projectId}/settings/environments/`}>
+              {t('Environments')}
+            </ListLink>
             <ListLink to={`/${orgId}/${projectId}/settings/tags/`}>{t('Tags')}</ListLink>
             <ListLink to={`/${orgId}/${projectId}/settings/issue-tracking/`}>
               {t('Issue Tracking')}
@@ -170,11 +174,22 @@ const ProjectSettings = createReactClass({
           </ul>
         </div>
         <div className="col-md-10">
-          {React.cloneElement(this.props.children, {
-            setProjectNavSection: this.props.setProjectNavSection,
-            project,
-            organization: this.context.organization,
-          })}
+          {access.has('project:write') ? (
+            React.cloneElement(this.props.children, {
+              setProjectNavSection: this.props.setProjectNavSection,
+              project,
+              organization: this.context.organization,
+            })
+          ) : (
+            <div className="alert alert-block">
+              {t(
+                'You’re restricted from accessing this page based on your organization role. Read more here: '
+              )}
+              <ExternalLink href="https://docs.sentry.io/learn/membership/">
+                https://docs.sentry.io/learn/membership/
+              </ExternalLink>
+            </div>
+          )}
         </div>
       </div>
     );

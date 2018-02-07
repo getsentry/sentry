@@ -76,7 +76,7 @@ def build_assigned_text(identity, assignee):
         )
 
     try:
-        assignee_user = User.objects.get(email=assignee)
+        assignee_user = User.objects.get(username=assignee)
     except User.DoesNotExist:
         return
 
@@ -157,7 +157,7 @@ def build_attachment(group, event=None, identity=None, actions=None):
     if status == GroupStatus.RESOLVED:
         resolve_button.update({
             'name': 'status',
-            'text': 'Unresolve Issue',
+            'text': 'Unresolve',
             'value': 'unresolved',
         })
 

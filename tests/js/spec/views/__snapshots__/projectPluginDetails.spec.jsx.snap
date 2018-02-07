@@ -236,10 +236,10 @@ exports[`ProjectPluginDetails renders 1`] = `
     }
   >
     <SideEffect(DocumentTitle)
-      title="Sentry"
+      title="Sentry - Sentry"
     >
       <DocumentTitle
-        title="Sentry"
+        title="Sentry - Sentry"
       >
         <div>
           <SettingsPageHeading
@@ -268,7 +268,7 @@ exports[`ProjectPluginDetails renders 1`] = `
             }
             title="Amazon SQS"
           >
-            <Styled(div)>
+            <Wrapper>
               <div
                 className="glamor-4 glamor-5"
               >
@@ -283,13 +283,13 @@ exports[`ProjectPluginDetails renders 1`] = `
                       className="glamor-2"
                       is={null}
                     >
-                      <Styled(div)>
+                      <Title>
                         <div
                           className="glamor-0 glamor-1"
                         >
                           Amazon SQS
                         </div>
-                      </Styled(div)>
+                      </Title>
                       <div>
                         <div
                           className="pull-right"
@@ -360,7 +360,7 @@ exports[`ProjectPluginDetails renders 1`] = `
                   </Base>
                 </Flex>
               </div>
-            </Styled(div)>
+            </Wrapper>
           </SettingsPageHeading>
           <div
             className="row"
@@ -423,7 +423,7 @@ exports[`ProjectPluginDetails renders 1`] = `
                   }
                 }
               >
-                <Styled(div)
+                <Panel
                   className="plugin-config ref-plugin-config-amazon-sqs"
                 >
                   <div
@@ -432,17 +432,17 @@ exports[`ProjectPluginDetails renders 1`] = `
                     <PanelHeader
                       hasButtons={true}
                     >
-                      <Styled(div)
+                      <StyledPanelHeader
                         hasButtons={true}
                       >
                         <div
                           className="glamor-21 glamor-22"
                         >
-                          <Styled(Component)>
+                          <StyledPanelHeading>
                             <Component
                               className="glamor-17 glamor-14"
                             >
-                              <Styled(div)
+                              <_default
                                 className="glamor-17 glamor-14"
                               >
                                 <div
@@ -486,7 +486,7 @@ exports[`ProjectPluginDetails renders 1`] = `
                                                       pluginId="amazon-sqs"
                                                       size={20}
                                                     >
-                                                      <Styled(div)
+                                                      <IntegrationIcon
                                                         image={Object {}}
                                                         size={20}
                                                       >
@@ -494,7 +494,7 @@ exports[`ProjectPluginDetails renders 1`] = `
                                                           className="glamor-6 glamor-7"
                                                           size={20}
                                                         />
-                                                      </Styled(div)>
+                                                      </IntegrationIcon>
                                                     </PluginIcon>
                                                   </div>
                                                 </Base>
@@ -509,11 +509,11 @@ exports[`ProjectPluginDetails renders 1`] = `
                                     </Base>
                                   </Flex>
                                 </div>
-                              </Styled(div)>
+                              </_default>
                             </Component>
-                          </Styled(Component)>
+                          </StyledPanelHeading>
                         </div>
-                      </Styled(div)>
+                      </StyledPanelHeader>
                     </PanelHeader>
                     <PanelBody
                       direction="column"
@@ -606,7 +606,7 @@ exports[`ProjectPluginDetails renders 1`] = `
                       </Flex>
                     </PanelBody>
                   </div>
-                </Styled(div)>
+                </Panel>
               </PluginConfig>
             </div>
             <div
