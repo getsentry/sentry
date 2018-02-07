@@ -4,12 +4,33 @@ import createReactClass from 'create-react-class';
 import ReactDOM from 'react-dom';
 import {browserHistory} from 'react-router';
 import $ from 'jquery';
+import styled from 'react-emotion';
+
 import ApiMixin from '../../mixins/apiMixin';
 import IndicatorStore from '../../stores/indicatorStore';
-import SelectInput from '../../components/selectInput';
-import {t, tct} from '../../locale';
+import {Select2Field} from '../../components/forms';
+import {t} from '../../locale';
 import LoadingIndicator from '../../components/loadingIndicator';
 import RuleNodeList from './ruleNodeList';
+
+const FREQUENCY_CHOICES = [
+  ['5', t('5 minutes')],
+  ['10', t('10 minutes')],
+  ['30', t('30 minutes')],
+  ['60', t('60 minutes')],
+  ['180', t('3 hours')],
+  ['720', t('12 hours')],
+  ['1440', t('24 hours')],
+  ['10080', t('one week')],
+  ['43200', t('30 days')],
+];
+
+const ACTION_MATCH_CHOICES = [['all', t('all')], ['any', t('any')], ['none', t('none')]];
+
+const AlertRuleRow = styled('h6')`
+  display: flex;
+  align-items: center;
+`;
 
 const RuleEditor = createReactClass({
   displayName: 'RuleEditor',
@@ -89,16 +110,8 @@ const RuleEditor = createReactClass({
     form.find('.rule-action-list .rule-form').each((_, el) => {
       actions.push(this.serializeNode(el));
     });
-    let actionMatch = $(ReactDOM.findDOMNode(this.refs.actionMatch)).val();
-    let frequency = $(ReactDOM.findDOMNode(this.refs.frequency)).val();
-    let name = $(ReactDOM.findDOMNode(this.refs.name)).val();
-    let data = {
-      actionMatch,
-      actions,
-      conditions,
-      frequency,
-      name,
-    };
+    let data = {...this.state.rule, actions, conditions};
+
     let rule = this.state.rule;
     let project = this.props.project;
     let org = this.props.organization;
@@ -136,6 +149,14 @@ const RuleEditor = createReactClass({
     return !!error[field];
   },
 
+  handleChange(prop, val) {
+    this.setState(state => {
+      let rule = {...state.rule};
+      rule[prop] = val;
+      return {rule};
+    });
+  },
+
   render() {
     if (!this.state.rule) return <LoadingIndicator />;
 
@@ -162,34 +183,32 @@ const RuleEditor = createReactClass({
             <h6>{t('Rule name')}:</h6>
             <div className="control-group">
               <input
-                ref="name"
                 type="text"
                 className="form-control"
                 defaultValue={name}
                 required={true}
                 placeholder={t('My Rule Name')}
+                onChange={e => this.handleChange('name', e.target.value)}
               />
             </div>
 
             <hr />
 
             <div className="node-match-selector">
-              <h6>
+              <AlertRuleRow>
                 {t(
                   'Every time %s of these conditions are met:',
-                  <SelectInput
-                    ref="actionMatch"
+                  <Select2Field
                     className={this.hasError('actionMatch') ? ' error' : ''}
+                    style={{marginBottom: 0, marginLeft: 5, marginRight: 5}}
+                    name="actionMatch"
                     value={actionMatch}
-                    style={{width: 80}}
                     required={true}
-                  >
-                    <option value="all">{t('all')}</option>
-                    <option value="any">{t('any')}</option>
-                    <option value="none">{t('none')}</option>
-                  </SelectInput>
+                    choices={ACTION_MATCH_CHOICES}
+                    onChange={val => this.handleChange('actionMatch', val)}
+                  />
                 )}
-              </h6>
+              </AlertRuleRow>
             </div>
 
             {this.hasError('conditions') && (
@@ -200,7 +219,6 @@ const RuleEditor = createReactClass({
               nodes={this.props.conditions}
               initialItems={conditions}
               className="rule-condition-list"
-              onChange={this.onConditionsChange}
             />
 
             <hr />
@@ -215,38 +233,25 @@ const RuleEditor = createReactClass({
               nodes={this.props.actions}
               initialItems={actions}
               className="rule-action-list"
-              onChange={this.onActionsChange}
             />
 
             <hr />
 
             <div className="node-frequency-selector">
-              <h6>
-                {tct(
-                  'Perform these actions at most once every [frequency] for an issue.',
-                  {
-                    frequency: (
-                      <SelectInput
-                        ref="frequency"
-                        className={this.hasError('frequency') ? ' error' : ''}
-                        value={frequency}
-                        style={{width: 150}}
-                        required={true}
-                      >
-                        <option value="5">{t('5 minutes')}</option>
-                        <option value="10">{t('10 minutes')}</option>
-                        <option value="30">{t('30 minutes')}</option>
-                        <option value="60">{t('60 minutes')}</option>
-                        <option value="180">{t('3 hours')}</option>
-                        <option value="720">{t('12 hours')}</option>
-                        <option value="1440">{t('24 hours')}</option>
-                        <option value="10080">{t('one week')}</option>
-                        <option value="43200">{t('30 days')}</option>
-                      </SelectInput>
-                    ),
-                  }
+              <AlertRuleRow>
+                {t(
+                  'Perform these actions at most once every %s for an issue.',
+                  <Select2Field
+                    name="frequency"
+                    className={this.hasError('frequency') ? ' error' : ''}
+                    value={frequency}
+                    style={{marginBottom: 0, marginLeft: 5, marginRight: 5, width: 140}}
+                    required={true}
+                    choices={FREQUENCY_CHOICES}
+                    onChange={val => this.handleChange('frequency', val)}
+                  />
                 )}
-              </h6>
+              </AlertRuleRow>
             </div>
 
             <div className="actions">
