@@ -31,7 +31,7 @@ exports[`OrganizationMembersView No Require Link does not have 2fa warning if us
 .glamor-85 {
   background: #fff;
   border: 1px solid;
-  margin-bottom: 30px;
+  margin-bottom: NaNpx;
   position: relative;
 }
 
@@ -1220,7 +1220,7 @@ exports[`OrganizationMembersView Require Link does not have 2fa warning if user 
 .glamor-85 {
   background: #fff;
   border: 1px solid;
-  margin-bottom: 30px;
+  margin-bottom: NaNpx;
   position: relative;
 }
 

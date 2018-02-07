@@ -8,7 +8,7 @@ exports[`OrganizationTeamProjects Should render 1`] = `
 .glamor-9 {
   background: #fff;
   border: 1px solid;
-  margin-bottom: 30px;
+  margin-bottom: NaNpx;
   position: relative;
 }
 

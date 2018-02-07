@@ -31,7 +31,7 @@ exports[`ProjectEnvironments render() renders empty message 1`] = `
 .glamor-17 {
   background: #fff;
   border: 1px solid;
-  margin-bottom: 30px;
+  margin-bottom: NaNpx;
   position: relative;
 }
 
@@ -266,7 +266,7 @@ exports[`ProjectEnvironments render() renders environment list 1`] = `
 .glamor-19 {
   background: #fff;
   border: 1px solid;
-  margin-bottom: 30px;
+  margin-bottom: NaNpx;
   position: relative;
 }
 

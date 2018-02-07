@@ -8,7 +8,7 @@ exports[`OrganizationProjectsView render() Should render the projects in the sto
 .glamor-24 {
   background: #fff;
   border: 1px solid;
-  margin-bottom: 30px;
+  margin-bottom: NaNpx;
   position: relative;
 }
 

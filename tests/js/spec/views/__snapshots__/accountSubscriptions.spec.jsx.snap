@@ -92,7 +92,7 @@ exports[`AccountSubscriptions renders list and can toggle 1`] = `
 .glamor-51 {
   background: #fff;
   border: 1px solid;
-  margin-bottom: 30px;
+  margin-bottom: NaNpx;
   position: relative;
 }
 
