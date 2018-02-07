@@ -11,15 +11,16 @@ const StyledAlert = styled(Alert)`
   padding: ${p => p.theme.grid}px ${p => p.theme.grid * 2}px;
   position: relative;
   margin: 0;
+  padding-right: 30px;
 
   .close {
     position: absolute;
-    right: -16px;
+    right: 8px;
     top: 7px;
     background: none;
     border: 0;
     opacity: 0.4;
-    padding-right: 30px;
+    transition: opacity 0.2s linear;
 
     svg {
       color: ${p => p.theme.gray4};
