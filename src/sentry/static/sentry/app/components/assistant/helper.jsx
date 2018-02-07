@@ -1,4 +1,5 @@
 import React from 'react';
+import Reflux from 'reflux';
 import {browserHistory} from 'react-router';
 import createReactClass from 'create-react-class';
 import $ from 'jquery';
@@ -11,21 +12,13 @@ import ApiMixin from '../../mixins/apiMixin';
 const AssistantHelper = createReactClass({
   displayName: 'AssistantHelper',
 
-  mixins: [ApiMixin],
+  mixins: [ApiMixin, Reflux.listenTo(GuideStore, 'onGuideChange')],
 
   getInitialState() {
     return {
       // Current URL. Determines which guide should be shown.
       pathname: null,
       isDrawerOpen: false,
-      // All available guides.
-      allGuides: null,
-      // We record guides seen on the server, but immediately after a user completes a guide
-      // it may not have been synced to the server, so the local copy helps in filtering correctly.
-      guidesSeen: new Set(),
-      // The 0-based index of the current step of the current guide.
-      // Null if the drawer is not open.
-      currentStep: null,
     };
   },
 
@@ -38,19 +31,19 @@ const AssistantHelper = createReactClass({
   },
 
   componentDidUpdate(prevProps, prevState) {
-    const guide = this.currentGuide();
+    const guide = GuideStore.getCurrentGuide();
     // Scroll to the element referenced by the current guide.
     if (
       guide &&
       this.state.isDrawerOpen &&
       this.state.currentStep !== prevState.currentStep
     ) {
-      const elementID = guide.steps[this.state.currentStep].elementID;
+      const target = guide.steps[this.state.currentStep].target;
       GuideStore.setStep(this.state.currentStep);
-      if (elementID) {
+      if (target) {
         $('html, body').animate(
           {
-            scrollTop: $('#' + elementID).offset().top,
+            scrollTop: $('#' + target).offset().top,
           },
           1000
         );
@@ -63,6 +56,7 @@ const AssistantHelper = createReactClass({
   },
 
   handleLocationChange(pathname) {
+    // If the user changes pages, close the drawer
     if (this.state.pathname != pathname) {
       this.setState({
         pathname,
@@ -70,31 +64,27 @@ const AssistantHelper = createReactClass({
         currentStep: null,
       });
     }
-  },
 
-  // Return the guide to show on the current page.
-  currentGuide() {
-    if (!this.state.allGuides) {
-      return null;
-    }
-    if (
-      this.state.pathname.match(/\/issues\/\d+\/([?]|$)/) &&
-      this.state.allGuides.issue &&
-      !this.state.guidesSeen.has(this.state.allGuides.issue.id)
-    ) {
-      return this.state.allGuides.issue;
-    }
-    return null;
+    this.setState({
+      guide: GuideStore.updateApplicableGuides(),
+    });
   },
 
   fetchGuides() {
     this.api.request('/assistant/', {
       method: 'GET',
       success: response => {
+        GuideStore.load(response);
         this.setState({
-          allGuides: response,
+          guide: GuideStore.updateApplicableGuides(),
         });
       },
+    });
+  },
+
+  onGuideChange(data) {
+    this.setState({
+      guide: data.currentGuide,
     });
   },
 
@@ -102,19 +92,12 @@ const AssistantHelper = createReactClass({
     this.setState({
       isDrawerOpen: true,
     });
-    const guide = this.currentGuide();
-    if (guide) {
-      GuideStore.setGuide(guide);
-      this.setState({
-        currentStep: 0,
-      });
-    }
   },
 
   onDrawerClose(useful = null) {
     // `useful` is a boolean if the user was on the last step of the guide and
     // submitted feedback about whether the guide was useful. Otherwise it's null.
-    const guide = this.currentGuide();
+    const guide = GuideStore.getCurrentGuide();
     if (guide) {
       if (this.state.currentStep < guide.steps.length - 1) {
         // User dismissed the guide before completing it.
@@ -168,15 +151,14 @@ const AssistantHelper = createReactClass({
   },
 
   render() {
-    const guide = this.currentGuide();
-    const cue = guide ? guide.cue : 'Need Help?';
+    const cue = this.state.guide ? this.state.guide.cue : 'Need Help?';
     return (
       <div className="assistant-container">
         {this.state.isDrawerOpen ? (
           <div className="assistant-drawer">
-            {guide ? (
+            {this.state.guide ? (
               <GuideDrawer
-                guide={guide}
+                guide={this.state.guide}
                 step={this.state.currentStep}
                 nextHandler={this.nextHandler}
                 dismissHandler={() => this.onDrawerClose()}

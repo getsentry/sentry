@@ -96,8 +96,6 @@ const SupportDrawer = createReactClass({
     );
   },
 
-  zendeskHandler() {},
-
   handleKeyUp(evt) {
     if (evt.key == 'Escape') {
       evt.preventDefault();

@@ -152,7 +152,7 @@ const App = createReactClass({
           <Alerts className="messages-container" />
           <Indicators className="indicators-container" />
           {this.props.children}
-          <AssistantHelper organizationId={2} />
+          <AssistantHelper />
         </OrganizationsLoader>
       </ThemeProvider>
     );

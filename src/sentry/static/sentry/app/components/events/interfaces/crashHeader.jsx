@@ -100,7 +100,7 @@ const CrashHeader = createReactClass({
       <div className="crash-title">
         {this.props.beforeTitle}
         {crashTitle === 'Exception' ? (
-          <GuideAnchor step={0} target="breadcrumbs" type="text" />
+          <GuideAnchor step={0} target="exception" type="text" />
         ) : null}
         <h3 className="pull-left">
           {crashTitle}

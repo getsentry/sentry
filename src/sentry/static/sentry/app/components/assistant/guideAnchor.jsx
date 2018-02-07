@@ -8,34 +8,46 @@ import GuideStore from '../../stores/guideStore';
 
 const GuideAnchor = createReactClass({
   propTypes: {
-    step: PropTypes.number.isRequired,
     target: PropTypes.string.isRequired,
     type: PropTypes.string.isRequired,
   },
 
-  mixins: [Reflux.connect(GuideStore, 'currentGuide')],
+  mixins: [Reflux.listenTo(GuideStore, 'onGuideChange')],
 
   getInitialState() {
     return {
-      currentGuide: null,
+      active: false,
     };
   },
 
+  componentDidMount() {
+    GuideStore.registerAnchor(this);
+  },
+
+  componentWillUnmount() {
+    GuideStore.unregisterAnchor(this);
+  },
+
+  onGuideChange(data) {
+    if (data.currentGuide.steps[data.currentStep].target == this.props.target) {
+      this.setState({active: true});
+    } else {
+      this.setState({active: false});
+    }
+  },
+
   render() {
-    let {step, target, type} = this.props;
+    let {target, type} = this.props;
     let {currentGuide} = this.state;
 
-    let isActive = false;
-    if (currentGuide) {
-      isActive = currentGuide.step == step;
-    }
+    currentGuide;
 
     return (
       <div className={classNames('guide-anchor', type)} onClick={this.handleClick}>
         {this.props.children}
         <span
           className={classNames(target, 'guide-anchor-ping', {
-            active: isActive,
+            active: this.state.active,
           })}
         />
       </div>
