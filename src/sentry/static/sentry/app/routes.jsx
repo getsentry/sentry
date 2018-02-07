@@ -246,13 +246,6 @@ const projectSettingsRoutes = [
     component={errorHandler(ProjectAlertSettings)}
   />,
   <Route
-    key="environments/"
-    name="Environments"
-    path="environments/"
-    component={errorHandler(ProjectEnvironments)}
-  />,
-  <Route key="tags/" name="Tags" path="tags/" component={errorHandler(ProjectTags)} />,
-  <Route
     key="alerts/rules/"
     path="alerts/rules/"
     name="Alert Rules"
@@ -270,6 +263,19 @@ const projectSettingsRoutes = [
     name="Edit Alert Rule"
     component={errorHandler(ProjectAlertRuleDetails)}
   />,
+  <Route
+    key="environments/"
+    name="Environments"
+    path="environments/"
+    component={errorHandler(ProjectEnvironments)}
+  />,
+  <Route
+    key="environments/hidden/"
+    name="Hidden Environments"
+    path="environments/hidden/"
+    component={errorHandler(ProjectEnvironments)}
+  />,
+  <Route key="tags/" name="Tags" path="tags/" component={errorHandler(ProjectTags)} />,
   <Route
     key="issue-tracking/"
     path="issue-tracking/"

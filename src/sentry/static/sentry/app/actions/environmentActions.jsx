@@ -4,6 +4,8 @@ let EnvironmentActions = Reflux.createActions([
   'setActive',
   'clearActive',
   'loadData',
+  'loadActiveData',
+  'loadHiddenData',
   'setDefault',
 ]);
 
