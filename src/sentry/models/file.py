@@ -467,7 +467,6 @@ class FileBlobOwner(Model):
 
     blob = FlexibleForeignKey('sentry.FileBlob')
     organization = FlexibleForeignKey('sentry.Organization')
-    public = models.BooleanField(default=False)
 
     class Meta:
         app_label = 'sentry'
