@@ -11,14 +11,24 @@ from sentry.models.file import ChunkFileState
 from sentry.testutils import APITestCase
 
 
-class ChunkAssembleEndpoint(APITestCase):
+class DSymFilesAssembleEndpoint(APITestCase):
     def setUp(self):
         self.organization = self.create_organization(owner=self.user)
         self.token = ApiToken.objects.create(
             user=self.user,
             scope_list=['project:write'],
         )
-        self.url = reverse('sentry-api-0-chunk-assemble', args=[self.organization.slug])
+        self.team = self.create_team(organization=self.organization)
+        self.project = self.create_project(
+            teams=[
+                self.team],
+            organization=self.organization,
+            name='foo')
+        self.url = reverse(
+            'sentry-api-0-assemble-dsym-files',
+            args=[
+                self.organization.slug,
+                self.project.slug])
 
     def test_assemble_json_scheme(self):
         response = self.client.post(
@@ -44,7 +54,6 @@ class ChunkAssembleEndpoint(APITestCase):
             self.url,
             data={
                 checksum: {
-                    'type': 'dif'
                 }
             },
             HTTP_AUTHORIZATION='Bearer {}'.format(self.token.token)
@@ -55,7 +64,6 @@ class ChunkAssembleEndpoint(APITestCase):
             self.url,
             data={
                 checksum: {
-                    'type': 'dif',
                     'name': 'dif',
                     'chunks': [],
                 }
@@ -88,7 +96,6 @@ class ChunkAssembleEndpoint(APITestCase):
             self.url,
             data={
                 checksum: {
-                    'type': 'dif',
                     'name': 'dif',
                     'chunks': checksums,
                 }
@@ -113,7 +120,6 @@ class ChunkAssembleEndpoint(APITestCase):
             self.url,
             data={
                 checksum: {
-                    'type': 'dif',
                     'name': 'dif',
                     'chunks': checksums,
                 }
@@ -131,7 +137,6 @@ class ChunkAssembleEndpoint(APITestCase):
             self.url,
             data={
                 not_found_checksum: {
-                    'type': 'dif',
                     'name': 'dif',
                     'chunks': [not_found_checksum],
                 }
@@ -143,8 +148,8 @@ class ChunkAssembleEndpoint(APITestCase):
         assert response.data[not_found_checksum]['state'] == ChunkFileState.NOT_FOUND
         assert response.data[not_found_checksum]['missingChunks'] == set([not_found_checksum])
 
-    @patch('sentry.tasks.assemble.assemble_chunks')
-    def test_assemble(self, mock_assemble_chunks):
+    @patch('sentry.tasks.assemble.assemble_dif')
+    def test_assemble(self, mock_assemble_dif):
         content1 = 'foo'.encode('utf-8')
         fileobj1 = ContentFile(content1)
         checksum1 = sha1(content1).hexdigest()
@@ -177,7 +182,6 @@ class ChunkAssembleEndpoint(APITestCase):
             self.url,
             data={
                 total_checksum: {
-                    'type': 'dif',
                     'name': 'test',
                     'chunks': [
                         checksum2, checksum1, checksum3
@@ -201,14 +205,10 @@ class ChunkAssembleEndpoint(APITestCase):
             self.url,
             data={
                 total_checksum: {
-                    'type': 'dif',
                     'name': 'test',
                     'chunks': [
                         checksum2, checksum1, checksum3
                     ],
-                    'params': {
-                        'test': 1
-                    }
                 }
             },
             HTTP_AUTHORIZATION='Bearer {}'.format(self.token.token)
@@ -219,13 +219,9 @@ class ChunkAssembleEndpoint(APITestCase):
 
         file_blob_id_order = [bolb2.id, bolb1.id, bolb3.id]
 
-        mock_assemble_chunks.apply_async.assert_called_once_with(
+        mock_assemble_dif.apply_async.assert_called_once_with(
             kwargs={
-                'type': 'dif',
-                'params': {
-                    'test': 1,
-                    'org': self.organization.slug
-                },
+                'project_id': self.project.id,
                 'file_id': 1,
                 'file_blob_ids': file_blob_id_order,
                 'checksum': total_checksum,

@@ -5,7 +5,7 @@ from hashlib import sha1
 from django.core.files.base import ContentFile
 
 from sentry.testutils import TestCase
-from sentry.tasks.assemble import assemble_chunks
+from sentry.tasks.assemble import assemble_dif
 from sentry.models import FileBlob, File
 from sentry.models.file import ChunkFileState
 
@@ -19,98 +19,6 @@ class AssembleTest(TestCase):
                 self.team],
             organization=self.organization,
             name='foo')
-
-    def test_generic(self):
-        content1 = 'foo'.encode('utf-8')
-        fileobj1 = ContentFile(content1)
-
-        content2 = 'bar'.encode('utf-8')
-        fileobj2 = ContentFile(content2)
-
-        content3 = 'baz'.encode('utf-8')
-        fileobj3 = ContentFile(content3)
-
-        total_checksum = sha1(content2 + content1 + content3).hexdigest()
-
-        # The order here is on purpose because we check for the order of checksums
-        bolb1 = FileBlob.from_file(fileobj1)
-        bolb3 = FileBlob.from_file(fileobj3)
-        bolb2 = FileBlob.from_file(fileobj2)
-
-        file = File.objects.create(
-            name='test',
-            checksum=total_checksum,
-            type='chunked',
-            headers={'state': ChunkFileState.CREATED}
-        )
-
-        file_blob_id_order = [bolb2.id, bolb1.id, bolb3.id]
-
-        assemble_chunks(
-            type='generic',
-            params={
-                'project': self.project.slug,
-                'org': self.organization.slug,
-            },
-            file_id=file.id,
-            file_blob_ids=file_blob_id_order,
-            checksum=total_checksum,
-        )
-
-        file = File.objects.filter(
-            id=file.id,
-        ).get()
-
-        assert file.headers.get('state') == ChunkFileState.OK
-
-    def test_missing_param(self):
-        content1 = 'foo'.encode('utf-8')
-        fileobj1 = ContentFile(content1)
-
-        content2 = 'bar'.encode('utf-8')
-        fileobj2 = ContentFile(content2)
-
-        content3 = 'baz'.encode('utf-8')
-        fileobj3 = ContentFile(content3)
-
-        total_checksum = sha1(content2 + content1 + content3).hexdigest()
-
-        # The order here is on purpose because we check for the order of checksums
-        bolb1 = FileBlob.from_file(fileobj1)
-        bolb3 = FileBlob.from_file(fileobj3)
-        bolb2 = FileBlob.from_file(fileobj2)
-
-        file = File.objects.create(
-            name='test',
-            checksum=total_checksum,
-            type='chunked',
-            headers={'state': ChunkFileState.CREATED}
-        )
-
-        file_blob_id_order = [bolb2.id, bolb1.id, bolb3.id]
-
-        file = File.objects.create(
-            name='test',
-            checksum=total_checksum,
-            type='chunked',
-            headers={'state': ChunkFileState.CREATED}
-        )
-
-        assemble_chunks(
-            type='dif',
-            params={
-                'project': self.project.slug,
-            },
-            file_id=file.id,
-            file_blob_ids=file_blob_id_order,
-            checksum=total_checksum,
-        )
-
-        file = File.objects.filter(
-            id=file.id,
-        ).get()
-
-        assert file.headers.get('state') == ChunkFileState.ERROR
 
     def test_wrong_dif(self):
         content1 = 'foo'.encode('utf-8')
@@ -145,12 +53,8 @@ class AssembleTest(TestCase):
             headers={'state': ChunkFileState.CREATED}
         )
 
-        assemble_chunks(
-            type='dif',
-            params={
-                'project': self.project.slug,
-                'org': self.organization.slug,
-            },
+        assemble_dif(
+            project_id=self.project.id,
             file_id=file.id,
             file_blob_ids=file_blob_id_order,
             checksum=total_checksum,
@@ -177,12 +81,8 @@ class AssembleTest(TestCase):
 
         file_blob_id_order = [bolb1.id]
 
-        assemble_chunks(
-            type='dif',
-            params={
-                'project': self.project.slug,
-                'org': self.organization.slug,
-            },
+        assemble_dif(
+            project_id=self.project.id,
             file_id=file.id,
             file_blob_ids=file_blob_id_order,
             checksum=total_checksum,

@@ -10,7 +10,7 @@ from .endpoints.auth_index import AuthIndexEndpoint
 from .endpoints.authenticator_index import AuthenticatorIndexEndpoint
 from .endpoints.broadcast_index import BroadcastIndexEndpoint
 from .endpoints.catchall import CatchallEndpoint
-from .endpoints.chunk import ChunkAssembleEndpoint, ChunkUploadEndpoint
+from .endpoints.chunk import ChunkUploadEndpoint
 from .endpoints.event_details import EventDetailsEndpoint
 from .endpoints.event_apple_crash_report import EventAppleCrashReportEndpoint
 from .endpoints.group_details import GroupDetailsEndpoint
@@ -120,7 +120,7 @@ from .endpoints.filechange import CommitFileChangeEndpoint
 from .endpoints.issues_resolved_in_release import IssuesResolvedInReleaseEndpoint
 from .endpoints.release_deploys import ReleaseDeploysEndpoint
 from .endpoints.dsym_files import DSymFilesEndpoint, \
-    UnknownDSymFilesEndpoint, AssociateDSymFilesEndpoint
+    UnknownDSymFilesEndpoint, AssociateDSymFilesEndpoint, DSymFilesAssembleEndpoint
 from .endpoints.shared_group_details import SharedGroupDetailsEndpoint
 from .endpoints.system_health import SystemHealthEndpoint
 from .endpoints.system_options import SystemOptionsEndpoint
@@ -246,11 +246,6 @@ urlpatterns = patterns(
         r'^organizations/(?P<organization_slug>[^\/]+)/chunk-upload/$',
         ChunkUploadEndpoint.as_view(),
         name='sentry-api-0-chunk-upload'
-    ),
-    url(
-        r'^organizations/(?P<organization_slug>[^\/]+)/chunk-assemble/$',
-        ChunkAssembleEndpoint.as_view(),
-        name='sentry-api-0-chunk-assemble'
     ),
     url(
         r'^organizations/$', OrganizationIndexEndpoint.as_view(), name='sentry-api-0-organizations'
@@ -533,6 +528,11 @@ urlpatterns = patterns(
         r'^projects/(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/files/dsyms/$',
         DSymFilesEndpoint.as_view(),
         name='sentry-api-0-dsym-files'
+    ),
+    url(
+        r'^projects/(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/files/dsyms/assemble/$',
+        DSymFilesAssembleEndpoint.as_view(),
+        name='sentry-api-0-assemble-dsym-files'
     ),
     url(
         r'^projects/(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/files/dsyms/unknown/$',

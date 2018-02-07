@@ -38,10 +38,6 @@ DEFAULT_BLOB_SIZE = 1024 * 1024  # one mb
 def enum(**named_values):
     return type('Enum', (), named_values)
 
-ChunkAssembleType = enum(
-    GENERIC='generic',  # Generic file
-    DIF='dif',  # Debug information file
-)
 
 ChunkFileState = enum(
     OK='ok',  # File in database
