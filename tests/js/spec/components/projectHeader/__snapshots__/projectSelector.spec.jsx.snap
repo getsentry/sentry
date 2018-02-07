@@ -6,6 +6,48 @@ exports[`ProjectSelector render() can filter projects by project name 1`] = `
     Object {
       "access": Array [],
       "id": "org",
+      "projects": Array [
+        Object {
+          "isMember": true,
+          "name": "Test Project",
+          "slug": "test-project",
+          "team": Object {
+            "isMember": true,
+            "name": "Test Team",
+            "projects": Array [
+              Object {
+                "name": "Test Project",
+                "slug": "test-project",
+              },
+              Object {
+                "name": "Another Project",
+                "slug": "another-project",
+              },
+            ],
+            "slug": "test-team",
+          },
+        },
+        Object {
+          "isMember": true,
+          "name": "Another Project",
+          "slug": "another-project",
+          "team": Object {
+            "isMember": true,
+            "name": "Test Team",
+            "projects": Array [
+              Object {
+                "name": "Test Project",
+                "slug": "test-project",
+              },
+              Object {
+                "name": "Another Project",
+                "slug": "another-project",
+              },
+            ],
+            "slug": "test-team",
+          },
+        },
+      ],
       "slug": "org",
       "teams": Array [
         Object {
@@ -155,6 +197,48 @@ exports[`ProjectSelector render() can filter projects by team name/project name 
     Object {
       "access": Array [],
       "id": "org",
+      "projects": Array [
+        Object {
+          "isMember": true,
+          "name": "Test Project",
+          "slug": "test-project",
+          "team": Object {
+            "isMember": true,
+            "name": "Test Team",
+            "projects": Array [
+              Object {
+                "name": "Test Project",
+                "slug": "test-project",
+              },
+              Object {
+                "name": "Another Project",
+                "slug": "another-project",
+              },
+            ],
+            "slug": "test-team",
+          },
+        },
+        Object {
+          "isMember": true,
+          "name": "Another Project",
+          "slug": "another-project",
+          "team": Object {
+            "isMember": true,
+            "name": "Test Team",
+            "projects": Array [
+              Object {
+                "name": "Test Project",
+                "slug": "test-project",
+              },
+              Object {
+                "name": "Another Project",
+                "slug": "another-project",
+              },
+            ],
+            "slug": "test-team",
+          },
+        },
+      ],
       "slug": "org",
       "teams": Array [
         Object {
@@ -519,6 +603,48 @@ exports[`ProjectSelector render() shows empty filter message when filtering has 
     Object {
       "access": Array [],
       "id": "org",
+      "projects": Array [
+        Object {
+          "isMember": true,
+          "name": "Test Project",
+          "slug": "test-project",
+          "team": Object {
+            "isMember": true,
+            "name": "Test Team",
+            "projects": Array [
+              Object {
+                "name": "Test Project",
+                "slug": "test-project",
+              },
+              Object {
+                "name": "Another Project",
+                "slug": "another-project",
+              },
+            ],
+            "slug": "test-team",
+          },
+        },
+        Object {
+          "isMember": true,
+          "name": "Another Project",
+          "slug": "another-project",
+          "team": Object {
+            "isMember": true,
+            "name": "Test Team",
+            "projects": Array [
+              Object {
+                "name": "Test Project",
+                "slug": "test-project",
+              },
+              Object {
+                "name": "Another Project",
+                "slug": "another-project",
+              },
+            ],
+            "slug": "test-team",
+          },
+        },
+      ],
       "slug": "org",
       "teams": Array [
         Object {
