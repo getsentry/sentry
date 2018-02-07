@@ -11,7 +11,7 @@ from sentry.models.file import ChunkFileState
 from sentry.testutils import APITestCase
 
 
-class DSymFilesAssembleEndpoint(APITestCase):
+class DifAssembleEndpoint(APITestCase):
     def setUp(self):
         self.organization = self.create_organization(owner=self.user)
         self.token = ApiToken.objects.create(
@@ -25,7 +25,7 @@ class DSymFilesAssembleEndpoint(APITestCase):
             organization=self.organization,
             name='foo')
         self.url = reverse(
-            'sentry-api-0-assemble-dsym-files',
+            'sentry-api-0-assemble-dif-files',
             args=[
                 self.organization.slug,
                 self.project.slug])
