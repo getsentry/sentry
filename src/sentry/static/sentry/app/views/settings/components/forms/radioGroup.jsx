@@ -4,13 +4,13 @@ import PropTypes from 'prop-types';
 
 import {growIn} from './styled/animations';
 
-const RadioGroup = ({value, choices, label, onChange}) => {
+const RadioGroup = ({value, choices, label, onChange, ...props}) => {
   const isSelected = id => {
     return value ? value === id : id === 0;
   };
 
   return (
-    <div role="radiogroup" aria-labelledby={label}>
+    <div {...props} role="radiogroup" aria-labelledby={label}>
       {(choices || []).map(([id, name], index) => (
         <RadioLineItem
           key={index}

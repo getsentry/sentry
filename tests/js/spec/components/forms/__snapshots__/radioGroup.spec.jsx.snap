@@ -2,6 +2,7 @@
 
 exports[`RadioGroup render() can select a different item 1`] = `
 <div
+  name="radio"
   role="radiogroup"
 >
   <RadioLineItem
@@ -52,6 +53,7 @@ exports[`RadioGroup render() can select a different item 1`] = `
 
 exports[`RadioGroup render() renders 1`] = `
 <div
+  name="radio"
   role="radiogroup"
 >
   <RadioLineItem

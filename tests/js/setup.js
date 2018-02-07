@@ -354,6 +354,31 @@ window.TestStubs = {
     };
   },
 
+  ProjectAlertRule: () => {
+    return {
+      id: '1',
+    };
+  },
+
+  ProjectAlertRuleConfiguration: () => {
+    return {
+      actions: [
+        {
+          html: 'Send a notification for all services',
+          id: 'sentry.rules.actions.notify1',
+          label: 'Send a notification for all services',
+        },
+      ],
+      conditions: [
+        {
+          html: 'An event is seen',
+          id: 'sentry.rules.conditions.1',
+          label: 'An event is seen',
+        },
+      ],
+    };
+  },
+
   Repository: params => {
     return {
       id: '4',
@@ -428,29 +453,38 @@ window.TestStubs = {
       ...params,
     };
   },
-  ProjectAlertRule: () => {
-    return {
-      id: '1',
-    };
-  },
-  ProjectAlertRuleConfiguration: () => {
-    return {
-      actions: [
-        {
-          html: 'Send a notification for all services',
-          id: 'sentry.rules.actions.notify1',
-          label: 'Send a notification for all services',
-        },
-      ],
-      conditions: [
-        {
-          html: 'An event is seen',
-          id: 'sentry.rules.conditions.1',
-          label: 'An event is seen',
-        },
-      ],
-    };
-  },
+
+  UserDetails: params => ({
+    username: 'billyfirefoxusername@test.com',
+    emails: [
+      {is_verified: false, id: '20', email: 'billyfirefox@test.com2'},
+      {is_verified: true, id: '8', email: 'billyfirefox2@test.com'},
+      {is_verified: false, id: '7', email: 'billyfirefox@test.com'},
+    ],
+    isManaged: false,
+    lastActive: '2018-01-25T21:00:19.946Z',
+    identities: [],
+    id: '4',
+    isActive: true,
+    has2fa: false,
+    name: 'Firefox Billy',
+    avatarUrl:
+      'https://secure.gravatar.com/avatar/5df53e28e63099658c1ba89b8e9a7cf4?s=32&d=mm',
+    authenticators: [],
+    dateJoined: '2018-01-11T00:30:41.366Z',
+    options: {
+      timezone: 'UTC',
+      seenReleaseBroadcast: null,
+      stacktraceOrder: 'default',
+      language: 'en',
+      clock24Hours: false,
+    },
+    avatar: {avatarUuid: null, avatarType: 'letter_avatar'},
+    lastLogin: '2018-01-25T19:57:46.973Z',
+    permissions: [],
+    email: 'billyfirefox@test.com',
+    ...params,
+  }),
 };
 
 // this is very commonly used, so expose it globally

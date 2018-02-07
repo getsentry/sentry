@@ -745,6 +745,9 @@ class EventManager(object):
         group_environment, is_new_group_environment = GroupEnvironment.get_or_create(
             group_id=group.id,
             environment_id=environment.id,
+            defaults={
+                'first_release_id': release.id if release else None,
+            },
         )
 
         if release:
