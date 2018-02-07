@@ -5,7 +5,6 @@ import createReactClass from 'create-react-class';
 import EnvironmentStore from '../stores/environmentStore';
 import LatestContextStore from '../stores/latestContextStore';
 
-import DiffModal from '../components/modals/diffModal';
 import ProjectHeader from '../components/projectHeader';
 import ProjectState from '../mixins/projectState';
 
@@ -62,8 +61,6 @@ const ProjectDetailsLayout = createReactClass({
             })}
           </div>
         </div>
-
-        <DiffModal />
       </div>
     );
   },
