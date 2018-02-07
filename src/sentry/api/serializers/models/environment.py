@@ -28,7 +28,7 @@ class EnvironmentProjectSerializer(Serializer):
     def serialize(self, obj, attrs, user):
         return {
             'name': obj.environment.name,
-            'is_hidden': obj.is_hidden is True,
+            'isHidden': obj.is_hidden is True,
         }
 
 
