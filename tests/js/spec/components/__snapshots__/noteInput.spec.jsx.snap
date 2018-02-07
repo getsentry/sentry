@@ -44,7 +44,6 @@ exports[`NoteInput renders 1`] = `
       </li>
     </ul>
     <withDefaultStyle(MentionsInput)
-      allowSpaceInQuery={true}
       autoFocus={true}
       markup="**__display__[sentry.strip:__type__]**"
       onChange={[Function]}

@@ -8,7 +8,7 @@ from rest_framework.response import Response
 from sentry.api.base import DocSection
 from sentry.api.bases.group import GroupEndpoint
 from sentry.api.serializers import serialize
-from sentry.api.serializers.rest_framework.group_notes import NoteSerializer
+from sentry.api.serializers.rest_framework.group_notes import NoteSerializer, seperateActorIds
 from sentry.models import Activity, GroupSubscription, GroupSubscriptionReason, User, Team
 from sentry.utils.functional import extract_lazy_object
 
@@ -37,8 +37,10 @@ class GroupNotesEndpoint(GroupEndpoint):
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
         data = dict(serializer.object)
-        member_mentions = data.pop('mentions', [])
-        team_mentions = data.pop('teamMentions', [])
+        mentions = data.pop('mentions', [])
+        actorMentions = seperateActorIds(mentions)
+        user_mentions = actorMentions['members']
+        team_mentions = actorMentions['teams']
 
         if Activity.objects.filter(
             group=group,
@@ -59,8 +61,8 @@ class GroupNotesEndpoint(GroupEndpoint):
         )
 
         subscribed_user_ids = set()
-        if member_mentions:
-            users = User.objects.filter(id__in=member_mentions)
+        if user_mentions:
+            users = User.objects.filter(id__in=user_mentions)
             for user in users:
                 GroupSubscription.objects.subscribe(
                     group=group,

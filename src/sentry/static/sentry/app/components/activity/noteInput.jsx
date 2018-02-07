@@ -20,6 +20,9 @@ function makeDefaultErrorJson() {
   return {detail: t('Unknown error. Please try again.')};
 }
 
+const buildUserId = id => `user:${id}`;
+const buildTeamId = id => `team:${id}`;
+
 const NoteInput = createReactClass({
   displayName: 'NoteInput',
 
@@ -32,6 +35,7 @@ const NoteInput = createReactClass({
   },
 
   mixins: [ApiMixin],
+
   getInitialState() {
     let {item, group} = this.props;
     let updating = !!item;
@@ -49,22 +53,6 @@ const NoteInput = createReactClass({
       }
     }
 
-    let memberMentionableList = _.uniqBy(this.props.memberList, ({id}) => id)
-      .filter(member => this.props.sessionUser.id !== member.id)
-      .map(member => ({
-        id: member.id,
-        display: member.name,
-        email: member.email,
-      }));
-
-    let teamMentionableList = _.uniqBy(TeamStore.getAll(), ({id}) => id)
-      .filter(({projects}) => projects.find(p => p.slug === group.project.slug) !== -1)
-      .map(team => ({
-        id: team.id,
-        display: team.slug,
-        email: team.id,
-      }));
-
     return {
       loading: false,
       error: false,
@@ -73,8 +61,6 @@ const NoteInput = createReactClass({
       preview: false,
       updating,
       value: defaultText,
-      memberMentionableList,
-      teamMentionableList,
       memberMentions: [],
       teamMentions: [],
     };
@@ -134,7 +120,6 @@ const NoteInput = createReactClass({
 
   create() {
     let {group} = this.props;
-    let {memberMentions, teamMentions} = this.state;
 
     let loadingIndicator = IndicatorStore.add(t('Posting comment..'));
 
@@ -142,8 +127,7 @@ const NoteInput = createReactClass({
       method: 'POST',
       data: {
         text: this.cleanMarkdown(this.state.value),
-        mentions: this.finalizeMentions(memberMentions),
-        teamMentions: this.finalizeMentions(teamMentions),
+        mentions: this.finalizeMentions(),
       },
       error: error => {
         this.setState({
@@ -234,9 +218,11 @@ const NoteInput = createReactClass({
     this.props.onFinish && this.props.onFinish();
   },
 
-  finalizeMentions(mentions) {
+  finalizeMentions() {
+    let {memberMentions, teamMentions} = this.state;
+
     // each mention looks like [id, display]
-    return mentions
+    return [...memberMentions, ...teamMentions]
       .filter(mention => this.state.value.indexOf(mention[1]) !== -1)
       .map(mention => mention[0]);
   },
@@ -261,17 +247,30 @@ const NoteInput = createReactClass({
     }
   },
 
+  mentionableUsers() {
+    let {memberList, sessionUser} = this.props;
+    return _.uniqBy(memberList, ({id}) => id)
+      .filter(member => sessionUser.id !== member.id)
+      .map(member => ({
+        id: buildUserId(member.id),
+        display: member.name,
+        email: member.email,
+      }));
+  },
+
+  mentionableTeams() {
+    let {group} = this.props;
+    return _.uniqBy(TeamStore.getAll(), ({id}) => id)
+      .filter(({projects}) => projects.find(p => p.slug === group.project.slug) !== -1)
+      .map(team => ({
+        id: buildTeamId(team.id),
+        display: team.slug,
+        email: team.id,
+      }));
+  },
+
   render() {
-    let {
-      error,
-      errorJSON,
-      loading,
-      preview,
-      updating,
-      value,
-      memberMentionableList,
-      teamMentionableList,
-    } = this.state;
+    let {error, errorJSON, loading, preview, updating, value} = this.state;
     let classNames = 'activity-field';
     if (error) {
       classNames += ' error';
@@ -312,20 +311,19 @@ const NoteInput = createReactClass({
               value={value}
               required={true}
               autoFocus={true}
-              allowSpaceInQuery={true}
               markup="**__display__[sentry.strip:__type__]**"
             >
               <Mention
                 type="member"
                 trigger="@"
-                data={memberMentionableList}
+                data={this.mentionableUsers()}
                 onAdd={this.onAddMember}
                 appendSpaceOnAdd={true}
               />
               <Mention
                 type="team"
                 trigger="#"
-                data={teamMentionableList}
+                data={this.mentionableTeams()}
                 onAdd={this.onAddTeam}
                 appendSpaceOnAdd={true}
               />
@@ -350,3 +348,5 @@ const NoteInput = createReactClass({
 });
 
 export default NoteInput;
+// displayTransform={(id, display, type) =>
+// `${type === 'member' ? '@' : '#'}${display}`}
