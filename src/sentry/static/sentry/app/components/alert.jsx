@@ -12,9 +12,6 @@ const AlertWrapper = styled.div`
   display: flex;
   border-radius: ${p => p.theme.borderRadius};
 
-  svg {
-  }
-
   ${p => {
     switch (p.type) {
       case 'info':
