@@ -154,18 +154,18 @@ class GroupNoteCreateTest(APITestCase):
             url,
             format='json',
             data={'text': 'hey **blue-team** fix this bug',
-                  'teamMentions': [u'%s' % self.team2.id]}
+                  'mentions': [u'team:%s' % self.team2.id]}
         )
         assert response.status_code == 400, response.content
 
-        assert response.content == '{"teamMentions": ["Mentioned team not found"]}'
+        assert response.content == '{"mentions": ["Mentioned team not found"]}'
 
         # mentioning a team in the project returns 201
         response = self.client.post(
             url,
             format='json',
             data={'text': 'hey **red-team** fix this bug',
-                  'teamMentions': [u'%s' % self.team.id]}
+                  'mentions': [u'team:%s' % self.team.id]}
         )
         assert response.status_code == 201, response.content
         assert len(

@@ -7,12 +7,13 @@ from .list import ListField
 
 
 def seperateActorIds(actor_ids):
+
     members = [actor_id[5:] for actor_id in actor_ids if actor_id.startswith("user:")]
     legacy_members = [actor_id for actor_id in actor_ids if actor_id.isdigit()]
 
     teams = [actor_id[5:] for actor_id in actor_ids if actor_id.startswith("team:")]
 
-    return {'members': itertools.chain(members, legacy_members), 'teams': teams}
+    return {'members': list(itertools.chain(members, legacy_members)), 'teams': teams}
 
 
 class NoteSerializer(serializers.Serializer):
