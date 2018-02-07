@@ -2,7 +2,8 @@ import PropTypes from 'prop-types';
 import React from 'react';
 
 import {ApiForm, RangeField, TextField} from '../components/forms';
-import {t, tct} from '../locale';
+import {t} from '../locale';
+import AlertLink from '../components/alertLink';
 import AsyncView from './asyncView';
 import Button from '../components/buttons/button';
 import ListLink from '../components/listLink';
@@ -27,7 +28,7 @@ class DigestSettings extends React.Component {
       <Panel>
         <PanelHeader>{t('Digests')}</PanelHeader>
         <PanelBody px={2} pt={2} flex>
-          <PanelAlert type="info">
+          <PanelAlert type="info" icon="icon-circle-exclamation">
             {t(
               'Sentry will automatically digest alerts sent ' +
                 'by some services to avoid flooding your inbox ' +
@@ -209,16 +210,11 @@ export default class ProjectAlertSettings extends AsyncView {
           }
         />
 
-        <div className="alert alert-block alert-info">
-          {tct(
-            "These settings cover rule-based alerts. If you're " +
-              'looking to change which notifications you receive ' +
-              'you may do so from your [link:account settings].',
-            {
-              link: <a href="/account/settings/notifications/" />,
-            }
+        <AlertLink to={'/account/settings/notifications/'} icon="icon-mail">
+          {t(
+            'Looking to fine-tune your personal notification prefs? Visit your Account Settings'
           )}
-        </div>
+        </AlertLink>
 
         <GeneralSettings
           orgId={orgId}
