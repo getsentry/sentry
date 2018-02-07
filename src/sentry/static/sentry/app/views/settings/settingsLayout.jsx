@@ -10,7 +10,7 @@ import SettingsBreadcrumb from './components/settingsBreadcrumb';
 import SettingsHeader from './components/settingsHeader';
 import SettingsSearch from './components/settingsSearch';
 
-let AlertStyled = styled(Alert)`
+let StyledAlert = styled(Alert)`
   margin: 30px 0;
 `;
 
@@ -40,10 +40,10 @@ let NewSettingsWarning = ({location = {}}) => {
   };
   let Component = isRouter ? Link : 'a';
   return (
-    <AlertStyled type="info" icon="icon-circle-exclamation">
+    <StyledAlert type="info" icon="icon-circle-exclamation">
       These settings are currently in beta. Please report any issues. You can temporarily
       visit the <Component {...linkProps}>old settings page</Component> if necessary.
-    </AlertStyled>
+    </StyledAlert>
   );
 };
 

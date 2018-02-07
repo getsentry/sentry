@@ -55,22 +55,22 @@ const AlertWrapper = styled.div`
   }};
 `;
 
-const TextBlockStyled = styled(TextBlock)`
+const StyledTextBlock = styled(TextBlock)`
   line-height: 1.4;
   margin-bottom: 0;
   flex: 1;
   align-self: center;
 `;
 
-const InlineSvgStyled = styled(InlineSvg)`
+const StyledInlineSvg = styled(InlineSvg)`
   margin-right: 12px;
 `;
 
 const Alert = ({type, icon, children, ...props}) => {
   return (
     <AlertWrapper type={type} {...props}>
-      {icon && <InlineSvgStyled src={icon} size="24px" />}
-      <TextBlockStyled>{children}</TextBlockStyled>
+      {icon && <StyledInlineSvg src={icon} size="24px" />}
+      <StyledTextBlock>{children}</StyledTextBlock>
     </AlertWrapper>
   );
 };
