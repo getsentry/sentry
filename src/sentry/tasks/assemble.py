@@ -56,6 +56,7 @@ def assemble_dif(file, params):
     if project_slug is None or organization_slug is None:
         file.headers['state'] = ChunkFileState.ERROR
         file.headers['error'] = 'Missing org/project'
+        file.save()
         logger.error(
             'assemble_chunks.missing_params',
             extra={
@@ -91,6 +92,7 @@ def assemble_dif(file, params):
         else:
             file.headers['state'] = ChunkFileState.ERROR
             file.headers['error'] = 'Invalid object file'
+            file.save()
             logger.error(
                 'assemble_chunks.invalid_object_file',
                 extra={

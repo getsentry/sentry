@@ -98,7 +98,7 @@ class ChunkAssembleEndpoint(APITestCase):
 
         assert response.status_code == 200, response.content
         assert response.data[checksum]['state'] == ChunkFileState.NOT_FOUND
-        assert response.data[checksum]['missingChunks'] == checksums
+        assert response.data[checksum]['missingChunks'] == set(checksums)
 
         # Now we add ownership to the blob
         blobs = FileBlob.objects.all()
@@ -141,7 +141,7 @@ class ChunkAssembleEndpoint(APITestCase):
 
         assert response.status_code == 200, response.content
         assert response.data[not_found_checksum]['state'] == ChunkFileState.NOT_FOUND
-        assert response.data[not_found_checksum]['missingChunks'] == [not_found_checksum]
+        assert response.data[not_found_checksum]['missingChunks'] == set([not_found_checksum])
 
     @patch('sentry.tasks.assemble.assemble_chunks')
     def test_assemble(self, mock_assemble_chunks):
@@ -188,7 +188,7 @@ class ChunkAssembleEndpoint(APITestCase):
         )
         assert response.status_code == 200, response.content
         assert response.data[total_checksum]['state'] == ChunkFileState.NOT_FOUND
-        assert response.data[total_checksum]['missingChunks'] == [checksum2]
+        assert response.data[total_checksum]['missingChunks'] == set([checksum2])
 
         # we add ownership to chunk 2
         FileBlobOwner.objects.get_or_create(

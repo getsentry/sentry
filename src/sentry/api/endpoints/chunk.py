@@ -3,6 +3,7 @@ from __future__ import absolute_import
 import six
 import jsonschema
 
+from itertools import izip
 from rest_framework import status
 from six.moves.urllib.parse import urljoin
 from rest_framework.response import Response
@@ -17,7 +18,7 @@ from sentry.api.bases.organization import (OrganizationEndpoint,
                                            OrganizationReleasePermission)
 
 
-MAX_CHUNKS_PER_REQUEST = 40
+MAX_CHUNKS_PER_REQUEST = 64
 MAX_REQUEST_SIZE = 32 * 1024 * 1024
 MAX_CONCURRENCY = 4
 HASH_ALGORITHM = 'sha1'
@@ -67,14 +68,14 @@ class ChunkUploadEndpoint(OrganizationEndpoint):
             return Response(status=status.HTTP_200_OK)
 
         # Validate file size
-        checksum_list = []
+        checksums = []
         size = 0
         for chunk in files:
             size += chunk._size
             if chunk._size > DEFAULT_BLOB_SIZE:
                 return Response({'error': 'Chunk size too large'},
                                 status=status.HTTP_400_BAD_REQUEST)
-            checksum_list.append(chunk._name)
+            checksums.append(chunk._name)
 
         if size > MAX_REQUEST_SIZE:
             return Response({'error': 'Request too large'},
@@ -84,7 +85,7 @@ class ChunkUploadEndpoint(OrganizationEndpoint):
             return Response({'error': 'Too many chunks'},
                             status=status.HTTP_400_BAD_REQUEST)
 
-        for chunk in files:
+        for checksum, chunk in izip(checksums, files):
             # Here we create the actual blob
             blob = FileBlob.from_file(chunk)
             # Add ownership to the blob here
@@ -96,7 +97,7 @@ class ChunkUploadEndpoint(OrganizationEndpoint):
                     )
             except IntegrityError:
                 pass
-            if blob.checksum not in checksum_list:
+            if blob.checksum != checksum:
                 # We do not clean up here since we have a cleanup job
                 return Response({'error': 'Checksum missmatch'},
                                 status=status.HTTP_400_BAD_REQUEST)
@@ -127,7 +128,7 @@ class ChunkAssembleEndpoint(OrganizationEndpoint):
         for owned_blob in all_owned_blobs:
             owned_blobs.append((owned_blob.blob.id, owned_blob.blob.checksum))
 
-        # If the request does not cotain any chunks for a file
+        # If the request does not contain any chunks for a file
         # we return nothing since this should never happen only
         # if the client sends an invalid request
         if len(chunks) == 0:
@@ -146,10 +147,10 @@ class ChunkAssembleEndpoint(OrganizationEndpoint):
         elif len(owned_blobs) != len(chunks):
             # Create a missing chunks array which we return as response
             # so the client knows which chunks to reupload
-            missing_chunks = list(chunks)
+            missing_chunks = set(chunks)
             for blob in owned_blobs:
                 if blob[1] in missing_chunks:
-                    del missing_chunks[missing_chunks.index(blob[1])]
+                    missing_chunks.discard(blob[1])
             # If we have any missing chunks at all, return it to the client
             # that we need them to assemble the file
             if len(missing_chunks) > 0:
