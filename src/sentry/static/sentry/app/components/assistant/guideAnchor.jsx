@@ -29,7 +29,11 @@ const GuideAnchor = createReactClass({
   },
 
   onGuideChange(data) {
-    if (data.currentGuide.steps[data.currentStep].target == this.props.target) {
+    if (
+      data.currentGuide &&
+      data.currentGuide.steps &&
+      data.currentGuide.steps[data.currentStep].target == this.props.target
+    ) {
       this.setState({active: true});
     } else {
       this.setState({active: false});
