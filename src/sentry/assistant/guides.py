@@ -32,22 +32,4 @@ GUIDES = {
             },
         ],
     },
-    # 'settings': {
-    #     'id': 2,
-    #     'page': 'settings',
-    #     'cue': 'Click here for a tour of the Settings page',
-    #     'steps': [
-    #         {
-    #             'title': '1. Alerts',
-    #             'message': (
-    #                 'Create powerful custom rules that will notify you when errors reach '
-    #                 'a certain threshold.'),
-    #         },
-    #         {
-    #             'title': '2. Integrations',
-    #             'message': (
-    #                 'Integrate seamlessly with your favorite apps so you can stay in the flow.'),
-    #         },
-    #     ],
-    # },
 }

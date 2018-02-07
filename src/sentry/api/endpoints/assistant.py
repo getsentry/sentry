@@ -9,7 +9,7 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 
 from sentry.api.base import Endpoint
-from sentry.assistant.guide import GUIDES
+from sentry.assistant.guides import GUIDES
 from sentry.models import AssistantActivity
 
 
@@ -22,13 +22,14 @@ class AssistantEndpoint(Endpoint):
 
     def get(self, request):
         """Return all the guides the user has not seen, dismissed, or snoozed."""
-        # Everything the user has seen minus the ones that are past their snooze limit.
-        exclude = AssistantActivity.objects.filter(
-            user=request.user,
-        ).exclude(
-            snoozed_until_ts__lt=timezone.now(),
-        )
-        exclude_ids = set(e.id for e in exclude)
+        # TODO(adhiraj): Uncomment after migration is done.
+        # exclude = AssistantActivity.objects.filter(
+        #     user=request.user,
+        # ).exclude(
+        #     snoozed_until_ts__lt=timezone.now(),
+        # )
+        # exclude_ids = set(e.id for e in exclude)
+        exclude_ids = set()
         result = {k: v for k, v in GUIDES.items() if v['id'] not in exclude_ids}
 
         return Response(result)
