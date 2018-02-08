@@ -265,12 +265,12 @@ exports[`ProjectTags renders 1`] = `
               <div
                 className=""
               >
-                <Row
+                <PanelItem
                   className="ref-tag-row"
                   key="browser"
                   p={0}
                 >
-                  <StyledRow
+                  <StyledPanelItem
                     className="ref-tag-row"
                     p={0}
                   >
@@ -407,14 +407,14 @@ exports[`ProjectTags renders 1`] = `
                         </Flex>
                       </div>
                     </Base>
-                  </StyledRow>
-                </Row>
-                <Row
+                  </StyledPanelItem>
+                </PanelItem>
+                <PanelItem
                   className="ref-tag-row"
                   key="device"
                   p={0}
                 >
-                  <StyledRow
+                  <StyledPanelItem
                     className="ref-tag-row"
                     p={0}
                   >
@@ -551,14 +551,14 @@ exports[`ProjectTags renders 1`] = `
                         </Flex>
                       </div>
                     </Base>
-                  </StyledRow>
-                </Row>
-                <Row
+                  </StyledPanelItem>
+                </PanelItem>
+                <PanelItem
                   className="ref-tag-row"
                   key="environment"
                   p={0}
                 >
-                  <StyledRow
+                  <StyledPanelItem
                     className="ref-tag-row"
                     p={0}
                   >
@@ -704,8 +704,8 @@ exports[`ProjectTags renders 1`] = `
                         </Flex>
                       </div>
                     </Base>
-                  </StyledRow>
-                </Row>
+                  </StyledPanelItem>
+                </PanelItem>
               </div>
             </PanelBody>
           </div>

@@ -498,13 +498,13 @@ exports[`ApiTokens renders with result 1`] = `
                     }
                   }
                 >
-                  <Row
+                  <PanelItem
                     justify="space-between"
                     p={2}
                     px={2}
                     py={2}
                   >
-                    <StyledRow
+                    <StyledPanelItem
                       justify="space-between"
                       p={2}
                       px={2}
@@ -685,8 +685,8 @@ exports[`ApiTokens renders with result 1`] = `
                           </Flex>
                         </div>
                       </Base>
-                    </StyledRow>
-                  </Row>
+                    </StyledPanelItem>
+                  </PanelItem>
                 </ApiTokenRow>
               </div>
             </PanelBody>

@@ -9,7 +9,7 @@ import Button from '../../../../components/buttons/button';
 import Confirm from '../../../../components/confirm';
 import Link from '../../../../components/link';
 import LoadingIndicator from '../../../../components/loadingIndicator';
-import Row from '../../components/row';
+import PanelItem from '../../components/panelItem';
 import SentryTypes from '../../../../proptypes';
 import Tooltip from '../../../../components/tooltip';
 import recreateRoute from '../../../../utils/recreateRoute';
@@ -101,7 +101,7 @@ export default class OrganizationMemberRow extends React.PureComponent {
     let isInviting = status === 'loading';
 
     return (
-      <Row align="center" p={0} py={2}>
+      <PanelItem align="center" p={0} py={2}>
         <Box pl={2}>
           <Avatar style={{width: 32, height: 32}} user={user ? user : {email}} />
         </Box>
@@ -234,7 +234,7 @@ export default class OrganizationMemberRow extends React.PureComponent {
               )}
           </Box>
         ) : null}
-      </Row>
+      </PanelItem>
     );
   }
 }

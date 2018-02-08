@@ -8,7 +8,7 @@ import DateTime from '../../../components/dateTime';
 import Panel from '../components/panel';
 import PanelBody from '../components/panelBody';
 import PanelHeader from '../components/panelHeader';
-import Row from '../components/row';
+import PanelItem from '../components/panelItem';
 import SettingsPageHeader from '../components/settingsPageHeader';
 import Switch from '../../../components/switch';
 import IndicatorStore from '../../../stores/indicatorStore';
@@ -102,7 +102,7 @@ class AccountSubscriptions extends AsyncView {
 
           <PanelBody>
             {this.state.subscriptions.map((subscription, index) => (
-              <Row p={2} align="center" key={subscription.listId}>
+              <PanelItem p={2} align="center" key={subscription.listId}>
                 <Box flex="1">
                   <SubscriptionName>{subscription.listName}</SubscriptionName>
                   {subscription.listDescription && (
@@ -124,7 +124,7 @@ class AccountSubscriptions extends AsyncView {
                     </SubscribedDescription>
                   )}
                 </Flex>
-              </Row>
+              </PanelItem>
             ))}
           </PanelBody>
         </Panel>

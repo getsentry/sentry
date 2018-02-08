@@ -12,7 +12,7 @@ import JsonForm from '../components/forms/jsonForm';
 import Panel from '../components/panel';
 import PanelBody from '../components/panelBody';
 import PanelHeader from '../components/panelHeader';
-import Row from '../components/row';
+import PanelItem from '../components/panelItem';
 import Tag from '../components/tag';
 import SettingsPageHeader from '../components/settingsPageHeader';
 import accountEmailsFields from '../../../data/forms/accountEmails';
@@ -49,7 +49,7 @@ class EmailRow extends React.Component {
     let {email, isPrimary, isVerified, hideRemove} = this.props;
 
     return (
-      <Row justify="space-between">
+      <PanelItem justify="space-between">
         <Flex align="center">
           {email}
           {!isVerified && <Tag priority="warning">{t('Unverified')}</Tag>}
@@ -70,7 +70,7 @@ class EmailRow extends React.Component {
               </Box>
             </Flex>
           )}
-      </Row>
+      </PanelItem>
     );
   }
 }

@@ -358,12 +358,12 @@ exports[`ProjectSavedSearches renders 1`] = `
               orgId="org-slug"
               projectId="project-slug"
             >
-              <Row
+              <PanelItem
                 align="center"
                 p={0}
                 py={2}
               >
-                <StyledRow
+                <StyledPanelItem
                   align="center"
                   p={0}
                   py={2}
@@ -576,8 +576,8 @@ exports[`ProjectSavedSearches renders 1`] = `
                       </Flex>
                     </div>
                   </Base>
-                </StyledRow>
-              </Row>
+                </StyledPanelItem>
+              </PanelItem>
             </SavedSearchRow>
             <SavedSearchRow
               access={
@@ -612,12 +612,12 @@ exports[`ProjectSavedSearches renders 1`] = `
               orgId="org-slug"
               projectId="project-slug"
             >
-              <Row
+              <PanelItem
                 align="center"
                 p={0}
                 py={2}
               >
-                <StyledRow
+                <StyledPanelItem
                   align="center"
                   p={0}
                   py={2}
@@ -830,8 +830,8 @@ exports[`ProjectSavedSearches renders 1`] = `
                       </Flex>
                     </div>
                   </Base>
-                </StyledRow>
-              </Row>
+                </StyledPanelItem>
+              </PanelItem>
             </SavedSearchRow>
           </div>
         </PanelBody>

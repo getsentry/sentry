@@ -13,7 +13,7 @@ import IndicatorStore from '../../../stores/indicatorStore';
 import Panel from '../components/panel';
 import PanelBody from '../components/panelBody';
 import PanelHeader from '../components/panelHeader';
-import Row from '../components/row';
+import PanelItem from '../components/panelItem';
 import SettingsPageHeader from '../components/settingsPageHeader';
 
 const ROUTE_PREFIX = '/settings/account/api/';
@@ -73,7 +73,7 @@ const ApiApplicationRow = createReactClass({
     if (this.state.loading) btnClassName += ' disabled';
 
     return (
-      <Row justify="space-between" px={2} py={2}>
+      <PanelItem justify="space-between" px={2} py={2}>
         <Box flex="1">
           <h4 style={{marginBottom: 5}}>
             <Link to={`${ROUTE_PREFIX}applications/${app.id}/`}>{app.name}</Link>
@@ -92,7 +92,7 @@ const ApiApplicationRow = createReactClass({
             </a>
           </Box>
         </Flex>
-      </Row>
+      </PanelItem>
     );
   },
 });

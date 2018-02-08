@@ -14,7 +14,7 @@ import LoadingIndicator from '../components/loadingIndicator';
 import Panel from './settings/components/panel';
 import PanelBody from './settings/components/panelBody';
 import PanelHeader from './settings/components/panelHeader';
-import Row from './settings/components/row';
+import PanelItem from './settings/components/panelItem';
 import SettingsPageHeader from './settings/components/settingsPageHeader';
 import SentryTypes from '../proptypes';
 
@@ -59,7 +59,7 @@ class SavedSearchRow extends React.Component {
     let {data, canModify} = this.props;
 
     return (
-      <Row p={0} py={2} align="center">
+      <PanelItem p={0} py={2} align="center">
         <Flex flex="1" px={2} direction="column">
           <SearchTitle>{data.name}</SearchTitle>
           <code>{data.query}</code>
@@ -98,7 +98,7 @@ class SavedSearchRow extends React.Component {
             </InputColumn>
           )}
         </Flex>
-      </Row>
+      </PanelItem>
     );
   }
 }

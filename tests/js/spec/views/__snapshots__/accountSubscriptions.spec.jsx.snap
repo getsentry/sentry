@@ -328,12 +328,12 @@ exports[`AccountSubscriptions renders list and can toggle 1`] = `
               <div
                 className=""
               >
-                <Row
+                <PanelItem
                   align="center"
                   key="2"
                   p={2}
                 >
-                  <StyledRow
+                  <StyledPanelItem
                     align="center"
                     p={2}
                   >
@@ -429,14 +429,14 @@ exports[`AccountSubscriptions renders list and can toggle 1`] = `
                         </Flex>
                       </div>
                     </Base>
-                  </StyledRow>
-                </Row>
-                <Row
+                  </StyledPanelItem>
+                </PanelItem>
+                <PanelItem
                   align="center"
                   key="1"
                   p={2}
                 >
-                  <StyledRow
+                  <StyledPanelItem
                     align="center"
                     p={2}
                   >
@@ -511,8 +511,8 @@ exports[`AccountSubscriptions renders list and can toggle 1`] = `
                         </Flex>
                       </div>
                     </Base>
-                  </StyledRow>
-                </Row>
+                  </StyledPanelItem>
+                </PanelItem>
               </div>
             </PanelBody>
           </div>

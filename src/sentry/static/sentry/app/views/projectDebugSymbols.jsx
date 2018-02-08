@@ -14,7 +14,7 @@ import OrganizationState from '../mixins/organizationState';
 import Panel from './settings/components/panel';
 import PanelBody from './settings/components/panelBody';
 import PanelHeader from './settings/components/panelHeader';
-import Row from './settings/components/row';
+import PanelItem from './settings/components/panelItem';
 import SettingsPageHeader from './settings/components/settingsPageHeader';
 import TextBlock from './settings/components/text/textBlock';
 import TimeSince from '../components/timeSince';
@@ -30,7 +30,7 @@ const TimeIcon = styled.span`
   margin-right: 4px;
 `;
 
-const HoverableRow = styled(Row)`
+const HoverablePanelItem = styled(PanelItem)`
   cursor: pointer;
   transition: all 0s ease-in-out;
   &:hover {
@@ -196,7 +196,7 @@ const ProjectDebugSymbols = createReactClass({
                 }
               });
               let row = (
-                <HoverableRow
+                <HoverablePanelItem
                   className="hoverable"
                   onClick={() => this.setActive(app.id, version, builds)}
                 >
@@ -213,23 +213,23 @@ const ProjectDebugSymbols = createReactClass({
                   <Flex p={2}>
                     {t('Debug Information Files')}: {symbolsInVersion}
                   </Flex>
-                </HoverableRow>
+                </HoverablePanelItem>
               );
 
-              let buildRows = '';
+              let buildPanelItems = '';
               if (
                 this.state.activeVersion &&
                 this.state.activeBuilds &&
                 this.state.activeVersion == version &&
                 this.state.activeAppID == app.id
               ) {
-                buildRows = this.renderBuilds(version, this.state.activeBuilds);
+                buildPanelItems = this.renderBuilds(version, this.state.activeBuilds);
               }
               return (
-                <Row direction="column" key={version}>
+                <PanelItem direction="column" key={version}>
                   {row}
-                  {buildRows}
-                </Row>
+                  {buildPanelItems}
+                </PanelItem>
               );
             })}
           </PanelBody>
@@ -239,7 +239,7 @@ const ProjectDebugSymbols = createReactClass({
   },
 
   renderBuilds(version, builds) {
-    let buildRows = [];
+    let buildPanelItems = [];
     let dateAdded = null;
     this.mapObject(builds, (dsyms, build) => {
       if (
@@ -251,8 +251,8 @@ const ProjectDebugSymbols = createReactClass({
       }
     });
     this.mapObject(builds, (dsyms, build) => {
-      buildRows.push(
-        <HoverableRow key={build} onClick={() => this.openModal(build, dsyms)}>
+      buildPanelItems.push(
+        <HoverablePanelItem key={build} onClick={() => this.openModal(build, dsyms)}>
           <Flex p={2} flex="1" direction="column">
             <div>{build}</div>
             <LastSeen align="center">
@@ -263,10 +263,10 @@ const ProjectDebugSymbols = createReactClass({
           <Flex p={2}>
             {t('Debug Information Files')}: {dsyms.length}
           </Flex>
-        </HoverableRow>
+        </HoverablePanelItem>
       );
     });
-    return buildRows;
+    return buildPanelItems;
   },
 
   renderDsyms(dsyms, raw) {

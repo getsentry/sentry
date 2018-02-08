@@ -81,11 +81,11 @@ const TeamProjects = createReactClass({
 
   projectPanelcontents(projects, direction) {
     return sortProjects(projects).map((project, i) => (
-      <PanelItem key={project.id} align="center">
-        <Box w={1 / 2} p={2} flex="1">
+      <PanelItem p={0} key={project.id} align="center">
+        <Box p={2} flex="1">
           <ProjectListItem project={project} organization={this.context.organization} />
         </Box>
-        <Box w={1 / 2} p={2} css={{textAlign: 'right'}}>
+        <Box p={2}>
           <Button
             size="small"
             onClick={() => {
@@ -115,11 +115,11 @@ const TeamProjects = createReactClass({
     return (
       <div>
         <Panel>
-          <PanelHeader>{t('Associated Projects:')}</PanelHeader>
+          <PanelHeader>{t('Associated Projects')}</PanelHeader>
           <PanelBody>{this.projectPanelcontents(linkedProjects, 'Remove')}</PanelBody>
         </Panel>
         <Panel>
-          <PanelHeader>{t('Other Projects:')}</PanelHeader>
+          <PanelHeader>{t('Other Projects')}</PanelHeader>
           <PanelBody>{this.projectPanelcontents(otherProjects, 'Add')}</PanelBody>
         </Panel>
       </div>

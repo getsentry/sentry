@@ -454,11 +454,11 @@ exports[`ProjectEnvironments render() renders environment list 1`] = `
           <div
             className=""
           >
-            <Row
+            <PanelItem
               key="1"
               p={2}
             >
-              <StyledRow
+              <StyledPanelItem
                 p={2}
               >
                 <Base
@@ -472,8 +472,8 @@ exports[`ProjectEnvironments render() renders environment list 1`] = `
                     Production
                   </div>
                 </Base>
-              </StyledRow>
-            </Row>
+              </StyledPanelItem>
+            </PanelItem>
           </div>
         </PanelBody>
       </div>

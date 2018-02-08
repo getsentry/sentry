@@ -61,8 +61,8 @@ class OrganizationProjectsView extends OrganizationSettingsView {
           <PanelHeader>{t('Projects')}</PanelHeader>
           <PanelBody css={{width: '100%'}}>
             {sortProjects(projects).map((project, i) => (
-              <PanelItem key={project.id} align="center">
-                <Box w={1 / 2} p={2} flex="1">
+              <PanelItem p={0} key={project.id} align="center">
+                <Box w={1 / 2} p={2}>
                   <ProjectListItem
                     project={project}
                     organization={this.context.organization}

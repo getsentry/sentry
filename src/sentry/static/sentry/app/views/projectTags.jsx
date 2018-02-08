@@ -10,7 +10,7 @@ import LinkWithConfirmation from '../components/linkWithConfirmation';
 import Panel from './settings/components/panel';
 import PanelBody from './settings/components/panelBody';
 import PanelHeader from './settings/components/panelHeader';
-import Row from './settings/components/row';
+import PanelItem from './settings/components/panelItem';
 import SettingsPageHeader from './settings/components/settingsPageHeader';
 import TextBlock from './settings/components/text/textBlock';
 import Tooltip from '../components/tooltip';
@@ -98,7 +98,7 @@ export default class ProjectTags extends AsyncView {
             {!isEmpty &&
               tags.map(({key, name, canDelete}, idx) => {
                 return (
-                  <Row p={0} key={key} className="ref-tag-row">
+                  <PanelItem p={0} key={key} className="ref-tag-row">
                     <Box align="flex-end" flex="1" p={2}>
                       <span>{name}</span>
                       <Description>{key}</Description>
@@ -112,7 +112,7 @@ export default class ProjectTags extends AsyncView {
                         </Tooltip>
                       )}
                     </Flex>
-                  </Row>
+                  </PanelItem>
                 );
               })}
           </PanelBody>

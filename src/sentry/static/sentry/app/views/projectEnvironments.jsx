@@ -8,7 +8,7 @@ import PanelHeader from './settings/components/panelHeader';
 import PanelBody from './settings/components/panelBody';
 import EmptyMessage from './settings/components/emptyMessage';
 import {t} from '../locale';
-import Row from './settings/components/row';
+import PanelItem from './settings/components/panelItem';
 import SettingsPageHeader from './settings/components/settingsPageHeader';
 import ListLink from '../components/listLink';
 
@@ -28,7 +28,7 @@ const ProjectEnvironments = createReactClass({
     return <EmptyMessage>{t("You don't have any environments yet.")}</EmptyMessage>;
   },
   renderEnvironmentList(envs) {
-    return envs.map(env => <Row key={env.id}>{env.displayName}</Row>);
+    return envs.map(env => <PanelItem key={env.id}>{env.displayName}</PanelItem>);
   },
   render() {
     let {environments} = this.state;

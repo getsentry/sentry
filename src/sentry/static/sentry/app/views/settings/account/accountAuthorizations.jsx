@@ -11,7 +11,7 @@ import IndicatorStore from '../../../stores/indicatorStore';
 import Panel from '../components/panel';
 import PanelBody from '../components/panelBody';
 import PanelHeader from '../components/panelHeader';
-import Row from '../components/row';
+import PanelItem from '../components/panelItem';
 import SettingsPageHeader from '../components/settingsPageHeader';
 
 class AuthorizationRow extends React.Component {
@@ -29,7 +29,7 @@ class AuthorizationRow extends React.Component {
     let authorization = this.props.authorization;
 
     return (
-      <Row>
+      <PanelItem>
         <Flex flex="1">
           <Flex p={2} flex="1" direction="column">
             <h5 style={{marginBottom: 5}}>{authorization.application.name}</h5>
@@ -50,7 +50,7 @@ class AuthorizationRow extends React.Component {
             </Button>
           </Flex>
         </Flex>
-      </Row>
+      </PanelItem>
     );
   }
 }

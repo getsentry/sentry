@@ -441,12 +441,12 @@ exports[`OrganizationMembersView No Require Link does not have 2fa warning if us
                   requireLink={false}
                   routes={Array []}
                 >
-                  <Row
+                  <PanelItem
                     align="center"
                     p={0}
                     py={2}
                   >
-                    <StyledRow
+                    <StyledPanelItem
                       align="center"
                       p={0}
                       py={2}
@@ -649,8 +649,8 @@ exports[`OrganizationMembersView No Require Link does not have 2fa warning if us
                           </Box>
                         </div>
                       </Base>
-                    </StyledRow>
-                  </Row>
+                    </StyledPanelItem>
+                  </PanelItem>
                 </OrganizationMemberRow>
                 <OrganizationMemberRow
                   canAddMembers={true}
@@ -708,12 +708,12 @@ exports[`OrganizationMembersView No Require Link does not have 2fa warning if us
                   requireLink={false}
                   routes={Array []}
                 >
-                  <Row
+                  <PanelItem
                     align="center"
                     p={0}
                     py={2}
                   >
-                    <StyledRow
+                    <StyledPanelItem
                       align="center"
                       p={0}
                       py={2}
@@ -911,8 +911,8 @@ exports[`OrganizationMembersView No Require Link does not have 2fa warning if us
                           </Box>
                         </div>
                       </Base>
-                    </StyledRow>
-                  </Row>
+                    </StyledPanelItem>
+                  </PanelItem>
                 </OrganizationMemberRow>
                 <OrganizationMemberRow
                   canAddMembers={true}
@@ -970,12 +970,12 @@ exports[`OrganizationMembersView No Require Link does not have 2fa warning if us
                   requireLink={false}
                   routes={Array []}
                 >
-                  <Row
+                  <PanelItem
                     align="center"
                     p={0}
                     py={2}
                   >
-                    <StyledRow
+                    <StyledPanelItem
                       align="center"
                       p={0}
                       py={2}
@@ -1173,8 +1173,8 @@ exports[`OrganizationMembersView No Require Link does not have 2fa warning if us
                           </Box>
                         </div>
                       </Base>
-                    </StyledRow>
-                  </Row>
+                    </StyledPanelItem>
+                  </PanelItem>
                 </OrganizationMemberRow>
               </div>
             </PanelBody>
@@ -1630,12 +1630,12 @@ exports[`OrganizationMembersView Require Link does not have 2fa warning if user 
                   requireLink={true}
                   routes={Array []}
                 >
-                  <Row
+                  <PanelItem
                     align="center"
                     p={0}
                     py={2}
                   >
-                    <StyledRow
+                    <StyledPanelItem
                       align="center"
                       p={0}
                       py={2}
@@ -1869,8 +1869,8 @@ exports[`OrganizationMembersView Require Link does not have 2fa warning if user 
                           </Box>
                         </div>
                       </Base>
-                    </StyledRow>
-                  </Row>
+                    </StyledPanelItem>
+                  </PanelItem>
                 </OrganizationMemberRow>
                 <OrganizationMemberRow
                   canAddMembers={true}
@@ -1928,12 +1928,12 @@ exports[`OrganizationMembersView Require Link does not have 2fa warning if user 
                   requireLink={true}
                   routes={Array []}
                 >
-                  <Row
+                  <PanelItem
                     align="center"
                     p={0}
                     py={2}
                   >
-                    <StyledRow
+                    <StyledPanelItem
                       align="center"
                       p={0}
                       py={2}
@@ -2167,8 +2167,8 @@ exports[`OrganizationMembersView Require Link does not have 2fa warning if user 
                           </Box>
                         </div>
                       </Base>
-                    </StyledRow>
-                  </Row>
+                    </StyledPanelItem>
+                  </PanelItem>
                 </OrganizationMemberRow>
                 <OrganizationMemberRow
                   canAddMembers={true}
@@ -2226,12 +2226,12 @@ exports[`OrganizationMembersView Require Link does not have 2fa warning if user 
                   requireLink={true}
                   routes={Array []}
                 >
-                  <Row
+                  <PanelItem
                     align="center"
                     p={0}
                     py={2}
                   >
-                    <StyledRow
+                    <StyledPanelItem
                       align="center"
                       p={0}
                       py={2}
@@ -2429,8 +2429,8 @@ exports[`OrganizationMembersView Require Link does not have 2fa warning if user 
                           </Box>
                         </div>
                       </Base>
-                    </StyledRow>
-                  </Row>
+                    </StyledPanelItem>
+                  </PanelItem>
                 </OrganizationMemberRow>
               </div>
             </PanelBody>
