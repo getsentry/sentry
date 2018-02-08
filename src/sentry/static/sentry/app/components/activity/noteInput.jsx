@@ -260,8 +260,9 @@ const NoteInput = createReactClass({
 
   mentionableTeams() {
     let {group} = this.props;
+
     return _.uniqBy(TeamStore.getAll(), ({id}) => id)
-      .filter(({projects}) => projects.find(p => p.slug === group.project.slug) !== -1)
+      .filter(({projects}) => !!projects.find(p => p.slug === group.project.slug))
       .map(team => ({
         id: buildTeamId(team.id),
         display: team.slug,
