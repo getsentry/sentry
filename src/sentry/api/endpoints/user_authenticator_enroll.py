@@ -48,6 +48,12 @@ class U2fRestSerializer(serializers.Serializer):
         max_length=60,
         default=lambda: petname.Generate(2, ' ', letters=10).title(),
     )
+    challenge = serializers.CharField(
+        required=True,
+    )
+    response = serializers.CharField(
+        required=True,
+    )
 
 serializer_map = {
     'totp': TotpRestSerializer,
@@ -171,8 +177,8 @@ class UserAuthenticatorEnrollEndpoint(UserEndpoint):
         if interface_id == 'u2f':
             # What happens when this fails?
             interface.try_enroll(
-                request.DATA.get('challenge'),
-                request.DATA.get('response'),
+                serializer.data['challenge'],
+                serializer.data['response'],
                 serializer.data['deviceName']
             )
 
