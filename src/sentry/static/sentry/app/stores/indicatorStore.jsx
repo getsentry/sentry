@@ -6,8 +6,10 @@ const IndicatorStore = Reflux.createStore({
   init() {
     this.items = [];
     this.lastId = 0;
-    this.listenTo(IndicatorActions.add, this.add);
+    this.listenTo(IndicatorActions.append, this.append);
+    this.listenTo(IndicatorActions.replace, this.add);
     this.listenTo(IndicatorActions.remove, this.remove);
+    this.listenTo(IndicatorActions.clear, this.clear);
   },
 
   addSuccess(message) {
@@ -18,32 +20,74 @@ const IndicatorStore = Reflux.createStore({
     return this.add(message, 'error', {duration: 2000});
   },
 
-  add(message, type, options) {
-    options = options || {};
-
+  addMessage(message, type, {append, ...options} = {}) {
     let indicator = {
       id: this.lastId++,
       message,
       type,
       options,
+      clearId: null,
     };
 
     if (options.duration) {
-      options.clearId = setTimeout(() => {
+      indicator.clearId = setTimeout(() => {
         this.remove(indicator);
       }, options.duration);
     }
-    this.items = [...this.items, indicator]; // replace
+
+    let newItems = append ? [...this.items, indicator] : [indicator];
+
+    this.items = newItems;
     this.trigger(this.items);
     return indicator;
   },
 
+  /**
+   * Appends a message to be displayed in list of indicators
+   *
+   * @param {String} message Toast message to be displayed
+   * @param {String} type One of ['error', 'success', '']
+   * @param {Object} options Options object
+   * @param {Number} options.duration Duration the toast should be displayed
+   */
+  append(message, type, options) {
+    return this.addMessage(message, type, {
+      ...options,
+      append: true,
+    });
+  },
+
+  /**
+   * When this method is called directly via older parts of the application,
+   * we want to maintain the old behavior in that it is replaced (and not queued up)
+   *
+   * @param {String} message Toast message to be displayed
+   * @param {String} type One of ['error', 'success', '']
+   * @param {Object} options Options object
+   * @param {Number} options.duration Duration the toast should be displayed
+   */
+  add(message, type = 'loading', options) {
+    return this.addMessage(message, type, {
+      ...options,
+      append: false,
+    });
+  },
+
+  // Clear all indicators
+  clear() {
+    this.items = [];
+    this.trigger(this.items);
+  },
+
+  // Remove a single indicator
   remove(indicator) {
+    if (!indicator) return;
+
     this.items = this.items.filter(item => {
       return item !== indicator;
     });
 
-    if (indicator.options.clearId) {
+    if (indicator.clearId) {
       window.clearTimeout(indicator.options.clearId);
       indicator.options.clearId = null;
     }

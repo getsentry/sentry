@@ -1,21 +1,25 @@
 import {DEFAULT_TOAST_DURATION} from '../constants';
 import IndicatorActions from '../actions/indicatorActions';
 
+// Removes a single indicator
 export function remove(indicator) {
   IndicatorActions.remove(indicator);
 }
 
-export function undo() {
-  IndicatorActions.undo();
+// Clears all indicators
+export function clear() {
+  IndicatorActions.clear();
 }
 
+// Note previous IndicatorStore.add behavior was to default to "loading" if no type was supplied
 export function addMessage(msg, type, options = {}) {
   let {duration} = options;
 
   // use default only if undefined, as 0 is a valid duration
   duration = typeof duration === 'undefined' ? DEFAULT_TOAST_DURATION : duration;
 
-  IndicatorActions.add(msg, type, {...options, duration});
+  let action = options.append ? 'append' : 'replace';
+  return IndicatorActions[action](msg, type, {...options, duration});
 }
 
 export function addErrorMessage(msg, duration, options = {}) {
