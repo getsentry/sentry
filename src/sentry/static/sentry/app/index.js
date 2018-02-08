@@ -117,7 +117,8 @@ export default {
     Alerts: require('./components/alerts').default,
     AlertActions: require('./actions/alertActions').default,
     AsyncComponent: require('./components/asyncComponent').default,
-    // TODO: remove when old personal settings are deprecated
+    AsyncView: require('./views/asyncView').default,
+    // TODO(billy): remove when old personal settings are deprecated #new-settings
     AvatarSettings: require('./components/avatarSettings').default,
     Button: require('./components/buttons/button').default,
     mixins: {
