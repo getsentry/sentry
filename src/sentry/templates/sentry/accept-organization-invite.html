@@ -30,9 +30,9 @@
         {% if project_count %}
           <p>{% blocktrans %}You have been invited to join this organization, which manages <strong>{{ project_count }}</strong> project(s), including:{% endblocktrans %}</p>
           <ul>
-            {% for project, team in project_team_list|slice:"5" %}
+            {% for project in project_list|slice:"5" %}
               <li>
-                {{ team.name }} &#47; {{ project.name }}
+                {{ project.name }}
               </li>
             {% endfor %}
           </ul>
