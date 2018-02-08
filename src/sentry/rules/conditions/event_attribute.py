@@ -8,7 +8,10 @@ sentry.rules.conditions.tagged_event
 
 from __future__ import absolute_import
 
+import json
+
 from collections import OrderedDict
+from django import forms
 
 from sentry.rules.conditions.base import EventCondition
 
@@ -54,6 +57,32 @@ ATTR_CHOICES = [
     'stacktrace.module',
     'stacktrace.filename',
 ]
+
+
+class FixedTypeaheadInput(forms.TextInput):
+    def __init__(self, choices, *args, **kwargs):
+        super(FixedTypeaheadInput, self).__init__(*args, **kwargs)
+        self.attrs['data-choices'] = json.dumps(choices)
+        self.attrs['class'] = self.attrs.get('class', '') + ' typeahead'
+
+
+class EventAttributeForm(forms.Form):
+    attribute = forms.CharField(
+        widget=FixedTypeaheadInput(
+            choices=[{
+                'id': a,
+                'text': a
+            } for a in ATTR_CHOICES],
+        )
+    )
+    match = forms.ChoiceField(
+        MATCH_CHOICES.items(), widget=forms.Select()
+    )
+    value = forms.CharField(
+        widget=forms.TextInput(
+            attrs={'placeholder': 'value'},
+        ), required=False
+    )
 
 
 class EventAttributeCondition(EventCondition):

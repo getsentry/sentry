@@ -9,6 +9,7 @@ sentry.rules.conditions.event_frequency
 from __future__ import absolute_import
 
 from datetime import timedelta
+from django import forms
 from django.utils import timezone
 
 from sentry.tsdb import backend as tsdb
@@ -23,7 +24,21 @@ intervals = {
 }
 
 
+class EventFrequencyForm(forms.Form):
+    interval = forms.ChoiceField(
+        choices=[
+            (key, label)
+            for key, (label, duration
+                      ) in sorted(intervals.items(), key=lambda key____label__duration: key____label__duration[1][1])
+        ]
+    )
+    value = forms.IntegerField(
+        widget=forms.TextInput(attrs={'type': 'number'})
+    )
+
+
 class BaseEventFrequencyCondition(EventCondition):
+    form_cls = EventFrequencyForm
     form_fields = {
         'value': {'type': 'number', 'placeholder': 100},
         'interval': {
