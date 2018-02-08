@@ -31,12 +31,6 @@ class AuthenticatorInterfaceSerializer(Serializer):
         return data
 
 
-@register(RecoveryCodeInterface)
-class RecoveryCodeInterfaceSerializer(AuthenticatorInterfaceSerializer):
-    def serialize(self, obj, attrs, user):
-        return super(RecoveryCodeInterfaceSerializer, self).serialize(obj, attrs, user)
-
-
 @register(SmsInterface)
 class SmsInterfaceSerializer(AuthenticatorInterfaceSerializer):
     def serialize(self, obj, attrs, user):
@@ -44,14 +38,5 @@ class SmsInterfaceSerializer(AuthenticatorInterfaceSerializer):
         data['phone'] = obj.phone_number
         return data
 
-
-@register(TotpInterface)
-class TotpInterfaceSerializer(AuthenticatorInterfaceSerializer):
-    def serialize(self, obj, attrs, user):
-        return super(TotpInterfaceSerializer, self).serialize(obj, attrs, user)
-
-
-@register(U2fInterface)
-class U2fInterfaceSerializer(AuthenticatorInterfaceSerializer):
-    def serialize(self, obj, attrs, user):
-        return super(U2fInterfaceSerializer, self).serialize(obj, attrs, user)
+for interface in RecoveryCodeInterface, TotpInterface, U2fInterface:
+    register(interface)(AuthenticatorInterfaceSerializer)
