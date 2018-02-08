@@ -12,7 +12,7 @@ const GuideAnchor = createReactClass({
     type: PropTypes.string.isRequired,
   },
 
-  mixins: [Reflux.listenTo(GuideStore, 'onGuideChange')],
+  mixins: [Reflux.listenTo(GuideStore, 'onGuideStateChange')],
 
   getInitialState() {
     return {
@@ -28,10 +28,10 @@ const GuideAnchor = createReactClass({
     GuideStore.unregisterAnchor(this);
   },
 
-  onGuideChange(data) {
+  onGuideStateChange(data) {
     if (
       data.currentGuide &&
-      data.currentGuide.steps &&
+      data.currentStep &&
       data.currentGuide.steps[data.currentStep].target == this.props.target
     ) {
       this.setState({active: true});
@@ -42,12 +42,9 @@ const GuideAnchor = createReactClass({
 
   render() {
     let {target, type} = this.props;
-    let {currentGuide} = this.state;
-
-    currentGuide;
 
     return (
-      <div className={classNames('guide-anchor', type)} onClick={this.handleClick}>
+      <div className={classNames('guide-anchor', type)}>
         {this.props.children}
         <span
           className={classNames(target, 'guide-anchor-ping', {

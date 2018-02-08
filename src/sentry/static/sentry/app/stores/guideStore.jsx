@@ -1,84 +1,74 @@
 import Reflux from 'reflux';
+import GuideActions from '../actions/guideActions';
 
 const GuideStore = Reflux.createStore({
   init() {
-    this.data = {
-      guides: [], // All guides returned to us from the server
-      anchors: [], // All anchors that have been registered on this current view
-      currentGuide: null, // The "on deck" guide
-      currentStep: null, // The current step. If empty, it means the current guide is not active (even it cued)
+    this.state = {
+      // All guides returned to us from the server.
+      guides: [],
+      // We record guides seen on the server, but immediately after a user dismisses a guide
+      // it may not have been synced yet, so the local copy helps in filtering correctly.
+      guidesSeen: new Set(),
+      // All anchors that have been registered on this current view.
+      anchors: new Set(),
+      // The "on deck" guide.
+      currentGuide: null,
+      // The current step of the current guide. Null if there's no guide or the guide
+      // is just cued but not opened.
+      currentStep: null,
     };
-    // All available guides.
-    // We record guides seen on the server, but immediately after a user completes a guide
-    // it may not have been synced to the server, so the local copy helps in filtering correctly.
-    // this.guidesSeen: new Set(),
-    // The 0-based index of the current step of the current guide.
-    // Null if the drawer is not open.
-    // currentStep: null,
+    this.listenTo(GuideActions.fetchSuccess, this.onFetchSuccess);
+    this.listenTo(GuideActions.guideClose, this.onGuideClose);
+    this.listenTo(GuideActions.nextStep, this.onNextStep);
   },
 
-  updateApplicableGuides() {
-    if (!this.data.guides) {
-      return null;
-    }
-    let available_targets = this.data.anchors.map(a => a.props.target);
-    let applicable_guides = [];
-    for (let i in this.data.guides) {
-      let guide = this.data.guides[i];
-      if (guide.required_targets.every(t => available_targets.indexOf(t) >= 0)) {
-        applicable_guides.push(guide);
+  onFetchSuccess(data) {
+    this.state.guides = data;
+    this.updateCurrentGuide();
+  },
+
+  onGuideClose() {
+    //console.log(this.state);
+    this.state.guidesSeen.add(this.state.currentGuide.id);
+    this.updateCurrentGuide();
+  },
+
+  onNextStep() {
+    this.state.currentStep =
+      this.state.currentStep === null ? 0 : this.state.currentStep + 1;
+    this.trigger(this.state);
+  },
+
+  updateCurrentGuide() {
+    let available_targets = [...this.state.anchors].map(a => a.props.target);
+    let bestGuide = null;
+    for (let key in this.state.guides) {
+      let guide = this.state.guides[key];
+      // Only show a guide if it hasn't been seen in this session before and every
+      // anchor needed by the guide is on the page.
+      if (
+        !this.state.guidesSeen.has(guide.id) &&
+        guide.required_targets.every(t => available_targets.indexOf(t) >= 0)
+      ) {
+        bestGuide = guide;
+        break;
       }
     }
-
-    if (applicable_guides) {
-      this.data.currentGuide = applicable_guides[0];
-      return applicable_guides[0];
+    if (bestGuide != this.state.currentGuide) {
+      this.state.currentGuide = bestGuide;
+      this.state.currentStep = null;
+      this.trigger(this.state);
     }
-
-    return null;
   },
 
   registerAnchor(anchor) {
-    this.data.anchors.push(anchor);
-    this.updateApplicableGuides();
-    this.trigger(this.data);
+    this.state.anchors.add(anchor);
+    this.updateCurrentGuide();
   },
 
   unregisterAnchor(anchor) {
-    this.data.anchors.pop(this.data.anchors.indexOf(anchor));
-    this.updateApplicableGuides();
-    this.trigger(this.data);
-  },
-
-  load(guides) {
-    this.data.guides = guides;
-    this.updateApplicableGuides();
-    this.trigger(this.data);
-  },
-
-  setGuide(guide) {
-    this.data.currentGuide = guide;
-    this.data.step = 0;
-    this.trigger(this.data);
-  },
-
-  unSetGuide(guide) {
-    this.data.currentGuide = '';
-    this.data.currentStep = -1;
-    this.trigger(this.data);
-  },
-
-  getCurrentGuide() {
-    return this.data.currentGuide;
-  },
-
-  getStep() {
-    return this.data.currentStep;
-  },
-
-  setStep(step) {
-    this.data.step = step;
-    this.trigger(this.data);
+    this.state.anchors.delete(anchor);
+    this.updateCurrentGuide();
   },
 });
 
