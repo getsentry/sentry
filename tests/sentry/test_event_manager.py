@@ -21,7 +21,7 @@ from sentry.event_manager import (
 )
 from sentry.models import (
     Activity, Environment, Event, Group, GroupEnvironment, GroupHash, GroupRelease, GroupResolution,
-    GroupStatus, GroupTombstone, EventMapping, Release
+    GroupStatus, GroupTombstone, EventMapping, Release, UserReport
 )
 from sentry.signals import event_discarded, event_saved
 from sentry.testutils import assert_mock_called_once_with_partial, TestCase, TransactionTestCase
@@ -833,6 +833,24 @@ class EventManagerTest(TransactionTestCase):
         event = manager.save(self.project.id)
 
         assert event.data.get('fingerprint') == ['{{ default }}']
+
+    def test_user_report_gets_environment(self):
+        project = self.create_project()
+        environment = self.create_environment(project, 'production')
+        event_id = uuid.uuid1()
+        UserReport.objects.create(
+            group=self.create_group(project=project),
+            project=project,
+            event_id=event_id,
+            name='foo',
+            email='bar@example.com',
+            comments='It Broke!!!',
+        )
+        manager = EventManager(self.make_event(tags={
+            'environment': environment}), event_id=event_id)
+        manager.normalize()
+        manager.save(project.id)
+        assert UserReport.objects.filter(event_id=event_id).environment_id == environment.id
 
     def test_default_event_type(self):
         manager = EventManager(self.make_event(message='foo bar'))
