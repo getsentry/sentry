@@ -850,7 +850,7 @@ class EventManagerTest(TransactionTestCase):
             'environment': environment}), event_id=event_id)
         manager.normalize()
         manager.save(project.id)
-        assert UserReport.objects.filter(event_id=event_id).environment_id == environment.id
+        assert UserReport.objects.filter(event_id=event_id).environment == environment
 
     def test_default_event_type(self):
         manager = EventManager(self.make_event(message='foo bar'))
