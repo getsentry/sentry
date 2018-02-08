@@ -1,24 +1,11 @@
 from __future__ import absolute_import
 
-import itertools
 from rest_framework import serializers
 
 from .list import ListField
 from sentry.api.fields.actor import ActorField
 
 from sentry.models import User, Team
-
-
-def seperateActorIds(actor_ids):
-    """Accepts a list of ids which correspond to actors, be that teams or users
-    team ids are prefixes with `team:`, user ids are prefixed with `user:`
-    Note: ids with no prefix are assumed to be user ids."""
-    members = [actor_id[5:] for actor_id in actor_ids if actor_id.startswith("user:")]
-    legacy_members = [actor_id for actor_id in actor_ids if actor_id.isdigit()]
-
-    teams = [actor_id[5:] for actor_id in actor_ids if actor_id.startswith("team:")]
-
-    return {'users': list(itertools.chain(members, legacy_members)), 'teams': teams}
 
 
 def seperateActors(actors):
