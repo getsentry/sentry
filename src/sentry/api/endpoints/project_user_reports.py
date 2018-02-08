@@ -57,12 +57,17 @@ class ProjectUserReportsEndpoint(ProjectEndpoint, EnvironmentMixin):
             )
         except Environment.DoesNotExist:
             return Response({'environment': 'Invalid environment'}, status=400)
-
-        queryset = UserReport.objects.filter(
-            project=project,
-            group__isnull=False,
-            environment=environment,
-        ).select_related('group')
+        if environment is not None:
+            queryset = UserReport.objects.filter(
+                project=project,
+                group__isnull=False,
+                environment=environment,
+            ).select_related('group')
+        else:
+            queryset = UserReport.objects.filter(
+                project=project,
+                group__isnull=False,
+            ).select_related('group')
 
         status = request.GET.get('status', 'unresolved')
         if status == 'unresolved':
@@ -116,7 +121,10 @@ class ProjectUserReportsEndpoint(ProjectEndpoint, EnvironmentMixin):
 
         try:
             event = Event.objects.filter(event_id=report.event_id).select_related('group')[0]
-            report.environment = event.get_environment()
+            try:
+                report.environment = event.get_environment()
+            except Environment.DoesNotExist:
+                pass
             report.group = event.group
         except IndexError:
             try:

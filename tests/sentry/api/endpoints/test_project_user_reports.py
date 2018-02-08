@@ -345,10 +345,20 @@ class ProjectUserReportByEnvironmentsTest(APITestCase):
         assert len(response.data) == len(self.env2_events)
         self.assert_same_userreports(response.data, self.env2_userreports)
 
+    def test_no_environment_does_not_exists(self):
+        self.login_as(user=self.user)
+        response = self.client.get(self.path + '?environment=')
+        assert response.status_code == 400
+        assert response.data == {'environment': 'Invalid environment'}
+
     def test_no_environment(self):
         self.login_as(user=self.user)
-        response = self.client.get(self.path)
-        userreports = self.env1_userreports + self.env2_userreports
+
+        empty_env = self.create_environment(self.project, u'')
+        empty_env_events = self.create_events_for_environment(self.group, empty_env, 5)
+        userreports = self.create_user_report_for_events(
+            self.project, self.group, empty_env_events, empty_env)
+        response = self.client.get(self.path + '?environment=')
 
         assert response.status_code == 200, response.content
         assert len(response.data) == len(userreports)
