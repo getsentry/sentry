@@ -326,50 +326,45 @@ class ProjectUserReportByEnvironmentsTest(APITestCase):
         assert response.status_code == 200, response.content
         assert UserReport.objects.get(event_id=event_id).environment == self.env1
 
+    def assert_same_userreports(self, response_data, userreports):
+        assert sorted(int(r.get('id')) for r in response_data) == sorted(
+            r.id for r in userreports)
+        assert sorted(r.get('eventID') for r in response_data) == sorted(
+            r.event_id for r in userreports)
+
     def test_specified_enviroment(self):
         self.login_as(user=self.user)
 
         response = self.client.get(self.path + '?environment=' + self.env1.name)
         assert response.status_code == 200, response.content
         assert len(response.data) == len(self.env1_events)
-        assert sorted(
-            r.get('eventID') for r in response.data) == sorted(
-            r.event_id for r in self.env1_userreports)
-        assert sorted(int(r.get('id'))
-                      for r in response.data) == sorted(r.id for r in self.env1_userreports)
+        self.assert_same_userreports(response.data, self.env1_userreports)
 
         response = self.client.get(self.path + '?environment=' + self.env2.name)
         assert response.status_code == 200, response.content
         assert len(response.data) == len(self.env2_events)
-        assert sorted(
-            r.get('eventID') for r in response.data) == sorted(
-            r.event_id for r in self.env2_userreports)
-        assert sorted(int(r.get('id'))
-                      for r in response.data) == sorted(r.id for r in self.env2_userreports)
+        self.assert_same_userreports(response.data, self.env2_userreports)
 
     def test_no_environment(self):
         self.login_as(user=self.user)
         response = self.client.get(self.path)
-        events = self.env1_events + self.env2_events
+        userreports = self.env1_userreports + self.env2_userreports
 
         assert response.status_code == 200, response.content
-        assert len(response.data) == len(events)
-        assert response.data == events
+        assert len(response.data) == len(userreports)
+        self.assert_same_userreports(response.data, userreports)
 
     def test_all_environments(self):
         self.login_as(user=self.user)
         response = self.client.get(self.path)
-        events = self.env1_events + self.env2_events
+        userreports = self.env1_userreports + self.env2_userreports
 
         assert response.status_code == 200, response.content
-        assert len(response.data) == len(events)
-        assert response.data == events
+        assert len(response.data) == len(userreports)
+        self.assert_same_userreports(response.data, userreports)
 
     def test_invalid_environment(self):
         self.login_as(user=self.user)
         response = self.client.get(self.path + '?environment=invalid_env')
-
         assert response.status_code == 400
-        assert response.content == {'environment': 'Invalid environment'}
-        assert len(response.data) == 0
-        assert not response.data
+        assert response.data == {'environment': 'Invalid environment'}
