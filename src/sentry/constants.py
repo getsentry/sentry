@@ -86,7 +86,7 @@ RESERVED_ORGANIZATION_SLUGS = frozenset(
         'pricing', 'subscribe', 'enterprise', 'about', 'jobs', 'thanks', 'guide', 'privacy',
         'security', 'terms', 'from', 'sponsorship', 'for', 'at', 'platforms', 'branding', 'vs',
         'answers', '_admin', 'support', 'contact', 'onboarding', 'ext', 'extension', 'extensions',
-        'plugins', 'themonitor', 'settings',
+        'plugins', 'themonitor', 'settings', 'legal',
     )
 )
 
