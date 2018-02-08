@@ -10,10 +10,10 @@ from sentry.models import Deploy, Environment
 class DeploySerializer(Serializer):
     def get_attrs(self, item_list, user, *args, **kwargs):
         environments = {
-            e.id: e
-            for e in Environment.objects.filter(
+            id: name
+            for id, name in Environment.objects.filter(
                 id__in=[d.environment_id for d in item_list],
-            )
+            ).values_list('id', 'name')
         }
 
         result = {}
@@ -32,5 +32,4 @@ class DeploySerializer(Serializer):
             'dateFinished': obj.date_finished,
             'name': obj.name,
             'url': obj.url,
-            'environment': getattr(attrs.get('environment'), 'name', None),
         }
