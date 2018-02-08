@@ -18,7 +18,7 @@ class ProjectEnvironmentDetailsEndpoint(ProjectEndpoint):
         try:
             instance = EnvironmentProject.objects.select_related('environment').get(
                 project=project,
-                environment__name=environment,
+                environment__name='' if environment == 'none' else environment,
             )
         except EnvironmentProject.DoesNotExist:
             raise ResourceDoesNotExist
@@ -29,7 +29,7 @@ class ProjectEnvironmentDetailsEndpoint(ProjectEndpoint):
         try:
             instance = EnvironmentProject.objects.select_related('environment').get(
                 project=project,
-                environment__name=environment,
+                environment__name='' if environment == 'none' else environment,
             )
         except EnvironmentProject.DoesNotExist:
             raise ResourceDoesNotExist
