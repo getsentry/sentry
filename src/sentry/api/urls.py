@@ -10,7 +10,7 @@ from .endpoints.auth_index import AuthIndexEndpoint
 from .endpoints.authenticator_index import AuthenticatorIndexEndpoint
 from .endpoints.broadcast_index import BroadcastIndexEndpoint
 from .endpoints.catchall import CatchallEndpoint
-from .endpoints.chunk_upload import ChunkUploadEndpoint
+from .endpoints.chunk import ChunkUploadEndpoint
 from .endpoints.event_details import EventDetailsEndpoint
 from .endpoints.event_apple_crash_report import EventAppleCrashReportEndpoint
 from .endpoints.group_details import GroupDetailsEndpoint
@@ -122,6 +122,7 @@ from .endpoints.issues_resolved_in_release import IssuesResolvedInReleaseEndpoin
 from .endpoints.release_deploys import ReleaseDeploysEndpoint
 from .endpoints.dsym_files import DSymFilesEndpoint, \
     UnknownDSymFilesEndpoint, AssociateDSymFilesEndpoint
+from .endpoints.dif_files import DifAssembleEndpoint
 from .endpoints.shared_group_details import SharedGroupDetailsEndpoint
 from .endpoints.system_health import SystemHealthEndpoint
 from .endpoints.system_options import SystemOptionsEndpoint
@@ -185,12 +186,6 @@ urlpatterns = patterns(
     url(r'^broadcasts/$', BroadcastIndexEndpoint.as_view(),
         name='sentry-api-0-broadcast-index'),
 
-    # Chunk upload
-    url(r'^chunk-upload/$',
-        ChunkUploadEndpoint.as_view(),
-        name='sentry-api-0-chunk-upload'
-        ),
-
     # Users
     url(r'^users/$', UserIndexEndpoint.as_view(), name='sentry-api-0-user-index'),
     url(
@@ -248,6 +243,12 @@ urlpatterns = patterns(
     ),
 
     # Organizations
+
+    url(
+        r'^organizations/(?P<organization_slug>[^\/]+)/chunk-upload/$',
+        ChunkUploadEndpoint.as_view(),
+        name='sentry-api-0-chunk-upload'
+    ),
     url(
         r'^organizations/$', OrganizationIndexEndpoint.as_view(), name='sentry-api-0-organizations'
     ),
@@ -534,6 +535,11 @@ urlpatterns = patterns(
         r'^projects/(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/files/dsyms/$',
         DSymFilesEndpoint.as_view(),
         name='sentry-api-0-dsym-files'
+    ),
+    url(
+        r'^projects/(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/files/difs/assemble/$',
+        DifAssembleEndpoint.as_view(),
+        name='sentry-api-0-assemble-dif-files'
     ),
     url(
         r'^projects/(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/files/dsyms/unknown/$',
