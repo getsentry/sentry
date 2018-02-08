@@ -21,9 +21,10 @@ exports[`OrganizationAccessRequests renders list 1`] = `
     disablePadding={true}
     flex={false}
   >
-    <_default
+    <PanelItem
       align="center"
       key="id"
+      p={0}
     >
       <Box
         flex="1"
@@ -78,7 +79,7 @@ exports[`OrganizationAccessRequests renders list 1`] = `
           Deny
         </Button>
       </Box>
-    </_default>
+    </PanelItem>
   </PanelBody>
 </Panel>
 `;

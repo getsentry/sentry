@@ -6,7 +6,7 @@ import styled from 'react-emotion';
 import {t} from '../../../locale';
 import Button from '../../../components/buttons/button';
 import DateTime from '../../../components/dateTime';
-import Row from '../components/row';
+import PanelItem from '../components/panelItem';
 import TextCopyInput from '../components/forms/textCopyInput';
 
 const ScopeList = styled.div`
@@ -33,7 +33,7 @@ class ApiTokenRow extends React.Component {
     let {token} = this.props;
 
     return (
-      <Row justify="space-between" px={2} py={2}>
+      <PanelItem justify="space-between" px={2} py={2}>
         <Box flex="1">
           <div style={{marginBottom: 5}}>
             <small>
@@ -66,7 +66,7 @@ class ApiTokenRow extends React.Component {
             </Button>
           </Box>
         </Flex>
-      </Row>
+      </PanelItem>
     );
   }
 }
