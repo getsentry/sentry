@@ -2,10 +2,14 @@ import PropTypes from 'prop-types';
 import React from 'react';
 import createReactClass from 'create-react-class';
 import marked from 'marked';
+import classNames from 'classnames';
+
 import {MentionsInput, Mention} from 'react-mentions';
 import _ from 'lodash';
 
 import ApiMixin from '../../mixins/apiMixin';
+import OrganizationState from '../../mixins/organizationState';
+
 import GroupStore from '../../stores/groupStore';
 import TeamStore from '../../stores/teamStore';
 import IndicatorStore from '../../stores/indicatorStore';
@@ -34,7 +38,7 @@ const NoteInput = createReactClass({
     sessionUser: PropTypes.object.isRequired,
   },
 
-  mixins: [ApiMixin],
+  mixins: [ApiMixin, OrganizationState],
 
   getInitialState() {
     let {item, group} = this.props;
@@ -115,7 +119,9 @@ const NoteInput = createReactClass({
   },
 
   cleanMarkdown(text) {
-    return text.replace(/\[sentry\.strip:(team|member)\]/g, '');
+    return text
+      .replace(/\[sentry\.strip:member\]/g, '@')
+      .replace(/\[sentry\.strip:team\]/g, '#');
   },
 
   create() {
@@ -272,18 +278,25 @@ const NoteInput = createReactClass({
 
   render() {
     let {error, errorJSON, loading, preview, updating, value} = this.state;
-    let classNames = 'activity-field';
-    if (error) {
-      classNames += ' error';
-    }
-    if (loading) {
-      classNames += ' loading';
-    }
+
+    let hasTeamMentions = new Set(this.getOrganization().features).has(
+      'internal-catchall'
+    );
+    let placeHolderText = hasTeamMentions
+      ? t('Add details or updates to this event. \nTag users with @, or teams with #')
+      : t('Add details or updates to this event. \nTag users with @');
 
     let btnText = updating ? t('Save Comment') : t('Post Comment');
 
     return (
-      <form noValidate className={classNames} onSubmit={this.onSubmit}>
+      <form
+        noValidate
+        className={classNames('activity-field', {
+          error,
+          loading,
+        })}
+        onSubmit={this.onSubmit}
+      >
         <div className="activity-notes">
           <ul className="nav nav-tabs">
             <li className={!preview ? 'active' : ''}>
@@ -305,16 +318,16 @@ const NoteInput = createReactClass({
           ) : (
             <MentionsInput
               style={mentionsStyle}
-              placeholder={t(
-                'Add details or updates to this event.\nTag users with @, or teams with #.'
-              )}
+              placeholder={placeHolderText}
               onChange={this.onChange}
               onBlur={this.onBlur}
               onKeyDown={this.onKeyDown}
               value={value}
               required={true}
               autoFocus={true}
-              markup="**__display__[sentry.strip:__type__]**"
+              displayTransform={(id, display, type) =>
+                `${type === 'member' ? '@' : '#'}${display}`}
+              markup="**[sentry.strip:__type__]__display__**"
             >
               <Mention
                 type="member"
@@ -323,13 +336,15 @@ const NoteInput = createReactClass({
                 onAdd={this.onAddMember}
                 appendSpaceOnAdd={true}
               />
-              <Mention
-                type="team"
-                trigger="#"
-                data={this.mentionableTeams()}
-                onAdd={this.onAddTeam}
-                appendSpaceOnAdd={true}
-              />
+              {hasTeamMentions ? (
+                <Mention
+                  type="team"
+                  trigger="#"
+                  data={this.mentionableTeams()}
+                  onAdd={this.onAddTeam}
+                  appendSpaceOnAdd={true}
+                />
+              ) : null}
             </MentionsInput>
           )}
           <div className="activity-actions">
@@ -351,5 +366,3 @@ const NoteInput = createReactClass({
 });
 
 export default NoteInput;
-// displayTransform={(id, display, type) =>
-// `${type === 'member' ? '@' : '#'}${display}`}

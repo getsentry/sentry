@@ -26,13 +26,17 @@ describe('NoteInput', function() {
   });
 
   it('renders', function() {
-    let wrapper = shallow(<NoteInput group={{}} memberList={[]} sessionUser={{}} />);
+    let wrapper = shallow(
+      <NoteInput group={{}} memberList={[]} sessionUser={{}} />,
+      TestStubs.routerContext()
+    );
     expect(wrapper).toMatchSnapshot();
   });
 
   it('submits when meta + enter is pressed', function() {
     let wrapper = mount(
-      <NoteInput group={{id: 'groupId'}} memberList={[]} sessionUser={{}} />
+      <NoteInput group={{id: 'groupId'}} memberList={[]} sessionUser={{}} />,
+      TestStubs.routerContext()
     );
 
     let input = wrapper.find('textarea');
@@ -43,7 +47,8 @@ describe('NoteInput', function() {
 
   it('submits when ctrl + enter is pressed', function() {
     let wrapper = mount(
-      <NoteInput group={{id: 'groupId'}} memberList={[]} sessionUser={{}} />
+      <NoteInput group={{id: 'groupId'}} memberList={[]} sessionUser={{}} />,
+      TestStubs.routerContext()
     );
 
     let input = wrapper.find('textarea');

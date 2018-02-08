@@ -45,11 +45,12 @@ exports[`NoteInput renders 1`] = `
     </ul>
     <withDefaultStyle(MentionsInput)
       autoFocus={true}
-      markup="**__display__[sentry.strip:__type__]**"
+      displayTransform={[Function]}
+      markup="**[sentry.strip:__type__]__display__**"
       onChange={[Function]}
       onKeyDown={[Function]}
-      placeholder="Add details or updates to this event.
-Tag users with @, or teams with #."
+      placeholder="Add details or updates to this event. 
+Tag users with @"
       required={true}
       style={
         Object {
@@ -119,16 +120,6 @@ Tag users with @, or teams with #."
         renderSuggestion={null}
         trigger="@"
         type="member"
-      />
-      <withDefaultStyle()
-        appendSpaceOnAdd={true}
-        data={Array []}
-        isLoading={false}
-        onAdd={[Function]}
-        onRemove={[Function]}
-        renderSuggestion={null}
-        trigger="#"
-        type="team"
       />
     </withDefaultStyle(MentionsInput)>
     <div
