@@ -1,10 +1,9 @@
 from __future__ import absolute_import
 
-import json
-
 from datetime import timedelta
 from django.http import HttpResponse
 from django.utils import timezone
+from rest_framework import serializers
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 
@@ -13,8 +12,30 @@ from sentry.assistant.guides import GUIDES
 from sentry.models import AssistantActivity
 
 
+VALID_GUIDE_IDS = frozenset(v['id'] for v in GUIDES.values())
 VALID_STATUSES = frozenset(('viewed', 'dismissed', 'snoozed'))
 VALID_SNOOZE_DURATION_HOURS = frozenset((1, 24, 24 * 7))
+
+
+class AssistantSerializer(serializers.Serializer):
+    guide_id = serializers.ChoiceField(
+        choices=zip(VALID_GUIDE_IDS, VALID_GUIDE_IDS),
+        required=True,
+    )
+    status = serializers.ChoiceField(
+        choices=zip(VALID_STATUSES, VALID_STATUSES),
+        required=True,
+    )
+    duration_hours = serializers.ChoiceField(
+        choices=zip(VALID_SNOOZE_DURATION_HOURS, VALID_SNOOZE_DURATION_HOURS),
+    )
+    useful = serializers.BooleanField()
+
+    def validate(self, data):
+        if (data['status'] == 'snoozed' and
+                data.get('duration_hours') not in VALID_SNOOZE_DURATION_HOURS):
+            raise serializers.ValidationError("must specify a valid snooze duration")
+        return data
 
 
 class AssistantEndpoint(Endpoint):
@@ -22,14 +43,12 @@ class AssistantEndpoint(Endpoint):
 
     def get(self, request):
         """Return all the guides the user has not seen, dismissed, or snoozed."""
-        # TODO(adhiraj): Uncomment after migration is done.
-        # exclude = AssistantActivity.objects.filter(
-        #     user=request.user,
-        # ).exclude(
-        #     snoozed_until_ts__lt=timezone.now(),
-        # )
-        # exclude_ids = set(e.id for e in exclude)
-        exclude_ids = set()
+        exclude = AssistantActivity.objects.filter(
+            user=request.user,
+        ).exclude(
+            snoozed_until_ts__lt=timezone.now(),
+        )
+        exclude_ids = set(e.id for e in exclude)
         result = {k: v for k, v in GUIDES.items() if v['id'] not in exclude_ids}
 
         return Response(result)
@@ -44,18 +63,14 @@ class AssistantEndpoint(Endpoint):
             'duration_hours': <if snoozed, for how many hours>,
         }
         """
-        req = json.loads(request.body)
-        guide_id = req['guide_id']
-        status = req['status']
-        duration_hours = req.get('duration_hours')
-        useful = req.get('useful')
+        serializer = AssistantSerializer(data=request.DATA, partial=True)
+        if not serializer.is_valid():
+            return Response(serializer.errors, status=400)
 
-        guide_ids = set(v['id'] for v in GUIDES.values())
-        if (guide_id not in guide_ids or
-            status not in VALID_STATUSES or
-            (status == 'snoozed' and duration_hours not in VALID_SNOOZE_DURATION_HOURS) or
-                useful not in (None, True, False)):
-            return Response(status=400)
+        guide_id = request.DATA['guide_id']
+        status = request.DATA['status']
+        duration_hours = request.DATA.get('duration_hours')
+        useful = request.DATA.get('useful')
 
         fields = {}
         if useful is not None:
@@ -71,4 +86,4 @@ class AssistantEndpoint(Endpoint):
             user=request.user, guide_id=guide_id, **fields
         )
 
-        return HttpResponse(201)
+        return HttpResponse(status=201)
