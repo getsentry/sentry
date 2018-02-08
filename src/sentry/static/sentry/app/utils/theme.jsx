@@ -103,4 +103,9 @@ theme.textColor = theme.gray5;
 theme.success = theme.green;
 theme.error = theme.red;
 
+theme.alert.info.iconColor = theme.blue;
+theme.alert.warning.iconColor = theme.yellowDark;
+theme.alert.success.iconColor = theme.greenDark;
+theme.alert.error.iconColor = theme.redDark;
+
 export default theme;
