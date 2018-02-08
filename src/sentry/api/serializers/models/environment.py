@@ -27,6 +27,7 @@ class EnvironmentSerializer(Serializer):
 class EnvironmentProjectSerializer(Serializer):
     def serialize(self, obj, attrs, user):
         return {
+            'id': six.text_type(obj.id),
             'name': obj.environment.name,
             'isHidden': obj.is_hidden is True,
         }

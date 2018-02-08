@@ -30,6 +30,12 @@ class ProjectEnvironmentsTest(APITestCase):
         response = self.client.get(url, format='json')
         assert response.status_code == 200, response.content
         assert response.data == {
+            'id': u'{}'.format(
+                EnvironmentProject.objects.get(
+                    environment__name='production',
+                    project=project,
+                ).id,
+            ),
             'name': 'production',
             'isHidden': False,
         }
