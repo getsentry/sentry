@@ -14,7 +14,7 @@ describe('DiffModal', function() {
   });
 
   it('renders', function() {
-    let wrapper = shallow(<DiffModal />);
+    let wrapper = shallow(<DiffModal Body={({children}) => <div>{children}</div>} />);
     expect(wrapper).toMatchSnapshot();
   });
 });

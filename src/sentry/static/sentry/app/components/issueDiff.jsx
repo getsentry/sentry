@@ -1,35 +1,48 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 import createReactClass from 'create-react-class';
-import classNames from 'classnames';
+import styled, {css} from 'react-emotion';
 
 import ApiMixin from '../mixins/apiMixin';
 import LoadingIndicator from './loadingIndicator';
 import rawStacktraceContent from './events/interfaces/rawStacktraceContent';
 
-import '../../less/components/issueDiff.less';
+const getLoadingStyle = p =>
+  (p.loading &&
+    css`
+      background-color: white;
+      justify-content: center;
+    `) ||
+  '';
 
-const IssueDiff = createReactClass({
-  displayName: 'IssueDiff',
+const IssueDiffWrapper = styled.div`
+  background-color: #f7f8f9;
+  overflow: auto;
+  padding: 10px;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
 
-  propTypes: {
+  ${getLoadingStyle};
+`;
+
+class IssueDiff extends React.Component {
+  static propTypes = {
+    api: PropTypes.object,
     baseIssueId: PropTypes.string.isRequired,
     targetIssueId: PropTypes.string.isRequired,
     baseEventId: PropTypes.string.isRequired,
     targetEventId: PropTypes.string.isRequired,
-  },
+  };
 
-  mixins: [ApiMixin],
+  static defaultProps = {
+    baseEventId: 'latest',
+    targetEventId: 'latest',
+  };
 
-  getDefaultProps() {
-    return {
-      baseEventId: 'latest',
-      targetEventId: 'latest',
-    };
-  },
-
-  getInitialState() {
-    return {
+  constructor(...args) {
+    super(...args);
+    this.state = {
       loading: true,
       baseEvent: {},
       targetEvent: {},
@@ -38,7 +51,7 @@ const IssueDiff = createReactClass({
       // This will eventually contain a reference to the exported component from `./splitDiff`
       SplitDiffAsync: null,
     };
-  },
+  }
 
   componentDidMount() {
     let {baseIssueId, targetIssueId, baseEventId, targetEventId} = this.props;
@@ -56,7 +69,7 @@ const IssueDiff = createReactClass({
         loading: false,
       });
     });
-  },
+  }
 
   getException(event) {
     if (!event || !event.entries) return [];
@@ -74,7 +87,7 @@ const IssueDiff = createReactClass({
       .reduce((acc, value) => {
         return acc.concat(value);
       }, []);
-  },
+  }
 
   getEndpoint(issueId, eventId) {
     if (eventId !== 'latest') {
@@ -82,27 +95,23 @@ const IssueDiff = createReactClass({
     }
 
     return `/issues/${issueId}/events/${eventId}/`;
-  },
+  }
 
   fetchData(issueId, eventId) {
     return new Promise((resolve, reject) => {
-      this.api.request(this.getEndpoint(issueId, eventId), {
+      this.props.api.request(this.getEndpoint(issueId, eventId), {
         success: data => resolve(data),
         error: err => reject(err),
       });
     });
-  },
+  }
 
   render() {
-    let {className} = this.props;
-    let cx = classNames('issue-diff', className, {
-      loading: this.state.loading,
-    });
     let DiffComponent = this.state.SplitDiffAsync;
     let diffReady = !this.state.loading && !!DiffComponent;
 
     return (
-      <div className={cx}>
+      <IssueDiffWrapper loading={this.state.loading}>
         {this.state.loading && <LoadingIndicator />}
         {diffReady &&
           this.state.baseEvent.map((value, i) => (
@@ -113,9 +122,18 @@ const IssueDiff = createReactClass({
               type="words"
             />
           ))}
-      </div>
+      </IssueDiffWrapper>
     );
+  }
+}
+
+const IssueDiffContainer = createReactClass({
+  displayName: 'IssueDiffContainer',
+  mixins: [ApiMixin],
+  render() {
+    return <IssueDiff {...this.props} api={this.api} />;
   },
 });
 
-export default IssueDiff;
+export default IssueDiffContainer;
+export {IssueDiff};

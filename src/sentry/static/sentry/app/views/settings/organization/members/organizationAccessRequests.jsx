@@ -59,7 +59,7 @@ class OrganizationAccessRequests extends React.Component {
               member.user &&
               (member.user.name || member.user.email || member.user.username);
             return (
-              <PanelItem key={id} align="center">
+              <PanelItem p={0} key={id} align="center">
                 <Box p={2} flex="1">
                   {tct('[name] requests access to the [team] team.', {
                     name: <strong>{displayName}</strong>,
