@@ -84,6 +84,7 @@ import ProjectUserReportSettings from './views/projectUserReportSettings';
 import ProjectUserReports from './views/projectUserReports';
 import ProjectPlugins from './views/projectPlugins';
 import ProjectPluginDetails from './views/projectPluginDetails';
+import OrganizationIntegrationConfig from './views/organizationIntegrationConfig';
 import ReleaseAllEvents from './views/releaseAllEvents';
 import ReleaseArtifacts from './views/releaseArtifacts';
 import ReleaseCommits from './views/releases/releaseCommits';
@@ -351,6 +352,14 @@ const projectSettingsRoutes = (
       name="Integration Details"
       component={errorHandler(ProjectPluginDetails)}
     />
+    // XXX(epurkhiser): This will live under project configurations for now until
+    // we've migrated enough integrations that it can live at the org level.
+    <Route
+      key="integrations/:providerKey/"
+      path="integrations/:providerKey/"
+      name="Integration Configuration"
+      component={errorHandler(OrganizationIntegrationConfig)}
+    />,
     <Route
       path="install/"
       name="Basic Configuration"
