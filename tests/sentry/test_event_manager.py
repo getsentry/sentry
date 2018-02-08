@@ -836,8 +836,49 @@ class EventManagerTest(TransactionTestCase):
 
     def test_user_report_gets_environment(self):
         project = self.create_project()
-        environment = self.create_environment(project, 'production')
-        event_id = uuid.uuid1()
+        environment = Environment.objects.create(
+            project_id=project.id,
+            organization_id=project.organization_id,
+            name='production',
+        )
+        environment.add_project(project)
+        event_id = 'a' * 32
+
+        group = self.create_group(project=project)
+        UserReport.objects.create(
+            group=group,
+            project=project,
+            event_id=event_id,
+            name='foo',
+            email='bar@example.com',
+            comments='It Broke!!!',
+        )
+        manager = EventManager(
+            self.make_event(
+                environment=environment.name,
+                event_id=event_id,
+                group=group))
+        manager.normalize()
+        manager.save(project.id)
+        assert UserReport.objects.get(event_id=event_id).environment == environment
+
+    def test_environment_gets_user_report(self):
+        project = self.create_project()
+        environment = Environment.objects.create(
+            project_id=project.id,
+            organization_id=project.organization_id,
+            name='production',
+        )
+        environment.add_project(project)
+        group = self.create_group(project=project)
+        event_id = 'a' * 32
+        manager = EventManager(
+            self.make_event(
+                environment=environment.name,
+                event_id=event_id,
+                group=group))
+        manager.normalize()
+        manager.save(project.id)
         UserReport.objects.create(
             group=self.create_group(project=project),
             project=project,
@@ -846,11 +887,7 @@ class EventManagerTest(TransactionTestCase):
             email='bar@example.com',
             comments='It Broke!!!',
         )
-        manager = EventManager(self.make_event(tags={
-            'environment': environment}), event_id=event_id)
-        manager.normalize()
-        manager.save(project.id)
-        assert UserReport.objects.filter(event_id=event_id).environment == environment
+        assert UserReport.objects.get(event_id=event_id).environment == environment
 
     def test_default_event_type(self):
         manager = EventManager(self.make_event(message='foo bar'))

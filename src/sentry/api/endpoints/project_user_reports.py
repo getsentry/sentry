@@ -10,7 +10,7 @@ from sentry.api.base import DocSection, EnvironmentMixin
 from sentry.api.bases.project import ProjectEndpoint
 from sentry.api.serializers import serialize, ProjectUserReportSerializer
 from sentry.api.paginator import DateTimePaginator
-from sentry.models import (Event, EventUser, Group, GroupStatus, UserReport)
+from sentry.models import (Environment, Event, EventUser, Group, GroupStatus, UserReport)
 from sentry.signals import user_feedback_received
 from sentry.utils.apidocs import scenario, attach_scenarios
 
@@ -50,9 +50,18 @@ class ProjectUserReportsEndpoint(ProjectEndpoint, EnvironmentMixin):
         :pparam string project_slug: the slug of the project.
         :auth: required
         """
+        try:
+            environment = self._get_environment_from_request(
+                request,
+                project.organization_id,
+            )
+        except Environment.DoesNotExist:
+            return Response({'environment': 'Invalid environment'}, status=400)
+
         queryset = UserReport.objects.filter(
             project=project,
             group__isnull=False,
+            environment=environment,
         ).select_related('group')
 
         status = request.GET.get('status', 'unresolved')
@@ -106,9 +115,14 @@ class ProjectUserReportsEndpoint(ProjectEndpoint, EnvironmentMixin):
             report.event_user_id = euser.id
 
         try:
-            report.group = Group.objects.from_event_id(project, report.event_id)
-        except Group.DoesNotExist:
-            pass
+            event = Event.objects.filter(event_id=report.event_id).select_related('group')[0]
+            report.environment = event.get_environment()
+            report.group = event.group
+        except IndexError:
+            try:
+                report.group = Group.objects.from_event_id(project, report.event_id)
+            except Group.DoesNotExist:
+                pass
 
         try:
             with transaction.atomic():
