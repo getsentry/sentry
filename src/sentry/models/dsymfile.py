@@ -304,6 +304,52 @@ def _analyze_progard_filename(filename):
         pass
 
 
+def detect_dif_from_filename(filename):
+    """This detects which kind of dif (Debug Information File) the filename
+    provided is. It returns an array since a FatObject can contain more than
+    on dif.
+    """
+    # proguard files (proguard/UUID.txt) or
+    # (proguard/mapping-UUID.txt).
+    proguard_uuid = _analyze_progard_filename(filename)
+    if proguard_uuid is not None:
+        return [('proguard', 'any', six.text_type(proguard_uuid), filename)]
+
+    # macho style debug symbols
+    try:
+        fo = FatObject.from_path(filename)
+    except UnsupportedObjectFile:
+        pass
+    except SymbolicError:
+        # Whatever was contained there, was probably not a
+        # macho file.
+        # XXX: log?
+        logger.warning('dsymfile.bad-fat-object', exc_info=True)
+    else:
+        objs = []
+        for obj in fo.iter_objects():
+            objs.append((obj.kind, obj.arch, six.text_type(obj.uuid), filename))
+        return objs
+
+
+def create_dsym_from_dif(to_create, project, overwrite_filename=None):
+    """Create a ProjectDSymFile from a dif (Debug Information File) and
+    return an array of created objects.
+    """
+    rv = []
+    for dsym_type, cpu, file_uuid, filename in to_create:
+        with open(filename, 'rb') as f:
+            result_filename = os.path.basename(filename)
+            if overwrite_filename is not None:
+                result_filename = overwrite_filename
+            dsym, created = _create_dsym_from_uuid(
+                project, dsym_type, cpu, file_uuid, f, result_filename
+            )
+            if created:
+                rv.append(dsym)
+    return rv
+
+
 def create_files_from_dsym_zip(fileobj, project,
                                update_symcaches=True):
     """Creates all missing dsym files from the given zip file.  This
@@ -317,38 +363,12 @@ def create_files_from_dsym_zip(fileobj, project,
         for dirpath, dirnames, filenames in os.walk(scratchpad):
             for fn in filenames:
                 fn = os.path.join(dirpath, fn)
+                difs = detect_dif_from_filename(fn)
+                if difs is None:
+                    difs = []
+                to_create = to_create + difs
 
-                # proguard files (proguard/UUID.txt) or
-                # (proguard/mapping-UUID.txt).
-                proguard_uuid = _analyze_progard_filename(fn)
-                if proguard_uuid is not None:
-                    to_create.append(('proguard', 'any', six.text_type(proguard_uuid), fn, ))
-                    continue
-
-                # macho style debug symbols
-                try:
-                    fo = FatObject.from_path(fn)
-                except UnsupportedObjectFile:
-                    pass
-                except SymbolicError:
-                    # Whatever was contained there, was probably not a
-                    # macho file.
-                    # XXX: log?
-                    logger.warning('dsymfile.bad-fat-object', exc_info=True)
-                else:
-                    for obj in fo.iter_objects():
-                        to_create.append((obj.kind, obj.arch,
-                                          six.text_type(obj.uuid), fn))
-                    continue
-
-        rv = []
-        for dsym_type, cpu, file_uuid, filename in to_create:
-            with open(filename, 'rb') as f:
-                dsym, created = _create_dsym_from_uuid(
-                    project, dsym_type, cpu, file_uuid, f, os.path.basename(filename)
-                )
-                if created:
-                    rv.append(dsym)
+        rv = create_dsym_from_dif(to_create, project)
 
         # By default we trigger the symcache generation on upload to avoid
         # some obvious dogpiling.
