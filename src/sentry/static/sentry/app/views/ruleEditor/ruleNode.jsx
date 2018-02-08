@@ -16,6 +16,10 @@ class RuleNode extends React.Component {
     let $html = $(ReactDOM.findDOMNode(this.refs.html));
 
     $html.find('select, input, textarea').each((_, el) => {
+      if (this.props.data[el.name] === undefined) {
+        return;
+      }
+
       let $el = $(el);
       $el.attr('id', '');
       $el.val(this.props.data[el.name]);
