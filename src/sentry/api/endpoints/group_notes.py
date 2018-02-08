@@ -8,7 +8,10 @@ from rest_framework.response import Response
 from sentry.api.base import DocSection
 from sentry.api.bases.group import GroupEndpoint
 from sentry.api.serializers import serialize
-from sentry.api.serializers.rest_framework.group_notes import NoteSerializer, seperateActors
+from sentry.api.serializers.rest_framework.group_notes import NoteSerializer, seperate_resolved_actors
+
+from sentry.api.fields.actor import Actor
+
 from sentry.models import Activity, GroupSubscription, GroupSubscriptionReason
 from sentry.utils.functional import extract_lazy_object
 
@@ -38,7 +41,10 @@ class GroupNotesEndpoint(GroupEndpoint):
 
         data = dict(serializer.object)
         mentions = data.pop('mentions', [])
-        actorMentions = seperateActors(mentions)
+
+        actors = Actor.resolve_many(mentions)
+        actorMentions = seperate_resolved_actors(actors)
+
         user_mentions = actorMentions['users']
         team_mentions = actorMentions['teams']
 

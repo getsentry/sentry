@@ -8,10 +8,14 @@ from sentry.api.fields.actor import ActorField
 from sentry.models import User, Team
 
 
-def seperateActors(actors):
-    """Accepts a list of ids which correspond to actors, be that teams or users
-    team ids are prefixes with `team:`, user ids are prefixed with `user:`
-    Note: ids with no prefix are assumed to be user ids."""
+def seperate_actors(actors):
+    users = [actor for actor in actors if actor.type is User]
+    teams = [actor for actor in actors if actor.type is Team]
+
+    return {'users': users, 'teams': teams}
+
+
+def seperate_resolved_actors(actors):
     users = [actor for actor in actors if isinstance(actor, User)]
     teams = [actor for actor in actors if isinstance(actor, Team)]
 
@@ -24,8 +28,11 @@ class NoteSerializer(serializers.Serializer):
 
     def validate_mentions(self, attrs, source):
         if source in attrs and 'group' in self.context:
-            mentions = seperateActors(attrs[source])
-            users = mentions['users']
+
+            mentions = attrs[source]
+            seperated_actors = seperate_actors(mentions)
+
+            users = seperated_actors['users']
 
             mentioned_user_ids = [user.id for user in users]
 
@@ -35,13 +42,12 @@ class NoteSerializer(serializers.Serializer):
                 project.member_set.filter(user_id__in=mentioned_user_ids)
                 .values_list('user_id', flat=True)
             )
-
             invalid_user_ids = [m for m in mentioned_user_ids if int(m) not in member_ids]
 
             if invalid_user_ids:
                 raise serializers.ValidationError('Cannot mention a non team member')
 
-            teams = mentions['teams']
+            teams = seperated_actors['teams']
             mentioned_team_ids = [team.id for team in teams]
 
             team_ids = set(
