@@ -304,7 +304,9 @@ const NoteInput = createReactClass({
           ) : (
             <MentionsInput
               style={mentionsStyle}
-              placeholder={t('Add details or updates to this event')}
+              placeholder={t(
+                'Add details or updates to this event.\nTag users with @, or teams with #.'
+              )}
               onChange={this.onChange}
               onBlur={this.onBlur}
               onKeyDown={this.onKeyDown}

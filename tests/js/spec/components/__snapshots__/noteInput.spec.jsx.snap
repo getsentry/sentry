@@ -48,7 +48,8 @@ exports[`NoteInput renders 1`] = `
       markup="**__display__[sentry.strip:__type__]**"
       onChange={[Function]}
       onKeyDown={[Function]}
-      placeholder="Add details or updates to this event"
+      placeholder="Add details or updates to this event.
+Tag users with @, or teams with #."
       required={true}
       style={
         Object {

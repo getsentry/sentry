@@ -117,7 +117,7 @@ class GroupNoteCreateTest(APITestCase):
                   'mentions': [u'%s' % user_id]}
         )
 
-        assert response.content == '{"mentions": ["Cannot mention a non-team member"]}'
+        assert response.content == '{"mentions": ["Cannot mention a non team member"]}'
 
     def test_with_team_mentions(self):
         user = self.create_user(email='redTeamUser@example.com')
