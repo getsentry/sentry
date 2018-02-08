@@ -36,7 +36,7 @@ exports[`OrganizationApiKeysList renders 1`] = `
   line-height: 1.8;
 }
 
-.glamor-41 {
+.glamor-43 {
   background: #fff;
   border: 1px solid;
   margin-bottom: 30px;
@@ -108,7 +108,7 @@ exports[`OrganizationApiKeysList renders 1`] = `
   padding-right: 16px;
 }
 
-.glamor-37 {
+.glamor-39 {
   box-sizing: border-box;
   padding: 0px;
   padding-top: 8px;
@@ -124,7 +124,7 @@ exports[`OrganizationApiKeysList renders 1`] = `
   border-bottom: 1px solid;
 }
 
-.glamor-37:last-child {
+.glamor-39:last-child {
   border: 0;
 }
 
@@ -324,7 +324,7 @@ exports[`OrganizationApiKeysList renders 1`] = `
     </div>
     <Panel>
       <div
-        className="glamor-41 glamor-42"
+        className="glamor-43 glamor-44"
       >
         <PanelHeader
           disablePadding={true}
@@ -332,105 +332,110 @@ exports[`OrganizationApiKeysList renders 1`] = `
           <StyledPanelHeader
             disablePadding={true}
           >
-            <div
+            <Component
               className="glamor-27 glamor-28"
+              disablePadding={true}
             >
-              <StyledPanelHeading>
-                <Component
-                  className="glamor-23 glamor-20"
-                >
-                  <_default
+              <div
+                className="glamor-27 glamor-28"
+              >
+                <StyledPanelHeading>
+                  <Component
                     className="glamor-23 glamor-20"
                   >
-                    <div
-                      className="glamor-20 glamor-21 glamor-22"
+                    <_default
+                      className="glamor-23 glamor-20"
                     >
-                      <Flex
-                        align="center"
+                      <div
+                        className="glamor-20 glamor-21 glamor-22"
                       >
-                        <Base
+                        <Flex
                           align="center"
-                          className="glamor-4"
                         >
-                          <div
+                          <Base
+                            align="center"
                             className="glamor-4"
-                            is={null}
                           >
-                            <Flex
-                              align="center"
-                              flex="1"
+                            <div
+                              className="glamor-4"
+                              is={null}
                             >
-                              <Base
+                              <Flex
                                 align="center"
-                                className="glamor-14"
                                 flex="1"
                               >
-                                <div
+                                <Base
+                                  align="center"
                                   className="glamor-14"
-                                  is={null}
+                                  flex="1"
                                 >
-                                  <Box
-                                    flex="1"
-                                    px={2}
+                                  <div
+                                    className="glamor-14"
+                                    is={null}
                                   >
-                                    <Base
-                                      className="glamor-10"
+                                    <Box
                                       flex="1"
                                       px={2}
                                     >
-                                      <div
+                                      <Base
                                         className="glamor-10"
-                                        is={null}
+                                        flex="1"
+                                        px={2}
                                       >
-                                        Name
-                                      </div>
-                                    </Base>
-                                  </Box>
-                                  <Box
-                                    flex="2"
-                                    px={2}
-                                  >
-                                    <Base
-                                      className="glamor-12"
+                                        <div
+                                          className="glamor-10"
+                                          is={null}
+                                        >
+                                          Name
+                                        </div>
+                                      </Base>
+                                    </Box>
+                                    <Box
                                       flex="2"
                                       px={2}
                                     >
-                                      <div
+                                      <Base
                                         className="glamor-12"
-                                        is={null}
+                                        flex="2"
+                                        px={2}
                                       >
-                                        Key
-                                      </div>
-                                    </Base>
-                                  </Box>
-                                </div>
-                              </Base>
-                            </Flex>
-                            <Box
-                              px={2}
-                              w={100}
-                            >
-                              <Base
-                                className="glamor-16"
+                                        <div
+                                          className="glamor-12"
+                                          is={null}
+                                        >
+                                          Key
+                                        </div>
+                                      </Base>
+                                    </Box>
+                                  </div>
+                                </Base>
+                              </Flex>
+                              <Box
                                 px={2}
                                 w={100}
                               >
-                                <div
+                                <Base
                                   className="glamor-16"
-                                  is={null}
+                                  px={2}
+                                  w={100}
                                 >
-                                  Actions
-                                </div>
-                              </Base>
-                            </Box>
-                          </div>
-                        </Base>
-                      </Flex>
-                    </div>
-                  </_default>
-                </Component>
-              </StyledPanelHeading>
-            </div>
+                                  <div
+                                    className="glamor-16"
+                                    is={null}
+                                  >
+                                    Actions
+                                  </div>
+                                </Base>
+                              </Box>
+                            </div>
+                          </Base>
+                        </Flex>
+                      </div>
+                    </_default>
+                  </Component>
+                </StyledPanelHeading>
+              </div>
+            </Component>
           </StyledPanelHeader>
         </PanelHeader>
         <PanelBody
@@ -454,12 +459,12 @@ exports[`OrganizationApiKeysList renders 1`] = `
               >
                 <Base
                   align="center"
-                  className="glamor-37 glamor-38"
+                  className="glamor-39 glamor-40"
                   p={0}
                   py={1}
                 >
                   <div
-                    className="glamor-37 glamor-38"
+                    className="glamor-39 glamor-40"
                     is={null}
                   >
                     <Flex

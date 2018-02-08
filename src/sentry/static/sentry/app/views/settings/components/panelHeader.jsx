@@ -8,7 +8,9 @@ const getPadding = ({disablePadding, hasButtons}) => css`
   padding: ${hasButtons ? '8px' : '15px'} ${disablePadding ? '0' : '20px'};
 `;
 
-const StyledPanelHeader = styled.div`
+const getFlex = ({isFlex}) => (isFlex ? 'display: flex' : '');
+
+const StyledPanelHeader = styled(({disablePadding, ...props}) => <div {...props} />)`
   border-bottom: 1px solid ${p => p.theme.borderDark};
   border-radius: ${p => p.theme.borderRadius} ${p => p.theme.borderRadius} 0 0;
   background: ${p => p.theme.offWhite};
@@ -18,19 +20,24 @@ const StyledPanelHeader = styled.div`
   ${getPadding};
 `;
 
-const StyledPanelHeading = styled(({lightText, ...props}) => <PanelHeading {...props} />)`
+const StyledPanelHeading = styled(({lightText, isFlex, ...props}) => (
+  <PanelHeading {...props} />
+))`
   font-size: inherit;
   text-transform: inherit;
   margin: 0;
+  ${getFlex};
   ${p => (p.lightText ? `color: ${p.theme.gray2}` : '')};
 `;
 
 class PanelHeader extends React.Component {
   render() {
+    let {lightText, isFlex, children, ...props} = this.props;
+
     return (
-      <StyledPanelHeader {...this.props}>
-        <StyledPanelHeading lightText={this.props.lightText}>
-          {this.props.children}
+      <StyledPanelHeader {...props}>
+        <StyledPanelHeading lightText={lightText} isFlex={isFlex}>
+          {children}
         </StyledPanelHeading>
       </StyledPanelHeader>
     );
@@ -38,6 +45,7 @@ class PanelHeader extends React.Component {
 }
 
 PanelHeader.propTypes = {
+  isFlex: PropTypes.bool,
   disablePadding: PropTypes.bool,
   lightText: PropTypes.bool,
 };
