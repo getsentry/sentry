@@ -41,7 +41,7 @@ class AssembleTest(TestCase):
             name='test',
             checksum=total_checksum,
             type='chunked',
-            headers={'state': ChunkFileState.CREATED}
+            headers={'__state': ChunkFileState.CREATED}
         )
 
         file_blob_id_order = [bolb2.id, bolb1.id, bolb3.id]
@@ -50,7 +50,7 @@ class AssembleTest(TestCase):
             name='test',
             checksum=total_checksum,
             type='chunked',
-            headers={'state': ChunkFileState.CREATED}
+            headers={'__state': ChunkFileState.CREATED}
         )
 
         assemble_dif(
@@ -64,7 +64,7 @@ class AssembleTest(TestCase):
             id=file.id,
         ).get()
 
-        assert file.headers.get('state') == ChunkFileState.ERROR
+        assert file.headers.get('__state') == ChunkFileState.ERROR
 
     def test_dif(self):
         sym_file = self.load_fixture('crash.sym')
@@ -76,7 +76,7 @@ class AssembleTest(TestCase):
             name='test.sym',
             checksum=total_checksum,
             type='chunked',
-            headers={'state': ChunkFileState.CREATED}
+            headers={'__state': ChunkFileState.CREATED}
         )
 
         file_blob_id_order = [bolb1.id]

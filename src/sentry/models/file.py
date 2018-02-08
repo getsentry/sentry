@@ -291,7 +291,7 @@ class File(Model):
         self.checksum = new_checksum.hexdigest()
 
         if checksum != self.checksum:
-            self.headers['state'] = ChunkFileState.ERROR
+            self.headers['__state'] = ChunkFileState.ERROR
             self.headers['error'] = 'invalid_checksum'
 
         metrics.timing('filestore.file-size', offset)

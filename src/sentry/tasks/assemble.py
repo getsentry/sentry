@@ -38,7 +38,7 @@ def assemble_dif(project_id, file_id, file_blob_ids, checksum, **kwargs):
                 # We can delete the original chunk file since we created new dsym files
                 file.delete()
             else:
-                file.headers['state'] = ChunkFileState.ERROR
+                file.headers['__state'] = ChunkFileState.ERROR
                 file.headers['error'] = 'Invalid object file'
                 file.save()
                 logger.error(
@@ -63,11 +63,11 @@ def assemble_chunks(file_id, file_blob_ids, checksum, **kwargs):
         id=file_id,
     ).get()
 
-    file.headers['state'] = ChunkFileState.ASSEMBLING
+    file.headers['__state'] = ChunkFileState.ASSEMBLING
     # Do the actual assembling here
 
     file.assemble_from_file_blob_ids(file_blob_ids, checksum)
-    if file.headers.get('state', '') == ChunkFileState.ERROR:
+    if file.headers.get('__state', '') == ChunkFileState.ERROR:
         logger.error(
             'assemble_chunks.assemble_error',
             extra={
@@ -76,6 +76,6 @@ def assemble_chunks(file_id, file_blob_ids, checksum, **kwargs):
             }
         )
         return
-    file.headers['state'] = ChunkFileState.OK
+    file.headers['__state'] = ChunkFileState.OK
     file.save()
     return file

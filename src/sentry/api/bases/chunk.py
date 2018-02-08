@@ -19,7 +19,7 @@ class ChunkAssembleMixin(object):
         all_owned_blobs = FileBlobOwner.objects.filter(
             blob__in=file_blobs,
             organization=organization
-        ).select_related('blob').all()
+        ).prefetch_related('blob').all()
 
         owned_blobs = []
         for owned_blob in all_owned_blobs:
@@ -59,7 +59,7 @@ class ChunkAssembleMixin(object):
     def _check_file_blobs(self, organization, checksum, chunks):
         files = File.objects.filter(
             checksum=checksum
-        ).select_related('blobs').all()
+        ).prefetch_related('blobs').all()
         # If there is no file at all, we try to find chunks in the db and check
         # their ownership
         if len(files) == 0:
@@ -84,7 +84,7 @@ class ChunkAssembleMixin(object):
             name=name,
             checksum=checksum,
             type='chunked',
-            headers={'state': ChunkFileState.CREATED}
+            headers={'__state': ChunkFileState.CREATED}
         )
 
         # Load all FileBlobs from db since we can be sure here we already own all
