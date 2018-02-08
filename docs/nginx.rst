@@ -40,12 +40,7 @@ Below is a sample production ready configuration for Nginx with Sentry::
         listen   80;
         server_name sentry.example.com;
 
-        location / {
-          if ($request_method = GET) {
-            rewrite  ^ https://$host$request_uri? permanent;
-          }
-          return 405;
-        }
+        return 301 https://$server_name$request_uri;
       }
 
       server {
