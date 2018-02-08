@@ -12,6 +12,11 @@ from sentry.models import Authenticator
 from sentry.security import capture_security_activity
 
 
+ALREADY_ENROLLED_ERR = {'details': 'Already enrolled'}
+INVALID_OTP_ERR = {'details': 'Invalid OTP'},
+SEND_SMS_ERR = {'details': 'Error sending SMS'}
+
+
 class TotpRestSerializer(serializers.Serializer):
     otp = serializers.CharField(
         label='One-time password',
@@ -83,7 +88,7 @@ class UserAuthenticatorEnrollEndpoint(UserEndpoint):
 
         # Not all interfaces allow multi enrollment
         if interface.is_enrolled and not interface.allow_multi_enrollment:
-            return Response(status=status.HTTP_400_BAD_REQUEST)
+            return Response(ALREADY_ENROLLED_ERR, status=status.HTTP_400_BAD_REQUEST)
 
         # User is not enrolled in auth interface:
         # - display configuration form
@@ -118,8 +123,7 @@ class UserAuthenticatorEnrollEndpoint(UserEndpoint):
         :auth: required
         """
 
-        # Using `request.user` here because doesn't seem like a superuser should be able to
-        # set a user's 2fa?
+        # Using `request.user` here because superuser should not be able to set a user's 2fa
 
         # start activation
         serializer_cls = serializer_map.get(interface_id, None)
@@ -139,7 +143,7 @@ class UserAuthenticatorEnrollEndpoint(UserEndpoint):
         # This is probably un-needed because we catch
         # `Authenticator.AlreadyEnrolled` when attempting to enroll
         if interface.is_enrolled and not interface.allow_multi_enrollment:
-            return Response(status=status.HTTP_400_BAD_REQUEST)
+            return Response(ALREADY_ENROLLED_ERR, status=status.HTTP_400_BAD_REQUEST)
 
         try:
             interface.secret = request.DATA['secret']
@@ -157,11 +161,11 @@ class UserAuthenticatorEnrollEndpoint(UserEndpoint):
                     return Response(status=status.HTTP_204_NO_CONTENT)
                 else:
                     # Error sending text message
-                    return Response(status=status.HTTP_400_BAD_REQUEST)
+                    return Response(SEND_SMS_ERR, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
         # Attempt to validate OTP
         if 'otp' in request.DATA and not interface.validate_otp(serializer.data['otp']):
-            return Response({'detail': 'Invalid OTP'}, status=status.HTTP_400_BAD_REQUEST)
+            return Response(INVALID_OTP_ERR, status=status.HTTP_400_BAD_REQUEST)
 
         # Try u2f enrollment
         if interface_id == 'u2f':
@@ -175,7 +179,7 @@ class UserAuthenticatorEnrollEndpoint(UserEndpoint):
         try:
             interface.enroll(request.user)
         except Authenticator.AlreadyEnrolled:
-            return Response(status=status.HTTP_400_BAD_REQUEST)
+            return Response(ALREADY_ENROLLED_ERR, status=status.HTTP_400_BAD_REQUEST)
         else:
             capture_security_activity(
                 account=request.user,
