@@ -2,10 +2,10 @@ import React from 'react';
 import {mount} from 'enzyme';
 
 import NewOrganizationSettingsForm from 'app/views/settings/organization/general/organizationSettingsForm';
-import {addSuccessMessage} from 'app/actionCreators/settingsIndicator';
+import {saveOnBlurUndoMessage} from 'app/actionCreators/indicator';
 
 jest.mock('jquery');
-jest.mock('app/actionCreators/settingsIndicator');
+jest.mock('app/actionCreators/indicator');
 
 describe('OrganizationSettingsForm', function() {
   let organization = TestStubs.Organization();
@@ -53,14 +53,20 @@ describe('OrganizationSettingsForm', function() {
       })
     );
 
-    addSuccessMessage.mockImplementation((msg, duration, {model, id}) => {
-      expect(msg).toBe('Changed Name from "Organization Name" to "New Name"');
+    saveOnBlurUndoMessage.mockImplementation(function(change, model, fieldName) {
+      try {
+        expect(fieldName).toBe('name');
+        expect(change.old).toBe('Organization Name');
+        expect(change.new).toBe('New Name');
 
-      // Can call undo directly
-      expect(model.getValue('name')).toBe('New Name');
-      model.undo();
-      expect(model.getValue('name')).toBe('Organization Name');
-      done();
+        // Test "undo" call undo directly
+        expect(model.getValue('name')).toBe('New Name');
+        model.undo();
+        expect(model.getValue('name')).toBe('Organization Name');
+        done();
+      } catch (err) {
+        done(err);
+      }
     });
   });
 });

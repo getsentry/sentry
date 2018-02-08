@@ -2,7 +2,7 @@ import PropTypes from 'prop-types';
 import React from 'react';
 import styled from 'react-emotion';
 
-import {addMessage, addErrorMessage} from '../../../actionCreators/settingsIndicator';
+import {addMessage, addErrorMessage} from '../../../actionCreators/indicator';
 import {openModal} from '../../../actionCreators/modal';
 import {t} from '../../../locale';
 import AsyncView from '../../asyncView';
