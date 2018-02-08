@@ -45,7 +45,6 @@ from sentry.web.frontend.react_page import GenericReactPageView, ReactPageView
 from sentry.web.frontend.reactivate_account import ReactivateAccountView
 from sentry.web.frontend.release_webhook import ReleaseWebhookView
 from sentry.web.frontend.remove_account import RemoveAccountView
-from sentry.web.frontend.remove_organization import RemoveOrganizationView
 from sentry.web.frontend.restore_organization import RestoreOrganizationView
 from sentry.web.frontend.remove_project import RemoveProjectView
 from sentry.web.frontend.transfer_project import TransferProjectView
@@ -401,11 +400,6 @@ urlpatterns += patterns(
     ),
     url(
         r'^organizations/(?P<organization_slug>[\w_-]+)/teams/new/$', react_page_view),
-    url(
-        r'^organizations/(?P<organization_slug>[\w_-]+)/remove/$',
-        RemoveOrganizationView.as_view(),
-        name='sentry-remove-organization'
-    ),
     url(
         r'^organizations/(?P<organization_slug>[\w_-]+)/restore/$',
         RestoreOrganizationView.as_view(),
