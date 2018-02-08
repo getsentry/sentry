@@ -22,7 +22,6 @@ const Toast = styled.div`
   border-radius: 44px 5px 5px 44px;
   box-shadow: 0 0 0 1px rgba(47, 40, 55, 0.12), 0 1px 2px 0 rgba(47, 40, 55, 0.12),
     0 4px 12px 0 rgba(47, 40, 55, 0.16);
-  z-index: ${p => p.theme.zIndex.toast};
   transition: opacity 0.25s linear;
 
   &.toast-enter {
