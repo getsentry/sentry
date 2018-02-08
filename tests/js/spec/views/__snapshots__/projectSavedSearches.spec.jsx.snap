@@ -28,7 +28,7 @@ exports[`ProjectSavedSearches renders 1`] = `
   flex: 1;
 }
 
-.glamor-59 {
+.glamor-61 {
   background: #fff;
   border: 1px solid;
   margin-bottom: 30px;
@@ -107,7 +107,7 @@ exports[`ProjectSavedSearches renders 1`] = `
   justify-content: center;
 }
 
-.glamor-39 {
+.glamor-41 {
   box-sizing: border-box;
   padding: 0px;
   padding-top: 16px;
@@ -123,11 +123,11 @@ exports[`ProjectSavedSearches renders 1`] = `
   border-bottom: 1px solid;
 }
 
-.glamor-39:last-child {
+.glamor-41:last-child {
   border: 0;
 }
 
-.glamor-29 {
+.glamor-31 {
   box-sizing: border-box;
   padding-left: 16px;
   padding-right: 16px;
@@ -143,7 +143,7 @@ exports[`ProjectSavedSearches renders 1`] = `
   flex-direction: column;
 }
 
-.glamor-27 {
+.glamor-29 {
   font-size: 18px;
   margin-bottom: 5px;
 }
@@ -190,7 +190,7 @@ exports[`ProjectSavedSearches renders 1`] = `
     </SettingsPageHeading>
     <Panel>
       <div
-        className="glamor-59 glamor-60"
+        className="glamor-61 glamor-62"
       >
         <PanelHeader
           disablePadding={true}
@@ -198,123 +198,128 @@ exports[`ProjectSavedSearches renders 1`] = `
           <StyledPanelHeader
             disablePadding={true}
           >
-            <div
+            <Component
               className="glamor-25 glamor-26"
+              disablePadding={true}
             >
-              <StyledPanelHeading>
-                <Component
-                  className="glamor-21 glamor-18"
-                >
-                  <_default
+              <div
+                className="glamor-25 glamor-26"
+              >
+                <StyledPanelHeading>
+                  <Component
                     className="glamor-21 glamor-18"
                   >
-                    <div
-                      className="glamor-18 glamor-19 glamor-20"
+                    <_default
+                      className="glamor-21 glamor-18"
                     >
-                      <Flex>
-                        <Base
-                          className="glamor-16"
-                        >
-                          <div
+                      <div
+                        className="glamor-18 glamor-19 glamor-20"
+                      >
+                        <Flex>
+                          <Base
                             className="glamor-16"
-                            is={null}
                           >
-                            <Flex
-                              flex="1"
-                              px={2}
+                            <div
+                              className="glamor-16"
+                              is={null}
                             >
-                              <Base
-                                className="glamor-6"
+                              <Flex
                                 flex="1"
                                 px={2}
                               >
-                                <div
+                                <Base
                                   className="glamor-6"
-                                  is={null}
+                                  flex="1"
+                                  px={2}
                                 >
-                                  Search
-                                </div>
-                              </Base>
-                            </Flex>
-                            <Flex
-                              flex="1"
-                            >
-                              <Base
-                                className="glamor-14"
+                                  <div
+                                    className="glamor-6"
+                                    is={null}
+                                  >
+                                    Search
+                                  </div>
+                                </Base>
+                              </Flex>
+                              <Flex
                                 flex="1"
                               >
-                                <div
+                                <Base
                                   className="glamor-14"
-                                  is={null}
+                                  flex="1"
                                 >
-                                  <InputColumn>
-                                    <Flex
-                                      flex="1"
-                                      justify="center"
-                                    >
-                                      <Base
-                                        className="glamor-8"
+                                  <div
+                                    className="glamor-14"
+                                    is={null}
+                                  >
+                                    <InputColumn>
+                                      <Flex
                                         flex="1"
                                         justify="center"
                                       >
-                                        <div
+                                        <Base
                                           className="glamor-8"
-                                          is={null}
+                                          flex="1"
+                                          justify="center"
                                         >
-                                          My Default
-                                        </div>
-                                      </Base>
-                                    </Flex>
-                                  </InputColumn>
-                                  <InputColumn>
-                                    <Flex
-                                      flex="1"
-                                      justify="center"
-                                    >
-                                      <Base
-                                        className="glamor-8"
+                                          <div
+                                            className="glamor-8"
+                                            is={null}
+                                          >
+                                            My Default
+                                          </div>
+                                        </Base>
+                                      </Flex>
+                                    </InputColumn>
+                                    <InputColumn>
+                                      <Flex
                                         flex="1"
                                         justify="center"
                                       >
-                                        <div
+                                        <Base
                                           className="glamor-8"
-                                          is={null}
+                                          flex="1"
+                                          justify="center"
                                         >
-                                          Team Default
-                                        </div>
-                                      </Base>
-                                    </Flex>
-                                  </InputColumn>
-                                  <InputColumn>
-                                    <Flex
-                                      flex="1"
-                                      justify="center"
-                                    >
-                                      <Base
-                                        className="glamor-8"
+                                          <div
+                                            className="glamor-8"
+                                            is={null}
+                                          >
+                                            Team Default
+                                          </div>
+                                        </Base>
+                                      </Flex>
+                                    </InputColumn>
+                                    <InputColumn>
+                                      <Flex
                                         flex="1"
                                         justify="center"
                                       >
-                                        <div
+                                        <Base
                                           className="glamor-8"
-                                          is={null}
+                                          flex="1"
+                                          justify="center"
                                         >
-                                          Remove
-                                        </div>
-                                      </Base>
-                                    </Flex>
-                                  </InputColumn>
-                                </div>
-                              </Base>
-                            </Flex>
-                          </div>
-                        </Base>
-                      </Flex>
-                    </div>
-                  </_default>
-                </Component>
-              </StyledPanelHeading>
-            </div>
+                                          <div
+                                            className="glamor-8"
+                                            is={null}
+                                          >
+                                            Remove
+                                          </div>
+                                        </Base>
+                                      </Flex>
+                                    </InputColumn>
+                                  </div>
+                                </Base>
+                              </Flex>
+                            </div>
+                          </Base>
+                        </Flex>
+                      </div>
+                    </_default>
+                  </Component>
+                </StyledPanelHeading>
+              </div>
+            </Component>
           </StyledPanelHeader>
         </PanelHeader>
         <PanelBody
@@ -370,12 +375,12 @@ exports[`ProjectSavedSearches renders 1`] = `
                 >
                   <Base
                     align="center"
-                    className="glamor-39 glamor-40"
+                    className="glamor-41 glamor-42"
                     p={0}
                     py={2}
                   >
                     <div
-                      className="glamor-39 glamor-40"
+                      className="glamor-41 glamor-42"
                       is={null}
                     >
                       <Flex
@@ -384,18 +389,18 @@ exports[`ProjectSavedSearches renders 1`] = `
                         px={2}
                       >
                         <Base
-                          className="glamor-29"
+                          className="glamor-31"
                           direction="column"
                           flex="1"
                           px={2}
                         >
                           <div
-                            className="glamor-29"
+                            className="glamor-31"
                             is={null}
                           >
                             <SearchTitle>
                               <div
-                                className="glamor-27 glamor-28"
+                                className="glamor-29 glamor-30"
                               >
                                 Needs Triage
                               </div>
@@ -624,12 +629,12 @@ exports[`ProjectSavedSearches renders 1`] = `
                 >
                   <Base
                     align="center"
-                    className="glamor-39 glamor-40"
+                    className="glamor-41 glamor-42"
                     p={0}
                     py={2}
                   >
                     <div
-                      className="glamor-39 glamor-40"
+                      className="glamor-41 glamor-42"
                       is={null}
                     >
                       <Flex
@@ -638,18 +643,18 @@ exports[`ProjectSavedSearches renders 1`] = `
                         px={2}
                       >
                         <Base
-                          className="glamor-29"
+                          className="glamor-31"
                           direction="column"
                           flex="1"
                           px={2}
                         >
                           <div
-                            className="glamor-29"
+                            className="glamor-31"
                             is={null}
                           >
                             <SearchTitle>
                               <div
-                                className="glamor-27 glamor-28"
+                                className="glamor-29 glamor-30"
                               >
                                 Unresolved Issues
                               </div>

@@ -1,7 +1,7 @@
 // Jest Snapshot v1, https://goo.gl/fbAQLP
 
 exports[`OrganizationTeamProjects Should render 1`] = `
-.glamor-9 {
+.glamor-11 {
   background: #fff;
   border: 1px solid;
   margin-bottom: 30px;
@@ -33,7 +33,7 @@ exports[`OrganizationTeamProjects Should render 1`] = `
   margin: 0;
 }
 
-.glamor-29 {
+.glamor-33 {
   box-sizing: border-box;
   padding: 0px;
   display: -webkit-box;
@@ -47,11 +47,11 @@ exports[`OrganizationTeamProjects Should render 1`] = `
   border-bottom: 1px solid;
 }
 
-.glamor-29:last-child {
+.glamor-33:last-child {
   border: 0;
 }
 
-.glamor-25 {
+.glamor-29 {
   box-sizing: border-box;
   padding: 16px;
   -webkit-flex: 1;
@@ -59,17 +59,17 @@ exports[`OrganizationTeamProjects Should render 1`] = `
   flex: 1;
 }
 
-.glamor-22 {
+.glamor-26 {
   color: #645574;
 }
 
-.glamor-20 {
+.glamor-24 {
   border: none;
   background-color: inherit;
   padding: 0;
 }
 
-.glamor-27 {
+.glamor-31 {
   box-sizing: border-box;
   padding: 16px;
 }
@@ -85,29 +85,33 @@ exports[`OrganizationTeamProjects Should render 1`] = `
   <div>
     <Panel>
       <div
-        className="glamor-9 glamor-10"
+        className="glamor-11 glamor-12"
       >
         <PanelHeader>
           <StyledPanelHeader>
-            <div
+            <Component
               className="glamor-7 glamor-8"
             >
-              <StyledPanelHeading>
-                <Component
-                  className="glamor-3 glamor-0"
-                >
-                  <_default
+              <div
+                className="glamor-7 glamor-8"
+              >
+                <StyledPanelHeading>
+                  <Component
                     className="glamor-3 glamor-0"
                   >
-                    <div
-                      className="glamor-0 glamor-1 glamor-2"
+                    <_default
+                      className="glamor-3 glamor-0"
                     >
-                      Associated Projects
-                    </div>
-                  </_default>
-                </Component>
-              </StyledPanelHeading>
-            </div>
+                      <div
+                        className="glamor-0 glamor-1 glamor-2"
+                      >
+                        Associated Projects
+                      </div>
+                    </_default>
+                  </Component>
+                </StyledPanelHeading>
+              </div>
+            </Component>
           </StyledPanelHeader>
         </PanelHeader>
         <PanelBody
@@ -123,29 +127,33 @@ exports[`OrganizationTeamProjects Should render 1`] = `
     </Panel>
     <Panel>
       <div
-        className="glamor-9 glamor-10"
+        className="glamor-11 glamor-12"
       >
         <PanelHeader>
           <StyledPanelHeader>
-            <div
+            <Component
               className="glamor-7 glamor-8"
             >
-              <StyledPanelHeading>
-                <Component
-                  className="glamor-3 glamor-0"
-                >
-                  <_default
+              <div
+                className="glamor-7 glamor-8"
+              >
+                <StyledPanelHeading>
+                  <Component
                     className="glamor-3 glamor-0"
                   >
-                    <div
-                      className="glamor-0 glamor-1 glamor-2"
+                    <_default
+                      className="glamor-3 glamor-0"
                     >
-                      Other Projects
-                    </div>
-                  </_default>
-                </Component>
-              </StyledPanelHeading>
-            </div>
+                      <div
+                        className="glamor-0 glamor-1 glamor-2"
+                      >
+                        Other Projects
+                      </div>
+                    </_default>
+                  </Component>
+                </StyledPanelHeading>
+              </div>
+            </Component>
           </StyledPanelHeader>
         </PanelHeader>
         <PanelBody
@@ -167,11 +175,11 @@ exports[`OrganizationTeamProjects Should render 1`] = `
               >
                 <Base
                   align="center"
-                  className="glamor-29 glamor-30"
+                  className="glamor-33 glamor-34"
                   p={0}
                 >
                   <div
-                    className="glamor-29 glamor-30"
+                    className="glamor-33 glamor-34"
                     is={null}
                   >
                     <Box
@@ -179,12 +187,12 @@ exports[`OrganizationTeamProjects Should render 1`] = `
                       p={2}
                     >
                       <Base
-                        className="glamor-25"
+                        className="glamor-29"
                         flex="1"
                         p={2}
                       >
                         <div
-                          className="glamor-25"
+                          className="glamor-29"
                           is={null}
                         >
                           <ProjectItem
@@ -237,7 +245,7 @@ exports[`OrganizationTeamProjects Should render 1`] = `
                                   title="Add to bookmarks"
                                 >
                                   <button
-                                    className="tip glamor-20 glamor-21"
+                                    className="tip glamor-24 glamor-25"
                                     onClick={[Function]}
                                     title="Add to bookmarks"
                                   >
@@ -248,17 +256,17 @@ exports[`OrganizationTeamProjects Should render 1`] = `
                                 </InlineButton>
                               </Tooltip>
                               <Link
-                                className="glamor-22"
+                                className="glamor-26"
                                 to="/settings/organization/org-slug/project/project-slug/"
                               >
                                 <Link
-                                  className="glamor-22"
+                                  className="glamor-26"
                                   onlyActiveOnIndex={false}
                                   style={Object {}}
                                   to="/settings/organization/org-slug/project/project-slug/"
                                 >
                                   <a
-                                    className="glamor-22"
+                                    className="glamor-26"
                                     onClick={[Function]}
                                     style={Object {}}
                                   >
@@ -321,11 +329,11 @@ exports[`OrganizationTeamProjects Should render 1`] = `
                       p={2}
                     >
                       <Base
-                        className="glamor-27"
+                        className="glamor-31"
                         p={2}
                       >
                         <div
-                          className="glamor-27"
+                          className="glamor-31"
                           is={null}
                         >
                           <Button

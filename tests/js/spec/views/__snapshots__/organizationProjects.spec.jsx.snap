@@ -1,7 +1,7 @@
 // Jest Snapshot v1, https://goo.gl/fbAQLP
 
 exports[`OrganizationProjectsView render() Should render the projects in the store 1`] = `
-.glamor-28 {
+.glamor-30 {
   width: 100%;
 }
 
@@ -32,7 +32,7 @@ exports[`OrganizationProjectsView render() Should render the projects in the sto
   flex: 1;
 }
 
-.glamor-30 {
+.glamor-32 {
   background: #fff;
   border: 1px solid;
   margin-bottom: 30px;
@@ -64,7 +64,7 @@ exports[`OrganizationProjectsView render() Should render the projects in the sto
   margin: 0;
 }
 
-.glamor-24 {
+.glamor-26 {
   box-sizing: border-box;
   padding: 0px;
   display: -webkit-box;
@@ -78,21 +78,21 @@ exports[`OrganizationProjectsView render() Should render the projects in the sto
   border-bottom: 1px solid;
 }
 
-.glamor-24:last-child {
+.glamor-26:last-child {
   border: 0;
 }
 
-.glamor-20 {
+.glamor-22 {
   box-sizing: border-box;
   width: 50%;
   padding: 16px;
 }
 
-.glamor-17 {
+.glamor-19 {
   color: #645574;
 }
 
-.glamor-15 {
+.glamor-17 {
   border: none;
   background-color: inherit;
   padding: 0;
@@ -225,39 +225,43 @@ exports[`OrganizationProjectsView render() Should render the projects in the sto
             className="table table-no-top-border m-b-0"
           >
             <div
-              className="table table-no-top-border m-b-0 glamor-30 glamor-31"
+              className="table table-no-top-border m-b-0 glamor-32 glamor-33"
             >
               <PanelHeader>
                 <StyledPanelHeader>
-                  <div
+                  <Component
                     className="glamor-13 glamor-14"
                   >
-                    <StyledPanelHeading>
-                      <Component
-                        className="glamor-9 glamor-6"
-                      >
-                        <_default
+                    <div
+                      className="glamor-13 glamor-14"
+                    >
+                      <StyledPanelHeading>
+                        <Component
                           className="glamor-9 glamor-6"
                         >
-                          <div
-                            className="glamor-6 glamor-7 glamor-8"
+                          <_default
+                            className="glamor-9 glamor-6"
                           >
-                            Projects
-                          </div>
-                        </_default>
-                      </Component>
-                    </StyledPanelHeading>
-                  </div>
+                            <div
+                              className="glamor-6 glamor-7 glamor-8"
+                            >
+                              Projects
+                            </div>
+                          </_default>
+                        </Component>
+                      </StyledPanelHeading>
+                    </div>
+                  </Component>
                 </StyledPanelHeader>
               </PanelHeader>
               <PanelBody
-                className="glamor-28"
+                className="glamor-30"
                 direction="column"
                 disablePadding={true}
                 flex={false}
               >
                 <div
-                  className="glamor-28"
+                  className="glamor-30"
                 >
                   <PanelItem
                     align="center"
@@ -270,11 +274,11 @@ exports[`OrganizationProjectsView render() Should render the projects in the sto
                     >
                       <Base
                         align="center"
-                        className="glamor-24 glamor-25"
+                        className="glamor-26 glamor-27"
                         p={0}
                       >
                         <div
-                          className="glamor-24 glamor-25"
+                          className="glamor-26 glamor-27"
                           is={null}
                         >
                           <Box
@@ -282,12 +286,12 @@ exports[`OrganizationProjectsView render() Should render the projects in the sto
                             w={0.5}
                           >
                             <Base
-                              className="glamor-20"
+                              className="glamor-22"
                               p={2}
                               w={0.5}
                             >
                               <div
-                                className="glamor-20"
+                                className="glamor-22"
                                 is={null}
                               >
                                 <ProjectItem
@@ -340,7 +344,7 @@ exports[`OrganizationProjectsView render() Should render the projects in the sto
                                         title="Add to bookmarks"
                                       >
                                         <button
-                                          className="tip glamor-15 glamor-16"
+                                          className="tip glamor-17 glamor-18"
                                           onClick={[Function]}
                                           title="Add to bookmarks"
                                         >
@@ -351,17 +355,17 @@ exports[`OrganizationProjectsView render() Should render the projects in the sto
                                       </InlineButton>
                                     </Tooltip>
                                     <Link
-                                      className="glamor-17"
+                                      className="glamor-19"
                                       to="/settings/organization/org-slug/project/project-slug/"
                                     >
                                       <Link
-                                        className="glamor-17"
+                                        className="glamor-19"
                                         onlyActiveOnIndex={false}
                                         style={Object {}}
                                         to="/settings/organization/org-slug/project/project-slug/"
                                       >
                                         <a
-                                          className="glamor-17"
+                                          className="glamor-19"
                                           onClick={[Function]}
                                           style={Object {}}
                                         >
@@ -425,12 +429,12 @@ exports[`OrganizationProjectsView render() Should render the projects in the sto
                             w={0.5}
                           >
                             <Base
-                              className="glamor-20"
+                              className="glamor-22"
                               p={2}
                               w={0.5}
                             >
                               <div
-                                className="glamor-20"
+                                className="glamor-22"
                                 is={null}
                               >
                                 <ProjectListItem
