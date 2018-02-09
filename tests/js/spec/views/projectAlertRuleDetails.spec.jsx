@@ -57,7 +57,7 @@ describe('ProjectAlertRuleDetails', function() {
     });
 
     it('sets defaults', function() {
-      let selects = wrapper.find('select');
+      let selects = wrapper.find('Select2Field');
       expect(selects.first().props().value).toBe('all');
       expect(selects.last().props().value).toBe(30);
     });

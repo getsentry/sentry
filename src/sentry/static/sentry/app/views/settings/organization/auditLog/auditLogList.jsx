@@ -11,6 +11,7 @@ import Pagination from '../../../../components/pagination';
 import Panel from '../../components/panel';
 import PanelBody from '../../components/panelBody';
 import PanelHeader from '../../components/panelHeader';
+import PanelItem from '../../components/panelItem';
 import SelectInput from '../../../../components/selectInput';
 import SettingsPageHeader from '../../components/settingsPageHeader';
 
@@ -40,16 +41,6 @@ const avatarStyle = {
   height: 36,
   marginRight: 8,
 };
-
-const Row = styled.div`
-  display: flex;
-  border-bottom: 1px solid ${p => p.theme.borderLight};
-  align-items: center;
-
-  &:last-child {
-    border: 0;
-  }
-`;
 
 class AuditLogList extends React.Component {
   static propTypes = {
@@ -108,7 +99,7 @@ class AuditLogList extends React.Component {
             {hasEntries &&
               entries.map(entry => {
                 return (
-                  <Row key={entry.id}>
+                  <PanelItem p={0} align="center" key={entry.id}>
                     <UserInfo flex="1" p={2}>
                       <div>
                         {entry.actor.email && (
@@ -125,7 +116,7 @@ class AuditLogList extends React.Component {
                     <Box w={150} p={1}>
                       <DateTime date={entry.dateCreated} />
                     </Box>
-                  </Row>
+                  </PanelItem>
                 );
               })}
           </PanelBody>

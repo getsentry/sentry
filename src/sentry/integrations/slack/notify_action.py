@@ -26,6 +26,9 @@ class SlackNotifyServiceForm(forms.Form):
 
         super(SlackNotifyServiceForm, self).__init__(*args, **kwargs)
 
+        if team_list:
+            self.fields['team'].initial = team_list[0][0]
+
         self.fields['team'].choices = team_list
         self.fields['team'].widget.choices = self.fields['team'].choices
 

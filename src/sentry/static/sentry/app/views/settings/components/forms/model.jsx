@@ -283,16 +283,13 @@ class FormModel {
       .then(data => {
         this.setSaving(id, false);
 
-        // Updating initialData and save snapshot
-        let oldValue = this.initialData[id];
-        this.initialData[id] = newValue;
-
+        // save snapshot
         if (saveSnapshot) {
           saveSnapshot();
           saveSnapshot = null;
         }
 
-        return {old: oldValue, new: newValue};
+        return data;
       })
       .catch(resp => {
         // should we revert field value to last known state?
@@ -336,16 +333,22 @@ class FormModel {
     // Nothing to do if `saveOnBlur` is not on
     if (!this.options.saveOnBlur) return null;
 
+    let oldValue = this.initialData[id];
     let savePromise = this.saveField(id, currentValue);
 
     if (!savePromise) return null;
 
     return savePromise
       .then(change => {
+        let newValue = this.getValue(id);
+        this.initialData[id] = newValue;
+        let result = {old: oldValue, new: newValue};
+
         if (this.options.onSubmitSuccess) {
-          this.options.onSubmitSuccess(change, this, id);
+          this.options.onSubmitSuccess(result, this, id);
         }
-        return change;
+
+        return result;
       })
       .catch(error => {
         if (this.options.onSubmitError) {

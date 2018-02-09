@@ -11,7 +11,7 @@ from .endpoints.auth_index import AuthIndexEndpoint
 from .endpoints.authenticator_index import AuthenticatorIndexEndpoint
 from .endpoints.broadcast_index import BroadcastIndexEndpoint
 from .endpoints.catchall import CatchallEndpoint
-from .endpoints.chunk_upload import ChunkUploadEndpoint
+from .endpoints.chunk import ChunkUploadEndpoint
 from .endpoints.event_details import EventDetailsEndpoint
 from .endpoints.event_apple_crash_report import EventAppleCrashReportEndpoint
 from .endpoints.group_details import GroupDetailsEndpoint
@@ -123,6 +123,7 @@ from .endpoints.issues_resolved_in_release import IssuesResolvedInReleaseEndpoin
 from .endpoints.release_deploys import ReleaseDeploysEndpoint
 from .endpoints.dsym_files import DSymFilesEndpoint, \
     UnknownDSymFilesEndpoint, AssociateDSymFilesEndpoint
+from .endpoints.dif_files import DifAssembleEndpoint
 from .endpoints.shared_group_details import SharedGroupDetailsEndpoint
 from .endpoints.system_health import SystemHealthEndpoint
 from .endpoints.system_options import SystemOptionsEndpoint
@@ -135,6 +136,8 @@ from .endpoints.team_project_index import TeamProjectIndexEndpoint
 from .endpoints.team_stats import TeamStatsEndpoint
 from .endpoints.useravatar import UserAvatarEndpoint
 from .endpoints.user_appearance import UserAppearanceEndpoint
+from .endpoints.user_authenticator_index import UserAuthenticatorIndexEndpoint
+from .endpoints.user_authenticator_enroll import UserAuthenticatorEnrollEndpoint
 from .endpoints.user_authenticator_details import UserAuthenticatorDetailsEndpoint
 from .endpoints.user_identity_details import UserIdentityDetailsEndpoint
 from .endpoints.user_index import UserIndexEndpoint
@@ -191,12 +194,6 @@ urlpatterns = patterns(
     url(r'^broadcasts/$', BroadcastIndexEndpoint.as_view(),
         name='sentry-api-0-broadcast-index'),
 
-    # Chunk upload
-    url(r'^chunk-upload/$',
-        ChunkUploadEndpoint.as_view(),
-        name='sentry-api-0-chunk-upload'
-        ),
-
     # Users
     url(r'^users/$', UserIndexEndpoint.as_view(), name='sentry-api-0-user-index'),
     url(
@@ -213,6 +210,16 @@ urlpatterns = patterns(
         r'^users/(?P<user_id>[^\/]+)/appearance/$',
         UserAppearanceEndpoint.as_view(),
         name='sentry-api-0-user-appearance'
+    ),
+    url(
+        r'^users/(?P<user_id>[^\/]+)/authenticators/$',
+        UserAuthenticatorIndexEndpoint.as_view(),
+        name='sentry-api-0-user-authenticator-index'
+    ),
+    url(
+        r'^users/(?P<user_id>[^\/]+)/authenticators/(?P<interface_id>[^\/]+)/enroll/$',
+        UserAuthenticatorEnrollEndpoint.as_view(),
+        name='sentry-api-0-user-authenticator-enroll'
     ),
     url(
         r'^users/(?P<user_id>[^\/]+)/authenticators/(?P<auth_id>[^\/]+)/$',
@@ -254,6 +261,12 @@ urlpatterns = patterns(
     ),
 
     # Organizations
+
+    url(
+        r'^organizations/(?P<organization_slug>[^\/]+)/chunk-upload/$',
+        ChunkUploadEndpoint.as_view(),
+        name='sentry-api-0-chunk-upload'
+    ),
     url(
         r'^organizations/$', OrganizationIndexEndpoint.as_view(), name='sentry-api-0-organizations'
     ),
@@ -540,6 +553,11 @@ urlpatterns = patterns(
         r'^projects/(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/files/dsyms/$',
         DSymFilesEndpoint.as_view(),
         name='sentry-api-0-dsym-files'
+    ),
+    url(
+        r'^projects/(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/files/difs/assemble/$',
+        DifAssembleEndpoint.as_view(),
+        name='sentry-api-0-assemble-dif-files'
     ),
     url(
         r'^projects/(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/files/dsyms/unknown/$',

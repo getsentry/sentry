@@ -49,6 +49,8 @@ class DateTime extends React.Component {
       seconds,
       // eslint-disable-next-line no-unused-vars
       shortDate,
+      // eslint-disable-next-line no-unused-vars
+      dateOnly,
       ...carriedProps
     } = this.props;
     let user = ConfigStore.get('user');
