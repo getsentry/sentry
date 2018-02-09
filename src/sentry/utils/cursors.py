@@ -14,8 +14,6 @@ from collections import Sequence
 
 class Cursor(object):
     def __init__(self, value, offset=0, is_prev=False, has_results=None):
-        # XXX: ceil is not entirely correct here, but it's a simple hack
-        # that solves most problems
         self.value = int(value)
         self.offset = int(offset)
         self.is_prev = bool(is_prev)
