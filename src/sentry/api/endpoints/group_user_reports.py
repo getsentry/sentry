@@ -26,13 +26,11 @@ class GroupUserReportsEndpoint(GroupEndpoint, EnvironmentMixin):
                 group.organization.id,
             )
         except Environment.DoesNotExist:
-            report_list = Environment.objects.none()
+            report_list = UserReport.objects.none()
         else:
+            report_list = UserReport.objects.filter(group=group)
             if environment is not None:
-                report_list = UserReport.objects.filter(group=group, environment=environment)
-            else:
-                report_list = UserReport.objects.filter(group=group)
-
+                report_list = report_list.filter(environment=environment)
         return self.paginate(
             request=request,
             queryset=report_list,

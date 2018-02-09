@@ -56,18 +56,15 @@ class ProjectUserReportsEndpoint(ProjectEndpoint, EnvironmentMixin):
                 project.organization_id,
             )
         except Environment.DoesNotExist:
-            queryset = Environment.objects.none()
+            queryset = UserReport.objects.none()
         else:
+            queryset = UserReport.objects.filter(
+                project=project,
+                group__isnull=False,
+            ).select_related('group')
             if environment is not None:
-                queryset = UserReport.objects.filter(
-                    project=project,
-                    group__isnull=False,
+                queryset = queryset.filter(
                     environment=environment,
-                ).select_related('group')
-            else:
-                queryset = UserReport.objects.filter(
-                    project=project,
-                    group__isnull=False,
                 ).select_related('group')
 
             status = request.GET.get('status', 'unresolved')
