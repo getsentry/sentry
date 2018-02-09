@@ -65,7 +65,7 @@ class ProjectUserReportsEndpoint(ProjectEndpoint, EnvironmentMixin):
             if environment is not None:
                 queryset = queryset.filter(
                     environment=environment,
-                ).select_related('group')
+                )
 
             status = request.GET.get('status', 'unresolved')
             if status == 'unresolved':
