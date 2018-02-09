@@ -6,13 +6,27 @@ import jsonschema
 from rest_framework.response import Response
 
 from sentry.utils import json
+from sentry.api.serializers import serialize
 from sentry.api.bases.chunk import ChunkAssembleMixin
 from sentry.api.bases.project import ProjectEndpoint, ProjectReleasePermission
-from sentry.models import File, ChunkFileState
+from sentry.models import File, ChunkFileState, ProjectDSymFile
 
 
 class DifAssembleEndpoint(ChunkAssembleMixin, ProjectEndpoint):
     permission_classes = (ProjectReleasePermission, )
+
+    def _add_project_dsym_to_reponse(self, found_file, response):
+        if found_file is not None:
+            if found_file.headers.get('error', None) is not None:
+                response['error'] = found_file.headers.get('error')
+
+            dsym = ProjectDSymFile.objects.filter(
+                file=found_file
+            ).first()
+            if dsym is not None:
+                response['dif'] = serialize(dsym)
+
+        return response
 
     def post(self, request, project):
         """
@@ -58,15 +72,16 @@ class DifAssembleEndpoint(ChunkAssembleMixin, ProjectEndpoint):
             chunks = file_to_assemble.get('chunks', [])
 
             try:
-                result = self._check_file_blobs(project.organization, checksum, chunks)
+                found_file, response = self._check_file_blobs(
+                    project.organization, checksum, chunks)
                 # This either returns a file OK because we already own all chunks
                 # OR we return not_found with the missing chunks (or not owned)
-                if result is not None:
-                    file_response[checksum] = result
+                if response is not None:
+                    # We also found a file, we try to fetch project dsym to return more
+                    # information in the request
+                    file_response[checksum] = self._add_project_dsym_to_reponse(
+                        found_file, response)
                     continue
-            except File.MultipleObjectsReturned:
-                return Response({'error': 'Duplicate checksum'},
-                                status=400)
             except File.DoesNotExist:
                 pass
 

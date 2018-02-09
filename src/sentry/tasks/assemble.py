@@ -11,11 +11,15 @@ logger = logging.getLogger(__name__)
 
 @instrumented_task(name='sentry.tasks.assemble.assemble_dif', queue='assemble')
 def assemble_dif(project_id, file_id, file_blob_ids, checksum, **kwargs):
+    from sentry.models import ChunkFileState, dsymfile, Project, CHUNK_STATE_HEADER
     with transaction.atomic():
+
         # Assemble the chunks into files
         file = assemble_chunks(file_id, file_blob_ids, checksum)
 
-        from sentry.models import ChunkFileState, dsymfile, Project
+        # If an error happend during assembling, we early return here
+        if file.headers.get(CHUNK_STATE_HEADER) == ChunkFileState.ERROR:
+            return
 
         project = Project.objects.filter(
             id=project_id
@@ -38,7 +42,7 @@ def assemble_dif(project_id, file_id, file_blob_ids, checksum, **kwargs):
                 # We can delete the original chunk file since we created new dsym files
                 file.delete()
             else:
-                file.headers['__state'] = ChunkFileState.ERROR
+                file.headers[CHUNK_STATE_HEADER] = ChunkFileState.ERROR
                 file.headers['error'] = 'Invalid object file'
                 file.save()
                 logger.error(
@@ -57,17 +61,17 @@ def assemble_chunks(file_id, file_blob_ids, checksum, **kwargs):
             'error': 'Empty file blobs'
         })
 
-    from sentry.models import File, ChunkFileState
+    from sentry.models import File, ChunkFileState, CHUNK_STATE_HEADER
 
     file = File.objects.filter(
         id=file_id,
     ).get()
 
-    file.headers['__state'] = ChunkFileState.ASSEMBLING
+    file.headers[CHUNK_STATE_HEADER] = ChunkFileState.ASSEMBLING
     # Do the actual assembling here
 
     file.assemble_from_file_blob_ids(file_blob_ids, checksum)
-    if file.headers.get('__state', '') == ChunkFileState.ERROR:
+    if file.headers.get(CHUNK_STATE_HEADER, '') == ChunkFileState.ERROR:
         logger.error(
             'assemble_chunks.assemble_error',
             extra={
@@ -75,7 +79,7 @@ def assemble_chunks(file_id, file_blob_ids, checksum, **kwargs):
                 'file_id': file.id
             }
         )
-        return
-    file.headers['__state'] = ChunkFileState.OK
+        return file
+    file.headers[CHUNK_STATE_HEADER] = ChunkFileState.OK
     file.save()
     return file

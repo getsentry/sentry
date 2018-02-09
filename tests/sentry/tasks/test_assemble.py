@@ -7,7 +7,7 @@ from django.core.files.base import ContentFile
 from sentry.testutils import TestCase
 from sentry.tasks.assemble import assemble_dif
 from sentry.models import FileBlob, File
-from sentry.models.file import ChunkFileState
+from sentry.models.file import ChunkFileState, CHUNK_STATE_HEADER
 
 
 class AssembleTest(TestCase):
@@ -33,7 +33,7 @@ class AssembleTest(TestCase):
         total_checksum = sha1(content2 + content1 + content3).hexdigest()
 
         # The order here is on purpose because we check for the order of checksums
-        bolb1 = FileBlob.from_file(fileobj1)
+        blob1 = FileBlob.from_file(fileobj1)
         bolb3 = FileBlob.from_file(fileobj3)
         bolb2 = FileBlob.from_file(fileobj2)
 
@@ -41,16 +41,16 @@ class AssembleTest(TestCase):
             name='test',
             checksum=total_checksum,
             type='chunked',
-            headers={'__state': ChunkFileState.CREATED}
+            headers={CHUNK_STATE_HEADER: ChunkFileState.CREATED}
         )
 
-        file_blob_id_order = [bolb2.id, bolb1.id, bolb3.id]
+        file_blob_id_order = [bolb2.id, blob1.id, bolb3.id]
 
         file = File.objects.create(
             name='test',
             checksum=total_checksum,
             type='chunked',
-            headers={'__state': ChunkFileState.CREATED}
+            headers={CHUNK_STATE_HEADER: ChunkFileState.CREATED}
         )
 
         assemble_dif(
@@ -64,11 +64,11 @@ class AssembleTest(TestCase):
             id=file.id,
         ).get()
 
-        assert file.headers.get('__state') == ChunkFileState.ERROR
+        assert file.headers.get(CHUNK_STATE_HEADER) == ChunkFileState.ERROR
 
     def test_dif(self):
         sym_file = self.load_fixture('crash.sym')
-        bolb1 = FileBlob.from_file(ContentFile(sym_file))
+        blob1 = FileBlob.from_file(ContentFile(sym_file))
 
         total_checksum = sha1(sym_file).hexdigest()
 
@@ -76,10 +76,10 @@ class AssembleTest(TestCase):
             name='test.sym',
             checksum=total_checksum,
             type='chunked',
-            headers={'__state': ChunkFileState.CREATED}
+            headers={CHUNK_STATE_HEADER: ChunkFileState.CREATED}
         )
 
-        file_blob_id_order = [bolb1.id]
+        file_blob_id_order = [blob1.id]
 
         assemble_dif(
             project_id=self.project.id,

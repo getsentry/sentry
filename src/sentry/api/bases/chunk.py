@@ -1,7 +1,7 @@
 from __future__ import absolute_import
 
 from sentry.models import File, FileBlob, FileBlobOwner
-from sentry.models.file import ChunkFileState
+from sentry.models.file import ChunkFileState, CHUNK_STATE_HEADER
 
 
 class ChunkAssembleMixin(object):
@@ -14,7 +14,7 @@ class ChunkAssembleMixin(object):
             'missingChunks': missing_chunks
         }
 
-    def _check_chunk_ownership(self, organization, file_blobs, chunks, file_exists):
+    def _check_chunk_ownership(self, organization, file_blobs, chunks, file=None):
         # Check the ownership of these blobs with the org
         all_owned_blobs = FileBlobOwner.objects.filter(
             blob__in=file_blobs,
@@ -35,9 +35,9 @@ class ChunkAssembleMixin(object):
         # Only if this org already has the ownership of all blobs
         # and the count of chunks is the same as in the request
         # and the file already exists, we say this file is OK
-        elif len(file_blobs) == len(owned_blobs) == len(chunks) and file_exists:
+        elif len(file_blobs) == len(owned_blobs) == len(chunks) and file is not None:
             return self._create_file_response(
-                ChunkFileState.OK
+                file.headers.get(CHUNK_STATE_HEADER, ChunkFileState.OK)
             )
         # If the length of owned and sent chunks is not the same
         # we return all missing blobs
@@ -66,15 +66,18 @@ class ChunkAssembleMixin(object):
             file_blobs = FileBlob.objects.filter(
                 checksum__in=chunks
             ).all()
-            return self._check_chunk_ownership(organization, file_blobs, chunks, False)
+            return (
+                None,
+                self._check_chunk_ownership(organization, file_blobs, chunks)
+            )
         # It is possible to have multiple files in the db because
         # we do not have a unique on the checksum
         for file in files:
             # We need to fetch all blobs
             file_blobs = file.blobs.all()
-            rv = self._check_chunk_ownership(organization, file_blobs, chunks, True)
+            rv = self._check_chunk_ownership(organization, file_blobs, chunks, file)
             if rv is not None:
-                return rv
+                return (file, rv)
 
     def _create_file_for_assembling(self, name, checksum, chunks):
         # If we have all chunks and the file wasn't found before
@@ -84,7 +87,7 @@ class ChunkAssembleMixin(object):
             name=name,
             checksum=checksum,
             type='chunked',
-            headers={'__state': ChunkFileState.CREATED}
+            headers={CHUNK_STATE_HEADER: ChunkFileState.CREATED}
         )
 
         # Load all FileBlobs from db since we can be sure here we already own all
