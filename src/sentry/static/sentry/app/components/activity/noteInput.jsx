@@ -67,10 +67,19 @@ const NoteInput = createReactClass({
       value: defaultText,
       memberMentions: [],
       teamMentions: [],
+      mentionableUsers: this.mentionableUsers(),
+      mentionableTeams: this.mentionableTeams(),
     };
   },
 
   componentWillUpdate(nextProps, nextState) {
+    if (!_.isEqual(nextProps.memberList, this.props.memberList)) {
+      this.setState({
+        mentionableUsers: this.mentionableUsers(),
+        mentionableTeams: this.mentionableTeams(),
+      });
+    }
+
     // We can't support this when editing an existing Note since it'll
     // clobber the other storages
     if (this.state.updating) return;
@@ -277,7 +286,16 @@ const NoteInput = createReactClass({
   },
 
   render() {
-    let {error, errorJSON, loading, preview, updating, value} = this.state;
+    let {
+      error,
+      errorJSON,
+      loading,
+      preview,
+      updating,
+      value,
+      mentionableUsers,
+      mentionableTeams,
+    } = this.state;
 
     let hasTeamMentions = new Set(this.getOrganization().features).has(
       'internal-catchall'
@@ -332,7 +350,7 @@ const NoteInput = createReactClass({
               <Mention
                 type="member"
                 trigger="@"
-                data={this.mentionableUsers()}
+                data={mentionableUsers}
                 onAdd={this.onAddMember}
                 appendSpaceOnAdd={true}
               />
@@ -340,7 +358,7 @@ const NoteInput = createReactClass({
                 <Mention
                   type="team"
                   trigger="#"
-                  data={this.mentionableTeams()}
+                  data={mentionableTeams}
                   onAdd={this.onAddTeam}
                   appendSpaceOnAdd={true}
                 />
