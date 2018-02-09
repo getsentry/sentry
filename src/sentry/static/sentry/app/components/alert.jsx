@@ -1,5 +1,6 @@
 import React from 'react';
 import PropTypes from 'prop-types';
+import {cx} from 'emotion';
 import styled from 'react-emotion';
 import TextBlock from '../views/settings/components/text/textBlock';
 import InlineSvg from './inlineSvg';
@@ -36,15 +37,15 @@ const StyledInlineSvg = styled(InlineSvg)`
   margin-right: 12px;
 `;
 
-const Alert = ({type, icon, children, ...props}) => {
-  let className;
+const Alert = ({type, icon, children, className, ...props}) => {
+  let refClass;
 
   if (type) {
-    className = 'ref-' + type;
+    refClass = 'ref-' + type;
   }
 
   return (
-    <AlertWrapper type={type} {...props} className={className}>
+    <AlertWrapper type={type} {...props} className={cx(refClass, className)}>
       {icon && <StyledInlineSvg src={icon} size="24px" />}
       <StyledTextBlock>{children}</StyledTextBlock>
     </AlertWrapper>
