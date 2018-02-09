@@ -3,7 +3,6 @@ from __future__ import absolute_import
 import mock
 
 from django.core.urlresolvers import reverse
-from django.conf import settings
 
 from sentry.models import User
 from sentry.testutils import APITestCase
@@ -111,52 +110,38 @@ class UserPasswordTest(APITestCase):
         })
         assert response.status_code == 400
 
+    def test_cannot_change_other_user_password(self):
+        user = self.create_user(email='new@example.com', is_superuser=False)
+        self.login_as(user)
 
-class UserSudoUpdateTest(APITestCase):
-    def setUp(self):
-        self.user = self.create_user(email='a@example.com')
-        self.user.save()
-        self.login_as(user=self.user)
-
-        self.url = reverse(
+        url = reverse(
             'sentry-api-0-user-password', kwargs={
                 'user_id': self.user.id,
             }
         )
 
-        middleware = list(settings.MIDDLEWARE_CLASSES)
-        index = middleware.index('sentry.testutils.middleware.SudoMiddleware')
-        middleware[index] = 'sentry.middleware.sudo.SudoMiddleware'
-        self.sudo_middleware = tuple(middleware)
+        response = self.client.put(url, data={
+            'password': 'helloworld!',
+            'passwordNew': 'newpassword',
+            'passwordVerify': 'newpassword',
+        })
 
-        self.sudo_url = reverse('sentry-api-0-sudo', kwargs={})
+        assert response.status_code == 403
 
-    def test_change_password_requires_sudo(self):
-        user = User.objects.get(id=self.user.id)
-        old_password = user.password
-        with self.settings(MIDDLEWARE_CLASSES=tuple(self.sudo_middleware)):
-            response = self.client.put(self.url, data={
-                'password': 'admin',
-                'passwordNew': 'testpassword',
-                'passwordVerify': 'testpassword',
-            })
+    def test_superuser_can_change_other_user_password(self):
+        user = self.create_user(email='new@example.com', is_superuser=True)
+        self.login_as(user, superuser=True)
 
-            assert response.status_code == 401
-            assert response.data['sudoRequired']
+        url = reverse(
+            'sentry-api-0-user-password', kwargs={
+                'user_id': self.user.id,
+            }
+        )
 
-            # Now try to gain sudo access
-            response = self.client.post(self.sudo_url, {
-                'username': 'foo@example.com',
-                'password': 'admin',
-            })
-            assert response.status_code == 204
+        response = self.client.put(url, data={
+            'password': 'helloworld!',
+            'passwordNew': 'newpassword',
+            'passwordVerify': 'newpassword',
+        })
 
-            # correct password change
-            response = self.client.put(self.url, data={
-                'password': 'admin',
-                'passwordNew': 'testpassword',
-                'passwordVerify': 'testpassword',
-            })
-            assert response.status_code == 204
-            user = User.objects.get(id=self.user.id)
-            assert user.password != old_password
+        assert response.status_code == 204
