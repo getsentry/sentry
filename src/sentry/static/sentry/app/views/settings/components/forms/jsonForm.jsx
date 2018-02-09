@@ -16,7 +16,9 @@ class JsonForm extends React.Component {
     forms: PropTypes.arrayOf(
       PropTypes.shape({
         title: PropTypes.string,
-        fields: PropTypes.arrayOf(FieldFromConfig.propTypes.field),
+        fields: PropTypes.arrayOf(
+          PropTypes.oneOfType([PropTypes.func, FieldFromConfig.propTypes.field])
+        ),
       })
     ).isRequired,
     access: PropTypes.object,

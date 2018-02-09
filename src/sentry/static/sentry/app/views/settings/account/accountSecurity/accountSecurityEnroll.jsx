@@ -42,13 +42,13 @@ const getFields = ({authenticator, hasSentCode, onSmsReset, onSmsSubmit, onU2fTa
   if (qrcode) {
     return [
       () => (
-        <PanelItem justify="center" p={2}>
+        <PanelItem key="qrcode" justify="center" p={2}>
           <Qrcode code={authenticator.qrcode} />
         </PanelItem>
       ),
       ...form,
       () => (
-        <PanelItem justify="flex-end" p={2}>
+        <PanelItem key="confirm" justify="flex-end" p={2}>
           <Button priority="primary" type="submit">
             {t('Confirm')}
           </Button>
@@ -217,6 +217,7 @@ class AccountSecurityEnroll extends AsyncView {
     });
     this.api
       .requestPromise(`${ENDPOINT}${this.props.params.authId}/enroll/`, {
+        method: 'POST',
         data,
       })
       .then(this.handleEnrollSuccess, this.handleEnrollError);

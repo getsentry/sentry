@@ -68,6 +68,10 @@ class AccountSecurityDetails extends AsyncView {
     this._form = {};
   }
 
+  getTitle() {
+    return 'Security';
+  }
+
   getEndpoints() {
     return [['authenticator', `${ENDPOINT}${this.props.params.authId}/`]];
   }
