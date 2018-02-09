@@ -11,7 +11,8 @@ exports[`AlertLink renders 1`] = `
   -ms-flex-align: center;
   align-items: center;
   border: 1px dashed;
-  padding: 1em;
+  padding: NaNpx;
+  margin-bottom: NaNpx;
   border-radius: 0.25em;
   -webkit-transition: 0.2s border-color;
   transition: 0.2s border-color;
@@ -36,7 +37,8 @@ exports[`AlertLink renders with icon 1`] = `
   -ms-flex-align: center;
   align-items: center;
   border: 1px dashed;
-  padding: 1em;
+  padding: NaNpx;
+  margin-bottom: NaNpx;
   border-radius: 0.25em;
   -webkit-transition: 0.2s border-color;
   transition: 0.2s border-color;

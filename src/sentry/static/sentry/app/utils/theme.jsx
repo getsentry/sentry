@@ -83,6 +83,8 @@ const theme = {
     },
   },
 
+  grid: 8,
+
   text: {
     family: '"Rubik", "Avenir Next", sans-serif',
     familyMono: 'Monaco, Consolas, "Courier New", monospace',
@@ -100,5 +102,10 @@ const theme = {
 theme.textColor = theme.gray5;
 theme.success = theme.green;
 theme.error = theme.red;
+
+theme.alert.info.iconColor = theme.blue;
+theme.alert.warning.iconColor = theme.yellowDark;
+theme.alert.success.iconColor = theme.greenDark;
+theme.alert.error.iconColor = theme.redDark;
 
 export default theme;

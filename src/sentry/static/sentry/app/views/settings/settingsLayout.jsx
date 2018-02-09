@@ -4,28 +4,14 @@ import PropTypes from 'prop-types';
 import React from 'react';
 import styled from 'react-emotion';
 
-import InlineSvg from '../../components/inlineSvg';
+import Alert from '../../components/alert';
 import SettingsActivity from './components/settingsActivity';
 import SettingsBreadcrumb from './components/settingsBreadcrumb';
 import SettingsHeader from './components/settingsHeader';
 import SettingsSearch from './components/settingsSearch';
 
-const StyledIconCircleExclamation = styled(props => (
-  <InlineSvg size="36px" src="icon-circle-exclamation" {...props} />
-))`
-  color: ${p => p.theme.blue};
-  opacity: 0.6;
-`;
-
-let StyledWarning = styled.div`
+let StyledAlert = styled(Alert)`
   margin: 30px 0;
-  background: ${p => p.theme.alert.info.backgroundLight};
-  border: 1px solid ${p => p.theme.alert.info.border};
-  padding: 15px 20px;
-  border-radius: ${p => p.theme.borderRadius};
-  line-height: ${p => p.theme.text.lineHeightBody};
-  font-size: ${p => p.theme.text.size.small};
-  box-shadow: ${p => p.theme.dropShadowLight};
 `;
 
 // TODO(billy): Temp
@@ -52,20 +38,13 @@ let NewSettingsWarning = ({location = {}}) => {
     href: isRouter ? undefined : oldLocation,
     to: isRouter ? oldLocation : undefined,
   };
-  let Component = isRouter ? Link : 'a';
+  let LinkWithFallback = isRouter ? Link : 'a';
   return (
-    <StyledWarning>
-      <Flex align="center">
-        <Box w={32} mr={2}>
-          <StyledIconCircleExclamation />
-        </Box>
-        <Box>
-          These settings are currently in beta. Please report any issues. You can
-          temporarily visit the <Component {...linkProps}>old settings page</Component> if
-          necessary.
-        </Box>
-      </Flex>
-    </StyledWarning>
+    <StyledAlert type="info" icon="icon-circle-exclamation">
+      These settings are currently in beta. Please report any issues. You can temporarily
+      visit the <LinkWithFallback {...linkProps}>old settings page</LinkWithFallback> if
+      necessary.
+    </StyledAlert>
   );
 };
 

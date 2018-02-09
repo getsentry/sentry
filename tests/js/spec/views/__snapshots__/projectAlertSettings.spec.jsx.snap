@@ -47,34 +47,12 @@ exports[`ProjectAlertSettings render() renders 1`] = `
       }
       title="Alerts"
     />
-    <div
-      className="alert alert-block alert-info"
+    <AlertLink
+      icon="icon-mail"
+      to="/account/settings/notifications/"
     >
-      <span
-        key="5"
-      >
-        <span
-          key="0"
-        >
-          These settings cover rule-based alerts. If you're looking to change which notifications you receive you may do so from your 
-        </span>
-        <a
-          href="/account/settings/notifications/"
-          key="2"
-        >
-          <span
-            key="1"
-          >
-            account settings
-          </span>
-        </a>
-        <span
-          key="3"
-        >
-          .
-        </span>
-      </span>
-    </div>
+      Looking to fine-tune your personal notification prefs? Visit your Account Settings
+    </AlertLink>
     <GeneralSettings
       initialData={
         Object {
