@@ -109,6 +109,10 @@ class AccountSecurityDetails extends AsyncView {
     );
   };
 
+  handleRemoveU2fDevice = () => {
+    // TODO(billy): Implement me
+  };
+
   handleRegenerateBackupCodes = () => {
     this.setState({loading: true}, () =>
       this.api
