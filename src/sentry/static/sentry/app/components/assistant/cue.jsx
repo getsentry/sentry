@@ -2,7 +2,7 @@ import PropTypes from 'prop-types';
 import React from 'react';
 import createReactClass from 'create-react-class';
 
-const AssistantHandle = createReactClass({
+const AssistantCue = createReactClass({
   propTypes: {
     cue: PropTypes.string,
     onClick: PropTypes.func.isRequired,
@@ -17,4 +17,4 @@ const AssistantHandle = createReactClass({
   },
 });
 
-export default AssistantHandle;
+export default AssistantCue;

@@ -1,11 +1,15 @@
 import PropTypes from 'prop-types';
 import classNames from 'classnames';
 import React from 'react';
+import $ from 'jquery';
 
 import createReactClass from 'create-react-class';
 import Reflux from 'reflux';
 import GuideStore from '../../stores/guideStore';
 
+// A guide anchor provides a ripple-effect on an element on the page to draw attention
+// to it. Guide anchors register with the guide store, which uses this information to
+// determine which guides can be shown on the page.
 const GuideAnchor = createReactClass({
   propTypes: {
     target: PropTypes.string.isRequired,
@@ -24,6 +28,17 @@ const GuideAnchor = createReactClass({
     GuideStore.registerAnchor(this);
   },
 
+  componentDidUpdate(prevProps, prevState) {
+    if (!prevState.active && this.state.active) {
+      $('html, body').animate(
+        {
+          scrollTop: $(this.anchorElement).offset().top,
+        },
+        1000
+      );
+    }
+  },
+
   componentWillUnmount() {
     GuideStore.unregisterAnchor(this);
   },
@@ -31,7 +46,7 @@ const GuideAnchor = createReactClass({
   onGuideStateChange(data) {
     if (
       data.currentGuide &&
-      data.currentStep &&
+      data.currentStep !== null &&
       data.currentGuide.steps[data.currentStep].target == this.props.target
     ) {
       this.setState({active: true});
@@ -40,11 +55,18 @@ const GuideAnchor = createReactClass({
     }
   },
 
+  getRefName() {
+    return `guide-anchor-${this.props.target}`;
+  },
+
   render() {
     let {target, type} = this.props;
 
     return (
-      <div className={classNames('guide-anchor', type)}>
+      <div
+        ref={el => (this.anchorElement = el)}
+        className={classNames('guide-anchor', type)}
+      >
         {this.props.children}
         <span
           className={classNames(target, 'guide-anchor-ping', {

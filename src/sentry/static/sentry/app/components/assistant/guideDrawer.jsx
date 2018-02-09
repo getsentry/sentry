@@ -6,6 +6,7 @@ import ApiMixin from '../../mixins/apiMixin';
 import GuideStore from '../../stores/guideStore';
 import GuideActions from '../../actions/guideActions';
 
+// GuideDrawer is what slides up when the user clicks on a guide cue.
 const GuideDrawer = createReactClass({
   displayName: 'GuideDrawer',
 

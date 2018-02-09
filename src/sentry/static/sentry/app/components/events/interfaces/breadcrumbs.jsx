@@ -175,7 +175,7 @@ class BreadcrumbsInterface extends React.Component {
 
     let title = (
       <div>
-        <GuideAnchor step={1} target="breadcrumbs" type="text">
+        <GuideAnchor target="breadcrumbs" type="text">
           <h3>
             <strong>{'Breadcrumbs'}</strong>
           </h3>

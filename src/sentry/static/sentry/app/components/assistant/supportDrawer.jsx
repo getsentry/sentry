@@ -4,6 +4,7 @@ import createReactClass from 'create-react-class';
 import $ from 'jquery';
 import HookStore from '../../stores/hookStore';
 
+// SupportDrawer slides up when the user clicks on a "Need Help?" cue.
 const SupportDrawer = createReactClass({
   displayName: 'SupportDrawer',
 

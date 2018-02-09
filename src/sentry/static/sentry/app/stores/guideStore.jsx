@@ -28,7 +28,6 @@ const GuideStore = Reflux.createStore({
   },
 
   onGuideClose() {
-    //console.log(this.state);
     this.state.guidesSeen.add(this.state.currentGuide.id);
     this.updateCurrentGuide();
   },

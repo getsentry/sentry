@@ -17,7 +17,6 @@ exports[`EventDataSection renders formatted 1`] = `
       />
     </a>
     <GuideAnchor
-      step={2}
       target="extra"
       type="text"
     />
@@ -64,7 +63,6 @@ exports[`EventDataSection renders raw 1`] = `
       />
     </a>
     <GuideAnchor
-      step={2}
       target="extra"
       type="text"
     />

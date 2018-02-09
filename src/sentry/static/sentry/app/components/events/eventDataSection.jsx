@@ -49,7 +49,7 @@ class GroupEventDataSection extends React.Component {
               <em className="icon-anchor" />
             </a>
             {this.props.type === 'extra' ? (
-              <GuideAnchor step={2} target="extra" type="text" />
+              <GuideAnchor target="extra" type="text" />
             ) : null}
             {this.props.wrapTitle ? (
               <h3>{this.props.title}</h3>

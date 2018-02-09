@@ -2,12 +2,13 @@ import React from 'react';
 import Reflux from 'reflux';
 import createReactClass from 'create-react-class';
 import {fetchGuides} from '../../actionCreators/guides';
-import AssistantHandle from './handle';
+import AssistantCue from './cue';
 import SupportDrawer from './supportDrawer';
 import GuideDrawer from './guideDrawer';
 import GuideStore from '../../stores/guideStore';
 import GuideActions from '../../actions/guideActions';
 
+// AssistantHelper is responsible for rendering the cue message, guide drawer and support drawer.
 const AssistantHelper = createReactClass({
   displayName: 'AssistantHelper',
 
@@ -23,27 +24,6 @@ const AssistantHelper = createReactClass({
   componentDidMount() {
     fetchGuides();
   },
-
-  /*componentDidUpdate(prevProps, prevState) {
-    const guide = GuideStore.getCurrentGuide();
-    // Scroll to the element referenced by the current guide.
-    if (
-      guide &&
-      this.state.isDrawerOpen &&
-      this.state.currentStep !== prevState.currentStep
-    ) {
-      const target = guide.steps[this.state.currentStep].target;
-      GuideStore.setStep(this.state.currentStep);
-      if (target) {
-        $('html, body').animate(
-          {
-            scrollTop: $('#' + target).offset().top,
-          },
-          1000
-        );
-      }
-    }
-  },*/
 
   onGuideStateChange(data) {
     if (this.state.currentGuide != data.currentGuide) {
@@ -61,7 +41,7 @@ const AssistantHelper = createReactClass({
     GuideActions.nextStep();
   },
 
-  // This covers both the guide drawer being closed and the guide handle (cue) being dismissed.
+  // This covers both the guide drawer being closed and the guide cue being dismissed.
   onGuideClose() {
     GuideActions.guideClose();
   },
@@ -88,7 +68,7 @@ const AssistantHelper = createReactClass({
             )}
           </div>
         ) : (
-          <AssistantHandle cue={cue} onClick={this.onDrawerOpen} />
+          <AssistantCue cue={cue} onClick={this.onDrawerOpen} />
         )}
       </div>
     );
