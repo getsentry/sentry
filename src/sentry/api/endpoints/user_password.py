@@ -11,9 +11,9 @@ from sentry.security import capture_security_activity
 
 
 class UserPasswordSerializer(serializers.ModelSerializer):
-    password = serializers.CharField(label="Current password", required=True)
-    passwordNew = serializers.CharField(label="New password", required=True)
-    passwordVerify = serializers.CharField(label="Confirm new password", required=True)
+    password = serializers.CharField(required=True)
+    passwordNew = serializers.CharField(required=True)
+    passwordVerify = serializers.CharField(required=True)
 
     class Meta:
         model = User
