@@ -7,8 +7,9 @@ from django.core.urlresolvers import reverse
 from django.core.files.base import ContentFile
 
 from sentry.models import ApiToken, FileBlob, File, FileBlobIndex, FileBlobOwner
-from sentry.models.file import ChunkFileState
+from sentry.models.file import ChunkFileState, CHUNK_STATE_HEADER
 from sentry.testutils import APITestCase
+from sentry.tasks.assemble import assemble_dif
 
 
 class DifAssembleEndpoint(APITestCase):
@@ -165,10 +166,10 @@ class DifAssembleEndpoint(APITestCase):
         total_checksum = sha1(content2 + content1 + content3).hexdigest()
 
         # The order here is on purpose because we check for the order of checksums
-        bolb1 = FileBlob.from_file(fileobj1)
+        blob1 = FileBlob.from_file(fileobj1)
         FileBlobOwner.objects.get_or_create(
             organization=self.organization,
-            blob=bolb1
+            blob=blob1
         )
         bolb3 = FileBlob.from_file(fileobj3)
         FileBlobOwner.objects.get_or_create(
@@ -217,7 +218,7 @@ class DifAssembleEndpoint(APITestCase):
         assert response.data[total_checksum]['state'] == ChunkFileState.CREATED
         assert response.data[total_checksum]['missingChunks'] == []
 
-        file_blob_id_order = [bolb2.id, bolb1.id, bolb3.id]
+        file_blob_id_order = [bolb2.id, blob1.id, bolb3.id]
 
         mock_assemble_dif.apply_async.assert_called_once_with(
             kwargs={
@@ -236,3 +237,79 @@ class DifAssembleEndpoint(APITestCase):
 
         file_blob_index = FileBlobIndex.objects.all()
         assert len(file_blob_index) == 3
+
+    def test_dif_reponse(self):
+        sym_file = self.load_fixture('crash.sym')
+        blob1 = FileBlob.from_file(ContentFile(sym_file))
+
+        total_checksum = sha1(sym_file).hexdigest()
+
+        file = File.objects.create(
+            name='test.sym',
+            checksum=total_checksum,
+            type='chunked',
+            headers={CHUNK_STATE_HEADER: ChunkFileState.CREATED}
+        )
+
+        file_blob_id_order = [blob1.id]
+
+        assemble_dif(
+            project_id=self.project.id,
+            file_id=file.id,
+            file_blob_ids=file_blob_id_order,
+            checksum=total_checksum,
+        )
+
+        response = self.client.post(
+            self.url,
+            data={
+                total_checksum: {
+                    'name': 'test.sym',
+                    'chunks': [
+                        blob1.checksum
+                    ]
+                }
+            },
+            HTTP_AUTHORIZATION='Bearer {}'.format(self.token.token)
+        )
+
+        assert response.status_code == 200, response.content
+        assert response.data[total_checksum]['dif']['cpuName'] == 'x86_64'
+
+    def test_dif_error_reponse(self):
+        sym_file = 'fail'
+        blob1 = FileBlob.from_file(ContentFile(sym_file))
+
+        total_checksum = sha1(sym_file).hexdigest()
+
+        file = File.objects.create(
+            name='test.sym',
+            checksum=total_checksum,
+            type='chunked',
+            headers={CHUNK_STATE_HEADER: ChunkFileState.CREATED}
+        )
+
+        file_blob_id_order = [blob1.id]
+
+        assemble_dif(
+            project_id=self.project.id,
+            file_id=file.id,
+            file_blob_ids=file_blob_id_order,
+            checksum=total_checksum,
+        )
+
+        response = self.client.post(
+            self.url,
+            data={
+                total_checksum: {
+                    'name': 'test.sym',
+                    'chunks': [
+                        blob1.checksum
+                    ]
+                }
+            },
+            HTTP_AUTHORIZATION='Bearer {}'.format(self.token.token)
+        )
+
+        assert response.status_code == 200, response.content
+        assert response.data[total_checksum]['error'] == 'Invalid object file'

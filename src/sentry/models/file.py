@@ -33,6 +33,7 @@ from sentry.utils.retries import TimedRetryPolicy
 ONE_DAY = 60 * 60 * 24
 
 DEFAULT_BLOB_SIZE = 1024 * 1024  # one mb
+CHUNK_STATE_HEADER = '__state'
 
 
 def enum(**named_values):
@@ -292,7 +293,7 @@ class File(Model):
 
         if checksum != self.checksum:
             self.headers['__state'] = ChunkFileState.ERROR
-            self.headers['error'] = 'invalid_checksum'
+            self.headers['error'] = 'Checksum missmatch between chunks and file'
 
         metrics.timing('filestore.file-size', offset)
         if commit:
