@@ -809,7 +809,8 @@ class EventManager(object):
             event_id=event_id,
         ).update(
             group=group,
-            environment=environment)
+            environment=environment,
+        )
 
         # save the event unless its been sampled
         if not is_sample:
