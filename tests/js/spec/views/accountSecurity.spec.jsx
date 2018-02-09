@@ -2,8 +2,6 @@ import React from 'react';
 import {shallow, mount} from 'enzyme';
 
 import {Client} from 'app/api';
-// import {ThemeProvider} from 'emotion-theming';
-// import theme from 'app/utils/theme';
 import AccountSecurity from 'app/views/settings/account/accountSecurity';
 
 const ENDPOINT = '/users/me/authenticators/';
