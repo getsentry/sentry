@@ -120,17 +120,19 @@ class ProjectUserReportsEndpoint(ProjectEndpoint, EnvironmentMixin):
             report.event_user_id = euser.id
 
         try:
-            event = Event.objects.filter(event_id=report.event_id).select_related('group')[0]
-            try:
-                report.environment = event.get_environment()
-            except Environment.DoesNotExist:
-                pass
-            report.group = event.group
+            event = Event.objects.filter(project_id=project.id,
+                                         event_id=report.event_id).select_related('group')[0]
         except IndexError:
             try:
                 report.group = Group.objects.from_event_id(project, report.event_id)
             except Group.DoesNotExist:
                 pass
+        else:
+            try:
+                report.environment = event.get_environment()
+            except Environment.DoesNotExist:
+                pass
+            report.group = event.group
 
         try:
             with transaction.atomic():

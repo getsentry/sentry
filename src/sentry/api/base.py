@@ -223,7 +223,7 @@ class Endpoint(APIView):
 
 class EnvironmentMixin(object):
     def _get_environment_func(self, request, organization_id):
-        """
+        """\
         Creates a function that when called returns the ``Environment``
         associated with a request object, or ``None`` if no environment was
         provided. If the environment doesn't exist, an ``Environment.DoesNotExist``
