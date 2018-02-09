@@ -53,7 +53,6 @@ const OrganizationContext = createReactClass({
 
   componentWillMount() {
     this.fetchData();
-    // this.fetchGuide();
   },
 
   componentWillReceiveProps(nextProps) {

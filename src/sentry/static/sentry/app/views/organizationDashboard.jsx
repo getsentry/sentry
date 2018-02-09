@@ -15,7 +15,6 @@ import TeamStore from '../stores/teamStore';
 import ActivityFeed from '../components/activity/feed';
 import EventsPerHour from '../components/events/eventsPerHour';
 import IssueList from '../components/issueList';
-import GuideAnchor from '../components/assistant/guideAnchor';
 import OrganizationHomeContainer from '../components/organizations/homeContainer';
 import OrganizationState from '../mixins/organizationState';
 
@@ -111,9 +110,7 @@ class NewIssues extends React.Component {
             <span className="icon icon-refresh" />
           </a>
         </div>
-        <GuideAnchor target="setup-test" type="text">
-          <h4>New this week</h4>
-        </GuideAnchor>
+        <h4>New this week</h4>
         <IssueList
           endpoint={this.getEndpoint()}
           query={{
