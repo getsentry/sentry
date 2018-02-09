@@ -64,26 +64,6 @@ class CursorResult(Sequence):
     def __repr__(self):
         return '<%s: results=%s>' % (type(self).__name__, len(self.results))
 
-    @classmethod
-    def from_ids(cls, id_list, key=None, limit=100, cursor=None):
-        from sentry.models import Group
-
-        group_map = Group.objects.in_bulk(id_list)
-
-        results = []
-        for g_id in id_list:
-            try:
-                results.append(group_map[g_id])
-            except KeyError:
-                pass
-
-        return build_cursor(
-            results=results,
-            key=key,
-            cursor=cursor,
-            limit=limit,
-        )
-
 
 def _build_next_values(cursor, results, key, limit, is_desc):
     value = cursor.value
