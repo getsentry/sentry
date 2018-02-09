@@ -295,7 +295,7 @@ class FormField extends React.Component {
                         onKeyDown: this.handleKeyDown,
                         onChange: this.handleChange,
                         onBlur: this.handleBlur,
-                        value,
+                        value: value === null ? '' : value,
                         error,
                         disabled: isDisabled,
                       }}
