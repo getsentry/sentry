@@ -5,7 +5,6 @@ from rest_framework import serializers, status
 from rest_framework.response import Response
 
 from sentry.api.bases.user import UserEndpoint
-from sentry.api.decorators import sudo_required
 from sentry.auth import password_validation
 from sentry.models import User
 from sentry.security import capture_security_activity
@@ -46,7 +45,6 @@ class UserPasswordSerializer(serializers.ModelSerializer):
 
 
 class UserPasswordEndpoint(UserEndpoint):
-    @sudo_required
     def put(self, request, user):
         # pass some context to serializer otherwise when we create a new serializer instance,
         # user.password gets set to new plaintext password from request and
