@@ -40,13 +40,6 @@ class GroupNotesEndpoint(GroupEndpoint):
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
         data = dict(serializer.object)
-        mentions = data.pop('mentions', [])
-
-        actors = Actor.resolve_many(mentions)
-        actorMentions = seperate_resolved_actors(actors)
-
-        user_mentions = actorMentions['users']
-        team_mentions = actorMentions['teams']
 
         if Activity.objects.filter(
             group=group,
@@ -66,26 +59,30 @@ class GroupNotesEndpoint(GroupEndpoint):
             reason=GroupSubscriptionReason.comment,
         )
 
+        mentions = data.pop('mentions', [])
+
+        actors = Actor.resolve_many(mentions)
+        actorMentions = seperate_resolved_actors(actors)
+
         subscribed_user_ids = set()
-        if user_mentions:
-            for user in user_mentions:
+
+        for user in actorMentions.get('users', []):
+            GroupSubscription.objects.subscribe(
+                group=group,
+                user=user,
+                reason=GroupSubscriptionReason.mentioned,
+            )
+            subscribed_user_ids.add(user.id)
+
+        for team in actorMentions.get('teams', []):
+            for user in [member.user for member in team.member_set
+                         if member.user.id not in subscribed_user_ids]:
                 GroupSubscription.objects.subscribe(
                     group=group,
                     user=user,
-                    reason=GroupSubscriptionReason.mentioned,
+                    reason=GroupSubscriptionReason.team_mentioned,
                 )
                 subscribed_user_ids.add(user.id)
-
-        if team_mentions:
-            for team in team_mentions:
-                for user in [member.user for member in team.member_set
-                             if member.user.id not in subscribed_user_ids]:
-                    GroupSubscription.objects.subscribe(
-                        group=group,
-                        user=user,
-                        reason=GroupSubscriptionReason.team_mentioned,
-                    )
-                    subscribed_user_ids.add(user.id)
 
         activity = Activity.objects.create(
             group=group,

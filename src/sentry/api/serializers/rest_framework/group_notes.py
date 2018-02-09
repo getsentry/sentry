@@ -31,7 +31,7 @@ class NoteSerializer(serializers.Serializer):
 
             mentions = attrs[source]
             seperated_actors = seperate_actors(mentions)
-
+            # Validate that all mentioned users exist and are on the project.
             users = seperated_actors['users']
 
             mentioned_user_ids = [user.id for user in users]
@@ -47,6 +47,7 @@ class NoteSerializer(serializers.Serializer):
             if invalid_user_ids:
                 raise serializers.ValidationError('Cannot mention a non team member')
 
+            # Validate that all mentioned teams exist and are on the project.
             teams = seperated_actors['teams']
             mentioned_team_ids = [team.id for team in teams]
 
