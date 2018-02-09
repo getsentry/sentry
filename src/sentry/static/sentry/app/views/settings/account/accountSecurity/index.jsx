@@ -1,3 +1,6 @@
+/**
+ * Lists 2fa devices + password change form
+ */
 import {Box, Flex} from 'grid-emotion';
 import React from 'react';
 import styled from 'react-emotion';
@@ -14,6 +17,7 @@ import PanelHeader from '../../components/panelHeader';
 import PanelItem from '../../components/panelItem';
 import SettingsPageHeader from '../../components/settingsPageHeader';
 import TextBlock from '../../components/text/textBlock';
+import RemoveConfirm from './components/removeConfirm';
 
 const ENDPOINT = '/users/me/authenticators/';
 
@@ -49,10 +53,10 @@ class AccountSecurity extends AsyncView {
 
     return (
       <div>
-        <SettingsPageHeader title="Two-factor Authentication" />
+        <SettingsPageHeader title="Security" />
         <Panel>
           <PanelHeader>
-            <Box>{t('Authenticators')}</Box>
+            <Box>{t('Two Factor Authentication')}</Box>
           </PanelHeader>
 
           {isEmpty && (
@@ -102,13 +106,11 @@ class AccountSecurity extends AsyncView {
 
                       {!isBackupInterface &&
                         isEnrolled && (
-                          <Button
-                            css={{marginLeft: 6}}
-                            size="small"
-                            onClick={() => this.handleDisable(auth)}
-                          >
-                            <span className="icon icon-trash" />
-                          </Button>
+                          <RemoveConfirm onConfirm={() => this.handleDisable(auth)}>
+                            <Button css={{marginLeft: 6}} size="small">
+                              <span className="icon icon-trash" />
+                            </Button>
+                          </RemoveConfirm>
                         )}
 
                       {isBackupInterface && !isEnrolled

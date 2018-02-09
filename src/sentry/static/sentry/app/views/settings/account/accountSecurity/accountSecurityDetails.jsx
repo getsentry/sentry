@@ -1,3 +1,9 @@
+/**
+ * AccountSecurityDetails is only displayed when user is enrolled in the 2fa method.
+ * It displays created + last used time of the 2fa method.
+ *
+ * Also displays 2fa method specific details.
+ */
 import {Box, Flex} from 'grid-emotion';
 import {withRouter} from 'react-router';
 import PropTypes from 'prop-types';
@@ -12,15 +18,12 @@ import {t} from '../../../../locale';
 import AsyncView from '../../../asyncView';
 import Button from '../../../../components/buttons/button';
 import CircleIndicator from '../../../../components/circleIndicator';
-import Confirm from '../../../../components/confirm';
 import DateTime from '../../../../components/dateTime';
-import Panel from '../../components/panel';
-import PanelBody from '../../components/panelBody';
-import PanelHeader from '../../components/panelHeader';
-import PanelItem from '../../components/panelItem';
 import RecoveryCodes from './components/recoveryCodes';
+import RemoveConfirm from './components/removeConfirm';
 import SettingsPageHeader from '../../components/settingsPageHeader';
 import TextBlock from '../../components/text/textBlock';
+import U2fEnrolledDetails from './components/u2fEnrolledDetails';
 
 const ENDPOINT = '/users/me/authenticators/';
 
@@ -33,11 +36,6 @@ const DateLabel = styled.span`
 const Phone = styled.span`
   font-weight: bold;
   margin-left: 6px;
-`;
-
-const Header = styled.div`
-  font-size: 1.2em;
-  margin-bottom: 10px;
 `;
 
 class AuthenticatorDate extends React.Component {
@@ -101,6 +99,10 @@ class AccountSecurityDetails extends AsyncView {
     );
   };
 
+  handleRemoveU2fDevice = () => {
+    // TODO(billy): Implement me
+  };
+
   handleRegenerateBackupCodes = () => {
     this.setState({loading: true}, () =>
       this.api
@@ -126,61 +128,24 @@ class AccountSecurityDetails extends AsyncView {
           action={
             authenticator.isEnrolled &&
             authenticator.removeButton && (
-              <Confirm
-                onConfirm={this.handleRemove}
-                message={
-                  <React.Fragment>
-                    <Header>{t('Do you want to remove the method?')}</Header>
-                    <TextBlock>
-                      {t(
-                        'You will no longer be able to use it for two-factor authentication afterwards. Removing the last authenticator removes two-factor authentication completely.'
-                      )}
-                    </TextBlock>
-                  </React.Fragment>
-                }
-              >
+              <RemoveConfirm onConfirm={this.handleRemove}>
                 <Button priority="danger">{authenticator.removeButton}</Button>
-              </Confirm>
+              </RemoveConfirm>
             )
           }
         />
 
         <TextBlock>{authenticator.description}</TextBlock>
-
         <AuthenticatorDate label={t('Created at')} date={authenticator.createdAt} />
-
         <AuthenticatorDate label={t('Last used')} date={authenticator.lastUsedAt} />
 
-        {authenticator.isEnrolled &&
-          authenticator.devices && (
-            <Panel css={{marginTop: 30}}>
-              <PanelHeader>{t('Device name')}</PanelHeader>
+        <U2fEnrolledDetails
+          isEnrolled={authenticator.isEnrolled}
+          id={authenticator.id}
+          devices={authenticator.devices}
+          onRemoveU2fDevice={this.handleRemoveU2fDevice}
+        />
 
-              <PanelBody>
-                {authenticator.devices.map(device => (
-                  <PanelItem key={device.name}>
-                    <Flex p={2} pr={0} align="center" flex="1">
-                      <Box flex="1">{device.name}</Box>
-                      <div css={{fontSize: '0.8em', opacity: 0.6}}>
-                        <DateTime date={device.timestamp} />
-                      </div>
-                    </Flex>
-
-                    <Box p={2}>
-                      <Button size="small" priority="danger">
-                        <span className="icon icon-trash" />
-                      </Button>
-                    </Box>
-                  </PanelItem>
-                ))}
-                <PanelItem justify="flex-end" p={2}>
-                  <Button type="button" to="/settings/account/security/u2f/enroll/">
-                    {t('Add Another Device')}
-                  </Button>
-                </PanelItem>
-              </PanelBody>
-            </Panel>
-          )}
         {authenticator.isEnrolled &&
           authenticator.phone && (
             <div css={{marginTop: 30}}>

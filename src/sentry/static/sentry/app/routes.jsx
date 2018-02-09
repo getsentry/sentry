@@ -181,7 +181,7 @@ const accountSettingsRoutes = [
       path=":authId/"
       name="Details"
       componentPromise={() =>
-        import(/*webpackChunkName: "AccountSecurityDetail"*/ './views/settings/account/accountSecurity/accountSecurityDetails')}
+        import(/*webpackChunkName: "AccountSecurityDetails"*/ './views/settings/account/accountSecurity/accountSecurityDetails')}
       component={errorHandler(LazyLoad)}
     />
   </Route>,

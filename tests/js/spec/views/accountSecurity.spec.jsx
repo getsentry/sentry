@@ -68,7 +68,14 @@ describe('AccountSecurity', function() {
     let wrapper = mount(<AccountSecurity />, TestStubs.routerContext());
     expect(wrapper.find('CircleIndicator').prop('enabled')).toBe(true);
 
+    // This will open confirm modal
     wrapper.find('Button .icon-trash').simulate('click');
+    // Confirm
+    wrapper
+      .find('Modal Button')
+      .last()
+      .simulate('click');
+
     expect(deleteMock).toHaveBeenCalled();
 
     setTimeout(() => {
