@@ -37,8 +37,14 @@ const StyledInlineSvg = styled(InlineSvg)`
 `;
 
 const Alert = ({type, icon, children, ...props}) => {
+  let className;
+
+  if (type) {
+    className = 'ref-' + type;
+  }
+
   return (
-    <AlertWrapper type={type} {...props}>
+    <AlertWrapper type={type} {...props} className={className}>
       {icon && <StyledInlineSvg src={icon} size="24px" />}
       <StyledTextBlock>{children}</StyledTextBlock>
     </AlertWrapper>
