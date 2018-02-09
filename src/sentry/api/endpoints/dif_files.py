@@ -19,14 +19,12 @@ class DifAssembleEndpoint(ChunkAssembleMixin, ProjectEndpoint):
         if found_file is not None:
             if found_file.headers.get('error', None) is not None:
                 response['error'] = found_file.headers.get('error')
-            try:
-                dsym = ProjectDSymFile.objects.filter(
-                    file=found_file
-                ).first()
-                if dsym is not None:
-                    response['dif'] = serialize(dsym)
-            except ProjectDSymFile.DoesNotExist:
-                pass
+
+            dsym = ProjectDSymFile.objects.filter(
+                file=found_file
+            ).first()
+            if dsym is not None:
+                response['dif'] = serialize(dsym)
 
         return response
 
@@ -84,9 +82,6 @@ class DifAssembleEndpoint(ChunkAssembleMixin, ProjectEndpoint):
                     file_response[checksum] = self._add_project_dsym_to_reponse(
                         found_file, response)
                     continue
-            except File.MultipleObjectsReturned:
-                return Response({'error': 'Duplicate checksum'},
-                                status=400)
             except File.DoesNotExist:
                 pass
 

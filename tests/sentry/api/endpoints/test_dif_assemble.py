@@ -166,10 +166,10 @@ class DifAssembleEndpoint(APITestCase):
         total_checksum = sha1(content2 + content1 + content3).hexdigest()
 
         # The order here is on purpose because we check for the order of checksums
-        bolb1 = FileBlob.from_file(fileobj1)
+        blob1 = FileBlob.from_file(fileobj1)
         FileBlobOwner.objects.get_or_create(
             organization=self.organization,
-            blob=bolb1
+            blob=blob1
         )
         bolb3 = FileBlob.from_file(fileobj3)
         FileBlobOwner.objects.get_or_create(
@@ -218,7 +218,7 @@ class DifAssembleEndpoint(APITestCase):
         assert response.data[total_checksum]['state'] == ChunkFileState.CREATED
         assert response.data[total_checksum]['missingChunks'] == []
 
-        file_blob_id_order = [bolb2.id, bolb1.id, bolb3.id]
+        file_blob_id_order = [bolb2.id, blob1.id, bolb3.id]
 
         mock_assemble_dif.apply_async.assert_called_once_with(
             kwargs={
@@ -240,7 +240,7 @@ class DifAssembleEndpoint(APITestCase):
 
     def test_dif_reponse(self):
         sym_file = self.load_fixture('crash.sym')
-        bolb1 = FileBlob.from_file(ContentFile(sym_file))
+        blob1 = FileBlob.from_file(ContentFile(sym_file))
 
         total_checksum = sha1(sym_file).hexdigest()
 
@@ -251,7 +251,7 @@ class DifAssembleEndpoint(APITestCase):
             headers={'__state': ChunkFileState.CREATED}
         )
 
-        file_blob_id_order = [bolb1.id]
+        file_blob_id_order = [blob1.id]
 
         assemble_dif(
             project_id=self.project.id,
@@ -266,7 +266,7 @@ class DifAssembleEndpoint(APITestCase):
                 total_checksum: {
                     'name': 'test.sym',
                     'chunks': [
-                        bolb1.checksum
+                        blob1.checksum
                     ]
                 }
             },
@@ -278,7 +278,7 @@ class DifAssembleEndpoint(APITestCase):
 
     def test_dif_error_reponse(self):
         sym_file = 'fail'
-        bolb1 = FileBlob.from_file(ContentFile(sym_file))
+        blob1 = FileBlob.from_file(ContentFile(sym_file))
 
         total_checksum = sha1(sym_file).hexdigest()
 
@@ -289,7 +289,7 @@ class DifAssembleEndpoint(APITestCase):
             headers={'__state': ChunkFileState.CREATED}
         )
 
-        file_blob_id_order = [bolb1.id]
+        file_blob_id_order = [blob1.id]
 
         assemble_dif(
             project_id=self.project.id,
@@ -304,7 +304,7 @@ class DifAssembleEndpoint(APITestCase):
                 total_checksum: {
                     'name': 'test.sym',
                     'chunks': [
-                        bolb1.checksum
+                        blob1.checksum
                     ]
                 }
             },

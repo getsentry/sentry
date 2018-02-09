@@ -33,7 +33,7 @@ class AssembleTest(TestCase):
         total_checksum = sha1(content2 + content1 + content3).hexdigest()
 
         # The order here is on purpose because we check for the order of checksums
-        bolb1 = FileBlob.from_file(fileobj1)
+        blob1 = FileBlob.from_file(fileobj1)
         bolb3 = FileBlob.from_file(fileobj3)
         bolb2 = FileBlob.from_file(fileobj2)
 
@@ -44,7 +44,7 @@ class AssembleTest(TestCase):
             headers={'__state': ChunkFileState.CREATED}
         )
 
-        file_blob_id_order = [bolb2.id, bolb1.id, bolb3.id]
+        file_blob_id_order = [bolb2.id, blob1.id, bolb3.id]
 
         file = File.objects.create(
             name='test',
@@ -68,7 +68,7 @@ class AssembleTest(TestCase):
 
     def test_dif(self):
         sym_file = self.load_fixture('crash.sym')
-        bolb1 = FileBlob.from_file(ContentFile(sym_file))
+        blob1 = FileBlob.from_file(ContentFile(sym_file))
 
         total_checksum = sha1(sym_file).hexdigest()
 
@@ -79,7 +79,7 @@ class AssembleTest(TestCase):
             headers={'__state': ChunkFileState.CREATED}
         )
 
-        file_blob_id_order = [bolb1.id]
+        file_blob_id_order = [blob1.id]
 
         assemble_dif(
             project_id=self.project.id,
