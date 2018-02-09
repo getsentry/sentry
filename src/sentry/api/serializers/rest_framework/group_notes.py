@@ -38,11 +38,11 @@ class NoteSerializer(serializers.Serializer):
 
             project = self.context['group'].project
 
-            member_ids = set(
+            user_ids = set(
                 project.member_set.filter(user_id__in=mentioned_user_ids)
                 .values_list('user_id', flat=True)
             )
-            invalid_user_ids = [m for m in mentioned_user_ids if int(m) not in member_ids]
+            invalid_user_ids = [m for m in mentioned_user_ids if int(m) not in user_ids]
 
             if invalid_user_ids:
                 raise serializers.ValidationError('Cannot mention a non team member')
