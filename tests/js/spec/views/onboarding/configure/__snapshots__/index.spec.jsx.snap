@@ -83,10 +83,10 @@ exports[`Configure should render correctly render() should render platform docs 
         }
       >
         <SideEffect(DocumentTitle)
-          title="undefined / Test Project"
+          title="Test Project"
         >
           <DocumentTitle
-            title="undefined / Test Project"
+            title="Test Project"
           >
             <ProjectDocsContext>
               <LoadingIndicator>

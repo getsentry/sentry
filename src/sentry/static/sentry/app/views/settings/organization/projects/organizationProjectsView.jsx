@@ -6,6 +6,7 @@ import {Box} from 'grid-emotion';
 import {loadStats} from '../../../../actionCreators/projects';
 import {t} from '../../../../locale';
 import ApiMixin from '../../../../mixins/apiMixin';
+import {getOrganizationState} from '../../../../mixins/organizationState';
 import OrganizationSettingsView from '../../../organizationSettingsView';
 import ProjectStatsGraph from './projectStatsGraph';
 import ProjectsStore from '../../../../stores/projectsStore';
@@ -16,6 +17,9 @@ import PanelItem from '../../components/panelItem';
 import PanelHeader from '../../components/panelHeader';
 import PanelBody from '../../components/panelBody';
 import ProjectListItem from '../../../settings/components/settingsProjectItem';
+import SettingsPageHeader from '../../components/settingsPageHeader';
+import Button from '../../../../components/buttons/button';
+import EmptyMessage from '../../components/emptyMessage';
 
 class OrganizationProjectsView extends OrganizationSettingsView {
   static contextTypes = {
@@ -29,15 +33,36 @@ class OrganizationProjectsView extends OrganizationSettingsView {
 
   renderBody() {
     let {projects} = this.props;
+    let {organization} = this.context;
+    let canCreateProjects = getOrganizationState(this.context.organization)
+      .getAccess()
+      .has('project:admin');
+
+    let action = (
+      <Button
+        priority="primary"
+        size="small"
+        disabled={!canCreateProjects}
+        title={
+          !canCreateProjects
+            ? t('You do not have permission to create projects')
+            : undefined
+        }
+        to={`/organizations/${organization.slug}/projects/new/`}
+      >
+        <span className="icon-plus" /> {t('Create Project')}
+      </Button>
+    );
 
     return (
       <div>
+        <SettingsPageHeader title="Projects" action={action} />
         <Panel className="table table-no-top-border m-b-0">
           <PanelHeader>{t('Projects')}</PanelHeader>
           <PanelBody css={{width: '100%'}}>
             {sortProjects(projects).map((project, i) => (
-              <PanelItem key={project.id} align="center">
-                <Box w={1 / 2} p={2} flex="1">
+              <PanelItem p={0} key={project.id} align="center">
+                <Box w={1 / 2} p={2}>
                   <ProjectListItem
                     project={project}
                     organization={this.context.organization}
@@ -48,6 +73,9 @@ class OrganizationProjectsView extends OrganizationSettingsView {
                 </Box>
               </PanelItem>
             ))}
+            {projects.length === 0 && (
+              <EmptyMessage>{t('No projects found.')}</EmptyMessage>
+            )}
           </PanelBody>
         </Panel>
       </div>

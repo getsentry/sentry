@@ -20,6 +20,11 @@ class JsonForm extends React.Component {
       })
     ).isRequired,
     access: PropTypes.object,
+    additionalFieldProps: PropTypes.object,
+  };
+
+  static defaultProps = {
+    additionalFieldProps: {},
   };
 
   static contextTypes = {
@@ -59,7 +64,7 @@ class JsonForm extends React.Component {
   }
 
   render() {
-    let {forms, access, ...otherProps} = this.props;
+    let {forms, access, additionalFieldProps, ...otherProps} = this.props;
 
     return (
       <Box>
@@ -73,6 +78,7 @@ class JsonForm extends React.Component {
                     access={access}
                     key={field.name}
                     {...otherProps}
+                    {...additionalFieldProps}
                     field={field}
                     highlighted={this.state.highlighted === `#${field.name}`}
                   />

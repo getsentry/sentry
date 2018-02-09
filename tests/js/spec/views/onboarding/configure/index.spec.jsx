@@ -85,6 +85,20 @@ describe('Configure should render correctly', function() {
           organization: {
             id: '1337',
             slug: 'testOrg',
+            projects: [
+              {
+                name: 'Test Project',
+                slug: 'testProject',
+                id: 'testProject',
+                hasAccess: true,
+                teams: [
+                  {
+                    id: 'coolteam',
+                    hasAccess: true,
+                  },
+                ],
+              },
+            ],
             teams: [
               {
                 id: 'coolteam',

@@ -8,9 +8,12 @@ from django.db.models import Q
 from django.db.models.aggregates import Count
 from django.utils import timezone
 
-from sentry import tsdb, options
+from sentry import options, roles, tsdb
 from sentry.api.serializers import register, serialize, Serializer
 from sentry.api.serializers.models.plugin import PluginSerializer
+from sentry.api.serializers.models.team import get_org_roles, get_team_memberships
+from sentry.app import env
+from sentry.auth.superuser import is_active_superuser
 from sentry.constants import StatsPeriod
 from sentry.digests import backend as digests
 from sentry.models import (
@@ -45,6 +48,46 @@ class ProjectSerializer(Serializer):
             assert stats_period in STATS_PERIOD_CHOICES
 
         self.stats_period = stats_period
+
+    def get_access_by_project(self, item_list, user):
+        request = env.request
+
+        project_teams = list(
+            ProjectTeam.objects.filter(
+                project__in=item_list,
+            ).select_related('team')
+        )
+
+        project_team_map = defaultdict(list)
+
+        for pt in project_teams:
+            project_team_map[pt.project_id].append(pt.team)
+
+        team_memberships = get_team_memberships([pt.team for pt in project_teams], user)
+        org_roles = get_org_roles([i.organization_id for i in item_list], user)
+
+        is_superuser = (request and is_active_superuser(request) and request.user == user)
+        result = {}
+        for project in item_list:
+            is_member = any(
+                t.id in team_memberships for t in project_team_map.get(project.id, [])
+            )
+            org_role = org_roles.get(project.organization_id)
+            if is_member:
+                has_access = True
+            elif is_superuser:
+                has_access = True
+            elif project.organization.flags.allow_joinleave:
+                has_access = True
+            elif org_role and roles.get(org_role).is_global:
+                has_access = True
+            else:
+                has_access = False
+            result[project] = {
+                'is_member': is_member,
+                'has_access': has_access,
+            }
+        return result
 
     def get_attrs(self, item_list, user):
         project_ids = [i.id for i in item_list]
@@ -85,16 +128,16 @@ class ProjectSerializer(Serializer):
         else:
             stats = None
 
-        result = {}
+        result = self.get_access_by_project(item_list, user)
         for item in item_list:
-            result[item] = {
+            result[item].update({
                 'is_bookmarked': item.id in bookmarks,
                 'is_subscribed':
                 bool(user_options.get(
                     (item.id, 'mail:alert'),
                     default_subscribe,
                 )),
-            }
+            })
             if stats:
                 result[item]['stats'] = stats[item.id]
         return result
@@ -128,7 +171,9 @@ class ProjectSerializer(Serializer):
             'features': feature_list,
             'status': status_label,
             'platform': obj.platform,
-            'isInternal': obj.is_internal_project()
+            'isInternal': obj.is_internal_project(),
+            'isMember': attrs['is_member'],
+            'hasAccess': attrs['has_access'],
         }
         if 'stats' in attrs:
             context['stats'] = attrs['stats']

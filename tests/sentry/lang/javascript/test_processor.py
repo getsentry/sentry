@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 from __future__ import absolute_import
 
 import pytest
@@ -20,6 +18,9 @@ from sentry.lang.javascript.processor import (
     trim_line,
     fetch_release_file,
     UnparseableSourcemap,
+    get_max_age,
+    CACHE_CONTROL_MAX,
+    CACHE_CONTROL_MIN,
 )
 from sentry.lang.javascript.errormapping import (rewrite_exception, REACT_MAPPING_URL)
 from sentry.models import File, Release, ReleaseFile, EventError
@@ -28,10 +29,10 @@ from sentry.utils.strings import truncatechars
 
 base64_sourcemap = 'data:application/json;base64,eyJ2ZXJzaW9uIjozLCJmaWxlIjoiZ2VuZXJhdGVkLmpzIiwic291cmNlcyI6WyIvdGVzdC5qcyJdLCJuYW1lcyI6W10sIm1hcHBpbmdzIjoiO0FBQUEiLCJzb3VyY2VzQ29udGVudCI6WyJjb25zb2xlLmxvZyhcImhlbGxvLCBXb3JsZCFcIikiXX0='
 
-unicode_body = u"""function add(a, b) {
+unicode_body = b"""function add(a, b) {
     "use strict";
-    return a + b; // fôo
-}"""
+    return a + b; // f\xc3\xb4o
+}""".decode('utf-8')
 
 
 class FetchReleaseFileTest(TestCase):
@@ -267,7 +268,7 @@ class FetchFileTest(TestCase):
         responses.add(
             responses.GET,
             'http://example.com',
-            body=u'"fôo bar"'.encode('utf-8'),
+            body=b'"f\xc3\xb4o bar"'.decode('utf-8'),
             content_type='application/json; charset=utf-8'
         )
 
@@ -295,6 +296,48 @@ class FetchFileTest(TestCase):
 
         assert exc.value.data['type'] == EventError.JS_MISSING_SOURCE
         assert exc.value.data['url'] == url
+
+
+class CacheControlTest(TestCase):
+    def test_simple(self):
+        headers = {'content-type': 'application/json', 'cache-control': 'max-age=120'}
+        assert get_max_age(headers) == 120
+
+    def test_max_and_min(self):
+        headers = {'content-type': 'application/json',
+                   'cache-control': 'max-age=%s' % CACHE_CONTROL_MAX}
+        assert get_max_age(headers) == CACHE_CONTROL_MAX
+
+        headers = {'content-type': 'application/json',
+                   'cache-control': 'max-age=%s' % CACHE_CONTROL_MIN}
+        assert get_max_age(headers) == CACHE_CONTROL_MIN
+
+    def test_out_of_bounds(self):
+        greater_than_max = CACHE_CONTROL_MAX + 1
+        headers = {'content-type': 'application/json',
+                   'cache-control': 'max-age=%s' % greater_than_max}
+        assert get_max_age(headers) == CACHE_CONTROL_MAX
+
+        less_than_min = CACHE_CONTROL_MIN - 1
+        headers = {'content-type': 'application/json',
+                   'cache-control': 'max-age=%s' % less_than_min}
+        assert get_max_age(headers) == CACHE_CONTROL_MIN
+
+    def test_no_cache_control(self):
+        headers = {'content-type': 'application/json'}
+        assert get_max_age(headers) == CACHE_CONTROL_MIN
+
+    def test_additional_cache_control_values(self):
+        headers = {'content-type': 'application/json',
+                   'cache-control': 'private, s-maxage=60, max-age=120'}
+        assert get_max_age(headers) == 120
+
+    def test_valid_input(self):
+        headers = {'content-type': 'application/json', 'cache-control': 'max-age=12df0sdgfjhdgf'}
+        assert get_max_age(headers) == CACHE_CONTROL_MIN
+
+        headers = {'content-type': 'application/json', 'cache-control': 'max-age=df0sdgfjhdgf'}
+        assert get_max_age(headers) == CACHE_CONTROL_MIN
 
 
 class DiscoverSourcemapTest(TestCase):
@@ -673,7 +716,7 @@ class ErrorMappingTest(TestCase):
                         'InvariantViolation',
                         'value': (
                             u'Minified React error #108; visit http://facebook'
-                            u'.github.io/react/docs/error-decoder.html?…'
+                            u'.github.io/react/docs/error-decoder.html?\u2026'
                         ),
                         'stacktrace': {
                             'frames': [

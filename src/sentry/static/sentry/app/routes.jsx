@@ -3,7 +3,6 @@ import React from 'react';
 
 import AccountAuthorizations from './views/accountAuthorizations';
 import AccountLayout from './views/accountLayout';
-
 import AdminBuffer from './views/adminBuffer';
 import AdminLayout from './views/adminLayout';
 import AdminOrganizations from './views/adminOrganizations';
@@ -124,7 +123,16 @@ function appendTrailingSlash(nextState, replace) {
 const lazyLoad = cb => m => cb(null, m.default);
 
 const accountSettingsRoutes = [
-  <IndexRedirect key="account-settings-index" to="notifications/" />,
+  <IndexRedirect key="account-settings-index" to="details/" />,
+
+  <Route
+    key="details/"
+    path="details/"
+    name="Details"
+    componentPromise={() => import('./views/settings/account/accountDetails')}
+    component={errorHandler(LazyLoad)}
+  />,
+
   <Route key="notifications/" path="notifications/" name="Notifications">
     <IndexRoute
       componentPromise={() => import('./views/settings/account/accountNotifications')}
@@ -143,22 +151,6 @@ const accountSettingsRoutes = [
     path="emails/"
     name="Emails"
     componentPromise={() => import('./views/settings/account/accountEmails')}
-    component={errorHandler(LazyLoad)}
-  />,
-  <Route
-    key="avatar/"
-    path="avatar/"
-    name="Avatar"
-    componentPromise={() => import('./views/settings/account/avatar')}
-    component={errorHandler(LazyLoad)}
-  />,
-
-  <Route
-    key="appearance/"
-    path="appearance/"
-    name="Appearance"
-    componentPromise={() =>
-      import(/*webpackChunkName: "AccountAppearance"*/ './views/settings/account/accountAppearance')}
     component={errorHandler(LazyLoad)}
   />,
 
@@ -220,6 +212,15 @@ const accountSettingsRoutes = [
       />
     </Route>
   </Route>,
+
+  <Route
+    key="close-account/"
+    path="close-account/"
+    name="Close Account"
+    componentPromise={() =>
+      import(/*webpackChunkName: "AccountClose"*/ './views/settings/account/accountClose')}
+    component={errorHandler(LazyLoad)}
+  />,
 ];
 
 const projectSettingsRoutes = [

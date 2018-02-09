@@ -7,12 +7,8 @@ const accountNavigation = [
     name: t('Account'),
     items: [
       {
-        path: `${pathPrefix}/avatar`,
-        title: t('Avatar'),
-      },
-      {
-        path: `${pathPrefix}/appearance/`,
-        title: t('Appearance'),
+        path: `${pathPrefix}/details/`,
+        title: t('Account Details'),
       },
       {
         path: `${pathPrefix}/notifications/`,
@@ -33,6 +29,10 @@ const accountNavigation = [
       {
         path: `${pathPrefix}/identities/`,
         title: t('Identities'),
+      },
+      {
+        path: `${pathPrefix}/close-account/`,
+        title: t('Close Account'),
       },
     ],
   },

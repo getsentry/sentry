@@ -12,16 +12,9 @@ import LinkWithConfirmation from '../../../../components/linkWithConfirmation';
 import Panel from '../../components/panel';
 import PanelBody from '../../components/panelBody';
 import PanelHeader from '../../components/panelHeader';
+import PanelItem from '../../components/panelItem';
 import SettingsPageHeader from '../../components/settingsPageHeader';
 import recreateRoute from '../../../../utils/recreateRoute';
-
-const Row = styled(Flex)`
-  border-bottom: 1px solid ${p => p.theme.borderLight};
-
-  &:last-child {
-    border: 0;
-  }
-`;
 
 const PlusIcon = styled.span`
   margin-right: 4px;
@@ -104,7 +97,7 @@ class OrganizationApiKeysList extends React.Component {
                 });
 
                 return (
-                  <Row align="center" py={1} key={id}>
+                  <PanelItem align="center" p={0} py={1} key={id}>
                     <Flex align="center" flex="1">
                       <Box px={2} flex="1" align="center">
                         <Link to={apiDetailsUrl}>{label}</Link>
@@ -124,7 +117,7 @@ class OrganizationApiKeysList extends React.Component {
                         <span className="icon-trash" />
                       </LinkWithConfirmation>
                     </Box>
-                  </Row>
+                  </PanelItem>
                 );
               })}
           </PanelBody>

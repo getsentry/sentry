@@ -4,6 +4,7 @@ import _ from 'lodash';
 import {Client} from '../../../../api';
 import {defined} from '../../../../utils';
 import FormState from '../../../../components/forms/state';
+import {addErrorMessage} from '../../../../actionCreators/settingsIndicator';
 
 class FormModel {
   /**
@@ -178,7 +179,21 @@ class FormModel {
   }
 
   isValidField(id) {
-    return this.isValidRequiredField(id);
+    let validate = this.getDescriptor(id, 'validate');
+    let errors = [];
+
+    if (typeof validate === 'function') {
+      // Returns "tuples" of [id, error string]
+      errors = validate({model: this, id, form: this.getData().toJSON()}) || [];
+    }
+
+    errors
+      .filter(([, errorMessage]) => !!errorMessage)
+      .forEach(([field, errorMessage]) => {
+        this.setError(field, errorMessage);
+      });
+
+    return !errors.length && this.isValidRequiredField(id);
   }
 
   doApiRequest({apiEndpoint, apiMethod, data}) {
@@ -247,36 +262,65 @@ class FormModel {
     // Save field + value
     this.setSaving(id, true);
 
-    // Transform data before saving, this uses `getValue` defined when declaring the form
     let fieldDescriptor = this.fieldDescriptor.get(id);
+
+    // Check if field needs to handle
+    let getData =
+      typeof fieldDescriptor.getData === 'function' ? fieldDescriptor.getData : a => a;
+
+    // Transform data before saving, this uses `getValue` defined when declaring the form
     let serializer =
       typeof fieldDescriptor.getValue === 'function' ? fieldDescriptor.getValue : a => a;
 
-    return this.doApiRequest({data: {[id]: serializer(newValue)}})
+    let request = this.doApiRequest({
+      data: getData(
+        {[id]: serializer(newValue)},
+        {model: this, id, form: this.getData().toJSON()}
+      ),
+    });
+
+    request
       .then(data => {
         this.setSaving(id, false);
 
-        // Updating initialData and save snapshot
-        let oldValue = this.initialData[id];
-        this.initialData[id] = newValue;
-
+        // save snapshot
         if (saveSnapshot) {
           saveSnapshot();
           saveSnapshot = null;
         }
 
-        return {old: oldValue, new: newValue};
+        return data;
       })
-      .catch(error => {
+      .catch(resp => {
         // should we revert field value to last known state?
-
         saveSnapshot = null;
-        this.setError(id, 'Failed to save');
+
+        // API can return a JSON object with either:
+        // 1) map of {[fieldName] => Array<ErrorMessages>}
+        // 2) {'non_field_errors' => Array<ErrorMessages>}
+        if (resp && resp.responseJSON) {
+          // Show resp msg from API endpoint if possible
+          if (Array.isArray(resp.responseJSON[id]) && resp.responseJSON[id].length) {
+            // Just take first resp for now
+            this.setError(id, resp.responseJSON[id][0]);
+          } else if (
+            Array.isArray(resp.responseJSON.non_field_errors) &&
+            resp.responseJSON.non_field_errors.length
+          ) {
+            addErrorMessage(resp.responseJSON.non_field_errors[0], 10000);
+            // Reset saving state
+            this.setError(id, '');
+          }
+        } else {
+          // Default error behavior
+          this.setError(id, 'Failed to save');
+        }
 
         // eslint-disable-next-line no-console
-        console.error(error);
-        throw error;
+        console.error('Error saving form field', resp && resp.responseJSON);
       });
+
+    return request;
   }
 
   /**
@@ -289,16 +333,22 @@ class FormModel {
     // Nothing to do if `saveOnBlur` is not on
     if (!this.options.saveOnBlur) return null;
 
+    let oldValue = this.initialData[id];
     let savePromise = this.saveField(id, currentValue);
 
     if (!savePromise) return null;
 
     return savePromise
       .then(change => {
+        let newValue = this.getValue(id);
+        this.initialData[id] = newValue;
+        let result = {old: oldValue, new: newValue};
+
         if (this.options.onSubmitSuccess) {
-          this.options.onSubmitSuccess(change, this, id);
+          this.options.onSubmitSuccess(result, this, id);
         }
-        return change;
+
+        return result;
       })
       .catch(error => {
         if (this.options.onSubmitError) {

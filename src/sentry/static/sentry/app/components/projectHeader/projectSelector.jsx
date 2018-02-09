@@ -75,34 +75,36 @@ const ProjectSelector = createReactClass({
   getProjectState(state) {
     state = state || this.state;
     let org = this.props.organization;
+    let features = new Set(org.features);
     let filter = state.filter.toLowerCase();
     let projectList = [];
-    // since projects can be part of many teams,
-    // de-dupe projects
-    let includedProjects = new Set();
 
     let activeTeam;
     let activeProject;
-    org.teams.forEach(team => {
-      if (!team.isMember) {
+
+    org.projects.forEach(project => {
+      // TODO(jess): stop relying on this soon
+      let team = project.team;
+      if (!project.isMember) {
         return;
       }
-      team.projects.forEach(project => {
-        if (project.slug == this.props.projectId) {
-          activeProject = project;
-          activeTeam = team;
-        }
-        let fullName = [team.name, project.name, team.slug, project.slug]
-          .join(' ')
-          .toLowerCase();
-        if (filter && fullName.indexOf(filter) === -1) {
-          return;
-        }
-        if (!includedProjects.has(project.slug)) {
-          projectList.push([team, project]);
-          includedProjects.add(project.slug);
-        }
-      });
+      if (project.slug === this.props.projectId) {
+        activeProject = project;
+        activeTeam = project.team;
+      }
+
+      let fullName;
+      if (features.has('internal-catchall')) {
+        fullName = [project.name, project.slug];
+      } else {
+        fullName = [team.name, project.name, team.slug, project.slug];
+      }
+      fullName = fullName.join(' ').toLowerCase();
+
+      if (filter && fullName.indexOf(filter) === -1) {
+        return;
+      }
+      projectList.push([team, project]);
     });
     return {
       projectList,
@@ -220,7 +222,13 @@ const ProjectSelector = createReactClass({
 
   getProjectLabel(team, project, hasSingleTeam, highlightText) {
     let label, text;
-    if (!hasSingleTeam && project.name.indexOf(team.name) === -1) {
+    let features = new Set(this.props.organization.features);
+
+    if (
+      !hasSingleTeam &&
+      project.name.indexOf(team.name) === -1 &&
+      !features.has('internal-catchall')
+    ) {
       label = (
         <span>
           {team.name} /{' '}
@@ -309,12 +317,20 @@ const ProjectSelector = createReactClass({
 
   render() {
     let org = this.props.organization;
+    let features = new Set(org.features);
     let access = new Set(org.access);
     let hasSingleTeam = org.teams.length === 1;
 
-    let projectList = sortArray(this.state.projectList, ([team, project]) => {
-      return [!project.isBookmarked, team.name, project.name];
-    });
+    let projectList;
+    if (features.has('internal-catchall')) {
+      projectList = sortArray(this.state.projectList, ([team, project]) => {
+        return [!project.isBookmarked, project.name];
+      });
+    } else {
+      projectList = sortArray(this.state.projectList, ([team, project]) => {
+        return [!project.isBookmarked, team.name, project.name];
+      });
+    }
 
     let children = projectList.map(([team, project], index) => {
       return this.getProjectNode(
