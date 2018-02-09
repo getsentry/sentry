@@ -73,16 +73,21 @@ class JsonForm extends React.Component {
             <Panel key={title} id={title}>
               <PanelHeader>{title}</PanelHeader>
               <PanelBody>
-                {fields.map(field => (
-                  <FieldFromConfig
-                    access={access}
-                    key={field.name}
-                    {...otherProps}
-                    {...additionalFieldProps}
-                    field={field}
-                    highlighted={this.state.highlighted === `#${field.name}`}
-                  />
-                ))}
+                {fields.map(field => {
+                  if (typeof field === 'function') {
+                    return field();
+                  }
+                  return (
+                    <FieldFromConfig
+                      access={access}
+                      key={field.name}
+                      {...otherProps}
+                      {...additionalFieldProps}
+                      field={field}
+                      highlighted={this.state.highlighted === `#${field.name}`}
+                    />
+                  );
+                })}
               </PanelBody>
             </Panel>
           );
