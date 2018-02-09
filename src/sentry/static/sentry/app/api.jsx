@@ -156,6 +156,7 @@ export class Client {
       this.request(path, {
         ...options,
         success: (data, ...args) => {
+          // This fails if we need jqXhr :(
           resolve(data);
         },
         error: (error, ...args) => {

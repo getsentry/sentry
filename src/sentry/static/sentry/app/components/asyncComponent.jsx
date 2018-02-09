@@ -93,7 +93,8 @@ class AsyncComponent extends React.Component {
           this.setState(prevState => {
             return {
               [stateKey]: data,
-              [`${stateKey}PageLinks`]: jqXHR.getResponseHeader('Link'),
+              // TODO(billy): This currently fails if this request is retried by SudoModal
+              [`${stateKey}PageLinks`]: jqXHR && jqXHR.getResponseHeader('Link'),
               remainingRequests: prevState.remainingRequests - 1,
               loading: prevState.remainingRequests > 1,
             };
