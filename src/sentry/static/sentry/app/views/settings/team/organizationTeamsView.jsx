@@ -4,7 +4,9 @@ import React from 'react';
 import SentryTypes from '../../../proptypes';
 import {t} from '../../../locale';
 import AllTeamsList from './allTeamsList';
+import {getOrganizationState} from '../../../mixins/organizationState';
 import ListLink from '../../../components/listLink';
+import Button from '../../../components/buttons/button';
 import recreateRoute from '../../../utils/recreateRoute';
 import SettingsPageHeader from '../components/settingsPageHeader';
 
@@ -35,6 +37,24 @@ class OrganizationTeamsView extends React.Component {
 
     if (!organization) return null;
 
+    let canCreateTeams = getOrganizationState(organization)
+      .getAccess()
+      .has('project:admin');
+
+    let action = (
+      <Button
+        priority="primary"
+        size="small"
+        disabled={!canCreateTeams}
+        title={
+          !canCreateTeams ? t('You do not have permission to create projects') : undefined
+        }
+        to={`/organizations/${organization.slug}/teams/new/`}
+      >
+        <span className="icon-plus" /> {t('Create Team')}
+      </Button>
+    );
+
     let teamRoute = routes.find(({path}) => path === 'teams/');
     let urlPrefix = recreateRoute(teamRoute, {routes, params, stepBack: -1});
 
@@ -49,7 +69,7 @@ class OrganizationTeamsView extends React.Component {
 
     return (
       <div className="team-list">
-        <SettingsPageHeader title={t('Teams')} tabs={tabs} />
+        <SettingsPageHeader title={t('Teams')} tabs={tabs} action={action} />
         <AllTeamsList
           urlPrefix={urlPrefix}
           organization={org}
