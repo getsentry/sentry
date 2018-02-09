@@ -1,18 +1,3 @@
-// Before submitting, form model will call `getData` if defined on a form field definition
-// It is expecting the `data` object to send to API endpoint.
-// For passwords, we need to send both password and verify password
-// (regardless of the fact that there is client side validation for this)
-const getPasswordData = (currentData, {id, form}) => {
-  let otherPasswordKey = id === 'password' ? 'passwordVerify' : 'password';
-
-  // This is only called after it passes validation, so assume passwords match
-  // Send both `password` and `passwordVerify` fields
-  return {
-    ...currentData,
-    [otherPasswordKey]: form[otherPasswordKey],
-  };
-};
-
 const getUserIsNotManaged = ({user}) => !user.isManaged;
 
 const formGroups = [
@@ -30,7 +15,6 @@ const formGroups = [
         help: 'Your current password',
         visible: getUserIsNotManaged,
         required: true,
-        getData: getPasswordData,
       },
       {
         name: 'passwordNew',
@@ -49,7 +33,6 @@ const formGroups = [
 
           return [];
         },
-        getData: getPasswordData,
       },
       {
         name: 'passwordVerify',
@@ -69,10 +52,10 @@ const formGroups = [
 
           return [];
         },
-        getData: getPasswordData,
       },
     ],
   },
 ];
 
+export const route = '/settings/account/security/';
 export default formGroups;
