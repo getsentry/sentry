@@ -38,11 +38,12 @@ let NewSettingsWarning = ({location = {}}) => {
     href: isRouter ? undefined : oldLocation,
     to: isRouter ? oldLocation : undefined,
   };
-  let Component = isRouter ? Link : 'a';
+  let LinkWithFallback = isRouter ? Link : 'a';
   return (
     <StyledAlert type="info" icon="icon-circle-exclamation">
       These settings are currently in beta. Please report any issues. You can temporarily
-      visit the <Component {...linkProps}>old settings page</Component> if necessary.
+      visit the <LinkWithFallback {...linkProps}>old settings page</LinkWithFallback> if
+      necessary.
     </StyledAlert>
   );
 };
