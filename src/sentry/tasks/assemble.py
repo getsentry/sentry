@@ -11,11 +11,15 @@ logger = logging.getLogger(__name__)
 
 @instrumented_task(name='sentry.tasks.assemble.assemble_dif', queue='assemble')
 def assemble_dif(project_id, file_id, file_blob_ids, checksum, **kwargs):
+    from sentry.models import ChunkFileState, dsymfile, Project
     with transaction.atomic():
+
         # Assemble the chunks into files
         file = assemble_chunks(file_id, file_blob_ids, checksum)
 
-        from sentry.models import ChunkFileState, dsymfile, Project
+        # If an error happend during assembling, we early return here
+        if file.headers.get('__state') == ChunkFileState.ERROR:
+            return
 
         project = Project.objects.filter(
             id=project_id
@@ -75,7 +79,7 @@ def assemble_chunks(file_id, file_blob_ids, checksum, **kwargs):
                 'file_id': file.id
             }
         )
-        return
+        return file
     file.headers['__state'] = ChunkFileState.OK
     file.save()
     return file

@@ -292,7 +292,7 @@ class File(Model):
 
         if checksum != self.checksum:
             self.headers['__state'] = ChunkFileState.ERROR
-            self.headers['error'] = 'invalid_checksum'
+            self.headers['error'] = 'Checksum missmatch between chunks and file'
 
         metrics.timing('filestore.file-size', offset)
         if commit:
