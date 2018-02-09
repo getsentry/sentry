@@ -7,7 +7,7 @@ from django.core.files.base import ContentFile
 from sentry.testutils import TestCase
 from sentry.tasks.assemble import assemble_dif
 from sentry.models import FileBlob, File
-from sentry.models.file import ChunkFileState
+from sentry.models.file import ChunkFileState, CHUNK_STATE_HEADER
 
 
 class AssembleTest(TestCase):
@@ -41,7 +41,7 @@ class AssembleTest(TestCase):
             name='test',
             checksum=total_checksum,
             type='chunked',
-            headers={'__state': ChunkFileState.CREATED}
+            headers={CHUNK_STATE_HEADER: ChunkFileState.CREATED}
         )
 
         file_blob_id_order = [bolb2.id, blob1.id, bolb3.id]
@@ -50,7 +50,7 @@ class AssembleTest(TestCase):
             name='test',
             checksum=total_checksum,
             type='chunked',
-            headers={'__state': ChunkFileState.CREATED}
+            headers={CHUNK_STATE_HEADER: ChunkFileState.CREATED}
         )
 
         assemble_dif(
@@ -64,7 +64,7 @@ class AssembleTest(TestCase):
             id=file.id,
         ).get()
 
-        assert file.headers.get('__state') == ChunkFileState.ERROR
+        assert file.headers.get(CHUNK_STATE_HEADER) == ChunkFileState.ERROR
 
     def test_dif(self):
         sym_file = self.load_fixture('crash.sym')
@@ -76,7 +76,7 @@ class AssembleTest(TestCase):
             name='test.sym',
             checksum=total_checksum,
             type='chunked',
-            headers={'__state': ChunkFileState.CREATED}
+            headers={CHUNK_STATE_HEADER: ChunkFileState.CREATED}
         )
 
         file_blob_id_order = [blob1.id]

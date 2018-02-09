@@ -1,7 +1,7 @@
 from __future__ import absolute_import
 
 from sentry.models import File, FileBlob, FileBlobOwner
-from sentry.models.file import ChunkFileState
+from sentry.models.file import ChunkFileState, CHUNK_STATE_HEADER
 
 
 class ChunkAssembleMixin(object):
@@ -37,7 +37,7 @@ class ChunkAssembleMixin(object):
         # and the file already exists, we say this file is OK
         elif len(file_blobs) == len(owned_blobs) == len(chunks) and file is not None:
             return self._create_file_response(
-                file.headers.get('__state', ChunkFileState.OK)
+                file.headers.get(CHUNK_STATE_HEADER, ChunkFileState.OK)
             )
         # If the length of owned and sent chunks is not the same
         # we return all missing blobs
@@ -87,7 +87,7 @@ class ChunkAssembleMixin(object):
             name=name,
             checksum=checksum,
             type='chunked',
-            headers={'__state': ChunkFileState.CREATED}
+            headers={CHUNK_STATE_HEADER: ChunkFileState.CREATED}
         )
 
         # Load all FileBlobs from db since we can be sure here we already own all

@@ -7,7 +7,7 @@ from django.core.urlresolvers import reverse
 from django.core.files.base import ContentFile
 
 from sentry.models import ApiToken, FileBlob, File, FileBlobIndex, FileBlobOwner
-from sentry.models.file import ChunkFileState
+from sentry.models.file import ChunkFileState, CHUNK_STATE_HEADER
 from sentry.testutils import APITestCase
 from sentry.tasks.assemble import assemble_dif
 
@@ -248,7 +248,7 @@ class DifAssembleEndpoint(APITestCase):
             name='test.sym',
             checksum=total_checksum,
             type='chunked',
-            headers={'__state': ChunkFileState.CREATED}
+            headers={CHUNK_STATE_HEADER: ChunkFileState.CREATED}
         )
 
         file_blob_id_order = [blob1.id]
@@ -286,7 +286,7 @@ class DifAssembleEndpoint(APITestCase):
             name='test.sym',
             checksum=total_checksum,
             type='chunked',
-            headers={'__state': ChunkFileState.CREATED}
+            headers={CHUNK_STATE_HEADER: ChunkFileState.CREATED}
         )
 
         file_blob_id_order = [blob1.id]
