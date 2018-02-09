@@ -14,7 +14,7 @@ class ChunkAssembleMixin(object):
             'missingChunks': missing_chunks
         }
 
-    def _check_chunk_ownership(self, organization, file_blobs, chunks, file):
+    def _check_chunk_ownership(self, organization, file_blobs, chunks, file=None):
         # Check the ownership of these blobs with the org
         all_owned_blobs = FileBlobOwner.objects.filter(
             blob__in=file_blobs,
