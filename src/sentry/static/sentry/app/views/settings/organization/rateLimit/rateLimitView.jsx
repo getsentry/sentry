@@ -57,7 +57,7 @@ class AccountLimit extends React.Component {
   }
 }
 
-const TextBlockStyled = styled(TextBlock)`
+const StyledTextBlock = styled(TextBlock)`
   margin-bottom: 20px;
 `;
 
@@ -168,11 +168,11 @@ const RateLimitView = createReactClass({
           <PanelBody>
             <form onSubmit={this.onSubmit} className="ref-rate-limit-editor">
               <Box p={2}>
-                <TextBlockStyled>
+                <StyledTextBlock>
                   Rate limits allow you to control how much data is stored for this
                   organization. When a rate is exceeded the system will begin discarding
                   data until the next interval.
-                </TextBlockStyled>
+                </StyledTextBlock>
 
                 <h5>Account Limit</h5>
 
