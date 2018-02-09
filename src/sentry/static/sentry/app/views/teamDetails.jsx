@@ -100,7 +100,11 @@ const TeamDetails = createReactClass({
 
         {access.has('team:admin') && (
           <DropdownLink anchorRight title={t('More')}>
-            <MenuItem href={`${routePrefix}remove/`}>{t('Remove Team')}</MenuItem>
+            <MenuItem
+              href={`/organizations/${params.orgId}/teams/${params.teamId}/remove/`}
+            >
+              {t('Remove Team')}
+            </MenuItem>
           </DropdownLink>
         )}
 
