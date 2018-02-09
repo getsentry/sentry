@@ -56,26 +56,27 @@ class ProjectUserReportsEndpoint(ProjectEndpoint, EnvironmentMixin):
                 project.organization_id,
             )
         except Environment.DoesNotExist:
-            return Response({'environment': 'Invalid environment'}, status=400)
-        if environment is not None:
-            queryset = UserReport.objects.filter(
-                project=project,
-                group__isnull=False,
-                environment=environment,
-            ).select_related('group')
+            queryset = Environment.objects.none()
         else:
-            queryset = UserReport.objects.filter(
-                project=project,
-                group__isnull=False,
-            ).select_related('group')
+            if environment is not None:
+                queryset = UserReport.objects.filter(
+                    project=project,
+                    group__isnull=False,
+                    environment=environment,
+                ).select_related('group')
+            else:
+                queryset = UserReport.objects.filter(
+                    project=project,
+                    group__isnull=False,
+                ).select_related('group')
 
-        status = request.GET.get('status', 'unresolved')
-        if status == 'unresolved':
-            queryset = queryset.filter(
-                group__status=GroupStatus.UNRESOLVED,
-            )
-        elif status:
-            return Response({'status': 'Invalid status choice'}, status=400)
+            status = request.GET.get('status', 'unresolved')
+            if status == 'unresolved':
+                queryset = queryset.filter(
+                    group__status=GroupStatus.UNRESOLVED,
+                )
+            elif status:
+                return Response({'status': 'Invalid status choice'}, status=400)
 
         return self.paginate(
             request=request,
