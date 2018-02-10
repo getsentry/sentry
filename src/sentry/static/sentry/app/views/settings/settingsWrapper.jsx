@@ -1,13 +1,15 @@
 import $ from 'jquery';
 import React from 'react';
 import styled from 'react-emotion';
+import {withTheme} from 'emotion-theming';
 
-const StyledSettingsWrapper = styled.div`
-  font-family: ${p => p.theme.text.family};
-  font-size: 16px;
-  color: ${p => p.theme.gray5};
-`;
-
+const StyledSettingsWrapper = withTheme(
+  styled.div`
+    font-family: 'Rubik', sans-serif;
+    font-size: 16px;
+    color: ${p => p.theme.gray5};
+  `
+);
 const StyledSettingsContainer = styled.div`
   max-width: 1040px;
   padding: 0 16px;
