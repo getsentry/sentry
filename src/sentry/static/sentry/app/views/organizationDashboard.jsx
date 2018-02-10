@@ -18,7 +18,7 @@ import IssueList from '../components/issueList';
 import OrganizationHomeContainer from '../components/organizations/homeContainer';
 import OrganizationState from '../mixins/organizationState';
 
-import {t} from '../locale';
+import {t, tct} from '../locale';
 import {sortArray} from '../utils';
 
 class AssignedIssues extends React.Component {
@@ -192,14 +192,14 @@ const ProjectList = createReactClass({
     return (
       <div className="organization-dashboard-projects">
         <Link className="btn-sidebar-header" to={`/organizations/${org.slug}/teams/`}>
-          View All
+          {t('View All')}
         </Link>
-        <h6 className="nav-header">Projects</h6>
+        <h6 className="nav-header">{t('Projects')}</h6>
         {bookmarkedProjects.length === 0 && (
           <div className="alert alert-info" style={{marginBottom: 10}}>
-            Bookmark your most used{' '}
-            <Link to={`/organizations/${org.slug}/teams/`}>projects</Link> to have them
-            appear here.
+            {tct('Bookmark your most used [projects:projects] to have them appear here', {
+              projects: <Link to={`/organizations/${org.slug}/teams/`} />,
+            })}
           </div>
         )}
         <ul className="nav nav-stacked">
@@ -248,7 +248,7 @@ class Activity extends React.Component {
             <span className="icon icon-refresh" />
           </a>
         </div>
-        <h4>Recent activity</h4>
+        <h4>{t('Recent activity')}</h4>
         <ActivityFeed
           ref="activityFeed"
           endpoint={this.getEndpoint()}
