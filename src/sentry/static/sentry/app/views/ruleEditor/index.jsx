@@ -1,7 +1,6 @@
 import PropTypes from 'prop-types';
 import React from 'react';
 import createReactClass from 'create-react-class';
-import ReactDOM from 'react-dom';
 import {browserHistory} from 'react-router';
 import $ from 'jquery';
 import styled from 'react-emotion';
@@ -58,7 +57,7 @@ const RuleEditor = createReactClass({
 
   componentDidUpdate() {
     if (this.state.error) {
-      $(document.body).scrollTop($(ReactDOM.findDOMNode(this.refs.form)).offset().top);
+      $(document.body).scrollTop($(this.formNode).offset().top);
     }
   },
 
@@ -101,7 +100,7 @@ const RuleEditor = createReactClass({
 
   onSubmit(e) {
     e.preventDefault();
-    let form = $(ReactDOM.findDOMNode(this.refs.form));
+    let form = $(this.formNode);
     let conditions = [];
     form.find('.rule-condition-list .rule-form').each((_, el) => {
       conditions.push(this.serializeNode(el));
@@ -110,6 +109,7 @@ const RuleEditor = createReactClass({
     form.find('.rule-action-list .rule-form').each((_, el) => {
       actions.push(this.serializeNode(el));
     });
+
     let data = {...this.state.rule, actions, conditions};
 
     let rule = this.state.rule;
@@ -165,7 +165,7 @@ const RuleEditor = createReactClass({
     let {actionMatch, actions, conditions, frequency, name} = rule;
 
     return (
-      <form onSubmit={this.onSubmit} ref="form">
+      <form onSubmit={this.onSubmit} ref={node => (this.formNode = node)}>
         <div className="box rule-detail">
           <div className="box-header">
             <h3>{rule.id ? 'Edit Alert Rule' : 'New Alert Rule'}</h3>
