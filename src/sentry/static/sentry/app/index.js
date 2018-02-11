@@ -15,6 +15,7 @@ import JsCookie from 'js-cookie';
 import * as EmotionTheming from 'emotion-theming';
 import * as Emotion from 'emotion';
 import * as ReactEmotion from 'react-emotion';
+import * as GridEmotion from 'grid-emotion';
 
 import './utils/emotion-setup';
 import * as api from './api';
@@ -97,6 +98,7 @@ export default {
   Emotion,
   EmotionTheming,
   ReactEmotion,
+  GridEmotion,
 
   SentryRenderApp: () => render(Main),
 
