@@ -248,7 +248,6 @@ const projectSettingsRoutes = (
         import(/*webpackChunkName: "ProjectTeams"*/ './views/settings/project/projectTeams')}
       component={errorHandler(LazyLoad)}
     />
-
     <Route name="Alerts" path="alerts/">
       <IndexRoute component={errorHandler(ProjectAlertSettings)} />
       <Route path="rules/" name="Rules" component={null}>
@@ -261,7 +260,6 @@ const projectSettingsRoutes = (
         />
       </Route>
     </Route>
-
     <Route
       name="Environments"
       path="environments/"
@@ -325,6 +323,30 @@ const projectSettingsRoutes = (
       <IndexRedirect to="data-filters/" />
       <Route path=":filterType/" />
     </Route>
+    <Route
+      key="hooks/"
+      path="hooks/"
+      name="Service Hooks"
+      componentPromise={() =>
+        import(/*webpackChunkName: "ProjectServiceHooks"*/ './views/settings/project/projectServiceHooks')}
+      component={errorHandler(LazyLoad)}
+    />
+    <Route
+      key="hooks/new/"
+      path="hooks/new/"
+      name="Create Service Hook"
+      componentPromise={() =>
+        import(/*webpackChunkName: "ProjectCreateServiceHook"*/ './views/settings/project/projectCreateServiceHook')}
+      component={errorHandler(LazyLoad)}
+    />
+    <Route
+      key="hooks/:hookId/"
+      path="hooks/:hookId/"
+      name="Service Hook Details"
+      componentPromise={() =>
+        import(/*webpackChunkName: "ProjectServiceHookDetails"*/ './views/settings/project/projectServiceHookDetails')}
+      component={errorHandler(LazyLoad)}
+    />
     <Route path="keys/" name="Client Keys">
       <IndexRoute
         componentPromise={() =>

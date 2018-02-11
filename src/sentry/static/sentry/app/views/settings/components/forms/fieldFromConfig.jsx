@@ -23,6 +23,7 @@ export default class FieldFromConfig extends React.Component {
         'radio',
         'choice',
         'select',
+        'multichoice',
         'range',
       ]),
       required: PropTypes.bool,
