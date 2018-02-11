@@ -38,6 +38,7 @@ class Indicators extends React.Component {
 
   render() {
     let {items, ...props} = this.props;
+
     return (
       <Toasts {...props}>
         <ReactCSSTransitionGroup
@@ -45,12 +46,16 @@ class Indicators extends React.Component {
           transitionEnterTimeout={200}
           transitionLeaveTimeout={200}
         >
-          {items.map(indicator => {
+          {items.map((indicator, i) => {
+            // We purposefully use `i` as key here because of transitions
+            // Toasts can now queue up, so when we change from [firstToast] -> [secondToast],
+            // we don't want to  animate `firstToast` out and `secondToast` in, rather we want
+            // to replace `firstToast` with `secondToast`
             return (
               <ToastIndicator
                 onDismiss={this.handleDismiss}
                 indicator={indicator}
-                key={indicator.id}
+                key={i}
               />
             );
           })}
