@@ -8,6 +8,7 @@ from sentry.api.bases.project import ProjectEndpoint
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.serializers import serialize
 from sentry.api.validators import ServiceHookValidator
+from sentry.constants import ObjectStatus
 from sentry.models import AuditLogEntryEvent, ServiceHook
 
 
@@ -67,12 +68,16 @@ class ProjectServiceHookDetailsEndpoint(ProjectEndpoint):
         result = validator.object
 
         updates = {}
-        if result.get('events'):
+        if result.get('events') is not None:
             updates['events'] = result['events']
         if result.get('url'):
             updates['url'] = result['url']
         if result.get('version') is not None:
             updates['version'] = result['version']
+        if result.get('isActive') is True:
+            updates['status'] = ObjectStatus.ACTIVE
+        elif result.get('isActive') is False:
+            updates['status'] = ObjectStatus.DISABLED
 
         with transaction.atomic():
             hook.update(**updates)
