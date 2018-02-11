@@ -12,6 +12,9 @@ import Reflux from 'reflux';
 import * as Router from 'react-router';
 import ReactBootstrapModal from 'react-bootstrap/lib/Modal';
 import JsCookie from 'js-cookie';
+import * as EmotionTheming from 'emotion-theming';
+import * as Emotion from 'emotion';
+import * as ReactEmotion from 'react-emotion';
 
 import './utils/emotion-setup';
 import * as api from './api';
@@ -91,6 +94,10 @@ export default {
   Reflux,
   Router,
   JsCookie,
+  Emotion,
+  EmotionTheming,
+  ReactEmotion,
+
   SentryRenderApp: () => render(Main),
 
   Sentry: {
@@ -169,6 +176,7 @@ export default {
     Switch: require('./components/switch').default,
     GlobalModal: require('./components/globalModal').default,
     SetupWizard: require('./components/setupWizard').default,
+    theme: require('./utils/theme').default,
     utils: {
       errorHandler: require('./utils/errorHandler').default,
       logging: require('./utils/logging'),
