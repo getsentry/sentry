@@ -61,7 +61,7 @@ class BaseAvatar extends React.Component {
     super(props);
 
     this.state = {
-      showBackupAvatar: false,
+      showBackupAvatar: props.type === 'gravatar',
       loadError: false,
     };
   }
