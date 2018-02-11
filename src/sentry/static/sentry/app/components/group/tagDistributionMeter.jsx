@@ -2,10 +2,12 @@ import PropTypes from 'prop-types';
 import React from 'react';
 import createReactClass from 'create-react-class';
 import {Link} from 'react-router';
+
 import ApiMixin from 'app/mixins/apiMixin';
+import DeviceName from 'app/components/deviceName';
 import SentryTypes from 'app/proptypes';
 import Tooltip from 'app/components/tooltip';
-import {escape, percent, deviceNameMapper} from 'app/utils';
+import {escape, percent} from 'app/utils';
 import {t} from 'app/locale';
 import withEnvironment from 'app/utils/withEnvironment';
 
@@ -109,7 +111,7 @@ const TagDistributionMeter = createReactClass({
 
           const tooltipHtml =
             '<div class="truncate">' +
-            escape(deviceNameMapper(value.name) || '') +
+            escape(<DeviceName>{value.name || ''}</DeviceName>) +
             '</div>' +
             pctLabel +
             '%';
@@ -124,7 +126,9 @@ const TagDistributionMeter = createReactClass({
               >
                 <span className="tag-description">
                   <span className="tag-percentage">{pctLabel}%</span>
-                  <span className="tag-label">{deviceNameMapper(value.name)}</span>
+                  <span className="tag-label">
+                    <DeviceName>{value.name}</DeviceName>
+                  </span>
                 </span>
               </Link>
             </Tooltip>

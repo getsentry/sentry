@@ -3,6 +3,7 @@ import React from 'react';
 import createReactClass from 'create-react-class';
 import {Link} from 'react-router';
 import jQuery from 'jquery';
+
 import SentryTypes from 'app/proptypes';
 import ApiMixin from 'app/mixins/apiMixin';
 import Avatar from 'app/components/avatar';
@@ -10,7 +11,8 @@ import LoadingError from 'app/components/loadingError';
 import LoadingIndicator from 'app/components/loadingIndicator';
 import Pagination from 'app/components/pagination';
 import TimeSince from 'app/components/timeSince';
-import {isUrl, percent, deviceNameMapper} from 'app/utils';
+import DeviceName from 'app/components/deviceName';
+import {isUrl, percent} from 'app/utils';
 import {t} from 'app/locale';
 import withEnvironment from 'app/utils/withEnvironment';
 
@@ -125,14 +127,16 @@ const GroupTagValues = createReactClass({
                 query: {query: `${tagKey.key}:"${tagValue.value}"`},
               }}
             >
-              {tagKey.key === 'user'
-                ? [
-                    <Avatar user={tagValue} size={20} className="avatar" />,
-                    <span style={{marginLeft: 10}}>
-                      {this.getUserDisplayName(tagValue)}
-                    </span>,
-                  ]
-                : deviceNameMapper(tagValue.name)}
+              {tagKey.key === 'user' ? (
+                [
+                  <Avatar user={tagValue} size={20} className="avatar" />,
+                  <span style={{marginLeft: 10}}>
+                    {this.getUserDisplayName(tagValue)}
+                  </span>,
+                ]
+              ) : (
+                <DeviceName>{tagValue.name}</DeviceName>
+              )}
             </Link>
             {tagValue.email && (
               <a

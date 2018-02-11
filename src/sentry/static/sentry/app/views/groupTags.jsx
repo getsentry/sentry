@@ -6,10 +6,11 @@ import {Box, Flex} from 'grid-emotion';
 import SentryTypes from 'app/proptypes';
 import ApiMixin from 'app/mixins/apiMixin';
 import Count from 'app/components/count';
+import DeviceName from 'app/components/deviceName';
 import GroupState from 'app/mixins/groupState';
 import LoadingError from 'app/components/loadingError';
 import LoadingIndicator from 'app/components/loadingIndicator';
-import {percent, deviceNameMapper} from 'app/utils';
+import {percent} from 'app/utils';
 import {t, tct} from 'app/locale';
 import withEnvironmentInQueryString from 'app/utils/withEnvironmentInQueryString';
 import {Panel, PanelBody, PanelHeader} from 'app/components/panels';
@@ -105,7 +106,9 @@ const GroupTags = createReactClass({
                 }}
               >
                 <span className="tag-bar-background" style={{width: pct + '%'}} />
-                <span className="tag-bar-label">{deviceNameMapper(tagValue.name)}</span>
+                <span className="tag-bar-label">
+                  <DeviceName>{tagValue.name}</DeviceName>
+                </span>
                 <span className="tag-bar-count">
                   <Count value={tagValue.count} />
                 </span>
