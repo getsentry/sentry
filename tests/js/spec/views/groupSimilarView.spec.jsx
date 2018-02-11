@@ -1,7 +1,6 @@
 /* eslint-env jest */
 import React from 'react';
 import {mount, shallow} from 'enzyme';
-import toJson from 'enzyme-to-json';
 
 import GroupSimilarView from 'app/views/groupSimilar/groupSimilarView';
 import {Client} from 'app/api';
@@ -42,7 +41,7 @@ describe('Issues Similar View', function() {
       <GroupSimilarView params={{groupId: 'groupId'}} location={{}} />
     );
 
-    expect(toJson(component)).toMatchSnapshot();
+    expect(component).toMatchSnapshot();
   });
 
   it('renders with mocked data', function(done) {
@@ -53,12 +52,10 @@ describe('Issues Similar View', function() {
       />
     );
 
-    wrapper.instance().componentDidUpdate = jest.fn(() => {
+    setTimeout(() => {
       wrapper.update();
-      if (!wrapper.state('loading')) {
-        expect(toJson(wrapper)).toMatchSnapshot();
-        done();
-      }
-    });
+      expect(wrapper).toMatchSnapshot();
+      done();
+    }, 1);
   });
 });

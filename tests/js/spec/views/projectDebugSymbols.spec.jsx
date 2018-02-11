@@ -24,7 +24,7 @@ describe('ProjectDebugSymbols', function() {
     expect(wrapper).toMatchSnapshot();
   });
 
-  it('renders', function() {
+  it('renders', function(done) {
     Client.addMockResponse({
       url: ENDPOINT,
       body: TestStubs.DebugSymbols(),
@@ -39,6 +39,10 @@ describe('ProjectDebugSymbols', function() {
       TestStubs.routerContext()
     );
 
-    expect(wrapper).toMatchSnapshot();
+    setTimeout(() => {
+      wrapper.update();
+      expect(wrapper).toMatchSnapshot();
+      done();
+    }, 1);
   });
 });

@@ -28,7 +28,7 @@ describe('ApiTokens', function() {
     expect(wrapper).toMatchSnapshot();
   });
 
-  it('renders with result', function() {
+  it('renders with result', function(done) {
     Client.addMockResponse({
       url: '/api-tokens/',
       body: [TestStubs.ApiToken()],
@@ -44,7 +44,11 @@ describe('ApiTokens', function() {
     });
 
     // Should be loading
-    expect(wrapper).toMatchSnapshot();
+    setTimeout(() => {
+      wrapper.update();
+      expect(wrapper).toMatchSnapshot();
+      done();
+    }, 1);
   });
 
   it('can delete token', function() {

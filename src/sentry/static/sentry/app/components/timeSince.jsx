@@ -1,8 +1,9 @@
 import PropTypes from 'prop-types';
 import React from 'react';
-import moment from 'moment-timezone';
+import moment from 'moment';
 import _ from 'lodash';
 
+import loadMomentTimezone from '../utils/loadMomentTimezone';
 import ConfigStore from '../stores/configStore';
 import {t} from '../locale';
 
@@ -27,11 +28,13 @@ class TimeSince extends React.PureComponent {
     super(props);
     this.state = {
       relative: this.getRelativeDate(),
+      momentFunc: moment,
     };
   }
 
   componentDidMount() {
     this.setRelativeDateTicker();
+    loadMomentTimezone().then(momentFunc => this.setState({momentFunc}));
   }
 
   componentWillUnmount() {
@@ -73,7 +76,7 @@ class TimeSince extends React.PureComponent {
     return (
       <time
         dateTime={date.toISOString()}
-        title={moment.tz(date, options.timezone).format(format)}
+        title={this.state.momentFunc(date, options.timezone).format(format)}
         className={this.props.className}
       >
         {this.state.relative}

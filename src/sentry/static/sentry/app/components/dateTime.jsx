@@ -1,8 +1,9 @@
 import PropTypes from 'prop-types';
 import React from 'react';
-import moment from 'moment-timezone';
+import moment from 'moment';
 import _ from 'lodash';
 
+import loadMomentTimezone from '../utils/loadMomentTimezone';
 import ConfigStore from '../stores/configStore';
 
 class DateTime extends React.Component {
@@ -16,6 +17,17 @@ class DateTime extends React.Component {
   static defaultProps = {
     seconds: true,
   };
+
+  constructor(...args) {
+    super(...args);
+    this.state = {
+      momentFunc: moment,
+    };
+  }
+
+  componentDidMount() {
+    loadMomentTimezone().then(momentFunc => this.setState({momentFunc}));
+  }
 
   getFormat = ({clock24Hours}) => {
     let {dateOnly, seconds, shortDate} = this.props;
@@ -62,7 +74,9 @@ class DateTime extends React.Component {
     }
 
     return (
-      <time {...carriedProps}>{moment.tz(date, options.timezone).format(format)}</time>
+      <time {...carriedProps}>
+        {this.state.momentFunc(date, options.timezone).format(format)}
+      </time>
     );
   }
 }
