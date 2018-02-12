@@ -15,16 +15,19 @@ from sentry.models import File, ChunkFileState, ProjectDSymFile
 class DifAssembleEndpoint(ChunkAssembleMixin, ProjectEndpoint):
     permission_classes = (ProjectReleasePermission, )
 
-    def _add_project_dsym_to_reponse(self, found_file, response):
-        if found_file is not None:
-            if found_file.headers.get('error', None) is not None:
-                response['error'] = found_file.headers.get('error')
+    def _add_project_dsym_to_reponse(self, found_files, response):
+        for found_file in found_files or []:
+            error = found_file.headers.get('error', None)
+            if error is not None:
+                response.setdefault('errors', []).append(error)
+                response['state'] = ChunkFileState.ERROR
 
             dsym = ProjectDSymFile.objects.filter(
                 file=found_file
             ).first()
+
             if dsym is not None:
-                response['dif'] = serialize(dsym)
+                response.setdefault('difs', []).append(serialize(dsym))
 
         return response
 
@@ -72,7 +75,7 @@ class DifAssembleEndpoint(ChunkAssembleMixin, ProjectEndpoint):
             chunks = file_to_assemble.get('chunks', [])
 
             try:
-                found_file, response = self._check_file_blobs(
+                found_files, response = self._check_file_blobs(
                     project.organization, checksum, chunks)
                 # This either returns a file OK because we already own all chunks
                 # OR we return not_found with the missing chunks (or not owned)
@@ -80,7 +83,7 @@ class DifAssembleEndpoint(ChunkAssembleMixin, ProjectEndpoint):
                     # We also found a file, we try to fetch project dsym to return more
                     # information in the request
                     file_response[checksum] = self._add_project_dsym_to_reponse(
-                        found_file, response)
+                        found_files, response)
                     continue
             except File.DoesNotExist:
                 pass
