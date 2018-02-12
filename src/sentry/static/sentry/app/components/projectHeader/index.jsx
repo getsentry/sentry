@@ -97,7 +97,7 @@ class ProjectHeader extends React.Component {
                   {allEnvironmentsLabel}
                 </MenuItem>
                 {environments.map(env => (
-                  <MenuItem key={env.id} onClick={() => setActiveEnvironment(env)}>
+                  <MenuItem key={env.name} onClick={() => setActiveEnvironment(env)}>
                     {env.displayName}
                   </MenuItem>
                 ))}
