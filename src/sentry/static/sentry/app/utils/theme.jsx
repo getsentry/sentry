@@ -108,4 +108,7 @@ theme.alert.warning.iconColor = theme.yellowDark;
 theme.alert.success.iconColor = theme.greenDark;
 theme.alert.error.iconColor = theme.redDark;
 
+//alias warn to warning
+theme.alert.warn = theme.alert.warning;
+
 export default theme;
