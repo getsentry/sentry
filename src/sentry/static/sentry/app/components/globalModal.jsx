@@ -1,4 +1,4 @@
-import {Modal} from 'react-bootstrap';
+import Modal from 'react-bootstrap/lib/Modal';
 import {browserHistory} from 'react-router';
 import PropTypes from 'prop-types';
 import React from 'react';
