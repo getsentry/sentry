@@ -37,7 +37,13 @@ class ProjectHeader extends React.Component {
 
     // TODO: remove when feature is released
     let hasEnvironmentsFeature = new Set(org.features).has('environments');
-    let pagesWithEnvironments = new Set(['stream', 'releases', 'dashboard', 'events']);
+    let pagesWithEnvironments = new Set([
+      'stream',
+      'releases',
+      'dashboard',
+      'events',
+      'user-feedback',
+    ]);
     let pageHasEnvironments = pagesWithEnvironments.has(navSection);
     let showEnvironmentsToggle = hasEnvironmentsFeature && pageHasEnvironments;
 
