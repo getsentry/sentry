@@ -47,7 +47,7 @@ class OrganizationTeamsView extends React.Component {
         size="small"
         disabled={!canCreateTeams}
         title={
-          !canCreateTeams ? t('You do not have permission to create projects') : undefined
+          !canCreateTeams ? t('You do not have permission to create teams') : undefined
         }
         to={`/organizations/${organization.slug}/teams/new/`}
       >
