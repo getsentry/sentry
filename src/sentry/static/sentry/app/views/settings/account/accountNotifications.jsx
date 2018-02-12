@@ -8,7 +8,7 @@ import Link from '../../../components/link';
 import SettingsPageHeader from '../components/settingsPageHeader';
 import accountNotificationFields from '../../../data/forms/accountNotificationSettings';
 
-import ApiForm from '../components/forms/apiForm';
+import Form from '../components/forms/form';
 import FieldFromConfig from '../components/forms/fieldFromConfig';
 import Panel from '../components/panel';
 import PanelBody from '../components/panelBody';
@@ -31,8 +31,9 @@ export default class AccountNotifications extends AsyncView {
     return (
       <div>
         <SettingsPageHeader title="Notifications" />
-        <ApiForm
+        <Form
           initialData={this.state.data}
+          saveOnBlur
           apiMethod="PUT"
           apiEndpoint={'/users/me/notifications/'}
         >
@@ -44,7 +45,7 @@ export default class AccountNotifications extends AsyncView {
               {t('Looking to add, remove, or route an email? Use the emails panel.')}
             </AlertLink>
           </Box>
-        </ApiForm>
+        </Form>
       </div>
     );
   }

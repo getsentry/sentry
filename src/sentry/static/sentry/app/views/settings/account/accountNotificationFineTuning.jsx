@@ -2,7 +2,7 @@ import React from 'react';
 import styled from 'react-emotion';
 
 import AsyncView from '../../asyncView';
-import ApiForm from '../components/forms/apiForm';
+import Form from '../components/forms/form';
 
 import Select2Field from '../components/forms/select2Field';
 import Panel from '../components/panel';
@@ -57,7 +57,7 @@ export default class AccountNotificationDetails extends AsyncView {
 
     return (
       <div>
-        <ApiForm apiMethod="PUT" apiEndpoint={'/users/me/notifications/'}>
+        <Form saveOnBlur apiMethod="PUT" apiEndpoint={'/users/me/notifications/'}>
           <Panel>
             <PanelHeader lightText={true}>{this.props.route.name}</PanelHeader>
 
@@ -81,7 +81,7 @@ export default class AccountNotificationDetails extends AsyncView {
               );
             })}
           </Panel>
-        </ApiForm>
+        </Form>
       </div>
     );
   }
