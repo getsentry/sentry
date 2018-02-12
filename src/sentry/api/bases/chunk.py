@@ -70,14 +70,20 @@ class ChunkAssembleMixin(object):
                 None,
                 self._check_chunk_ownership(organization, file_blobs, chunks)
             )
-        # It is possible to have multiple files in the db because
-        # we do not have a unique on the checksum
-        for file in files:
-            # We need to fetch all blobs
-            file_blobs = file.blobs.all()
-            rv = self._check_chunk_ownership(organization, file_blobs, chunks, file)
-            if rv is not None:
-                return (file, rv)
+        # It is possible to have multiple identical files in the DB for every
+        # architecture inside a FatObject. We can safely assume here that if
+        # there are multiple matching files, their blobs will be the same and
+        # we only have to check ownership for one representative.
+        files = list(files)
+        file = files[0]
+
+        # We need to fetch all blobs
+        file_blobs = file.blobs.all()
+        rv = self._check_chunk_ownership(organization, file_blobs, chunks, file)
+        if rv is not None:
+            return (files, rv)
+
+        return (None, None)
 
     def _create_file_for_assembling(self, name, checksum, chunks):
         # If we have all chunks and the file wasn't found before
