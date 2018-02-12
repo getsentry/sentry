@@ -274,7 +274,7 @@ class DifAssembleEndpoint(APITestCase):
         )
 
         assert response.status_code == 200, response.content
-        assert response.data[total_checksum]['dif']['cpuName'] == 'x86_64'
+        assert response.data[total_checksum]['difs'][0]['cpuName'] == 'x86_64'
 
     def test_dif_error_reponse(self):
         sym_file = 'fail'
@@ -312,4 +312,4 @@ class DifAssembleEndpoint(APITestCase):
         )
 
         assert response.status_code == 200, response.content
-        assert response.data[total_checksum]['error'] == 'Invalid object file'
+        assert response.data[total_checksum]['errors'][0] == 'Invalid object file'
