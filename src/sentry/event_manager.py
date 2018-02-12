@@ -161,7 +161,6 @@ else:
 
 def generate_culprit(data, platform=None):
     culprit = ''
-
     try:
         stacktraces = [
             e['stacktrace'] for e in data['sentry.interfaces.Exception']['values']
@@ -507,6 +506,8 @@ class EventManager(object):
             # transaction
             transaction_name = None
             culprit = generate_culprit(data, platform=platform)
+            if not isinstance(culprit, six.string_types):
+                culprit = force_text(culprit)
         else:
             transaction_name = culprit
 
