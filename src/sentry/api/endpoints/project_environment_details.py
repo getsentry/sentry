@@ -10,7 +10,7 @@ from sentry.models import EnvironmentProject
 
 
 class ProjectEnvironmentSerializer(serializers.Serializer):
-    is_hidden = serializers.BooleanField()
+    isHidden = serializers.BooleanField()
 
 
 class ProjectEnvironmentDetailsEndpoint(ProjectEndpoint):
@@ -18,7 +18,7 @@ class ProjectEnvironmentDetailsEndpoint(ProjectEndpoint):
         try:
             instance = EnvironmentProject.objects.select_related('environment').get(
                 project=project,
-                environment__name=environment,
+                environment__name='' if environment == 'none' else environment,
             )
         except EnvironmentProject.DoesNotExist:
             raise ResourceDoesNotExist
@@ -29,7 +29,7 @@ class ProjectEnvironmentDetailsEndpoint(ProjectEndpoint):
         try:
             instance = EnvironmentProject.objects.select_related('environment').get(
                 project=project,
-                environment__name=environment,
+                environment__name='' if environment == 'none' else environment,
             )
         except EnvironmentProject.DoesNotExist:
             raise ResourceDoesNotExist
@@ -38,7 +38,13 @@ class ProjectEnvironmentDetailsEndpoint(ProjectEndpoint):
         if not serializer.is_valid():
             return Response(serializer.errors, status=400)
 
-        fields = serializer.object
+        data = serializer.object
+        fields = {}
+
+        if 'isHidden' in data:
+            fields['is_hidden'] = data['isHidden']
+
         if fields:
             instance.update(**fields)
+
         return Response(serialize(instance, request.user))

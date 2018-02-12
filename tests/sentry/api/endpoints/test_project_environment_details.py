@@ -30,8 +30,14 @@ class ProjectEnvironmentsTest(APITestCase):
         response = self.client.get(url, format='json')
         assert response.status_code == 200, response.content
         assert response.data == {
+            'id': u'{}'.format(
+                EnvironmentProject.objects.get(
+                    environment__name='production',
+                    project=project,
+                ).id,
+            ),
             'name': 'production',
-            'is_hidden': False,
+            'isHidden': False,
         }
 
         assert self.client.get(
@@ -66,7 +72,7 @@ class ProjectEnvironmentsTest(APITestCase):
                 'environment': 'production',
             }
         )
-        response = self.client.put(url, {'is_hidden': True}, format='json')
+        response = self.client.put(url, {'isHidden': True}, format='json')
         assert response.status_code == 200, response.content
 
         assert EnvironmentProject.objects.get(
@@ -83,6 +89,6 @@ class ProjectEnvironmentsTest(APITestCase):
                     'environment': 'invalid',
                 }
             ),
-            {'is_hidden': True},
+            {'isHidden': True},
             format='json',
         ).status_code == 404
