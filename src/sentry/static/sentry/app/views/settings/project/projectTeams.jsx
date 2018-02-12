@@ -15,7 +15,7 @@ import MenuItem from '../../../components/menuItem';
 import Panel from '../components/panel';
 import PanelBody from '../components/panelBody';
 import PanelHeader from '../components/panelHeader';
-import Row from '../components/row';
+import PanelItem from '../components/panelItem';
 import SettingsPageHeader from '../components/settingsPageHeader';
 
 const TeamRow = createReactClass({
@@ -62,7 +62,7 @@ const TeamRow = createReactClass({
   render() {
     let team = this.props.team;
     return (
-      <Row p={2}>
+      <PanelItem>
         <Box flex="1">
           <h5 style={{margin: '10px 0px'}}>{team.name}</h5>
         </Box>
@@ -79,7 +79,7 @@ const TeamRow = createReactClass({
             </Confirm>
           </Box>
         )}
-      </Row>
+      </PanelItem>
     );
   },
 });

@@ -147,8 +147,8 @@ const OrganizationGeneralSettingsView = createReactClass({
                 hasMultipleOrgs && (
                   <Panel>
                     <PanelHeader>{t('Remove Organization')}</PanelHeader>
-                    <FormFieldWrapper>
-                      <FormFieldDescription>
+                    <FormFieldWrapper inline>
+                      <FormFieldDescription inline>
                         <FormFieldLabel>{t('Remove Organization')}</FormFieldLabel>
                         <FormFieldHelp>
                           {t(

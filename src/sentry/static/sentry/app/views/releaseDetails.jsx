@@ -52,9 +52,8 @@ const ReleaseDetails = createReactClass({
 
   getTitle() {
     let project = this.getProject();
-    let team = this.getTeam();
     let params = this.props.params;
-    return 'Release ' + params.version + ' | ' + team.name + ' / ' + project.name;
+    return 'Release ' + params.version + ' | ' + project.name;
   },
 
   fetchData() {

@@ -1,7 +1,7 @@
 // Jest Snapshot v1, https://goo.gl/fbAQLP
 
 exports[`ApiTokenRow renders 1`] = `
-<Row
+<PanelItem
   justify="space-between"
   p={2}
   px={2}
@@ -65,5 +65,5 @@ exports[`ApiTokenRow renders 1`] = `
       </Button>
     </Box>
   </Flex>
-</Row>
+</PanelItem>
 `;

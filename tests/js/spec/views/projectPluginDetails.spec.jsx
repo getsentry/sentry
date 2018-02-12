@@ -53,12 +53,10 @@ describe('ProjectPluginDetails', function() {
       {
         context: {
           router: TestStubs.router(),
-          team: TestStubs.Team(),
         },
 
         childContextTypes: {
           router: PropTypes.object,
-          team: PropTypes.object,
         },
       }
     );
@@ -81,12 +79,10 @@ describe('ProjectPluginDetails', function() {
       {
         context: {
           router: TestStubs.router(),
-          team: TestStubs.Team(),
         },
 
         childContextTypes: {
           router: PropTypes.object,
-          team: PropTypes.object,
         },
       }
     );

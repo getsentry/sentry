@@ -23,7 +23,7 @@ export default class BooleanField extends InputField {
           <Switch
             size="lg"
             {...props}
-            isActive={value}
+            isActive={!!value}
             isDisabled={disabled}
             toggle={this.onChange.bind(this, value, onChange, onBlur)}
           />
