@@ -2,7 +2,6 @@ import React from 'react';
 import PropTypes from 'prop-types';
 import {cx} from 'emotion';
 import styled from 'react-emotion';
-import {withTheme} from 'emotion-theming';
 import TextBlock from '../views/settings/components/text/textBlock';
 import InlineSvg from './inlineSvg';
 
@@ -14,7 +13,7 @@ const getAlertColorStyles = ({backgroundLight, border, iconColor}) => `
   }
 `;
 
-const AlertWrapper = withTheme(styled.div`
+const AlertWrapper = styled.div`
   margin: 0 0 ${p => p.theme.grid * 3}px;
   padding: ${p => p.theme.grid * 2}px;
   font-size: 15px;
@@ -25,7 +24,7 @@ const AlertWrapper = withTheme(styled.div`
   border: 1px solid ${p => p.theme.borderDark};
 
   ${p => p.type && getAlertColorStyles(p.theme.alert[p.type])};
-`);
+`;
 
 const StyledTextBlock = styled(TextBlock)`
   line-height: 1.4;

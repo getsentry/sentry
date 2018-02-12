@@ -1,25 +1,24 @@
 import PropTypes from 'prop-types';
 import React from 'react';
 import styled from 'react-emotion';
-import {withTheme} from 'emotion-theming';
 
 import Alert from '../components/alert';
 import AlertActions from '../actions/alertActions';
 import InlineSvg from '../components/inlineSvg';
 import {t} from '../locale';
 
-const StyledAlert = withTheme(styled(Alert)`
+const StyledAlert = styled(Alert)`
   padding: ${p => p.theme.grid}px ${p => p.theme.grid * 2}px;
   position: relative;
   margin: 0;
   padding-right: ${p => p.theme.grid * 4}px;
-`);
+`;
 
 const StyledInlineSvg = styled(InlineSvg)`
   /* Exists soley to enable its use as a selector in StyledCloseButton */
 `;
 
-const StyledCloseButton = withTheme(styled.button`
+const StyledCloseButton = styled.button`
   background: none;
   border: 0;
   opacity: 0.4;
@@ -35,7 +34,7 @@ const StyledCloseButton = withTheme(styled.button`
   &:hover {
     opacity: 0.8;
   }
-`);
+`;
 
 export default class AlertMessage extends React.PureComponent {
   static propTypes = {
