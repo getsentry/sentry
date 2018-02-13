@@ -12,6 +12,8 @@ import {t} from '../../locale';
 import LoadingIndicator from '../../components/loadingIndicator';
 import RuleNodeList from './ruleNodeList';
 
+import EnvironmentStore from '../../stores/environmentStore';
+
 const FREQUENCY_CHOICES = [
   ['5', t('5 minutes')],
   ['10', t('10 minutes')],
@@ -149,20 +151,40 @@ const RuleEditor = createReactClass({
     return !!error[field];
   },
 
+  handleEnvironmentChange(val) {
+    // If 'All Environments' is selected remove the environment property from the data
+    if (val === 'all') {
+      this.setState(state => {
+        const rule = {...state.rule};
+        delete rule.environment;
+        return {rule};
+      });
+    } else {
+      this.handleChange('environment', val);
+    }
+  },
+
   handleChange(prop, val) {
     this.setState(state => {
-      let rule = {...state.rule};
+      const rule = {...state.rule};
       rule[prop] = val;
       return {rule};
     });
   },
 
   render() {
+    const hasEnvironmentsFeature = new Set(this.props.organization.features).has(
+      'environments'
+    );
+    const environmentChoices = [
+      ['all', t('All Environments')],
+      ...EnvironmentStore.getAll().map(env => [env.urlRoutingName, env.displayName]),
+    ];
+
     if (!this.state.rule) return <LoadingIndicator />;
 
-    let rule = this.state.rule;
-    let {loading, error} = this.state;
-    let {actionMatch, actions, conditions, frequency, name} = rule;
+    const {rule, loading, error} = this.state;
+    const {actionMatch, actions, conditions, frequency, name, environment} = rule;
 
     return (
       <form onSubmit={this.onSubmit} ref={node => (this.formNode = node)}>
@@ -222,6 +244,23 @@ const RuleEditor = createReactClass({
             />
 
             <hr />
+
+            {hasEnvironmentsFeature && (
+              <React.Fragment>
+                <h6>{t('In this environment')}:</h6>
+                <Select2Field
+                  className={this.hasError('environment') ? ' error' : ''}
+                  style={{marginBottom: 0, marginLeft: 5, marginRight: 5}}
+                  name="environment"
+                  value={environment}
+                  required={true}
+                  choices={environmentChoices}
+                  onChange={val => this.handleEnvironmentChange(val)}
+                />
+
+                <hr />
+              </React.Fragment>
+            )}
 
             <h6>{t('Take these actions:')}</h6>
 
