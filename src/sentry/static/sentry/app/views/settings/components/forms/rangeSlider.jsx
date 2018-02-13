@@ -9,12 +9,15 @@ const Slider = styled.input`
 
   &:focus {
     outline: none;
+
     &::-webkit-slider-runnable-track {
       background: ${p => p.theme.borderDark};
     }
+
     &::-ms-fill-upper {
       background: ${p => p.theme.borderDark};
     }
+
     &::-ms-fill-lower {
       background: ${p => p.theme.borderDark};
     }
