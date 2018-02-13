@@ -57,7 +57,7 @@ class U2fEnrolledDetails extends React.Component {
 
                 <Box p={2}>
                   <Confirm
-                    onConfirm={onRemoveU2fDevice}
+                    onConfirm={() => onRemoveU2fDevice(device)}
                     message={
                       <React.Fragment>
                         <ConfirmHeader>

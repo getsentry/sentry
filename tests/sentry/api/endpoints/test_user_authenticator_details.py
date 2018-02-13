@@ -103,6 +103,46 @@ class UserAuthenticatorDetailsTest(APITestCase):
         assert 'challenge' not in resp.data
         assert 'response' not in resp.data
 
+    def test_u2f_remove_device(self):
+        auth = Authenticator.objects.create(
+            type=3,  # u2f
+            user=self.user,
+            config={
+                'devices': [{
+                    'binding': {
+                        'publicKey': 'aowekroawker',
+                        'keyHandle': 'devicekeyhandle',
+                        'appId': 'https://dev.getsentry.net:8000/auth/2fa/u2fappid.json'
+                    },
+                    'name': 'Amused Beetle',
+                    'ts': 1512505334
+                }, {
+                    'binding': {
+                        'publicKey': 'publickey',
+                        'keyHandle': 'aowerkoweraowerkkro',
+                        'appId': 'https://dev.getsentry.net:8000/auth/2fa/u2fappid.json'
+                    },
+                    'name': 'Sentry',
+                    'ts': 1512505334
+                }]
+            }
+        )
+
+        url = reverse(
+            'sentry-api-0-user-authenticator-device-details',
+            kwargs={
+                'user_id': self.user.id,
+                'auth_id': auth.id,
+                'interface_device_id': 'devicekeyhandle'
+            }
+        )
+
+        resp = self.client.delete(url)
+        assert resp.status_code == 204
+
+        authenticator = Authenticator.objects.get(id=auth.id)
+        assert len(authenticator.interface.get_registered_devices()) == 1
+
     def test_sms_get_phone(self):
         interface = SmsInterface()
         interface.phone_number = '5551231234'

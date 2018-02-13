@@ -80,10 +80,12 @@ class AccountSecurityDetails extends AsyncView {
     addErrorMessage(message);
   }
 
-  handleRemove = () => {
+  handleRemove = device => {
     let {authenticator} = this.state;
 
     if (!authenticator || !authenticator.authId) return;
+    let isRemovingU2fDevice = !!device;
+    let deviceId = isRemovingU2fDevice ? `${device.key_handle}/` : '';
 
     this.setState(
       {
@@ -91,24 +93,22 @@ class AccountSecurityDetails extends AsyncView {
       },
       () =>
         this.api
-          .requestPromise(`${ENDPOINT}${authenticator.authId}/`, {
+          .requestPromise(`${ENDPOINT}${authenticator.authId}/${deviceId}`, {
             method: 'DELETE',
           })
           .then(
             () => {
               this.props.router.push('/settings/account/security');
-              addSuccessMessage(t('Authenticator has been removed'));
+              let deviceName = isRemovingU2fDevice ? device.name : 'Authenticator';
+              addSuccessMessage(t('%s has been removed', deviceName));
             },
             () => {
               // Error deleting authenticator
-              this.addError(t('Error removing authenticator'));
+              let deviceName = isRemovingU2fDevice ? device.name : 'authenticator';
+              this.addError(t('Error removing %s', deviceName));
             }
           )
     );
-  };
-
-  handleRemoveU2fDevice = () => {
-    // TODO(billy): Implement me
   };
 
   handleRegenerateBackupCodes = () => {
@@ -153,7 +153,7 @@ class AccountSecurityDetails extends AsyncView {
           isEnrolled={authenticator.isEnrolled}
           id={authenticator.id}
           devices={authenticator.devices}
-          onRemoveU2fDevice={this.handleRemoveU2fDevice}
+          onRemoveU2fDevice={this.handleRemove}
         />
 
         {authenticator.isEnrolled &&
