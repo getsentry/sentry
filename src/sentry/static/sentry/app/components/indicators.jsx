@@ -4,9 +4,11 @@ import createReactClass from 'create-react-class';
 import Reflux from 'reflux';
 import ReactCSSTransitionGroup from 'react-addons-css-transition-group';
 import styled from 'react-emotion';
+import {ThemeProvider} from 'emotion-theming';
 
 import ToastIndicator from '../components/alerts/toastIndicator';
 import IndicatorStore from '../stores/indicatorStore';
+import theme from '../utils/theme';
 import {remove} from '../actionCreators/indicator';
 
 const Toasts = styled.div`
@@ -76,7 +78,14 @@ const IndicatorsContainer = createReactClass({
   },
 
   render() {
-    return <Indicators {...this.props} items={this.state.items} />;
+    // #NEW-SETTINGS - remove ThemeProvider here once new settings is merged
+    // `alerts.html` django view includes this container and doesn't have a theme provider
+    // not even sure it is used in django views but this is just an easier temp solution
+    return (
+      <ThemeProvider theme={theme}>
+        <Indicators {...this.props} items={this.state.items} />
+      </ThemeProvider>
+    );
   },
 });
 
