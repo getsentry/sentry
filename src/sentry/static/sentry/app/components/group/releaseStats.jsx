@@ -38,7 +38,7 @@ const GroupReleaseStats = createReactClass({
   ],
 
   getInitialState() {
-    let envList = EnvironmentStore.getAll();
+    let envList = EnvironmentStore.getActive();
     let environmentQueryParam = this.props.location.query.environment;
 
     return {
@@ -193,7 +193,7 @@ const GroupReleaseStats = createReactClass({
     let group = this.props.group;
     let {environment, data, hasEnvironmentsFeature} = this.state;
 
-    let envList = this.state.envList;
+    let envList = this.state.envList || [];
 
     let envName = environment ? environment.displayName : t('All Environments');
 

@@ -12,6 +12,14 @@ export function loadEnvironments(data) {
   EnvironmentActions.loadData(data);
 }
 
+export function loadActiveEnvironments(data) {
+  EnvironmentActions.loadActiveData(data);
+}
+
+export function loadHiddenEnvironments(data) {
+  EnvironmentActions.loadHiddenData(data);
+}
+
 export function setDefaultEnvironment(env) {
   EnvironmentActions.setDefault(env);
 }
