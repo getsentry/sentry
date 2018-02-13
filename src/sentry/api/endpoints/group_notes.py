@@ -85,7 +85,7 @@ class GroupNotesEndpoint(GroupEndpoint):
 
         for user in mentioned_team_users:
 
-            if user.id not in subscribed_user_ids:
+            if user.id in subscribed_user_ids:
                 continue
 
             GroupSubscription.objects.subscribe(

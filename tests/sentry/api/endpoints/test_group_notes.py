@@ -153,7 +153,7 @@ class GroupNoteCreateTest(APITestCase):
         )
         assert response.status_code == 400, response.content
 
-        assert response.content == '{"mentions": ["Mentioned team not found"]}'
+        assert response.content == '{"mentions": ["Mentioned team not found or not associated with project"]}'
 
         # mentioning a team in the project returns 201
         response = self.client.post(
