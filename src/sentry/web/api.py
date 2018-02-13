@@ -563,8 +563,22 @@ class MinidumpView(StoreView):
         # to be transfered in the `sentry` form field. All other form
         # fields are assumed "extra" information. The only exception
         # to this is `upload_file_minidump`, which contains the minidump.
-        extra = parser.parse(request.POST.urlencode())
-        data = extra.pop('sentry', {})
+
+        if any(key.startswith('sentry[') for key in request.POST):
+            # First, try to parse the nested form syntax `sentry[key][key]`
+            # This is required for the Breakpad client library, which only
+            # supports string values of up to 64 characters.
+            extra = parser.parse(request.POST.urlencode())
+            data = extra.pop('sentry', {})
+        else:
+            # Custom clients can submit longer payloads and should JSON
+            # encode event data into the optional `sentry` field.
+            extra = request.POST
+            json_data = extra.pop('sentry', None)
+            data = json.loads(json_data[0]) if json_data else {}
+
+        # Merge additional form fields from the request with `extra`
+        # data from the event payload and set defaults for processing.
         extra.update(data.get('extra', {}))
         data['extra'] = extra
         data['platform'] = 'native'
