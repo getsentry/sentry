@@ -1,9 +1,10 @@
 import React from 'react';
 
 import AsyncView from './asyncView';
+import ConfigStore from '../stores/configStore';
 import NarrowLayout from '../components/narrowLayout';
-import {ApiForm, TextField} from '../components/forms';
-import {t} from '../locale';
+import {ApiForm, BooleanField, TextField} from '../components/forms';
+import {t, tct} from '../locale';
 
 export default class OrganizationCreate extends AsyncView {
   onSubmitSuccess = data => {
@@ -17,6 +18,9 @@ export default class OrganizationCreate extends AsyncView {
   }
 
   renderBody() {
+    let termsUrl = ConfigStore.get('termsUrl');
+    let privacyUrl = ConfigStore.get('privacyUrl');
+
     return (
       <NarrowLayout>
         <h3>{t('Create a New Organization')}</h3>
@@ -41,6 +45,22 @@ export default class OrganizationCreate extends AsyncView {
             placeholder={t('e.g. My Company')}
             required={true}
           />
+
+          {termsUrl &&
+            privacyUrl && (
+              <BooleanField
+                name="agreeTerms"
+                label={tct(
+                  'I agree to the [termsLink:Terms of Service] and the [privacyLink:Privacy Policy]',
+                  {
+                    termsLink: <a href={termsUrl} />,
+                    privacyLink: <a href={privacyUrl} />,
+                  }
+                )}
+                placeholder={t('e.g. My Company')}
+                required={true}
+              />
+            )}
         </ApiForm>
       </NarrowLayout>
     );

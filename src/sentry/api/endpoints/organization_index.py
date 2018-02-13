@@ -2,6 +2,7 @@ from __future__ import absolute_import
 
 import six
 
+from django.conf import settings
 from django.db import IntegrityError, transaction
 from django.db.models import Count, Q, Sum
 from rest_framework import serializers, status
@@ -20,6 +21,7 @@ from sentry.models import (
     OrganizationStatus, ProjectPlatform
 )
 from sentry.search.utils import tokenize_query
+from sentry.signals import terms_accepted
 from sentry.utils.apidocs import scenario, attach_scenarios
 
 
@@ -32,6 +34,18 @@ class OrganizationSerializer(serializers.Serializer):
     name = serializers.CharField(max_length=64, required=True)
     slug = serializers.RegexField(r'^[a-z0-9_\-]+$', max_length=50, required=False)
     defaultTeam = serializers.BooleanField(required=False)
+    agreeTerms = serializers.BooleanField(required=True)
+
+    def __init__(self, *args, **kwargs):
+        super(OrganizationSerializer, self).__init__(*args, **kwargs)
+        if not (settings.TERMS_URL and settings.PRIVACY_URL):
+            del self.fields['agreeTerms']
+
+    def validate_agreeTerms(self, attrs, source):
+        value = attrs[source]
+        if not value:
+            raise serializers.ValidationError('This attribute is required.')
+        return attrs
 
 
 class OrganizationIndexEndpoint(Endpoint):
@@ -168,6 +182,8 @@ class OrganizationIndexEndpoint(Endpoint):
         :param string slug: the unique URL slug for this organization.  If
                             this is not provided a slug is automatically
                             generated based on the name.
+        :param bool agreeTerms: a boolean signaling you agree to the applicable
+                                terms of service and privacy policy.
         :auth: required, user-context-needed
         """
         if not request.user.is_authenticated():
@@ -204,6 +220,43 @@ class OrganizationIndexEndpoint(Endpoint):
                         name=result['name'],
                         slug=result.get('slug'),
                     )
+
+                    om = OrganizationMember.objects.create(
+                        organization=org,
+                        user=request.user,
+                        role=roles.get_top_dog().id,
+                    )
+
+                    if result.get('defaultTeam'):
+                        team = org.team_set.create(
+                            name=org.name,
+                        )
+
+                        OrganizationMemberTeam.objects.create(
+                            team=team, organizationmember=om, is_active=True
+                        )
+
+                    self.create_audit_entry(
+                        request=request,
+                        organization=org,
+                        target_object=org.id,
+                        event=AuditLogEntryEvent.ORG_ADD,
+                        data=org.get_audit_log_data(),
+                    )
+
+                    analytics.record(
+                        'organization.created',
+                        org,
+                        actor_id=request.user.id if request.user.is_authenticated() else None
+                    )
+
+                    if result.get('agreeTerms'):
+                        terms_accepted.send(
+                            user=request.user,
+                            organization=org,
+                            sender=type(self),
+                        )
+
             except IntegrityError:
                 return Response(
                     {
@@ -211,35 +264,6 @@ class OrganizationIndexEndpoint(Endpoint):
                     },
                     status=409,
                 )
-
-            om = OrganizationMember.objects.create(
-                organization=org,
-                user=request.user,
-                role=roles.get_top_dog().id,
-            )
-
-            if result.get('defaultTeam'):
-                team = org.team_set.create(
-                    name=org.name,
-                )
-
-                OrganizationMemberTeam.objects.create(
-                    team=team, organizationmember=om, is_active=True
-                )
-
-            self.create_audit_entry(
-                request=request,
-                organization=org,
-                target_object=org.id,
-                event=AuditLogEntryEvent.ORG_ADD,
-                data=org.get_audit_log_data(),
-            )
-
-            analytics.record(
-                'organization.created',
-                org,
-                actor_id=request.user.id if request.user.is_authenticated() else None
-            )
 
             return Response(serialize(org, request.user), status=201)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)

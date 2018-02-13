@@ -1297,3 +1297,6 @@ DEPRECATED_SDKS = {
 }
 
 SOUTH_TESTS_MIGRATE = os.environ.get('SOUTH_TESTS_MIGRATE', '0') == '1'
+
+TERMS_URL = None
+PRIVACY_URL = None
