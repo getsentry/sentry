@@ -14,7 +14,7 @@ const formGroups = [
     ],
     fineTuning: {
       text: 'Fine tune alerts by project',
-      path: 'project-alerts/',
+      path: 'alerts/',
     },
   },
 
@@ -31,7 +31,7 @@ const formGroups = [
     ],
     fineTuning: {
       text: 'Fine tune workflow notifications by project',
-      path: 'workflow-notifications/',
+      path: 'workflow/',
     },
   },
 
@@ -48,7 +48,7 @@ const formGroups = [
     ],
     fineTuning: {
       text: 'Fine tune weekly reports by organization',
-      path: 'weekly-reports/',
+      path: 'reports/',
     },
   },
 
@@ -65,7 +65,7 @@ const formGroups = [
     ],
     fineTuning: {
       text: 'Fine tune deploy notifications by organization',
-      path: 'deploy-notifications/',
+      path: 'deploy/',
     },
   },
 
