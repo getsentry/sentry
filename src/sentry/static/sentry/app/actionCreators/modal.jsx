@@ -17,7 +17,7 @@ export function closeModal() {
 }
 
 export function openSudo({retryRequest, onClose} = {}) {
-  import('../components/modals/sudoModal')
+  import(/* webpackChunkName: "SudoModal" */ '../components/modals/sudoModal')
     .then(mod => mod.default)
     .then(SudoModal =>
       openModal(deps => <SudoModal {...deps} retryRequest={retryRequest} />, {onClose})
@@ -25,7 +25,7 @@ export function openSudo({retryRequest, onClose} = {}) {
 }
 
 export function openDiffModal(options) {
-  import('../components/modals/diffModal')
+  import(/* webpackChunkName: "DiffModal" */ '../components/modals/diffModal')
     .then(mod => mod.default)
     .then(Modal =>
       openModal(deps => <Modal {...deps} {...options} />, {
