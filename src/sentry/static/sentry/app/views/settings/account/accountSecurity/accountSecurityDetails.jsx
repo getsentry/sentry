@@ -43,8 +43,7 @@ class AuthenticatorDate extends React.Component {
     label: PropTypes.string,
     /**
      * Can be null or a Date object.
-     * Component will return null if date is undefined, but will
-     * have value "never" if it is null
+     * Component will have value "never" if it is null
      */
     date: PropTypes.string,
   };
@@ -56,7 +55,7 @@ class AuthenticatorDate extends React.Component {
     return (
       <Flex mb={1}>
         <DateLabel>{label}</DateLabel>
-        <Box flex="1">{date ? <DateTime date={date} /> : 'never'}</Box>
+        <Box flex="1">{date ? <DateTime date={date} /> : t('never')}</Box>
       </Flex>
     );
   }
@@ -69,11 +68,16 @@ class AccountSecurityDetails extends AsyncView {
   }
 
   getTitle() {
-    return 'Security';
+    return t('Security');
   }
 
   getEndpoints() {
     return [['authenticator', `${ENDPOINT}${this.props.params.authId}/`]];
+  }
+
+  addError(message) {
+    this.setState({loading: false});
+    addErrorMessage(message);
   }
 
   handleRemove = () => {
@@ -97,7 +101,7 @@ class AccountSecurityDetails extends AsyncView {
             },
             () => {
               // Error deleting authenticator
-              addErrorMessage(t('Error removing authenticator'));
+              this.addError(t('Error removing authenticator'));
             }
           )
     );
@@ -113,7 +117,9 @@ class AccountSecurityDetails extends AsyncView {
         .requestPromise(`${ENDPOINT}${this.props.params.authId}/`, {
           method: 'PUT',
         })
-        .then(this.remountComponent, () => {})
+        .then(this.remountComponent, () =>
+          this.addError(t('Error regenerating backup codes'))
+        )
     );
   };
 

@@ -42,9 +42,10 @@ class AccountSecurity extends AsyncView {
           .requestPromise(`${ENDPOINT}${auth.authId}/`, {
             method: 'DELETE',
           })
-          .then(this.remountComponent, () =>
-            addErrorMessage(`Error disabling ${auth.name}`)
-          )
+          .then(this.remountComponent, () => {
+            this.setState({loading: false});
+            addErrorMessage(`Error disabling ${auth.name}`);
+          })
     );
   };
 

@@ -65,7 +65,7 @@ class U2fEnrolledDetails extends React.Component {
                         </ConfirmHeader>
                         <TextBlock>
                           {t(
-                            'Are you sure you want to remove the u2f device "${device.name}"?'
+                            `Are you sure you want to remove the u2f device "${device.name}"?`
                           )}
                         </TextBlock>
                       </React.Fragment>

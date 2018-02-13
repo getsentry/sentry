@@ -35,7 +35,7 @@ const ENDPOINT = '/users/me/authenticators/';
  * @param {function} onU2fTap Callback when u2f device is activated
  */
 const getFields = ({authenticator, hasSentCode, onSmsReset, onSmsSubmit, onU2fTap}) => {
-  let {form, qrcode, challenge, id} = authenticator;
+  let {form, qrcode, challenge, id} = authenticator || {};
 
   if (!form) return null;
 
@@ -60,6 +60,7 @@ const getFields = ({authenticator, hasSentCode, onSmsReset, onSmsSubmit, onU2fTa
   // Sms Form needs a start over button + confirm button
   // Also inputs being disabled vary based on hasSentCode
   if (id === 'sms') {
+    // Ideally we would have greater flexibility when rendering footer
     return [
       {
         ...form[0],
@@ -134,12 +135,14 @@ class AccountSecurityEnroll extends AsyncView {
   handleSmsSubmit = dataModel => {
     let {authenticator, hasSentCode} = this.state;
 
+    // Don't submit if empty
+    if (!this._form.phone) return;
+
     let data = {
       phone: this._form.phone,
-      // Send null OTP if we are submitting OTP verification
+      // Make sure `otp` is undefined if we are submitting OTP verification
       // Otherwise API will think that we are on verification step (e.g. after submitting phone)
       otp: hasSentCode ? this._form.otp || '' : undefined,
-      // ...((dataModel && dataModel.toJSON()) || {}),
       secret: authenticator.secret,
     };
 
@@ -175,6 +178,10 @@ class AccountSecurityEnroll extends AsyncView {
         error => {
           let isSmsInterface = authenticator.id === 'sms';
 
+          this.setState({
+            hasSentCode: !isSmsInterface,
+          });
+
           // Re-mount because we want to fetch a fresh secret
           this.remountComponent();
 
@@ -182,10 +189,6 @@ class AccountSecurityEnroll extends AsyncView {
             ? 'Incorrect OTP'
             : 'Error sending SMS';
           addErrorMessage(errorMessage);
-
-          this.setState({
-            hasSentCode: !isSmsInterface,
-          });
         }
       );
   };
@@ -235,6 +238,7 @@ class AccountSecurityEnroll extends AsyncView {
   handleEnrollError = () => {
     let authenticatorName =
       (this.state.authenticator && this.state.authenticator.name) || 'Authenticator';
+    this.setState({loading: false});
     addErrorMessage(`Error adding ${authenticatorName} authenticator`);
   };
 

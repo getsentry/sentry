@@ -30,7 +30,8 @@ let StyledWarning = styled.div`
 
 // TODO(billy): Temp #NEW-SETTINGS
 let NewSettingsWarning = ({location = {}}) => {
-  // TODO(billy): Remove this warning when ready
+  // This translates current URLs back to "old" settings URLs
+  // This is so that we can move from new settings back to old settings
   let projectRegex = /^\/settings\/organization\/([^\/]+)\/project\/([^\/]+)\//;
   let accountRegex = /^\/settings\/account\/([^\/]+)\//;
   let isProject = projectRegex.test(location.pathname);
@@ -40,7 +41,6 @@ let NewSettingsWarning = ({location = {}}) => {
   if (isProject) {
     oldLocation = location.pathname.replace(projectRegex, '/$1/$2/settings/');
   } else if (isAccount) {
-    // lol
     oldLocation = location.pathname
       .replace(accountRegex, '/account/settings/$1/')
       .replace('details/', '')
@@ -54,9 +54,7 @@ let NewSettingsWarning = ({location = {}}) => {
     );
   }
 
-  //if (oldLocation === location.pathname) return null;
-
-  // auth should not be react routes
+  // original org auth view and account settings are django views so we can't use react router navigation
   let isRouter = !/\/(auth|account)\//.test(location.pathname);
   let linkProps = {
     href: isRouter ? undefined : oldLocation,

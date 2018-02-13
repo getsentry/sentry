@@ -32,10 +32,6 @@ class RecoveryCodes extends React.Component {
     onRegenerateBackupCodes: PropTypes.func.isRequired,
   };
 
-  static defaultProps = {
-    onRegenerateBackupCodes: () => {},
-  };
-
   render() {
     let {isEnrolled, codes} = this.props;
 
@@ -62,8 +58,8 @@ class RecoveryCodes extends React.Component {
           <PanelWarning>
             <InlineSvg css={{fontSize: '2em'}} src="icon-warning-sm" />
             <Flex align="center" ml={2} flex="1">
-              Make sure to keep a copy of these codes to recover your account if you lose
-              your authenticator.
+              {t(`Make sure to keep a copy of these codes to recover your account if you lose
+              your authenticator.`)}
             </Flex>
           </PanelWarning>
           {!!codes.length && codes.map(code => <Code key={code}>{code}</Code>)}
