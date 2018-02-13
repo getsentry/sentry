@@ -5,11 +5,17 @@ import styled from 'react-emotion';
 const Slider = styled.input`
   -webkit-appearance: none;
   width: 100%;
-  margin: ${p => p.theme.grid}px 0;
+  margin: ${p => p.theme.grid}px 0 ${p => p.theme.grid * 2}px;
 
   &:focus {
     outline: none;
     &::-webkit-slider-runnable-track {
+      background: ${p => p.theme.borderDark};
+    }
+    &::-ms-fill-upper {
+      background: ${p => p.theme.borderDark};
+    }
+    &::-ms-fill-lower {
       background: ${p => p.theme.borderDark};
     }
   }
@@ -19,7 +25,25 @@ const Slider = styled.input`
     height: 3px;
     cursor: pointer;
     background: ${p => p.theme.borderLight};
-    border-radius: 25px;
+    border-radius: 3px;
+    border: 0;
+  }
+
+  &::-moz-range-track {
+    width: 100%;
+    height: 3px;
+    cursor: pointer;
+    background: ${p => p.theme.borderLight};
+    border-radius: 3px;
+    border: 0;
+  }
+
+  &::-ms-track {
+    width: 100%;
+    height: 3px;
+    cursor: pointer;
+    background: ${p => p.theme.borderLight};
+    border-radius: 3px;
     border: 0;
   }
 
@@ -35,57 +59,41 @@ const Slider = styled.input`
     border: 0;
   }
 
-  &::-moz-range-track {
-    width: 100%;
-    height: 3px;
-    cursor: pointer;
-    background: ${p => p.theme.borderLight};
-    border-radius: 25px;
-    border: 0;
-  }
   &::-moz-range-thumb {
     box-shadow: 0 0 0 3px #fff;
-    border: none;
     height: 17px;
     width: 17px;
-    border-radius: 50px;
-    background:  ${p => p.theme.purple};
-    cursor: pointer;
-  }
-  input[type=range]::-ms-track {
-    width: 100%;
-    height: 3px;
-    cursor: pointer;
-    background: transparent;
-    border-color: transparent;
-    color: transparent;
-  }
-  input[type=range]::-ms-fill-lower {
-    background:  ${p => p.theme.borderLight};
-    border: 0;
     border-radius: 50%;
-  }
-  input[type=range]::-ms-fill-upper {
-    background:  ${p => p.theme.borderLight});
-    border: 0;
-    border-radius: 50%;
-  }
-  input[type=range]::-ms-thumb {
-    box-shadow: 0 0 0 3px #fff;
-    border: 0;
-    height: 17px;
-    width: 17px;
-    border-radius: 50px;
-    background:  ${p => p.theme.purple};
+    background: ${p => p.theme.purple};
     cursor: pointer;
-  }
-  input[type=range]:focus::-ms-fill-lower {
-    background:  ${p => p.theme.borderDark};
-  }
-  input[type=range]:focus::-ms-fill-upper {
-    background:  ${p => p.theme.borderDark};
+    -webkit-appearance: none;
+    margin-top: -7px;
+    border: 0;
   }
 
+  &::-ms-thumb {
+    box-shadow: 0 0 0 3px #fff;
+    height: 17px;
+    width: 17px;
+    border-radius: 50%;
+    background: ${p => p.theme.purple};
+    cursor: pointer;
+    -webkit-appearance: none;
+    margin-top: -7px;
+    border: 0;
+  }
+
+  &::-ms-fill-lower {
+    background: ${p => p.theme.borderLight};
+    border: 0;
+    border-radius: 50%;
+  }
+
+  &::-ms-fill-upper {
+    background: ${p => p.theme.borderLight});
+    border: 0;
+    border-radius: 50%;
+  }
 `;
 
 const Label = styled.label`
@@ -94,7 +102,7 @@ const Label = styled.label`
   color: ${p => p.theme.gray3};
 `;
 
-class RangeField extends React.Component {
+class RangeSlider extends React.Component {
   static propTypes = {
     initialValue: PropTypes.number.isRequired,
     name: PropTypes.string.isRequired,
@@ -105,19 +113,17 @@ class RangeField extends React.Component {
     plural: PropTypes.string,
   };
 
-  static defaultProps = {};
-
   constructor(props) {
     super(props);
     this.state = {value: props.initialValue};
-    this.changeValue = this.changeValue.bind(this);
+    this.handleValue = this.handleValue.bind(this);
   }
 
-  changeValue(e) {
+  handleValue = e => {
     this.setState({
       value: e.currentTarget.value,
     });
-  }
+  };
 
   render() {
     let {name, label, plural, min, max, step} = this.props;
@@ -137,7 +143,7 @@ class RangeField extends React.Component {
           min={min}
           max={max}
           step={step}
-          onInput={this.changeValue}
+          onInput={this.handleValue}
           value={value}
         />
       </div>
@@ -145,4 +151,4 @@ class RangeField extends React.Component {
   }
 }
 
-export default RangeField;
+export default RangeSlider;
