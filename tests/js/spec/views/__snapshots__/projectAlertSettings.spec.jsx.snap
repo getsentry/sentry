@@ -48,10 +48,10 @@ exports[`ProjectAlertSettings render() renders 1`] = `
       title="Alerts"
     />
     <AlertLink
+      href="/account/settings/notifications/"
       icon="icon-mail"
-      to="/account/settings/notifications/"
     >
-      Looking to fine-tune your personal notification prefs? Visit your Account Settings
+      Looking to fine-tune your personal notification preferences? Visit your Account Settings
     </AlertLink>
     <GeneralSettings
       initialData={

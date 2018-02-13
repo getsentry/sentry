@@ -209,10 +209,10 @@ export default class ProjectAlertSettings extends AsyncView {
             </ul>
           }
         />
-
-        <AlertLink to={'/account/settings/notifications/'} icon="icon-mail">
+        {/* todo(ckj): change 'href' to 'to' when new settings is launched */}
+        <AlertLink href={'/account/settings/notifications/'} icon="icon-mail">
           {t(
-            'Looking to fine-tune your personal notification prefs? Visit your Account Settings'
+            'Looking to fine-tune your personal notification preferences? Visit your Account Settings'
           )}
         </AlertLink>
 
