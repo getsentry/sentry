@@ -34,6 +34,7 @@ window.TestStubs = {
     setRouteLeaveHook: sinon.spy(),
     isActive: sinon.spy(),
     createHref: sinon.spy(),
+    location: sinon.spy(),
   }),
 
   location: () => ({
