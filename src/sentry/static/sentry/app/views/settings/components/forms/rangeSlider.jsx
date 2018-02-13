@@ -144,7 +144,7 @@ class RangeSlider extends React.Component {
           max={max}
           step={step}
           onInput={this.handleValue}
-          value={value}
+          defaultValue={value}
         />
       </div>
     );
