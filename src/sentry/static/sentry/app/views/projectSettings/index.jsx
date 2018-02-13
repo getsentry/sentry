@@ -104,7 +104,10 @@ const ProjectSettings = createReactClass({
             >
               {t('Alerts')}
             </ListLink>
-            <ListLink to={`/${orgId}/${projectId}/settings/environments/`}>
+            <ListLink
+              to={`/${orgId}/${projectId}/settings/environments/`}
+              isActive={loc => path.indexOf(loc.pathname) === 0}
+            >
               {t('Environments')}
             </ListLink>
             <ListLink to={`/${orgId}/${projectId}/settings/tags/`}>{t('Tags')}</ListLink>
