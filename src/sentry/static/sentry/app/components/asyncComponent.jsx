@@ -11,6 +11,10 @@ import LoadingIndicator from '../components/loadingIndicator';
 import RouteError from './../views/routeError';
 
 class AsyncComponent extends React.Component {
+  static contextTypes = {
+    router: PropTypes.object.isRequired,
+  };
+
   constructor(props, context) {
     super(props, context);
 
@@ -25,11 +29,11 @@ class AsyncComponent extends React.Component {
     this.fetchData();
   }
 
-  componentWillReceiveProps(nextProps) {
+  componentWillReceiveProps(nextProps, nextContext) {
     // re-fetch data when router params change
     if (
       !isEqual(this.props.params, nextProps.params) ||
-      this.props.location.search !== nextProps.location.search
+      this.context.router.location.search !== nextContext.router.location.search
     ) {
       this.remountComponent();
     }
@@ -208,10 +212,6 @@ AsyncComponent.errorHandler = (component, fn) => {
       return null;
     }
   };
-};
-
-AsyncComponent.contextTypes = {
-  router: PropTypes.object.isRequired,
 };
 
 export default AsyncComponent;
