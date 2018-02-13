@@ -12,6 +12,7 @@ import {
 } from 'sentry-ui/forms';
 import RadioField from 'settings-ui/forms/radioField';
 import RadioGroup from 'settings-ui/forms/radioGroup';
+import RangeField from 'settings-ui/forms/rangeField';
 import Form from 'settings-ui/forms/form';
 import FormField from 'settings-ui/forms/formField';
 import TextField from 'settings-ui/forms/textField';
@@ -130,5 +131,19 @@ storiesOf('Forms/Fields', module)
           )}
         </FormField>
       </Form>
+    ))
+  )
+  .add(
+    'RangeField',
+    withInfo('Range slider')(() => (
+      <RangeField
+        name="rangeField"
+        label="Toaster Strudle"
+        plural="Toaster Strudles"
+        min={1}
+        max={10}
+        step={1}
+        initialValue={1}
+      />
     ))
   );
