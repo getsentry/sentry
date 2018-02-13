@@ -79,13 +79,17 @@ class JsonForm extends React.Component {
                   if (typeof field === 'function') {
                     return field();
                   }
+
+                  // eslint-disable-next-line no-unused-vars
+                  let {defaultValue, ...fieldWithoutDefaultValue} = field;
+
                   return (
                     <FieldFromConfig
                       access={access}
                       key={field.name}
                       {...otherProps}
                       {...additionalFieldProps}
-                      field={field}
+                      field={fieldWithoutDefaultValue}
                       highlighted={this.state.highlighted === `#${field.name}`}
                     />
                   );

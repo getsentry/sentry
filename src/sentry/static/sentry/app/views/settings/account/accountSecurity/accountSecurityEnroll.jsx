@@ -72,7 +72,7 @@ const getFields = ({authenticator, hasSentCode, onSmsReset, onSmsSubmit, onU2fTa
         visible: () => hasSentCode,
       },
       () => (
-        <PanelItem justify="flex-end" p={2} pr={'36px'}>
+        <PanelItem key="sms-footer" justify="flex-end" p={2} pr={'36px'}>
           {hasSentCode && (
             <Button css={{marginRight: 6}} onClick={onSmsReset}>
               {t('Start Over')}
@@ -93,6 +93,7 @@ const getFields = ({authenticator, hasSentCode, onSmsReset, onSmsSubmit, onU2fTa
       deviceNameField,
       () => (
         <U2fsign
+          key="u2f-enroll"
           style={{marginBottom: 0}}
           challengeData={challenge}
           displayMode="enroll"
@@ -279,6 +280,14 @@ class AccountSecurityEnroll extends AsyncView {
       onU2fTap: this.handleU2fTap,
     });
 
+    const defaultValues = fields
+      .filter(field => typeof field.defaultValue !== 'undefined')
+      .map(field => [field.name, field.defaultValue])
+      .reduce((acc, [name, value]) => {
+        acc[name] = value;
+        return acc;
+      }, {});
+
     return (
       <div>
         <SettingsPageHeader
@@ -307,7 +316,7 @@ class AccountSecurityEnroll extends AsyncView {
               onFieldChange={this.handleFieldChange}
               apiEndpoint={endpoint}
               onSubmit={this.handleSubmit}
-              initialData={authenticator}
+              initialData={{...defaultValues, ...authenticator}}
               hideFooter
             >
               <JsonForm {...this.props} forms={[{title: 'Configuration', fields}]} />
