@@ -116,7 +116,7 @@ class AccountSecurityEnroll extends AsyncView {
     return [['authenticator', `${ENDPOINT}${this.props.params.authId}/enroll/`]];
   }
 
-  handleFieldChange = ({name, value}) => {
+  handleFieldChange = (name, value) => {
     // This should not be used for rendering, that's why it's not in state
     this._form[name] = value;
   };
@@ -176,6 +176,7 @@ class AccountSecurityEnroll extends AsyncView {
           }
         },
         error => {
+          this._form = {};
           let isSmsInterface = authenticator.id === 'sms';
 
           this.setState({
