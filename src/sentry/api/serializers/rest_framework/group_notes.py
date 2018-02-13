@@ -34,7 +34,7 @@ class NoteSerializer(serializers.Serializer):
             # Validate that all mentioned users exist and are on the project.
             users = seperated_actors['users']
 
-            mentioned_user_ids = [user.id for user in users]
+            mentioned_user_ids = set([user.id for user in users])
 
             project = self.context['group'].project
 
@@ -42,23 +42,17 @@ class NoteSerializer(serializers.Serializer):
                 project.member_set.filter(user_id__in=mentioned_user_ids)
                 .values_list('user_id', flat=True)
             )
-            invalid_user_ids = [m for m in mentioned_user_ids if int(m) not in user_ids]
 
-            if invalid_user_ids:
+            if len(mentioned_user_ids) > len(user_ids):
                 raise serializers.ValidationError('Cannot mention a non team member')
 
             # Validate that all mentioned teams exist and are on the project.
             teams = seperated_actors['teams']
-            mentioned_team_ids = [team.id for team in teams]
+            mentioned_team_ids = set([team.id for team in teams])
 
-            team_ids = set(
-                project.teams.filter(id__in=mentioned_team_ids)
-                .values_list('id', flat=True)
-            )
-
-            invalid_team_ids = [m for m in mentioned_team_ids if int(m) not in team_ids]
-
-            if invalid_team_ids:
-                raise serializers.ValidationError('Mentioned team not found')
+            if len(mentioned_team_ids) > project.teams.filter(
+                    id__in={t.id for t in teams}).count():
+                raise serializers.ValidationError(
+                    'Mentioned team not found or not associated with project')
 
         return attrs

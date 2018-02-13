@@ -12,7 +12,7 @@ from sentry.api.serializers.rest_framework.group_notes import NoteSerializer, se
 
 from sentry.api.fields.actor import Actor
 
-from sentry.models import Activity, GroupSubscription, GroupSubscriptionReason, OrganizationMember
+from sentry.models import Activity, GroupSubscription, GroupSubscriptionReason, User
 from sentry.utils.functional import extract_lazy_object
 
 
@@ -66,7 +66,7 @@ class GroupNotesEndpoint(GroupEndpoint):
 
         subscribed_user_ids = set()
 
-        for user in actorMentions.get('users', []):
+        for user in actorMentions.get('users'):
             GroupSubscription.objects.subscribe(
                 group=group,
                 user=user,
@@ -74,16 +74,20 @@ class GroupNotesEndpoint(GroupEndpoint):
             )
             subscribed_user_ids.add(user.id)
 
-        mentioned_teams = actorMentions.get('teams', [])
-        mentioned_team_members = OrganizationMember.objects.filter(
-            organization=group.project.organization,
-            organizationmemberteam__team__in=mentioned_teams,
-            organizationmemberteam__is_active=True,
-            user__is_active=True,
+        mentioned_teams = actorMentions.get('teams')
+
+        mentioned_team_users = User.objects.filter(
+            sentry_orgmember_set__organization_id=group.project.organization_id,
+            sentry_orgmember_set__organizationmemberteam__team__in=mentioned_teams,
+            sentry_orgmember_set__organizationmemberteam__is_active=True,
+            is_active=True,
         )
 
-        for user in [member.user for member in mentioned_team_members
-                     if member.user.id not in subscribed_user_ids]:
+        for user in mentioned_team_users:
+
+            if user.id not in subscribed_user_ids:
+                continue
+
             GroupSubscription.objects.subscribe(
                 group=group,
                 user=user,
