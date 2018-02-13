@@ -4,7 +4,7 @@ import six
 from exam import fixture
 
 from sentry.testutils import APITestCase, UserReportEnvironmentTestCase
-from sentry.models import EventUser, GroupStatus, UserReport
+from sentry.models import EventUser, Environment, GroupStatus, UserReport
 from sentry.event_manager import EventManager
 
 
@@ -89,12 +89,23 @@ class ProjectUserReportListTest(APITestCase):
 
 
 class CreateProjectUserReportTest(APITestCase):
+    def make_environment(self, project, name='production'):
+        environment = Environment.objects.create(
+            project_id=project.id,
+            organization_id=project.organization_id,
+            name=name,
+        )
+        environment.add_project(project)
+        return environment
+
     def test_simple(self):
         self.login_as(user=self.user)
 
         project = self.create_project()
         group = self.create_group(project=project)
-        event = self.create_event(group=group)
+        environment = self.make_environment(project)
+        event = self.create_event(group=group, tags={
+            'environment': environment.name})
 
         url = '/api/0/projects/{}/{}/user-feedback/'.format(
             project.organization.slug,
@@ -127,7 +138,10 @@ class CreateProjectUserReportTest(APITestCase):
 
         project = self.create_project()
         group = self.create_group(project=project)
-        event = self.create_event(group=group)
+        environment = self.make_environment(project)
+        event = self.create_event(group=group, tags={
+            'environment': environment.name})
+
         UserReport.objects.create(
             group=group,
             project=project,
@@ -168,9 +182,11 @@ class CreateProjectUserReportTest(APITestCase):
 
         project = self.create_project()
         group = self.create_group(project=project)
+        environment = self.make_environment(project)
         event = self.create_event(
             group=group, tags={
                 'sentry:user': 'email:foo@example.com',
+                'environment': environment.name,
             }
         )
         euser = EventUser.objects.create(
@@ -219,6 +235,21 @@ class CreateProjectUserReportTest(APITestCase):
 
 
 class ProjectUserReportByEnvironmentsTest(UserReportEnvironmentTestCase):
+
+    def setUp(self):
+        super(ProjectUserReportByEnvironmentsTest, self).setUp()
+        group_2 = self.create_group()
+        env1_events = self.create_events_for_environment(group_2, self.env1, 5)
+        env2_events = self.create_events_for_environment(group_2, self.env2, 5)
+
+        self.env1_userreports += self.create_user_report_for_events(
+            self.project, group_2, env1_events, self.env1)
+        self.env2_userreports += self.create_user_report_for_events(
+            self.project, group_2, env2_events, self.env2)
+
+        self.env1_events += env1_events
+        self.env2_events += env2_events
+
     @fixture
     def path(self):
         return '/api/0/projects/{}/{}/user-feedback/'.format(

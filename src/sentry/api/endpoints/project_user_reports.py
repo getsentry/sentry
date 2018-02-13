@@ -126,10 +126,7 @@ class ProjectUserReportsEndpoint(ProjectEndpoint, EnvironmentMixin):
             except Group.DoesNotExist:
                 pass
         else:
-            try:
-                report.environment = event.get_environment()
-            except Environment.DoesNotExist:
-                pass
+            report.environment = event.get_environment()
             report.group = event.group
 
         try:
