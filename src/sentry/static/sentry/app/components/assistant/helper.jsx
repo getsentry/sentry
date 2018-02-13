@@ -1,6 +1,7 @@
 import React from 'react';
 import Reflux from 'reflux';
 import createReactClass from 'create-react-class';
+import {t} from '../../locale';
 import {fetchGuides} from '../../actionCreators/guides';
 import AssistantCue from './cue';
 import SupportDrawer from './supportDrawer';
@@ -34,7 +35,7 @@ const AssistantHelper = createReactClass({
     }
   },
 
-  onDrawerOpen() {
+  handleDrawerOpen() {
     this.setState({
       isDrawerOpen: true,
     });
@@ -42,18 +43,20 @@ const AssistantHelper = createReactClass({
   },
 
   // This covers both the guide drawer being closed and the guide cue being dismissed.
-  onGuideClose() {
-    GuideActions.guideClose();
+  handleGuideClose() {
+    GuideActions.closeGuide();
   },
 
-  onSupportDrawerClose() {
+  handleSupportDrawerClose() {
     this.setState({
       isDrawerOpen: false,
     });
   },
 
   render() {
-    const cue = this.state.currentGuide ? this.state.currentGuide.cue : 'Need Help?';
+    const cueText = this.state.currentGuide
+      ? this.state.currentGuide.cue
+      : t('Need Help?');
     return (
       <div className="assistant-container">
         {this.state.isDrawerOpen ? (
@@ -61,14 +64,14 @@ const AssistantHelper = createReactClass({
             {this.state.currentGuide ? (
               <GuideDrawer
                 guide={this.state.currentGuide}
-                closeHandler={this.onGuideClose}
+                onClose={this.handleGuideClose}
               />
             ) : (
-              <SupportDrawer closeHandler={this.onSupportDrawerClose} />
+              <SupportDrawer onClose={this.handleSupportDrawerClose} />
             )}
           </div>
         ) : (
-          <AssistantCue cue={cue} onClick={this.onDrawerOpen} />
+          <AssistantCue text={cueText} onClick={this.handleDrawerOpen} />
         )}
       </div>
     );

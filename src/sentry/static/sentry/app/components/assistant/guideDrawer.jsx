@@ -2,6 +2,7 @@ import Reflux from 'reflux';
 import PropTypes from 'prop-types';
 import React from 'react';
 import createReactClass from 'create-react-class';
+import {t} from '../../locale';
 import ApiMixin from '../../mixins/apiMixin';
 import GuideStore from '../../stores/guideStore';
 import GuideActions from '../../actions/guideActions';
@@ -12,7 +13,7 @@ const GuideDrawer = createReactClass({
 
   propTypes: {
     guide: PropTypes.object.isRequired,
-    closeHandler: PropTypes.func.isRequired,
+    onClose: PropTypes.func.isRequired,
   },
 
   mixins: [ApiMixin, Reflux.listenTo(GuideStore, 'onGuideStateChange')],
@@ -29,11 +30,11 @@ const GuideDrawer = createReactClass({
     });
   },
 
-  nextHandler() {
+  handleNext() {
     GuideActions.nextStep();
   },
 
-  usefulHandler(useful) {
+  handleUseful(useful) {
     this.api.request('/assistant/', {
       method: 'PUT',
       data: {
@@ -42,10 +43,10 @@ const GuideDrawer = createReactClass({
         useful,
       },
     });
-    this.props.closeHandler();
+    this.props.onClose();
   },
 
-  dismissHandler() {
+  handleDismiss() {
     this.api.request('/assistant/', {
       method: 'PUT',
       data: {
@@ -53,7 +54,7 @@ const GuideDrawer = createReactClass({
         status: 'dismissed',
       },
     });
-    this.props.closeHandler();
+    this.props.onClose();
   },
 
   render() {
@@ -68,21 +69,21 @@ const GuideDrawer = createReactClass({
         <div>
           {this.state.step < this.props.guide.steps.length - 1 ? (
             <div>
-              <a className="btn btn-default" onClick={this.nextHandler}>
-                Next &rarr;
+              <a className="btn btn-default" onClick={this.handleNext}>
+                {t('Next')} &rarr;
               </a>
-              <a className="btn btn-default" onClick={this.dismissHandler}>
-                Dismiss
+              <a className="btn btn-default" onClick={this.handleDismiss}>
+                {t('Dismiss')}
               </a>
             </div>
           ) : (
             <div>
-              <p>Did you find this guide useful?</p>
-              <a className="btn btn-default" onClick={() => this.usefulHandler(true)}>
-                Yes &nbsp; &#x2714;
+              <p>{t('Did you find this guide useful?')}</p>
+              <a className="btn btn-default" onClick={() => this.handleUseful(true)}>
+                {t('Yes')} &nbsp; &#x2714;
               </a>
-              <a className="btn btn-default" onClick={() => this.usefulHandler(false)}>
-                No &nbsp; &#x2716;
+              <a className="btn btn-default" onClick={() => this.handleUseful(false)}>
+                {t('No')} &nbsp; &#x2716;
               </a>
             </div>
           )}

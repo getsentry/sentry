@@ -7,7 +7,15 @@ export function fetchGuides() {
   api.request('/assistant/', {
     method: 'GET',
     success: data => {
-      GuideActions.fetchSuccess(data);
+      GuideActions.fetchSucceeded(data);
     },
   });
+}
+
+export function registerAnchor(anchor) {
+  GuideActions.registerAnchor(anchor);
+}
+
+export function unregisterAnchor(anchor) {
+  GuideActions.unregisterAnchor(anchor);
 }

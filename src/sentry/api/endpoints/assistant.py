@@ -1,6 +1,6 @@
 from __future__ import absolute_import
 
-from datetime import timedelta
+from django.db import IntegrityError, transaction
 from django.http import HttpResponse
 from django.utils import timezone
 from rest_framework import serializers
@@ -13,8 +13,7 @@ from sentry.models import AssistantActivity
 
 
 VALID_GUIDE_IDS = frozenset(v['id'] for v in GUIDES.values())
-VALID_STATUSES = frozenset(('viewed', 'dismissed', 'snoozed'))
-VALID_SNOOZE_DURATION_HOURS = frozenset((1, 24, 24 * 7))
+VALID_STATUSES = frozenset(('viewed', 'dismissed'))
 
 
 class AssistantSerializer(serializers.Serializer):
@@ -26,41 +25,28 @@ class AssistantSerializer(serializers.Serializer):
         choices=zip(VALID_STATUSES, VALID_STATUSES),
         required=True,
     )
-    duration_hours = serializers.ChoiceField(
-        choices=zip(VALID_SNOOZE_DURATION_HOURS, VALID_SNOOZE_DURATION_HOURS),
-    )
     useful = serializers.BooleanField()
-
-    def validate(self, data):
-        if (data['status'] == 'snoozed' and
-                data.get('duration_hours') not in VALID_SNOOZE_DURATION_HOURS):
-            raise serializers.ValidationError("must specify a valid snooze duration")
-        return data
 
 
 class AssistantEndpoint(Endpoint):
     permission_classes = (IsAuthenticated, )
 
     def get(self, request):
-        """Return all the guides the user has not seen, dismissed, or snoozed."""
-        exclude = AssistantActivity.objects.filter(
+        """Return all the guides the user has not viewed or dismissed."""
+        exclude_ids = AssistantActivity.objects.filter(
             user=request.user,
-        ).exclude(
-            snoozed_until_ts__lt=timezone.now(),
-        )
-        exclude_ids = set(e.id for e in exclude)
+        ).values_list('id', flat=True)
         result = {k: v for k, v in GUIDES.items() if v['id'] not in exclude_ids}
 
         return Response(result)
 
     def put(self, request):
-        """Mark a guide as having been viewed, dismissed, or snoozed.
+        """Mark a guide as having been viewed or dismissed.
 
         Request is of the form {
             'guide_id': <guide_id>,
-            'status': 'viewed' / 'dismissed' / 'snoozed',
-            'useful': true / false / null,
-            'duration_hours': <if snoozed, for how many hours>,
+            'status': 'viewed' / 'dismissed',
+            'useful': true / false,
         }
         """
         serializer = AssistantSerializer(data=request.DATA, partial=True)
@@ -69,7 +55,6 @@ class AssistantEndpoint(Endpoint):
 
         guide_id = request.DATA['guide_id']
         status = request.DATA['status']
-        duration_hours = request.DATA.get('duration_hours')
         useful = request.DATA.get('useful')
 
         fields = {}
@@ -79,11 +64,13 @@ class AssistantEndpoint(Endpoint):
             fields['viewed_ts'] = timezone.now()
         elif status == 'dismissed':
             fields['dismissed_ts'] = timezone.now()
-        else:
-            fields['snoozed_until_ts'] = timezone.now() + timedelta(hours=duration_hours)
 
-        AssistantActivity.objects.get_or_create(
-            user=request.user, guide_id=guide_id, **fields
-        )
+        try:
+            with transaction.atomic():
+                AssistantActivity.objects.create(
+                    user=request.user, guide_id=guide_id, **fields
+                )
+        except IntegrityError:
+            pass
 
         return HttpResponse(status=201)

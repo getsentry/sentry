@@ -2,6 +2,7 @@ import PropTypes from 'prop-types';
 import React from 'react';
 import createReactClass from 'create-react-class';
 import $ from 'jquery';
+import ExternalLink from '../externalLink';
 import HookStore from '../../stores/hookStore';
 
 // SupportDrawer slides up when the user clicks on a "Need Help?" cue.
@@ -9,7 +10,7 @@ const SupportDrawer = createReactClass({
   displayName: 'SupportDrawer',
 
   propTypes: {
-    closeHandler: PropTypes.func.isRequired,
+    onClose: PropTypes.func.isRequired,
   },
 
   getInitialState() {
@@ -30,7 +31,7 @@ const SupportDrawer = createReactClass({
 
   handleChange(evt) {
     evt.preventDefault();
-    let term = encodeURIComponent(evt.currentTarget.value);
+    let term = evt.currentTarget.value;
 
     this.setState({
       inputVal: evt.currentTarget.value,
@@ -39,18 +40,28 @@ const SupportDrawer = createReactClass({
     if (term == '') {
       return;
     }
-    $.get(
-      `https://rigidsearch.getsentry.net/api/search?q=${term}&page=1&section=hosted`,
-      data => {
+    $.ajax({
+      method: 'GET',
+      url: 'https://rigidsearch.getsentry.net/api/search',
+      data: {
+        q: term,
+        page: 1,
+        section: 'hosted',
+      },
+      success: data => {
         this.setState({docResults: data.items});
-      }
-    );
-    $.get(
-      `https://sentry.zendesk.com/api/v2/help_center/articles/search.json?query=${term}`,
-      data => {
+      },
+    });
+    $.ajax({
+      method: 'GET',
+      url: 'https://sentry.zendesk.com/api/v2/help_center/articles/search.json',
+      data: {
+        query: term,
+      },
+      success: data => {
         this.setState({helpcenterResults: data.results});
-      }
-    );
+      },
+    });
   },
 
   renderDocsResults() {
@@ -59,11 +70,14 @@ const SupportDrawer = createReactClass({
       let link = `https://docs.sentry.io/${result.path}/`;
 
       return (
-        <a href={link} target="_blank" key={i + 'doc'}>
-          <li className="search-tag search-tag-docs search-autocomplete-item">
+        <li
+          className="search-tag search-tag-docs search-autocomplete-item"
+          key={i + 'doc'}
+        >
+          <ExternalLink href={link}>
             <span className="title">{title}</span>
-          </li>
-        </a>
+          </ExternalLink>
+        </li>
       );
     });
   },
@@ -71,11 +85,11 @@ const SupportDrawer = createReactClass({
   renderHelpCenterResults() {
     return this.state.helpcenterResults.map((result, i) => {
       return (
-        <a href={result.html_url} target="_blank" key={i}>
-          <li className="search-tag search-tag-qa search-autocomplete-item">
+        <li className="search-tag search-tag-qa search-autocomplete-item" key={i}>
+          <ExternalLink href={result.html_url}>
             <span className="title">{result.title}</span>
-          </li>
-        </a>
+          </ExternalLink>
+        </li>
       );
     });
   },
@@ -98,9 +112,9 @@ const SupportDrawer = createReactClass({
   },
 
   handleKeyUp(evt) {
-    if (evt.key == 'Escape') {
+    if (evt.key === 'Escape') {
       evt.preventDefault();
-      this.props.closeHandler();
+      this.props.onClose();
     }
   },
 
@@ -119,7 +133,7 @@ const SupportDrawer = createReactClass({
           <span className="icon-search" />
           <span
             className="icon-close pull-right search-close"
-            onClick={this.props.closeHandler}
+            onClick={this.props.onClose}
             style={{cursor: 'pointer'}}
           />
           {this.renderDropdownResults()}

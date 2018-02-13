@@ -5,7 +5,7 @@ const GuideStore = Reflux.createStore({
   init() {
     this.state = {
       // All guides returned to us from the server.
-      guides: [],
+      guides: {},
       // We record guides seen on the server, but immediately after a user dismisses a guide
       // it may not have been synced yet, so the local copy helps in filtering correctly.
       guidesSeen: new Set(),
@@ -17,17 +17,19 @@ const GuideStore = Reflux.createStore({
       // is just cued but not opened.
       currentStep: null,
     };
-    this.listenTo(GuideActions.fetchSuccess, this.onFetchSuccess);
-    this.listenTo(GuideActions.guideClose, this.onGuideClose);
+    this.listenTo(GuideActions.fetchSucceeded, this.onFetchSucceeded);
+    this.listenTo(GuideActions.closeGuide, this.onCloseGuide);
     this.listenTo(GuideActions.nextStep, this.onNextStep);
+    this.listenTo(GuideActions.registerAnchor, this.onRegisterAnchor);
+    this.listenTo(GuideActions.unregisterAnchor, this.onUnregisterAnchor);
   },
 
-  onFetchSuccess(data) {
+  onFetchSucceeded(data) {
     this.state.guides = data;
     this.updateCurrentGuide();
   },
 
-  onGuideClose() {
+  onCloseGuide() {
     this.state.guidesSeen.add(this.state.currentGuide.id);
     this.updateCurrentGuide();
   },
@@ -38,36 +40,34 @@ const GuideStore = Reflux.createStore({
     this.trigger(this.state);
   },
 
-  updateCurrentGuide() {
-    let available_targets = [...this.state.anchors].map(a => a.props.target);
-    let bestGuide = null;
-    for (let key in this.state.guides) {
-      let guide = this.state.guides[key];
-      // Only show a guide if it hasn't been seen in this session before and every
-      // anchor needed by the guide is on the page.
-      if (
-        !this.state.guidesSeen.has(guide.id) &&
-        guide.required_targets.every(t => available_targets.indexOf(t) >= 0)
-      ) {
-        bestGuide = guide;
-        break;
-      }
-    }
-    if (bestGuide != this.state.currentGuide) {
-      this.state.currentGuide = bestGuide;
-      this.state.currentStep = null;
-      this.trigger(this.state);
-    }
-  },
-
-  registerAnchor(anchor) {
+  onRegisterAnchor(anchor) {
     this.state.anchors.add(anchor);
     this.updateCurrentGuide();
   },
 
-  unregisterAnchor(anchor) {
+  onUnregisterAnchor(anchor) {
     this.state.anchors.delete(anchor);
     this.updateCurrentGuide();
+  },
+
+  updateCurrentGuide() {
+    let availableTargets = [...this.state.anchors].map(a => a.props.target);
+    let bestGuideKey = Object.keys(this.state.guides).find(key => {
+      // Only show a guide if it hasn't been seen in this session before and every
+      // anchor needed by the guide is on the page.
+      let guide = this.state.guides[key];
+      let seen = this.state.guidesSeen.has(guide.id);
+      let allTargetsPresent = guide.required_targets.every(
+        t => availableTargets.indexOf(t) >= 0
+      );
+      return !seen && allTargetsPresent;
+    });
+    let bestGuide = bestGuideKey ? this.state.guides[bestGuideKey] : null;
+    if (bestGuide !== this.state.currentGuide) {
+      this.state.currentGuide = bestGuide;
+      this.state.currentStep = null;
+      this.trigger(this.state);
+    }
   },
 });
 

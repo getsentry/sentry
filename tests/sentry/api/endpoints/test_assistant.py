@@ -26,14 +26,6 @@ class AssistantActivity(APITestCase):
         })
         assert resp.status_code == 400
 
-        # Invalid snooze duration.
-        resp = self.client.put(self.path, {
-            'guide_id': 1,
-            'status': 'snoozed',
-            'duration_hours': 12,
-        })
-        assert resp.status_code == 400
-
     def test_activity(self):
         resp = self.client.get(self.path)
         assert resp.status_code == 200

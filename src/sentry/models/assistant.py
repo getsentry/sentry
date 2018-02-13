@@ -21,7 +21,7 @@ class AssistantActivity(Model):
     # Time until which the user snoozed the guide.
     snoozed_until_ts = models.DateTimeField(null=True)
     # Whether the user found the guide useful.
-    useful = models.NullBooleanField(default=False, null=True)
+    useful = models.NullBooleanField(null=True)
 
     __repr__ = sane_repr(
         'user',

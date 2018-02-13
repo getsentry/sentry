@@ -21,6 +21,7 @@ const CrashHeader = createReactClass({
     newestFirst: PropTypes.bool.isRequired,
     stackType: PropTypes.string, // 'original', 'minified', or falsy (none)
     onChange: PropTypes.func,
+    hasGuideAnchor: PropTypes.bool,
   },
 
   mixins: [
@@ -94,16 +95,15 @@ const CrashHeader = createReactClass({
 
   render() {
     let {stackView, stackType, newestFirst} = this.props;
-    let crashTitle = this.props.title !== undefined ? this.props.title : t('Exception');
 
     return (
       <div className="crash-title">
         {this.props.beforeTitle}
-        {crashTitle === 'Exception' ? (
+        {this.props.hasGuideAnchor ? (
           <GuideAnchor target="exception" type="text" />
         ) : null}
         <h3 className="pull-left">
-          {crashTitle}
+          {this.props.title}
           <small style={{marginLeft: 5}}>
             (<a
               onClick={this.toggleOrder}
