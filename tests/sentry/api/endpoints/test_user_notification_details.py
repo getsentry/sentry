@@ -63,11 +63,11 @@ class UserNotificationDetailsTest(APITestCase):
         )
         resp = self.client.get(url, format='json')
 
-        assert resp.data.get('deployNotifications') == 3
-        assert resp.data.get('personalActivityNotifications') is False
-        assert resp.data.get('selfAssignOnResolve') is False
-        assert resp.data.get('subscribeByDefault') is True
-        assert resp.data.get('workflowNotifications') == 0
+        assert resp.data.get('deployNotifications').get('default') == 3
+        assert resp.data.get('personalActivityNotifications').get('default') is False
+        assert resp.data.get('selfAssignOnResolve').get('default') is False
+        assert resp.data.get('subscribeByDefault').get('default') is True
+        assert resp.data.get('workflowNotifications').get('default') == 0
 
     def test_saves_and_returns_values(self):
         user = self.create_user(email='a@example.com')
@@ -87,11 +87,11 @@ class UserNotificationDetailsTest(APITestCase):
 
         assert resp.status_code == 200
 
-        assert resp.data.get('deployNotifications') == 2
-        assert resp.data.get('personalActivityNotifications') is True
-        assert resp.data.get('selfAssignOnResolve') is True
-        assert resp.data.get('subscribeByDefault') is True
-        assert resp.data.get('workflowNotifications') == 0
+        assert resp.data.get('deployNotifications').get('default') == 2
+        assert resp.data.get('personalActivityNotifications').get('default') is True
+        assert resp.data.get('selfAssignOnResolve').get('default') is True
+        assert resp.data.get('subscribeByDefault').get('default') is True
+        assert resp.data.get('workflowNotifications').get('default') == 0
 
     def test_reject_invalid_values(self):
         user = self.create_user(email='a@example.com')
