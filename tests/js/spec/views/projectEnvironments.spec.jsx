@@ -1,5 +1,4 @@
 import React from 'react';
-import PropTypes from 'prop-types';
 import {mount} from 'enzyme';
 
 import ProjectEnvironments from 'app/views/projectEnvironments';
@@ -18,14 +17,7 @@ function mountComponent(isHidden) {
       }}
       route={{path}}
     />,
-    {
-      context: {
-        router: TestStubs.router(),
-      },
-      childContextTypes: {
-        router: PropTypes.object,
-      },
-    }
+    TestStubs.routerContext()
   );
 }
 

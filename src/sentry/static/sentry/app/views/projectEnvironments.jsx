@@ -38,7 +38,6 @@ const ProjectEnvironments = createReactClass({
 
     return {
       environments,
-      title: isHidden ? t('Hidden') : t('Active Environments'),
       isHidden,
     };
   },
@@ -58,7 +57,6 @@ const ProjectEnvironments = createReactClass({
       {
         isHidden,
         environments,
-        title: isHidden ? t('Hidden') : t('Active Environments'),
       },
       () => {
         if (environments === null) {
@@ -166,7 +164,9 @@ const ProjectEnvironments = createReactClass({
           }
         />
         <Panel>
-          <PanelHeader>{this.state.title}</PanelHeader>
+          <PanelHeader>
+            {this.state.isHidden ? t('Hidden') : t('Active Environments')}
+          </PanelHeader>
           <PanelBody>
             {environments.length
               ? this.renderEnvironmentList(environments)
