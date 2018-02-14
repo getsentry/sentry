@@ -143,6 +143,18 @@ class UserAuthenticatorDetailsTest(APITestCase):
         authenticator = Authenticator.objects.get(id=auth.id)
         assert len(authenticator.interface.get_registered_devices()) == 1
 
+        # Can't remove last device
+        url = reverse(
+            'sentry-api-0-user-authenticator-device-details',
+            kwargs={
+                'user_id': self.user.id,
+                'auth_id': auth.id,
+                'interface_device_id': 'aowerkoweraowerkkro',
+            }
+        )
+        resp = self.client.delete(url)
+        assert resp.status_code == 500
+
     def test_sms_get_phone(self):
         interface = SmsInterface()
         interface.phone_number = '5551231234'
