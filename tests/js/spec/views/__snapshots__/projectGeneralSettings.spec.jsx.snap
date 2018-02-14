@@ -1,0 +1,559 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`projectGeneralSettings renders 1`] = `
+<SideEffect(DocumentTitle)
+  title="Sentry"
+>
+  <div>
+    <SettingsPageHeading
+      title="Project Settings"
+    />
+    <Form
+      allowUndo={true}
+      apiEndpoint="/projects/org-slug/project-slug/"
+      apiMethod="PUT"
+      cancelLabel="Cancel"
+      className="form-stacked"
+      footerClass="form-actions align-right"
+      initialData={
+        Object {
+          "digestsMaxDelay": 60,
+          "digestsMinDelay": 5,
+          "id": "2",
+          "name": "Project Name",
+          "slug": "project-slug",
+          "subjectTemplate": "[$project] \${tag:level}: $title",
+          "team": undefined,
+        }
+      }
+      onSubmitError={[Function]}
+      onSubmitSuccess={[Function]}
+      requireChanges={false}
+      saveOnBlur={true}
+      submitDisabled={false}
+      submitLabel="Save Changes"
+    >
+      <JsonForm
+        access={
+          Set {
+            "org:read",
+            "org:write",
+            "org:admin",
+            "project:read",
+            "project:write",
+            "project:admin",
+            "team:read",
+            "team:write",
+            "team:admin",
+          }
+        }
+        additionalFieldProps={
+          Object {
+            "organization": Object {
+              "access": Array [
+                "org:read",
+                "org:write",
+                "org:admin",
+                "project:read",
+                "project:write",
+                "project:admin",
+                "team:read",
+                "team:write",
+                "team:admin",
+              ],
+              "features": Array [],
+              "id": "3",
+              "name": "Organization Name",
+              "onboardingTasks": Array [],
+              "slug": "org-slug",
+              "status": Object {
+                "id": "active",
+                "name": "active",
+              },
+              "teams": Array [],
+            },
+          }
+        }
+        fields={
+          Array [
+            Object {
+              "help": "The name of your project",
+              "label": "Project Name",
+              "name": "name",
+              "placeholder": "My Service Name",
+              "required": true,
+              "type": "string",
+            },
+            Object {
+              "help": "A unique ID used to identify this project",
+              "label": "Short Name",
+              "name": "slug",
+              "placeholder": "my-service-name",
+              "required": true,
+              "type": "string",
+            },
+            Object {
+              "choices": [Function],
+              "help": "Update the team that owns this project",
+              "label": "Team",
+              "name": "team",
+              "type": "array",
+              "visible": [Function],
+            },
+          ]
+        }
+        title="Project Details"
+      />
+      <JsonForm
+        access={
+          Set {
+            "org:read",
+            "org:write",
+            "org:admin",
+            "project:read",
+            "project:write",
+            "project:admin",
+            "team:read",
+            "team:write",
+            "team:admin",
+          }
+        }
+        additionalFieldProps={
+          Object {
+            "organization": Object {
+              "access": Array [
+                "org:read",
+                "org:write",
+                "org:admin",
+                "project:read",
+                "project:write",
+                "project:admin",
+                "team:read",
+                "team:write",
+                "team:admin",
+              ],
+              "features": Array [],
+              "id": "3",
+              "name": "Organization Name",
+              "onboardingTasks": Array [],
+              "slug": "org-slug",
+              "status": Object {
+                "id": "active",
+                "name": "active",
+              },
+              "teams": Array [],
+            },
+          }
+        }
+        fields={
+          Array [
+            Object {
+              "help": "Choose a custom prefix for emails from this project",
+              "label": "Subject Prefix",
+              "name": "subjectTemplate",
+              "type": "string",
+            },
+          ]
+        }
+        title="Email"
+      />
+      <JsonForm
+        access={
+          Set {
+            "org:read",
+            "org:write",
+            "org:admin",
+            "project:read",
+            "project:write",
+            "project:admin",
+            "team:read",
+            "team:write",
+            "team:admin",
+          }
+        }
+        additionalFieldProps={
+          Object {
+            "organization": Object {
+              "access": Array [
+                "org:read",
+                "org:write",
+                "org:admin",
+                "project:read",
+                "project:write",
+                "project:admin",
+                "team:read",
+                "team:write",
+                "team:admin",
+              ],
+              "features": Array [],
+              "id": "3",
+              "name": "Organization Name",
+              "onboardingTasks": Array [],
+              "slug": "org-slug",
+              "status": Object {
+                "id": "active",
+                "name": "active",
+              },
+              "teams": Array [],
+            },
+          }
+        }
+        fields={
+          Array [
+            Object {
+              "help": "The default selected environment when viewing issues",
+              "label": "Default Environment",
+              "name": "defaultEnvironment",
+              "placeholder": "production",
+              "type": "string",
+            },
+            Object {
+              "allowedValues": Array [
+                0,
+                1,
+                2,
+                3,
+                4,
+                5,
+                6,
+                7,
+                8,
+                9,
+                10,
+                11,
+                12,
+                15,
+                18,
+                21,
+                24,
+                30,
+                36,
+                48,
+                72,
+                96,
+                120,
+                144,
+                168,
+                192,
+                216,
+                240,
+                264,
+                288,
+                312,
+                336,
+                360,
+                384,
+                408,
+                432,
+                456,
+                480,
+                504,
+                528,
+                552,
+                576,
+                600,
+                624,
+                648,
+                672,
+                696,
+                720,
+              ],
+              "formatLabel": [Function],
+              "help": "Automatically resolve an issue if it hasn't been seen for this amount of time",
+              "label": "Auto Resolve",
+              "name": "resolveAge",
+              "type": "range",
+            },
+          ]
+        }
+        renderFooter={[Function]}
+        title="Event Settings"
+      />
+      <JsonForm
+        access={
+          Set {
+            "org:read",
+            "org:write",
+            "org:admin",
+            "project:read",
+            "project:write",
+            "project:admin",
+            "team:read",
+            "team:write",
+            "team:admin",
+          }
+        }
+        additionalFieldProps={
+          Object {
+            "organization": Object {
+              "access": Array [
+                "org:read",
+                "org:write",
+                "org:admin",
+                "project:read",
+                "project:write",
+                "project:admin",
+                "team:read",
+                "team:write",
+                "team:admin",
+              ],
+              "features": Array [],
+              "id": "3",
+              "name": "Organization Name",
+              "onboardingTasks": Array [],
+              "slug": "org-slug",
+              "status": Object {
+                "id": "active",
+                "name": "active",
+              },
+              "teams": Array [],
+            },
+          }
+        }
+        fields={
+          Array [
+            Object {
+              "disabled": [Function],
+              "disabledReason": "This option is enforced by your organization's settings and cannot be customized per-project.",
+              "help": "Enable server-side data scrubbing",
+              "label": "Data Scrubber",
+              "name": "dataScrubber",
+              "setValue": [Function],
+              "type": "boolean",
+            },
+            Object {
+              "disabled": [Function],
+              "disabledReason": "This option is enforced by your organization's settings and cannot be customized per-project.",
+              "help": "Apply default scrubbers to prevent things like passwords and credit cards from being stored",
+              "label": "Use Default Scrubbers",
+              "name": "dataScrubberDefaults",
+              "setValue": [Function],
+              "type": "boolean",
+            },
+            Object {
+              "disabled": [Function],
+              "disabledReason": "This option is enforced by your organization's settings and cannot be customized per-project.",
+              "help": "Preventing IP addresses from being stored for new events",
+              "label": "Prevent Storing of IP Addresses",
+              "name": "scrubIPAddresses",
+              "setValue": [Function],
+              "type": "boolean",
+            },
+            Object {
+              "getValue": [Function],
+              "help": "Additional field names to match against when scrubbing data. Separate multiple entries with a newline",
+              "label": "Additional Sensitive Fields",
+              "multiline": true,
+              "name": "sensitiveFields",
+              "placeholder": "email",
+              "setValue": [Function],
+              "type": "string",
+            },
+            Object {
+              "getValue": [Function],
+              "help": "Field names which data scrubbers should ignore. Separate multiple entries with a newline",
+              "label": "Safe Fields",
+              "multiline": true,
+              "name": "safeFields",
+              "placeholder": "business-email",
+              "setValue": [Function],
+              "type": "string",
+            },
+          ]
+        }
+        title="Data Privacy"
+      />
+      <JsonForm
+        access={
+          Set {
+            "org:read",
+            "org:write",
+            "org:admin",
+            "project:read",
+            "project:write",
+            "project:admin",
+            "team:read",
+            "team:write",
+            "team:admin",
+          }
+        }
+        additionalFieldProps={
+          Object {
+            "organization": Object {
+              "access": Array [
+                "org:read",
+                "org:write",
+                "org:admin",
+                "project:read",
+                "project:write",
+                "project:admin",
+                "team:read",
+                "team:write",
+                "team:admin",
+              ],
+              "features": Array [],
+              "id": "3",
+              "name": "Organization Name",
+              "onboardingTasks": Array [],
+              "slug": "org-slug",
+              "status": Object {
+                "id": "active",
+                "name": "active",
+              },
+              "teams": Array [],
+            },
+          }
+        }
+        fields={
+          Array [
+            Object {
+              "getValue": [Function],
+              "help": "Separate multiple entries with a newline",
+              "label": "Allowed Domains",
+              "multiline": true,
+              "name": "allowedDomains",
+              "placeholder": "https://example.com or example.com",
+              "setValue": [Function],
+              "type": "string",
+            },
+            Object {
+              "help": "Allow Sentry to scrape missing JavaScript source context when possible",
+              "label": "Enable JavaScript source fetching",
+              "name": "scrapeJavaScript",
+              "type": "boolean",
+            },
+            Object {
+              "help": "Outbound requests matching Allowed Domains will have the header \\"{token_header}: {token}\\" appended",
+              "label": "Security Token",
+              "name": "securityToken",
+              "setValue": [Function],
+              "type": "string",
+            },
+            Object {
+              "help": "Outbound requests matching Allowed Domains will have the header \\"{token_header}: {token}\\" appended.",
+              "label": "Security Token Header",
+              "name": "securityTokenHeader",
+              "placeholder": "X-Sentry-Token",
+              "type": "string",
+            },
+            Object {
+              "help": "Outbound requests will verify TLS (sometimes known as SSL) connections.",
+              "label": "Verify TLS/SSL",
+              "name": "verifySSL",
+              "type": "boolean",
+            },
+          ]
+        }
+        renderHeader={[Function]}
+        title="Client Security"
+      />
+    </Form>
+    <Panel>
+      <PanelHeader>
+        Project Administration
+      </PanelHeader>
+      <Field
+        alignRight={false}
+        disabled={false}
+        help={
+          <span>
+            <span>
+              Remove the 
+            </span>
+            <strong>
+              project-slug
+            </strong>
+            <span>
+               project and all related data. 
+            </span>
+            <br />
+            <span>
+               Careful, this action cannot be undone.
+            </span>
+          </span>
+        }
+        inline={true}
+        label="Remove Project"
+        required={false}
+        visible={true}
+      >
+        <Confirm
+          cancelText="Cancel"
+          confirmText="Remove project"
+          message={
+            <div>
+              <TextBlock>
+                <strong>
+                  Removing this project is permanent and cannot be undone!
+                </strong>
+              </TextBlock>
+              <TextBlock>
+                This will also remove all associated event data.
+              </TextBlock>
+            </div>
+          }
+          onConfirm={[Function]}
+          priority="danger"
+          title="Remove project?"
+        >
+          <div>
+            <Button
+              className="ref-remove-project"
+              disabled={false}
+              priority="danger"
+              type="button"
+            >
+              Remove Project
+            </Button>
+          </div>
+        </Confirm>
+      </Field>
+      <Field
+        alignRight={false}
+        disabled={false}
+        help={
+          <span>
+            <span>
+              Transfer the 
+            </span>
+            <strong>
+              project-slug
+            </strong>
+            <span>
+               project and all related data. 
+            </span>
+            <br />
+            <span>
+               Careful, this action cannot be undone.
+            </span>
+          </span>
+        }
+        inline={true}
+        label="Transfer Project"
+        required={false}
+        visible={true}
+      >
+        <Confirm
+          cancelText="Cancel"
+          confirmText="Transfer project"
+          onConfirm={[Function]}
+          priority="danger"
+          renderMessage={[Function]}
+          title="Transfer project?"
+        >
+          <div>
+            <Button
+              className="ref-transfer-project"
+              disabled={false}
+              priority="danger"
+              type="button"
+            >
+              Transfer Project
+            </Button>
+          </div>
+        </Confirm>
+      </Field>
+    </Panel>
+  </div>
+</SideEffect(DocumentTitle)>
+`;

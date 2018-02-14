@@ -15,7 +15,15 @@ class CommitFileChangeSerializer(Serializer):
                 id__in=[f.commit_id for f in item_list],
             ).select_related('author')
         )
-        users_by_author = get_users_for_commits(commits)
+
+        org_ids = set(item.organization_id for item in item_list)
+        if len(org_ids) == 1:
+            org_id = org_ids.pop()
+        else:
+            org_id = None
+
+        users_by_author = get_users_for_commits(commits, org_id)
+
         commits_by_id = {commit.id: commit for commit in commits}
 
         repo_names_by_id = dict(

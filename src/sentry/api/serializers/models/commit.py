@@ -7,19 +7,19 @@ from sentry.models import Commit, Repository
 from sentry.api.serializers.models.release import get_users_for_authors, CommitAuthor
 
 
-def get_users_for_commits(item_list, user=None):
+def get_users_for_commits(item_list, organization_id, user=None):
     authors = list(
-        CommitAuthor.objects.filter(id__in=[i.author_id for i in item_list if i.author_id])
+        CommitAuthor.objects.filter(
+            organization_id=organization_id,
+            id__in=[i.author_id for i in item_list if i.author_id])
     )
 
     if authors:
-        org_ids = set(item.organization_id for item in item_list)
-        if len(org_ids) == 1:
-            return get_users_for_authors(
-                organization_id=org_ids.pop(),
-                authors=authors,
-                user=user,
-            )
+        return get_users_for_authors(
+            organization_id=organization_id,
+            authors=authors,
+            user=user,
+        )
     return {}
 
 
@@ -31,7 +31,13 @@ class CommitSerializer(Serializer):
 
     def get_attrs(self, item_list, user):
         if 'author' not in self.exclude:
-            users_by_author = get_users_for_commits(item_list, user)
+            org_ids = set(item.organization_id for item in item_list)
+            if len(org_ids) == 1:
+                org_id = org_ids.pop()
+            else:
+                org_id = None
+
+            users_by_author = get_users_for_commits(item_list, org_id, user)
         else:
             users_by_author = {}
 
