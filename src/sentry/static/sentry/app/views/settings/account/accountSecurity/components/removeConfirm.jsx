@@ -14,7 +14,7 @@ class RemoveConfirm extends React.Component {
             <ConfirmHeader>{t('Do you want to remove the method?')}</ConfirmHeader>
             <TextBlock>
               {t(
-                'You will no longer be able to use it for two-factor authentication afterwards. Removing the last authenticator removes two-factor authentication completely.'
+                'Removing the last authentication method will disable two-factor authentication completely.'
               )}
             </TextBlock>
           </React.Fragment>
