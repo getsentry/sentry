@@ -30,10 +30,19 @@ class AsyncComponent extends React.Component {
   }
 
   componentWillReceiveProps(nextProps, nextContext) {
+    const isRouterInContext = !!this.context.router;
+
+    const currentLocation = isRouterInContext
+      ? this.context.router.location
+      : this.props.location;
+    const nextLocation = isRouterInContext
+      ? nextContext.router.location
+      : this.context.router.location;
+
     // re-fetch data when router params change
     if (
       !isEqual(this.props.params, nextProps.params) ||
-      this.context.router.location.search !== nextContext.router.location.search
+      currentLocation.search !== nextLocation.search
     ) {
       this.remountComponent();
     }
