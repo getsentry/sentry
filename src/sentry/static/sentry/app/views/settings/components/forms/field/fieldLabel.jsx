@@ -1,7 +1,7 @@
 import styled from 'react-emotion';
 
-const FormFieldLabel = styled.div`
+const FieldLabel = styled.div`
   color: ${p => p.theme.gray5};
 `;
 
-export default FormFieldLabel;
+export default FieldLabel;
