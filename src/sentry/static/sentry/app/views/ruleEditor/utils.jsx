@@ -36,21 +36,13 @@ function getField(name, data) {
 
 export function getComponent(node) {
   const {label, formFields} = node;
-  const pattern = /{\w+}/g;
-  const res = [];
-  const text = label.split(pattern);
-  const matches = (label.match(pattern) || []).map(match => {
-    const key = match.slice(1, -1);
-    const fieldData = formFields[key];
-    return fieldData ? getField(key, fieldData) : match;
-  });
 
-  while (text.length) {
-    res.push(text.shift());
-    if (matches.length) {
-      res.push(matches.shift());
+  return label.split(/({\w+})/).map(part => {
+    if (!/^{\w+}$/.test(part)) {
+      return part;
     }
-  }
 
-  return res;
+    const key = part.slice(1, -1);
+    return formFields[key] ? getField(key, formFields[key]) : part;
+  });
 }
