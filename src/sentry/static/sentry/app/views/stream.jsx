@@ -530,6 +530,9 @@ const Stream = createReactClass({
   },
 
   onLatestContextChange(context) {
+    // Don't do anything unless environment is changing
+    if (context.environment === this.state.activeEnvironment) return;
+
     if (this.state.hasEnvironmentsFeature) {
       // Always query the currently active environment selection unless
       // the environment parameter is part of the saved search
