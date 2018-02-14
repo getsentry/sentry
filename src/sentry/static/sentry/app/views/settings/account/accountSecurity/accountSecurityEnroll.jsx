@@ -281,12 +281,14 @@ class AccountSecurityEnroll extends AsyncView {
     });
 
     const defaultValues = fields
-      .filter(field => typeof field.defaultValue !== 'undefined')
-      .map(field => [field.name, field.defaultValue])
-      .reduce((acc, [name, value]) => {
-        acc[name] = value;
-        return acc;
-      }, {});
+      ? fields
+          .filter(field => typeof field.defaultValue !== 'undefined')
+          .map(field => [field.name, field.defaultValue])
+          .reduce((acc, [name, value]) => {
+            acc[name] = value;
+            return acc;
+          }, {})
+      : {};
 
     return (
       <div>

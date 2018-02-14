@@ -13,6 +13,7 @@ import PanelHeader from '../../../components/panelHeader';
 import PanelItem from '../../../components/panelItem';
 import TextBlock from '../../../components/text/textBlock';
 import EmptyMessage from '../../../components/emptyMessage';
+import Tooltip from '../../../../../components/tooltip';
 
 /**
  * List u2f devices w/ ability to remove a single device
@@ -36,6 +37,8 @@ class U2fEnrolledDetails extends React.Component {
     if (id !== 'u2f' || !isEnrolled) return null;
 
     let hasDevices = devices && devices.length;
+    // Note Tooltip doesn't work because of bootstrap(?) pointer events for disabled buttons
+    let isLastDevice = hasDevices === 1;
 
     return (
       <Panel css={{marginTop: 30}}>
@@ -43,7 +46,7 @@ class U2fEnrolledDetails extends React.Component {
 
         <PanelBody>
           {!hasDevices && (
-            <EmptyMessage>{t('You have not added any u2f devices')}</EmptyMessage>
+            <EmptyMessage>{t('You have not added any U2F devices')}</EmptyMessage>
           )}
           {hasDevices &&
             devices.map(device => (
@@ -58,21 +61,27 @@ class U2fEnrolledDetails extends React.Component {
                 <Box p={2}>
                   <Confirm
                     onConfirm={() => onRemoveU2fDevice(device)}
+                    disabled={isLastDevice}
                     message={
                       <React.Fragment>
                         <ConfirmHeader>
-                          {t('Do you want to remove u2f device?')}
+                          {t('Do you want to remove U2F device?')}
                         </ConfirmHeader>
                         <TextBlock>
                           {t(
-                            `Are you sure you want to remove the u2f device "${device.name}"?`
+                            `Are you sure you want to remove the U2F device "${device.name}"?`
                           )}
                         </TextBlock>
                       </React.Fragment>
                     }
                   >
                     <Button size="small" priority="danger">
-                      <span className="icon icon-trash" />
+                      <Tooltip
+                        disabled={!isLastDevice}
+                        title={t('Can not remove last U2F device')}
+                      >
+                        <span className="icon icon-trash" />
+                      </Tooltip>
                     </Button>
                   </Confirm>
                 </Box>
