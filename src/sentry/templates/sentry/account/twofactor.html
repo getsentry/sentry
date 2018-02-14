@@ -7,6 +7,13 @@
 
 {% block twofactor_title %}{% trans "Two-factor Authentication" %}{% endblock %}
 {% block twofactor_body %}
+{% if is_not_2fa_compliant %}
+  <p class="well">
+    <span class="icon-exclamation circle-indicator disabled"></span>
+    {% blocktrans  %} The organization you are trying to view requires two-factor authentication. Please enable two-factor authentication to view the organization.{% endblocktrans  %}
+    <a href="/organizations/new/">If you want to create a new organization click here.</a>
+  </p>
+{% endif %}
 {% if has_2fa %}
   <p class="well"><span class="circle-indicator enabled"></span>{% blocktrans  %}Two-factor authentication is <strong>enabled</strong>.{% endblocktrans  %}</p>
 {% else %}
