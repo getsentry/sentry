@@ -250,19 +250,20 @@ class OrganizationIndexEndpoint(Endpoint):
                         actor_id=request.user.id if request.user.is_authenticated() else None
                     )
 
-                    if result.get('agreeTerms'):
-                        terms_accepted.send(
-                            user=request.user,
-                            organization=org,
-                            sender=type(self),
-                        )
-
             except IntegrityError:
                 return Response(
                     {
                         'detail': 'An organization with this slug already exists.'
                     },
                     status=409,
+                )
+
+            # failure on sending this signal is acceptable
+            if result.get('agreeTerms'):
+                terms_accepted.send_robust(
+                    user=request.user,
+                    organization=org,
+                    sender=type(self),
                 )
 
             return Response(serialize(org, request.user), status=201)
