@@ -5,6 +5,7 @@ import Reflux from 'reflux';
 import ReactCSSTransitionGroup from 'react-addons-css-transition-group';
 import styled from 'react-emotion';
 import {ThemeProvider} from 'emotion-theming';
+import {cx} from 'emotion';
 
 import ToastIndicator from '../components/alerts/toastIndicator';
 import IndicatorStore from '../stores/indicatorStore';
@@ -39,10 +40,10 @@ class Indicators extends React.Component {
   };
 
   render() {
-    let {items, ...props} = this.props;
+    let {items, className, ...props} = this.props;
 
     return (
-      <Toasts {...props}>
+      <Toasts {...props} className={cx(className, 'ref-toasts')}>
         <ReactCSSTransitionGroup
           transitionName="toast"
           transitionEnterTimeout={200}
