@@ -3,10 +3,7 @@ import React from 'react';
 import createReactClass from 'create-react-class';
 import styled from 'react-emotion';
 
-import {
-  addErrorMessage,
-  addSuccessMessage,
-} from '../../../actionCreators/settingsIndicator';
+import {addErrorMessage, addSuccessMessage} from '../../../actionCreators/indicator';
 import {t} from '../../../locale';
 import ApiMixin from '../../../mixins/apiMixin';
 import Avatar from '../../../components/avatar';
@@ -70,9 +67,7 @@ const AccountAvatar = createReactClass({
     let {onSave} = this.props;
     this.setState({user});
     onSave(user);
-    addSuccessMessage(t('Successfully saved avatar preferences'), undefined, {
-      disableUndo: true,
-    });
+    addSuccessMessage(t('Successfully saved avatar preferences'));
   },
 
   saveSettings(ev) {

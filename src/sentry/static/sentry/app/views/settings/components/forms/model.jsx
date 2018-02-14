@@ -4,7 +4,7 @@ import _ from 'lodash';
 import {Client} from '../../../../api';
 import {defined} from '../../../../utils';
 import FormState from '../../../../components/forms/state';
-import {addErrorMessage} from '../../../../actionCreators/settingsIndicator';
+import {addErrorMessage} from '../../../../actionCreators/indicator';
 
 class FormModel {
   /**

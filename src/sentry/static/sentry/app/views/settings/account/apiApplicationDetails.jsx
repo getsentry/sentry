@@ -2,10 +2,7 @@ import {Box} from 'grid-emotion';
 import PropTypes from 'prop-types';
 import React from 'react';
 
-import {
-  addErrorMessage,
-  addSuccessMessage,
-} from '../../../actionCreators/settingsIndicator';
+import {addErrorMessage, addSuccessMessage} from '../../../actionCreators/indicator';
 import {t} from '../../../locale';
 import AsyncView from '../../asyncView';
 import ConfigStore from '../../../stores/configStore';
