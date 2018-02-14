@@ -10,6 +10,7 @@ options.register('gitlab.url', flags=FLAG_PRIORITIZE_DISK)
 
 
 class GitLabIdentityProvider(OAuth2Provider):
+
     key = 'gitlab'
     name = 'Gitlab'
 
@@ -30,11 +31,14 @@ class GitLabIdentityProvider(OAuth2Provider):
     def get_oauth_authorize_url(self):
         return '{}/oauth/authorize'.format(options.get('gitlab.url'))
 
+    def get_oauth_refresh_token_url(self):
+        pass
+
     def build_identity(self, data):
         data = data['data']
-
+#        TODO: (iSDP) fix this
         return {
-            'type': 'slack',
+            'type': 'gitlab',
             'id': data['user']['id'],
             'email': data['user']['email'],
             'scopes': sorted(data['scope'].split(',')),

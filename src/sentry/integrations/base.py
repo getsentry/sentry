@@ -1,4 +1,4 @@
-from __future__ import absolute_import
+ from __future__ import absolute_import
 
 __all__ = ['Integration']
 
@@ -90,7 +90,7 @@ class Integration(PipelineProvider):
         >>>     return {
         >>>         'external_id': state['id'],
         >>>         'name': state['name'],
-        >>>         'metadata': {url': state['url']},
+        >>>         'metadata': {'url': state['url']},
         >>>     }
         """
         raise NotImplementedError
