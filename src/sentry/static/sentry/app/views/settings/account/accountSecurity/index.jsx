@@ -44,7 +44,7 @@ class AccountSecurity extends AsyncView {
           })
           .then(this.remountComponent, () => {
             this.setState({loading: false});
-            addErrorMessage(`Error disabling ${auth.name}`);
+            addErrorMessage(t('Error disabling', auth.name));
           })
     );
   };
@@ -114,9 +114,7 @@ class AccountSecurity extends AsyncView {
                           </RemoveConfirm>
                         )}
 
-                      {isBackupInterface && !isEnrolled
-                        ? 'this can only be managed if 2FA is enabled'
-                        : null}
+                      {isBackupInterface && !isEnrolled ? t('requires 2FA') : null}
                     </Flex>
 
                     <Box p={2} pt={0}>
