@@ -5,9 +5,12 @@ import {Link} from 'react-router';
 import ApiMixin from '../../../mixins/apiMixin';
 import Avatar from '../../../components/avatar';
 import Button from '../../../components/buttons/button';
+import IndicatorStore from '../../../stores/indicatorStore';
+import {leaveTeam} from '../../../actionCreators/teams';
 import LoadingError from '../../../components/loadingError';
 import LoadingIndicator from '../../../components/loadingIndicator';
 import OrganizationState from '../../../mixins/organizationState';
+import Tooltip from '../../../components/tooltip';
 import {t} from '../../../locale';
 
 const TeamMembers = createReactClass({
@@ -40,6 +43,37 @@ const TeamMembers = createReactClass({
         this.fetchData
       );
     }
+  },
+
+  removeMember(member) {
+    let {params} = this.props;
+    leaveTeam(
+      this.api,
+      {
+        orgId: params.orgId,
+        teamId: params.teamId,
+        memberId: member.id,
+      },
+      {
+        success: () => {
+          this.setState({
+            memberList: this.state.memberList.filter(m => {
+              return m.id !== member.id;
+            }),
+          });
+          IndicatorStore.add(t('Successfully removed member from team.'), 'success', {
+            duration: 2000,
+          });
+        },
+        error: () => {
+          IndicatorStore.add(
+            t('There was an error while trying to remove a member from the team.'),
+            'error',
+            {duration: 2000}
+          );
+        },
+      }
+    );
   },
 
   fetchData() {
@@ -100,7 +134,6 @@ const TeamMembers = createReactClass({
           <thead>
             <tr>
               <th>{t('Member')}</th>
-              <th>{t('Role')}</th>
             </tr>
           </thead>
           <tbody>
@@ -118,7 +151,23 @@ const TeamMembers = createReactClass({
                     </h5>
                     {member.email}
                   </td>
-                  <td>{member.roleName}</td>
+                  <td>
+                    {access.has('org:write') ? (
+                      <Button size="small" onClick={this.removeMember.bind(this, member)}>
+                        {t('Remove')}
+                      </Button>
+                    ) : (
+                      <Tooltip
+                        title={t("You don't have have permission to remove members")}
+                      >
+                        <span>
+                          <Button size="small" disabled={true}>
+                            {t('Remove')}
+                          </Button>
+                        </span>
+                      </Tooltip>
+                    )}
+                  </td>
                 </tr>
               );
             })}
