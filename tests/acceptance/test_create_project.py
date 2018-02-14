@@ -31,6 +31,7 @@ class CreateProjectTest(AcceptanceTestCase):
 
         self.browser.click('.new-project-submit')
         self.browser.wait_until(title='Java')
+        self.browser.wait_until_not('.loading')
 
         project = Project.objects.get(organization=self.org)
         assert project.name == 'Java'
