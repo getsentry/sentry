@@ -34,7 +34,7 @@ class NoteSerializer(serializers.Serializer):
             # Validate that all mentioned users exist and are on the project.
             users = seperated_actors['users']
 
-            mentioned_user_ids = set([user.id for user in users])
+            mentioned_user_ids = {user.id for user in users}
 
             project = self.context['group'].project
 
@@ -48,7 +48,7 @@ class NoteSerializer(serializers.Serializer):
 
             # Validate that all mentioned teams exist and are on the project.
             teams = seperated_actors['teams']
-            mentioned_team_ids = set([team.id for team in teams])
+            mentioned_team_ids = {team.id for team in teams}
 
             if len(mentioned_team_ids) > project.teams.filter(
                     id__in={t.id for t in teams}).count():
