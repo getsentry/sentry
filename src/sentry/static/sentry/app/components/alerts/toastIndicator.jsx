@@ -71,7 +71,7 @@ function ToastIndicator({indicator, onDismiss, ...props}) {
   let icon;
   let {options, message, type} = indicator;
   let {undo, disableDismiss} = options || {};
-  let showUndo = typeof options.undo === 'function';
+  let showUndo = typeof undo === 'function';
   const handleClick = e => {
     if (disableDismiss) return;
     if (typeof onDismiss === 'function') {
