@@ -9,6 +9,7 @@ from sentry.api.bases.project import ProjectEndpoint
 from sentry.api.serializers import serialize
 from sentry.models import (Release, ReleaseCommit, Commit, CommitFileChange, Event, Group)
 from sentry.api.serializers.models.commit import get_users_for_commits
+from sentry.utils import metrics
 
 from django.db.models import Q
 
@@ -192,6 +193,7 @@ class EventFileCommittersEndpoint(ProjectEndpoint):
         )
 
         committers = self._get_committers(annotated_frames, relevant_commits)
+        metrics.incr('feature.owners.has-committers', instance='hit' if committers else 'miss')
 
         # serialize the commit objects
         serialized_annotated_frames = [
