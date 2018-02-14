@@ -64,15 +64,12 @@ class GroupNotesEndpoint(GroupEndpoint):
         actors = Actor.resolve_many(mentions)
         actor_mentions = seperate_resolved_actors(actors)
 
-        subscribed_user_ids = set()
-
         for user in actor_mentions.get('users'):
             GroupSubscription.objects.subscribe(
                 group=group,
                 user=user,
                 reason=GroupSubscriptionReason.mentioned,
             )
-            subscribed_user_ids.add(user.id)
 
         mentioned_teams = actor_mentions.get('teams')
 
@@ -81,19 +78,14 @@ class GroupNotesEndpoint(GroupEndpoint):
             sentry_orgmember_set__organizationmemberteam__team__in=mentioned_teams,
             sentry_orgmember_set__organizationmemberteam__is_active=True,
             is_active=True,
-        )
+        ).exclude(id__in={u.id for u in actor_mentions.get('users')})
 
         for user in mentioned_team_users:
-
-            if user.id in subscribed_user_ids:
-                continue
-
             GroupSubscription.objects.subscribe(
                 group=group,
                 user=user,
                 reason=GroupSubscriptionReason.team_mentioned,
             )
-            subscribed_user_ids.add(user.id)
 
         activity = Activity.objects.create(
             group=group,
