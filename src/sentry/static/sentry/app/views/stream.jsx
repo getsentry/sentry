@@ -128,8 +128,7 @@ const Stream = createReactClass({
     }
 
     // Do not make new API request if props haven't actually changed
-    // Unless no request has been performed yet
-    if (!_.isEqual(this.props, nextProps) || !this.lastRequest) {
+    if (!_.isEqual(this.props, nextProps)) {
       this.fetchData();
     }
 
