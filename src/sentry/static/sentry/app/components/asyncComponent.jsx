@@ -12,7 +12,7 @@ import RouteError from './../views/routeError';
 
 class AsyncComponent extends React.Component {
   static contextTypes = {
-    router: PropTypes.object.isRequired,
+    router: PropTypes.object,
   };
 
   constructor(props, context) {
@@ -30,10 +30,19 @@ class AsyncComponent extends React.Component {
   }
 
   componentWillReceiveProps(nextProps, nextContext) {
+    const isRouterInContext = !!this.context.router;
+
+    const currentLocation = isRouterInContext
+      ? this.context.router.location
+      : this.props.location;
+    const nextLocation = isRouterInContext
+      ? nextContext.router.location
+      : nextProps.location;
+
     // re-fetch data when router params change
     if (
       !isEqual(this.props.params, nextProps.params) ||
-      this.context.router.location.search !== nextContext.router.location.search
+      currentLocation.search !== nextLocation.search
     ) {
       this.remountComponent();
     }
