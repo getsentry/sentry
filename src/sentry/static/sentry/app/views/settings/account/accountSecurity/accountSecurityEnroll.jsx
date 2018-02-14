@@ -153,7 +153,7 @@ class AccountSecurityEnroll extends AsyncView {
     });
 
     if (!hasSentCode) {
-      addMessage(`Sending code to ${data.phone}...`);
+      addMessage(t('Sending code to %s...', data.phone));
     }
 
     this.api
@@ -169,11 +169,11 @@ class AccountSecurityEnroll extends AsyncView {
               loading: false,
               // authenticator: data,
             });
-            addMessage(`Sent code to ${data.phone}`);
+            addMessage(t('Sent code to %s', data.phone));
           } else {
             // OTP was accepted and SMS was added as a 2fa method
             this.props.router.push('/settings/account/security/');
-            addSuccessMessage(`Added authenticator ${authenticator.name}`);
+            addSuccessMessage(t('Added authenticator %s', authenticator.name));
           }
         },
         error => {
@@ -188,8 +188,8 @@ class AccountSecurityEnroll extends AsyncView {
           this.remountComponent();
 
           let errorMessage = this.state.hasSentCode
-            ? 'Incorrect OTP'
-            : 'Error sending SMS';
+            ? t('Incorrect OTP')
+            : t('Error sending SMS');
           addErrorMessage(errorMessage);
         }
       );
@@ -233,7 +233,7 @@ class AccountSecurityEnroll extends AsyncView {
     let authenticatorName =
       (this.state.authenticator && this.state.authenticator.name) || 'Authenticator';
     this.props.router.push('/settings/account/security');
-    addSuccessMessage(`${authenticatorName} has been added`);
+    addSuccessMessage(t('%s has been added', authenticatorName));
   };
 
   // Handler when we failed to add a 2fa device
@@ -241,7 +241,7 @@ class AccountSecurityEnroll extends AsyncView {
     let authenticatorName =
       (this.state.authenticator && this.state.authenticator.name) || 'Authenticator';
     this.setState({loading: false});
-    addErrorMessage(`Error adding ${authenticatorName} authenticator`);
+    addErrorMessage(t('Error adding %s authenticator', authenticatorName));
   };
 
   // Removes an authenticator
@@ -280,6 +280,7 @@ class AccountSecurityEnroll extends AsyncView {
       onU2fTap: this.handleU2fTap,
     });
 
+    // Attempt to extract `defaultValue` from server generated form fields
     const defaultValues = fields
       ? fields
           .filter(field => typeof field.defaultValue !== 'undefined')
