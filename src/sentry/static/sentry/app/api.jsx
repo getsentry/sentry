@@ -89,7 +89,8 @@ export class Client {
         },
         onClose: () => {
           if (typeof requestOptions.error !== 'function') return;
-          requestOptions.error();
+          // If modal was closed, then forward the original response
+          requestOptions.error(response);
         },
       });
       return;
