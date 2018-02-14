@@ -30,6 +30,10 @@ class AccountSecurity extends AsyncView {
     return [['authenticators', '/users/me/authenticators/']];
   }
 
+  getTitle() {
+    return t('Security');
+  }
+
   handleDisable = auth => {
     if (!auth || !auth.authId) return;
 

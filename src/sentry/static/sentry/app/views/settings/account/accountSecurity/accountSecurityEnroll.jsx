@@ -113,6 +113,10 @@ class AccountSecurityEnroll extends AsyncView {
     this._form = {};
   }
 
+  getTitle() {
+    return t('Security');
+  }
+
   getEndpoints() {
     return [['authenticator', `${ENDPOINT}${this.props.params.authId}/enroll/`]];
   }
