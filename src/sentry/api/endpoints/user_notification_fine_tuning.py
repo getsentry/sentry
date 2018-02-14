@@ -9,7 +9,7 @@ from rest_framework.response import Response
 
 from sentry.api.bases.user import UserEndpoint
 from sentry.api.serializers import serialize, Serializer
-from sentry.models import Organization, Project, UserOption
+from sentry.models import Organization, OrganizationMember, OrganizationMemberTeam, OrganizationStatus, Project, ProjectTeam, UserOption
 
 
 KEY_MAP = {
@@ -35,14 +35,6 @@ KEY_MAP = {
 
 
 class UserNotificationsSerializer(Serializer):
-    def convert_type(self, val, external_type):
-        if (external_type == bool):
-            return int(val)  # '1' is true, '0' is false
-        elif (external_type == int):
-            return int(val)
-        else:
-            return val
-
     def get_attrs(self, item_list, user, *args, **kwargs):
         notification_type = kwargs['notification_type']
         filter_args = {}
@@ -76,7 +68,7 @@ class UserNotificationsSerializer(Serializer):
                 data[uo.organization.id] = uo.value
             elif notification_type == 'reports':
                 # UserOption for key=reports:disabled-organizations saves a list of orgIds
-                # that should be disabled
+                # that should not receive reports
                 for org_id in uo.value:
                     data[org_id] = 0
         return data
@@ -111,12 +103,21 @@ class UserNotificationFineTuningEndpoint(UserEndpoint):
             (user_option, created) = UserOption.objects.get_or_create(**filter_args)
 
             value = user_option.value or []
+
+            # set of org ids that user is a member of
+            org_ids = self.get_org_ids(user)
+
             for org_id, enabled in request.DATA.items():
-                # TODO(billy) Check existence + user permission to org
+                org_id = int(org_id)
+
+                # make sure user is in org
+                if org_id not in org_ids:
+                    return Response(status=status.HTTP_403_FORBIDDEN)
+
                 if enabled:
-                    value.remove(int(org_id))
+                    value.remove(org_id)
                 else:
-                    value.insert(0, int(org_id))
+                    value.insert(0, org_id)
 
             user_option.update(value=value)
             return Response(status=status.HTTP_204_NO_CONTENT)
@@ -124,17 +125,22 @@ class UserNotificationFineTuningEndpoint(UserEndpoint):
         if notification_type in ['alerts', 'workflow']:
             update_key = 'project'
             parent = Project
+            parent_ids = self.get_project_ids(user)
         else:
             update_key = 'organization'
             parent = Organization
+            parent_ids = self.get_org_ids(user)
 
         with transaction.atomic():
-            for slug in request.DATA:
-                val = int(request.DATA[slug])
+            for id in request.DATA:
+                val = int(request.DATA[id])
+
+                # check for org or project membership
+                if int(id) not in parent_ids:
+                    return Response(status=status.HTTP_403_FORBIDDEN)
 
                 try:
-                    # TODO(billy) Check user permission to org/project
-                    model = parent.objects.get(id=slug)
+                    model = parent.objects.get(id=id)
                 except parent.DoesNotExist:
                     return Response(status=status.HTTP_404_NOT_FOUND)
 
@@ -154,3 +160,21 @@ class UserNotificationFineTuningEndpoint(UserEndpoint):
                     user_option.update(value=six.text_type(val) if key['type'] is int else val)
 
             return Response(status=status.HTTP_204_NO_CONTENT)
+
+    def get_org_ids(self, user):
+        """ Get org ids for user """
+        return set(
+            OrganizationMember.objects.filter(
+                user=user,
+                organization__status=OrganizationStatus.ACTIVE
+            ).values_list('organization_id', flat=True)
+        )
+
+    def get_project_ids(self, user):
+        """ Get project ids that user has access to """
+        return set(
+            ProjectTeam.objects.filter(
+                team_id__in=OrganizationMemberTeam.objects.filter(
+                    organizationmember__user=user
+                ).values_list('team_id', flat=True)
+            ).values_list('project_id', flat=True))

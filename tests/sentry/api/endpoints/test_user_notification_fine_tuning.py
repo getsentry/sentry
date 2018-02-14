@@ -9,7 +9,8 @@ from django.core.urlresolvers import reverse
 class UserNotificationFineTuningTest(APITestCase):
     def setUp(self):
         self.user = self.create_user(email='a@example.com')
-        self.org = self.create_organization(name='Org Name')
+        self.org = self.create_organization(name='Org Name', owner=self.user)
+        self.org2 = self.create_organization(name='Another Org', owner=self.user)
         self.team = self.create_team(name='Team Name', organization=self.org, members=[self.user])
         self.project = self.create_project(
             organization=self.org,
@@ -128,29 +129,29 @@ class UserNotificationFineTuningTest(APITestCase):
         )
 
         update = {}
-        update[self.project.id] = 0
-        update[self.project2.id] = 0
+        update[self.org.id] = 0
+        update[self.org2.id] = 0
 
         resp = self.client.put(url, data=update)
         assert resp.status_code == 204
 
         assert UserOption.objects.get(
             user=self.user,
-            key="reports:disabled-organizations").value == [self.project.id, self.project2.id]
+            key="reports:disabled-organizations").value == [self.org.id, self.org2.id]
 
         update = {}
-        update[self.project.id] = 1
+        update[self.org.id] = 1
         resp = self.client.put(url, data=update)
         assert UserOption.objects.get(
             user=self.user,
-            key="reports:disabled-organizations").value == [self.project2.id]
+            key="reports:disabled-organizations").value == [self.org2.id]
 
         update = {}
-        update[self.project.id] = 0
+        update[self.org.id] = 0
         resp = self.client.put(url, data=update)
         assert UserOption.objects.get(
             user=self.user,
-            key="reports:disabled-organizations").value == [self.project.id, self.project2.id]
+            key="reports:disabled-organizations").value == [self.org.id, self.org2.id]
 
     def test_permissions(self):
         new_user = self.create_user(email='b@example.com')
@@ -165,17 +166,33 @@ class UserNotificationFineTuningTest(APITestCase):
         url = reverse(
             'sentry-api-0-user-notifications-fine-tuning', kwargs={
                 'user_id': 'me',
-                'notification_type': 'alerts',
+                'notification_type': 'reports',
             }
         )
 
         update = {}
-        update[new_project.id] = 1
+        update[new_org.id] = 0
 
         resp = self.client.put(url, data=update)
         assert resp.status_code == 403
 
         assert not UserOption.objects.filter(
             user=self.user,
+            organization=new_org,
+            key="reports").exists()
+
+        url = reverse(
+            'sentry-api-0-user-notifications-fine-tuning', kwargs={
+                'user_id': 'me',
+                'notification_type': 'alerts',
+            }
+        )
+        update = {}
+        update[new_project.id] = 1
+        resp = self.client.put(url, data=update)
+        assert resp.status_code == 403
+
+        assert not UserOption.objects.filter(
+            user=self.user,
             project=new_project,
-            key="mail:alert")
+            key="mail:alert").exists()
