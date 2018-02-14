@@ -49,8 +49,6 @@ class AuthenticatorDate extends React.Component {
   };
   render() {
     let {label, date} = this.props;
-    // `date` can be null
-    if (typeof date === 'undefined') return null;
 
     return (
       <Flex mb={1}>
