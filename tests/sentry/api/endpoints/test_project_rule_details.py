@@ -172,6 +172,7 @@ class UpdateProjectRuleTest(APITestCase):
 
         assert response.status_code == 200, response.content
         assert response.data['id'] == six.text_type(rule.id)
+        assert response.data['environment'] == 'production'
 
         rule = Rule.objects.get(id=rule.id)
         assert rule.label == 'hello world'
