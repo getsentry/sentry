@@ -22,7 +22,7 @@ describe('TeamCreate', function() {
 
   describe('onSubmitSuccess()', function() {
     let wrapper;
-    let redirectMock;
+    let locationAssignMock;
 
     beforeEach(function() {
       wrapper = shallow(
@@ -40,15 +40,16 @@ describe('TeamCreate', function() {
           },
         }
       );
-      redirectMock = jest.fn();
-      wrapper.instance().redirect = redirectMock;
+      locationAssignMock = jest.fn();
+      window.location.assign = locationAssignMock;
+      wrapper.instance().redirect = locationAssignMock;
     });
 
     it('redirects to legacy team settings', function() {
       wrapper.instance().onSubmitSuccess({
         slug: 'new-team',
       });
-      expect(redirectMock).toBeCalledWith(
+      expect(locationAssignMock).toBeCalledWith(
         '/organizations/org/projects/new/?team=new-team'
       );
     });
@@ -63,7 +64,9 @@ describe('TeamCreate', function() {
       wrapper.instance().onSubmitSuccess({
         slug: 'new-team',
       });
-      expect(redirectMock).toBeCalledWith('/settings/organization/org/teams/new-team/');
+      expect(locationAssignMock).toBeCalledWith(
+        '/settings/organization/org/teams/new-team/'
+      );
     });
   });
 });
