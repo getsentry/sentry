@@ -222,7 +222,7 @@ class ProjectDSymFile(Model):
 
     @property
     def dsym_type(self):
-        ct = self.file.headers.get('Content-Type').lower()
+        ct = self.file.headers.get('Content-Type', 'unknown').lower()
         return KNOWN_DSYM_TYPES.get(ct, 'unknown')
 
     @property
