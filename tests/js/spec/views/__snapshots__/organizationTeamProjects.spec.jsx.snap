@@ -92,16 +92,31 @@ exports[`OrganizationTeamProjects Should render 1`] = `
             <Component
               className="glamor-7 glamor-8"
             >
+<<<<<<< HEAD
               <div
                 className="glamor-7 glamor-8"
               >
                 <StyledPanelHeading>
                   <Component
+||||||| parent of 1e0a3a81f... give PanelHeading a display name
+              <StyledPanelHeading>
+                <Component
+                  className="glamor-3 glamor-0"
+                >
+                  <_default
+=======
+              <StyledPanelHeading>
+                <Component
+                  className="glamor-3 glamor-0"
+                >
+                  <PanelHeading
+>>>>>>> 1e0a3a81f... give PanelHeading a display name
                     className="glamor-3 glamor-0"
                   >
                     <_default
                       className="glamor-3 glamor-0"
                     >
+<<<<<<< HEAD
                       <div
                         className="glamor-0 glamor-1 glamor-2"
                       >
@@ -112,6 +127,21 @@ exports[`OrganizationTeamProjects Should render 1`] = `
                 </StyledPanelHeading>
               </div>
             </Component>
+||||||| parent of 1e0a3a81f... give PanelHeading a display name
+                      Associated Projects
+                    </div>
+                  </_default>
+                </Component>
+              </StyledPanelHeading>
+            </div>
+=======
+                      Associated Projects
+                    </div>
+                  </PanelHeading>
+                </Component>
+              </StyledPanelHeading>
+            </div>
+>>>>>>> 1e0a3a81f... give PanelHeading a display name
           </StyledPanelHeader>
         </PanelHeader>
         <PanelBody
@@ -134,16 +164,31 @@ exports[`OrganizationTeamProjects Should render 1`] = `
             <Component
               className="glamor-7 glamor-8"
             >
+<<<<<<< HEAD
               <div
                 className="glamor-7 glamor-8"
               >
                 <StyledPanelHeading>
                   <Component
+||||||| parent of 1e0a3a81f... give PanelHeading a display name
+              <StyledPanelHeading>
+                <Component
+                  className="glamor-3 glamor-0"
+                >
+                  <_default
+=======
+              <StyledPanelHeading>
+                <Component
+                  className="glamor-3 glamor-0"
+                >
+                  <PanelHeading
+>>>>>>> 1e0a3a81f... give PanelHeading a display name
                     className="glamor-3 glamor-0"
                   >
                     <_default
                       className="glamor-3 glamor-0"
                     >
+<<<<<<< HEAD
                       <div
                         className="glamor-0 glamor-1 glamor-2"
                       >
@@ -154,6 +199,21 @@ exports[`OrganizationTeamProjects Should render 1`] = `
                 </StyledPanelHeading>
               </div>
             </Component>
+||||||| parent of 1e0a3a81f... give PanelHeading a display name
+                      Other Projects
+                    </div>
+                  </_default>
+                </Component>
+              </StyledPanelHeading>
+            </div>
+=======
+                      Other Projects
+                    </div>
+                  </PanelHeading>
+                </Component>
+              </StyledPanelHeading>
+            </div>
+>>>>>>> 1e0a3a81f... give PanelHeading a display name
           </StyledPanelHeader>
         </PanelHeader>
         <PanelBody

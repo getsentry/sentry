@@ -258,11 +258,25 @@ exports[`AccountSubscriptions renders list and can toggle 1`] = `
                   className="glamor-23 glamor-24"
                   disablePadding={true}
                 >
+<<<<<<< HEAD
                   <div
                     className="glamor-23 glamor-24"
                   >
                     <StyledPanelHeading>
                       <Component
+||||||| parent of 1e0a3a81f... give PanelHeading a display name
+                  <StyledPanelHeading>
+                    <Component
+                      className="glamor-19 glamor-16"
+                    >
+                      <_default
+=======
+                  <StyledPanelHeading>
+                    <Component
+                      className="glamor-19 glamor-16"
+                    >
+                      <PanelHeading
+>>>>>>> 1e0a3a81f... give PanelHeading a display name
                         className="glamor-19 glamor-16"
                       >
                         <_default
@@ -306,6 +320,7 @@ exports[`AccountSubscriptions renders list and can toggle 1`] = `
                                       className="glamor-12"
                                       px={2}
                                     >
+<<<<<<< HEAD
                                       <div
                                         className="glamor-12"
                                         is={null}
@@ -323,6 +338,33 @@ exports[`AccountSubscriptions renders list and can toggle 1`] = `
                     </StyledPanelHeading>
                   </div>
                 </Component>
+||||||| parent of 1e0a3a81f... give PanelHeading a display name
+                                      Subscribed
+                                    </div>
+                                  </Base>
+                                </Box>
+                              </div>
+                            </Base>
+                          </Flex>
+                        </div>
+                      </_default>
+                    </Component>
+                  </StyledPanelHeading>
+                </div>
+=======
+                                      Subscribed
+                                    </div>
+                                  </Base>
+                                </Box>
+                              </div>
+                            </Base>
+                          </Flex>
+                        </div>
+                      </PanelHeading>
+                    </Component>
+                  </StyledPanelHeading>
+                </div>
+>>>>>>> 1e0a3a81f... give PanelHeading a display name
               </StyledPanelHeader>
             </PanelHeader>
             <PanelBody

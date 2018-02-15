@@ -202,11 +202,25 @@ exports[`ProjectSavedSearches renders 1`] = `
               className="glamor-25 glamor-26"
               disablePadding={true}
             >
+<<<<<<< HEAD
               <div
                 className="glamor-25 glamor-26"
               >
                 <StyledPanelHeading>
                   <Component
+||||||| parent of 1e0a3a81f... give PanelHeading a display name
+              <StyledPanelHeading>
+                <Component
+                  className="glamor-21 glamor-18"
+                >
+                  <_default
+=======
+              <StyledPanelHeading>
+                <Component
+                  className="glamor-21 glamor-18"
+                >
+                  <PanelHeading
+>>>>>>> 1e0a3a81f... give PanelHeading a display name
                     className="glamor-21 glamor-18"
                   >
                     <_default
@@ -299,6 +313,7 @@ exports[`ProjectSavedSearches renders 1`] = `
                                           flex="1"
                                           justify="center"
                                         >
+<<<<<<< HEAD
                                           <div
                                             className="glamor-8"
                                             is={null}
@@ -320,6 +335,41 @@ exports[`ProjectSavedSearches renders 1`] = `
                 </StyledPanelHeading>
               </div>
             </Component>
+||||||| parent of 1e0a3a81f... give PanelHeading a display name
+                                          Remove
+                                        </div>
+                                      </Base>
+                                    </Flex>
+                                  </InputColumn>
+                                </div>
+                              </Base>
+                            </Flex>
+                          </div>
+                        </Base>
+                      </Flex>
+                    </div>
+                  </_default>
+                </Component>
+              </StyledPanelHeading>
+            </div>
+=======
+                                          Remove
+                                        </div>
+                                      </Base>
+                                    </Flex>
+                                  </InputColumn>
+                                </div>
+                              </Base>
+                            </Flex>
+                          </div>
+                        </Base>
+                      </Flex>
+                    </div>
+                  </PanelHeading>
+                </Component>
+              </StyledPanelHeading>
+            </div>
+>>>>>>> 1e0a3a81f... give PanelHeading a display name
           </StyledPanelHeader>
         </PanelHeader>
         <PanelBody

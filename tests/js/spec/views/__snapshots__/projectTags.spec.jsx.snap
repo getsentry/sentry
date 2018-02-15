@@ -214,11 +214,25 @@ exports[`ProjectTags renders 1`] = `
                 <Component
                   className="glamor-19 glamor-20"
                 >
+<<<<<<< HEAD
                   <div
                     className="glamor-19 glamor-20"
                   >
                     <StyledPanelHeading>
                       <Component
+||||||| parent of 1e0a3a81f... give PanelHeading a display name
+                  <StyledPanelHeading>
+                    <Component
+                      className="glamor-15 glamor-12"
+                    >
+                      <_default
+=======
+                  <StyledPanelHeading>
+                    <Component
+                      className="glamor-15 glamor-12"
+                    >
+                      <PanelHeading
+>>>>>>> 1e0a3a81f... give PanelHeading a display name
                         className="glamor-15 glamor-12"
                       >
                         <_default
@@ -242,6 +256,7 @@ exports[`ProjectTags renders 1`] = `
                                       className="glamor-8"
                                       flex="1"
                                     >
+<<<<<<< HEAD
                                       <div
                                         className="glamor-8"
                                         is={null}
@@ -259,6 +274,33 @@ exports[`ProjectTags renders 1`] = `
                     </StyledPanelHeading>
                   </div>
                 </Component>
+||||||| parent of 1e0a3a81f... give PanelHeading a display name
+                                      Tags
+                                    </div>
+                                  </Base>
+                                </Box>
+                              </div>
+                            </Base>
+                          </Flex>
+                        </div>
+                      </_default>
+                    </Component>
+                  </StyledPanelHeading>
+                </div>
+=======
+                                      Tags
+                                    </div>
+                                  </Base>
+                                </Box>
+                              </div>
+                            </Base>
+                          </Flex>
+                        </div>
+                      </PanelHeading>
+                    </Component>
+                  </StyledPanelHeading>
+                </div>
+>>>>>>> 1e0a3a81f... give PanelHeading a display name
               </StyledPanelHeader>
             </PanelHeader>
             <PanelBody

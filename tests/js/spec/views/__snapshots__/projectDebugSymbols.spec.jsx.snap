@@ -220,17 +220,32 @@ exports[`ProjectDebugSymbols renders 1`] = `
             <Component
               className="glamor-15 glamor-16"
             >
+<<<<<<< HEAD
               <div
                 className="glamor-15 glamor-16"
               >
                 <StyledPanelHeading>
                   <Component
+||||||| parent of 1e0a3a81f... give PanelHeading a display name
+              <StyledPanelHeading>
+                <Component
+                  className="glamor-11 glamor-8"
+                >
+                  <_default
+=======
+              <StyledPanelHeading>
+                <Component
+                  className="glamor-11 glamor-8"
+                >
+                  <PanelHeading
+>>>>>>> 1e0a3a81f... give PanelHeading a display name
                     className="glamor-11 glamor-8"
                   >
                     <_default
                       className="glamor-11 glamor-8"
                     >
                       <div
+<<<<<<< HEAD
                         className="glamor-8 glamor-9 glamor-10"
                       >
                         <div
@@ -250,6 +265,39 @@ exports[`ProjectDebugSymbols renders 1`] = `
                 </StyledPanelHeading>
               </div>
             </Component>
+||||||| parent of 1e0a3a81f... give PanelHeading a display name
+                        className="app-icon"
+                        style={null}
+                      />
+                      MyApp
+                       
+                      <small>
+                        (
+                        com.example.myapp
+                        )
+                      </small>
+                    </div>
+                  </_default>
+                </Component>
+              </StyledPanelHeading>
+            </div>
+=======
+                        className="app-icon"
+                        style={null}
+                      />
+                      MyApp
+                       
+                      <small>
+                        (
+                        com.example.myapp
+                        )
+                      </small>
+                    </div>
+                  </PanelHeading>
+                </Component>
+              </StyledPanelHeading>
+            </div>
+>>>>>>> 1e0a3a81f... give PanelHeading a display name
           </StyledPanelHeader>
         </PanelHeader>
         <PanelBody

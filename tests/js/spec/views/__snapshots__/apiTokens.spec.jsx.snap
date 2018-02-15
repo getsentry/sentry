@@ -430,11 +430,25 @@ exports[`ApiTokens renders with result 1`] = `
                   className="glamor-23 glamor-24"
                   disablePadding={true}
                 >
+<<<<<<< HEAD
                   <div
                     className="glamor-23 glamor-24"
                   >
                     <StyledPanelHeading>
                       <Component
+||||||| parent of 1e0a3a81f... give PanelHeading a display name
+                  <StyledPanelHeading>
+                    <Component
+                      className="glamor-19 glamor-16"
+                    >
+                      <_default
+=======
+                  <StyledPanelHeading>
+                    <Component
+                      className="glamor-19 glamor-16"
+                    >
+                      <PanelHeading
+>>>>>>> 1e0a3a81f... give PanelHeading a display name
                         className="glamor-19 glamor-16"
                       >
                         <_default
@@ -463,6 +477,7 @@ exports[`ApiTokens renders with result 1`] = `
                                       flex="1"
                                       px={2}
                                     >
+<<<<<<< HEAD
                                       <div
                                         className="glamor-12"
                                         is={null}
@@ -480,6 +495,33 @@ exports[`ApiTokens renders with result 1`] = `
                     </StyledPanelHeading>
                   </div>
                 </Component>
+||||||| parent of 1e0a3a81f... give PanelHeading a display name
+                                      Auth Token
+                                    </div>
+                                  </Base>
+                                </Box>
+                              </div>
+                            </Base>
+                          </Flex>
+                        </div>
+                      </_default>
+                    </Component>
+                  </StyledPanelHeading>
+                </div>
+=======
+                                      Auth Token
+                                    </div>
+                                  </Base>
+                                </Box>
+                              </div>
+                            </Base>
+                          </Flex>
+                        </div>
+                      </PanelHeading>
+                    </Component>
+                  </StyledPanelHeading>
+                </div>
+>>>>>>> 1e0a3a81f... give PanelHeading a display name
               </StyledPanelHeader>
             </PanelHeader>
             <PanelBody
