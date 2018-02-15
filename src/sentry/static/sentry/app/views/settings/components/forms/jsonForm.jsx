@@ -16,7 +16,9 @@ class JsonForm extends React.Component {
     forms: PropTypes.arrayOf(
       PropTypes.shape({
         title: PropTypes.string,
-        fields: PropTypes.arrayOf(FieldFromConfig.propTypes.field),
+        fields: PropTypes.arrayOf(
+          PropTypes.oneOfType([PropTypes.func, FieldFromConfig.propTypes.field])
+        ),
       })
     ).isRequired,
     access: PropTypes.object,
@@ -73,16 +75,25 @@ class JsonForm extends React.Component {
             <Panel key={title} id={title}>
               <PanelHeader>{title}</PanelHeader>
               <PanelBody>
-                {fields.map(field => (
-                  <FieldFromConfig
-                    access={access}
-                    key={field.name}
-                    {...otherProps}
-                    {...additionalFieldProps}
-                    field={field}
-                    highlighted={this.state.highlighted === `#${field.name}`}
-                  />
-                ))}
+                {fields.map(field => {
+                  if (typeof field === 'function') {
+                    return field();
+                  }
+
+                  // eslint-disable-next-line no-unused-vars
+                  let {defaultValue, ...fieldWithoutDefaultValue} = field;
+
+                  return (
+                    <FieldFromConfig
+                      access={access}
+                      key={field.name}
+                      {...otherProps}
+                      {...additionalFieldProps}
+                      field={fieldWithoutDefaultValue}
+                      highlighted={this.state.highlighted === `#${field.name}`}
+                    />
+                  );
+                })}
               </PanelBody>
             </Panel>
           );

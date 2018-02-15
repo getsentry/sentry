@@ -214,6 +214,10 @@ class FormModel {
   setValue(id, value) {
     this.fields.set(id, value);
 
+    if (this.options.onFieldChange) {
+      this.options.onFieldChange(id, value);
+    }
+
     // specifically check for empty string, 0 should be allowed
     if (!this.isValidRequiredField(id)) {
       this.setError(id, 'Field is required');

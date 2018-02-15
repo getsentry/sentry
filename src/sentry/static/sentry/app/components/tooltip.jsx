@@ -9,6 +9,7 @@ import 'bootstrap/js/tooltip';
 class Tooltip extends React.Component {
   static propTypes = {
     children: PropTypes.node.isRequired,
+    disabled: PropTypes.bool,
     tooltipOptions: PropTypes.object,
     title: PropTypes.node,
   };
@@ -51,10 +52,17 @@ class Tooltip extends React.Component {
       className,
       title,
       children,
+      disabled,
       // eslint-disable-next-line no-unused-vars
       tooltipOptions,
       ...props
     } = this.props;
+
+    // Return children as normal if Tooltip is disabled
+    // (this lets us do <Tooltip disabled={isDisabled}><Button>Foo</Button></Tooltip>)
+    if (disabled) {
+      return children;
+    }
 
     return React.cloneElement(children, {
       ...props,
