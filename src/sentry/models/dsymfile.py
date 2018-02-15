@@ -29,7 +29,7 @@ from symbolic import FatObject, SymbolicError, UnsupportedObjectFile, \
     SymCache, SYMCACHE_LATEST_VERSION
 
 from sentry import options
-from sentry.utils.cache import cache
+from sentry.cache import default_cache
 from sentry.db.models import FlexibleForeignKey, Model, \
     sane_repr, BaseManager, BoundedPositiveIntegerField
 from sentry.models.file import File
@@ -69,7 +69,7 @@ def get_assemble_status(project, checksum):
     """
     cache_key = 'assemble-status:%s' % _get_idempotency_id(
         project, checksum)
-    rv = cache.get(cache_key)
+    rv = default_cache.get(cache_key)
     if rv is None:
         return None, None
     return tuple(rv)
@@ -78,7 +78,7 @@ def get_assemble_status(project, checksum):
 def set_assemble_status(project, checksum, state, detail=None):
     cache_key = 'assemble-status:%s' % _get_idempotency_id(
         project, checksum)
-    cache.set(cache_key, (state, detail), 300)
+    default_cache.set(cache_key, (state, detail), 300)
 
 
 class VersionDSymFile(Model):
@@ -561,7 +561,7 @@ class DSymCache(object):
         conversion_errors = {}
         for dsym_file in dsym_files:
             cache_key = 'scbe:%s:%s' % (dsym_file.uuid, dsym_file.file.checksum)
-            err = cache.get(cache_key)
+            err = default_cache.get(cache_key)
             if err is not None:
                 conversion_errors[dsym_file.uuid] = err
 
@@ -578,7 +578,7 @@ class DSymCache(object):
                         continue
                     symcache = o.make_symcache()
             except SymbolicError as e:
-                cache.set('scbe:%s:%s' % (
+                default_cache.set('scbe:%s:%s' % (
                     dsym_uuid, dsym_file.file.checksum), e.message,
                     CONVERSION_ERROR_TTL)
                 conversion_errors[dsym_uuid] = e.message
