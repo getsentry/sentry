@@ -96,45 +96,42 @@ class GroupSubscriptionManager(BaseManager):
 
     def bulk_subscribe(self, group, users, reason=GroupSubscriptionReason.unknown, retrys=0):
         """
-        Subscribe a list of user to an issue, but only if the user has not explicitly
+        Subscribe a list of users to an issue, but only if the users are not explicitly
         unsubscribed.
         """
-        subscriptions = []
+        # 5 retries for race conditions
+        for _ in range(5):
+            subscriptions = []
 
-        explicit_unsubscribes = GroupSubscription.objects.filter(
-            user__in=users,
-            group=group,
-            project=group.project,
-        )
+            explicit_unsubscribes = set(GroupSubscription.objects.filter(
+                user__in=users,
+                group=group,
+                project=group.project,
+            ).values_list('user_id', flat=True))
 
-        existing_subscriptions = set(
-            [subscription.user.id for subscription in explicit_unsubscribes])
+            for user in users:
+                # don't try to subscribe users who have unsubscribed
+                if user.id in explicit_unsubscribes:
+                    continue
 
-        for user in users:
-            # don't try to subscribe users who have unsubscribed
-            if user.id in existing_subscriptions:
-                continue
-
-            subscriptions.append(
-                GroupSubscription(
-                    user=user,
-                    group=group,
-                    project=group.project,
-                    is_active=True,
-                    reason=reason,
+                subscriptions.append(
+                    GroupSubscription(
+                        user=user,
+                        group=group,
+                        project=group.project,
+                        is_active=True,
+                        reason=reason,
+                    )
                 )
-            )
 
-        try:
-            with transaction.atomic():
-                self.bulk_create(subscriptions)
-                return True
-        except IntegrityError as e:
-            if retrys < 4:
-                return self.bulk_subscribe(group, users, reason, retrys + 1)
-            else:
-                # multiple retries haven't worked, so something is wrong
-                raise e
+            try:
+                with transaction.atomic():
+                    self.bulk_create(subscriptions)
+                    return True
+            except IntegrityError:
+                pass
+
+        raise Exception('Bulk_Subscribe failed')
 
     def get_participants(self, group):
         """
