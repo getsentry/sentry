@@ -56,7 +56,8 @@ def assemble_dif(project_id, name, checksum, chunks, **kwargs):
                 bump_reprocessing_revision(project)
 
                 # XXX: this should only be done for files that
-                symcache, error = ProjectDSymFile.dsymcache.get_symcache(project)
+                symcache, error = ProjectDSymFile.dsymcache.get_symcache(
+                    project, file_uuid, with_conversion_errors=True)
                 if error is not None:
                     set_assemble_status(project, checksum, ChunkFileState.ERROR,
                                         detail=error)
