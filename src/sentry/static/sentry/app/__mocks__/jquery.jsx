@@ -5,6 +5,7 @@ let jq = {
   off: () => jq,
   unbind: () => jq,
   ajaxError: () => jq,
+  simpleSlider: () => jq,
 };
 
 export default () => jq;
