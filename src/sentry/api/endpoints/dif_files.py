@@ -1,7 +1,6 @@
 from __future__ import absolute_import
 
 import six
-import hashlib
 import jsonschema
 
 from rest_framework.response import Response
@@ -9,38 +8,8 @@ from rest_framework.response import Response
 from sentry.utils import json
 from sentry.api.serializers import serialize
 from sentry.api.bases.project import ProjectEndpoint, ProjectReleasePermission
-from sentry.models import ChunkFileState, ProjectDSymFile, FileBlob
-from sentry.utils.cache import cache
-
-
-# XXX: move this function
-def get_idempotency_id(project, checksum):
-    """For some operations an idempotency ID is needed."""
-    return hashlib.sha1(b'%s|%s|project.dsym' % (
-        str(project.id).encode('ascii'),
-        checksum.encode('ascii'),
-    ))
-
-
-# XXX: move this function
-def get_assemble_status(project, checksum):
-    """For a given file it checks what the current status of the assembling is.
-    Returns a tuple in the form ``(status, details)`` where details is either
-    `None` or a string identifying an error condition or notice.
-    """
-    cache_key = 'assemble-status:%s' % get_idempotency_id(
-        project, checksum)
-    rv = cache.get(cache_key)
-    if rv is None:
-        return None, None
-    return tuple(rv)
-
-
-# XXX: move this function
-def set_assemble_status(project, checksum, state, detail=None):
-    cache_key = 'assemble-status:%s' % get_idempotency_id(
-        project, checksum)
-    cache.set(cache_key, (state, detail), 300)
+from sentry.models import ChunkFileState, ProjectDSymFile, FileBlob, \
+    get_assemble_status, set_assemble_status
 
 
 def find_missing_chunks(organization, chunks):

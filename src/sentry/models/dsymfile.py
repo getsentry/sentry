@@ -54,6 +54,33 @@ DSYM_MIMETYPES = dict((v, k) for k, v in KNOWN_DSYM_TYPES.items())
 _proguard_file_re = re.compile(r'/proguard/(?:mapping-)?(.*?)\.txt$')
 
 
+def _get_idempotency_id(project, checksum):
+    """For some operations an idempotency ID is needed."""
+    return hashlib.sha1(b'%s|%s|project.dsym' % (
+        str(project.id).encode('ascii'),
+        checksum.encode('ascii'),
+    ))
+
+
+def get_assemble_status(project, checksum):
+    """For a given file it checks what the current status of the assembling is.
+    Returns a tuple in the form ``(status, details)`` where details is either
+    `None` or a string identifying an error condition or notice.
+    """
+    cache_key = 'assemble-status:%s' % _get_idempotency_id(
+        project, checksum)
+    rv = cache.get(cache_key)
+    if rv is None:
+        return None, None
+    return tuple(rv)
+
+
+def set_assemble_status(project, checksum, state, detail=None):
+    cache_key = 'assemble-status:%s' % _get_idempotency_id(
+        project, checksum)
+    cache.set(cache_key, (state, detail), 300)
+
+
 class VersionDSymFile(Model):
     __core__ = False
 

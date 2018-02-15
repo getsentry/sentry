@@ -11,8 +11,7 @@ logger = logging.getLogger(__name__)
 
 @instrumented_task(name='sentry.tasks.assemble.assemble_dif', queue='assemble')
 def assemble_dif(project_id, name, checksum, chunks, **kwargs):
-    from sentry.models import ChunkFileState, dsymfile, Project
-    from sentry.api.endpoints.dif_files import set_assemble_status
+    from sentry.models import ChunkFileState, dsymfile, Project, set_assemble_status
     from sentry.reprocessing import bump_reprocessing_revision
 
     with transaction.atomic():
@@ -47,6 +46,7 @@ def assemble_dif(project_id, name, checksum, chunks, **kwargs):
                     os.path.basename(name),
                     file=file)
                 delete_file = False
+                set_assemble_status(project, checksum, ChunkFileState.OK)
                 bump_reprocessing_revision(project)
 
                 from sentry.tasks.symcache_update import symcache_update
@@ -60,8 +60,7 @@ def assemble_dif(project_id, name, checksum, chunks, **kwargs):
 def assemble_file(project, name, checksum, chunks, file_type):
     '''This assembles multiple chunks into on File.'''
     from sentry.models import File, ChunkFileState, AssembleChecksumMismatch, \
-        FileBlob
-    from sentry.api.endpoints.dif_files import set_assemble_status
+        FileBlob, set_assemble_status
 
     # Load all FileBlobs from db since we can be sure here we already own all
     # chunks need to build the file
