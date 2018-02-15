@@ -12,6 +12,7 @@ import JsonForm from '../components/forms/jsonForm';
 import Panel from '../components/panel';
 import PanelBody from '../components/panelBody';
 import PanelHeader from '../components/panelHeader';
+import SettingsPageHeader from '../components/settingsPageHeader';
 import TextCopyInput from '../components/forms/textCopyInput';
 import apiApplication from '../../../data/forms/apiApplication';
 
@@ -60,6 +61,8 @@ class ApiApplicationDetails extends AsyncView {
 
     return (
       <div>
+        <SettingsPageHeader title={this.getTitle()} />
+
         <Form
           apiMethod="PUT"
           apiEndpoint={`/api-applications/${this.props.params.appId}/`}
