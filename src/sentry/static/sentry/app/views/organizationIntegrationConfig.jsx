@@ -208,7 +208,9 @@ export default class OrganizationIntegrationConfig extends AsyncView {
           </Box>
           <Box mr={1} pr={2}>
             <Confirm
-              message={t('Are you sure you want to remove this integration?')}
+              message={t(
+                'Removing this inegration will disable the integration for all projects. Are you sure you want to remove this integration?'
+              )}
               onConfirm={() => this.deleteIntegration(integration)}
             >
               <Button size="small">
