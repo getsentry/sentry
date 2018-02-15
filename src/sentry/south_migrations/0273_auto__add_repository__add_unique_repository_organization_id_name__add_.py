@@ -21,7 +21,7 @@ class Migration(SchemaMigration):
                     )
                 ), ('name', self.gf('django.db.models.fields.CharField')(max_length=200)), (
                     'date_added',
-                    self.gf('django.db.models.fields.DateTimeField')(default=datetime.datetime.now)
+                    self.gf('django.db.models.fields.DateTimeField')()
                 ),
             )
         )
@@ -47,7 +47,7 @@ class Migration(SchemaMigration):
                     self.gf('sentry.db.models.fields.bounded.BoundedPositiveIntegerField')()
                 ), ('key', self.gf('django.db.models.fields.CharField')(max_length=64)), (
                     'date_added',
-                    self.gf('django.db.models.fields.DateTimeField')(default=datetime.datetime.now)
+                    self.gf('django.db.models.fields.DateTimeField')()
                 ), (
                     'author', self.gf('sentry.db.models.fields.foreignkey.FlexibleForeignKey')(
                         to=orm['sentry.CommitAuthor'], null=True

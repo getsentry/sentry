@@ -20,7 +20,7 @@ class Migration(SchemaMigration):
                     )
                 ), ('hash', self.gf('django.db.models.fields.CharField')(max_length=32)), (
                     'date_added',
-                    self.gf('django.db.models.fields.DateTimeField')(default=datetime.datetime.now)
+                    self.gf('django.db.models.fields.DateTimeField')()
                 ),
             )
         )

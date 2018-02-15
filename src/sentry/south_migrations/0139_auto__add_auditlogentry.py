@@ -28,7 +28,7 @@ class Migration(SchemaMigration):
                 ), ('event', self.gf('django.db.models.fields.PositiveIntegerField')()),
                 ('data', self.gf('sentry.db.models.fields.gzippeddict.GzippedDictField')()), (
                     'datetime',
-                    self.gf('django.db.models.fields.DateTimeField')(default=datetime.datetime.now)
+                    self.gf('django.db.models.fields.DateTimeField')()
                 ),
             )
         )

@@ -12,7 +12,7 @@ class Migration(SchemaMigration):
             'sentry_broadcast',
             'date_expires',
             self.gf('django.db.models.fields.DateTimeField')(
-                default=datetime.datetime(2015, 11, 26, 0, 0), null=True, blank=True
+                null=True, blank=True
             ),
             keep_default=False
         )

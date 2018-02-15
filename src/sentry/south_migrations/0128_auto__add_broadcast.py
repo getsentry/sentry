@@ -27,7 +27,7 @@ class Migration(SchemaMigration):
                     self.gf('django.db.models.fields.BooleanField')(default=True, db_index=True)
                 ), (
                     'date_added',
-                    self.gf('django.db.models.fields.DateTimeField')(default=datetime.datetime.now)
+                    self.gf('django.db.models.fields.DateTimeField')()
                 ),
             )
         )

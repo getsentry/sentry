@@ -12,7 +12,7 @@ class Migration(SchemaMigration):
             'auth_user',
             'last_active',
             self.gf('django.db.models.fields.DateTimeField')(
-                default=datetime.datetime.now, null=True
+                null=True
             ),
             keep_default=False
         )

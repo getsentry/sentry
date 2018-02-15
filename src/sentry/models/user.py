@@ -254,7 +254,7 @@ class User(BaseModel, AbstractBaseUser):
             user=from_user,
             auth_provider__organization__in=AuthIdentity.objects.filter(
                 user=to_user,
-            ).values('auth_provider__organization')
+            ).values_list('auth_provider__organization')
         ).delete()
         AuthIdentity.objects.filter(
             user=from_user,
@@ -277,8 +277,11 @@ class User(BaseModel, AbstractBaseUser):
             status=OrganizationStatus.VISIBLE,
             id__in=OrganizationMember.objects.filter(
                 user=self,
-            ).values('organization'),
+            ).values_list('organization'),
         )
 
     def clear_lost_passwords(self):
         LostPasswordHash.objects.filter(user=self).delete()
+
+
+User._meta.get_field('last_login').null = True

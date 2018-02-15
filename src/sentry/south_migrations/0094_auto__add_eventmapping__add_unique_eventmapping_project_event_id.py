@@ -22,7 +22,7 @@ class Migration(SchemaMigration):
                     self.gf('sentry.db.models.fields.FlexibleForeignKey')(to=orm['sentry.Group'])
                 ), ('event_id', self.gf('django.db.models.fields.CharField')(max_length=32)), (
                     'date_added',
-                    self.gf('django.db.models.fields.DateTimeField')(default=datetime.datetime.now)
+                    self.gf('django.db.models.fields.DateTimeField')()
                 ),
             )
         )

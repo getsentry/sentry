@@ -101,7 +101,7 @@ class OrganizationIndexEndpoint(Endpoint):
             queryset = queryset.filter(
                 id__in=OrganizationMember.objects.filter(
                     user=request.user,
-                ).values('organization'),
+                ).values_list('organization'),
             )
 
         query = request.GET.get('query')
@@ -122,7 +122,7 @@ class OrganizationIndexEndpoint(Endpoint):
                     queryset = queryset.filter(
                         project__in=ProjectPlatform.objects.filter(
                             platform__in=value,
-                        ).values('project_id')
+                        ).values_list('project_id')
                     )
                 elif key == 'id':
                     queryset = queryset.filter(id__in=value)

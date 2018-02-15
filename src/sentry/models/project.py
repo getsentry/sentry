@@ -188,7 +188,7 @@ class Project(Model):
             id__in=OrganizationMember.objects.filter(
                 organizationmemberteam__is_active=True,
                 organizationmemberteam__team__in=self.teams.all(),
-            ).values('id'),
+            ).values_list('id'),
             user__is_active=True,
         ).distinct()
 

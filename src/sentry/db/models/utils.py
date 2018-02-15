@@ -10,17 +10,23 @@ from __future__ import absolute_import
 
 import operator
 
-from uuid import uuid4
-
 from django.db.models import F
-try:
-    from django.db.models.expressions import ExpressionNode
-except ImportError:
-    from django.db.models.expressions import Combinable as ExpressionNode
 from django.utils.crypto import get_random_string
 from django.template.defaultfilters import slugify
+from uuid import uuid4
 
 from sentry.db.exceptions import CannotResolveExpression
+
+
+class _UnknownType(object):
+    pass
+
+try:
+    from django.db.models.expressions import ExpressionNode
+    Value = _UnknownType
+except ImportError:
+    from django.db.models.expressions import Combinable as ExpressionNode, Value
+
 
 EXPRESSION_NODE_CALLBACKS = {
     ExpressionNode.ADD: operator.add,
@@ -41,17 +47,27 @@ except AttributeError:
 
 def resolve_expression_node(instance, node):
     def _resolve(instance, node):
+        if isinstance(node, Value):
+            return node.value
         if isinstance(node, F):
             return getattr(instance, node.name)
-        elif isinstance(node, ExpressionNode):
+        if isinstance(node, ExpressionNode):
             return resolve_expression_node(instance, node)
         return node
 
+    if isinstance(node, Value):
+        return node.value
+    if not hasattr(node, 'connector'):
+        raise CannotResolveExpression
     op = EXPRESSION_NODE_CALLBACKS.get(node.connector, None)
     if not op:
         raise CannotResolveExpression
-    runner = _resolve(instance, node.children[0])
-    for n in node.children[1:]:
+    if hasattr(node, 'children'):
+        children = node.children
+    else:
+        children = [node.lhs, node.rhs]
+    runner = _resolve(instance, children[0])
+    for n in children[1:]:
         runner = op(runner, _resolve(instance, n))
     return runner
 

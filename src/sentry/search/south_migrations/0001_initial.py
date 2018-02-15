@@ -17,8 +17,8 @@ class Migration(SchemaMigration):
         #     ('group', self.gf('sentry.db.models.fields.FlexibleForeignKey')(to=orm['sentry.Group'])),
         #     ('total_events', self.gf('django.db.models.fields.PositiveIntegerField')(default=1)),
         #     ('status', self.gf('django.db.models.fields.PositiveIntegerField')(default=0)),
-        #     ('date_added', self.gf('django.db.models.fields.DateTimeField')(default=datetime.datetime.now)),
-        #     ('date_changed', self.gf('django.db.models.fields.DateTimeField')(default=datetime.datetime.now)),
+        #     ('date_added', self.gf('django.db.models.fields.DateTimeField')()),
+        #     ('date_changed', self.gf('django.db.models.fields.DateTimeField')()),
         # ))
         # db.send_create_signal(u'search', ['SearchDocument'])
 
