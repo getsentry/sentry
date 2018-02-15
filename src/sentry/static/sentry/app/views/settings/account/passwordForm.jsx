@@ -1,9 +1,6 @@
 import React from 'react';
 
-import {
-  addErrorMessage,
-  addSuccessMessage,
-} from '../../../actionCreators/settingsIndicator';
+import {addErrorMessage, addSuccessMessage} from '../../../actionCreators/indicator';
 import {t} from '../../../locale';
 import Form from '../components/forms/form';
 import Button from '../../../components/buttons/button';

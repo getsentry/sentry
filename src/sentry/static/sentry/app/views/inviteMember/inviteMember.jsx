@@ -141,7 +141,7 @@ const InviteMember = createReactClass({
           role: selectedRole,
         },
         success: () => {
-          // TODO(billy): Use SettingsIndicator when these views only exist in Settings area
+          // TODO(billy): Use indicator when these views only exist in Settings area
           AlertActions.addAlert({
             message: `Added ${email}`,
             type: 'success',
