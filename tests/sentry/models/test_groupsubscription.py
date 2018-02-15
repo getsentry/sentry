@@ -100,6 +100,43 @@ class SubscribeTest(TestCase):
         # should not error
         GroupSubscription.objects.subscribe_actor(group=group, actor=team)
 
+    def test_actor_user(self):
+        group = self.create_group()
+        user = self.create_user()
+
+        GroupSubscription.objects.subscribe_actor(group=group, actor=user)
+
+        assert GroupSubscription.objects.filter(
+            group=group,
+            user=user,
+        ).exists()
+
+        # should not error
+        GroupSubscription.objects.subscribe_actor(group=group, actor=user)
+
+    def test_actor_team(self):
+        org = self.create_organization()
+        group = self.create_group(organization=org)
+        user = self.create_user()
+        team = self.create_team(organization=org)
+        self.create_member(
+            user=user,
+            email='bar@example.com',
+            organization=org,
+            role='owner',
+            teams=[team],
+        )
+
+        GroupSubscription.objects.subscribe_actor(group=group, actor=team)
+
+        assert GroupSubscription.objects.filter(
+            group=group,
+            user=user,
+        ).exists()
+
+        # should not error
+        GroupSubscription.objects.subscribe_actor(group=group, actor=team)
+
 
 class GetParticipantsTest(TestCase):
     def test_simple(self):
