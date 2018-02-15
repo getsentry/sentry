@@ -22,4 +22,5 @@ coverage:
   - src/debug_toolbar/.*
   - src/social_auth/.*
   - src/south/.*
+  - src/sentry/static/sentry/app/routes.jsx
 comment: false

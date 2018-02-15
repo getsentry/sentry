@@ -80,13 +80,14 @@ class UserAuthenticatorDetailsEndpoint(UserEndpoint):
         return Response(serialize(interface))
 
     @sudo_required
-    def delete(self, request, user, auth_id):
+    def delete(self, request, user, auth_id, interface_device_id=None):
         """
         Remove authenticator
         ````````````````````
 
         :pparam string user_id: user id or 'me' for current user
         :pparam string auth_id: authenticator model id
+        :pparam string interface_device_id: some interfaces (u2f) allow multiple devices
 
         :auth required:
         """
@@ -99,13 +100,34 @@ class UserAuthenticatorDetailsEndpoint(UserEndpoint):
         except (ValueError, Authenticator.DoesNotExist):
             return Response(status=status.HTTP_404_NOT_FOUND)
 
+        interface = authenticator.interface
+
+        # Remove a single device and not entire authentication method
+        if interface.interface_id == 'u2f' and interface_device_id is not None:
+            # Can't remove if this is the last device, will return False if so
+            if not interface.remove_u2f_device(interface_device_id):
+                return Response(status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+            interface.authenticator.save()
+            capture_security_activity(
+                account=user,
+                type='mfa-removed',
+                actor=request.user,
+                ip_address=request.META['REMOTE_ADDR'],
+                context={
+                    'authenticator': authenticator,
+                },
+                send_email=False
+            )
+            return Response(status=status.HTTP_204_NO_CONTENT)
+
         with transaction.atomic():
             authenticator.delete()
 
             # if we delete an actual authenticator and all that
             # remainds are backup interfaces, then we kill them in the
             # process.
-            if not authenticator.interface.is_backup_interface:
+            if not interface.is_backup_interface:
                 interfaces = Authenticator.objects.all_interfaces_for_user(user)
                 backup_interfaces = [x for x in interfaces if x.is_backup_interface]
                 if len(backup_interfaces) == len(interfaces):
@@ -134,7 +156,7 @@ class UserAuthenticatorDetailsEndpoint(UserEndpoint):
                 context={
                     'authenticator': authenticator,
                 },
-                send_email=not authenticator.interface.is_backup_interface,
+                send_email=not interface.is_backup_interface,
             )
 
         return Response(status=status.HTTP_204_NO_CONTENT)

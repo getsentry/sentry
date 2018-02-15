@@ -217,6 +217,11 @@ urlpatterns = patterns(
         name='sentry-api-0-user-authenticator-enroll'
     ),
     url(
+        r'^users/(?P<user_id>[^\/]+)/authenticators/(?P<auth_id>[^\/]+)/(?P<interface_device_id>[^\/]+)/$',
+        UserAuthenticatorDetailsEndpoint.as_view(),
+        name='sentry-api-0-user-authenticator-device-details'
+    ),
+    url(
         r'^users/(?P<user_id>[^\/]+)/authenticators/(?P<auth_id>[^\/]+)/$',
         UserAuthenticatorDetailsEndpoint.as_view(),
         name='sentry-api-0-user-authenticator-details'
