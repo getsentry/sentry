@@ -22,8 +22,13 @@ export default class TeamCreate extends AsyncView {
       // New behavior: redirect to team settings page
       redirectUrl = `/settings/organization/${orgId}/teams/${data.slug}/`;
     }
-    window.location.href = redirectUrl;
+    this.redirect(redirectUrl);
   };
+
+  // Can't modify window.location directly in Jest/JSDOM
+  redirect(url) {
+    window.location.href = url;
+  }
 
   getTitle() {
     return 'Create Team';
