@@ -6,6 +6,7 @@ import ProjectSelector from './projectSelector';
 import BookmarkToggle from '../projects/bookmarkToggle';
 import DropdownLink from '../dropdownLink';
 import MenuItem from '../menuItem';
+import Button from '../buttons/button';
 
 import {t} from '../../locale';
 
@@ -107,6 +108,16 @@ class ProjectHeader extends React.Component {
                     {env.displayName}
                   </MenuItem>
                 ))}
+                <MenuItem divider={true} />
+                <div style={{textAlign: 'center', padding: '5px 0px'}}>
+                  <Button
+                    to={`/settings/organization/${org.slug}/project/${project.slug}/environments/`}
+                    priority="primary"
+                    size="small"
+                  >
+                    {t('Manage environments')}
+                  </Button>
+                </div>
               </DropdownLink>
             </div>
           )}
