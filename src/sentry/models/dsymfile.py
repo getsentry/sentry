@@ -400,7 +400,7 @@ def create_dsym_from_dif(to_create, project, overwrite_filename=None):
                 result_filename = overwrite_filename
             dsym, created = create_dsym_from_uuid(
                 project, dsym_type, cpu, file_uuid, result_filename,
-                file=f
+                fileobj=f
             )
             if created:
                 rv.append(dsym)
