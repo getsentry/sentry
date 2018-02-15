@@ -2,7 +2,7 @@ import {Box} from 'grid-emotion';
 import PropTypes from 'prop-types';
 import React from 'react';
 
-import {addErrorMessage, saveOnBlurUndoMessage} from '../../../actionCreators/indicator';
+import {addErrorMessage} from '../../../actionCreators/indicator';
 import AsyncView from '../../asyncView';
 import Form from '../components/forms/form';
 import JsonForm from '../components/forms/jsonForm';
@@ -43,9 +43,6 @@ export default class TeamSettings extends AsyncView {
         apiMethod="PUT"
         saveOnBlur
         allowUndo
-        onSubmitSuccess={(change, model, id) => {
-          saveOnBlurUndoMessage(change, model, id);
-        }}
         onSubmitError={() => addErrorMessage('Unable to save change', TOAST_DURATION)}
         initialData={{
           name: team.name,

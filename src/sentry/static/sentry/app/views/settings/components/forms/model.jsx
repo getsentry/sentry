@@ -2,9 +2,12 @@ import {observable, computed, action} from 'mobx';
 import _ from 'lodash';
 
 import {Client} from '../../../../api';
+import {
+  addErrorMessage,
+  saveOnBlurUndoMessage,
+} from '../../../../actionCreators/indicator';
 import {defined} from '../../../../utils';
 import FormState from '../../../../components/forms/state';
-import {addErrorMessage} from '../../../../actionCreators/indicator';
 
 class FormModel {
   /**
@@ -423,15 +426,20 @@ class FormModel {
     if (!savePromise) return null;
 
     return savePromise
-      .then(change => {
+      .then(resp => {
         let newValue = this.getValue(id);
-        let result = {old: oldValue, new: newValue};
+        let change = {old: oldValue, new: newValue};
 
-        if (this.options.onSubmitSuccess) {
-          this.options.onSubmitSuccess(result, this, id);
+        // Only use `allowUndo` option if explicity defined
+        if (typeof this.options.allowUndo === 'undefined' || this.options.allowUndo) {
+          saveOnBlurUndoMessage(change, this, id);
         }
 
-        return result;
+        if (this.options.onSubmitSuccess) {
+          this.options.onSubmitSuccess(resp, this, id, change);
+        }
+
+        return resp;
       })
       .catch(error => {
         if (this.options.onSubmitError) {

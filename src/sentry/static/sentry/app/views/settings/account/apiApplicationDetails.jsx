@@ -2,7 +2,7 @@ import {Box} from 'grid-emotion';
 import PropTypes from 'prop-types';
 import React from 'react';
 
-import {addErrorMessage, addSuccessMessage} from '../../../actionCreators/indicator';
+import {addErrorMessage} from '../../../actionCreators/indicator';
 import {t} from '../../../locale';
 import AsyncView from '../../asyncView';
 import ConfigStore from '../../../stores/configStore';
@@ -38,24 +38,6 @@ class ApiApplicationDetails extends AsyncView {
     return 'Application Details';
   }
 
-  handleSubmitSuccess = (change, model, id) => {
-    if (!model) return;
-
-    let label = model.getDescriptor(id, 'label');
-
-    if (!label) return;
-
-    addSuccessMessage(`Changed ${label} from "${change.old}" to "${change.new}"`, 2000, {
-      model,
-      id,
-    });
-
-    // Special case for slug, need to forward to new slug
-    if (typeof onSave === 'function') {
-      this.props.onSave(this.props.initialData, model.initialData);
-    }
-  };
-
   renderBody() {
     let urlPrefix = ConfigStore.get('urlPrefix');
 
@@ -69,7 +51,6 @@ class ApiApplicationDetails extends AsyncView {
           saveOnBlur
           allowUndo
           initialData={this.state.app}
-          onSubmitSuccess={this.handleSubmitSuccess}
           onSubmitError={err => addErrorMessage('Unable to save change')}
         >
           <Box>

@@ -3,11 +3,20 @@ import FormModel from '../components/forms/model';
 
 class TeamFormModel extends FormModel {
   doApiRequest({data}) {
-    return updateTeam(this.api, {
-      orgId: this.orgId,
-      teamId: this.teamId,
-      data,
-    });
+    return new Promise((resolve, reject) =>
+      updateTeam(
+        this.api,
+        {
+          orgId: this.orgId,
+          teamId: this.teamId,
+          data,
+        },
+        {
+          success: resolve,
+          error: reject,
+        }
+      )
+    );
   }
 }
 
