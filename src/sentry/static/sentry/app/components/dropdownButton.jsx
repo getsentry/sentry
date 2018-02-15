@@ -20,12 +20,12 @@ FakeComponent.propTypes = {
 
 const fakeItems = [
   {
-    searchKey: 'russia',
+    searchKey: 'china',
     content: <FakeComponent text="China" emoji="🇨🇳" />,
   },
   {
     searchKey: 'new zealand',
-    content: <FakeComponent text="Russia" emoji="🇨🇷" />,
+    content: <FakeComponent text="New Zealand" emoji="🇨🇷" />,
   },
   {
     searchKey: 'australia',
