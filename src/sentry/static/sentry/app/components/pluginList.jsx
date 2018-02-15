@@ -1,35 +1,26 @@
 import PropTypes from 'prop-types';
 import React from 'react';
-import createReactClass from 'create-react-class';
 
 import {enablePlugin, disablePlugin} from '../actionCreators/plugins';
-import ApiMixin from '../mixins/apiMixin';
 import InactivePlugins from './inactivePlugins';
 import PluginConfig from './pluginConfig';
 import {t} from '../locale';
 
-
-export default createReactClass({
-  displayName: 'PluginList',
-
-  propTypes: {
+export default class PluginList extends React.Component {
+  static propTypes = {
     organization: PropTypes.object.isRequired,
     project: PropTypes.object.isRequired,
     pluginList: PropTypes.array.isRequired,
     onDisablePlugin: PropTypes.func.isRequired,
     onEnablePlugin: PropTypes.func.isRequired,
-  },
+  };
 
-  mixins: [ApiMixin],
+  static defaultProps = {
+    onDisablePlugin: () => {},
+    onEnablePlugin: () => {},
+  };
 
-  getDefaultProps() {
-    return {
-      onDisablePlugin: () => {},
-      onEnablePlugin: () => {},
-    };
-  },
-
-  handleEnablePlugin(plugin) {
+  handleEnablePlugin = plugin => {
     let {organization, project} = this.props;
     enablePlugin({
       projectId: project.slug,
@@ -38,9 +29,9 @@ export default createReactClass({
     });
 
     this.props.onEnablePlugin(plugin);
-  },
+  };
 
-  handleDisablePlugin(plugin) {
+  handleDisablePlugin = plugin => {
     let {organization, project} = this.props;
     disablePlugin({
       projectId: project.slug,
@@ -49,7 +40,7 @@ export default createReactClass({
     });
 
     this.props.onDisablePlugin(plugin);
-  },
+  };
 
   render() {
     let {organization, pluginList, project} = this.props;
@@ -86,5 +77,5 @@ export default createReactClass({
         />
       </div>
     );
-  },
-});
+  }
+}

@@ -4,7 +4,6 @@ import React from 'react';
 import _ from 'lodash';
 import createReactClass from 'create-react-class';
 
-import {disablePlugin} from '../actionCreators/plugins';
 import {t} from '../locale';
 import ApiMixin from '../mixins/apiMixin';
 import Button from './buttons/button';
@@ -75,9 +74,6 @@ const PluginConfig = createReactClass({
   },
 
   disablePlugin() {
-    let {organization, project, data} = this.props;
-    disablePlugin({projectId: project.slug, orgId: organization.slug, pluginId: data.id});
-
     this.props.onDisablePlugin(this.props.data);
   },
 
