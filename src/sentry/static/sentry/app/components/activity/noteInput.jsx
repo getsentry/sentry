@@ -2,10 +2,16 @@ import PropTypes from 'prop-types';
 import React from 'react';
 import createReactClass from 'create-react-class';
 import marked from 'marked';
+import classNames from 'classnames';
+
 import {MentionsInput, Mention} from 'react-mentions';
+import _ from 'lodash';
 
 import ApiMixin from '../../mixins/apiMixin';
+import OrganizationState from '../../mixins/organizationState';
+
 import GroupStore from '../../stores/groupStore';
+import TeamStore from '../../stores/teamStore';
 import IndicatorStore from '../../stores/indicatorStore';
 import {logException} from '../../utils/logging';
 import localStorage from '../../utils/localStorage';
@@ -18,6 +24,9 @@ function makeDefaultErrorJson() {
   return {detail: t('Unknown error. Please try again.')};
 }
 
+const buildUserId = id => `user:${id}`;
+const buildTeamId = id => `team:${id}`;
+
 const NoteInput = createReactClass({
   displayName: 'NoteInput',
 
@@ -29,20 +38,12 @@ const NoteInput = createReactClass({
     sessionUser: PropTypes.object.isRequired,
   },
 
-  mixins: [ApiMixin],
+  mixins: [ApiMixin, OrganizationState],
 
   getInitialState() {
     let {item, group} = this.props;
     let updating = !!item;
     let defaultText = '';
-
-    let mentionsList = this.props.memberList
-      .filter(member => this.props.sessionUser.id !== member.id)
-      .map(member => ({
-        id: member.id,
-        display: member.name,
-        email: member.email,
-      }));
 
     if (updating) {
       defaultText = item.data.text;
@@ -64,12 +65,21 @@ const NoteInput = createReactClass({
       preview: false,
       updating,
       value: defaultText,
-      mentionsList,
-      mentions: [],
+      memberMentions: [],
+      teamMentions: [],
+      mentionableUsers: this.mentionableUsers(),
+      mentionableTeams: this.mentionableTeams(),
     };
   },
 
   componentWillUpdate(nextProps, nextState) {
+    if (!_.isEqual(nextProps.memberList, this.props.memberList)) {
+      this.setState({
+        mentionableUsers: this.mentionableUsers(),
+        mentionableTeams: this.mentionableTeams(),
+      });
+    }
+
     // We can't support this when editing an existing Note since it'll
     // clobber the other storages
     if (this.state.updating) return;
@@ -117,17 +127,22 @@ const NoteInput = createReactClass({
     }
   },
 
+  cleanMarkdown(text) {
+    return text
+      .replace(/\[sentry\.strip:member\]/g, '@')
+      .replace(/\[sentry\.strip:team\]/g, '#');
+  },
+
   create() {
     let {group} = this.props;
-    let mentions = this.finalMentions();
 
     let loadingIndicator = IndicatorStore.add(t('Posting comment..'));
 
     this.api.request('/issues/' + group.id + '/comments/', {
       method: 'POST',
       data: {
-        text: this.state.value,
-        mentions,
+        text: this.cleanMarkdown(this.state.value),
+        mentions: this.finalizeMentions(),
       },
       error: error => {
         this.setState({
@@ -202,18 +217,27 @@ const NoteInput = createReactClass({
     this.finish();
   },
 
-  onAdd(id, display) {
-    let mentions = this.state.mentions.concat([[id, display]]);
-    this.setState({mentions});
+  onAddMember(id, display) {
+    this.setState(({memberMentions}) => ({
+      memberMentions: [...memberMentions, [id, display]],
+    }));
+  },
+
+  onAddTeam(id, display) {
+    this.setState(({teamMentions}) => ({
+      teamMentions: [...teamMentions, [id, display]],
+    }));
   },
 
   finish() {
     this.props.onFinish && this.props.onFinish();
   },
 
-  finalMentions() {
-    // mention = [id, display]
-    return this.state.mentions
+  finalizeMentions() {
+    let {memberMentions, teamMentions} = this.state;
+
+    // each mention looks like [id, display]
+    return [...memberMentions, ...teamMentions]
       .filter(mention => this.state.value.indexOf(mention[1]) !== -1)
       .map(mention => mention[0]);
   },
@@ -238,20 +262,59 @@ const NoteInput = createReactClass({
     }
   },
 
+  mentionableUsers() {
+    let {memberList, sessionUser} = this.props;
+    return _.uniqBy(memberList, ({id}) => id)
+      .filter(member => sessionUser.id !== member.id)
+      .map(member => ({
+        id: buildUserId(member.id),
+        display: member.name,
+        email: member.email,
+      }));
+  },
+
+  mentionableTeams() {
+    let {group} = this.props;
+
+    return _.uniqBy(TeamStore.getAll(), ({id}) => id)
+      .filter(({projects}) => !!projects.find(p => p.slug === group.project.slug))
+      .map(team => ({
+        id: buildTeamId(team.id),
+        display: team.slug,
+        email: team.id,
+      }));
+  },
+
   render() {
-    let {error, errorJSON, loading, preview, updating, value, mentionsList} = this.state;
-    let classNames = 'activity-field';
-    if (error) {
-      classNames += ' error';
-    }
-    if (loading) {
-      classNames += ' loading';
-    }
+    let {
+      error,
+      errorJSON,
+      loading,
+      preview,
+      updating,
+      value,
+      mentionableUsers,
+      mentionableTeams,
+    } = this.state;
+
+    let hasTeamMentions = new Set(this.getOrganization().features).has(
+      'internal-catchall'
+    );
+    let placeHolderText = hasTeamMentions
+      ? t('Add details or updates to this event. \nTag users with @, or teams with #')
+      : t('Add details or updates to this event. \nTag users with @');
 
     let btnText = updating ? t('Save Comment') : t('Post Comment');
 
     return (
-      <form noValidate className={classNames} onSubmit={this.onSubmit}>
+      <form
+        noValidate
+        className={classNames('activity-field', {
+          error,
+          loading,
+        })}
+        onSubmit={this.onSubmit}
+      >
         <div className="activity-notes">
           <ul className="nav nav-tabs">
             <li className={!preview ? 'active' : ''}>
@@ -273,22 +336,33 @@ const NoteInput = createReactClass({
           ) : (
             <MentionsInput
               style={mentionsStyle}
-              placeholder={t('Add details or updates to this event')}
+              placeholder={placeHolderText}
               onChange={this.onChange}
               onBlur={this.onBlur}
               onKeyDown={this.onKeyDown}
               value={value}
               required={true}
               autoFocus={true}
-              displayTransform={(id, display) => `@${display}`}
-              markup="**__display__**"
+              displayTransform={(id, display, type) =>
+                `${type === 'member' ? '@' : '#'}${display}`}
+              markup="**[sentry.strip:__type__]__display__**"
             >
               <Mention
+                type="member"
                 trigger="@"
-                data={mentionsList}
-                onAdd={this.onAdd}
+                data={mentionableUsers}
+                onAdd={this.onAddMember}
                 appendSpaceOnAdd={true}
               />
+              {hasTeamMentions ? (
+                <Mention
+                  type="team"
+                  trigger="#"
+                  data={mentionableTeams}
+                  onAdd={this.onAddTeam}
+                  appendSpaceOnAdd={true}
+                />
+              ) : null}
             </MentionsInput>
           )}
           <div className="activity-actions">
