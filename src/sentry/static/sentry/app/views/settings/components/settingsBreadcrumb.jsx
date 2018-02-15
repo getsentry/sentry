@@ -89,7 +89,7 @@ const ProjectCrumb = withProjects(
                       }
                     )}
                   >
-                    {`${latestProject.name} (${latestProject.slug})`}
+                    {latestProject.slug}
                   </StyledLink>
                 </div>
               )}
@@ -106,7 +106,7 @@ const ProjectCrumb = withProjects(
               active={project.slug === params.projectId}
               key={project.slug}
             >
-              {project.name} ({project.slug})
+              {project.slug}
             </MenuItem>
           ))}
         </SettingsBreadcrumbDropdown>
