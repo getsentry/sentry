@@ -1,3 +1,8 @@
+// remove leading and trailing whitespace and remove double spaces
+function formatQueryString(qs) {
+  return qs.replace(/^\s+|\s+$/g, '').replace(/\s+/g, ' ');
+}
+
 // returns environment name from query or null if not specified
 function getQueryEnvironment(qs) {
   const match = qs.match(/environment:(\w*)/);
@@ -5,11 +10,14 @@ function getQueryEnvironment(qs) {
 }
 
 function getQueryStringWithEnvironment(qs, env) {
-  let qsWithoutEnv = qs.replace(/environment:\w+/g, '');
-  return env === null ? qsWithoutEnv : qsWithoutEnv + ` environment:${env}`;
+  const qsWithoutEnv = qs.replace(/environment:\w+/g, '');
+  return formatQueryString(
+    env === null ? qsWithoutEnv : qsWithoutEnv + ` environment:${env}`
+  );
 }
 
 export default {
+  formatQueryString,
   getQueryEnvironment,
   getQueryStringWithEnvironment,
 };

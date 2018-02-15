@@ -370,7 +370,7 @@ const Stream = createReactClass({
     let url = this.getGroupListEndpoint();
 
     // Remove leading and trailing whitespace
-    let query = this.state.query.replace(/^\s+|\s+$/g, '');
+    let query = streamUtils.formatQueryString(this.state.query);
 
     let activeEnvironment = this.state.activeEnvironment;
     let activeEnvName = activeEnvironment ? activeEnvironment.name : null;
