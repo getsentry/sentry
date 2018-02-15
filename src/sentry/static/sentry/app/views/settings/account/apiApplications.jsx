@@ -4,6 +4,12 @@ import PropTypes from 'prop-types';
 import React from 'react';
 import createReactClass from 'create-react-class';
 
+import {
+  addErrorMessage,
+  addLoadingMessage,
+  addSuccessMessage,
+  removeIndicator,
+} from '../../../actionCreators/indicator';
 import {t} from '../../../locale';
 import ApiMixin from '../../../mixins/apiMixin';
 import AsyncView from '../../asyncView';
@@ -111,16 +117,17 @@ class ApiApplications extends AsyncView {
   }
 
   handleCreateApplication = () => {
-    let loadingIndicator = IndicatorStore.add(t('Saving changes..'));
+    let indicator = addLoadingMessage();
     this.api.request('/api-applications/', {
       method: 'POST',
       success: app => {
-        IndicatorStore.remove(loadingIndicator);
+        addSuccessMessage(t('Created a new API Application'));
+        removeIndicator(indicator);
         this.context.router.push(`${ROUTE_PREFIX}applications/${app.id}/`);
       },
       error: error => {
-        IndicatorStore.remove(loadingIndicator);
-        IndicatorStore.add(t('Unable to remove application. Please try again.'), 'error');
+        removeIndicator(indicator);
+        addErrorMessage(t('Unable to remove application. Please try again.'));
       },
     });
   };
