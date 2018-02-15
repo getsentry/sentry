@@ -181,6 +181,41 @@ class UpdateProjectRuleTest(APITestCase):
             'production',
         ).id
 
+    def test_with_null_environment(self):
+        self.login_as(user=self.user)
+
+        project = self.create_project()
+
+        rule = Rule.objects.create(project=project, label='foo')
+
+        url = reverse(
+            'sentry-api-0-project-rule-details',
+            kwargs={
+                'organization_slug': project.organization.slug,
+                'project_slug': project.slug,
+                'rule_id': rule.id,
+            }
+        )
+        response = self.client.put(
+            url,
+            data={
+                'name': 'hello world',
+                'environment': None,
+                'actionMatch': 'any',
+                'actions': [],
+                'conditions': []
+            },
+            format='json'
+        )
+
+        assert response.status_code == 200, response.content
+        assert response.data['id'] == six.text_type(rule.id)
+        assert response.data['environment'] is None
+
+        rule = Rule.objects.get(id=rule.id)
+        assert rule.label == 'hello world'
+        assert rule.environment_id is None
+
     def test_invalid_rule_node_type(self):
         self.login_as(user=self.user)
 
