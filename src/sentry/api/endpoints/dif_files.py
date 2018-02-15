@@ -18,7 +18,7 @@ def find_missing_chunks(organization, chunks):
         return []
     missing = set(chunks)
     for blob in FileBlob.objects.filter(checksum__in=chunks):
-        chunks.discard(blob.checksum)
+        missing.discard(blob.checksum)
     return list(missing)
 
 

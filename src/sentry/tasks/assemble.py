@@ -78,7 +78,7 @@ def assemble_file(project, name, checksum, chunks, file_type):
 
     # Sanity check.  In case not all blobs exist at this point we have a
     # race condition.
-    if [x.checksum for x in file_blob_ids] != chunks:
+    if [x.checksum for x in file_blobs] != chunks:
         set_assemble_status(project, checksum, ChunkFileState.ERROR,
                             detail='Not all chunks available for assembling')
         return
