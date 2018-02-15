@@ -94,29 +94,55 @@ class GroupSubscriptionManager(BaseManager):
         except IntegrityError:
             pass
 
-    def bulk_subscribe(self, group, users, reason=GroupSubscriptionReason.unknown, retrys=0):
+    def subscribe_actor(self, group, actor, reason=GroupSubscriptionReason.unknown):
+        from sentry.models import User, Team
+
+        if isinstance(actor, User):
+            return self.subscribe(group, actor, reason)
+        elif isinstance(actor, Team):
+            # subscribe the members of the team
+
+            # todo(maxbittker) keep this as a query
+            team_users_ids = [a.user_id for a in actor.member_set]
+
+            return self.bulk_subscribe(group, team_users_ids, reason)
+        else:
+            raise NotImplementedError('Uknown actor type')
+
+    def bulk_subscribe(self, group, users, reason=GroupSubscriptionReason.unknown):
         """
-        Subscribe a list of users to an issue, but only if the users are not explicitly
+        Subscribe a list of users or users ids to an issue, but only if the users are not explicitly
         unsubscribed.
         """
+        from sentry.models import User
+
+        if not users:
+            return
+
+        if isinstance(users[0], User):
+            user_ids = {user.id for user in users}
+        else:
+            user_ids = users
+
         # 5 retries for race conditions
         for _ in range(5):
-            subscriptions = []
 
-            explicit_unsubscribes = set(GroupSubscription.objects.filter(
-                user__in=users,
+            existing_subscriptions = set(GroupSubscription.objects.filter(
+                user_id__in=user_ids,
                 group=group,
                 project=group.project,
             ).values_list('user_id', flat=True))
 
-            for user in users:
+            subscriptions = []
+
+            for user_id in user_ids:
                 # don't try to subscribe users who have unsubscribed
-                if user.id in explicit_unsubscribes:
+                if user_id in existing_subscriptions:
                     continue
 
                 subscriptions.append(
                     GroupSubscription(
-                        user=user,
+                        user_id=user_id,
                         group=group,
                         project=group.project,
                         is_active=True,
