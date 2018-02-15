@@ -12,23 +12,24 @@ const inputStyles = props => {
     color: ${props.theme.gray5};
     display: block;
     width: 100%;
-    background: ${props.theme.offWhite};
-    border: 1px solid ${props.theme.borderLight};
-    border-radius: 2px;
+    background: #fff;
+    border: 1px solid ${props.theme.borderDark};
+    border-radius: ${props.theme.borderRadius};
+    box-shadow: inset ${props.theme.dropShadowLight};
     padding: 0.5em;
-    transition: border 0.2s ease;
+    transition: border 0.1s linear;
     resize: vertical;
 
     ${readOnlyStyle(props)};
 
     &:focus {
       outline: none;
-      background: #fff;
     }
 
     &:hover,
-    &:focus {
-      border: 1px solid ${props.theme.borderDark};
+    &:focus,
+    &:active {
+      border: 1px solid ${props.theme.gray1};
     }
 
     &::placeholder {

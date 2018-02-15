@@ -213,11 +213,12 @@ exports[`ApiTokens renders with result 1`] = `
 .glamor-27 {
   display: block;
   width: 100%;
+  background: #fff;
   border: 1px solid;
-  border-radius: 2px;
+  box-shadow: inset;
   padding: 0.5em;
-  -webkit-transition: border 0.2s ease;
-  transition: border 0.2s ease;
+  -webkit-transition: border 0.1s linear;
+  transition: border 0.1s linear;
   resize: vertical;
   cursor: default;
   border-right-width: 0;
@@ -227,11 +228,11 @@ exports[`ApiTokens renders with result 1`] = `
 
 .glamor-27:focus {
   outline: none;
-  background: #fff;
 }
 
 .glamor-27:hover,
-.glamor-27:focus {
+.glamor-27:focus,
+.glamor-27:active {
   border: 1px solid;
 }
 
