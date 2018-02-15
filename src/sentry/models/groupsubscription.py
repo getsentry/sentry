@@ -131,9 +131,9 @@ class GroupSubscriptionManager(BaseManager):
                 return True
         except IntegrityError as e:
             if retrys < 4:
-                self.bulk_subscribe(group, users, reason, retrys + 1)
+                return self.bulk_subscribe(group, users, reason, retrys + 1)
             else:
-                # three ret
+                # multiple retries haven't worked, so something is wrong
                 raise e
 
     def get_participants(self, group):
