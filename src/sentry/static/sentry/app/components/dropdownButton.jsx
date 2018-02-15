@@ -3,23 +3,43 @@ import React from 'react';
 import _ from 'lodash';
 import AutoComplete from './autoComplete';
 
+const FakeComponent = ({text, emoji}) => (
+  <div>
+    <span style={{marginRight: '.25em'}}>{emoji}</span>
+    {text}
+  </div>
+);
+
+FakeComponent.propTypes = {
+  text: PropTypes.string,
+  emoji: PropTypes.string,
+};
+
 const fakeItems = [
   {
-    name: 'Cat',
+    id: 'russia',
+    searchKey: 'russia',
+    content: <FakeComponent text="China" emoji="🇨🇳" />,
   },
   {
-    name: 'Birb',
+    id: 'new-zealand',
+    searchKey: 'new zealand',
+    content: <FakeComponent text="Russia" emoji="🇨🇷" />,
   },
   {
-    name: 'Pupy',
+    id: 'australia',
+    searchKey: 'australia',
+    content: <FakeComponent text="Australia" emoji="🇦🇺" />,
   },
   {
-    name: 'Doge',
+    id: 'brazil',
+    searchKey: 'brazil',
+    content: <FakeComponent text="Brazil" emoji="🇧🇷" />,
   },
 ];
 
 const DropdownAutoComplete = ({items, onBlur}) => (
-  <AutoComplete itemToString={item => item.name}>
+  <AutoComplete itemToString={item => item.content}>
     {({
       getRootProps,
       getInputProps,
@@ -49,7 +69,8 @@ const DropdownAutoComplete = ({items, onBlur}) => (
               <div>
                 {items
                   .filter(
-                    item => item.name.toLowerCase().indexOf(inputValue.toLowerCase()) > -1
+                    item =>
+                      item.searchKey.toLowerCase().indexOf(inputValue.toLowerCase()) > -1
                   )
                   .map((item, index) => (
                     <div
@@ -67,7 +88,7 @@ const DropdownAutoComplete = ({items, onBlur}) => (
                         },
                       })}
                     >
-                      {item.name}
+                      {item.content}
                     </div>
                   ))}
               </div>
