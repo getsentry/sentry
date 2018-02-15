@@ -18,6 +18,5 @@ exports[`SettingsLayout renders 1`] = `
       <NewSettingsWarning />
     </Content>
   </Flex>
-  <SettingsActivity />
 </div>
 `;
