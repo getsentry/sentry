@@ -8,7 +8,10 @@ from rest_framework.response import Response
 from sentry.api.base import DocSection
 from sentry.api.bases.group import GroupEndpoint
 from sentry.api.serializers import serialize
-from sentry.api.serializers.rest_framework.group_notes import NoteSerializer
+from sentry.api.serializers.rest_framework.group_notes import NoteSerializer, seperate_resolved_actors
+
+from sentry.api.fields.actor import Actor
+
 from sentry.models import Activity, GroupSubscription, GroupSubscriptionReason, User
 from sentry.utils.functional import extract_lazy_object
 
@@ -37,6 +40,7 @@ class GroupNotesEndpoint(GroupEndpoint):
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
         data = dict(serializer.object)
+
         mentions = data.pop('mentions', [])
 
         if Activity.objects.filter(
@@ -57,14 +61,31 @@ class GroupNotesEndpoint(GroupEndpoint):
             reason=GroupSubscriptionReason.comment,
         )
 
-        if mentions:
-            users = User.objects.filter(id__in=mentions)
-            for user in users:
-                GroupSubscription.objects.subscribe(
-                    group=group,
-                    user=user,
-                    reason=GroupSubscriptionReason.mentioned,
-                )
+        actors = Actor.resolve_many(mentions)
+        actor_mentions = seperate_resolved_actors(actors)
+
+        for user in actor_mentions.get('users'):
+            GroupSubscription.objects.subscribe(
+                group=group,
+                user=user,
+                reason=GroupSubscriptionReason.mentioned,
+            )
+
+        mentioned_teams = actor_mentions.get('teams')
+
+        mentioned_team_users = User.objects.filter(
+            sentry_orgmember_set__organization_id=group.project.organization_id,
+            sentry_orgmember_set__organizationmemberteam__team__in=mentioned_teams,
+            sentry_orgmember_set__organizationmemberteam__is_active=True,
+            is_active=True,
+        ).exclude(id__in={u.id for u in actor_mentions.get('users')})
+
+        for user in mentioned_team_users:
+            GroupSubscription.objects.subscribe(
+                group=group,
+                user=user,
+                reason=GroupSubscriptionReason.team_mentioned,
+            )
 
         activity = Activity.objects.create(
             group=group,
@@ -75,5 +96,4 @@ class GroupNotesEndpoint(GroupEndpoint):
         )
 
         activity.send_notification()
-
         return Response(serialize(activity, request.user), status=201)
