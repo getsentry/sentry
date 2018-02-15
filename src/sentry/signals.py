@@ -1,6 +1,8 @@
 from __future__ import absolute_import
 
-from django.dispatch import Signal
+import logging
+
+from django.dispatch.dispatcher import NO_RECEIVERS, Signal
 
 
 class BetterSignal(Signal):
@@ -27,6 +29,28 @@ class BetterSignal(Signal):
         if hasattr(receiver, '__doc__'):
             wrapped.__doc__ = receiver.__doc__
         return wrapped(receiver)
+
+    def send_robust(self, sender, **named):
+        """
+        A reimplementation of send_robust which logs failures, thus recovering stacktraces.
+        """
+        responses = []
+        if not self.receivers or self.sender_receivers_cache.get(sender) is NO_RECEIVERS:
+            return responses
+
+        # Call each receiver with whatever arguments it can accept.
+        # Return a list of tuple pairs [(receiver, response), ... ].
+        for receiver in self._live_receivers(sender):
+            try:
+                response = receiver(signal=self, sender=sender, **named)
+            except Exception as err:
+                logging.error('signal.failure', extra={
+                    'receiver': repr(receiver),
+                }, exc_info=True)
+                responses.append((receiver, err))
+            else:
+                responses.append((receiver, response))
+        return responses
 
 
 regression_signal = BetterSignal(providing_args=["instance"])
