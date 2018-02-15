@@ -9,28 +9,34 @@ from rest_framework.response import Response
 
 from sentry.api.bases.user import UserEndpoint
 from sentry.api.serializers import serialize, Serializer
-from sentry.models import Organization, OrganizationMember, OrganizationMemberTeam, OrganizationStatus, Project, ProjectTeam, UserOption
+from sentry.models import OrganizationMember, OrganizationMemberTeam, OrganizationStatus, ProjectTeam, UserOption, UserEmail
 
 
 KEY_MAP = {
     'alerts': {
         'key': 'mail:alert',
-        'type': bool,
+        'type': int,
     },
 
     'workflow': {
         'key': 'workflow:notifications',
-        'type': int,
+        'type': '',
     },
 
     'deploy': {
         'key': 'deploy-emails',
-        'type': int,
+        'type': '',
     },
 
     'reports': {
         'key': 'reports:disabled-organizations',
+        'type': '',
     },
+
+    'email': {
+        'key': 'mail:email',
+        'type': '',
+    }
 }
 
 
@@ -39,7 +45,7 @@ class UserNotificationsSerializer(Serializer):
         notification_type = kwargs['notification_type']
         filter_args = {}
 
-        if notification_type in ['alerts', 'workflow']:
+        if notification_type in ['alerts', 'workflow', 'email']:
             filter_args['project__isnull'] = False
         elif notification_type == 'deploy':
             filter_args['organization__isnull'] = False
@@ -122,42 +128,54 @@ class UserNotificationFineTuningEndpoint(UserEndpoint):
             user_option.update(value=value)
             return Response(status=status.HTTP_204_NO_CONTENT)
 
-        if notification_type in ['alerts', 'workflow']:
+        if notification_type in ['alerts', 'workflow', 'email']:
             update_key = 'project'
-            parent = Project
-            parent_ids = self.get_project_ids(user)
+            parent_ids = set(self.get_project_ids(user))
         else:
             update_key = 'organization'
-            parent = Organization
-            parent_ids = self.get_org_ids(user)
+            parent_ids = set(self.get_org_ids(user))
+
+        ids_to_update = set([int(i) for i in request.DATA.keys()])
+
+        # make sure that the ids we are going to update are a subset of the user's
+        # list of orgs or projects
+        if not ids_to_update.issubset(parent_ids):
+            return Response(status=status.HTTP_403_FORBIDDEN)
+
+        if notification_type == 'email':
+            # make sure target emails exist and are verified
+            emails_to_check = set(request.DATA.values())
+            emails = UserEmail.objects.filter(
+                user=user,
+                email__in=emails_to_check,
+                is_verified=True
+            )
+
+            # Is there a better way to check this?
+            if len(emails) != len(emails_to_check):
+                return Response(status=status.HTTP_400_BAD_REQUEST)
 
         with transaction.atomic():
             for id in request.DATA:
-                val = int(request.DATA[id])
+                val = request.DATA[id]
+                int_val = int(val) if notification_type != 'email' else None
 
-                # check for org or project membership
-                if int(id) not in parent_ids:
-                    return Response(status=status.HTTP_403_FORBIDDEN)
+                filter_args['%s_id' % update_key] = id
 
-                try:
-                    model = parent.objects.get(id=id)
-                except parent.DoesNotExist:
-                    return Response(status=status.HTTP_404_NOT_FOUND)
-
-                filter_args[update_key] = model
-
+                # 'email' doesn't have a default to delete, and it's a string
                 # -1 is a magic value to use "default" value, so just delete option
-                if val == -1:
+                if int_val == -1:
                     try:
                         UserOption.objects.get(**filter_args).delete()
                     except UserOption.DoesNotExist:
-                        return Response(stauts=status.HTTP_404_NOT_FOUND)
+                        # This state is actually what we want
+                        pass
                 else:
                     (user_option, _) = UserOption.objects.get_or_create(**filter_args)
 
                     # Values have been saved as strings for `mail:alerts` *shrug*
-                    # `reports:disabled-organizations` requires an array of its
-                    user_option.update(value=six.text_type(val) if key['type'] is int else val)
+                    # `reports:disabled-organizations` requires an array of ids
+                    user_option.update(value=int_val if key['type'] is int else six.text_type(val))
 
             return Response(status=status.HTTP_204_NO_CONTENT)
 

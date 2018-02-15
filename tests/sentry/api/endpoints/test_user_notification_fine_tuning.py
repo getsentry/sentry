@@ -1,6 +1,6 @@
 from __future__ import absolute_import
 
-from sentry.models import UserOption
+from sentry.models import UserEmail, UserOption
 from sentry.testutils import APITestCase
 
 from django.core.urlresolvers import reverse
@@ -37,6 +37,20 @@ class UserNotificationFineTuningTest(APITestCase):
         resp = self.client.get(url, format='json')
 
         assert resp.data.get(self.project.id) == 1
+
+    def test_update_invalid_project(self):
+        url = reverse(
+            'sentry-api-0-user-notifications-fine-tuning', kwargs={
+                'user_id': 'me',
+                'notification_type': 'alerts',
+            }
+        )
+
+        update = {}
+        update['123'] = 1
+
+        resp = self.client.put(url, data=update)
+        assert resp.status_code == 403
 
     def test_saves_and_returns_alerts(self):
         url = reverse(
@@ -119,6 +133,69 @@ class UserNotificationFineTuningTest(APITestCase):
             user=self.user,
             project=self.project2,
             key="workflow:notifications").value == '2'
+
+    def test_saves_and_returns_email_routing(self):
+        UserEmail.objects.create(user=self.user, email='alias@example.com', is_verified=True).save()
+
+        url = reverse(
+            'sentry-api-0-user-notifications-fine-tuning', kwargs={
+                'user_id': 'me',
+                'notification_type': 'email',
+            }
+        )
+
+        update = {}
+        update[self.project.id] = 'a@example.com'
+        update[self.project2.id] = 'alias@example.com'
+
+        resp = self.client.put(url, data=update)
+        assert resp.status_code == 204
+
+        assert UserOption.objects.get(
+            user=self.user,
+            project=self.project,
+            key="mail:email").value == 'a@example.com'
+
+        assert UserOption.objects.get(
+            user=self.user,
+            project=self.project2,
+            key="mail:email").value == 'alias@example.com'
+
+    def test_email_routing_emails_must_be_verified(self):
+        UserEmail.objects.create(
+            user=self.user,
+            email='alias@example.com',
+            is_verified=False).save()
+
+        url = reverse(
+            'sentry-api-0-user-notifications-fine-tuning', kwargs={
+                'user_id': 'me',
+                'notification_type': 'email',
+            }
+        )
+
+        update = {}
+        update[self.project.id] = 'alias@example.com'
+
+        resp = self.client.put(url, data=update)
+        assert resp.status_code == 400
+
+    def test_email_routing_emails_must_be_valid(self):
+        new_user = self.create_user(email="b@example.com")
+        UserEmail.objects.create(user=new_user, email="alias2@example.com", is_verified=True).save()
+
+        url = reverse(
+            'sentry-api-0-user-notifications-fine-tuning', kwargs={
+                'user_id': 'me',
+                'notification_type': 'email',
+            }
+        )
+
+        update = {}
+        update[self.project2.id] = 'alias2@example.com'
+
+        resp = self.client.put(url, data=update)
+        assert resp.status_code == 400
 
     def test_saves_and_returns_weekly_reports(self):
         url = reverse(
