@@ -3,13 +3,26 @@ import React from 'react';
 import AsyncView from './asyncView';
 import NarrowLayout from '../components/narrowLayout';
 import {ApiForm, TextField} from '../components/forms';
+import SentryTypes from '../proptypes';
 import {t} from '../locale';
 
 export default class TeamCreate extends AsyncView {
+  static contextTypes = {
+    organization: SentryTypes.Organization,
+  };
+
   onSubmitSuccess = data => {
+    let features = new Set(this.context.organization.features);
+
     let {orgId} = this.props.params;
-    // redirect to project creation
-    window.location.href = `/organizations/${orgId}/projects/new/?team=${data.slug}`;
+
+    // Legacy behavior: redirect to project creation
+    let redirectUrl = `/organizations/${orgId}/projects/new/?team=${data.slug}`;
+    if (features.has('internal-catchall')) {
+      // New behavior: redirect to team settings page
+      redirectUrl = `/settings/organization/${orgId}/teams/${data.slug}/settings/`;
+    }
+    window.location.href = redirectUrl;
   };
 
   getTitle() {
