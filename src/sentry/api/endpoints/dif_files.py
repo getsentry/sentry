@@ -1,35 +1,60 @@
 from __future__ import absolute_import
 
 import six
+import hashlib
 import jsonschema
 
 from rest_framework.response import Response
 
 from sentry.utils import json
 from sentry.api.serializers import serialize
-from sentry.api.bases.chunk import ChunkAssembleMixin
 from sentry.api.bases.project import ProjectEndpoint, ProjectReleasePermission
-from sentry.models import File, ChunkFileState, ProjectDSymFile
+from sentry.models import ChunkFileState, ProjectDSymFile, FileBlob
+from sentry.utils.cache import cache
 
 
-class DifAssembleEndpoint(ChunkAssembleMixin, ProjectEndpoint):
+# XXX: move this function
+def get_idempotency_id(project, checksum):
+    """For some operations an idempotency ID is needed."""
+    return hashlib.sha1(b'%s|%s|project.dsym' % (
+        str(project.id).encode('ascii'),
+        checksum.encode('ascii'),
+    ))
+
+
+# XXX: move this function
+def get_assemble_status(project, checksum):
+    """For a given file it checks what the current status of the assembling is.
+    Returns a tuple in the form ``(status, details)`` where details is either
+    `None` or a string identifying an error condition or notice.
+    """
+    cache_key = 'assemble-status:%s' % get_idempotency_id(
+        project, checksum)
+    rv = cache.get(cache_key)
+    if rv is None:
+        return None, None
+    return tuple(rv)
+
+
+# XXX: move this function
+def set_assemble_status(project, checksum, state, detail=None):
+    cache_key = 'assemble-status:%s' % get_idempotency_id(
+        project, checksum)
+    cache.set(cache_key, (state, detail), 300)
+
+
+def find_missing_chunks(organization, chunks):
+    """Returns a list of chunks which are missing for an org."""
+    if not chunks:
+        return []
+    missing = set(chunks)
+    for blob in FileBlob.objects.filter(checksum__in=chunks):
+        chunks.discard(blob.checksum)
+    return list(missing)
+
+
+class DifAssembleEndpoint(ProjectEndpoint):
     permission_classes = (ProjectReleasePermission, )
-
-    def _add_project_dsym_to_reponse(self, found_files, response):
-        for found_file in found_files or []:
-            error = found_file.headers.get('error', None)
-            if error is not None:
-                response.setdefault('errors', []).append(error)
-                response['state'] = ChunkFileState.ERROR
-
-            dsym = ProjectDSymFile.objects.filter(
-                file=found_file
-            ).first()
-
-            if dsym is not None:
-                response.setdefault('difs', []).append(serialize(dsym))
-
-        return response
 
     def post(self, request, project):
         """
@@ -74,34 +99,53 @@ class DifAssembleEndpoint(ChunkAssembleMixin, ProjectEndpoint):
             name = file_to_assemble.get('name', None)
             chunks = file_to_assemble.get('chunks', [])
 
-            try:
-                found_files, response = self._check_file_blobs(
-                    project.organization, checksum, chunks)
-                # This either returns a file OK because we already own all chunks
-                # OR we return not_found with the missing chunks (or not owned)
-                if response is not None:
-                    # We also found a file, we try to fetch project dsym to return more
-                    # information in the request
-                    file_response[checksum] = self._add_project_dsym_to_reponse(
-                        found_files, response)
-                    continue
-            except File.DoesNotExist:
-                pass
+            missing_chunks = find_missing_chunks(project.organization, chunks)
 
-            file, file_blob_ids = self._create_file_for_assembling(name, checksum, chunks)
-
-            # Start the actual worker which does the assembling.
-            assemble_dif.apply_async(
-                kwargs={
-                    'project_id': project.id,
-                    'file_id': file.id,
-                    'file_blob_ids': file_blob_ids,
-                    'checksum': checksum,
+            # If there are any missing chunks, skip.
+            if missing_chunks:
+                file_response[checksum] = {
+                    'state': ChunkFileState.NOT_FOUND,
+                    'missingChunks': missing_chunks,
                 }
-            )
+                continue
 
-            file_response[checksum] = self._create_file_response(
-                ChunkFileState.CREATED
-            )
+            # Under the assumption we have all chunks, check if a dsym
+            # file with the checksum exists for the project.
+            try:
+                dif = ProjectDSymFile.objects.filter(
+                    project=project,
+                    file__checksum=checksum
+                ).get()
+            except ProjectDSymFile.DoesNotExist:
+                # it does not exist yet.  Check the state we have in cache
+                # in case this is a retry poll.
+                state, detail = get_assemble_status(project, checksum)
+
+                # We don't have a state yet, this means we can now start
+                # an assemble job in the background.
+                if state is None:
+                    state = ChunkFileState.CREATED
+                    set_assemble_status(project, checksum, state)
+                    assemble_dif.apply_async(
+                        kwargs={
+                            'project_id': project.id,
+                            'name': name,
+                            'checksum': checksum,
+                            'chunks': chunks,
+                        }
+                    )
+
+                file_response[checksum] = {
+                    'state': state,
+                    'detail': detail,
+                    'missingChunks': [],
+                }
+            else:
+                file_response[checksum] = {
+                    'state': ChunkFileState.OK,
+                    'detail': None,
+                    'missingChunks': [],
+                    'dif': serialize(dif),
+                }
 
         return Response(file_response, status=200)

@@ -228,7 +228,8 @@ class ProjectSymCacheFile(Model):
         self.cache_file.delete()
 
 
-def _create_dsym_from_uuid(project, dsym_type, cpu_name, uuid, fileobj, basename):
+def create_dsym_from_uuid(project, dsym_type, cpu_name, uuid,
+                          basename, fileobj=None, file=None):
     """This creates a mach dsym file or proguard mapping from the given
     uuid and open file object to a dsym file.  This will not verify the
     uuid (intentionally so).  Use `create_files_from_dsym_zip` for doing
@@ -243,44 +244,68 @@ def _create_dsym_from_uuid(project, dsym_type, cpu_name, uuid, fileobj, basename
     else:
         raise TypeError('unknown dsym type %r' % (dsym_type, ))
 
-    h = hashlib.sha1()
-    while 1:
-        chunk = fileobj.read(16384)
-        if not chunk:
-            break
-        h.update(chunk)
-    checksum = h.hexdigest()
-    fileobj.seek(0, 0)
+    if file is None:
+        assert fileobj is not None, 'missing file object'
+        h = hashlib.sha1()
+        while 1:
+            chunk = fileobj.read(16384)
+            if not chunk:
+                break
+            h.update(chunk)
+        checksum = h.hexdigest()
+        fileobj.seek(0, 0)
 
-    try:
-        rv = ProjectDSymFile.objects.get(uuid=uuid, project=project)
-        if rv.file.checksum == checksum:
-            return rv, False
-    except ProjectDSymFile.DoesNotExist:
-        pass
+        try:
+            rv = ProjectDSymFile.objects.get(uuid=uuid, project=project)
+            if rv.file.checksum == checksum:
+                return rv, False
+        except ProjectDSymFile.DoesNotExist:
+            pass
+        else:
+            # The checksum mismatches.  In this case we delete the old object
+            # and perform a re-upload.
+            rv.delete()
+
+        file = File.objects.create(
+            name=uuid,
+            type='project.dsym',
+            headers={'Content-Type': DSYM_MIMETYPES[dsym_type]},
+        )
+        file.putfile(fileobj)
+        try:
+            with transaction.atomic():
+                rv = ProjectDSymFile.objects.create(
+                    file=file,
+                    uuid=uuid,
+                    cpu_name=cpu_name,
+                    object_name=object_name,
+                    project=project,
+                )
+        except IntegrityError:
+            file.delete()
+            rv = ProjectDSymFile.objects.get(uuid=uuid, project=project)
     else:
-        # The checksum mismatches.  In this case we delete the old object
-        # and perform a re-upload.
-        rv.delete()
-
-    file = File.objects.create(
-        name=uuid,
-        type='project.dsym',
-        headers={'Content-Type': DSYM_MIMETYPES[dsym_type]},
-    )
-    file.putfile(fileobj)
-    try:
-        with transaction.atomic():
-            rv = ProjectDSymFile.objects.create(
-                file=file,
-                uuid=uuid,
-                cpu_name=cpu_name,
-                object_name=object_name,
-                project=project,
-            )
-    except IntegrityError:
-        file.delete()
-        rv = ProjectDSymFile.objects.get(uuid=uuid, project=project)
+        try:
+            rv = ProjectDSymFile.objects.get(uuid=uuid, project=project)
+        except ProjectDSymFile.DoesNotExist:
+            try:
+                with transaction.atomic():
+                    rv = ProjectDSymFile.objects.create(
+                        file=file,
+                        uuid=uuid,
+                        cpu_name=cpu_name,
+                        object_name=object_name,
+                        project=project,
+                    )
+            except IntegrityError:
+                rv = ProjectDSymFile.objects.get(uuid=uuid, project=project)
+                rv.file.delete()
+                rv.file = file
+                rv.save()
+        else:
+            rv.file.delete()
+            rv.file = file
+            rv.save()
 
     resolve_processing_issue(
         project=project,
@@ -342,8 +367,9 @@ def create_dsym_from_dif(to_create, project, overwrite_filename=None):
             result_filename = os.path.basename(filename)
             if overwrite_filename is not None:
                 result_filename = overwrite_filename
-            dsym, created = _create_dsym_from_uuid(
-                project, dsym_type, cpu, file_uuid, f, result_filename
+            dsym, created = create_dsym_from_uuid(
+                project, dsym_type, cpu, file_uuid, result_filename,
+                file=f
             )
             if created:
                 rv.append(dsym)
