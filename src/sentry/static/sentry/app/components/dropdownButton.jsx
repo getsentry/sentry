@@ -50,7 +50,7 @@ const StyledMenu = styled('div')`
   position: absolute;
   top: calc(100% - 1px);
   left: 0;
-  border-radous: ${p => p.theme.borderRadius};
+  border-radius: ${p => p.theme.borderRadius};
 `;
 
 const StyledButton = styled(props => <Button {...props} />)`
