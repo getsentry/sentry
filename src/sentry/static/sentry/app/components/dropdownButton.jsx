@@ -1,5 +1,6 @@
 import PropTypes from 'prop-types';
 import React from 'react';
+import _ from 'lodash';
 import AutoComplete from './autoComplete';
 
 const fakeItems = [
@@ -31,7 +32,7 @@ const DropdownAutoComplete = ({items, onBlur}) => (
     }) => {
       return (
         <div {...getRootProps({style: {position: 'relative'}})}>
-          <input autoFocus {...getInputProps({})} onBlur={onBlur()} />
+          <input autoFocus {...getInputProps({})} onBlur={onBlur} />
           {isOpen && (
             <div
               {...getMenuProps({
@@ -92,30 +93,21 @@ class DropdownButton extends React.Component {
     };
   }
 
-  onClick(e) {
-    this.setState({isOpen: true});
-    console.log('click');
-  }
-
-  onBlur(e) {
-    this.setState({isOpen: false});
-    console.log('blur');
-  }
+  toggleOpen = _.throttle(() => {
+    this.setState({isOpen: !this.state.isOpen});
+  }, 1);
 
   render() {
     return (
       <div style={{position: 'relative'}}>
         {this.state.isOpen && (
           <div style={{position: 'fixed', top: 0, left: 0}}>
-            <DropdownAutoComplete
-              items={fakeItems}
-              onBlur={() => this.onBlur.bind(this)}
-            />
+            <DropdownAutoComplete items={fakeItems} onBlur={this.toggleOpen} />
           </div>
         )}
         <div
           style={{pointerEvents: this.state.isOpen ? 'none' : 'auto'}}
-          onClick={e => this.onClick(e)}
+          onClick={this.toggleOpen}
           ref={button => (this.button = button)}
         >
           Click Me!
