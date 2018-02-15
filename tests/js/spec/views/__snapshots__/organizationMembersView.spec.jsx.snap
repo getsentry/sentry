@@ -279,28 +279,14 @@ exports[`OrganizationMembersView No Require Link does not have 2fa warning if us
                   className="glamor-23 glamor-24"
                   disablePadding={true}
                 >
-<<<<<<< HEAD
                   <div
                     className="glamor-23 glamor-24"
                   >
                     <StyledPanelHeading>
                       <Component
-||||||| parent of 1e0a3a81f... give PanelHeading a display name
-                  <StyledPanelHeading>
-                    <Component
-                      className="glamor-19 glamor-16"
-                    >
-                      <_default
-=======
-                  <StyledPanelHeading>
-                    <Component
-                      className="glamor-19 glamor-16"
-                    >
-                      <PanelHeading
->>>>>>> 1e0a3a81f... give PanelHeading a display name
                         className="glamor-19 glamor-16"
                       >
-                        <_default
+                        <PanelHeading
                           className="glamor-19 glamor-16"
                         >
                           <div
@@ -377,7 +363,6 @@ exports[`OrganizationMembersView No Require Link does not have 2fa warning if us
                                       px={2}
                                       w={140}
                                     >
-<<<<<<< HEAD
                                       <div
                                         className="glamor-10"
                                         is={null}
@@ -390,38 +375,11 @@ exports[`OrganizationMembersView No Require Link does not have 2fa warning if us
                               </Base>
                             </Flex>
                           </div>
-                        </_default>
+                        </PanelHeading>
                       </Component>
                     </StyledPanelHeading>
                   </div>
                 </Component>
-||||||| parent of 1e0a3a81f... give PanelHeading a display name
-                                      Actions
-                                    </div>
-                                  </Base>
-                                </Box>
-                              </div>
-                            </Base>
-                          </Flex>
-                        </div>
-                      </_default>
-                    </Component>
-                  </StyledPanelHeading>
-                </div>
-=======
-                                      Actions
-                                    </div>
-                                  </Base>
-                                </Box>
-                              </div>
-                            </Base>
-                          </Flex>
-                        </div>
-                      </PanelHeading>
-                    </Component>
-                  </StyledPanelHeading>
-                </div>
->>>>>>> 1e0a3a81f... give PanelHeading a display name
               </StyledPanelHeader>
             </PanelHeader>
             <PanelBody
@@ -1515,28 +1473,14 @@ exports[`OrganizationMembersView Require Link does not have 2fa warning if user 
                   className="glamor-23 glamor-24"
                   disablePadding={true}
                 >
-<<<<<<< HEAD
                   <div
                     className="glamor-23 glamor-24"
                   >
                     <StyledPanelHeading>
                       <Component
-||||||| parent of 1e0a3a81f... give PanelHeading a display name
-                  <StyledPanelHeading>
-                    <Component
-                      className="glamor-19 glamor-16"
-                    >
-                      <_default
-=======
-                  <StyledPanelHeading>
-                    <Component
-                      className="glamor-19 glamor-16"
-                    >
-                      <PanelHeading
->>>>>>> 1e0a3a81f... give PanelHeading a display name
                         className="glamor-19 glamor-16"
                       >
-                        <_default
+                        <PanelHeading
                           className="glamor-19 glamor-16"
                         >
                           <div
@@ -1613,7 +1557,6 @@ exports[`OrganizationMembersView Require Link does not have 2fa warning if user 
                                       px={2}
                                       w={140}
                                     >
-<<<<<<< HEAD
                                       <div
                                         className="glamor-10"
                                         is={null}
@@ -1626,38 +1569,11 @@ exports[`OrganizationMembersView Require Link does not have 2fa warning if user 
                               </Base>
                             </Flex>
                           </div>
-                        </_default>
+                        </PanelHeading>
                       </Component>
                     </StyledPanelHeading>
                   </div>
                 </Component>
-||||||| parent of 1e0a3a81f... give PanelHeading a display name
-                                      Actions
-                                    </div>
-                                  </Base>
-                                </Box>
-                              </div>
-                            </Base>
-                          </Flex>
-                        </div>
-                      </_default>
-                    </Component>
-                  </StyledPanelHeading>
-                </div>
-=======
-                                      Actions
-                                    </div>
-                                  </Base>
-                                </Box>
-                              </div>
-                            </Base>
-                          </Flex>
-                        </div>
-                      </PanelHeading>
-                    </Component>
-                  </StyledPanelHeading>
-                </div>
->>>>>>> 1e0a3a81f... give PanelHeading a display name
               </StyledPanelHeader>
             </PanelHeader>
             <PanelBody

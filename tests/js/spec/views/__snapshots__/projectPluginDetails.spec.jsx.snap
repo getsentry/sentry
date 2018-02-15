@@ -439,29 +439,15 @@ exports[`ProjectPluginDetails renders 1`] = `
                           className="glamor-21 glamor-22"
                           hasButtons={true}
                         >
-<<<<<<< HEAD
                           <div
                             className="glamor-21 glamor-22"
                             hasButtons={true}
                           >
                             <StyledPanelHeading>
                               <Component
-||||||| parent of 1e0a3a81f... give PanelHeading a display name
-                          <StyledPanelHeading>
-                            <Component
-                              className="glamor-17 glamor-14"
-                            >
-                              <_default
-=======
-                          <StyledPanelHeading>
-                            <Component
-                              className="glamor-17 glamor-14"
-                            >
-                              <PanelHeading
->>>>>>> 1e0a3a81f... give PanelHeading a display name
                                 className="glamor-17 glamor-14"
                               >
-                                <_default
+                                <PanelHeading
                                   className="glamor-17 glamor-14"
                                 >
                                   <div
@@ -508,7 +494,6 @@ exports[`ProjectPluginDetails renders 1`] = `
                                                         <IntegrationIcon
                                                           image={Object {}}
                                                           size={20}
-<<<<<<< HEAD
                                                         >
                                                           <div
                                                             className="glamor-6 glamor-7"
@@ -529,54 +514,11 @@ exports[`ProjectPluginDetails renders 1`] = `
                                       </Base>
                                     </Flex>
                                   </div>
-                                </_default>
+                                </PanelHeading>
                               </Component>
                             </StyledPanelHeading>
                           </div>
                         </Component>
-||||||| parent of 1e0a3a81f... give PanelHeading a display name
-                                                        />
-                                                      </IntegrationIcon>
-                                                    </PluginIcon>
-                                                  </div>
-                                                </Base>
-                                              </Flex>
-                                              <span>
-                                                Amazon SQS
-                                              </span>
-                                            </div>
-                                          </Base>
-                                        </Flex>
-                                      </div>
-                                    </Base>
-                                  </Flex>
-                                </div>
-                              </_default>
-                            </Component>
-                          </StyledPanelHeading>
-                        </div>
-=======
-                                                        />
-                                                      </IntegrationIcon>
-                                                    </PluginIcon>
-                                                  </div>
-                                                </Base>
-                                              </Flex>
-                                              <span>
-                                                Amazon SQS
-                                              </span>
-                                            </div>
-                                          </Base>
-                                        </Flex>
-                                      </div>
-                                    </Base>
-                                  </Flex>
-                                </div>
-                              </PanelHeading>
-                            </Component>
-                          </StyledPanelHeading>
-                        </div>
->>>>>>> 1e0a3a81f... give PanelHeading a display name
                       </StyledPanelHeader>
                     </PanelHeader>
                     <PanelBody
