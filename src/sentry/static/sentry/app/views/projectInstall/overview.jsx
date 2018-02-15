@@ -92,7 +92,7 @@ class ProjectInstallOverview extends React.Component {
           {tct(
             `
              For a complete list of
-             client integrations, please visit see [docLink:our in-depth documentation].
+             client integrations, please see [docLink:our in-depth documentation].
           `,
             {
               docLink: <a href="https://docs.sentry.io" />,

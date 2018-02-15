@@ -143,7 +143,7 @@ const ApiApplicationDetails = createReactClass({
       <DocumentTitle title={this.getTitle()}>
         <div>
           <form onSubmit={this.onSubmit} className="form-stacked">
-            <h4>Application Details</h4>
+            <h4>{t('Application Details')}</h4>
             {this.state.state === FormState.ERROR && (
               <div className="alert alert-error alert-block">
                 {t(
@@ -168,7 +168,7 @@ const ApiApplicationDetails = createReactClass({
                 label={t('Homepage')}
                 placeholder={t('e.g. http://example.com')}
                 value={this.state.formData.homepageUrl}
-                help="An optional link to your website's homepage"
+                help={t("An optional link to your website's homepage")}
                 required={false}
                 error={errors.homepageUrl}
                 onChange={this.onFieldChange.bind(this, 'homepageUrl')}
@@ -179,7 +179,7 @@ const ApiApplicationDetails = createReactClass({
                 label={t('Privacy Policy')}
                 placeholder={t('e.g. http://example.com/privacy')}
                 value={this.state.formData.privacyUrl}
-                help="An optional link to your Privacy Policy"
+                help={t('An optional link to your Privacy Policy')}
                 required={false}
                 error={errors.privacyUrl}
                 onChange={this.onFieldChange.bind(this, 'privacyUrl')}
@@ -190,14 +190,14 @@ const ApiApplicationDetails = createReactClass({
                 label={t('Terms of Service')}
                 placeholder={t('e.g. http://example.com/terms')}
                 value={this.state.formData.termsUrl}
-                help="An optional link to your Terms of Service"
+                help={t('An optional link to your Terms of Service')}
                 required={false}
                 error={errors.termsUrl}
                 onChange={this.onFieldChange.bind(this, 'termsUrl')}
               />
             </fieldset>
             <fieldset>
-              <legend>Credentials</legend>
+              <legend>{t('Credentials')}</legend>
               <div className="control-group">
                 <label htmlFor="api-key">Client ID</label>
                 <div className="form-control disabled">
@@ -214,27 +214,27 @@ const ApiApplicationDetails = createReactClass({
                   )}
                 </div>
                 <p className="help-block">
-                  Your secret is only available briefly after application creation. Make
-                  sure to save this value!
+                  {t(`Your secret is only available briefly after application creation. Make
+                  sure to save this value!`)}
                 </p>
               </div>
 
               <div className="control-group">
-                <label htmlFor="api-key">Authorization URL</label>
+                <label htmlFor="api-key">{t('Authorization URL')}</label>
                 <div className="form-control disabled">
                   <AutoSelectText>{`${urlPrefix}/oauth/authorize/`}</AutoSelectText>
                 </div>
               </div>
 
               <div className="control-group">
-                <label htmlFor="api-key">Token URL</label>
+                <label htmlFor="api-key">{t('Token URL')}</label>
                 <div className="form-control disabled">
                   <AutoSelectText>{`${urlPrefix}/oauth/token/`}</AutoSelectText>
                 </div>
               </div>
             </fieldset>
             <fieldset>
-              <legend>Security</legend>
+              <legend>{t('Security')}</legend>
               <TextareaField
                 key="redirectUris"
                 name="redirectUris"
