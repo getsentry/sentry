@@ -94,19 +94,32 @@ class DropdownButton extends React.Component {
 
   onClick(e) {
     this.setState({isOpen: true});
+    console.log('click');
   }
 
   onBlur(e) {
     this.setState({isOpen: false});
+    console.log('blur');
   }
 
   render() {
     return (
-      <div onClick={e => this.onClick(e)} ref={button => (this.button = button)}>
-        Click Me!
+      <div style={{position: 'relative'}}>
         {this.state.isOpen && (
-          <DropdownAutoComplete items={fakeItems} onBlur={() => this.onBlur.bind(this)} />
+          <div style={{position: 'fixed', top: 0, left: 0}}>
+            <DropdownAutoComplete
+              items={fakeItems}
+              onBlur={() => this.onBlur.bind(this)}
+            />
+          </div>
         )}
+        <div
+          style={{pointerEvents: this.state.isOpen ? 'none' : 'auto'}}
+          onClick={e => this.onClick(e)}
+          ref={button => (this.button = button)}
+        >
+          Click Me!
+        </div>
       </div>
     );
   }
