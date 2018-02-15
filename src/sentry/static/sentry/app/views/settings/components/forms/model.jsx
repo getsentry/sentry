@@ -370,6 +370,9 @@ class FormModel {
           saveSnapshot = null;
         }
 
+        // Update initialData after successfully saving a field as it will now be the baseline value
+        this.initialData[id] = newValue;
+
         return data;
       })
       .catch(resp => {
@@ -422,7 +425,6 @@ class FormModel {
     return savePromise
       .then(change => {
         let newValue = this.getValue(id);
-        this.initialData[id] = newValue;
         let result = {old: oldValue, new: newValue};
 
         if (this.options.onSubmitSuccess) {
