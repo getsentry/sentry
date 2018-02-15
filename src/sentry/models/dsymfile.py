@@ -333,6 +333,8 @@ def create_dsym_from_uuid(project, dsym_type, cpu_name, uuid,
             rv.file.delete()
             rv.file = file
             rv.save()
+        rv.file.headers['Content-Type'] = DSYM_MIMETYPES[dsym_type]
+        rv.file.save()
 
     resolve_processing_issue(
         project=project,

@@ -9,15 +9,22 @@ from sentry.utils import json
 from sentry.api.serializers import serialize
 from sentry.api.bases.project import ProjectEndpoint, ProjectReleasePermission
 from sentry.models import ChunkFileState, ProjectDSymFile, FileBlob, \
-    get_assemble_status, set_assemble_status
+    FileBlobOwner, get_assemble_status, set_assemble_status
 
 
 def find_missing_chunks(organization, chunks):
     """Returns a list of chunks which are missing for an org."""
     if not chunks:
         return []
+    blobs = list(FileBlob.objects.filter(checksum__in=chunks))
     missing = set(chunks)
-    for blob in FileBlob.objects.filter(checksum__in=chunks):
+    if not blobs:
+        return list(missing)
+    owned = set(x.blob_id for x in FileBlobOwner.query.filter(
+        blob__in=[x.id for x in blobs]))
+    for blob in blobs:
+        if blob.id not in owned:
+            continue
         missing.discard(blob.checksum)
     return list(missing)
 
