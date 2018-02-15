@@ -19,7 +19,7 @@ class Migration(SchemaMigration):
                 ('is_visible', self.gf('django.db.models.fields.BooleanField')(default=True)),
                 ('priority', self.gf('django.db.models.fields.PositiveIntegerField')(default=50)), (
                     'date_added',
-                    self.gf('django.db.models.fields.DateTimeField')(default=datetime.datetime.now)
+                    self.gf('django.db.models.fields.DateTimeField')()
                 ),
             )
         )

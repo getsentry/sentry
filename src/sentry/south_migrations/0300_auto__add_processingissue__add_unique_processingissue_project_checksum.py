@@ -24,7 +24,7 @@ class Migration(SchemaMigration):
                 ), ('type', self.gf('django.db.models.fields.CharField')(max_length=30)),
                 ('data', self.gf('sentry.db.models.fields.gzippeddict.GzippedDictField')()), (
                     'datetime',
-                    self.gf('django.db.models.fields.DateTimeField')(default=datetime.datetime.now)
+                    self.gf('django.db.models.fields.DateTimeField')()
                 ),
             )
         )
@@ -49,7 +49,7 @@ class Migration(SchemaMigration):
                     self.gf('django.db.models.fields.CharField')(max_length=32, null=True)
                 ), (
                     'datetime',
-                    self.gf('django.db.models.fields.DateTimeField')(default=datetime.datetime.now)
+                    self.gf('django.db.models.fields.DateTimeField')()
                 ),
             )
         )
@@ -74,7 +74,7 @@ class Migration(SchemaMigration):
                     self.gf('django.db.models.fields.CharField')(max_length=32, null=True)
                 ), (
                     'datetime',
-                    self.gf('django.db.models.fields.DateTimeField')(default=datetime.datetime.now)
+                    self.gf('django.db.models.fields.DateTimeField')()
                 ),
                 ('data', self.gf('sentry.db.models.fields.node.NodeField')(null=True, blank=True)),
             )

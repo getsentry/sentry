@@ -104,7 +104,7 @@ class EventUser(Model):
                     organizationmember__user=user,
                     organizationmember__organization__project=self.project_id,
                     is_active=True,
-                ).values('team'),
+                ).values_list('team'),
             ).values_list('id', flat=True)[:1000]
         )
         if not project_ids:

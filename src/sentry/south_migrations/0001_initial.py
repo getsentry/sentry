@@ -46,11 +46,11 @@ class Migration(SchemaMigration):
                 ('times_seen',
                  self.gf('django.db.models.fields.PositiveIntegerField')(default=1)), (
                      'last_seen', self.gf('django.db.models.fields.DateTimeField')(
-                         default=datetime.datetime.now, db_index=True
+                         db_index=True
                      )
                  ), (
                      'first_seen', self.gf('django.db.models.fields.DateTimeField')(
-                         default=datetime.datetime.now, db_index=True
+                         db_index=True
                      )
                  ),
             )
@@ -96,7 +96,7 @@ class Migration(SchemaMigration):
                      self.gf('django.db.models.fields.CharField')(max_length=32, db_index=True)
                  ), (
                      'datetime', self.gf('django.db.models.fields.DateTimeField')(
-                         default=datetime.datetime.now, db_index=True
+                         db_index=True
                      )
                  ), ('data', self.gf('django.db.models.fields.TextField')(null=True, blank=True)),
             )
@@ -108,7 +108,7 @@ class Migration(SchemaMigration):
             'auth_user', (
                 ('password', self.gf('django.db.models.fields.CharField')(max_length=128)), (
                     'last_login',
-                    self.gf('django.db.models.fields.DateTimeField')(default=datetime.datetime.now)
+                    self.gf('django.db.models.fields.DateTimeField')()
                 ), ('id', self.gf('django.db.models.fields.AutoField')(primary_key=True)), (
                     'username',
                     self.gf('django.db.models.fields.CharField')(unique=True, max_length=128)
@@ -124,7 +124,7 @@ class Migration(SchemaMigration):
                 ('is_active', self.gf('django.db.models.fields.BooleanField')(default=True)),
                 ('is_superuser', self.gf('django.db.models.fields.BooleanField')(default=False)), (
                     'date_joined',
-                    self.gf('django.db.models.fields.DateTimeField')(default=datetime.datetime.now)
+                    self.gf('django.db.models.fields.DateTimeField')()
                 ),
             )
         )
@@ -142,7 +142,7 @@ class Migration(SchemaMigration):
         db.delete_table('sentry_message')
 
         # Deleting model 'User'
-        db.delete_table('sentry_user')
+        db.delete_table('auth_user')
 
     models = {
         u'auth.group': {

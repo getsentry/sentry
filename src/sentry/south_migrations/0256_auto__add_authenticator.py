@@ -19,7 +19,7 @@ class Migration(SchemaMigration):
                     )
                 ), (
                     'created_at',
-                    self.gf('django.db.models.fields.DateTimeField')(default=datetime.datetime.now)
+                    self.gf('django.db.models.fields.DateTimeField')()
                 ), ('last_used_at', self.gf('django.db.models.fields.DateTimeField')(null=True)),
                 ('type', self.gf('sentry.db.models.fields.bounded.BoundedPositiveIntegerField')()),
                 ('config', self.gf('sentry.db.models.fields.pickle.UnicodePickledObjectField')()),

@@ -13,20 +13,15 @@ from sentry.runner.decorators import configuration
 
 def _upgrade(interactive, traceback, verbosity, repair):
     from django.core.management import call_command as dj_call_command
-    dj_call_command(
-        'syncdb',
-        interactive=interactive,
-        traceback=traceback,
-        verbosity=verbosity,
-    )
 
     dj_call_command(
         'migrate',
-        merge=True,
-        ignore_ghost_migrations=True,
         interactive=interactive,
         traceback=traceback,
         verbosity=verbosity,
+        migrate=True,
+        merge=True,
+        ignore_ghost_migrations=True,
     )
 
     if repair:

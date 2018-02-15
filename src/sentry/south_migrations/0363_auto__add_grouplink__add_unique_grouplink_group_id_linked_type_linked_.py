@@ -22,7 +22,7 @@ class Migration(SchemaMigration):
             ('relationship', self.gf('sentry.db.models.fields.bounded.BoundedPositiveIntegerField')(default=2)),
             ('data', self.gf('jsonfield.fields.JSONField')(default={})),
             ('datetime', self.gf('django.db.models.fields.DateTimeField')(
-                default=datetime.datetime.now, db_index=True)),
+                db_index=True)),
         ))
         db.send_create_signal('sentry', ['GroupLink'])
 
