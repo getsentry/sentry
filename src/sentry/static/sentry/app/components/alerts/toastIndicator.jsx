@@ -22,7 +22,8 @@ const Toast = styled.div`
   border-radius: 44px 5px 5px 44px;
   box-shadow: 0 0 0 1px rgba(47, 40, 55, 0.12), 0 1px 2px 0 rgba(47, 40, 55, 0.12),
     0 4px 12px 0 rgba(47, 40, 55, 0.16);
-  transition: opacity 0.25s linear;
+  transition: opacity 0.2s linear;
+  position: relative;
 
   &.toast-enter {
     opacity: 0;
@@ -38,6 +39,18 @@ const Toast = styled.div`
 
   &.toast-leave-active {
     opacity: 0;
+  }
+
+  &:before {
+    display: block;
+    content: '';
+    position: fixed;
+    right: 0;
+    bottom: 0;
+    left: 0;
+    height: 130px;
+    background: linear-gradient(rgba(47, 40, 55, 0), rgba(47, 40, 55, 0.08));
+    z-index: -1;
   }
 `;
 
