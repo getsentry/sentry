@@ -111,7 +111,11 @@ class ProjectHeader extends React.Component {
                 <MenuItem divider={true} />
                 <div style={{textAlign: 'center', padding: '5px 0px'}}>
                   <Button
-                    to={`/settings/organization/${org.slug}/project/${project.slug}/environments/`}
+                    to={
+                      new Set(org.features).has('new-settings')
+                        ? `/settings/organization/${org.slug}/project/${project.slug}/environments/`
+                        : `/${org.slug}/${project.slug}/settings/`
+                    }
                     priority="primary"
                     size="small"
                   >
