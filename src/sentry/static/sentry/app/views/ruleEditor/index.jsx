@@ -114,6 +114,9 @@ const RuleEditor = createReactClass({
 
     let data = {...this.state.rule, actions, conditions};
 
+    // TODO(lyn): Very temporary fix: always remove the environment key from the API request
+    delete data.environment;
+
     let rule = this.state.rule;
     let project = this.props.project;
     let org = this.props.organization;
