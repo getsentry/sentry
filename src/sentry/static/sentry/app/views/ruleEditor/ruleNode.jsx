@@ -3,11 +3,14 @@ import React from 'react';
 import ReactDOM from 'react-dom';
 import $ from 'jquery';
 
+import * as utils from './utils';
+
 class RuleNode extends React.Component {
   static propTypes = {
     data: PropTypes.object.isRequired,
     node: PropTypes.shape({
-      html: PropTypes.string.isRequired,
+      label: PropTypes.string.isRequired,
+      formFields: PropTypes.object,
     }).isRequired,
     onDelete: PropTypes.func.isRequired,
   };
@@ -24,31 +27,17 @@ class RuleNode extends React.Component {
       $el.attr('id', '');
       $el.val(this.props.data[el.name]);
     });
-
-    $html.find('select').select2();
-
-    $html.find('input.typeahead').each((_, el) => {
-      let $el = $(el);
-      $el.select2({
-        initSelection: function(option, callback) {
-          let $option = $(option);
-          callback({id: $option.val(), text: $option.val()});
-        },
-        data: $el.data('choices'),
-        createSearchChoice: function(term) {
-          return {id: $.trim(term), text: $.trim(term)};
-        },
-      });
-    });
   }
 
   render() {
     let {data, node} = this.props;
+    let html = utils.getComponent(node);
+
     return (
       <tr>
         <td className="rule-form">
           <input type="hidden" name="id" value={data.id} />
-          <span ref="html" dangerouslySetInnerHTML={{__html: node.html}} />
+          <span style={{display: 'flex', alignItems: 'center'}}>{html}</span>
         </td>
         <td className="align-right">
           <a onClick={this.props.onDelete}>
