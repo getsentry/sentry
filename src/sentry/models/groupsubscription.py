@@ -100,10 +100,9 @@ class GroupSubscriptionManager(BaseManager):
         if isinstance(actor, User):
             return self.subscribe(group, actor, reason)
         elif isinstance(actor, Team):
-            # subscribe the members of the team
 
-            # todo(maxbittker) keep this as a query
-            team_users_ids = [a.user_id for a in actor.member_set]
+            # subscribe the members of the team
+            team_users_ids = actor.member_set.values_list('user_id', flat=True)
 
             return self.bulk_subscribe(group, team_users_ids, reason)
         else:
