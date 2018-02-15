@@ -20,7 +20,7 @@ def find_missing_chunks(organization, chunks):
     missing = set(chunks)
     if not blobs:
         return list(missing)
-    owned = set(x.blob_id for x in FileBlobOwner.query.filter(
+    owned = set(x.blob_id for x in FileBlobOwner.objects.filter(
         blob__in=[x.id for x in blobs]))
     for blob in blobs:
         if blob.id not in owned:

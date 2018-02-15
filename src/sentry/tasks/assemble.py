@@ -11,7 +11,7 @@ logger = logging.getLogger(__name__)
 
 @instrumented_task(name='sentry.tasks.assemble.assemble_dif', queue='assemble')
 def assemble_dif(project_id, name, checksum, chunks, **kwargs):
-    from sentry.models import ChunkFileState, dsymfile, Project, set_assemble_status
+    from sentry.models import ChunkFileState, dsymfile, Project, set_assemble_status, BadDif
     from sentry.reprocessing import bump_reprocessing_revision
 
     with transaction.atomic():
@@ -32,7 +32,13 @@ def assemble_dif(project_id, name, checksum, chunks, **kwargs):
             with file.getfile(as_tempfile=True) as tf:
                 # We only permit split difs to hit this endpoint.  The
                 # client is required to split them up first or we error.
-                result = dsymfile.detect_dif_from_filename(tf.name)
+                try:
+                    result = dsymfile.detect_dif_from_path(tf.name)
+                except BadDif as e:
+                    set_assemble_status(project, checksum, ChunkFileState.ERROR,
+                                        detail=e.args[0])
+                    return
+
                 if len(result) != 1:
                     set_assemble_status(project, checksum, ChunkFileState.ERROR,
                                         detail='Contained wrong number of '

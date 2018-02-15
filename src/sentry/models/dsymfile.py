@@ -31,7 +31,7 @@ from symbolic import FatObject, SymbolicError, UnsupportedObjectFile, \
 from sentry import options
 from sentry.cache import default_cache
 from sentry.db.models import FlexibleForeignKey, Model, \
-    sane_repr, BaseManager, BoundedPositiveIntegerField
+    sane_repr, BaseManager, BoundedPositiveIntegerField, ChunkFileState
 from sentry.models.file import File
 from sentry.utils.zip import safe_extract_zip
 from sentry.constants import KNOWN_DSYM_TYPES
@@ -79,6 +79,10 @@ def set_assemble_status(project, checksum, state, detail=None):
     cache_key = 'assemble-status:%s' % _get_idempotency_id(
         project, checksum)
     default_cache.set(cache_key, (state, detail), 300)
+
+
+class BadDif(Exception):
+    pass
 
 
 class VersionDSymFile(Model):
@@ -358,31 +362,29 @@ def _analyze_progard_filename(filename):
         pass
 
 
-def detect_dif_from_filename(filename):
-    """This detects which kind of dif (Debug Information File) the filename
+def detect_dif_from_path(path):
+    """This detects which kind of dif (Debug Information File) the path
     provided is. It returns an array since a FatObject can contain more than
     on dif.
     """
     # proguard files (proguard/UUID.txt) or
     # (proguard/mapping-UUID.txt).
-    proguard_uuid = _analyze_progard_filename(filename)
+    proguard_uuid = _analyze_progard_filename(path)
     if proguard_uuid is not None:
-        return [('proguard', 'any', six.text_type(proguard_uuid), filename)]
+        return [('proguard', 'any', six.text_type(proguard_uuid), path)]
 
     # macho style debug symbols
     try:
-        fo = FatObject.from_path(filename)
-    except UnsupportedObjectFile:
-        pass
-    except SymbolicError:
-        # Whatever was contained there, was probably not a
-        # macho file.
-        # XXX: log?
+        fo = FatObject.from_path(path)
+    except UnsupportedObjectFile as e:
+        raise BadDif("Unsupported debug information file: %s" % e)
+    except SymbolicError as e:
         logger.warning('dsymfile.bad-fat-object', exc_info=True)
+        raise BadDif("Invalid debug information file: %s" % e)
     else:
         objs = []
         for obj in fo.iter_objects():
-            objs.append((obj.kind, obj.arch, six.text_type(obj.uuid), filename))
+            objs.append((obj.kind, obj.arch, six.text_type(obj.uuid), path))
         return objs
 
 
@@ -418,7 +420,11 @@ def create_files_from_dsym_zip(fileobj, project,
         for dirpath, dirnames, filenames in os.walk(scratchpad):
             for fn in filenames:
                 fn = os.path.join(dirpath, fn)
-                difs = detect_dif_from_filename(fn)
+                try:
+                    difs = detect_dif_from_path(fn)
+                except BadDif:
+                    difs = None
+
                 if difs is None:
                     difs = []
                 to_create = to_create + difs
@@ -550,6 +556,9 @@ class DSymCache(object):
             updated_cachefiles, conversion_errors = self._update_cachefiles(
                 project, to_update)
             cachefiles.extend(updated_cachefiles)
+
+        for dsym in dsym_files:
+            set_assemble_status(project, dsym.file.checksum, ChunkFileState.OK)
 
         return cachefiles, conversion_errors
 
