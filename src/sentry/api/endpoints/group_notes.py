@@ -80,12 +80,11 @@ class GroupNotesEndpoint(GroupEndpoint):
             is_active=True,
         ).exclude(id__in={u.id for u in actor_mentions.get('users')})
 
-        for user in mentioned_team_users:
-            GroupSubscription.objects.subscribe(
-                group=group,
-                user=user,
-                reason=GroupSubscriptionReason.team_mentioned,
-            )
+        GroupSubscription.objects.bulk_subscribe(
+            group=group,
+            users=mentioned_team_users,
+            reason=GroupSubscriptionReason.team_mentioned,
+        )
 
         activity = Activity.objects.create(
             group=group,
