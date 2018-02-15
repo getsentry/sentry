@@ -50,12 +50,13 @@ const StyledMenu = styled('div')`
   position: absolute;
   top: calc(100% - 1px);
   left: 0;
+  border-radous: ${p => p.theme.borderRadius};
 `;
 
 const StyledButton = styled(props => <Button {...props} />)`
   border-bottom-color: ${p => (p.isOpen ? 'transparent' : p.theme.borderLight)};
-  border-bottom-right-radius: ${p => (p.isOpen ? 0 : '4px')};
-  border-bottom-left-radius: ${p => (p.isOpen ? 0 : '4px')};
+  border-bottom-right-radius: ${p => (p.isOpen ? 0 : p.theme.borderRadius)};
+  border-bottom-left-radius: ${p => (p.isOpen ? 0 : p.theme.borderRadius)};
   position: relative;
   z-index; 1;
   box-shadow: none;
