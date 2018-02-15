@@ -75,45 +75,57 @@ class DifAssembleEndpoint(ProjectEndpoint):
             name = file_to_assemble.get('name', None)
             chunks = file_to_assemble.get('chunks', [])
 
-            missing_chunks = find_missing_chunks(project.organization, chunks)
-
-            # If there are any missing chunks, skip.
-            if missing_chunks:
-                file_response[checksum] = {
-                    'state': ChunkFileState.NOT_FOUND,
-                    'missingChunks': missing_chunks,
-                }
-                continue
-
-            # Under the assumption we have all chunks, check if a dsym
-            # file with the checksum exists for the project.
+            # First, check if this project already owns the DSymFile
             try:
                 dif = ProjectDSymFile.objects.filter(
                     project=project,
                     file__checksum=checksum
                 ).get()
             except ProjectDSymFile.DoesNotExist:
-                # it does not exist yet.  Check the state we have in cache
+                # It does not exist yet.  Check the state we have in cache
                 # in case this is a retry poll.
                 state, detail = get_assemble_status(project, checksum)
+                if state is not None:
+                    file_response[checksum] = {
+                        'state': state,
+                        'detail': detail,
+                        'missingChunks': [],
+                    }
+                    continue
+
+                # There is neither a known file nor a cached state, so we will
+                # have to create a new file.  Assure that there are checksums.
+                # If not, we assume this is a poll and report NOT_FOUND
+                if not chunks:
+                    file_response[checksum] = {
+                        'state': ChunkFileState.NOT_FOUND,
+                        'missingChunks': [],
+                    }
+                    continue
+
+                # Check if all requested chunks have been uploaded.
+                missing_chunks = find_missing_chunks(project.organization, chunks)
+                if missing_chunks:
+                    file_response[checksum] = {
+                        'state': ChunkFileState.NOT_FOUND,
+                        'missingChunks': missing_chunks,
+                    }
+                    continue
 
                 # We don't have a state yet, this means we can now start
                 # an assemble job in the background.
-                if state is None:
-                    state = ChunkFileState.CREATED
-                    set_assemble_status(project, checksum, state)
-                    assemble_dif.apply_async(
-                        kwargs={
-                            'project_id': project.id,
-                            'name': name,
-                            'checksum': checksum,
-                            'chunks': chunks,
-                        }
-                    )
+                set_assemble_status(project, checksum, state)
+                assemble_dif.apply_async(
+                    kwargs={
+                        'project_id': project.id,
+                        'name': name,
+                        'checksum': checksum,
+                        'chunks': chunks,
+                    }
+                )
 
                 file_response[checksum] = {
-                    'state': state,
-                    'detail': detail,
+                    'state': ChunkFileState.CREATED,
                     'missingChunks': [],
                 }
             else:
