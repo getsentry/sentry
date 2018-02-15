@@ -36,7 +36,7 @@ class SubscribeTest(TestCase):
 
         assert len(GroupSubscription.objects.filter(
             group=group,
-        )) is 20
+        )) == 20
 
         one_more = self.create_user()
         user_ids.append(one_more.id)
@@ -46,7 +46,7 @@ class SubscribeTest(TestCase):
 
         assert len(GroupSubscription.objects.filter(
             group=group,
-        )) is 21
+        )) == 21
 
     def test_actor_user(self):
         group = self.create_group()
