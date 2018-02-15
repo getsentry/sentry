@@ -46,6 +46,7 @@ from sentry.auth.providers.dummy import DummyProvider
 from sentry.auth.superuser import (
     Superuser, COOKIE_SALT as SU_COOKIE_SALT, COOKIE_NAME as SU_COOKIE_NAME
 )
+from sentry.event_manager import EventManager
 from sentry.constants import MODULE_ROOT
 from sentry.models import (
     GroupMeta, ProjectOption, DeletedOrganization, Environment, GroupStatus, Organization, TotpInterface, UserReport
@@ -396,7 +397,9 @@ class UserReportEnvironmentTestCase(APITestCase):
             'tags': [],
         }
         result.update(kwargs)
-        return result
+        manager = EventManager(result)
+        manager.normalize()
+        manager.save(self.project.id)
 
     def create_environment(self, project, name):
         env = Environment.objects.create(
