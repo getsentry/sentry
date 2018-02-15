@@ -42,6 +42,7 @@ const DropdownAutoComplete = ({items, onBlur}) => (
                   position: 'absolute',
                   backgroundColor: 'white',
                   padding: '0',
+                  width: '100%',
                 },
               })}
             >
@@ -99,9 +100,9 @@ class DropdownButton extends React.Component {
 
   render() {
     return (
-      <div style={{position: 'relative'}}>
+      <div style={{position: 'relative', display: 'inline-block'}}>
         {this.state.isOpen && (
-          <div style={{position: 'fixed', top: 0, left: 0}}>
+          <div style={{position: 'absolute', top: 'calc(100% + 0.25em)', left: 0}}>
             <DropdownAutoComplete items={fakeItems} onBlur={this.toggleOpen} />
           </div>
         )}
