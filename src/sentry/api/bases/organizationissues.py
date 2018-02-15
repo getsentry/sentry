@@ -35,7 +35,7 @@ class OrganizationIssuesEndpoint(OrganizationMemberEndpoint, EnvironmentMixin):
             organization=organization,
             teams__in=OrganizationMemberTeam.objects.filter(
                 organizationmember=member,
-            ).values('team'),
+            ).values_list('team'),
         )
 
         queryset = self.get_queryset(request, organization, member, project_list)

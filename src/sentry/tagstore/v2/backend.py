@@ -577,28 +577,21 @@ class V2TagStorage(TagStorage):
             return list(
                 GroupTagValue.objects.raw(
                     """
-                SELECT *
-                FROM (
-                    SELECT tagstore_grouptagvalue.id,
-                           tagstore_grouptagvalue.project_id,
-                           tagstore_grouptagvalue.group_id,
-                           tagstore_grouptagvalue.times_seen,
-                           tagstore_grouptagvalue.key_id,
-                           tagstore_grouptagvalue.value_id,
-                           tagstore_grouptagvalue.last_seen,
-                           tagstore_grouptagvalue.first_seen
-                    FROM tagstore_grouptagvalue
-                    INNER JOIN tagstore_tagkey
-                    ON (tagstore_grouptagvalue.key_id = tagstore_tagkey.id)
-                    WHERE tagstore_grouptagvalue.group_id = %%s
-                    AND tagstore_tagkey.environment_id %s %%s
-                    AND tagstore_tagkey.key = %%s
-                    ORDER BY last_seen DESC
-                    LIMIT 10000
-                ) as a
-                ORDER BY times_seen DESC
-                LIMIT %d
-            """ % ('IS' if environment_id is None else '=', limit), [group_id, environment_id, key]
+                    SELECT *
+                    FROM (
+                        SELECT tagstore_grouptagvalue.*
+                        FROM tagstore_grouptagvalue
+                        INNER JOIN tagstore_tagkey
+                        ON (tagstore_grouptagvalue.key_id = tagstore_tagkey.id)
+                        WHERE tagstore_grouptagvalue.group_id = %%s
+                        AND tagstore_tagkey.environment_id %s %%s
+                        AND tagstore_tagkey.key = %%s
+                        ORDER BY last_seen DESC
+                        LIMIT 10000
+                    ) as a
+                    ORDER BY times_seen DESC
+                    LIMIT %d
+                """ % ('IS' if environment_id is None else '=', limit), [group_id, environment_id, key]
                 )
             )
 

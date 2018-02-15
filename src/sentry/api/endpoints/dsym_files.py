@@ -111,7 +111,7 @@ class DSymFilesEndpoint(ProjectEndpoint):
         apps = DSymApp.objects.filter(project=project)
         dsym_files = VersionDSymFile.objects.filter(
             dsym_app=apps
-        ).select_related('projectdsymfile').order_by('-build', 'version')
+        ).select_related('dsym_file').order_by('-build', 'version')
 
         file_list = ProjectDSymFile.objects.filter(
             project=project,

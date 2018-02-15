@@ -22,7 +22,7 @@ class Migration(SchemaMigration):
                 ('managed', self.gf('django.db.models.fields.BooleanField')(default=False)),
                 ('data', self.gf('django.db.models.fields.TextField')(null=True, blank=True)), (
                     'date_added',
-                    self.gf('django.db.models.fields.DateTimeField')(default=datetime.datetime.now)
+                    self.gf('django.db.models.fields.DateTimeField')()
                 ),
             )
         )

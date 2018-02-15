@@ -20,7 +20,7 @@ class Migration(SchemaMigration):
                 ('key_id', self.gf('sentry.db.models.fields.bounded.BoundedBigIntegerField')()),
                 ('value_id', self.gf('sentry.db.models.fields.bounded.BoundedBigIntegerField')()), (
                     'date_added',
-                    self.gf('django.db.models.fields.DateTimeField')(default=datetime.datetime.now)
+                    self.gf('django.db.models.fields.DateTimeField')()
                 ),
             )
         )

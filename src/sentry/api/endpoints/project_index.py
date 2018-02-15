@@ -80,7 +80,7 @@ class ProjectIndexEndpoint(Endpoint):
                     queryset = queryset.filter(
                         id__in=ProjectPlatform.objects.filter(
                             platform__in=value,
-                        ).values('project_id')
+                        ).values_list('project_id')
                     )
                 elif key == 'id':
                     queryset = queryset.filter(id__in=value)

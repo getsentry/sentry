@@ -30,7 +30,7 @@ class Migration(SchemaMigration):
                     self.gf('sentry.db.models.fields.bounded.BoundedPositiveIntegerField')()
                 ), (
                     'date_completed',
-                    self.gf('django.db.models.fields.DateTimeField')(default=datetime.datetime.now)
+                    self.gf('django.db.models.fields.DateTimeField')()
                 ), (
                     'project_id', self.gf('sentry.db.models.fields.bounded.BoundedBigIntegerField')(
                         null=True, blank=True

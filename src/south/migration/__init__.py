@@ -13,8 +13,7 @@ from south import exceptions
 from south.models import MigrationHistory
 from south.db import db, DEFAULT_DB_ALIAS
 from south.migration.migrators import (Backwards, Forwards,
-                                       DryRunMigrator, FakeMigrator,
-                                       LoadInitialDataMigrator)
+                                       DryRunMigrator, FakeMigrator)
 from south.migration.base import Migration, Migrations
 from south.migration.utils import SortedSet
 from south.migration.base import all_migrations
@@ -147,15 +146,13 @@ def get_direction(target, applied, migrations, verbosity, interactive):
     return direction, problems, workplan
 
 
-def get_migrator(direction, db_dry_run, fake, load_initial_data):
+def get_migrator(direction, db_dry_run, fake):
     if not direction:
         return direction
     if db_dry_run:
         direction = DryRunMigrator(migrator=direction, ignore_fail=False)
     elif fake:
         direction = FakeMigrator(migrator=direction)
-    elif load_initial_data:
-        direction = LoadInitialDataMigrator(migrator=direction)
     return direction
 
 
@@ -169,7 +166,7 @@ def get_unapplied_migrations(migrations, applied_migrations):
 
 
 def migrate_app(migrations, target_name=None, merge=False, fake=False, db_dry_run=False, yes=False, verbosity=0,
-                load_initial_data=False, skip=False, database=DEFAULT_DB_ALIAS, delete_ghosts=False, ignore_ghosts=False, interactive=False):
+                skip=False, database=DEFAULT_DB_ALIAS, delete_ghosts=False, ignore_ghosts=False, interactive=False):
     app_label = migrations.app_label()
 
     verbosity = int(verbosity)
@@ -228,7 +225,7 @@ def migrate_app(migrations, target_name=None, merge=False, fake=False, db_dry_ru
         raise exceptions.InconsistentMigrationHistory(problems)
 
     # Perform the migration
-    migrator = get_migrator(direction, db_dry_run, fake, load_initial_data)
+    migrator = get_migrator(direction, db_dry_run, fake)
     if migrator:
         migrator.print_title(target)
         success = migrator.migrate_many(target, workplan, database)
@@ -244,12 +241,6 @@ def migrate_app(migrations, target_name=None, merge=False, fake=False, db_dry_ru
         if verbosity:
             # Say there's nothing.
             print('- Nothing to migrate.')
-        # If we have initial data enabled, and we're at the most recent
-        # migration, do initial data.
-        # Note: We use a fake Forwards() migrator here. It's never used really.
-        if load_initial_data:
-            migrator = LoadInitialDataMigrator(migrator=Forwards(verbosity=verbosity))
-            migrator.load_initial_data(target, db=database)
         # Send signal.
         post_migrate.send(
             None,

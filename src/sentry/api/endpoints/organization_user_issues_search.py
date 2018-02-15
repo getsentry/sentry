@@ -26,7 +26,7 @@ class OrganizationUserIssuesSearchEndpoint(OrganizationEndpoint, EnvironmentMixi
                     organizationmember__user=request.user,
                     organizationmember__organization=organization,
                     is_active=True,
-                ).values('team'),
+                ).values_list('team'),
             ).values_list('id', flat=True)[:1000]
         )
 

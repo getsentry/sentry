@@ -20,7 +20,7 @@ class Migration(SchemaMigration):
                 ), ('label', self.gf('django.db.models.fields.CharField')(max_length=64)),
                 ('data', self.gf('sentry.db.models.fields.gzippeddict.GzippedDictField')()), (
                     'date_added',
-                    self.gf('django.db.models.fields.DateTimeField')(default=datetime.datetime.now)
+                    self.gf('django.db.models.fields.DateTimeField')()
                 ),
             )
         )
