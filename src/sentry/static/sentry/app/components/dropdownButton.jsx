@@ -1,7 +1,10 @@
 import PropTypes from 'prop-types';
 import React from 'react';
 import _ from 'lodash';
+import styled from 'react-emotion';
 import AutoComplete from './autoComplete';
+import Button from './buttons/button';
+import InlineSvg from './inlineSvg';
 
 const FakeComponent = ({text, emoji}) => (
   <div>
@@ -17,26 +20,28 @@ FakeComponent.propTypes = {
 
 const fakeItems = [
   {
-    id: 'russia',
     searchKey: 'russia',
     content: <FakeComponent text="China" emoji="🇨🇳" />,
   },
   {
-    id: 'new-zealand',
     searchKey: 'new zealand',
     content: <FakeComponent text="Russia" emoji="🇨🇷" />,
   },
   {
-    id: 'australia',
     searchKey: 'australia',
     content: <FakeComponent text="Australia" emoji="🇦🇺" />,
   },
   {
-    id: 'brazil',
     searchKey: 'brazil',
     content: <FakeComponent text="Brazil" emoji="🇧🇷" />,
   },
 ];
+
+const StyledChevronDown = styled(props => (
+  <InlineSvg src="icon-chevron-down" {...props} />
+))`
+  margin-right: 0.5em;
+`;
 
 const DropdownAutoComplete = ({items, onBlur}) => (
   <AutoComplete itemToString={item => item.content}>
@@ -74,7 +79,7 @@ const DropdownAutoComplete = ({items, onBlur}) => (
                   )
                   .map((item, index) => (
                     <div
-                      key={item.name}
+                      key={item.searchKey}
                       {...getItemProps({
                         item,
                         index,
@@ -132,7 +137,10 @@ class DropdownButton extends React.Component {
           onClick={this.toggleOpen}
           ref={button => (this.button = button)}
         >
-          Click Me!
+          <Button>
+            <StyledChevronDown />
+            Add Something
+          </Button>
         </div>
       </div>
     );
