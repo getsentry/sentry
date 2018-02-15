@@ -28,7 +28,7 @@ const formGroups = [
         visible: getUserIsNotManaged,
         validate: ({id, form}) => {
           if (form[id] !== form.passwordVerify) {
-            return [[id]];
+            return [[id, '']];
           }
 
           return [];

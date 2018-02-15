@@ -295,6 +295,8 @@ class FormField extends React.Component {
                         onKeyDown: this.handleKeyDown,
                         onChange: this.handleChange,
                         onBlur: this.handleBlur,
+                        // Fixes react warnings about input switching from controlled to uncontrolled
+                        // So force to empty string for null values
                         value: value === null ? '' : value,
                         error,
                         disabled: isDisabled,

@@ -291,7 +291,6 @@ class FormModel {
 
     let saveSnapshot = this.createSnapshot();
 
-    // Check if field needs to handle
     let request = this.doApiRequest({
       data: this.getTransformedData(),
     });
