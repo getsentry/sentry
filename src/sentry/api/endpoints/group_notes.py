@@ -73,16 +73,19 @@ class GroupNotesEndpoint(GroupEndpoint):
 
         mentioned_teams = actor_mentions.get('teams')
 
-        mentioned_team_users = User.objects.filter(
-            sentry_orgmember_set__organization_id=group.project.organization_id,
-            sentry_orgmember_set__organizationmemberteam__team__in=mentioned_teams,
-            sentry_orgmember_set__organizationmemberteam__is_active=True,
-            is_active=True,
-        ).exclude(id__in={u.id for u in actor_mentions.get('users')})
+        mentioned_team_users = list(
+            User.objects.filter(
+                sentry_orgmember_set__organization_id=group.project.organization_id,
+                sentry_orgmember_set__organizationmemberteam__team__in=mentioned_teams,
+                sentry_orgmember_set__organizationmemberteam__is_active=True,
+                is_active=True,
+            ).exclude(id__in={u.id for u in actor_mentions.get('users')})
+            .values_list('id', flat=True)
+        )
 
         GroupSubscription.objects.bulk_subscribe(
             group=group,
-            users=mentioned_team_users,
+            user_ids=mentioned_team_users,
             reason=GroupSubscriptionReason.team_mentioned,
         )
 

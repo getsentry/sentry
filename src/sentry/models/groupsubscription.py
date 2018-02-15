@@ -102,27 +102,17 @@ class GroupSubscriptionManager(BaseManager):
         elif isinstance(actor, Team):
 
             # subscribe the members of the team
-            team_users_ids = actor.member_set.values_list('user_id', flat=True)
+            team_users_ids = list(actor.member_set.values_list('user_id', flat=True))
 
             return self.bulk_subscribe(group, team_users_ids, reason)
         else:
             raise NotImplementedError('Uknown actor type')
 
-    def bulk_subscribe(self, group, users, reason=GroupSubscriptionReason.unknown):
+    def bulk_subscribe(self, group, user_ids, reason=GroupSubscriptionReason.unknown):
         """
         Subscribe a list of users or users ids to an issue, but only if the users are not explicitly
         unsubscribed.
         """
-        from sentry.models import User
-
-        if not users:
-            return
-
-        if isinstance(users[0], User):
-            user_ids = {user.id for user in users}
-        else:
-            user_ids = users
-
         # 5 retries for race conditions
         for _ in range(5):
 

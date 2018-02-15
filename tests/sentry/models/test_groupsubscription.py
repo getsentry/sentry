@@ -27,22 +27,22 @@ class SubscribeTest(TestCase):
     def test_bulk(self):
         group = self.create_group()
 
-        users = []
+        user_ids = []
         for i in range(20):
             user = self.create_user()
-            users.append(user)
+            user_ids.append(user.id)
 
-        GroupSubscription.objects.bulk_subscribe(group=group, users=users)
+        GroupSubscription.objects.bulk_subscribe(group=group, user_ids=user_ids)
 
         assert len(GroupSubscription.objects.filter(
             group=group,
         )) is 20
 
         one_more = self.create_user()
-        users.append(one_more)
+        user_ids.append(one_more.id)
 
         # should not error
-        GroupSubscription.objects.bulk_subscribe(group=group, users=users)
+        GroupSubscription.objects.bulk_subscribe(group=group, user_ids=user_ids)
 
         assert len(GroupSubscription.objects.filter(
             group=group,
