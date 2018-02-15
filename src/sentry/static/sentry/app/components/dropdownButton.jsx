@@ -43,6 +43,24 @@ const StyledChevronDown = styled(props => (
   margin-right: 0.5em;
 `;
 
+const StyledMenu = styled('div')`
+  background: #fff;
+  border: 1px solid ${p => p.theme.borderLight};
+  padding: 1em;
+  position: absolute;
+  top: calc(100% - 1px);
+  left: 0;
+`;
+
+const StyledButton = styled(props => <Button {...props} />)`
+  border-bottom-color: ${p => (p.isOpen ? 'transparent' : p.theme.borderLight)};
+  border-bottom-right-radius: ${p => (p.isOpen ? 0 : '4px')};
+  border-bottom-left-radius: ${p => (p.isOpen ? 0 : '4px')};
+  position: relative;
+  z-index; 1;
+  box-shadow: none;
+`;
+
 const DropdownAutoComplete = ({items, onBlur}) => (
   <AutoComplete itemToString={item => item.content}>
     {({
@@ -56,21 +74,10 @@ const DropdownAutoComplete = ({items, onBlur}) => (
       isOpen,
     }) => {
       return (
-        <div {...getRootProps({style: {position: 'relative'}})}>
+        <div {...getRootProps()}>
           <input autoFocus {...getInputProps({})} onBlur={onBlur} />
           {isOpen && (
-            <div
-              {...getMenuProps({
-                style: {
-                  boxShadow:
-                    '0 1px 4px 1px rgba(47,40,55,0.08), 0 4px 16px 0 rgba(47,40,55,0.12)',
-                  position: 'absolute',
-                  backgroundColor: 'white',
-                  padding: '0',
-                  width: '100%',
-                },
-              })}
-            >
+            <div {...getMenuProps()}>
               <div>
                 {items
                   .filter(
@@ -128,19 +135,19 @@ class DropdownButton extends React.Component {
     return (
       <div style={{position: 'relative', display: 'inline-block'}}>
         {this.state.isOpen && (
-          <div style={{position: 'absolute', top: 'calc(100% + 0.25em)', left: 0}}>
+          <StyledMenu>
             <DropdownAutoComplete items={fakeItems} onBlur={this.toggleOpen} />
-          </div>
+          </StyledMenu>
         )}
         <div
           style={{pointerEvents: this.state.isOpen ? 'none' : 'auto'}}
           onClick={this.toggleOpen}
           ref={button => (this.button = button)}
         >
-          <Button>
+          <StyledButton isOpen={this.state.isOpen}>
             <StyledChevronDown />
             Add Something
-          </Button>
+          </StyledButton>
         </div>
       </div>
     );
