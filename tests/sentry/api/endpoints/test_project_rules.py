@@ -118,6 +118,7 @@ class CreateProjectRuleTest(APITestCase):
 
         assert response.status_code == 200, response.content
         assert response.data['id']
+        assert response.data['environment'] == 'production'
 
         rule = Rule.objects.get(id=response.data['id'])
         assert rule.label == 'hello world'
