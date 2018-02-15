@@ -31,8 +31,8 @@ from symbolic import FatObject, SymbolicError, UnsupportedObjectFile, \
 from sentry import options
 from sentry.cache import default_cache
 from sentry.db.models import FlexibleForeignKey, Model, \
-    sane_repr, BaseManager, BoundedPositiveIntegerField, ChunkFileState
-from sentry.models.file import File
+    sane_repr, BaseManager, BoundedPositiveIntegerField
+from sentry.models.file import ChunkFileState, File
 from sentry.utils.zip import safe_extract_zip
 from sentry.constants import KNOWN_DSYM_TYPES
 from sentry.reprocessing import resolve_processing_issue, \
