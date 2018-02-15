@@ -32,7 +32,7 @@ from sentry import options
 from sentry.cache import default_cache
 from sentry.db.models import FlexibleForeignKey, Model, \
     sane_repr, BaseManager, BoundedPositiveIntegerField
-from sentry.models.file import ChunkFileState, File
+from sentry.models.file import File
 from sentry.utils.zip import safe_extract_zip
 from sentry.constants import KNOWN_DSYM_TYPES
 from sentry.reprocessing import resolve_processing_issue, \
@@ -485,6 +485,14 @@ class DSymCache(object):
                                    for k, v in conversion_errors.items())
         return symcaches
 
+    def get_symcache(self, project, uuid, with_conversion_errors=False):
+        """Return a single symcache."""
+        symcaches, errors = self.get_symcaches(
+            project, [uuid], with_conversion_errors=True)
+        if with_conversion_errors:
+            return symcaches.get(uuid), errors.get(uuid)
+        return symcaches.get(uuid)
+
     def fetch_dsyms(self, project, uuids):
         """Given some uuids returns a uuid to path mapping for where the
         debug symbol files are on the FS.
@@ -556,9 +564,6 @@ class DSymCache(object):
             updated_cachefiles, conversion_errors = self._update_cachefiles(
                 project, to_update)
             cachefiles.extend(updated_cachefiles)
-
-        for dsym in dsym_files:
-            set_assemble_status(project, dsym.file.checksum, ChunkFileState.OK)
 
         return cachefiles, conversion_errors
 

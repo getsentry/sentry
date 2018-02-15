@@ -11,7 +11,8 @@ logger = logging.getLogger(__name__)
 
 @instrumented_task(name='sentry.tasks.assemble.assemble_dif', queue='assemble')
 def assemble_dif(project_id, name, checksum, chunks, **kwargs):
-    from sentry.models import ChunkFileState, dsymfile, Project, set_assemble_status, BadDif
+    from sentry.models import ChunkFileState, dsymfile, Project, \
+        ProjectDSymFile, set_assemble_status, BadDif
     from sentry.reprocessing import bump_reprocessing_revision
 
     with transaction.atomic():
@@ -52,12 +53,15 @@ def assemble_dif(project_id, name, checksum, chunks, **kwargs):
                     os.path.basename(name),
                     file=file)
                 delete_file = False
-                set_assemble_status(project, checksum, ChunkFileState.OK)
                 bump_reprocessing_revision(project)
 
-                from sentry.tasks.symcache_update import symcache_update
-                symcache_update.delay(project_id=project.id,
-                                      uuids=[dsym.uuid])
+                # XXX: this should only be done for files that
+                symcache, error = ProjectDSymFile.dsymcache.get_symcache(project)
+                if error is not None:
+                    set_assemble_status(project, checksum, ChunkFileState.ERROR,
+                                        detail=error)
+                else:
+                    set_assemble_status(project, checksum, ChunkFileState.OK)
         finally:
             if delete_file:
                 file.delete()
