@@ -84,8 +84,8 @@ class OnboardingProject extends React.Component {
               <input
                 type="text"
                 name="name"
-                label="Project Name"
-                placeholder="Project name"
+                label={t('Project Name')}
+                placeholder={t('Project name')}
                 autoComplete="off"
                 value={this.props.name}
                 onChange={e => this.props.setName(e.target.value)}

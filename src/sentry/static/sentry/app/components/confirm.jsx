@@ -3,6 +3,7 @@ import PropTypes from 'prop-types';
 import Modal from 'react-bootstrap/lib/Modal';
 
 import Button from './buttons/button';
+import {t} from '../locale';
 
 class Confirm extends React.PureComponent {
   static propTypes = {
@@ -18,8 +19,8 @@ class Confirm extends React.PureComponent {
 
   static defaultProps = {
     priority: 'primary',
-    cancelText: 'Cancel',
-    confirmText: 'Confirm',
+    cancelText: t('Cancel'),
+    confirmText: t('Confirm'),
   };
 
   constructor(...args) {

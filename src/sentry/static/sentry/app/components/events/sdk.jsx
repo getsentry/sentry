@@ -25,20 +25,20 @@ class EventSdk extends React.Component {
         <table className="table key-value">
           <tbody>
             <tr key="name">
-              <td className="key">Name</td>
+              <td className="key">{t('Name')}</td>
               <td className="value">
                 <pre>{data.name}</pre>
               </td>
             </tr>
             <tr key="version">
-              <td className="key">Version</td>
+              <td className="key">{t('Version')}</td>
               <td className="value">
                 <pre>{data.version}</pre>
               </td>
             </tr>
             {data.clientIP && (
               <tr key="clientIP">
-                <td className="key">Client IP</td>
+                <td className="key">{t('Client IP')}</td>
                 <td className="value">
                   <pre>{data.clientIP}</pre>
                 </td>

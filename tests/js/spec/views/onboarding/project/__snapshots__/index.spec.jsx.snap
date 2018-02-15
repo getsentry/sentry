@@ -165,7 +165,7 @@ exports[`Project render() should set required class on empty submit 1`] = `
             activeClassName="active"
             index={false}
             isActive={[Function]}
-            key="Popular"
+            key="popular"
             onClick={[Function]}
             to=""
           >
@@ -191,7 +191,7 @@ exports[`Project render() should set required class on empty submit 1`] = `
             activeClassName="active"
             index={false}
             isActive={[Function]}
-            key="Frontend"
+            key="frontend"
             onClick={[Function]}
             to=""
           >
@@ -217,7 +217,7 @@ exports[`Project render() should set required class on empty submit 1`] = `
             activeClassName="active"
             index={false}
             isActive={[Function]}
-            key="Mobile"
+            key="mobile"
             onClick={[Function]}
             to=""
           >
@@ -243,7 +243,7 @@ exports[`Project render() should set required class on empty submit 1`] = `
             activeClassName="active"
             index={false}
             isActive={[Function]}
-            key="Backend"
+            key="backend"
             onClick={[Function]}
             to=""
           >
@@ -269,7 +269,7 @@ exports[`Project render() should set required class on empty submit 1`] = `
             activeClassName="active"
             index={false}
             isActive={[Function]}
-            key="All"
+            key="all"
             onClick={[Function]}
             to=""
           >

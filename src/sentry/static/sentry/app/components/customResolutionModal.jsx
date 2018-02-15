@@ -49,12 +49,12 @@ export default class CustomResolutionModal extends React.Component {
     return (
       <Modal show={this.props.show} animation={false} onHide={this.props.onCanceled}>
         <div className="modal-header">
-          <h4>Resolved In</h4>
+          <h4>{t('Resolved In')}</h4>
         </div>
         <div className="modal-body">
           <form className="m-b-1">
             <div className="control-group m-b-1">
-              <h6 className="nav-header">Version</h6>
+              <h6 className="nav-header">{t('Version')}</h6>
               <Select2FieldAutocomplete
                 name="version"
                 onChange={v => this.onChange(v)}

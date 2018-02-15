@@ -201,7 +201,7 @@ const ProjectEvents = createReactClass({
           <div className="col-sm-5 release-search">
             <SearchBar
               defaultQuery=""
-              placeholder="Search event message"
+              placeholder={t('Search event message')}
               query={this.state.query}
               onSearch={this.onSearch}
             />

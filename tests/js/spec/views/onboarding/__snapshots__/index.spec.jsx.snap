@@ -177,7 +177,7 @@ exports[`OnboardingWizard render() should render and respond to click events 1`]
                     activeClassName="active"
                     index={false}
                     isActive={[Function]}
-                    key="Popular"
+                    key="popular"
                     onClick={[Function]}
                     to=""
                   >
@@ -203,7 +203,7 @@ exports[`OnboardingWizard render() should render and respond to click events 1`]
                     activeClassName="active"
                     index={false}
                     isActive={[Function]}
-                    key="Frontend"
+                    key="frontend"
                     onClick={[Function]}
                     to=""
                   >
@@ -229,7 +229,7 @@ exports[`OnboardingWizard render() should render and respond to click events 1`]
                     activeClassName="active"
                     index={false}
                     isActive={[Function]}
-                    key="Mobile"
+                    key="mobile"
                     onClick={[Function]}
                     to=""
                   >
@@ -255,7 +255,7 @@ exports[`OnboardingWizard render() should render and respond to click events 1`]
                     activeClassName="active"
                     index={false}
                     isActive={[Function]}
-                    key="Backend"
+                    key="backend"
                     onClick={[Function]}
                     to=""
                   >
@@ -281,7 +281,7 @@ exports[`OnboardingWizard render() should render and respond to click events 1`]
                     activeClassName="active"
                     index={false}
                     isActive={[Function]}
-                    key="All"
+                    key="all"
                     onClick={[Function]}
                     to=""
                   >
@@ -1031,7 +1031,7 @@ exports[`OnboardingWizard render() should render and respond to click events 2`]
                     activeClassName="active"
                     index={false}
                     isActive={[Function]}
-                    key="Popular"
+                    key="popular"
                     onClick={[Function]}
                     to=""
                   >
@@ -1057,7 +1057,7 @@ exports[`OnboardingWizard render() should render and respond to click events 2`]
                     activeClassName="active"
                     index={false}
                     isActive={[Function]}
-                    key="Frontend"
+                    key="frontend"
                     onClick={[Function]}
                     to=""
                   >
@@ -1083,7 +1083,7 @@ exports[`OnboardingWizard render() should render and respond to click events 2`]
                     activeClassName="active"
                     index={false}
                     isActive={[Function]}
-                    key="Mobile"
+                    key="mobile"
                     onClick={[Function]}
                     to=""
                   >
@@ -1109,7 +1109,7 @@ exports[`OnboardingWizard render() should render and respond to click events 2`]
                     activeClassName="active"
                     index={false}
                     isActive={[Function]}
-                    key="Backend"
+                    key="backend"
                     onClick={[Function]}
                     to=""
                   >
@@ -1135,7 +1135,7 @@ exports[`OnboardingWizard render() should render and respond to click events 2`]
                     activeClassName="active"
                     index={false}
                     isActive={[Function]}
-                    key="All"
+                    key="all"
                     onClick={[Function]}
                     to=""
                   >
