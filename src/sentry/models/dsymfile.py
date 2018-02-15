@@ -59,7 +59,7 @@ def _get_idempotency_id(project, checksum):
     return hashlib.sha1(b'%s|%s|project.dsym' % (
         str(project.id).encode('ascii'),
         checksum.encode('ascii'),
-    ))
+    )).hexdigest()
 
 
 def get_assemble_status(project, checksum):
