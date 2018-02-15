@@ -94,6 +94,48 @@ class GroupSubscriptionManager(BaseManager):
         except IntegrityError:
             pass
 
+    def bulk_subscribe(self, group, users, reason=GroupSubscriptionReason.unknown, retrys=0):
+        """
+        Subscribe a list of user to an issue, but only if the user has not explicitly
+        unsubscribed.
+        """
+        subscriptions = []
+
+        explicit_unsubscribes = GroupSubscription.objects.filter(
+            user__in=users,
+            group=group,
+            project=group.project,
+        )
+
+        existing_subscriptions = set(
+            [subscription.user.id for subscription in explicit_unsubscribes])
+
+        for user in users:
+            # don't try to subscribe users who have unsubscribed
+            if user.id in existing_subscriptions:
+                continue
+
+            subscriptions.append(
+                GroupSubscription(
+                    user=user,
+                    group=group,
+                    project=group.project,
+                    is_active=True,
+                    reason=reason,
+                )
+            )
+
+        try:
+            with transaction.atomic():
+                self.bulk_create(subscriptions)
+                return True
+        except IntegrityError as e:
+            if retrys < 4:
+                self.bulk_subscribe(group, users, reason, retrys + 1)
+            else:
+                # three ret
+                raise e
+
     def get_participants(self, group):
         """
         Identify all users who are participating with a given issue.

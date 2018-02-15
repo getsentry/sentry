@@ -24,6 +24,30 @@ class SubscribeTest(TestCase):
         # should not error
         GroupSubscription.objects.subscribe(group=group, user=user)
 
+    def test_bulk(self):
+        group = self.create_group()
+
+        users = []
+        for i in range(20):
+            user = self.create_user()
+            users.append(user)
+
+        GroupSubscription.objects.bulk_subscribe(group=group, users=users)
+
+        assert len(GroupSubscription.objects.filter(
+            group=group,
+        )) is 20
+
+        one_more = self.create_user()
+        users.append(one_more)
+
+        # should not error
+        GroupSubscription.objects.bulk_subscribe(group=group, users=users)
+
+        assert len(GroupSubscription.objects.filter(
+            group=group,
+        )) is 21
+
 
 class GetParticipantsTest(TestCase):
     def test_simple(self):
