@@ -20,7 +20,7 @@ export default class TeamCreate extends AsyncView {
     let redirectUrl = `/organizations/${orgId}/projects/new/?team=${data.slug}`;
     if (features.has('internal-catchall')) {
       // New behavior: redirect to team settings page
-      redirectUrl = `/settings/organization/${orgId}/teams/${data.slug}/settings/`;
+      redirectUrl = `/settings/organization/${orgId}/teams/${data.slug}/`;
     }
     window.location.href = redirectUrl;
   };
