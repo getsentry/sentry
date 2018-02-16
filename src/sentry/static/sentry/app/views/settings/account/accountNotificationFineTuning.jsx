@@ -10,6 +10,7 @@ import PanelBody from '../components/panelBody';
 import PanelHeader from '../components/panelHeader';
 import ProjectsStore from '../../../stores/projectsStore';
 import Select2Field from '../components/forms/select2Field';
+import SettingsPageHeader from '../components/settingsPageHeader';
 import TextBlock from '../components/text/textBlock';
 import withOrganizations from '../../../utils/withOrganizations';
 
@@ -70,13 +71,13 @@ class AccountNotificationsByProject extends React.Component {
   };
 
   getFieldData() {
-    let {projects} = this.props;
+    let {projects, field} = this.props;
     ProjectsStore.loadInitialData(projects);
 
     const projectsByOrg = ProjectsStore.getAllGroupedByOrganization();
 
     // eslint-disable-next-line no-unused-vars
-    const {title, description, ...fieldConfig} = this.props.field;
+    const {title, description, ...fieldConfig} = field;
 
     // Display as select box in this view regardless of the type specified in the config
     return Object.values(projectsByOrg).map(org => {
@@ -85,6 +86,8 @@ class AccountNotificationsByProject extends React.Component {
         projects: org.projects.map(project => {
           return {
             ...fieldConfig,
+            // `name` key refers to field name
+            // we use project.id because slugs are not unique across orgs
             name: project.id,
             label: project.name,
           };
@@ -96,17 +99,17 @@ class AccountNotificationsByProject extends React.Component {
   render() {
     const data = this.getFieldData();
 
-    return data.map(org => {
+    return data.map(({name, projects: projectFields}) => {
       return (
-        <div key={org.name}>
-          <PanelHeader>{org.name}</PanelHeader>
-          {org.projects.map(project => {
+        <div key={name}>
+          <PanelHeader>{name}</PanelHeader>
+          {projectFields.map(field => {
             return (
-              <PanelBodyLineItem key={project.name}>
+              <PanelBodyLineItem key={field.name}>
                 <Select2Field
-                  name={project.name}
-                  choices={project.choices}
-                  label={project.label}
+                  name={field.name}
+                  choices={field.choices}
+                  label={field.label}
                   small={true}
                 />
               </PanelBodyLineItem>
@@ -133,6 +136,8 @@ class AccountNotificationsByOrganization extends React.Component {
     return organizations.map(org => {
       return {
         ...fieldConfig,
+        // `name` key refers to field name
+        // we use org.id to remain consistent project.id use (which is required because slugs are not unique across orgs)
         name: org.id,
         label: org.slug,
       };
@@ -140,20 +145,25 @@ class AccountNotificationsByOrganization extends React.Component {
   }
 
   render() {
-    const data = this.getFieldData();
+    const fields = this.getFieldData();
 
-    return data.map(org => {
-      return (
-        <PanelBodyLineItem key={org.id}>
-          <Select2Field
-            name={org.name}
-            choices={org.choices}
-            label={org.label}
-            small={true}
-          />
-        </PanelBodyLineItem>
-      );
-    });
+    return (
+      <React.Fragment>
+        <PanelHeader>{t('Organizations')}</PanelHeader>
+        {fields.map(field => {
+          return (
+            <PanelBodyLineItem key={field.name}>
+              <Select2Field
+                name={field.name}
+                choices={field.choices}
+                label={field.label}
+                small
+              />
+            </PanelBodyLineItem>
+          );
+        })}
+      </React.Fragment>
+    );
   }
 }
 
@@ -181,6 +191,9 @@ export default class AccountNotificationFineTuning extends AsyncView {
 
     return (
       <div>
+        <SettingsPageHeader title={title} />
+        {description && <TextBlock>{description}</TextBlock>}
+
         <Form
           saveOnBlur
           apiMethod="PUT"
@@ -188,25 +201,14 @@ export default class AccountNotificationFineTuning extends AsyncView {
           initialData={this.state.notifications}
         >
           <Panel>
-            <PanelHeader lightText={true}>{title}</PanelHeader>
-
-            {description && <TextBlock>{description}</TextBlock>}
-
             {isProject && (
               <AccountNotificationsByProject
-                {...this.props}
-                {...this.state}
+                projects={this.state.projects}
                 field={field}
               />
             )}
 
-            {!isProject && (
-              <AccountNotificationsByOrganizationContainer
-                {...this.props}
-                {...this.state}
-                field={field}
-              />
-            )}
+            {!isProject && <AccountNotificationsByOrganizationContainer field={field} />}
           </Panel>
         </Form>
       </div>
