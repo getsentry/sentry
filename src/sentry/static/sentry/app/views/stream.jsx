@@ -41,13 +41,13 @@ const Stream = createReactClass({
     defaultSort: PropTypes.string,
     defaultStatsPeriod: PropTypes.string,
     maxItems: PropTypes.number,
-    setProjectNavSection: PropTypes.func,
+    // setProjectNavSection: PropTypes.func,
   },
 
   mixins: [
     Reflux.listenTo(GroupStore, 'onGroupChange'),
     Reflux.listenTo(StreamTagStore, 'onStreamTagChange'),
-    Reflux.listenTo(LatestContextStore, 'onLatestContextChange'),
+    // Reflux.listenTo(LatestContextStore, 'onLatestContextChange'),
     ApiMixin,
     ProjectState,
   ],
@@ -106,8 +106,6 @@ const Stream = createReactClass({
   },
 
   componentWillMount() {
-    this.props.setProjectNavSection('stream');
-
     this._streamManager = new utils.StreamManager(GroupStore);
     this._poller = new utils.CursorPoller({
       success: this.onRealtimePoll,
@@ -868,4 +866,67 @@ const Stream = createReactClass({
     );
   },
 });
-export default Stream;
+
+const StreamContainer = createReactClass({
+  displayName: 'StreamContainer',
+
+  propTypes: {
+    setProjectNavSection: PropTypes.func,
+  },
+
+  mixins: [ProjectState, Reflux.listenTo(LatestContextStore, 'onLatestContextChange')],
+
+  getInitialState() {
+    const hasEnvironmentsFeature = new Set(this.getOrganization().features).has(
+      'environments'
+    );
+    return {
+      hasEnvironmentsFeature,
+      environment: hasEnvironmentsFeature ? LatestContextStore.getInitialState() : null,
+    };
+  },
+
+  componentWillMount() {
+    this.props.setProjectNavSection('stream');
+  },
+
+  shouldComponentUpdate(nextProps) {
+    return true;
+  },
+
+  onLatestContextChange(context) {
+    // Don't do anything unless environment is changing
+    if (context.environment === this.state.activeEnvironment) return;
+
+    if (this.state.hasEnvironmentsFeature) {
+      // Always query the currently active environment selection unless
+      // the environment parameter is part of the saved search
+      let environment = context.environment;
+
+      let query = streamUtils.getQueryStringWithEnvironment(
+        this.state.query,
+        environment.name
+      );
+
+      this.setState(
+        {
+          activeEnvironment: environment,
+          query,
+        },
+        this.fetchData
+      );
+    }
+  },
+
+  render: function() {
+    return (
+      <Stream
+        location={this.props.location}
+        params={this.props.params}
+        environment={this.state.environment}
+      />
+    );
+  },
+});
+
+export default StreamContainer;
