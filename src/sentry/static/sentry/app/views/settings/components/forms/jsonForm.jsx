@@ -23,6 +23,7 @@ class JsonForm extends React.Component {
     ).isRequired,
     access: PropTypes.object,
     additionalFieldProps: PropTypes.object,
+    renderFooter: PropTypes.func,
   };
 
   static defaultProps = {
@@ -66,10 +67,11 @@ class JsonForm extends React.Component {
   }
 
   render() {
-    let {forms, access, additionalFieldProps, ...otherProps} = this.props;
+    let {forms, access, additionalFieldProps, renderFooter, ...otherProps} = this.props;
+    let shouldRenderFooter = typeof renderFooter === 'function';
 
     return (
-      <Box>
+      <Box {...otherProps}>
         {forms.map(({title, fields}) => {
           return (
             <Panel key={title} id={title}>
@@ -94,6 +96,7 @@ class JsonForm extends React.Component {
                     />
                   );
                 })}
+                {shouldRenderFooter && renderFooter({title, fields})}
               </PanelBody>
             </Panel>
           );

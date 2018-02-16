@@ -227,7 +227,7 @@ exports[`ProjectDebugSymbols renders 1`] = `
                   <Component
                     className="glamor-11 glamor-8"
                   >
-                    <_default
+                    <PanelHeading
                       className="glamor-11 glamor-8"
                     >
                       <div
@@ -245,7 +245,7 @@ exports[`ProjectDebugSymbols renders 1`] = `
                           )
                         </small>
                       </div>
-                    </_default>
+                    </PanelHeading>
                   </Component>
                 </StyledPanelHeading>
               </div>

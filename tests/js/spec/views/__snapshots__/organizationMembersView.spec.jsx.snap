@@ -286,7 +286,7 @@ exports[`OrganizationMembersView No Require Link does not have 2fa warning if us
                       <Component
                         className="glamor-19 glamor-16"
                       >
-                        <_default
+                        <PanelHeading
                           className="glamor-19 glamor-16"
                         >
                           <div
@@ -375,7 +375,7 @@ exports[`OrganizationMembersView No Require Link does not have 2fa warning if us
                               </Base>
                             </Flex>
                           </div>
-                        </_default>
+                        </PanelHeading>
                       </Component>
                     </StyledPanelHeading>
                   </div>
@@ -1480,7 +1480,7 @@ exports[`OrganizationMembersView Require Link does not have 2fa warning if user 
                       <Component
                         className="glamor-19 glamor-16"
                       >
-                        <_default
+                        <PanelHeading
                           className="glamor-19 glamor-16"
                         >
                           <div
@@ -1569,7 +1569,7 @@ exports[`OrganizationMembersView Require Link does not have 2fa warning if user 
                               </Base>
                             </Flex>
                           </div>
-                        </_default>
+                        </PanelHeading>
                       </Component>
                     </StyledPanelHeading>
                   </div>

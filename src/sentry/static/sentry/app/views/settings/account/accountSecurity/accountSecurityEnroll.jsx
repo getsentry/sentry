@@ -217,7 +217,7 @@ class AccountSecurityEnroll extends AsyncView {
 
     let data = {
       ...this._form,
-      ...((dataModel && dataModel.toJSON()) || {}),
+      ...(dataModel || {}),
       secret: authenticator.secret,
     };
 

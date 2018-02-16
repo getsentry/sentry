@@ -221,7 +221,7 @@ exports[`ProjectTags renders 1`] = `
                       <Component
                         className="glamor-15 glamor-12"
                       >
-                        <_default
+                        <PanelHeading
                           className="glamor-15 glamor-12"
                         >
                           <div
@@ -254,7 +254,7 @@ exports[`ProjectTags renders 1`] = `
                               </Base>
                             </Flex>
                           </div>
-                        </_default>
+                        </PanelHeading>
                       </Component>
                     </StyledPanelHeading>
                   </div>

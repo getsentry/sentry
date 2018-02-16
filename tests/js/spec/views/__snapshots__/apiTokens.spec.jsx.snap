@@ -437,7 +437,7 @@ exports[`ApiTokens renders with result 1`] = `
                       <Component
                         className="glamor-19 glamor-16"
                       >
-                        <_default
+                        <PanelHeading
                           className="glamor-19 glamor-16"
                         >
                           <div
@@ -475,7 +475,7 @@ exports[`ApiTokens renders with result 1`] = `
                               </Base>
                             </Flex>
                           </div>
-                        </_default>
+                        </PanelHeading>
                       </Component>
                     </StyledPanelHeading>
                   </div>
