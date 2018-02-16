@@ -21,7 +21,7 @@ from django.conf import settings
 from django.core.files.base import File as FileObj
 from django.core.files.base import ContentFile
 from django.core.files.storage import get_storage_class
-from django.db import models
+from django.db import models, transaction
 from django.utils import timezone
 from jsonfield import JSONField
 
@@ -47,6 +47,10 @@ ChunkFileState = enum(
     ASSEMBLING='assembling',  # File still being processed by worker
     ERROR='error'  # Error happened during assembling
 )
+
+
+class AssembleChecksumMismatch(Exception):
+    pass
 
 
 def get_storage():
@@ -272,28 +276,28 @@ class File(Model):
         """
         This creates a file, from file blobs
         """
-        file_blobs = FileBlob.objects.filter(id__in=file_blob_ids).all()
-        # Make sure the blobs are sorted with the order provided
-        file_blobs = sorted(file_blobs, key=lambda blob: file_blob_ids.index(blob.id))
+        with transaction.atomic():
+            file_blobs = FileBlob.objects.filter(id__in=file_blob_ids).all()
+            # Make sure the blobs are sorted with the order provided
+            file_blobs = sorted(file_blobs, key=lambda blob: file_blob_ids.index(blob.id))
 
-        new_checksum = sha1(b'')
-        offset = 0
-        for blob in file_blobs:
-            FileBlobIndex.objects.create(
-                file=self,
-                blob=blob,
-                offset=offset,
-            )
-            for chunk in blob.getfile().chunks():
-                new_checksum.update(chunk)
-            offset += blob.size
+            new_checksum = sha1(b'')
+            offset = 0
+            for blob in file_blobs:
+                FileBlobIndex.objects.create(
+                    file=self,
+                    blob=blob,
+                    offset=offset,
+                )
+                for chunk in blob.getfile().chunks():
+                    new_checksum.update(chunk)
+                offset += blob.size
 
-        self.size = offset
-        self.checksum = new_checksum.hexdigest()
+            self.size = offset
+            self.checksum = new_checksum.hexdigest()
 
-        if checksum != self.checksum:
-            self.headers['__state'] = ChunkFileState.ERROR
-            self.headers['error'] = 'Checksum missmatch between chunks and file'
+            if checksum != self.checksum:
+                raise AssembleChecksumMismatch('Checksum mismatch')
 
         metrics.timing('filestore.file-size', offset)
         if commit:

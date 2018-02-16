@@ -1,6 +1,6 @@
 from __future__ import absolute_import, print_function
 
-import six
+import os
 import logging
 
 from django.db import transaction
@@ -10,76 +10,101 @@ logger = logging.getLogger(__name__)
 
 
 @instrumented_task(name='sentry.tasks.assemble.assemble_dif', queue='assemble')
-def assemble_dif(project_id, file_id, file_blob_ids, checksum, **kwargs):
-    from sentry.models import ChunkFileState, dsymfile, Project, CHUNK_STATE_HEADER
+def assemble_dif(project_id, name, checksum, chunks, **kwargs):
+    from sentry.models import ChunkFileState, dsymfile, Project, \
+        ProjectDSymFile, set_assemble_status, BadDif
+    from sentry.reprocessing import bump_reprocessing_revision
+
     with transaction.atomic():
+        project = Project.objects.filter(id=project_id).get()
+        set_assemble_status(project, checksum, ChunkFileState.ASSEMBLING)
 
         # Assemble the chunks into files
-        file = assemble_chunks(file_id, file_blob_ids, checksum)
+        file = assemble_file(project, name, checksum, chunks,
+                             file_type='project.dsym')
 
-        # If an error happend during assembling, we early return here
-        if file.headers.get(CHUNK_STATE_HEADER) == ChunkFileState.ERROR:
+        # If not file has been created this means that the file failed to
+        # assemble because of bad input data.  Return.
+        if file is None:
             return
 
-        project = Project.objects.filter(
-            id=project_id
-        ).get()
+        delete_file = True
+        try:
+            with file.getfile(as_tempfile=True) as tf:
+                # We only permit split difs to hit this endpoint.  The
+                # client is required to split them up first or we error.
+                try:
+                    result = dsymfile.detect_dif_from_path(tf.name)
+                except BadDif as e:
+                    set_assemble_status(project, checksum, ChunkFileState.ERROR,
+                                        detail=e.args[0])
+                    return
 
-        with file.getfile(as_tempfile=True) as tf:
-            result = dsymfile.detect_dif_from_filename(tf.name)
-            if result:
-                dsyms = dsymfile.create_dsym_from_dif(result, project, file.name)
+                if len(result) != 1:
+                    set_assemble_status(project, checksum, ChunkFileState.ERROR,
+                                        detail='Contained wrong number of '
+                                        'architectures (expected one, got %s)'
+                                        % len(result))
+                    return
 
-                from sentry.tasks.symcache_update import symcache_update
-                uuids_to_update = [six.text_type(x.uuid) for x in dsyms
-                                   if x.supports_symcache]
-                if uuids_to_update:
-                    symcache_update.delay(project_id=project.id,
-                                          uuids=uuids_to_update)
+                dsym_type, cpu, file_uuid, filename = result[0]
+                dsym, created = dsymfile.create_dsym_from_uuid(
+                    project, dsym_type, cpu, file_uuid,
+                    os.path.basename(name),
+                    file=file)
+                delete_file = False
+                bump_reprocessing_revision(project)
 
-                # Uploading new dsysm changes the reprocessing revision
-                dsymfile.bump_reprocessing_revision(project)
-                # We can delete the original chunk file since we created new dsym files
+                # XXX: this should only be done for files that
+                symcache, error = ProjectDSymFile.dsymcache.get_symcache(
+                    project, file_uuid, with_conversion_errors=True)
+                if error is not None:
+                    set_assemble_status(project, checksum, ChunkFileState.ERROR,
+                                        detail=error)
+                else:
+                    set_assemble_status(project, checksum, ChunkFileState.OK)
+        finally:
+            if delete_file:
                 file.delete()
-            else:
-                file.headers[CHUNK_STATE_HEADER] = ChunkFileState.ERROR
-                file.headers['error'] = 'Invalid object file'
-                file.save()
-                logger.error(
-                    'assemble_chunks.invalid_object_file',
-                    extra={
-                        'error': file.headers.get('error', ''),
-                        'file_id': file.id
-                    }
-                )
 
 
-def assemble_chunks(file_id, file_blob_ids, checksum, **kwargs):
+def assemble_file(project, name, checksum, chunks, file_type):
     '''This assembles multiple chunks into on File.'''
-    if len(file_blob_ids) == 0:
-        logger.warning('assemble_chunks.empty_file_blobs', extra={
-            'error': 'Empty file blobs'
-        })
+    from sentry.models import File, ChunkFileState, AssembleChecksumMismatch, \
+        FileBlob, set_assemble_status
 
-    from sentry.models import File, ChunkFileState, CHUNK_STATE_HEADER
+    # Load all FileBlobs from db since we can be sure here we already own all
+    # chunks need to build the file
+    file_blobs = FileBlob.objects.filter(
+        checksum__in=chunks
+    ).values_list('id', 'checksum')
 
-    file = File.objects.filter(
-        id=file_id,
-    ).get()
+    # We need to make sure the blobs are in the order in which
+    # we received them from the request.
+    # Otherwise it could happen that we assemble the file in the wrong order
+    # and get an garbage file.
+    file_blob_ids = [x[0] for x in sorted(
+        file_blobs, key=lambda blob: chunks.index(blob[1])
+    )]
 
-    file.headers[CHUNK_STATE_HEADER] = ChunkFileState.ASSEMBLING
-    # Do the actual assembling here
+    # Sanity check.  In case not all blobs exist at this point we have a
+    # race condition.
+    if set(x[1] for x in file_blobs) != set(chunks):
+        set_assemble_status(project, checksum, ChunkFileState.ERROR,
+                            detail='Not all chunks available for assembling')
+        return
 
-    file.assemble_from_file_blob_ids(file_blob_ids, checksum)
-    if file.headers.get(CHUNK_STATE_HEADER, '') == ChunkFileState.ERROR:
-        logger.error(
-            'assemble_chunks.assemble_error',
-            extra={
-                'error': file.headers.get('error', ''),
-                'file_id': file.id
-            }
-        )
+    file = File.objects.create(
+        name=name,
+        checksum=checksum,
+        type=file_type,
+    )
+    try:
+        file.assemble_from_file_blob_ids(file_blob_ids, checksum)
+    except AssembleChecksumMismatch:
+        file.delete()
+        set_assemble_status(project, checksum, ChunkFileState.ERROR,
+                            detail='Reported checksum mismatch')
+    else:
+        file.save()
         return file
-    file.headers[CHUNK_STATE_HEADER] = ChunkFileState.OK
-    file.save()
-    return file

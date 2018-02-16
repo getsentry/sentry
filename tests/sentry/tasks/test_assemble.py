@@ -6,8 +6,9 @@ from django.core.files.base import ContentFile
 
 from sentry.testutils import TestCase
 from sentry.tasks.assemble import assemble_dif
-from sentry.models import FileBlob, File
-from sentry.models.file import ChunkFileState, CHUNK_STATE_HEADER
+from sentry.models import FileBlob
+from sentry.models.file import ChunkFileState
+from sentry.models.dsymfile import get_assemble_status, ProjectDSymFile
 
 
 class AssembleTest(TestCase):
@@ -34,62 +35,35 @@ class AssembleTest(TestCase):
 
         # The order here is on purpose because we check for the order of checksums
         blob1 = FileBlob.from_file(fileobj1)
-        bolb3 = FileBlob.from_file(fileobj3)
-        bolb2 = FileBlob.from_file(fileobj2)
+        blob3 = FileBlob.from_file(fileobj3)
+        blob2 = FileBlob.from_file(fileobj2)
 
-        file = File.objects.create(
-            name='test',
-            checksum=total_checksum,
-            type='chunked',
-            headers={CHUNK_STATE_HEADER: ChunkFileState.CREATED}
-        )
-
-        file_blob_id_order = [bolb2.id, blob1.id, bolb3.id]
-
-        file = File.objects.create(
-            name='test',
-            checksum=total_checksum,
-            type='chunked',
-            headers={CHUNK_STATE_HEADER: ChunkFileState.CREATED}
-        )
+        chunks = [blob2.checksum, blob1.checksum, blob3.checksum]
 
         assemble_dif(
             project_id=self.project.id,
-            file_id=file.id,
-            file_blob_ids=file_blob_id_order,
+            name='foo.sym',
             checksum=total_checksum,
+            chunks=chunks,
         )
 
-        file = File.objects.filter(
-            id=file.id,
-        ).get()
-
-        assert file.headers.get(CHUNK_STATE_HEADER) == ChunkFileState.ERROR
+        assert get_assemble_status(self.project, total_checksum)[0] == ChunkFileState.ERROR
 
     def test_dif(self):
         sym_file = self.load_fixture('crash.sym')
         blob1 = FileBlob.from_file(ContentFile(sym_file))
-
         total_checksum = sha1(sym_file).hexdigest()
-
-        file = File.objects.create(
-            name='test.sym',
-            checksum=total_checksum,
-            type='chunked',
-            headers={CHUNK_STATE_HEADER: ChunkFileState.CREATED}
-        )
-
-        file_blob_id_order = [blob1.id]
 
         assemble_dif(
             project_id=self.project.id,
-            file_id=file.id,
-            file_blob_ids=file_blob_id_order,
+            name='crash.sym',
             checksum=total_checksum,
+            chunks=[blob1.checksum],
         )
 
-        file = File.objects.filter(
-            checksum=total_checksum,
+        dif = ProjectDSymFile.objects.filter(
+            project=self.project,
+            file__checksum=total_checksum,
         ).get()
 
-        assert file.headers == {'Content-Type': 'text/x-breakpad'}
+        assert dif.file.headers == {'Content-Type': 'text/x-breakpad'}
