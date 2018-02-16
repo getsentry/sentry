@@ -220,7 +220,7 @@ class GroupUpdateTest(APITestCase):
             is_active=True,
         ).exists()
 
-    def test_assign(self):
+    def test_assign_username(self):
         self.login_as(user=self.user)
 
         group = self.create_group()

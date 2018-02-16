@@ -6,6 +6,7 @@ from collections import defaultdict, namedtuple
 from rest_framework import serializers
 
 from sentry.models import User, Team
+from sentry.utils.auth import find_users
 
 
 class Actor(namedtuple('Actor', 'id type')):
@@ -23,9 +24,14 @@ class Actor(namedtuple('Actor', 'id type')):
         if actor_id.isdigit():
             return Actor(int(actor_id), User)
 
-        type_name, _, id = actor_id.partition(':')
+        if u':' in actor_id:
+            type_name, _, id = actor_id.partition(':')
+            return cls(int(id), {'user': User, 'team': Team}[type_name])
 
-        return cls(int(id), {'user': User, 'team': Team}[type_name])
+        try:
+            return Actor(find_users(actor_id)[0].id, User)
+        except IndexError:
+            raise serializers.ValidationError('Unable to resolve actor id')
 
     def resolve(self):
         return self.type.objects.get(id=self.id)

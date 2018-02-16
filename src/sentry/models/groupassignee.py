@@ -7,8 +7,6 @@ sentry.models.groupassignee
 """
 from __future__ import absolute_import
 
-import six
-
 from django.conf import settings
 from django.db import models
 from django.utils import timezone
@@ -63,7 +61,7 @@ class GroupAssigneeManager(BaseManager):
                 type=Activity.ASSIGNED,
                 user=acting_user,
                 data={
-                    'assignee': six.text_type(assigned_to.id),
+                    'assignee': assigned_to,
                     'assigneeEmail': getattr(assigned_to, 'email', None),
                     'assigneeType': assignee_type,
                 },
