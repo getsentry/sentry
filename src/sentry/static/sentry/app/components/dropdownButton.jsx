@@ -14,7 +14,6 @@ const DropdownAutoComplete = ({items, onBlur, onSelect}) => {
       const groupItems = item.groupItems.map((gi, i) => ({
         type: 'item',
         group: item.groupLabel,
-        index: i + accumulator.filter(ii => ii.type == 'item').length,
         ...gi,
       }));
 
@@ -37,7 +36,15 @@ const DropdownAutoComplete = ({items, onBlur, onSelect}) => {
         (l.type == 'label' && filteredItems.filter(i => i.group == l.content).length > 0)
     );
 
-    return filteredLabels;
+    let itemCounter = 0;
+    const filteredLabelsWithIndeces = filteredLabels.map(i => {
+      if (i.type == 'item') {
+        return {...i, index: itemCounter++};
+      }
+      return i;
+    });
+
+    return filteredLabelsWithIndeces;
   };
 
   return (
