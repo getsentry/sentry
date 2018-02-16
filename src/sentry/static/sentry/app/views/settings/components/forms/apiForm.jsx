@@ -29,13 +29,13 @@ export default class ApiForm extends React.Component {
     this.api.request(this.props.apiEndpoint, {
       method: this.props.apiMethod,
       data,
-      success: result => {
+      success: (...args) => {
         IndicatorStore.remove(loadingIndicator);
-        onSuccess(result);
+        onSuccess(...args);
       },
-      error: error => {
+      error: (...args) => {
         IndicatorStore.remove(loadingIndicator);
-        onError(error);
+        onError(...args);
       },
     });
   };

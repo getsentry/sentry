@@ -265,7 +265,7 @@ exports[`AccountSubscriptions renders list and can toggle 1`] = `
                       <Component
                         className="glamor-19 glamor-16"
                       >
-                        <_default
+                        <PanelHeading
                           className="glamor-19 glamor-16"
                         >
                           <div
@@ -318,7 +318,7 @@ exports[`AccountSubscriptions renders list and can toggle 1`] = `
                               </Base>
                             </Flex>
                           </div>
-                        </_default>
+                        </PanelHeading>
                       </Component>
                     </StyledPanelHeading>
                   </div>

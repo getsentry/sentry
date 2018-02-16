@@ -48,7 +48,6 @@ exports[`AccountEmails renders with emails 1`] = `
       cancelLabel="Cancel"
       className="form-stacked"
       footerClass="form-actions align-right"
-      onSubmit={[Function]}
       onSubmitError={[Function]}
       onSubmitSuccess={[Function]}
       requireChanges={false}

@@ -242,7 +242,7 @@ exports[`ProjectEnvironments render active renders empty message 1`] = `
                   <Component
                     className="glamor-9 glamor-6"
                   >
-                    <_default
+                    <PanelHeading
                       className="glamor-9 glamor-6"
                     >
                       <div
@@ -250,7 +250,7 @@ exports[`ProjectEnvironments render active renders empty message 1`] = `
                       >
                         Active Environments
                       </div>
-                    </_default>
+                    </PanelHeading>
                   </Component>
                 </StyledPanelHeading>
               </div>
@@ -521,7 +521,7 @@ exports[`ProjectEnvironments render active renders environment list 1`] = `
                   <Component
                     className="glamor-9 glamor-6"
                   >
-                    <_default
+                    <PanelHeading
                       className="glamor-9 glamor-6"
                     >
                       <div
@@ -529,7 +529,7 @@ exports[`ProjectEnvironments render active renders environment list 1`] = `
                       >
                         Active Environments
                       </div>
-                    </_default>
+                    </PanelHeading>
                   </Component>
                 </StyledPanelHeading>
               </div>
@@ -930,7 +930,7 @@ exports[`ProjectEnvironments render hidden renders empty message 1`] = `
                   <Component
                     className="glamor-9 glamor-6"
                   >
-                    <_default
+                    <PanelHeading
                       className="glamor-9 glamor-6"
                     >
                       <div
@@ -938,7 +938,7 @@ exports[`ProjectEnvironments render hidden renders empty message 1`] = `
                       >
                         Hidden
                       </div>
-                    </_default>
+                    </PanelHeading>
                   </Component>
                 </StyledPanelHeading>
               </div>
@@ -1209,7 +1209,7 @@ exports[`ProjectEnvironments render hidden renders environment list 1`] = `
                   <Component
                     className="glamor-9 glamor-6"
                   >
-                    <_default
+                    <PanelHeading
                       className="glamor-9 glamor-6"
                     >
                       <div
@@ -1217,7 +1217,7 @@ exports[`ProjectEnvironments render hidden renders environment list 1`] = `
                       >
                         Hidden
                       </div>
-                    </_default>
+                    </PanelHeading>
                   </Component>
                 </StyledPanelHeading>
               </div>

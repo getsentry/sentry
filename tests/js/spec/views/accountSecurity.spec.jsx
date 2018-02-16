@@ -135,4 +135,65 @@ describe('AccountSecurity', function() {
     ).toBe('View Codes');
     expect(wrapper.find('CircleIndicator').prop('enabled')).toBe(true);
   });
+
+  it('can change password', function() {
+    Client.addMockResponse({
+      url: ENDPOINT,
+      body: [TestStubs.Authenticators().Recovery({isEnrolled: false})],
+    });
+    let url = '/users/me/password/';
+    let mock = Client.addMockResponse({
+      url,
+      method: 'PUT',
+    });
+
+    let wrapper = mount(<AccountSecurity />, TestStubs.routerContext());
+
+    wrapper
+      .find('PasswordForm input[name="password"]')
+      .simulate('change', {target: {value: 'oldpassword'}});
+    wrapper
+      .find('PasswordForm input[name="passwordNew"]')
+      .simulate('change', {target: {value: 'newpassword'}});
+    wrapper
+      .find('PasswordForm input[name="passwordVerify"]')
+      .simulate('change', {target: {value: 'newpassword'}});
+    wrapper.find('PasswordForm form').simulate('submit');
+
+    expect(mock).toHaveBeenCalledWith(
+      url,
+      expect.objectContaining({
+        method: 'PUT',
+        data: {
+          password: 'oldpassword',
+          passwordNew: 'newpassword',
+          passwordVerify: 'newpassword',
+        },
+      })
+    );
+  });
+
+  it('requires current password to be entered', function() {
+    Client.addMockResponse({
+      url: ENDPOINT,
+      body: [TestStubs.Authenticators().Recovery({isEnrolled: false})],
+    });
+    let url = '/users/me/password/';
+    let mock = Client.addMockResponse({
+      url,
+      method: 'PUT',
+    });
+
+    let wrapper = mount(<AccountSecurity />, TestStubs.routerContext());
+
+    wrapper
+      .find('PasswordForm input[name="passwordNew"]')
+      .simulate('change', {target: {value: 'newpassword'}});
+    wrapper
+      .find('PasswordForm input[name="passwordVerify"]')
+      .simulate('change', {target: {value: 'newpassword'}});
+    wrapper.find('PasswordForm form').simulate('submit');
+
+    expect(mock).not.toHaveBeenCalled();
+  });
 });

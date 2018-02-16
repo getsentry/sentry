@@ -343,7 +343,7 @@ exports[`OrganizationApiKeysList renders 1`] = `
                   <Component
                     className="glamor-23 glamor-20"
                   >
-                    <_default
+                    <PanelHeading
                       className="glamor-23 glamor-20"
                     >
                       <div
@@ -431,7 +431,7 @@ exports[`OrganizationApiKeysList renders 1`] = `
                           </Base>
                         </Flex>
                       </div>
-                    </_default>
+                    </PanelHeading>
                   </Component>
                 </StyledPanelHeading>
               </div>
