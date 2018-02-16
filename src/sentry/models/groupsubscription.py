@@ -94,6 +94,54 @@ class GroupSubscriptionManager(BaseManager):
         except IntegrityError:
             pass
 
+    def subscribe_actor(self, group, actor, reason=GroupSubscriptionReason.unknown):
+        from sentry.models import User, Team
+
+        if isinstance(actor, User):
+            return self.subscribe(group, actor, reason)
+        if isinstance(actor, Team):
+            # subscribe the members of the team
+            team_users_ids = list(actor.member_set.values_list('user_id', flat=True))
+            return self.bulk_subscribe(group, team_users_ids, reason)
+
+        raise NotImplementedError('Unknown actor type: %r' % type(actor))
+
+    def bulk_subscribe(self, group, user_ids, reason=GroupSubscriptionReason.unknown):
+        """
+        Subscribe a list of user ids to an issue, but only if the users are not explicitly
+        unsubscribed.
+        """
+        # 5 retries for race conditions where
+        # concurrent subscription attempts cause integrity errors
+        for _ in range(5):
+
+            existing_subscriptions = set(GroupSubscription.objects.filter(
+                user_id__in=user_ids,
+                group=group,
+                project=group.project,
+            ).values_list('user_id', flat=True))
+
+            subscriptions = [
+                GroupSubscription(
+                    user_id=user_id,
+                    group=group,
+                    project=group.project,
+                    is_active=True,
+                    reason=reason,
+                )
+                for user_id in user_ids
+                if user_id not in existing_subscriptions
+            ]
+
+            try:
+                with transaction.atomic():
+                    self.bulk_create(subscriptions)
+                    return True
+            except IntegrityError:
+                pass
+
+        raise Exception('Bulk_Subscribe failed')
+
     def get_participants(self, group):
         """
         Identify all users who are participating with a given issue.
