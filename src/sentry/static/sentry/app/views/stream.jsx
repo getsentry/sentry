@@ -25,11 +25,10 @@ import StreamFilters from './stream/filters';
 import StreamSidebar from './stream/sidebar';
 import TimeSince from '../components/timeSince';
 import utils from '../utils';
+import streamUtils from './stream/utils';
 import {logAjaxError} from '../utils/logging';
 import parseLinkHeader from '../utils/parseLinkHeader';
 import {t, tn, tct} from '../locale';
-
-import {objToQuery, queryToObj} from '../utils/stream';
 
 import {setActiveEnvironment} from '../actionCreators/environments';
 
@@ -371,7 +370,7 @@ const Stream = createReactClass({
     let url = this.getGroupListEndpoint();
 
     // Remove leading and trailing whitespace
-    let query = this.state.query.replace(/^\s+|\s+$/g, '');
+    let query = streamUtils.formatQueryString(this.state.query);
 
     let activeEnvironment = this.state.activeEnvironment;
     let activeEnvName = activeEnvironment ? activeEnvironment.name : null;
@@ -386,20 +385,18 @@ const Stream = createReactClass({
 
     // Always keep the global active environment in sync with the queried environment
     // The global environment wins unless there one is specified by the saved search
-    let queryObj = queryToObj(query);
-    if ('environment' in queryObj) {
+    const queryEnvironment = streamUtils.getQueryEnvironment(query);
+
+    if (queryEnvironment !== null) {
       // Set the global environment to the one specified by the saved search
-      if (queryObj.environment !== activeEnvName) {
-        let env = EnvironmentStore.getByName(queryObj.environment);
+      if (queryEnvironment !== activeEnvName) {
+        let env = EnvironmentStore.getByName(queryEnvironment);
         setActiveEnvironment(env);
       }
-      requestParams.environment = queryObj.environment;
+      requestParams.environment = queryEnvironment;
     } else if (activeEnvironment) {
       // Set the environment of the query to match the global settings
-      query = objToQuery({
-        ...queryObj,
-        environment: activeEnvironment.name,
-      });
+      query = streamUtils.getQueryStringWithEnvironment(query, activeEnvironment.name);
       requestParams.query = query;
       requestParams.environment = activeEnvironment.name;
     }
@@ -539,22 +536,10 @@ const Stream = createReactClass({
       // the environment parameter is part of the saved search
       let environment = context.environment;
 
-      let query = this.state.query;
-
-      if (environment) {
-        // Environment has changed: append the new environment to the query
-        query = objToQuery({
-          ...queryToObj(this.state.query),
-          environment: environment.name,
-        });
-      } else {
-        // Environment is null, remove it from the query
-        let queryObj = queryToObj(this.state.query);
-        delete queryObj.environment;
-        query = objToQuery({
-          ...queryObj,
-        });
-      }
+      let query = streamUtils.getQueryStringWithEnvironment(
+        this.state.query,
+        environment.name
+      );
 
       this.setState(
         {
