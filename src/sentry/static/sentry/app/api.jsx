@@ -89,7 +89,8 @@ export class Client {
         },
         onClose: () => {
           if (typeof requestOptions.error !== 'function') return;
-          requestOptions.error();
+          // If modal was closed, then forward the original response
+          requestOptions.error(response);
         },
       });
       return;
@@ -156,6 +157,7 @@ export class Client {
       this.request(path, {
         ...options,
         success: (data, ...args) => {
+          // This fails if we need jqXhr :(
           resolve(data);
         },
         error: (error, ...args) => {

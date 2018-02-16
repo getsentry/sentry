@@ -11,6 +11,10 @@ const accountNavigation = [
         title: t('Account Details'),
       },
       {
+        path: `${pathPrefix}/security/`,
+        title: t('Security'),
+      },
+      {
         path: `${pathPrefix}/notifications/`,
         title: t('Notifications'),
       },

@@ -144,7 +144,7 @@ def build_attachment(group, event=None, identity=None, actions=None):
         'name': 'resolve_dialog',
         'value': 'resolve_dialog',
         'type': 'button',
-        'text': 'Resolve',
+        'text': 'Resolve...',
     }
 
     ignore_button = {

@@ -125,6 +125,8 @@ def get_react_config(context):
         'isOnPremise': settings.SENTRY_ONPREMISE,
         'invitesEnabled': settings.SENTRY_ENABLE_INVITES,
         'gravatarBaseUrl': settings.SENTRY_GRAVATAR_BASE_URL,
+        'termsUrl': settings.TERMS_URL,
+        'privacyUrl': settings.PRIVACY_URL,
     }
     if user and user.is_authenticated():
         context.update({

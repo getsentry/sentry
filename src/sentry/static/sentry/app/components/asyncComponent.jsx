@@ -4,13 +4,17 @@ import Raven from 'raven-js';
 import React from 'react';
 
 import {Client} from '../api';
-import {tct} from '../locale';
+import {t, tct} from '../locale';
 import ExternalLink from './externalLink';
 import LoadingError from './loadingError';
 import LoadingIndicator from '../components/loadingIndicator';
 import RouteError from './../views/routeError';
 
 class AsyncComponent extends React.Component {
+  static contextTypes = {
+    router: PropTypes.object,
+  };
+
   constructor(props, context) {
     super(props, context);
 
@@ -25,11 +29,20 @@ class AsyncComponent extends React.Component {
     this.fetchData();
   }
 
-  componentWillReceiveProps(nextProps) {
+  componentWillReceiveProps(nextProps, nextContext) {
+    const isRouterInContext = !!this.context.router;
+
+    const currentLocation = isRouterInContext
+      ? this.context.router.location
+      : this.props.location;
+    const nextLocation = isRouterInContext
+      ? nextContext.router.location
+      : nextProps.location;
+
     // re-fetch data when router params change
     if (
       !isEqual(this.props.params, nextProps.params) ||
-      this.props.location.search !== nextProps.location.search
+      currentLocation.search !== nextLocation.search
     ) {
       this.remountComponent();
     }
@@ -93,7 +106,8 @@ class AsyncComponent extends React.Component {
           this.setState(prevState => {
             return {
               [stateKey]: data,
-              [`${stateKey}PageLinks`]: jqXHR.getResponseHeader('Link'),
+              // TODO(billy): This currently fails if this request is retried by SudoModal
+              [`${stateKey}PageLinks`]: jqXHR && jqXHR.getResponseHeader('Link'),
               remainingRequests: prevState.remainingRequests - 1,
               loading: prevState.remainingRequests > 1,
             };
@@ -154,12 +168,23 @@ class AsyncComponent extends React.Component {
   }
 
   renderError(error) {
-    // Look through endpoint results to see if we had any 403s
+    let unauthorizedErrors = Object.keys(this.state.errors).find(endpointName => {
+      let result = this.state.errors[endpointName];
+      // 401s are captured by SudaModal, but may be passed back to AsyncComponent if they close the modal without identifying
+      return result && result.status === 401;
+    });
+
+    // Look through endpoint results to see if we had any 403s, means their role can not access resource
     let permissionErrors = Object.keys(this.state.errors).find(endpointName => {
       let result = this.state.errors[endpointName];
-
       return result && result.status === 403;
     });
+
+    if (unauthorizedErrors) {
+      return (
+        <LoadingError message={t('You are not authorized to access this resource.')} />
+      );
+    }
 
     if (permissionErrors) {
       // TODO(billy): Refactor this into a new PermissionDenied component
@@ -167,7 +192,7 @@ class AsyncComponent extends React.Component {
       return (
         <LoadingError
           message={tct(
-            'You do not have permission to access this, please read more about [link:organizational roles]',
+            'Your role does not have the necessary permissions to access this resource, please read more about [link:organizational roles]',
             {
               link: <ExternalLink href="https://docs.sentry.io/learn/membership/" />,
             }
@@ -208,10 +233,6 @@ AsyncComponent.errorHandler = (component, fn) => {
       return null;
     }
   };
-};
-
-AsyncComponent.contextTypes = {
-  router: PropTypes.object.isRequired,
 };
 
 export default AsyncComponent;

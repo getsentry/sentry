@@ -2,6 +2,7 @@ import React from 'react';
 import {mount} from 'enzyme';
 
 import GroupReleaseStats from 'app/components/group/releaseStats';
+import EnvironmentStore from 'app/stores/environmentStore';
 
 describe('GroupReleaseStats', function() {
   let component;
@@ -19,6 +20,7 @@ describe('GroupReleaseStats', function() {
   });
 
   it('renders', function() {
+    EnvironmentStore.loadInitialData(TestStubs.Environments());
     expect(component).toMatchSnapshot();
   });
 });

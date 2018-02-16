@@ -51,7 +51,6 @@ class ProjectProcessingIssuesFixEndpoint(ProjectEndpoint):
                 ],
                 'project':
                 project,
-                'team': project.teams.first(),
                 'token':
                 token,
                 'server_url':

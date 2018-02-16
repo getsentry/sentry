@@ -98,13 +98,14 @@ describe('ProjectPluginDetails', function() {
 
     btn.simulate('click');
 
-    // Reason for setTimeout is because this is more of an integration test
-    // and it relies on stores + withPlugins HoC
-    //
-    // The component itself could be tidied up a bit too
     setTimeout(() => {
-      expect(btn.text()).toBe('Disable Plugin');
-      done();
-    }, 250);
+      try {
+        component.update();
+        expect(btn.text()).toBe('Disable Plugin');
+        done();
+      } catch (err) {
+        done(err);
+      }
+    }, 1);
   });
 });

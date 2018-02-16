@@ -111,6 +111,42 @@ class OrganizationsCreateTest(APITestCase):
         org = Organization.objects.get(id=resp.data['id'])
         assert org.slug == 'hello-world'
 
+    def test_required_terms_with_terms_url(self):
+        self.login_as(user=self.user)
+
+        with self.settings(PRIVACY_URL=None, TERMS_URL='https://example.com/terms'):
+            resp = self.client.post(
+                self.path, data={
+                    'name': 'hello world',
+                }
+            )
+            assert resp.status_code == 201, resp.content
+
+        with self.settings(TERMS_URL=None, PRIVACY_URL='https://example.com/privacy'):
+            resp = self.client.post(
+                self.path, data={
+                    'name': 'hello world',
+                }
+            )
+            assert resp.status_code == 201, resp.content
+
+        with self.settings(TERMS_URL='https://example.com/terms', PRIVACY_URL='https://example.com/privacy'):
+            resp = self.client.post(
+                self.path, data={
+                    'name': 'hello world',
+                    'agreeTerms': False,
+                }
+            )
+            assert resp.status_code == 400, resp.content
+
+            resp = self.client.post(
+                self.path, data={
+                    'name': 'hello world',
+                    'agreeTerms': True,
+                }
+            )
+            assert resp.status_code == 201, resp.content
+
 
 class OrganizationIndex2faTest(TwoFactorAPITestCase):
     def setUp(self):

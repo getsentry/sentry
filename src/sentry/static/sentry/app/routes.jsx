@@ -129,20 +129,22 @@ const accountSettingsRoutes = [
     key="details/"
     path="details/"
     name="Details"
-    componentPromise={() => import('./views/settings/account/accountDetails')}
+    componentPromise={() =>
+      import(/* webpackChunkName: "AccountDetails" */ './views/settings/account/accountDetails')}
     component={errorHandler(LazyLoad)}
   />,
 
   <Route key="notifications/" path="notifications/" name="Notifications">
     <IndexRoute
-      componentPromise={() => import('./views/settings/account/accountNotifications')}
+      componentPromise={() =>
+        import(/* webpackChunkName: "AccountNotifications" */ './views/settings/account/accountNotifications')}
       component={errorHandler(LazyLoad)}
     />
     <Route
       path="project-alerts/"
       name="Fine Tune Alerts"
       componentPromise={() =>
-        import('./views/settings/account/accountNotificationFineTuning')}
+        import(/* webpackChunkName: "AccountNotificationsFineTuning" */ './views/settings/account/accountNotificationFineTuning')}
       component={errorHandler(LazyLoad)}
     />
   </Route>,
@@ -150,7 +152,8 @@ const accountSettingsRoutes = [
     key="emails/"
     path="emails/"
     name="Emails"
-    componentPromise={() => import('./views/settings/account/accountEmails')}
+    componentPromise={() =>
+      import(/* webpackChunkName: "AccountEmails" */ './views/settings/account/accountEmails')}
     component={errorHandler(LazyLoad)}
   />,
 
@@ -161,6 +164,31 @@ const accountSettingsRoutes = [
       import(/*webpackChunkName: "AccountAuthorizations"*/ './views/settings/account/accountAuthorizations')}
     component={errorHandler(LazyLoad)}
   />,
+
+  <Route key="security/" name="Security" path="security/">
+    <IndexRoute
+      componentPromise={() =>
+        import(/*webpackChunkName: "AccountSecurity"*/ './views/settings/account/accountSecurity/index')}
+      component={errorHandler(LazyLoad)}
+    />
+
+    <Route
+      path=":authId/enroll/"
+      name="Enroll"
+      componentPromise={() =>
+        import(/*webpackChunkName: "AccountSecurityEnroll"*/ './views/settings/account/accountSecurity/accountSecurityEnroll')}
+      component={errorHandler(LazyLoad)}
+    />
+
+    <Route
+      path=":authId/"
+      name="Details"
+      componentPromise={() =>
+        import(/*webpackChunkName: "AccountSecurityDetails"*/ './views/settings/account/accountSecurity/accountSecurityDetails')}
+      component={errorHandler(LazyLoad)}
+    />
+  </Route>,
+
   <Route
     key="subscriptions/"
     path="subscriptions/"
@@ -246,13 +274,6 @@ const projectSettingsRoutes = [
     component={errorHandler(ProjectAlertSettings)}
   />,
   <Route
-    key="environments/"
-    name="Environments"
-    path="environments/"
-    component={errorHandler(ProjectEnvironments)}
-  />,
-  <Route key="tags/" name="Tags" path="tags/" component={errorHandler(ProjectTags)} />,
-  <Route
     key="alerts/rules/"
     path="alerts/rules/"
     name="Alert Rules"
@@ -270,6 +291,19 @@ const projectSettingsRoutes = [
     name="Edit Alert Rule"
     component={errorHandler(ProjectAlertRuleDetails)}
   />,
+  <Route
+    key="environments/"
+    name="Environments"
+    path="environments/"
+    component={errorHandler(ProjectEnvironments)}
+  />,
+  <Route
+    key="environments/hidden/"
+    name="Hidden Environments"
+    path="environments/hidden/"
+    component={errorHandler(ProjectEnvironments)}
+  />,
+  <Route key="tags/" name="Tags" path="tags/" component={errorHandler(ProjectTags)} />,
   <Route
     key="issue-tracking/"
     path="issue-tracking/"
@@ -518,14 +552,18 @@ function routes() {
       <Route newnew path="/settings/" name="Settings" component={SettingsWrapper}>
         <IndexRoute
           getComponent={(loc, cb) =>
-            import('./views/settings/settingsIndex').then(lazyLoad(cb))}
+            import(/* webpackChunkName: "SettingsIndex" */ './views/settings/settingsIndex').then(
+              lazyLoad(cb)
+            )}
         />
 
         <Route
           path="account/"
           name="Account"
           getComponent={(loc, cb) =>
-            import('./views/settings/account/accountSettingsLayout').then(lazyLoad(cb))}
+            import(/* webpackChunkName: "AccountSettingsLayout" */ './views/settings/account/accountSettingsLayout').then(
+              lazyLoad(cb)
+            )}
         >
           {accountSettingsRoutes}
         </Route>
@@ -540,7 +578,7 @@ function routes() {
           >
             <Route
               getComponent={(loc, cb) =>
-                import('./views/settings/organization/organizationSettingsLayout').then(
+                import(/*webpackChunkName: "OrganizationSettingsLayout" */ './views/settings/organization/organizationSettingsLayout').then(
                   lazyLoad(cb)
                 )}
             >
@@ -553,7 +591,7 @@ function routes() {
                 name="Project"
                 path=":projectId/"
                 getComponent={(loc, cb) =>
-                  import('./views/settings/project/projectSettingsLayout').then(
+                  import(/*webpackChunkName: "ProjectSettingsLayout" */ './views/settings/project/projectSettingsLayout').then(
                     lazyLoad(cb)
                   )}
               >

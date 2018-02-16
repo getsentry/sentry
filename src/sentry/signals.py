@@ -62,3 +62,5 @@ inbound_filter_toggled = BetterSignal(providing_args=["project"])
 sso_enabled = BetterSignal(providing_args=["organization"])
 data_scrubber_enabled = BetterSignal(providing_args=["organization"])
 alert_rule_created = BetterSignal(providing_args=["project", "rule"])
+
+terms_accepted = BetterSignal(providing_args=["organization", "user"])

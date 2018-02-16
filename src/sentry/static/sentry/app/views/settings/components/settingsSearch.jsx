@@ -158,7 +158,7 @@ class SettingsSearch extends React.Component {
                 <SearchInput
                   {...getInputProps({
                     type: 'text',
-                    placeholder: 'Search settings',
+                    placeholder: t('Search settings'),
                   })}
                 />
               </SearchInputWrapper>

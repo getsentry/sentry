@@ -1,0 +1,22 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`SettingsLayout renders 1`] = `
+<div>
+  <SettingsHeader>
+    <Box
+      flex="1"
+    >
+      <SettingsBreadcrumb
+        route={Object {}}
+        routes={Array []}
+      />
+    </Box>
+    <SettingsSearchContainer />
+  </SettingsHeader>
+  <Flex>
+    <Content>
+      <NewSettingsWarning />
+    </Content>
+  </Flex>
+</div>
+`;

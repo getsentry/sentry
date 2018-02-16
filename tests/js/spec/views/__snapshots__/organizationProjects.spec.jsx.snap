@@ -239,7 +239,7 @@ exports[`OrganizationProjectsView render() Should render the projects in the sto
                         <Component
                           className="glamor-9 glamor-6"
                         >
-                          <_default
+                          <PanelHeading
                             className="glamor-9 glamor-6"
                           >
                             <div
@@ -247,7 +247,7 @@ exports[`OrganizationProjectsView render() Should render the projects in the sto
                             >
                               Projects
                             </div>
-                          </_default>
+                          </PanelHeading>
                         </Component>
                       </StyledPanelHeading>
                     </div>

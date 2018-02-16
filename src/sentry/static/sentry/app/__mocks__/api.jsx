@@ -121,5 +121,6 @@ class Client {
 }
 
 Client.prototype.handleRequestError = RealClient.Client.prototype.handleRequestError;
+Client.prototype.uniqueId = RealClient.Client.prototype.uniqueId;
 
 export {Client};

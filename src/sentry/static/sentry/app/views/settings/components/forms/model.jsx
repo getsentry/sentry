@@ -4,7 +4,7 @@ import _ from 'lodash';
 import {Client} from '../../../../api';
 import {defined} from '../../../../utils';
 import FormState from '../../../../components/forms/state';
-import {addErrorMessage} from '../../../../actionCreators/settingsIndicator';
+import {addErrorMessage} from '../../../../actionCreators/indicator';
 
 class FormModel {
   /**
@@ -65,12 +65,16 @@ class FormModel {
   reset() {
     this.api.clear();
     this.api = null;
+    this.fieldDescriptor.clear();
+    this.resetForm();
+  }
+
+  resetForm() {
     this.fields.clear();
     this.errors.clear();
     this.fieldState.clear();
     this.snapshots = [];
     this.initialData = {};
-    this.fieldDescriptor.clear();
   }
 
   /**
@@ -167,6 +171,36 @@ class FormModel {
     return this.fields.get(id);
   }
 
+  getTransformedValue(id) {
+    let fieldDescriptor = this.fieldDescriptor.get(id);
+    let transformer =
+      typeof fieldDescriptor.getValue === 'function' ? fieldDescriptor.getValue : null;
+    let value = this.getValue(id);
+
+    return transformer ? transformer(value) : value;
+  }
+
+  /**
+   * Data represented in UI
+   */
+  getData() {
+    return this.fields.toJSON();
+  }
+
+  /**
+   * Form data that will be sent to API endpoint (i.e. after transforms)
+   */
+  getTransformedData() {
+    let form = this.getData();
+
+    return Object.keys(form)
+      .map(id => [id, this.getTransformedValue(id)])
+      .reduce((acc, [id, value]) => {
+        acc[id] = value;
+        return acc;
+      }, {});
+  }
+
   getError(id) {
     return this.errors.has(id) && this.errors.get(id);
   }
@@ -184,7 +218,7 @@ class FormModel {
 
     if (typeof validate === 'function') {
       // Returns "tuples" of [id, error string]
-      errors = validate({model: this, id, form: this.getData().toJSON()}) || [];
+      errors = validate({model: this, id, form: this.getData()}) || [];
     }
 
     errors
@@ -214,6 +248,10 @@ class FormModel {
   setValue(id, value) {
     this.fields.set(id, value);
 
+    if (this.options.onFieldChange) {
+      this.options.onFieldChange(id, value);
+    }
+
     // specifically check for empty string, 0 should be allowed
     if (!this.isValidRequiredField(id)) {
       this.setError(id, 'Field is required');
@@ -231,6 +269,54 @@ class FormModel {
     this.fields.replace(this.snapshots[0]);
 
     return true;
+  }
+
+  /**
+   * Attempts to save entire form
+   */
+  @action
+  saveForm() {
+    // Represents state of current form
+    let form = this.getData();
+
+    let errors = [
+      // This only validates fields with values
+      ...(Object.keys(form).filter(id => !this.isValidField(id)) || []),
+      // Validate required fields
+      ...(Array.from(this.fieldDescriptor.keys()).filter(id => !this.isValidField(id)) ||
+        []),
+    ];
+
+    if (errors.length > 0) return null;
+
+    let saveSnapshot = this.createSnapshot();
+
+    let request = this.doApiRequest({
+      data: this.getTransformedData(),
+    });
+
+    request
+      .then(resp => {
+        // save snapshot
+        if (saveSnapshot) {
+          saveSnapshot();
+          saveSnapshot = null;
+        }
+
+        if (this.options.onSubmitSuccess) {
+          this.options.onSubmitSuccess(resp, this);
+        }
+      })
+      .catch((resp, ...args) => {
+        // should we revert field value to last known state?
+        saveSnapshot = null;
+        this.submitError(resp);
+        if (this.options.onSubmitError) {
+          this.options.onSubmitError(resp, this);
+        }
+      });
+
+    return request;
   }
 
   /**
@@ -257,7 +343,6 @@ class FormModel {
 
     // shallow clone fields
     let saveSnapshot = this.createSnapshot();
-    let newValue = this.getValue(id);
 
     // Save field + value
     this.setSaving(id, true);
@@ -268,14 +353,10 @@ class FormModel {
     let getData =
       typeof fieldDescriptor.getData === 'function' ? fieldDescriptor.getData : a => a;
 
-    // Transform data before saving, this uses `getValue` defined when declaring the form
-    let serializer =
-      typeof fieldDescriptor.getValue === 'function' ? fieldDescriptor.getValue : a => a;
-
     let request = this.doApiRequest({
       data: getData(
-        {[id]: serializer(newValue)},
-        {model: this, id, form: this.getData().toJSON()}
+        {[id]: this.getTransformedValue(id)},
+        {model: this, id, form: this.getData()}
       ),
     });
 
@@ -397,14 +478,28 @@ class FormModel {
     this.setFieldState(id, FormState.SAVING, false);
   }
 
-  @action
-  getData() {
-    return this.fields;
-  }
-
   // TODO: More validations
   @action
   validate() {}
+
+  @action
+  handleErrorResponse({responseJSON: resp} = {}) {
+    if (!resp) return;
+
+    // Show resp msg from API endpoint if possible
+    Object.keys(resp).forEach(id => {
+      if (
+        id === 'non_field_errors' &&
+        Array.isArray(resp.non_field_errors) &&
+        resp.non_field_errors.length
+      ) {
+        addErrorMessage(resp.non_field_errors[0], 10000);
+      } else if (Array.isArray(resp[id]) && resp[id].length) {
+        // Just take first resp for now
+        this.setError(id, resp[id][0]);
+      }
+    });
+  }
 
   @action
   submitSuccess(data) {
@@ -417,6 +512,7 @@ class FormModel {
   submitError(err) {
     this.formState = FormState.ERROR;
     this.formErrors = err.responseJSON;
+    this.handleErrorResponse(err);
   }
 }
 

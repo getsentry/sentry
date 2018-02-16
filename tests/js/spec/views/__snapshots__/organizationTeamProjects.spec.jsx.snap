@@ -99,7 +99,7 @@ exports[`OrganizationTeamProjects Should render 1`] = `
                   <Component
                     className="glamor-3 glamor-0"
                   >
-                    <_default
+                    <PanelHeading
                       className="glamor-3 glamor-0"
                     >
                       <div
@@ -107,7 +107,7 @@ exports[`OrganizationTeamProjects Should render 1`] = `
                       >
                         Associated Projects
                       </div>
-                    </_default>
+                    </PanelHeading>
                   </Component>
                 </StyledPanelHeading>
               </div>
@@ -141,7 +141,7 @@ exports[`OrganizationTeamProjects Should render 1`] = `
                   <Component
                     className="glamor-3 glamor-0"
                   >
-                    <_default
+                    <PanelHeading
                       className="glamor-3 glamor-0"
                     >
                       <div
@@ -149,7 +149,7 @@ exports[`OrganizationTeamProjects Should render 1`] = `
                       >
                         Other Projects
                       </div>
-                    </_default>
+                    </PanelHeading>
                   </Component>
                 </StyledPanelHeading>
               </div>

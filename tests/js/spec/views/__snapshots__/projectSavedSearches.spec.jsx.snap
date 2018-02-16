@@ -209,7 +209,7 @@ exports[`ProjectSavedSearches renders 1`] = `
                   <Component
                     className="glamor-21 glamor-18"
                   >
-                    <_default
+                    <PanelHeading
                       className="glamor-21 glamor-18"
                     >
                       <div
@@ -315,7 +315,7 @@ exports[`ProjectSavedSearches renders 1`] = `
                           </Base>
                         </Flex>
                       </div>
-                    </_default>
+                    </PanelHeading>
                   </Component>
                 </StyledPanelHeading>
               </div>

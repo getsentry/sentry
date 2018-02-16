@@ -686,8 +686,8 @@ table.integrations {
 
   .loading-indicator {
     position: relative;
-    border: @check-thickness solid @white-darker;
-    border-left-color: @gray;
+    border: @check-thickness solid @white-darkest;
+    border-left-color: @purple;
     -webkit-animation: loading 0.5s infinite linear;
     animation: loading 0.55s infinite linear;
     margin: 0 auto;
@@ -788,8 +788,8 @@ table.integrations {
   .loading-indicator {
     margin: 0;
     border-radius: 50%;
-    width: 20px;
-    height: 20px;
+    width: 24px;
+    height: 24px;
     border-width: 2px;
     position: absolute;
     left: 0;
@@ -819,63 +819,6 @@ table.integrations {
 .hint-leave.hint-leave-active {
   opacity: 0.01;
   transition: opacity 300ms ease-in;
-}
-
-.toast {
-  .loading.mini();
-  padding: 20px 30px;
-  font-size: 15px;
-  z-index: 100000;
-  border-radius: 3px;
-
-  position: fixed;
-  bottom: 20px;
-  right: 20px;
-  color: #fff;
-  opacity: 1;
-
-  .toast-message {
-    display: inline-block;
-    padding-left: 15px;
-  }
-
-  &.loading {
-    background: rgba(52, 60, 69, 0.8);
-    &.toast-leave {
-      display: none; /* hides immediately*/
-    }
-  }
-
-  &.success {
-    background: @green;
-    color: @white;
-    .icon:before {
-      content: '\e60a'; // checkmark
-    }
-  }
-  &.error {
-    background: @red;
-    color: @white;
-    .icon:before {
-      content: '\e615'; // exclamation
-    }
-  }
-  &.success.toast-leave,
-  &.error.toast-leave {
-    opacity: 0;
-    .transition(opacity 0.2s linear);
-  }
-
-  .loading-indicator {
-    border-color: rgba(255, 255, 255, 0.4);
-    border-left-color: rgba(255, 255, 255, 1);
-    top: 20px;
-    left: 24px;
-  }
-
-  .loading-message {
-    padding-left: 24px;
-  }
 }
 
 // Loading Gif

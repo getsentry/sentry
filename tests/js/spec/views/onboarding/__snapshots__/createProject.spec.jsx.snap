@@ -113,7 +113,7 @@ exports[`CreateProject render() should deal with incorrect platform name if its 
                 activeClassName="active"
                 index={false}
                 isActive={[Function]}
-                key="Popular"
+                key="popular"
                 onClick={[Function]}
                 to=""
               >
@@ -139,7 +139,7 @@ exports[`CreateProject render() should deal with incorrect platform name if its 
                 activeClassName="active"
                 index={false}
                 isActive={[Function]}
-                key="Frontend"
+                key="frontend"
                 onClick={[Function]}
                 to=""
               >
@@ -165,7 +165,7 @@ exports[`CreateProject render() should deal with incorrect platform name if its 
                 activeClassName="active"
                 index={false}
                 isActive={[Function]}
-                key="Mobile"
+                key="mobile"
                 onClick={[Function]}
                 to=""
               >
@@ -191,7 +191,7 @@ exports[`CreateProject render() should deal with incorrect platform name if its 
                 activeClassName="active"
                 index={false}
                 isActive={[Function]}
-                key="Backend"
+                key="backend"
                 onClick={[Function]}
                 to=""
               >
@@ -217,7 +217,7 @@ exports[`CreateProject render() should deal with incorrect platform name if its 
                 activeClassName="active"
                 index={false}
                 isActive={[Function]}
-                key="All"
+                key="all"
                 onClick={[Function]}
                 to=""
               >
@@ -889,7 +889,7 @@ exports[`CreateProject render() should fill in platform name if its provided by 
                 activeClassName="active"
                 index={false}
                 isActive={[Function]}
-                key="Popular"
+                key="popular"
                 onClick={[Function]}
                 to=""
               >
@@ -915,7 +915,7 @@ exports[`CreateProject render() should fill in platform name if its provided by 
                 activeClassName="active"
                 index={false}
                 isActive={[Function]}
-                key="Frontend"
+                key="frontend"
                 onClick={[Function]}
                 to=""
               >
@@ -941,7 +941,7 @@ exports[`CreateProject render() should fill in platform name if its provided by 
                 activeClassName="active"
                 index={false}
                 isActive={[Function]}
-                key="Mobile"
+                key="mobile"
                 onClick={[Function]}
                 to=""
               >
@@ -967,7 +967,7 @@ exports[`CreateProject render() should fill in platform name if its provided by 
                 activeClassName="active"
                 index={false}
                 isActive={[Function]}
-                key="Backend"
+                key="backend"
                 onClick={[Function]}
                 to=""
               >
@@ -993,7 +993,7 @@ exports[`CreateProject render() should fill in platform name if its provided by 
                 activeClassName="active"
                 index={false}
                 isActive={[Function]}
-                key="All"
+                key="all"
                 onClick={[Function]}
                 to=""
               >
@@ -1262,7 +1262,7 @@ exports[`CreateProject render() should fill in project name if its empty when pl
                 activeClassName="active"
                 index={false}
                 isActive={[Function]}
-                key="Popular"
+                key="popular"
                 onClick={[Function]}
                 to=""
               >
@@ -1288,7 +1288,7 @@ exports[`CreateProject render() should fill in project name if its empty when pl
                 activeClassName="active"
                 index={false}
                 isActive={[Function]}
-                key="Frontend"
+                key="frontend"
                 onClick={[Function]}
                 to=""
               >
@@ -1314,7 +1314,7 @@ exports[`CreateProject render() should fill in project name if its empty when pl
                 activeClassName="active"
                 index={false}
                 isActive={[Function]}
-                key="Mobile"
+                key="mobile"
                 onClick={[Function]}
                 to=""
               >
@@ -1340,7 +1340,7 @@ exports[`CreateProject render() should fill in project name if its empty when pl
                 activeClassName="active"
                 index={false}
                 isActive={[Function]}
-                key="Backend"
+                key="backend"
                 onClick={[Function]}
                 to=""
               >
@@ -1366,7 +1366,7 @@ exports[`CreateProject render() should fill in project name if its empty when pl
                 activeClassName="active"
                 index={false}
                 isActive={[Function]}
-                key="All"
+                key="all"
                 onClick={[Function]}
                 to=""
               >
