@@ -1,6 +1,6 @@
 // remove leading and trailing whitespace and remove double spaces
 function formatQueryString(qs) {
-  return qs.replace(/^\s+|\s+$/g, '').replace(/\s+/g, ' ');
+  return qs.trim().replace(/\s+/g, ' ');
 }
 
 // returns environment name from query or null if not specified
