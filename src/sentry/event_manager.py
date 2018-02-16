@@ -506,10 +506,11 @@ class EventManager(object):
             # transaction
             transaction_name = None
             culprit = generate_culprit(data, platform=platform)
-            if not isinstance(culprit, six.string_types):
-                culprit = force_text(culprit)
         else:
             transaction_name = culprit
+
+        if not isinstance(culprit, six.string_types):
+            culprit = force_text(culprit)
 
         recorded_timestamp = data.pop('timestamp')
         date = datetime.fromtimestamp(recorded_timestamp)
