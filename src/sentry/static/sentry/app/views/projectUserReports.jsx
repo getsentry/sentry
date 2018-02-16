@@ -1,10 +1,13 @@
 import jQuery from 'jquery';
 import PropTypes from 'prop-types';
 import React from 'react';
+import Reflux from 'reflux';
 import createReactClass from 'create-react-class';
+import {isEqual} from 'lodash';
 import {browserHistory, Link} from 'react-router';
 import ApiMixin from '../mixins/apiMixin';
 import GroupStore from '../stores/groupStore';
+import LatestContextStore from '../stores/latestContextStore';
 import LoadingError from '../components/loadingError';
 import LoadingIndicator from '../components/loadingIndicator';
 import Pagination from '../components/pagination';
@@ -21,7 +24,11 @@ const ProjectUserReports = createReactClass({
     setProjectNavSection: PropTypes.func,
   },
 
-  mixins: [ApiMixin],
+  contextTypes: {
+    organization: PropTypes.object,
+  },
+
+  mixins: [ApiMixin, Reflux.listenTo(LatestContextStore, 'onLatestContextChange')],
 
   getDefaultProps() {
     return {
@@ -31,6 +38,10 @@ const ProjectUserReports = createReactClass({
   },
 
   getInitialState() {
+    const hasEnvironmentsFeature = new Set(this.context.organization.features).has(
+      'environments'
+    );
+
     return {
       reportList: [],
       loading: true,
@@ -38,6 +49,10 @@ const ProjectUserReports = createReactClass({
       pageLinks: '',
       query: this.props.defaultQuery,
       status: this.props.defaultStatus,
+      hasEnvironmentsFeature,
+      environment: hasEnvironmentsFeature
+        ? LatestContextStore.getInitialState().environment
+        : null,
       ...this.getQueryStringState(this.props),
     };
   },
@@ -77,13 +92,31 @@ const ProjectUserReports = createReactClass({
     });
   },
 
+  onLatestContextChange(context) {
+    if (isEqual(context.environment, this.state.environment)) return;
+
+    if (!this.state.hasEnvironmentsFeature) return;
+
+    this.setState(
+      {
+        environment: context.environment,
+      },
+      this.fetchData
+    );
+  },
+
   fetchData() {
     this.setState({
       loading: true,
       error: false,
     });
 
+    const query = this.state.environment
+      ? {environment: this.state.environment.urlRoutingName}
+      : null;
+
     this.api.request(this.getEndpoint(), {
+      query,
       success: (data, _, jqXHR) => {
         let issues = data.map(r => r.issue);
         GroupStore.add(issues);
@@ -157,7 +190,7 @@ const ProjectUserReports = createReactClass({
     return (
       <div className="box empty-stream">
         <span className="icon icon-exclamation" />
-        <p>{t('No user reports have been collected for this project.')}</p>
+        <p>{t('No user reports have been collected.')}</p>
         <p>
           <Link to={this.getUserReportsUrl()}>
             {t('Learn how to integrate User Feedback')}
