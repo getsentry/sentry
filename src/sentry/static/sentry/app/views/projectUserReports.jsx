@@ -6,7 +6,7 @@ import createReactClass from 'create-react-class';
 import {isEqual} from 'lodash';
 import {browserHistory, Link} from 'react-router';
 import ApiMixin from '../mixins/apiMixin';
-import GroupStore from '../stores/groupStore';
+import {addIssues} from '../actionCreators/groups';
 import LatestContextStore from '../stores/latestContextStore';
 import LoadingError from '../components/loadingError';
 import LoadingIndicator from '../components/loadingIndicator';
@@ -119,7 +119,7 @@ const ProjectUserReports = createReactClass({
       query,
       success: (data, _, jqXHR) => {
         let issues = data.map(r => r.issue);
-        GroupStore.add(issues);
+        addIssues(issues);
         this.setState({
           error: false,
           loading: false,
