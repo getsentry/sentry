@@ -112,8 +112,6 @@ class RangeSlider extends React.Component {
     min: PropTypes.number.isRequired,
     max: PropTypes.number.isRequired,
     step: PropTypes.number,
-    label: PropTypes.string,
-    plural: PropTypes.string,
     onChange: PropTypes.func,
 
     /**
@@ -165,6 +163,7 @@ class RangeSlider extends React.Component {
     let value;
 
     if (allowedValues) {
+      // If `allowedValues` is defined, then `sliderValue` represents index to `allowedValues`
       value = allowedValues[sliderValue];
     } else {
       value = sliderValue;
@@ -173,6 +172,7 @@ class RangeSlider extends React.Component {
     this.setState({
       sliderValue,
     });
+
     if (this.props.onChange) {
       this.props.onChange(value, e);
     }
