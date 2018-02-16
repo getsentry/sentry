@@ -106,6 +106,7 @@ const StreamGroup = createReactClass({
     return (
       <li className={className} onClick={this.toggleSelect}>
         <div className="col-md-7 col-xs-8 event-details">
+          <span className="error-level truncate">{data.level}</span>
           {this.props.canSelect && (
             <div className="checkbox">
               <GroupCheckBox id={data.id} />

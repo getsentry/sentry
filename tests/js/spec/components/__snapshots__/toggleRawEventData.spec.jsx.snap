@@ -16,6 +16,10 @@ exports[`EventDataSection renders formatted 1`] = `
         className="icon-anchor"
       />
     </a>
+    <GuideAnchor
+      target="extra"
+      type="text"
+    />
     <h3>
       Additional Data
     </h3>
@@ -58,6 +62,10 @@ exports[`EventDataSection renders raw 1`] = `
         className="icon-anchor"
       />
     </a>
+    <GuideAnchor
+      target="extra"
+      type="text"
+    />
     <h3>
       Additional Data
     </h3>

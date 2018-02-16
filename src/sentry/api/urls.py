@@ -6,6 +6,7 @@ from .endpoints.api_applications import ApiApplicationsEndpoint
 from .endpoints.api_application_details import ApiApplicationDetailsEndpoint
 from .endpoints.api_authorizations import ApiAuthorizationsEndpoint
 from .endpoints.api_tokens import ApiTokensEndpoint
+from .endpoints.assistant import AssistantEndpoint
 from .endpoints.auth_index import AuthIndexEndpoint
 from .endpoints.authenticator_index import AuthenticatorIndexEndpoint
 from .endpoints.broadcast_index import BroadcastIndexEndpoint
@@ -156,6 +157,11 @@ urlpatterns = patterns(
     '',
 
     # Api Data
+    url(
+        r'^assistant/$',
+        AssistantEndpoint.as_view(),
+        name='sentry-api-0-assistant',
+    ),
     url(
         r'^api-applications/$',
         ApiApplicationsEndpoint.as_view(),

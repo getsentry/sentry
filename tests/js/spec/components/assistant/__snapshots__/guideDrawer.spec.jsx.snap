@@ -1,0 +1,37 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`GuideDrawer renders with first step 1`] = `
+<div>
+  <div
+    className="assistant-drawer-title"
+  >
+    1. Title 1
+  </div>
+  <div
+    className="assistant-drawer-message"
+  >
+    Message 1
+  </div>
+  <div>
+    <div>
+      <p>
+        Did you find this guide useful?
+      </p>
+      <a
+        className="btn btn-default"
+        onClick={[Function]}
+      >
+        Yes
+           ✔
+      </a>
+      <a
+        className="btn btn-default"
+        onClick={[Function]}
+      >
+        No
+           ✖
+      </a>
+    </div>
+  </div>
+</div>
+`;
