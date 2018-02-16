@@ -10,7 +10,7 @@ import {cx} from 'emotion';
 import ToastIndicator from '../components/alerts/toastIndicator';
 import IndicatorStore from '../stores/indicatorStore';
 import theme from '../utils/theme';
-import {remove} from '../actionCreators/indicator';
+import {removeIndicator} from '../actionCreators/indicator';
 
 const Toasts = styled.div`
   position: fixed;
@@ -36,7 +36,7 @@ class Indicators extends React.Component {
   };
 
   handleDismiss = indicator => {
-    remove(indicator);
+    removeIndicator(indicator);
   };
 
   render() {

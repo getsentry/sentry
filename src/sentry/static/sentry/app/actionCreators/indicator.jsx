@@ -1,13 +1,14 @@
 import {DEFAULT_TOAST_DURATION} from '../constants';
+import {t} from '../locale';
 import IndicatorActions from '../actions/indicatorActions';
 
 // Removes a single indicator
-export function remove(indicator) {
+export function removeIndicator(indicator) {
   IndicatorActions.remove(indicator);
 }
 
 // Clears all indicators
-export function clear() {
+export function clearIndicators() {
   IndicatorActions.clear();
 }
 
@@ -22,12 +23,20 @@ export function addMessage(msg, type, options = {}) {
   return IndicatorActions[action](msg, type, {...options, duration});
 }
 
-export function addErrorMessage(msg, duration, options = {}) {
-  addMessage(msg, 'error', {...options, duration});
+function addMessageWithType(type) {
+  return (msg, duration, options = {}) => addMessage(msg, type, {...options, duration});
 }
 
-export function addSuccessMessage(msg, duration, options = {}) {
-  addMessage(msg, 'success', {...options, duration});
+export function addLoadingMessage(msg = t('Saving changes...'), ...args) {
+  return addMessageWithType('loading')(msg, ...args);
+}
+
+export function addErrorMessage(...args) {
+  return addMessageWithType('error')(...args);
+}
+
+export function addSuccessMessage(...args) {
+  return addMessageWithType('success')(...args);
 }
 
 /**

@@ -5,7 +5,7 @@ import theme from 'app/utils/theme';
 import Indicators from 'app/components/indicators';
 import IndicatorStore from 'app/stores/indicatorStore';
 import {
-  clear,
+  clearIndicators,
   addSuccessMessage,
   addErrorMessage,
   addMessage,
@@ -23,7 +23,7 @@ describe('Indicators', function() {
       </ThemeProvider>
     );
 
-    clear();
+    clearIndicators();
     jest.runAllTimers();
   });
 
@@ -94,7 +94,7 @@ describe('Indicators', function() {
     expect(wrapper.find('Message').text()).toBe('Loading');
 
     // If no indicator is specified, will remove all indicators
-    clear();
+    clearIndicators();
     jest.runAllTimers();
     wrapper.update();
     expect(wrapper.find('ToastIndicator')).toHaveLength(0);
@@ -123,7 +123,7 @@ describe('Indicators', function() {
     expect(wrapper.find('ToastIndicator')).toHaveLength(1);
     expect(wrapper.find('Message').text()).toBe('success');
 
-    clear();
+    clearIndicators();
     addErrorMessage('error', null);
     jest.runAllTimers();
     wrapper.update();
@@ -163,7 +163,7 @@ describe('Indicators', function() {
     ).toBe('Error');
 
     // clears all toasts
-    clear();
+    clearIndicators();
     jest.runAllTimers();
     wrapper.update();
     expect(wrapper.find('ToastIndicator')).toHaveLength(0);
