@@ -15,19 +15,19 @@ from sentry.models import File, ChunkFileState, ProjectDSymFile
 class DifAssembleEndpoint(ChunkAssembleMixin, ProjectEndpoint):
     permission_classes = (ProjectReleasePermission, )
 
-    def _add_project_dsym_to_reponse(self, found_files, response):
+    def _add_project_dsym_to_reponse(self, found_files, response, project):
         for found_file in found_files or []:
             error = found_file.headers.get('error', None)
             if error is not None:
                 response.setdefault('errors', []).append(error)
                 response['state'] = ChunkFileState.ERROR
 
-            dsym = ProjectDSymFile.objects.filter(
-                file=found_file
-            ).first()
+            dsym = ProjectDSymFile.objects.get(
+                file=found_file,
+                project=project
+            )
 
-            if dsym is not None:
-                response.setdefault('difs', []).append(serialize(dsym))
+            response.setdefault('difs', []).append(serialize(dsym))
 
         return response
 
@@ -83,9 +83,9 @@ class DifAssembleEndpoint(ChunkAssembleMixin, ProjectEndpoint):
                     # We also found a file, we try to fetch project dsym to return more
                     # information in the request
                     file_response[checksum] = self._add_project_dsym_to_reponse(
-                        found_files, response)
+                        found_files, response, project)
                     continue
-            except File.DoesNotExist:
+            except (ProjectDSymFile.DoesNotExist, File.DoesNotExist):
                 pass
 
             file, file_blob_ids = self._create_file_for_assembling(name, checksum, chunks)
