@@ -24,6 +24,10 @@ const ProjectUserReports = createReactClass({
     setProjectNavSection: PropTypes.func,
   },
 
+  contextTypes: {
+    organization: PropTypes.object,
+  },
+
   mixins: [ApiMixin, Reflux.listenTo(LatestContextStore, 'onLatestContextChange')],
 
   getDefaultProps() {
@@ -34,6 +38,10 @@ const ProjectUserReports = createReactClass({
   },
 
   getInitialState() {
+    const hasEnvironmentsFeature = new Set(this.context.organization.features).has(
+      'environments'
+    );
+
     return {
       reportList: [],
       loading: true,
@@ -41,7 +49,10 @@ const ProjectUserReports = createReactClass({
       pageLinks: '',
       query: this.props.defaultQuery,
       status: this.props.defaultStatus,
-      environment: LatestContextStore.getInitialState().environment,
+      hasEnvironmentsFeature,
+      environment: hasEnvironmentsFeature
+        ? LatestContextStore.getInitialState().environment
+        : null,
       ...this.getQueryStringState(this.props),
     };
   },
@@ -83,6 +94,8 @@ const ProjectUserReports = createReactClass({
 
   onLatestContextChange(context) {
     if (isEqual(context.environment, this.state.environment)) return;
+
+    if (!this.state.hasEnvironmentsFeature) return;
 
     this.setState(
       {
