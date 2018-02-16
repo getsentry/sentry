@@ -31,6 +31,10 @@ export default function getConfiguration({project}) {
           title: t('Tags'),
         },
         {
+          path: `${pathPrefix}/environments/`,
+          title: t('Environments'),
+        },
+        {
           path: `${pathPrefix}/issue-tracking/`,
           title: t('Issue Tracking'),
         },
