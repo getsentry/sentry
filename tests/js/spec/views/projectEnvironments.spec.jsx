@@ -9,7 +9,6 @@ jest.mock('app/utils/recreateRoute');
 
 recreateRoute.mockReturnValue('/org-slug/project-slug/settings/');
 
-console.log(recreateRoute);
 function mountComponent(isHidden) {
   const org = TestStubs.Organization();
   const project = TestStubs.Project();
