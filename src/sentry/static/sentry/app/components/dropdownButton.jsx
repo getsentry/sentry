@@ -62,6 +62,11 @@ const StyledButton = styled(props => <Button {...props} />)`
   box-shadow: none;
 `;
 
+const StyledItem = styled('div')`
+  background-color: ${p =>
+    p.index == p.highlightedIndex ? p.theme.offWhite : 'transparent'};
+`;
+
 const DropdownAutoComplete = ({items, onBlur}) => (
   <AutoComplete itemToString={item => item.content}>
     {({
@@ -86,23 +91,14 @@ const DropdownAutoComplete = ({items, onBlur}) => (
                       item.searchKey.toLowerCase().indexOf(inputValue.toLowerCase()) > -1
                   )
                   .map((item, index) => (
-                    <div
+                    <StyledItem
                       key={item.searchKey}
-                      {...getItemProps({
-                        item,
-                        index,
-                        style: {
-                          cursor: 'pointer',
-                          padding: '6px 12px',
-                          backgroundColor:
-                            index === highlightedIndex
-                              ? 'rgba(0, 0, 0, 0.02)'
-                              : undefined,
-                        },
-                      })}
+                      highlightedIndex={highlightedIndex}
+                      index={index}
+                      {...getItemProps({item, index})}
                     >
                       {item.content}
-                    </div>
+                    </StyledItem>
                   ))}
               </div>
             </div>
