@@ -512,6 +512,16 @@ class EventManagerTest(TransactionTestCase):
         data = manager.normalize()
         assert len(data['culprit']) == MAX_CULPRIT_LENGTH
 
+    def test_handles_non_string_generated_culprit(self):
+        dict_input = {'messages': 'foo'}
+        manager = EventManager(self.make_event(
+            transaction=dict_input,
+        ))
+        manager.normalize()
+        event = manager.save(1)
+        assert event.transaction == dict_input
+        assert event.culprit == dict_input
+
     def test_long_transaction(self):
         manager = EventManager(self.make_event(
             transaction='x' * (MAX_CULPRIT_LENGTH + 1),
