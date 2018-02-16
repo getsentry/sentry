@@ -19,8 +19,6 @@ import recreateRoute from '../utils/recreateRoute';
 import LoadingIndicator from '../components/loadingIndicator';
 import IndicatorStore from '../stores/indicatorStore';
 
-import SentryTypes from '../proptypes';
-
 import {
   loadActiveEnvironments,
   loadHiddenEnvironments,
@@ -31,10 +29,6 @@ const ProjectEnvironments = createReactClass({
     route: PropTypes.object,
     routes: PropTypes.array,
     params: PropTypes.object,
-  },
-
-  contextTypes: {
-    organization: SentryTypes.Organization,
   },
 
   mixins: [ApiMixin, Reflux.listenTo(EnvironmentStore, 'onEnvironmentsChange')],
