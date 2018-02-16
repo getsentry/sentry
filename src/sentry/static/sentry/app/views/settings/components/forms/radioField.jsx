@@ -1,7 +1,7 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 
-import RadioGroup from './radioGroup';
+import RadioGroup from './controls/radioGroup';
 import InputField from './inputField';
 
 class RadioField extends React.Component {

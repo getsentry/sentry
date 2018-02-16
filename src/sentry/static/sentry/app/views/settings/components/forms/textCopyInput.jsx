@@ -4,7 +4,7 @@ import React from 'react';
 import ReactDOM from 'react-dom';
 import styled from 'react-emotion';
 
-import {inputStyles} from './styled/styles';
+import {inputStyles} from '../../../../styles/input';
 import {selectText} from '../../../../utils/selectText';
 import Button from '../../../../components/buttons/button';
 import Clipboard from '../../../../components/clipboard';
