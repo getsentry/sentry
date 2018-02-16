@@ -21,108 +21,96 @@ FakeComponent.propTypes = {
 
 const fakeItems = [
   {
-    searchKey: 'china',
-    content: <FakeComponent text="China" emoji="🇨🇳" />,
+    groupLabel: 'Countries',
+    groupItems: [
+      {
+        searchKey: 'new zealand',
+        content: <FakeComponent text="New Zealand" emoji="🇨🇷" />,
+      },
+      {
+        searchKey: 'australia',
+        content: <FakeComponent text="Australia" emoji="🇦🇺" />,
+      },
+      {
+        searchKey: 'brazil',
+        content: <FakeComponent text="Brazil" emoji="🇧🇷" />,
+      },
+    ],
   },
   {
-    searchKey: 'new zealand',
-    content: <FakeComponent text="New Zealand" emoji="🇨🇷" />,
-  },
-  {
-    searchKey: 'australia',
-    content: <FakeComponent text="Australia" emoji="🇦🇺" />,
-  },
-  {
-    searchKey: 'brazil',
-    content: <FakeComponent text="Brazil" emoji="🇧🇷" />,
+    groupLabel: 'Foods',
+    groupItems: [
+      {
+        searchKey: 'apple',
+        content: <FakeComponent text="Apple" emoji="🍎" />,
+      },
+      {
+        searchKey: 'bacon',
+        content: <FakeComponent text="Bacon" emoji="🥓" />,
+      },
+      {
+        searchKey: 'corn',
+        content: <FakeComponent text="Corn" emoji="🌽" />,
+      },
+    ],
   },
 ];
 
-const StyledChevronDown = styled(props => (
-  <InlineSvg src="icon-chevron-down" {...props} />
-))`
-  margin-right: 0.5em;
-`;
+const DropdownAutoComplete = ({items, onBlur}) => {
+  const ungroupItems = () => {
+    return items.reduce((a, i) => [...a, i.groupLabel, ...i.groupItems], []);
+  };
 
-const StyledMenu = styled('div')`
-  background: #fff;
-  border: 1px solid ${p => p.theme.borderLight};
-  border-radius: ${p => p.theme.borderRadius};
-  position: absolute;
-  top: calc(100% - 1px);
-  left: 0;
-  min-width: 250px;
-`;
+  const applyAutocompleteFilter = inputValue => {
+    const flattenedItems = items[0].groupItems ? ungroupItems() : items;
 
-const StyledButton = styled(props => <Button {...props} />)`
-  border-bottom-color: ${p => (p.isOpen ? 'transparent' : p.theme.borderLight)};
-  border-bottom-right-radius: ${p => (p.isOpen ? 0 : p.theme.borderRadius)};
-  border-bottom-left-radius: ${p => (p.isOpen ? 0 : p.theme.borderRadius)};
-  position: relative;
-  z-index; 1;
-  box-shadow: none;
-`;
-
-const StyledInput = styled(Input)`
-  height: 1.75em;
-  font-size: 0.75em;
-`;
-
-const StyledItem = styled('div')`
-  background-color: ${p =>
-    p.index == p.highlightedIndex ? p.theme.offWhite : 'transparent'};
-  padding: 0.25em 0.5em;
-  cursor: pointer;
-  &:hover {
-    background-color: ${p => p.theme.offWhite};
-  }
-`;
-
-const StyledInputContainer = styled('div')`
-  padding: 0.75em 0.5em;
-`;
-
-const DropdownAutoComplete = ({items, onBlur}) => (
-  <AutoComplete itemToString={item => item.content}>
-    {({
-      getRootProps,
-      getInputProps,
-      getMenuProps,
-      getItemProps,
-      inputValue,
-      selectedItem,
-      highlightedIndex,
-      isOpen,
-    }) => {
+    return flattenedItems.filter(i => {
       return (
-        <div {...getRootProps()}>
-          <StyledInputContainer>
-            <StyledInput autoFocus {...getInputProps({})} onBlur={onBlur} />
-          </StyledInputContainer>
-          <div {...getMenuProps()}>
-            <div>
-              {items
-                .filter(
-                  item =>
-                    item.searchKey.toLowerCase().indexOf(inputValue.toLowerCase()) > -1
-                )
-                .map((item, index) => (
-                  <StyledItem
-                    key={item.searchKey}
-                    highlightedIndex={highlightedIndex}
-                    index={index}
-                    {...getItemProps({item, index})}
-                  >
-                    {item.content}
-                  </StyledItem>
-                ))}
+        !i.searchKey || i.searchKey.toLowerCase().indexOf(inputValue.toLowerCase()) > -1
+      );
+    });
+  };
+
+  return (
+    <AutoComplete itemToString={item => item.content}>
+      {({
+        getRootProps,
+        getInputProps,
+        getMenuProps,
+        getItemProps,
+        inputValue,
+        highlightedIndex,
+      }) => {
+        return (
+          <div {...getRootProps()}>
+            <StyledInputContainer>
+              <StyledInput autoFocus {...getInputProps({})} onBlur={onBlur} />
+            </StyledInputContainer>
+            <div {...getMenuProps()}>
+              <div>
+                {applyAutocompleteFilter(inputValue).map(
+                  (item, index) =>
+                    item.searchKey ? (
+                      <StyledItem
+                        key={item.searchKey}
+                        highlightedIndex={highlightedIndex}
+                        index={index}
+                        {...getItemProps({item, index})}
+                      >
+                        {item.content}
+                      </StyledItem>
+                    ) : (
+                      <StyledLabel key={index}>{item}</StyledLabel>
+                    )
+                )}
+              </div>
             </div>
           </div>
-        </div>
-      );
-    }}
-  </AutoComplete>
-);
+        );
+      }}
+    </AutoComplete>
+  );
+};
 
 DropdownAutoComplete.propTypes = {
   items: PropTypes.array,
@@ -165,5 +153,57 @@ class DropdownButton extends React.Component {
     );
   }
 }
+
+const StyledChevronDown = styled(props => (
+  <InlineSvg src="icon-chevron-down" {...props} />
+))`
+  margin-right: 0.5em;
+`;
+
+const StyledMenu = styled('div')`
+  background: #fff;
+  border: 1px solid ${p => p.theme.borderLight};
+  border-radius: ${p => p.theme.borderRadius};
+  position: absolute;
+  top: calc(100% - 1px);
+  left: 0;
+  min-width: 250px;
+  font-size: 0.9em;
+`;
+
+const StyledButton = styled(props => <Button {...props} />)`
+  border-bottom-color: ${p => (p.isOpen ? 'transparent' : p.theme.borderLight)};
+  border-bottom-right-radius: ${p => (p.isOpen ? 0 : p.theme.borderRadius)};
+  border-bottom-left-radius: ${p => (p.isOpen ? 0 : p.theme.borderRadius)};
+  position: relative;
+  z-index; 1;
+  box-shadow: none;
+`;
+
+const StyledInput = styled(Input)`
+  height: 1.75em;
+  font-size: 0.75em;
+`;
+
+const StyledItem = styled('div')`
+  background-color: ${p =>
+    p.index == p.highlightedIndex ? p.theme.offWhite : 'transparent'};
+  padding: 0.25em 0.5em;
+  cursor: pointer;
+  &:hover {
+    background-color: ${p => p.theme.offWhite};
+  }
+`;
+
+const StyledInputContainer = styled('div')`
+  padding: 0.75em 0.5em;
+`;
+
+const StyledLabel = styled('div')`
+  padding: 0 0.5em;
+  background-color: ${p => p.theme.offWhite};
+  border: 1px solid ${p => p.theme.borderLight};
+  border-width: 1px 0;
+`;
 
 export default DropdownButton;
