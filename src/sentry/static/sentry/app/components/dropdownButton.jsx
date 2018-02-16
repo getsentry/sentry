@@ -108,7 +108,7 @@ class DropdownButton extends React.Component {
 
   onSelect = selectedItem => {
     this.toggleOpen();
-    this.props.onSelect(selectedItem);
+    if (this.props.onSelect) this.props.onSelect(selectedItem);
   };
 
   render() {
