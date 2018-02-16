@@ -18,8 +18,6 @@ class AssistantActivity(Model):
     viewed_ts = models.DateTimeField(null=True)
     # Time the user dismissed the guide. If this is set, viewed_ts will be null.
     dismissed_ts = models.DateTimeField(null=True)
-    # Time until which the user snoozed the guide.
-    snoozed_until_ts = models.DateTimeField(null=True)
     # Whether the user found the guide useful.
     useful = models.NullBooleanField(null=True)
 
@@ -28,7 +26,6 @@ class AssistantActivity(Model):
         'guide_id',
         'viewed_ts',
         'dismissed_ts',
-        'snoozed_until_ts',
         'useful')
 
     class Meta:
