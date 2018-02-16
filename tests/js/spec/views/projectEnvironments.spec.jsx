@@ -2,8 +2,12 @@ import React from 'react';
 import {mount} from 'enzyme';
 
 import ProjectEnvironments from 'app/views/projectEnvironments';
-
 import EnvironmentStore from 'app/stores/environmentStore';
+import recreateRoute from 'app/utils/recreateRoute';
+
+jest.mock('app/utils/recreateRoute');
+
+recreateRoute.mockReturnValue('/org-slug/project-slug/settings/');
 
 function mountComponent(isHidden) {
   const org = TestStubs.Organization();
@@ -16,6 +20,7 @@ function mountComponent(isHidden) {
         projectId: project.slug,
       }}
       route={{path}}
+      routes={[]}
     />,
     TestStubs.routerContext()
   );
