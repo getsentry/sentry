@@ -1,12 +1,48 @@
+import React from 'react';
+import PropTypes from 'prop-types';
 import styled from 'react-emotion';
 
-const EmptyMessage = styled.div`
-  display: flex;
-  justify-content: center;
-  padding: 18px;
+import InlineSvg from '../../../components/inlineSvg';
+
+const Wrapper = styled.div`
+  color: ${p => p.theme.gray4};
+  text-align: center;
+  padding: ${p => p.theme.grid * 3}px;
   font-size: 1.5em;
-  opacity: 0.4;
   font-weight: bold;
 `;
+
+const Icon = styled.div`
+  display: block;
+  margin: 0 auto ${p => p.theme.grid * 2.5}px;
+  color: ${p => p.theme.gray1};
+`;
+
+const Action = styled.div`
+  display: block;
+  margin: ${p => p.theme.grid * 2.5}px auto 0;
+`;
+
+class EmptyMessage extends React.Component {
+  render() {
+    let {icon, children, action} = this.props;
+    return (
+      <Wrapper>
+        {icon && (
+          <Icon>
+            <InlineSvg src={icon} size="48px" />
+          </Icon>
+        )}
+        <div className="ref-message">{children}</div>
+        {action && <Action>{action}</Action>}
+      </Wrapper>
+    );
+  }
+}
+
+EmptyMessage.propTypes = {
+  icon: PropTypes.string,
+  action: PropTypes.element,
+};
 
 export default EmptyMessage;
