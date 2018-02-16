@@ -49,14 +49,16 @@ class ProjectTransferTest(APITestCase):
             }
         )
 
-        with self.settings(SENTRY_PROJECT=0, EMAIL_BACKEND='django.core.mail.backends.smtp.EmailBackend'):
-            response = self.client.post(url, {
-                'email': new_user.email
-            })
+        with self.settings(SENTRY_PROJECT=0):
+            with self.tasks():
+                response = self.client.post(url, {
+                    'email': new_user.email
+                })
 
-            assert response.status_code == 204
-            # stdout seems to print log messages that mail should be sent but this assertion does not pass
-            # assert mail.outbox
+                assert response.status_code == 204
+                # stdout seems to print log messages that mail should be sent but this
+                # assertion does not pass
+                assert mail.outbox
 
     @mock.patch('sentry.api.endpoints.project_details.uuid4')
     def test_transfer_project_to_invalid_user(self, mock_uuid4):
@@ -78,10 +80,11 @@ class ProjectTransferTest(APITestCase):
             }
         )
 
-        with self.settings(SENTRY_PROJECT=0, EMAIL_BACKEND='django.core.mail.backends.smtp.EmailBackend'):
-            response = self.client.post(url, {
-                'email': new_user.email
-            })
+        with self.settings(SENTRY_PROJECT=0):
+            with self.tasks():
+                response = self.client.post(url, {
+                    'email': new_user.email
+                })
 
-            assert response.status_code == 404
-            assert not mail.outbox
+                assert response.status_code == 404
+                assert not mail.outbox
