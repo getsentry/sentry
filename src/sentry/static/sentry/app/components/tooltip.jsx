@@ -14,6 +14,13 @@ class Tooltip extends React.Component {
     title: PropTypes.node,
   };
 
+  componentDidUpdate = prevProps => {
+    if ( prevProps.title != this.props.title ) {
+      this.removeTooltips(this.$ref);
+      this.attachTooltips(this.$ref);
+    }
+  };
+
   handleMount = ref => {
     if (ref && !this.ref) {
       // eslint-disable-next-line react/no-find-dom-node
@@ -63,7 +70,6 @@ class Tooltip extends React.Component {
     if (disabled) {
       return children;
     }
-
     return React.cloneElement(children, {
       ...props,
       ref: this.handleMount,
