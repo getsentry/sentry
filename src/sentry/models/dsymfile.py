@@ -29,7 +29,7 @@ from symbolic import FatObject, SymbolicError, UnsupportedObjectFile, \
     SymCache, SYMCACHE_LATEST_VERSION
 
 from sentry import options
-from sentry.utils.cache import cache
+from sentry.cache import default_cache
 from sentry.db.models import FlexibleForeignKey, Model, \
     sane_repr, BaseManager, BoundedPositiveIntegerField
 from sentry.models.file import File
@@ -52,6 +52,37 @@ CONVERSION_ERROR_TTL = 60 * 10
 DSYM_MIMETYPES = dict((v, k) for k, v in KNOWN_DSYM_TYPES.items())
 
 _proguard_file_re = re.compile(r'/proguard/(?:mapping-)?(.*?)\.txt$')
+
+
+def _get_idempotency_id(project, checksum):
+    """For some operations an idempotency ID is needed."""
+    return hashlib.sha1(b'%s|%s|project.dsym' % (
+        str(project.id).encode('ascii'),
+        checksum.encode('ascii'),
+    )).hexdigest()
+
+
+def get_assemble_status(project, checksum):
+    """For a given file it checks what the current status of the assembling is.
+    Returns a tuple in the form ``(status, details)`` where details is either
+    `None` or a string identifying an error condition or notice.
+    """
+    cache_key = 'assemble-status:%s' % _get_idempotency_id(
+        project, checksum)
+    rv = default_cache.get(cache_key)
+    if rv is None:
+        return None, None
+    return tuple(rv)
+
+
+def set_assemble_status(project, checksum, state, detail=None):
+    cache_key = 'assemble-status:%s' % _get_idempotency_id(
+        project, checksum)
+    default_cache.set(cache_key, (state, detail), 300)
+
+
+class BadDif(Exception):
+    pass
 
 
 class VersionDSymFile(Model):
@@ -195,7 +226,7 @@ class ProjectDSymFile(Model):
 
     @property
     def dsym_type(self):
-        ct = self.file.headers.get('Content-Type').lower()
+        ct = self.file.headers.get('Content-Type', 'unknown').lower()
         return KNOWN_DSYM_TYPES.get(ct, 'unknown')
 
     @property
@@ -228,7 +259,8 @@ class ProjectSymCacheFile(Model):
         self.cache_file.delete()
 
 
-def _create_dsym_from_uuid(project, dsym_type, cpu_name, uuid, fileobj, basename):
+def create_dsym_from_uuid(project, dsym_type, cpu_name, uuid,
+                          basename, fileobj=None, file=None):
     """This creates a mach dsym file or proguard mapping from the given
     uuid and open file object to a dsym file.  This will not verify the
     uuid (intentionally so).  Use `create_files_from_dsym_zip` for doing
@@ -243,44 +275,70 @@ def _create_dsym_from_uuid(project, dsym_type, cpu_name, uuid, fileobj, basename
     else:
         raise TypeError('unknown dsym type %r' % (dsym_type, ))
 
-    h = hashlib.sha1()
-    while 1:
-        chunk = fileobj.read(16384)
-        if not chunk:
-            break
-        h.update(chunk)
-    checksum = h.hexdigest()
-    fileobj.seek(0, 0)
+    if file is None:
+        assert fileobj is not None, 'missing file object'
+        h = hashlib.sha1()
+        while 1:
+            chunk = fileobj.read(16384)
+            if not chunk:
+                break
+            h.update(chunk)
+        checksum = h.hexdigest()
+        fileobj.seek(0, 0)
 
-    try:
-        rv = ProjectDSymFile.objects.get(uuid=uuid, project=project)
-        if rv.file.checksum == checksum:
-            return rv, False
-    except ProjectDSymFile.DoesNotExist:
-        pass
+        try:
+            rv = ProjectDSymFile.objects.get(uuid=uuid, project=project)
+            if rv.file.checksum == checksum:
+                return rv, False
+        except ProjectDSymFile.DoesNotExist:
+            pass
+        else:
+            # The checksum mismatches.  In this case we delete the old object
+            # and perform a re-upload.
+            rv.delete()
+
+        file = File.objects.create(
+            name=uuid,
+            type='project.dsym',
+            headers={'Content-Type': DSYM_MIMETYPES[dsym_type]},
+        )
+        file.putfile(fileobj)
+        try:
+            with transaction.atomic():
+                rv = ProjectDSymFile.objects.create(
+                    file=file,
+                    uuid=uuid,
+                    cpu_name=cpu_name,
+                    object_name=object_name,
+                    project=project,
+                )
+        except IntegrityError:
+            file.delete()
+            rv = ProjectDSymFile.objects.get(uuid=uuid, project=project)
     else:
-        # The checksum mismatches.  In this case we delete the old object
-        # and perform a re-upload.
-        rv.delete()
-
-    file = File.objects.create(
-        name=uuid,
-        type='project.dsym',
-        headers={'Content-Type': DSYM_MIMETYPES[dsym_type]},
-    )
-    file.putfile(fileobj)
-    try:
-        with transaction.atomic():
-            rv = ProjectDSymFile.objects.create(
-                file=file,
-                uuid=uuid,
-                cpu_name=cpu_name,
-                object_name=object_name,
-                project=project,
-            )
-    except IntegrityError:
-        file.delete()
-        rv = ProjectDSymFile.objects.get(uuid=uuid, project=project)
+        try:
+            rv = ProjectDSymFile.objects.get(uuid=uuid, project=project)
+        except ProjectDSymFile.DoesNotExist:
+            try:
+                with transaction.atomic():
+                    rv = ProjectDSymFile.objects.create(
+                        file=file,
+                        uuid=uuid,
+                        cpu_name=cpu_name,
+                        object_name=object_name,
+                        project=project,
+                    )
+            except IntegrityError:
+                rv = ProjectDSymFile.objects.get(uuid=uuid, project=project)
+                rv.file.delete()
+                rv.file = file
+                rv.save()
+        else:
+            rv.file.delete()
+            rv.file = file
+            rv.save()
+        rv.file.headers['Content-Type'] = DSYM_MIMETYPES[dsym_type]
+        rv.file.save()
 
     resolve_processing_issue(
         project=project,
@@ -304,31 +362,29 @@ def _analyze_progard_filename(filename):
         pass
 
 
-def detect_dif_from_filename(filename):
-    """This detects which kind of dif (Debug Information File) the filename
+def detect_dif_from_path(path):
+    """This detects which kind of dif (Debug Information File) the path
     provided is. It returns an array since a FatObject can contain more than
     on dif.
     """
     # proguard files (proguard/UUID.txt) or
     # (proguard/mapping-UUID.txt).
-    proguard_uuid = _analyze_progard_filename(filename)
+    proguard_uuid = _analyze_progard_filename(path)
     if proguard_uuid is not None:
-        return [('proguard', 'any', six.text_type(proguard_uuid), filename)]
+        return [('proguard', 'any', six.text_type(proguard_uuid), path)]
 
     # macho style debug symbols
     try:
-        fo = FatObject.from_path(filename)
-    except UnsupportedObjectFile:
-        pass
-    except SymbolicError:
-        # Whatever was contained there, was probably not a
-        # macho file.
-        # XXX: log?
+        fo = FatObject.from_path(path)
+    except UnsupportedObjectFile as e:
+        raise BadDif("Unsupported debug information file: %s" % e)
+    except SymbolicError as e:
         logger.warning('dsymfile.bad-fat-object', exc_info=True)
+        raise BadDif("Invalid debug information file: %s" % e)
     else:
         objs = []
         for obj in fo.iter_objects():
-            objs.append((obj.kind, obj.arch, six.text_type(obj.uuid), filename))
+            objs.append((obj.kind, obj.arch, six.text_type(obj.uuid), path))
         return objs
 
 
@@ -342,8 +398,9 @@ def create_dsym_from_dif(to_create, project, overwrite_filename=None):
             result_filename = os.path.basename(filename)
             if overwrite_filename is not None:
                 result_filename = overwrite_filename
-            dsym, created = _create_dsym_from_uuid(
-                project, dsym_type, cpu, file_uuid, f, result_filename
+            dsym, created = create_dsym_from_uuid(
+                project, dsym_type, cpu, file_uuid, result_filename,
+                fileobj=f
             )
             if created:
                 rv.append(dsym)
@@ -363,7 +420,11 @@ def create_files_from_dsym_zip(fileobj, project,
         for dirpath, dirnames, filenames in os.walk(scratchpad):
             for fn in filenames:
                 fn = os.path.join(dirpath, fn)
-                difs = detect_dif_from_filename(fn)
+                try:
+                    difs = detect_dif_from_path(fn)
+                except BadDif:
+                    difs = None
+
                 if difs is None:
                     difs = []
                 to_create = to_create + difs
@@ -423,6 +484,14 @@ class DSymCache(object):
             return symcaches, dict((uuid.UUID(k), v)
                                    for k, v in conversion_errors.items())
         return symcaches
+
+    def get_symcache(self, project, uuid, with_conversion_errors=False):
+        """Return a single symcache."""
+        symcaches, errors = self.get_symcaches(
+            project, [uuid], with_conversion_errors=True)
+        if with_conversion_errors:
+            return symcaches.get(uuid), errors.get(uuid)
+        return symcaches.get(uuid)
 
     def fetch_dsyms(self, project, uuids):
         """Given some uuids returns a uuid to path mapping for where the
@@ -506,7 +575,7 @@ class DSymCache(object):
         conversion_errors = {}
         for dsym_file in dsym_files:
             cache_key = 'scbe:%s:%s' % (dsym_file.uuid, dsym_file.file.checksum)
-            err = cache.get(cache_key)
+            err = default_cache.get(cache_key)
             if err is not None:
                 conversion_errors[dsym_file.uuid] = err
 
@@ -523,7 +592,7 @@ class DSymCache(object):
                         continue
                     symcache = o.make_symcache()
             except SymbolicError as e:
-                cache.set('scbe:%s:%s' % (
+                default_cache.set('scbe:%s:%s' % (
                     dsym_uuid, dsym_file.file.checksum), e.message,
                     CONVERSION_ERROR_TTL)
                 conversion_errors[dsym_uuid] = e.message

@@ -7,29 +7,22 @@ from rest_framework.response import Response
 
 from sentry.utils import json
 from sentry.api.serializers import serialize
-from sentry.api.bases.chunk import ChunkAssembleMixin
 from sentry.api.bases.project import ProjectEndpoint, ProjectReleasePermission
-from sentry.models import File, ChunkFileState, ProjectDSymFile
+from sentry.models import ChunkFileState, ProjectDSymFile, FileBlobOwner, \
+    get_assemble_status, set_assemble_status
 
 
-class DifAssembleEndpoint(ChunkAssembleMixin, ProjectEndpoint):
+def find_missing_chunks(organization, chunks):
+    """Returns a list of chunks which are missing for an org."""
+    owned = set(FileBlobOwner.objects.filter(
+        blob__checksum__in=chunks,
+        organization=organization,
+    ).values_list('blob__checksum', flat=True))
+    return list(set(chunks) - owned)
+
+
+class DifAssembleEndpoint(ProjectEndpoint):
     permission_classes = (ProjectReleasePermission, )
-
-    def _add_project_dsym_to_reponse(self, found_files, response):
-        for found_file in found_files or []:
-            error = found_file.headers.get('error', None)
-            if error is not None:
-                response.setdefault('errors', []).append(error)
-                response['state'] = ChunkFileState.ERROR
-
-            dsym = ProjectDSymFile.objects.filter(
-                file=found_file
-            ).first()
-
-            if dsym is not None:
-                response.setdefault('difs', []).append(serialize(dsym))
-
-        return response
 
     def post(self, request, project):
         """
@@ -74,34 +67,65 @@ class DifAssembleEndpoint(ChunkAssembleMixin, ProjectEndpoint):
             name = file_to_assemble.get('name', None)
             chunks = file_to_assemble.get('chunks', [])
 
+            # First, check if this project already owns the DSymFile
             try:
-                found_files, response = self._check_file_blobs(
-                    project.organization, checksum, chunks)
-                # This either returns a file OK because we already own all chunks
-                # OR we return not_found with the missing chunks (or not owned)
-                if response is not None:
-                    # We also found a file, we try to fetch project dsym to return more
-                    # information in the request
-                    file_response[checksum] = self._add_project_dsym_to_reponse(
-                        found_files, response)
+                dif = ProjectDSymFile.objects.filter(
+                    project=project,
+                    file__checksum=checksum
+                ).get()
+            except ProjectDSymFile.DoesNotExist:
+                # It does not exist yet.  Check the state we have in cache
+                # in case this is a retry poll.
+                state, detail = get_assemble_status(project, checksum)
+                if state is not None:
+                    file_response[checksum] = {
+                        'state': state,
+                        'detail': detail,
+                        'missingChunks': [],
+                    }
                     continue
-            except File.DoesNotExist:
-                pass
 
-            file, file_blob_ids = self._create_file_for_assembling(name, checksum, chunks)
+                # There is neither a known file nor a cached state, so we will
+                # have to create a new file.  Assure that there are checksums.
+                # If not, we assume this is a poll and report NOT_FOUND
+                if not chunks:
+                    file_response[checksum] = {
+                        'state': ChunkFileState.NOT_FOUND,
+                        'missingChunks': [],
+                    }
+                    continue
 
-            # Start the actual worker which does the assembling.
-            assemble_dif.apply_async(
-                kwargs={
-                    'project_id': project.id,
-                    'file_id': file.id,
-                    'file_blob_ids': file_blob_ids,
-                    'checksum': checksum,
+                # Check if all requested chunks have been uploaded.
+                missing_chunks = find_missing_chunks(project.organization, chunks)
+                if missing_chunks:
+                    file_response[checksum] = {
+                        'state': ChunkFileState.NOT_FOUND,
+                        'missingChunks': missing_chunks,
+                    }
+                    continue
+
+                # We don't have a state yet, this means we can now start
+                # an assemble job in the background.
+                set_assemble_status(project, checksum, state)
+                assemble_dif.apply_async(
+                    kwargs={
+                        'project_id': project.id,
+                        'name': name,
+                        'checksum': checksum,
+                        'chunks': chunks,
+                    }
+                )
+
+                file_response[checksum] = {
+                    'state': ChunkFileState.CREATED,
+                    'missingChunks': [],
                 }
-            )
-
-            file_response[checksum] = self._create_file_response(
-                ChunkFileState.CREATED
-            )
+            else:
+                file_response[checksum] = {
+                    'state': ChunkFileState.OK,
+                    'detail': None,
+                    'missingChunks': [],
+                    'dif': serialize(dif),
+                }
 
         return Response(file_response, status=200)
