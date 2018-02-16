@@ -372,9 +372,10 @@ const StreamActions = createReactClass({
 
             <div className="btn-group">
               <Tooltip
-                title={tct('[action] real-time updates', {
-                  action: this.props.realtimeActive ? t('Pause') : t('Enable'),
-                })}
+                title={t(
+                  '%s real-time updates',
+                  this.props.realtimeActive ? t('Pause') : t('Enable')
+                )}
               >
                 <a
                   className="btn btn-default btn-sm hidden-xs realtime-control"

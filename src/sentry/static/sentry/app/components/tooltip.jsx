@@ -2,6 +2,7 @@ import React from 'react';
 import ReactDOM from 'react-dom';
 import PropTypes from 'prop-types';
 import classNames from 'classnames';
+import _ from 'lodash';
 import 'bootstrap/js/tooltip';
 
 // Non-mixin way to get Tooltips
@@ -12,6 +13,16 @@ class Tooltip extends React.Component {
     disabled: PropTypes.bool,
     tooltipOptions: PropTypes.object,
     title: PropTypes.node,
+  };
+
+  componentDidUpdate = prevProps => {
+    if (
+      prevProps.title != this.props.title ||
+      !_.isEqual(prevProps.tooltipOptions, this.props.tooltipOptions)
+    ) {
+      this.removeTooltips(this.$ref);
+      this.attachTooltips(this.$ref);
+    }
   };
 
   handleMount = ref => {
@@ -63,7 +74,6 @@ class Tooltip extends React.Component {
     if (disabled) {
       return children;
     }
-
     return React.cloneElement(children, {
       ...props,
       ref: this.handleMount,
