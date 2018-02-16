@@ -47,7 +47,6 @@ const StyledChevronDown = styled(props => (
 const StyledMenu = styled('div')`
   background: #fff;
   border: 1px solid ${p => p.theme.borderLight};
-  padding: 1em;
   position: absolute;
   top: calc(100% - 1px);
   left: 0;
@@ -67,12 +66,16 @@ const StyledButton = styled(props => <Button {...props} />)`
 const StyledInput = styled(Input)`
   height: 1.75em;
   font-size: 0.75em;
-  margin-bottom: 1em;
 `;
 
 const StyledItem = styled('div')`
   background-color: ${p =>
     p.index == p.highlightedIndex ? p.theme.offWhite : 'transparent'};
+  padding: 0.25em 0.5em;
+`;
+
+const StyledInputContainer = styled('div')`
+  padding: 0.75em 0.5em;
 `;
 
 const DropdownAutoComplete = ({items, onBlur}) => (
@@ -89,7 +92,9 @@ const DropdownAutoComplete = ({items, onBlur}) => (
     }) => {
       return (
         <div {...getRootProps()}>
-          <StyledInput autoFocus {...getInputProps({})} onBlur={onBlur} />
+          <StyledInputContainer>
+            <StyledInput autoFocus {...getInputProps({})} onBlur={onBlur} />
+          </StyledInputContainer>
           {isOpen && (
             <div {...getMenuProps()}>
               <div>
