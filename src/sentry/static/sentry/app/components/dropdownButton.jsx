@@ -58,15 +58,16 @@ const fakeItems = [
 
 const DropdownAutoComplete = ({items, onBlur}) => {
   const ungroupItems = () => {
-    return items.reduce((a, i) => {
-      const labelItem = {type: 'label', content: i.groupLabel};
-      const groupItems = i.groupItems.map(gi => ({
+    return items.reduce((accumulator, item, index) => {
+      const labelItem = {type: 'label', content: item.groupLabel};
+      const groupItems = item.groupItems.map((gi, i) => ({
         type: 'item',
-        group: i.groupLabel,
+        group: item.groupLabel,
+        index: i + accumulator.filter(ii => ii.type == 'item').length,
         ...gi,
       }));
 
-      return [...a, labelItem, ...groupItems];
+      return [...accumulator, labelItem, ...groupItems];
     }, []);
   };
 
@@ -105,14 +106,15 @@ const DropdownAutoComplete = ({items, onBlur}) => {
             </StyledInputContainer>
             <div {...getMenuProps()}>
               <div>
+                {console.log(applyAutocompleteFilter(inputValue))}
                 {applyAutocompleteFilter(inputValue).map(
                   (item, index) =>
                     item.searchKey ? (
                       <StyledItem
-                        key={item.searchKey}
+                        key={index}
                         highlightedIndex={highlightedIndex}
-                        index={index}
-                        {...getItemProps({item, index})}
+                        index={item.index}
+                        {...getItemProps({item, index: item.index})}
                       >
                         {item.content}
                       </StyledItem>
