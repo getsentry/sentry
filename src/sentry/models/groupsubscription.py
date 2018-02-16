@@ -111,9 +111,11 @@ class GroupSubscriptionManager(BaseManager):
         Subscribe a list of user ids to an issue, but only if the users are not explicitly
         unsubscribed.
         """
+        user_ids = set(user_ids)
+
         # 5 retries for race conditions where
         # concurrent subscription attempts cause integrity errors
-        for _ in range(5):
+        for i in range(4, -1, -1):  # 4 3 2 1 0
 
             existing_subscriptions = set(GroupSubscription.objects.filter(
                 user_id__in=user_ids,
@@ -129,7 +131,7 @@ class GroupSubscriptionManager(BaseManager):
                     is_active=True,
                     reason=reason,
                 )
-                for user_id in set(user_ids)
+                for user_id in user_ids
                 if user_id not in existing_subscriptions
             ]
 
@@ -137,10 +139,9 @@ class GroupSubscriptionManager(BaseManager):
                 with transaction.atomic():
                     self.bulk_create(subscriptions)
                     return True
-            except IntegrityError:
-                pass
-
-        raise Exception('Bulk_Subscribe failed')
+            except IntegrityError as e:
+                if i == 0:
+                    raise e
 
     def get_participants(self, group):
         """
