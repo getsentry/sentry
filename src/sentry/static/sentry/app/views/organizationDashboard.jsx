@@ -197,7 +197,7 @@ const ProjectList = createReactClass({
         <h6 className="nav-header">{t('Projects')}</h6>
         {bookmarkedProjects.length === 0 && (
           <div className="alert alert-info" style={{marginBottom: 10}}>
-            {tct('Bookmark your most used [projects] to have them appear here', {
+            {tct('Bookmark your most used [projects:projects] to have them appear here', {
               projects: <Link to={`/organizations/${org.slug}/teams/`} />,
             })}
           </div>
