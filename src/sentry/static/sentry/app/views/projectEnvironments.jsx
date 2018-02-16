@@ -14,9 +14,12 @@ import Button from '../components/buttons/button';
 import SettingsPageHeader from './settings/components/settingsPageHeader';
 import ListLink from '../components/listLink';
 import ApiMixin from '../mixins/apiMixin';
+import recreateRoute from '../utils/recreateRoute';
 
 import LoadingIndicator from '../components/loadingIndicator';
 import IndicatorStore from '../stores/indicatorStore';
+
+import SentryTypes from '../proptypes';
 
 import {
   loadActiveEnvironments,
@@ -26,8 +29,14 @@ import {
 const ProjectEnvironments = createReactClass({
   propTypes: {
     route: PropTypes.object,
+    routes: PropTypes.array,
     params: PropTypes.object,
   },
+
+  contextTypes: {
+    organization: SentryTypes.Organization,
+  },
+
   mixins: [ApiMixin, Reflux.listenTo(EnvironmentStore, 'onEnvironmentsChange')],
 
   getInitialState() {
@@ -139,24 +148,30 @@ const ProjectEnvironments = createReactClass({
 
   render() {
     const {environments} = this.state;
-    const {orgId, projectId} = this.props.params;
+    const {routes, params} = this.props;
 
     if (environments === null) {
       return <LoadingIndicator />;
     }
 
+    const baseUrl = recreateRoute('', {routes, params, stepBack: -1});
     return (
       <div>
         <SettingsPageHeader
           title={t('Manage Environments')}
           tabs={
             <ul className="nav nav-tabs" style={{borderBottom: '1px solid #ddd'}}>
-              <ListLink to={`/${orgId}/${projectId}/settings/environments/`} index={true}>
+              <ListLink
+                to={`${baseUrl}environments/`}
+                index={true}
+                isActive={() => !this.state.isHidden}
+              >
                 {t('Environments')}
               </ListLink>
               <ListLink
-                to={`/${orgId}/${projectId}/settings/environments/hidden/`}
+                to={`${baseUrl}environments/hidden/`}
                 index={true}
+                isActive={() => this.state.isHidden}
               >
                 {t('Hidden')}
               </ListLink>
