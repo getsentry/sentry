@@ -33,22 +33,13 @@ class EventFrequencyForm(forms.Form):
         ]
     )
     value = forms.IntegerField(
-        widget=forms.TextInput(attrs={'type': 'number'})
+        widget=forms.TextInput(attrs={'placeholder': '100',
+                                      'type': 'number'})
     )
 
 
 class BaseEventFrequencyCondition(EventCondition):
     form_cls = EventFrequencyForm
-    form_fields = {
-        'value': {'type': 'number', 'placeholder': 100},
-        'interval': {
-            'type': 'choice',
-            'choices': [
-                (key, label) for key, (label, duration) in sorted(intervals.items(), key=lambda key____label__duration: key____label__duration[1][1])
-            ]
-        }
-    }
-
     label = NotImplemented  # subclass must implement
 
     def __init__(self, *args, **kwargs):

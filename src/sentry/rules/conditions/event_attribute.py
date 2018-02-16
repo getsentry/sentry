@@ -69,6 +69,8 @@ class FixedTypeaheadInput(forms.TextInput):
 class EventAttributeForm(forms.Form):
     attribute = forms.CharField(
         widget=FixedTypeaheadInput(
+            attrs={'style': 'width:200px',
+                   'placeholder': 'i.e. exception.type'},
             choices=[{
                 'id': a,
                 'text': a
@@ -76,7 +78,9 @@ class EventAttributeForm(forms.Form):
         )
     )
     match = forms.ChoiceField(
-        MATCH_CHOICES.items(), widget=forms.Select()
+        MATCH_CHOICES.items(), widget=forms.Select(
+            attrs={'style': 'width:150px'},
+        )
     )
     value = forms.CharField(
         widget=forms.TextInput(
@@ -101,22 +105,7 @@ class EventAttributeCondition(EventCondition):
     """
     # TODO(dcramer): add support for stacktrace.vars.[name]
 
-    form_fields = {
-        'attribute': {
-            'type': 'choice',
-            'placeholder': 'i.e. exception.type',
-            'choices': [[a, a] for a in ATTR_CHOICES]
-        },
-        'match': {
-            'type': 'choice',
-            'choices': MATCH_CHOICES.items()
-        },
-        'value': {
-            'type': 'string',
-            'placeholder': 'value'
-        }
-    }
-
+    form_cls = EventAttributeForm
     label = u'An event\'s {attribute} value {match} {value}'
 
     def _get_attribute_values(self, event, attr):
