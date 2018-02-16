@@ -56,7 +56,7 @@ const fakeItems = [
   },
 ];
 
-const DropdownAutoComplete = ({items, onBlur}) => {
+const DropdownAutoComplete = ({items, onBlur, onSelect}) => {
   const ungroupItems = () => {
     return items.reduce((accumulator, item, index) => {
       const labelItem = {type: 'label', content: item.groupLabel};
@@ -90,7 +90,7 @@ const DropdownAutoComplete = ({items, onBlur}) => {
   };
 
   return (
-    <AutoComplete itemToString={item => item.searchKey}>
+    <AutoComplete itemToString={item => item.searchKey} onSelect={onSelect}>
       {({
         getRootProps,
         getInputProps,
@@ -102,7 +102,7 @@ const DropdownAutoComplete = ({items, onBlur}) => {
         return (
           <div {...getRootProps()}>
             <StyledInputContainer>
-              <StyledInput autoFocus {...getInputProps({})} onBlur={onBlur} />
+              <StyledInput autoFocus {...getInputProps({})} />
             </StyledInputContainer>
             <div {...getMenuProps()}>
               <div>
@@ -133,6 +133,7 @@ const DropdownAutoComplete = ({items, onBlur}) => {
 DropdownAutoComplete.propTypes = {
   items: PropTypes.array,
   onBlur: PropTypes.func,
+  onSelect: PropTypes.func,
 };
 
 class DropdownButton extends React.Component {
@@ -154,7 +155,11 @@ class DropdownButton extends React.Component {
       <div style={{position: 'relative', display: 'inline-block'}}>
         {this.state.isOpen && (
           <StyledMenu>
-            <DropdownAutoComplete items={fakeItems} onBlur={this.toggleOpen} />
+            <DropdownAutoComplete
+              items={fakeItems}
+              onBlur={this.toggleOpen}
+              onSelect={this.toggleOpen}
+            />
           </StyledMenu>
         )}
         <div
