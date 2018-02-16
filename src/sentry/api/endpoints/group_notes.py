@@ -80,7 +80,7 @@ class GroupNotesEndpoint(GroupEndpoint):
                 sentry_orgmember_set__organizationmemberteam__is_active=True,
                 is_active=True,
             ).exclude(id__in={u.id for u in actor_mentions.get('users')})
-            .values_list('id', flat=True)
+            .values_list('id', flat=True).distinct()
         )
 
         GroupSubscription.objects.bulk_subscribe(
