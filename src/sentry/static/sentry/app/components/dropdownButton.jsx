@@ -7,55 +7,6 @@ import Button from './buttons/button';
 import InlineSvg from './inlineSvg';
 import Input from '../views/settings/components/forms/styled/input.jsx';
 
-const FakeComponent = ({text, emoji}) => (
-  <div>
-    <span style={{marginRight: '.25em'}}>{emoji}</span>
-    {text}
-  </div>
-);
-
-FakeComponent.propTypes = {
-  text: PropTypes.string,
-  emoji: PropTypes.string,
-};
-
-const fakeItems = [
-  {
-    groupLabel: 'Countries',
-    groupItems: [
-      {
-        searchKey: 'new zealand',
-        content: <FakeComponent text="New Zealand" emoji="🇨🇷" />,
-      },
-      {
-        searchKey: 'australia',
-        content: <FakeComponent text="Australia" emoji="🇦🇺" />,
-      },
-      {
-        searchKey: 'brazil',
-        content: <FakeComponent text="Brazil" emoji="🇧🇷" />,
-      },
-    ],
-  },
-  {
-    groupLabel: 'Foods',
-    groupItems: [
-      {
-        searchKey: 'apple',
-        content: <FakeComponent text="Apple" emoji="🍎" />,
-      },
-      {
-        searchKey: 'bacon',
-        content: <FakeComponent text="Bacon" emoji="🥓" />,
-      },
-      {
-        searchKey: 'corn',
-        content: <FakeComponent text="Corn" emoji="🌽" />,
-      },
-    ],
-  },
-];
-
 const DropdownAutoComplete = ({items, onBlur, onSelect}) => {
   const ungroupItems = () => {
     return items.reduce((accumulator, item, index) => {
@@ -137,6 +88,11 @@ DropdownAutoComplete.propTypes = {
 };
 
 class DropdownButton extends React.Component {
+  static propTypes = {
+    items: PropTypes.arrayOf(PropTypes.object),
+    onSelect: PropTypes.func,
+  };
+
   constructor(props) {
     super(props);
 
@@ -150,18 +106,14 @@ class DropdownButton extends React.Component {
     this.setState({isOpen: !this.state.isOpen});
   }, 1);
 
+  onSelect = selectedItem => {
+    this.toggleOpen();
+    this.props.onSelect(selectedItem);
+  };
+
   render() {
     return (
       <div style={{position: 'relative', display: 'inline-block'}}>
-        {this.state.isOpen && (
-          <StyledMenu>
-            <DropdownAutoComplete
-              items={fakeItems}
-              onBlur={this.toggleOpen}
-              onSelect={this.toggleOpen}
-            />
-          </StyledMenu>
-        )}
         <div
           style={{pointerEvents: this.state.isOpen ? 'none' : 'auto'}}
           onClick={this.toggleOpen}
@@ -171,6 +123,15 @@ class DropdownButton extends React.Component {
             <StyledChevronDown />
             Add Something
           </StyledButton>
+          {this.state.isOpen && (
+            <StyledMenu>
+              <DropdownAutoComplete
+                items={this.props.items}
+                onBlur={this.toggleOpen}
+                onSelect={this.onSelect}
+              />
+            </StyledMenu>
+          )}
         </div>
       </div>
     );
