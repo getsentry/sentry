@@ -48,6 +48,21 @@ class SubscribeTest(TestCase):
             group=group,
         )) == 21
 
+    def test_bulk_dupes(self):
+        group = self.create_group()
+
+        user_ids = []
+
+        user = self.create_user()
+        user_ids.append(user.id)
+        user_ids.append(user.id)
+
+        GroupSubscription.objects.bulk_subscribe(group=group, user_ids=user_ids)
+
+        assert len(GroupSubscription.objects.filter(
+            group=group,
+        )) == 1
+
     def test_actor_user(self):
         group = self.create_group()
         user = self.create_user()
