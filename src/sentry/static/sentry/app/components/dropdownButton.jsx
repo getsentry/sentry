@@ -5,6 +5,7 @@ import styled from 'react-emotion';
 import AutoComplete from './autoComplete';
 import Button from './buttons/button';
 import InlineSvg from './inlineSvg';
+import Input from '../views/settings/components/forms/styled/input.jsx';
 
 const FakeComponent = ({text, emoji}) => (
   <div>
@@ -50,6 +51,7 @@ const StyledMenu = styled('div')`
   position: absolute;
   top: calc(100% - 1px);
   left: 0;
+  min-width: 250px;
   border-radius: ${p => p.theme.borderRadius};
 `;
 
@@ -60,6 +62,12 @@ const StyledButton = styled(props => <Button {...props} />)`
   position: relative;
   z-index; 1;
   box-shadow: none;
+`;
+
+const StyledInput = styled(Input)`
+  height: 1.75em;
+  font-size: 0.75em;
+  margin-bottom: 1em;
 `;
 
 const StyledItem = styled('div')`
@@ -81,7 +89,7 @@ const DropdownAutoComplete = ({items, onBlur}) => (
     }) => {
       return (
         <div {...getRootProps()}>
-          <input autoFocus {...getInputProps({})} onBlur={onBlur} />
+          <StyledInput autoFocus {...getInputProps({})} onBlur={onBlur} />
           {isOpen && (
             <div {...getMenuProps()}>
               <div>
