@@ -33,20 +33,20 @@ class AssistantEndpoint(Endpoint):
 
     def get(self, request):
         """Return all the guides the user has not viewed or dismissed."""
-        exclude_ids = AssistantActivity.objects.filter(
+        exclude_ids = set(AssistantActivity.objects.filter(
             user=request.user,
-        ).values_list('id', flat=True)
+        ).values_list('id', flat=True))
         result = {k: v for k, v in GUIDES.items() if v['id'] not in exclude_ids}
 
         return Response(result)
 
     def put(self, request):
-        """Mark a guide as having been viewed or dismissed.
+        """Mark a guide as viewed or dismissed.
 
         Request is of the form {
             'guide_id': <guide_id>,
             'status': 'viewed' / 'dismissed',
-            'useful': true / false,
+            'useful' (optional): true / false,
         }
         """
         serializer = AssistantSerializer(data=request.DATA, partial=True)
