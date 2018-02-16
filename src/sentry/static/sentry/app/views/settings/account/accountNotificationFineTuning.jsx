@@ -55,6 +55,16 @@ const ACCOUNT_NOTIFICATION_FIELDS = {
     type: 'select',
     choices: [[1, t('On')], [0, t('Off')]],
   },
+
+  email: {
+    title: t('Email Routing'),
+    description: t(
+      'On a per project basis, route emails to an alternative email address.'
+    ),
+    type: 'select',
+    // No choices here because it's going to have dynamic content
+    // Component will create choices
+  },
 };
 
 const PanelBodyLineItem = styled(PanelBody)`
@@ -62,7 +72,8 @@ const PanelBodyLineItem = styled(PanelBody)`
   border-bottom: 1px solid ${p => p.theme.borderLight};
 `;
 
-const isGroupedByProject = type => ['alerts', 'workflow'].indexOf(type) > -1;
+// Which fine tuning parts are grouped by project
+const isGroupedByProject = type => ['alerts', 'workflow', 'email'].indexOf(type) > -1;
 
 class AccountNotificationsByProject extends React.Component {
   static propTypes = {
@@ -180,7 +191,29 @@ export default class AccountNotificationFineTuning extends AsyncView {
       endpoints.push(['projects', '/projects/']);
     }
 
+    endpoints.push(['emails', '/users/me/emails/']);
+    if (fineTuneType === 'email') {
+      endpoints.push(['emails', '/users/me/emails/']);
+    }
+
     return endpoints;
+  }
+
+  // Return a sorted list of user's verified emails
+  getEmailChoices() {
+    let {emails} = this.state;
+    if (!emails) return [];
+
+    return emails.filter(({isVerified}) => isVerified).sort((a, b) => {
+      // Sort by primary -> email
+      if (a.isPrimary) {
+        return -1;
+      } else if (b.isPrimary) {
+        return 1;
+      }
+
+      return a.email < b.email ? -1 : 1;
+    });
   }
 
   renderBody() {
@@ -188,6 +221,11 @@ export default class AccountNotificationFineTuning extends AsyncView {
     const isProject = isGroupedByProject(fineTuneType);
     const field = ACCOUNT_NOTIFICATION_FIELDS[fineTuneType];
     const {title, description} = field;
+
+    if (fineTuneType === 'email') {
+      // Fetch verified email addresses
+      field.choices = this.getEmailChoices().map(({email}) => [email, email]);
+    }
 
     return (
       <div>
