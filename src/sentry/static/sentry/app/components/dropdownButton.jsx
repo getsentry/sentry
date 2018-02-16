@@ -58,17 +58,34 @@ const fakeItems = [
 
 const DropdownAutoComplete = ({items, onBlur}) => {
   const ungroupItems = () => {
-    return items.reduce((a, i) => [...a, i.groupLabel, ...i.groupItems], []);
+    return items.reduce((a, i) => {
+      const labelItem = {type: 'label', content: i.groupLabel};
+      const groupItems = i.groupItems.map(gi => ({
+        type: 'item',
+        group: i.groupLabel,
+        ...gi,
+      }));
+
+      return [...a, labelItem, ...groupItems];
+    }, []);
   };
 
   const applyAutocompleteFilter = inputValue => {
     const flattenedItems = items[0].groupItems ? ungroupItems() : items;
 
-    return flattenedItems.filter(i => {
-      return (
-        !i.searchKey || i.searchKey.toLowerCase().indexOf(inputValue.toLowerCase()) > -1
-      );
-    });
+    const filteredItems = flattenedItems.filter(
+      i =>
+        i.type == 'label' ||
+        i.searchKey.toLowerCase().indexOf(inputValue.toLowerCase()) > -1
+    );
+
+    const filteredLabels = filteredItems.filter(
+      l =>
+        l.type == 'item' ||
+        (l.type == 'label' && filteredItems.filter(i => i.group == l.content).length > 0)
+    );
+
+    return filteredLabels;
   };
 
   return (
@@ -100,7 +117,7 @@ const DropdownAutoComplete = ({items, onBlur}) => {
                         {item.content}
                       </StyledItem>
                     ) : (
-                      <StyledLabel key={index}>{item}</StyledLabel>
+                      <StyledLabel key={index}>{item.content}</StyledLabel>
                     )
                 )}
               </div>
