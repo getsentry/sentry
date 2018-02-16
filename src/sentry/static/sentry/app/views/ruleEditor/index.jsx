@@ -156,11 +156,9 @@ const RuleEditor = createReactClass({
   },
 
   handleEnvironmentChange(val) {
-    // If 'All Environments' is selected remove the environment property from the data
+    // If 'All Environments' is selected the value should be null
     if (val === 'all') {
-      this.setState(state => {
-        return {rule: state.rule};
-      });
+      this.handleChange('environment', null);
     } else {
       this.handleChange('environment', val);
     }
