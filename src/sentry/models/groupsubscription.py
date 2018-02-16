@@ -129,7 +129,7 @@ class GroupSubscriptionManager(BaseManager):
                     is_active=True,
                     reason=reason,
                 )
-                for user_id in user_ids
+                for user_id in set(user_ids)
                 if user_id not in existing_subscriptions
             ]
 
