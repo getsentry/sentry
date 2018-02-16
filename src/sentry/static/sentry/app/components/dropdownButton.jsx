@@ -47,11 +47,11 @@ const StyledChevronDown = styled(props => (
 const StyledMenu = styled('div')`
   background: #fff;
   border: 1px solid ${p => p.theme.borderLight};
+  border-radius: ${p => p.theme.borderRadius};
   position: absolute;
   top: calc(100% - 1px);
   left: 0;
   min-width: 250px;
-  border-radius: ${p => p.theme.borderRadius};
 `;
 
 const StyledButton = styled(props => <Button {...props} />)`
@@ -72,6 +72,10 @@ const StyledItem = styled('div')`
   background-color: ${p =>
     p.index == p.highlightedIndex ? p.theme.offWhite : 'transparent'};
   padding: 0.25em 0.5em;
+  cursor: pointer;
+  &:hover {
+    background-color: ${p => p.theme.offWhite};
+  }
 `;
 
 const StyledInputContainer = styled('div')`
@@ -95,27 +99,25 @@ const DropdownAutoComplete = ({items, onBlur}) => (
           <StyledInputContainer>
             <StyledInput autoFocus {...getInputProps({})} onBlur={onBlur} />
           </StyledInputContainer>
-          {isOpen && (
-            <div {...getMenuProps()}>
-              <div>
-                {items
-                  .filter(
-                    item =>
-                      item.searchKey.toLowerCase().indexOf(inputValue.toLowerCase()) > -1
-                  )
-                  .map((item, index) => (
-                    <StyledItem
-                      key={item.searchKey}
-                      highlightedIndex={highlightedIndex}
-                      index={index}
-                      {...getItemProps({item, index})}
-                    >
-                      {item.content}
-                    </StyledItem>
-                  ))}
-              </div>
+          <div {...getMenuProps()}>
+            <div>
+              {items
+                .filter(
+                  item =>
+                    item.searchKey.toLowerCase().indexOf(inputValue.toLowerCase()) > -1
+                )
+                .map((item, index) => (
+                  <StyledItem
+                    key={item.searchKey}
+                    highlightedIndex={highlightedIndex}
+                    index={index}
+                    {...getItemProps({item, index})}
+                  >
+                    {item.content}
+                  </StyledItem>
+                ))}
             </div>
-          )}
+          </div>
         </div>
       );
     }}
