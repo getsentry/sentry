@@ -90,7 +90,7 @@ const DropdownAutoComplete = ({items, onBlur}) => {
   };
 
   return (
-    <AutoComplete itemToString={item => item.content}>
+    <AutoComplete itemToString={item => item.searchKey}>
       {({
         getRootProps,
         getInputProps,
@@ -106,7 +106,6 @@ const DropdownAutoComplete = ({items, onBlur}) => {
             </StyledInputContainer>
             <div {...getMenuProps()}>
               <div>
-                {console.log(applyAutocompleteFilter(inputValue))}
                 {applyAutocompleteFilter(inputValue).map(
                   (item, index) =>
                     item.searchKey ? (
