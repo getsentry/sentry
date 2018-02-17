@@ -68,9 +68,8 @@ class RangeSlider extends React.Component {
     }
   }
 
-  handleInput = e => {
+  getActualValue = sliderValue => {
     let {allowedValues} = this.props;
-    let sliderValue = parseInt(e.target.value, 10);
     let value;
 
     if (allowedValues) {
@@ -79,6 +78,13 @@ class RangeSlider extends React.Component {
     } else {
       value = sliderValue;
     }
+
+    return value;
+  };
+
+  handleInput = e => {
+    let sliderValue = parseInt(e.target.value, 10);
+    let value = this.getActualValue(sliderValue);
 
     this.setState({
       sliderValue,
