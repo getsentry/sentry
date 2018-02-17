@@ -2,7 +2,7 @@ import PropTypes from 'prop-types';
 import React from 'react';
 
 import BooleanField from './booleanField';
-// import RangeField from './rangeField';
+import RangeField from './rangeField';
 // import Select2FieldAutocomplete from './select2FieldAutocomplete';
 import Select2Field from './select2Field';
 // import Select2TextField from './select2TextField';
@@ -50,8 +50,8 @@ export default class FieldFromConfig extends React.Component {
     switch (field.type) {
       case 'secret':
         return <InputField {...props} type="password" />;
-      // case 'range':
-      // return <RangeField {...props} />;
+      case 'range':
+        return <RangeField {...props} />;
       case 'bool':
       case 'boolean':
         return <BooleanField {...props} />;

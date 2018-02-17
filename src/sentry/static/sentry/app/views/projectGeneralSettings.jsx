@@ -1,31 +1,29 @@
+import {Box} from 'grid-emotion';
 import PropTypes from 'prop-types';
 import React from 'react';
 
-import {
-  ApiForm,
-  BooleanField,
-  RangeField,
-  Select2Field,
-  TextareaField,
-  TextField,
-} from '../components/forms';
 import {getOrganizationState} from '../mixins/organizationState';
 import {t, tct} from '../locale';
 import AsyncView from './asyncView';
-import DynamicWrapper from '../components/dynamicWrapper';
-import IndicatorStore from '../stores/indicatorStore';
+import Form from './settings/components/forms/form';
+import JsonForm from './settings/components/forms/jsonForm';
+import PanelAlert from './settings/components/panelAlert';
 import SettingsPageHeader from './settings/components/settingsPageHeader';
+import TextBlock from './settings/components/text/textBlock';
+import projectFields from '../data/forms/projectGeneralSettings';
 
-class ListAsTextareaField extends TextareaField {
-  getValue(props, context) {
-    let value = super.getValue(props, context);
-    return value ? value.join('\n') : '';
-  }
+const noMargin = {marginBottom: 0};
 
-  coerceValue(value) {
-    return value ? value.split('\n') : [];
-  }
-}
+const AutoResolveFooter = () => (
+  <Box p={2} pb={0}>
+    <PanelAlert type="warning" icon="icon-circle-exclamation" css={noMargin}>
+      <strong>
+        {t(`Note: Enabling auto resolve will immediately resolve anything that has
+                  not been seen within this period of time. There is no undo!`)}
+      </strong>
+    </PanelAlert>
+  </Box>
+);
 
 export default class ProjectGeneralSettings extends AsyncView {
   static contextTypes = {
@@ -35,43 +33,6 @@ export default class ProjectGeneralSettings extends AsyncView {
   getEndpoint() {
     let {orgId, projectId} = this.props.params;
     return `/projects/${orgId}/${projectId}/`;
-  }
-
-  getTeamChoices() {
-    return this.context.organization.teams
-      .filter(o => o.isMember)
-      .map(o => [o.slug, o.slug]);
-  }
-
-  getResolveAgeAllowedValues() {
-    let i = 0;
-    let values = [];
-    while (i <= 720) {
-      values.push(i);
-      if (i < 12) {
-        i += 1;
-      } else if (i < 24) {
-        i += 3;
-      } else if (i < 36) {
-        i += 6;
-      } else if (i < 48) {
-        i += 12;
-      } else {
-        i += 24;
-      }
-    }
-    return values;
-  }
-
-  formatResolveAgeLabel(val) {
-    val = parseInt(val, 10);
-    if (val === 0) {
-      return 'Disabled';
-    } else if (val > 23 && val % 24 === 0) {
-      val = val / 24;
-      return val + ' day' + (val != 1 ? 's' : '');
-    }
-    return val + ' hour' + (val != 1 ? 's' : '');
   }
 
   renderRemoveProject() {
@@ -150,20 +111,9 @@ export default class ProjectGeneralSettings extends AsyncView {
   }
 
   renderBody() {
-    // These values cannot be changed on a project basis if any of them are 'true' at the org level
-    let orgOverrideFields = ['dataScrubber', 'dataScrubberDefaults', 'scrubIPAddresses'];
-
-    let orgOverrides = orgOverrideFields.reduce((res, key) => {
-      res[key] = this.context.organization[key];
-      return res;
-    }, {});
-
-    let orgOverrideDisabledReason = t(
-      "This option is enforced by your organization's settings and cannot be customized per-project."
-    );
-
+    let {organization} = this.context;
     let project = this.state.data;
-    let {orgId, projectId} = this.props.params;
+    let {projectId} = this.props.params;
     let initialData = {
       name: project.name,
       slug: project.slug,
@@ -184,235 +134,76 @@ export default class ProjectGeneralSettings extends AsyncView {
       scrapeJavaScript: project.scrapeJavaScript,
     };
 
-    let teamChoices = this.getTeamChoices();
-
     return (
       <div>
         <SettingsPageHeader title={t('Project Settings')} />
 
-        <ApiForm
+        <Form
+          saveOnBlur
+          allowUndo
           initialData={initialData}
           apiMethod="PUT"
           apiEndpoint={this.getEndpoint()}
           onSubmitSuccess={resp => {
-            IndicatorStore.add(t('Your changes were saved'), 'success', {duration: 2000});
             // Reload if slug has changed
             if (projectId !== resp.slug) {
-              window.location = `/${orgId}/${resp.slug}/settings/`;
+              // window.location = `/${orgId}/${resp.slug}/settings/`;
             }
           }}
         >
-          <div className="box">
-            <div className="box-header">
-              <h3>{t('Project Details')}</h3>
-            </div>
-            <div className="box-content with-padding">
-              <TextField
-                name="name"
-                label={t('Project Name')}
-                required={true}
-                placeholder={t('e.g. My Service Name')}
-              />
-              <TextField
-                name="slug"
-                label={t('Short name')}
-                required={true}
-                help={t('A unique ID used to identify this project.')}
-              />
-              {teamChoices.length > 1 ? (
-                <Select2Field
-                  name="team"
-                  className="control-group"
-                  label={t('Team')}
-                  required={true}
-                  choices={this.getTeamChoices()}
-                />
-              ) : null}
-            </div>
-          </div>
+          <JsonForm
+            forms={projectFields}
+            additionalFieldProps={{organization}}
+            access={new Set(organization.access)}
+            renderBodyStart={({title}) => {
+              if (title === 'Client Security') {
+                return (
+                  <Box p={2} pb={0}>
+                    <PanelAlert type="info" icon="icon-circle-exclamation" css={noMargin}>
+                      <TextBlock css={noMargin}>
+                        {tct(
+                          'Configure origin URLs which Sentry should accept events from. This is used for communication with clients like [link].',
+                          {
+                            link: (
+                              <a href="https://github.com/getsentry/raven-js">raven-js</a>
+                            ),
+                          }
+                        )}{' '}
+                        {tct(
+                          'This will restrict requests based on the [Origin] and [Referer] headers.',
+                          {
+                            Origin: <code>Origin</code>,
+                            Referer: <code>Referer</code>,
+                          }
+                        )}
+                      </TextBlock>
+                    </PanelAlert>
+                  </Box>
+                );
+              }
+              return null;
+            }}
+            renderFooter={({title}) => {
+              if (title === 'Event Settings') {
+                return <AutoResolveFooter />;
+              }
+              return null;
+            }}
+          />
+        </Form>
 
-          <div className="box">
-            <div className="box-header">
-              <h3>{t('Email')}</h3>
-            </div>
-            <div className="box-content with-padding">
-              <TextField
-                name="subjectPrefix"
-                label={t('Subject prefix')}
-                help={t('Choose a custom prefix for emails from this project.')}
-              />
-            </div>
+        <div className="box">
+          <div className="box-header">
+            <h3>{t('Remove Project')}</h3>
           </div>
-          <div className="box">
-            <div className="box-header">
-              <h3>{t('Event Settings')}</h3>
-            </div>
-            <div className="box-content with-padding">
-              <TextField
-                name="defaultEnvironment"
-                label={t('Default environment')}
-                help={t('The default selected environment when viewing issues.')}
-                placeholder={t('e.g. production')}
-              />
-              <RangeField
-                name="resolveAge"
-                label={t('Auto resolve')}
-                help={t(
-                  "Automatically resolve an issue if it hasn't been seen for this amount of time."
-                )}
-                min={0}
-                max={720}
-                step={1}
-                allowedValues={this.getResolveAgeAllowedValues()}
-                formatLabel={this.formatResolveAgeLabel}
-              />
-              <p>
-                <small>
-                  <strong>
-                    Note: Enabling auto resolve will immediately resolve anything that has
-                    not been seen within this period of time. There is no undo!
-                  </strong>
-                </small>
-              </p>
-            </div>
+          <div className="box-content with-padding">{this.renderRemoveProject()}</div>
+        </div>
+        <div className="box">
+          <div className="box-header">
+            <h3>{t('Transfer Project')}</h3>
           </div>
-
-          <div className="box">
-            <div className="box-header">
-              <h3>{t('Data Privacy')}</h3>
-            </div>
-            <div className="box-content with-padding">
-              <BooleanField
-                disabled={orgOverrides.dataScrubber}
-                disabledReason={orgOverrideDisabledReason}
-                value={orgOverrides.dataScrubber || null}
-                name="dataScrubber"
-                label={t('Data scrubber')}
-                help={t('Enable server-side data scrubbing.')}
-              />
-              <BooleanField
-                disabled={orgOverrides.dataScrubberDefaults}
-                value={orgOverrides.dataScrubberDefaults || null}
-                disabledReason={orgOverrideDisabledReason}
-                name="dataScrubberDefaults"
-                label={t('Use default scrubbers')}
-                help={t(
-                  'Apply default scrubbers to prevent things like passwords and credit cards from being stored.'
-                )}
-              />
-              <ListAsTextareaField
-                name="sensitiveFields"
-                label={t('Additional sensitive fields')}
-                help={t(
-                  'Additional field names to match against when scrubbing data. Separate multiple entries with a newline.'
-                )}
-                placeholder={t('e.g. email')}
-              />
-              <ListAsTextareaField
-                name="safeFields"
-                label={t('Safe fields')}
-                help={t(
-                  'Field names which data scrubbers should ignore. Separate multiple entries with a newline.'
-                )}
-                placeholder={t('e.g. email')}
-              />
-              <BooleanField
-                disabled={orgOverrides.scrubIPAddresses}
-                value={orgOverrides.scrubIPAddresses || null}
-                disabledReason={orgOverrideDisabledReason}
-                name="scrubIPAddresses"
-                label={t("Don't store IP Addresses")}
-                help={t('Prevent IP addresses from being stored for new events.')}
-              />
-            </div>
-          </div>
-
-          <div className="box">
-            <div className="box-header">
-              <h3>{t('Client Security')}</h3>
-            </div>
-            <div className="box-content with-padding">
-              <p>
-                {tct(
-                  'Configure origin URLs which Sentry should accept events from. This is used for communication with clients like [link].',
-                  {
-                    link: <a href="https://github.com/getsentry/raven-js">raven-js</a>,
-                  }
-                )}{' '}
-                {tct(
-                  'This will restrict requests based on the [Origin] and [Referer] headers.',
-                  {
-                    Origin: <code>Origin</code>,
-                    Referer: <code>Referer</code>,
-                  }
-                )}
-              </p>
-              <ListAsTextareaField
-                name="allowedDomains"
-                label={t('Allowed domains')}
-                help={t('Separate multiple entries with a newline. Cannot be empty.')}
-                placeholder={t('e.g. https://example.com or example.com')}
-              />
-              <BooleanField
-                name="scrapeJavaScript"
-                label={t('Enable JavaScript source fetching')}
-                help={t(
-                  'Allow Sentry to scrape missing JavaScript source context when possible.'
-                )}
-              />
-
-              <DynamicWrapper
-                value={
-                  <TextField
-                    name="securityToken"
-                    label={t('Security token')}
-                    help={t(
-                      'Outbound requests matching Allowed Domains will have the header "{token_header}: {token}" appended.'
-                    )}
-                  />
-                }
-                fixed={
-                  <TextField
-                    name="percy-mock-securityToken"
-                    label={t('Security token')}
-                    value="<<SECURITY_TOKEN>>"
-                    help={t(
-                      'Outbound requests matching Allowed Domains will have the header "{token_header}: {token}" appended.'
-                    )}
-                  />
-                }
-              />
-
-              <TextField
-                name="securityTokenHeader"
-                label={t('Security token header')}
-                help={t(
-                  'Outbound requests matching Allowed Domains will have the header "{token_header}: {token}" appended.'
-                )}
-                placeholder={t('e.g. X-Sentry-Token')}
-              />
-              <BooleanField
-                name="verifySSL"
-                label={t('Verify TLS/SSL')}
-                help={t(
-                  'Outbound requests will verify TLS (sometimes known as SSL) connections.'
-                )}
-              />
-            </div>
-          </div>
-          <div className="box">
-            <div className="box-header">
-              <h3>{t('Remove Project')}</h3>
-            </div>
-            <div className="box-content with-padding">{this.renderRemoveProject()}</div>
-          </div>
-          <div className="box">
-            <div className="box-header">
-              <h3>{t('Transfer Project')}</h3>
-            </div>
-            <div className="box-content with-padding">{this.renderTransferProject()}</div>
-          </div>
-        </ApiForm>
+          <div className="box-content with-padding">{this.renderTransferProject()}</div>
+        </div>
       </div>
     );
   }
