@@ -18,7 +18,6 @@ import OrganizationsStore from '../../../../stores/organizationsStore';
 import Panel from '../../components/panel';
 import PanelHeader from '../../components/panelHeader';
 import SettingsPageHeader from '../../components/settingsPageHeader';
-import getSettingsComponent from '../../../../utils/getSettingsComponent';
 import recreateRoute from '../../../../utils/recreateRoute';
 
 const OrganizationGeneralSettingsView = createReactClass({
@@ -39,14 +38,10 @@ const OrganizationGeneralSettingsView = createReactClass({
   },
 
   componentDidMount() {
-    let {routes} = this.props;
-    let fetchForm = getSettingsComponent(
-      () =>
-        import(/*webpackChunkName: "organizationSettingsForm"*/ './organizationSettingsForm'),
-      () =>
-        import(/*webpackChunkName: "organizationSettingsForm.old"*/ './organizationSettingsForm.old'),
-      routes
+    let fetchForm = import(/*webpackChunkName: "organizationSettingsForm"*/ './organizationSettingsForm').then(
+      mod => mod.default
     );
+
     Promise.all([this.fetchData(), fetchForm]).then(
       ([data, Form]) => {
         // Redirect if can't write to org
