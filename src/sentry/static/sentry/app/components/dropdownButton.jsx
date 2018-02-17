@@ -60,7 +60,7 @@ const DropdownAutoComplete = ({items, onBlur, onSelect}) => {
         return (
           <div {...getRootProps()}>
             <StyledInputContainer>
-              <StyledInput autoFocus {...getInputProps({})} />
+              <StyledInput autoFocus {...getInputProps({})} onBlur={onBlur} />
             </StyledInputContainer>
             <div {...getMenuProps()}>
               <div>
