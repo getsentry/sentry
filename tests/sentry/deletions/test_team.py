@@ -15,12 +15,6 @@ class DeleteTeamTest(TestCase):
         assert project1.teams.first() == team
         assert project2.teams.first() == team
 
-        # TODO(jess): remove this once i fix fixtures
-        project1.team = None
-        project1.save()
-        project2.team = None
-        project2.save()
-
         deletion = ScheduledDeletion.schedule(team, days=0)
         deletion.update(in_progress=True)
 
