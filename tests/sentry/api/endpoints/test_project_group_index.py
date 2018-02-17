@@ -426,7 +426,7 @@ class GroupUpdateTest(APITestCase):
         )
 
         assert response.status_code == 200, response.data
-        assert response.data['assignedTo']['id'] == six.text_type(user.id)
+        assert response.data['assignedTo'] == six.text_type(u'user:{}'.format(user.id))
         assert response.data['status'] == 'resolved'
 
         assert GroupAssignee.objects.filter(group=group, user=user).exists()
@@ -466,7 +466,7 @@ class GroupUpdateTest(APITestCase):
         assert response.status_code == 200
         assert response.data['status'] == 'resolved'
         assert response.data['statusDetails']['inNextRelease']
-        assert response.data['assignedTo']['id'] == six.text_type(self.user.id)
+        assert response.data['assignedTo'] == six.text_type(u'user:{}'.format(self.user.id))
 
         group = Group.objects.get(id=group.id)
         assert group.status == GroupStatus.RESOLVED
@@ -1231,7 +1231,7 @@ class GroupUpdateTest(APITestCase):
         )
 
         assert response.status_code == 200
-        assert response.data['assignedTo']['id'] == six.text_type(user.id)
+        assert response.data['assignedTo'] == six.text_type(u'user:{}'.format(user.id))
 
         assert GroupAssignee.objects.filter(group=group1, user=user).exists()
 

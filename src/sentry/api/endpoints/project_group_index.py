@@ -14,7 +14,7 @@ from rest_framework.response import Response
 from sentry import features, search
 from sentry.api.base import DocSection, EnvironmentMixin
 from sentry.api.bases.project import ProjectEndpoint, ProjectEventPermission
-from sentry.api.fields import ActorField
+from sentry.api.fields import ActorField, Actor
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.group import (
     SUBSCRIPTION_REASON_MAP, StreamGroupSerializer)
@@ -166,12 +166,12 @@ class GroupValidator(serializers.Serializer):
 
     def validate_assignedTo(self, attrs, source):
         value = attrs[source]
-        if value and isinstance(value, User) and not self.context['project'].member_set.filter(
-                user=value).exists():
+        if value and value.type is User and not self.context['project'].member_set.filter(
+                user_id=value.id).exists():
             raise serializers.ValidationError(
                 'Cannot assign to non-team member')
 
-        if value and isinstance(value, Team) and not self.context['project'].teams.filter(
+        if value and value.type is Team and not self.context['project'].teams.filter(
                 id=value.id).exists():
             raise serializers.ValidationError(
                 'Cannot assign to a team without access to the project')
@@ -232,7 +232,7 @@ class ProjectGroupIndexEndpoint(ProjectEndpoint, EnvironmentMixin):
                 user=acting_user, key='self_assign_issue', default='0'
             )
             if self_assign_issue == '1' and not group.assignee_set.exists():
-                result['assignedTo'] = extract_lazy_object(acting_user)
+                result['assignedTo'] = Actor(type=User, id=extract_lazy_object(acting_user).id)
 
     # statsPeriod=24h
     @attach_scenarios([list_project_issues_scenario])
@@ -721,7 +721,7 @@ class ProjectGroupIndexEndpoint(ProjectEndpoint, EnvironmentMixin):
                         actor=resolved_actor,
                         reason=GroupSubscriptionReason.assigned,
                     )
-                result['assignedTo'] = serialize(assigned_actor)
+                result['assignedTo'] = serialize(assigned_actor.get_actor_id())
             else:
                 for group in group_list:
                     GroupAssignee.objects.deassign(group, acting_user)
