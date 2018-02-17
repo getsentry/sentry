@@ -90,9 +90,8 @@ export default class TeamSettings extends AsyncView {
                 >
                   {t('Remove Team')}
                 </a>
-                Remove the team and all related data.
-                <br />
-                Careful, this action cannot be undone.
+                Remove team. This may affect team members' access to projects and
+                associated alert delivery.
               </p>
             </div>
           </div>
