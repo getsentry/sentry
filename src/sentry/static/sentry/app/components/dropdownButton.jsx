@@ -105,7 +105,6 @@ class DropdownButton extends React.Component {
 
     this.state = {
       isOpen: false,
-      closedOnBlur: false,
     };
   }
 
@@ -121,24 +120,20 @@ class DropdownButton extends React.Component {
   render() {
     return (
       <div style={{position: 'relative', display: 'inline-block'}}>
-        <div
-          style={{pointerEvents: this.state.isOpen ? 'none' : 'auto'}}
-          onClick={this.toggleOpen}
-          ref={button => (this.button = button)}
-        >
+        {this.state.isOpen && (
+          <StyledMenu>
+            <DropdownAutoComplete
+              items={this.props.items}
+              onBlur={this.toggleOpen}
+              onSelect={this.onSelect}
+            />
+          </StyledMenu>
+        )}
+        <div onClick={this.toggleOpen} ref={button => (this.button = button)}>
           <StyledButton isOpen={this.state.isOpen}>
             <StyledChevronDown />
             Add Something
           </StyledButton>
-          {this.state.isOpen && (
-            <StyledMenu>
-              <DropdownAutoComplete
-                items={this.props.items}
-                onBlur={this.toggleOpen}
-                onSelect={this.onSelect}
-              />
-            </StyledMenu>
-          )}
         </div>
       </div>
     );
@@ -180,8 +175,8 @@ const StyledItem = styled('div')`
   background-color: ${p =>
     p.index == p.highlightedIndex ? p.theme.offWhite : 'transparent'};
   padding: 0.25em 0.5em;
-  cursor: pointer;
   &:hover {
+    cursor: pointer;
     background-color: ${p => p.theme.offWhite};
   }
 `;
