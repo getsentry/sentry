@@ -6,7 +6,14 @@ import DropdownButton from 'sentry-ui/dropdownButton';
 
 const items = [
   {
-    groupLabel: 'Countries',
+    groupLabel: (
+      <div>
+        Countries{' '}
+        <a style={{float: 'right'}} href="#">
+          + Add
+        </a>
+      </div>
+    ),
     groupItems: [
       {
         searchKey: 'new zealand',
