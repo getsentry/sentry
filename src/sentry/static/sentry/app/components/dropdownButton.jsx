@@ -105,6 +105,7 @@ class DropdownButton extends React.Component {
 
     this.state = {
       isOpen: false,
+      closedOnBlur: false,
     };
   }
 
@@ -129,7 +130,11 @@ class DropdownButton extends React.Component {
             />
           </StyledMenu>
         )}
-        <div onClick={this.toggleOpen} ref={button => (this.button = button)}>
+        <div
+          style={{pointerEvents: this.state.isOpen ? 'none' : 'auto'}}
+          onClick={this.toggleOpen}
+          ref={button => (this.button = button)}
+        >
           <StyledButton isOpen={this.state.isOpen}>
             <StyledChevronDown />
             Add Something
@@ -158,12 +163,14 @@ const StyledMenu = styled('div')`
 `;
 
 const StyledButton = styled(props => <Button {...props} />)`
-  border-bottom-color: ${p => (p.isOpen ? 'transparent' : p.theme.borderLight)};
   border-bottom-right-radius: ${p => (p.isOpen ? 0 : p.theme.borderRadius)};
   border-bottom-left-radius: ${p => (p.isOpen ? 0 : p.theme.borderRadius)};
   position: relative;
   z-index; 1;
   box-shadow: none;
+
+  &, &:hover { border-bottom-color: ${p =>
+    p.isOpen ? 'transparent' : p.theme.borderLight};}
 `;
 
 const StyledInput = styled(Input)`
@@ -175,8 +182,8 @@ const StyledItem = styled('div')`
   background-color: ${p =>
     p.index == p.highlightedIndex ? p.theme.offWhite : 'transparent'};
   padding: 0.25em 0.5em;
+  cursor: pointer;
   &:hover {
-    cursor: pointer;
     background-color: ${p => p.theme.offWhite};
   }
 `;
