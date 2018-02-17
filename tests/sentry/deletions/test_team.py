@@ -15,6 +15,12 @@ class DeleteTeamTest(TestCase):
         assert project1.teams.first() == team
         assert project2.teams.first() == team
 
+        # TODO(jess): remove this once i fix fixtures
+        project1.team = None
+        project1.save()
+        project2.team = None
+        project2.save()
+
         deletion = ScheduledDeletion.schedule(team, days=0)
         deletion.update(in_progress=True)
 
@@ -22,6 +28,6 @@ class DeleteTeamTest(TestCase):
             run_deletion(deletion.id)
 
         assert not Team.objects.filter(id=team.id).exists()
-        assert not Project.objects.filter(id=project1.id).exists()
-        assert not Project.objects.filter(id=project2.id).exists()
+        assert Project.objects.filter(id=project1.id).exists()
+        assert Project.objects.filter(id=project2.id).exists()
         assert not ProjectTeam.objects.filter(team_id=team.id).exists()
