@@ -154,7 +154,8 @@ const StyledChevronDown = styled(props => (
 const StyledMenu = styled('div')`
   background: #fff;
   border: 1px solid ${p => p.theme.borderLight};
-  border-radius: ${p => p.theme.borderRadius};
+  border-radius: 0 ${p => p.theme.borderRadius} ${p => p.theme.borderRadius}
+    ${p => p.theme.borderRadius};
   position: absolute;
   top: calc(100% - 1px);
   left: 0;
@@ -170,7 +171,7 @@ const StyledButton = styled(props => <Button {...props} />)`
   box-shadow: none;
 
   &, &:hover { border-bottom-color: ${p =>
-    p.isOpen ? 'transparent' : p.theme.borderLight};}
+    p.isOpen ? 'transparent' : p.theme.borderDark};}
 `;
 
 const StyledInput = styled(Input)`
