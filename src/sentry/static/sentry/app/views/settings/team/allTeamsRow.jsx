@@ -101,7 +101,11 @@ const AllTeamsRow = createReactClass({
     return (
       <PanelItem p={0} align="center">
         <Box flex="1" p={2}>
-          {team.name}
+          {access.has('team:write') ? (
+            <Link to={`${urlPrefix}teams/${team.slug}/settings/`}>{team.name}</Link>
+          ) : (
+            team.name
+          )}
         </Box>
         <Box p={2}>
           {this.state.loading ? (
@@ -120,15 +124,6 @@ const AllTeamsRow = createReactClass({
             <a className="btn btn-default btn-sm" onClick={this.joinTeam}>
               {t('Request Access')}
             </a>
-          )}
-          {access.has('team:write') && (
-            <Link
-              className="btn btn-default btn-sm"
-              to={`${urlPrefix}teams/${team.slug}/settings/`}
-              style={{marginLeft: 5}}
-            >
-              {t('Team Settings')}
-            </Link>
           )}
         </Box>
       </PanelItem>
