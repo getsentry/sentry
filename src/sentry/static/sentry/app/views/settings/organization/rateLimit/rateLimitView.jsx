@@ -94,7 +94,7 @@ class RateLimitView extends React.Component {
                 />
               ) : (
                 <TextBlock>
-                  {t(
+                  {tct(
                     'Your account is limited to a maximum of [maxRate] events per [maxRateInterval] seconds.',
                     {
                       maxRate,
