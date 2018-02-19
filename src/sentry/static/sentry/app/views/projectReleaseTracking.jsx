@@ -1,10 +1,12 @@
 import PropTypes from 'prop-types';
 import React from 'react';
 import createReactClass from 'create-react-class';
+import styled from 'react-emotion';
 
 import {t, tct} from '../locale';
 import AlertActions from '../actions/alertActions';
 import ApiMixin from '../mixins/apiMixin';
+import AutoSelectText from '../components/autoSelectText';
 import DynamicWrapper from '../components/dynamicWrapper';
 import LoadingError from '../components/loadingError';
 import LoadingIndicator from '../components/loadingIndicator';
@@ -18,6 +20,11 @@ import TextBlock from './settings/components/text/textBlock';
 import withPlugins from '../utils/withPlugins';
 
 const noMargin = {margin: 0};
+
+const PreWrap = styled.pre`
+  word-break: break-all;
+  white-space: pre-wrap;
+`;
 
 const ProjectReleaseTracking = createReactClass({
   displayName: 'ProjectReleaseTracking',
@@ -154,7 +161,11 @@ const ProjectReleaseTracking = createReactClass({
                 release: <code>release</code>,
               })}
             </p>
-            <pre>{this.getReleaseClientConfigurationIntructions()}</pre>
+            <AutoSelectText>
+              <PreWrap style={noMargin}>
+                {this.getReleaseClientConfigurationIntructions()}
+              </PreWrap>
+            </AutoSelectText>
             <p>
               {t(
                 "This will annotate each event with the version of your application, as well as automatically create a release entity in the system the first time it's seen."
@@ -208,8 +219,12 @@ const ProjectReleaseTracking = createReactClass({
               </p>
 
               <DynamicWrapper
-                value={<pre className="auto-select">{this.state.webhookUrl}</pre>}
-                fixed={<pre className="auto-select">__WEBHOOK_URL__</pre>}
+                value={
+                  <AutoSelectText>
+                    <PreWrap>{this.state.webhookUrl}</PreWrap>
+                  </AutoSelectText>
+                }
+                fixed={<PreWrap>__WEBHOOK_URL__</PreWrap>}
               />
 
               <p>
@@ -220,17 +235,19 @@ const ProjectReleaseTracking = createReactClass({
 
               <DynamicWrapper
                 value={
-                  <pre style={noMargin} className="auto-select">
-                    {this.getReleaseWebhookIntructions()}
-                  </pre>
+                  <AutoSelectText>
+                    <PreWrap style={noMargin}>
+                      {this.getReleaseWebhookIntructions()}
+                    </PreWrap>
+                  </AutoSelectText>
                 }
                 fixed={
-                  <pre style={noMargin} className="auto-select">
+                  <PreWrap style={noMargin}>
                     {`curl __WEBHOOK_URL__ \\
   -X POST \\
   -H 'Content-Type: application/json' \\
   -d \'{"version": "abcdefg"}\'`}
-                  </pre>
+                  </PreWrap>
                 }
               />
             </form>
