@@ -694,9 +694,10 @@ class EventManager(object):
                 sender=EventManager,
             )
 
-        event.group = group
-        # store a reference to the group id to guarantee validation of isolation
-        event.data.bind_ref(event)
+        environment = Environment.get_or_create(
+            project=project,
+            name=environment,
+        )
 
         UserReport.objects.filter(
             project=project,
@@ -705,6 +706,10 @@ class EventManager(object):
             group=group,
             environment=environment,
         )
+
+        event.group = group
+        # store a reference to the group id to guarantee validation of isolation
+        event.data.bind_ref(event)
 
         # When an event was sampled, the canonical source of truth
         # is the EventMapping table since we aren't going to be writing out an actual
@@ -745,11 +750,6 @@ class EventManager(object):
                 }
             )
             return event
-
-        environment = Environment.get_or_create(
-            project=project,
-            name=environment,
-        )
 
         group_environment, is_new_group_environment = GroupEnvironment.get_or_create(
             group_id=group.id,
