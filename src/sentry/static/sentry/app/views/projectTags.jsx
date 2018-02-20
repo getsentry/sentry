@@ -98,7 +98,7 @@ export default class ProjectTags extends AsyncView {
             {!isEmpty &&
               tags.map(({key, name, canDelete}, idx) => {
                 return (
-                  <PanelItem p={0} key={key} className="ref-tag-row">
+                  <PanelItem p={0} align="center" key={key} className="ref-tag-row">
                     <Box align="flex-end" flex="1" p={2}>
                       <span>{name}</span>
                       <Description>{key}</Description>
