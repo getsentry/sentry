@@ -22,6 +22,7 @@ import TextCopyInput from '../components/forms/textCopyInput';
 import withPlugins from '../../../utils/withPlugins';
 
 const noMargin = {margin: 0};
+const marginTop = {marginTop: 30};
 
 const PreWrap = styled.pre`
   word-break: break-all;
@@ -120,8 +121,8 @@ class ProjectReleaseTracking extends AsyncView {
         <Panel>
           <PanelHeader>{t('Client Configuration')}</PanelHeader>
           <PanelBody disablePadding={false} flex>
-            <TextBlock>
-              {tct('Start by binding the [release] attribute in your application:', {
+            <TextBlock css={noMargin}>
+              {tct('Start by binding the [release] attribute in your application', {
                 release: <code>release</code>,
               })}
             </TextBlock>
@@ -130,12 +131,12 @@ class ProjectReleaseTracking extends AsyncView {
                 {this.getReleaseClientConfigurationIntructions()}
               </PreWrap>
             </AutoSelectText>
-            <TextBlock>
+            <TextBlock css={marginTop}>
               {t(
                 "This will annotate each event with the version of your application, as well as automatically create a release entity in the system the first time it's seen."
               )}
             </TextBlock>
-            <TextBlock>
+            <TextBlock css={noMargin}>
               {t(
                 'In addition you may configure a release hook (or use our API) to push a release and include additional metadata with it.'
               )}
@@ -181,46 +182,44 @@ class ProjectReleaseTracking extends AsyncView {
         <Panel>
           <PanelHeader>{t('Webhook')}</PanelHeader>
           <PanelBody disablePadding={false} flex>
-            <form>
-              <p>
-                {t(
-                  'If you simply want to integrate with an existing system, sometimes its easiest just to use a webhook.'
-                )}
-              </p>
+            <TextBlock css={noMargin}>
+              {t(
+                'If you simply want to integrate with an existing system, sometimes its easiest just to use a webhook.'
+              )}
+            </TextBlock>
 
-              <DynamicWrapper
-                value={
-                  <AutoSelectText>
-                    <PreWrap>{webhookUrl}</PreWrap>
-                  </AutoSelectText>
-                }
-                fixed={<PreWrap>__WEBHOOK_URL__</PreWrap>}
-              />
+            <DynamicWrapper
+              value={
+                <AutoSelectText>
+                  <PreWrap>{webhookUrl}</PreWrap>
+                </AutoSelectText>
+              }
+              fixed={<PreWrap>__WEBHOOK_URL__</PreWrap>}
+            />
 
-              <p>
-                {t(
-                  'The release webhook accepts the same parameters as the "Create a new Release" API endpoint, for example:'
-                )}
-              </p>
+            <TextBlock css={noMargin}>
+              {t(
+                'The release webhook accepts the same parameters as the "Create a new Release" API endpoint.'
+              )}
+            </TextBlock>
 
-              <DynamicWrapper
-                value={
-                  <AutoSelectText>
-                    <PreWrap style={noMargin}>
-                      {this.getReleaseWebhookIntructions()}
-                    </PreWrap>
-                  </AutoSelectText>
-                }
-                fixed={
+            <DynamicWrapper
+              value={
+                <AutoSelectText>
                   <PreWrap style={noMargin}>
-                    {`curl __WEBHOOK_URL__ \\
+                    {this.getReleaseWebhookIntructions()}
+                  </PreWrap>
+                </AutoSelectText>
+              }
+              fixed={
+                <PreWrap style={noMargin}>
+                  {`curl __WEBHOOK_URL__ \\
   -X POST \\
   -H 'Content-Type: application/json' \\
   -d \'{"version": "abcdefg"}\'`}
-                  </PreWrap>
-                }
-              />
-            </form>
+                </PreWrap>
+              }
+            />
           </PanelBody>
         </Panel>
 
@@ -233,19 +232,17 @@ class ProjectReleaseTracking extends AsyncView {
         <Panel>
           <PanelHeader>{t('API')}</PanelHeader>
           <PanelBody disablePadding={false} flex>
-            <p>
+            <TextBlock>
               {t(
                 'You can notify Sentry when you release new versions of your application via our HTTP API.'
               )}
-            </p>
+            </TextBlock>
 
-            <div>
-              {t('See the ')}
-              <a href="https://docs.sentry.io/hosted/api/releases/">
-                {t('Releases API documentation')}
-              </a>{' '}
-              {t('for more information.')}
-            </div>
+            <TextBlock css={noMargin}>
+              {tct('See the [link:Releases API documentation] for more information.', {
+                link: <a href="https://docs.sentry.io/hosted/api/releases/" />,
+              })}
+            </TextBlock>
           </PanelBody>
         </Panel>
       </div>
