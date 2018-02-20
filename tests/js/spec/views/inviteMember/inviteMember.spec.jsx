@@ -90,7 +90,7 @@ describe('CreateProject', function() {
       });
 
       // Lets just target message
-      expect(wrapper.find('div > p')).toMatchSnapshot();
+      expect(wrapper.find('TextBlock')).toMatchSnapshot();
     });
 
     it('should redirect when no roles available', function() {
@@ -144,7 +144,7 @@ describe('CreateProject', function() {
 
       expect(wrapper.state('loading')).toBe(false);
 
-      let node = wrapper.find('.radio').first();
+      let node = wrapper.find('RoleSelect PanelItem').first();
       node.props().onClick();
 
       node = wrapper.find('.team-choices input').first();
