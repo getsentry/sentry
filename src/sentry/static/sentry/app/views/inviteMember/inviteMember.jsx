@@ -12,7 +12,9 @@ import ConfigStore from '../../stores/configStore';
 import LoadingIndicator from '../../components/loadingIndicator';
 import OrganizationState from '../../mixins/organizationState';
 import RoleSelect from './roleSelect';
+import SettingsPageHeader from '../settings/components/settingsPageHeader';
 import TeamSelect from './teamSelect';
+import TextBlock from '../settings/components/text/textBlock';
 import TextField from '../../components/forms/textField';
 import recreateRoute from '../../utils/recreateRoute';
 
@@ -208,8 +210,8 @@ const InviteMember = createReactClass({
 
     return (
       <div>
-        <h3>{t('Add Member to Organization')}</h3>
-        <p>
+        <SettingsPageHeader title={t('Add Member to Organization')} />
+        <TextBlock>
           {invitesEnabled
             ? t(
                 'Invite a member to join this organization via their email address. If they do not already have an account, they will first be asked to create one. Multiple emails delimited by commas.'
@@ -217,7 +219,7 @@ const InviteMember = createReactClass({
             : t(
                 'You may add a user by their username if they already have an account. Multiple inputs delimited by commas.'
               )}
-        </p>
+        </TextBlock>
 
         {loading && <LoadingIndicator />}
         {!loading && (

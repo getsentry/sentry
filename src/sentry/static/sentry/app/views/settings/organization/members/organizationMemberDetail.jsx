@@ -9,8 +9,13 @@ import ConfigStore from '../../../../stores/configStore';
 import DateTime from '../../../../components/dateTime';
 import IndicatorStore from '../../../../stores/indicatorStore';
 import NotFound from '../../../../components/errors/notFound';
+import Panel from '../../components/panel';
+import PanelBody from '../../components/panelBody';
+import PanelHeader from '../../components/panelHeader';
+import PanelItem from '../../components/panelItem';
 import RoleSelect from '../../../inviteMember/roleSelect';
 import SentryTypes from '../../../../proptypes';
+import SettingsPageHeader from '../../components/settingsPageHeader';
 import TeamSelect from '../../../inviteMember/teamSelect';
 import recreateRoute from '../../../../utils/recreateRoute';
 
@@ -133,77 +138,85 @@ class OrganizationMemberDetail extends AsyncView {
 
     return (
       <div>
-        <div className="page-header">
-          <h3>
-            {member.name}
-            <br />
-            <small>Member Settings</small>
-          </h3>
-        </div>
+        <SettingsPageHeader
+          title={
+            <div>
+              <div style={{fontSize: '1.4em'}}>{member.name}</div>
+              <div>
+                <small style={{opacity: 0.6, fontSize: '0.8em', fontWeight: 'normal'}}>
+                  {t('Member Settings')}
+                </small>
+              </div>
+            </div>
+          }
+        />
 
         {error && error.role && <p className="error alert-error">{error.role}</p>}
 
-        <div className="box">
-          <div className="box-header">
-            <h3>{t('Basics')}</h3>
-          </div>
+        <Panel>
+          <PanelHeader>{t('Basics')}</PanelHeader>
 
-          <div className="box-content with-padding">
-            <div className="row" style={{marginBottom: '10px'}}>
-              <div className="col-md-6">
-                <div className="control-group">
-                  <label>{t('Email')}</label>
-                  <div className="controls">
-                    <a href={`mailto:${email}`}>{email}</a>
+          <PanelBody>
+            <PanelItem direction="column">
+              <div className="row" style={{width: '100%'}}>
+                <div className="col-md-6">
+                  <div className="control-group">
+                    <label>{t('Email')}</label>
+                    <div className="controls">
+                      <a href={`mailto:${email}`}>{email}</a>
+                    </div>
+                  </div>
+                </div>
+                <div className="col-md-3">
+                  <div className="control-group">
+                    <label>{t('Status')}</label>
+                    <div className="controls">
+                      {member.pending ? <em>Invitation Pending</em> : 'Active'}
+                    </div>
+                  </div>
+                </div>
+                <div className="col-md-3">
+                  <div className="control-group">
+                    <label>{t('Added')}</label>
+                    <div className="controls">
+                      <DateTime dateOnly date={member.dateCreated} />
+                    </div>
                   </div>
                 </div>
               </div>
-              <div className="col-md-3">
-                <div className="control-group">
-                  <label>{t('Status')}</label>
-                  <div className="controls">
-                    {member.pending ? <em>Invitation Pending</em> : 'Active'}
-                  </div>
-                </div>
-              </div>
-              <div className="col-md-3">
-                <div className="control-group">
-                  <label>{t('Added')}</label>
-                  <div className="controls">
-                    <DateTime dateOnly date={member.dateCreated} />
-                  </div>
-                </div>
-              </div>
-            </div>
 
-            {inviteLink && (
-              <div className="form-actions">
-                <div className="control-group">
-                  <label>{t('Invite Link')}</label>
-                  <div className="controls">
-                    <code className="auto-select form-control" style={{overflow: 'auto'}}>
-                      {inviteLink}
-                    </code>
+              {inviteLink && (
+                <div className="form-actions">
+                  <div className="control-group">
+                    <label>{t('Invite Link')}</label>
+                    <div className="controls">
+                      <code
+                        className="auto-select form-control"
+                        style={{overflow: 'auto'}}
+                      >
+                        {inviteLink}
+                      </code>
+                    </div>
+                    <p className="help-block">
+                      This unique invite link may only be used by this member.
+                    </p>
                   </div>
-                  <p className="help-block">
-                    This unique invite link may only be used by this member.
-                  </p>
+                  <div className="align-right">
+                    <Button
+                      style={{marginRight: 10}}
+                      onClick={() => this.handleInvite(true)}
+                    >
+                      {t('Generate New Invite')}
+                    </Button>
+                    <Button onClick={() => this.handleInvite(false)}>
+                      {t('Resend Invite')}
+                    </Button>
+                  </div>
                 </div>
-                <div className="align-right">
-                  <Button
-                    style={{marginRight: 10}}
-                    onClick={() => this.handleInvite(true)}
-                  >
-                    {t('Generate New Invite')}
-                  </Button>
-                  <Button onClick={() => this.handleInvite(false)}>
-                    {t('Resend Invite')}
-                  </Button>
-                </div>
-              </div>
-            )}
-          </div>
-        </div>
+              )}
+            </PanelItem>
+          </PanelBody>
+        </Panel>
 
         <RoleSelect
           enforceAllowed={false}
