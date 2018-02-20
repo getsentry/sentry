@@ -87,6 +87,10 @@ exports[`ProjectTags renders 1`] = `
   display: -webkit-flex;
   display: -ms-flexbox;
   display: flex;
+  -webkit-align-items: center;
+  -webkit-box-align: center;
+  -ms-flex-align: center;
+  align-items: center;
   border-bottom: 1px solid;
 }
 
@@ -270,15 +274,18 @@ exports[`ProjectTags renders 1`] = `
                 className=""
               >
                 <PanelItem
+                  align="center"
                   className="ref-tag-row"
                   key="browser"
                   p={0}
                 >
                   <StyledPanelItem
+                    align="center"
                     className="ref-tag-row"
                     p={0}
                   >
                     <Base
+                      align="center"
                       className="ref-tag-row glamor-29 glamor-30"
                       p={0}
                     >
@@ -414,15 +421,18 @@ exports[`ProjectTags renders 1`] = `
                   </StyledPanelItem>
                 </PanelItem>
                 <PanelItem
+                  align="center"
                   className="ref-tag-row"
                   key="device"
                   p={0}
                 >
                   <StyledPanelItem
+                    align="center"
                     className="ref-tag-row"
                     p={0}
                   >
                     <Base
+                      align="center"
                       className="ref-tag-row glamor-29 glamor-30"
                       p={0}
                     >
@@ -558,15 +568,18 @@ exports[`ProjectTags renders 1`] = `
                   </StyledPanelItem>
                 </PanelItem>
                 <PanelItem
+                  align="center"
                   className="ref-tag-row"
                   key="environment"
                   p={0}
                 >
                   <StyledPanelItem
+                    align="center"
                     className="ref-tag-row"
                     p={0}
                   >
                     <Base
+                      align="center"
                       className="ref-tag-row glamor-29 glamor-30"
                       p={0}
                     >
