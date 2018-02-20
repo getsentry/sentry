@@ -8,18 +8,13 @@ class RuleNodeList extends React.Component {
   static propTypes = {
     initialItems: PropTypes.array,
     nodes: PropTypes.array.isRequired,
+    handlePropertyChange: PropTypes.func.isRequired,
   };
 
   constructor(props) {
     super(props);
-    let counter = 0;
-    let initialItems = (props.initialItems || []).map(item => {
-      return {...item, key_attr: counter++};
-    });
-
     this.state = {
-      items: initialItems,
-      counter,
+      items: this.props.initialItems,
     };
   }
 
@@ -31,6 +26,12 @@ class RuleNodeList extends React.Component {
     });
   }
 
+  componentWillReceiveProps(nextProps) {
+    this.setState({
+      items: nextProps.initialItems,
+    });
+  }
+
   onAddRow = sel => {
     let nodeId = sel.val();
     if (!nodeId) return;
@@ -39,15 +40,9 @@ class RuleNodeList extends React.Component {
 
     this.state.items.push({
       id: nodeId,
-      // Since RuleNode item state is stored outside of React (using innerHTML),
-      // need to make sure elements aren't accidentally re-rendered. So, give each
-      // row a consistent key using a counter that initializes at 0 when RuleNodeList
-      // is mounted.
-      key_attr: this.state.counter,
     });
     this.setState({
       items: this.state.items,
-      counter: this.state.counter + 1,
     });
   };
 
@@ -70,10 +65,12 @@ class RuleNodeList extends React.Component {
             {this.state.items.map((item, idx) => {
               return (
                 <RuleNode
-                  key={item.key_attr}
+                  key={idx}
                   node={this.getNode(item.id)}
                   onDelete={this.onDeleteRow.bind(this, idx)}
                   data={item}
+                  value={this.props.initialItems[idx]}
+                  handlePropertyChange={this.props.handlePropertyChange(idx)}
                 />
               );
             })}

@@ -1,9 +1,6 @@
 import PropTypes from 'prop-types';
 import React from 'react';
-import ReactDOM from 'react-dom';
-import $ from 'jquery';
-
-import * as utils from './utils';
+import {Select2Field, NumberField, TextField} from '../../components/forms';
 
 class RuleNode extends React.Component {
   static propTypes = {
@@ -13,25 +10,75 @@ class RuleNode extends React.Component {
       formFields: PropTypes.object,
     }).isRequired,
     onDelete: PropTypes.func.isRequired,
+    handlePropertyChange: PropTypes.func.isRequired,
   };
 
-  componentDidMount() {
-    let $html = $(ReactDOM.findDOMNode(this.refs.html));
+  getChoiceField(name, data) {
+    return (
+      <Select2Field
+        name={name}
+        value={this.props.data[name]}
+        // TODO: This is a workaround since Select2Field requires an empty element in
+        // order to default to the placeholder value instead of the first item on the list
+        choices={[[], ...data.choices]}
+        key={name}
+        style={{marginBottom: 0}}
+        onChange={val => this.props.handlePropertyChange(name, val)}
+      />
+    );
+  }
 
-    $html.find('select, input, textarea').each((_, el) => {
-      if (this.props.data[el.name] === undefined) {
-        return;
+  getTextField(name, data) {
+    return (
+      <TextField
+        name={name}
+        value={this.props.data[name]}
+        placeholder={data.placeholder}
+        key={name}
+        style={{marginBottom: 0}}
+        onChange={val => this.props.handlePropertyChange(name, val)}
+      />
+    );
+  }
+
+  getNumberField(name, data) {
+    return (
+      <NumberField
+        name={name}
+        value={this.props.data[name]}
+        placeholder={data.placeholder}
+        key={name}
+        style={{marginBottom: 0}}
+        onChange={val => this.props.handlePropertyChange(name, val)}
+      />
+    );
+  }
+
+  getField(name, data) {
+    const getFieldTypes = {
+      choice: this.getChoiceField.bind(this),
+      number: this.getNumberField.bind(this),
+      string: this.getTextField.bind(this),
+    };
+    return getFieldTypes[data.type](name, data);
+  }
+
+  getComponent(node) {
+    const {label, formFields} = node;
+
+    return label.split(/({\w+})/).map(part => {
+      if (!/^{\w+}$/.test(part)) {
+        return part;
       }
 
-      let $el = $(el);
-      $el.attr('id', '');
-      $el.val(this.props.data[el.name]);
+      const key = part.slice(1, -1);
+      return formFields[key] ? this.getField(key, formFields[key]) : part;
     });
   }
 
   render() {
     let {data, node} = this.props;
-    let html = utils.getComponent(node);
+    let html = this.getComponent(node);
 
     return (
       <tr>

@@ -217,6 +217,7 @@ exports[`ProjectAlertRuleDetails Edit alert rule renders 1`] = `
               </div>
               <RuleNodeList
                 className="rule-condition-list"
+                handlePropertyChange={[Function]}
                 initialItems={Array []}
                 nodes={
                   Array [
@@ -290,6 +291,7 @@ exports[`ProjectAlertRuleDetails Edit alert rule renders 1`] = `
               </h6>
               <RuleNodeList
                 className="rule-action-list"
+                handlePropertyChange={[Function]}
                 initialItems={Array []}
                 nodes={
                   Array [
@@ -751,6 +753,7 @@ exports[`ProjectAlertRuleDetails New alert rule renders 1`] = `
               </div>
               <RuleNodeList
                 className="rule-condition-list"
+                handlePropertyChange={[Function]}
                 initialItems={Array []}
                 nodes={
                   Array [
@@ -824,6 +827,7 @@ exports[`ProjectAlertRuleDetails New alert rule renders 1`] = `
               </h6>
               <RuleNodeList
                 className="rule-action-list"
+                handlePropertyChange={[Function]}
                 initialItems={Array []}
                 nodes={
                   Array [

@@ -92,44 +92,22 @@ const RuleEditor = createReactClass({
     }
   },
 
-  serializeNode(node) {
-    let result = {};
-    $(node)
-      .find('input, select')
-      .each((_, el) => {
-        if (el.name) {
-          result[el.name] = $(el).val();
-        }
-      });
-    return result;
-  },
-
-  onSubmit(e) {
+  handleSubmit(e) {
     e.preventDefault();
-    let form = $(this.formNode);
-    let conditions = [];
-    form.find('.rule-condition-list .rule-form').each((_, el) => {
-      conditions.push(this.serializeNode(el));
-    });
-    let actions = [];
-    form.find('.rule-action-list .rule-form').each((_, el) => {
-      actions.push(this.serializeNode(el));
-    });
 
-    let data = {...this.state.rule, actions, conditions};
+    const data = this.state.rule;
 
-    let rule = this.state.rule;
     let project = this.props.project;
     let org = this.props.organization;
     let endpoint = `/projects/${org.slug}/${project.slug}/rules/`;
-    if (rule.id) {
-      endpoint += rule.id + '/';
+    if (data.id) {
+      endpoint += data.id + '/';
     }
 
     addMessage(t('Saving...'));
 
     this.api.request(endpoint, {
-      method: rule.id ? 'PUT' : 'POST',
+      method: data.id ? 'PUT' : 'POST',
       data,
       success: resp => {
         this.setState({error: null, loading: false, rule: resp});
@@ -137,7 +115,7 @@ const RuleEditor = createReactClass({
         browserHistory.replace(
           `/${org.slug}/${project.slug}/settings/alerts/rules/${resp.id}/`
         );
-        addSuccessMessage(rule.id ? t('Updated alert rule') : t('Created alert rule'));
+        addSuccessMessage(data.id ? t('Updated alert rule') : t('Created alert rule'));
       },
       error: response => {
         this.setState({
@@ -164,12 +142,22 @@ const RuleEditor = createReactClass({
     }
   },
 
-  handleChange(prop, val) {
+  handleChange(key, val) {
     this.setState(state => {
       const rule = {...state.rule};
-      rule[prop] = val;
+      rule[key] = val;
       return {rule};
     });
+  },
+
+  handlePropertyChange(type) {
+    return idx => {
+      return (prop, val) => {
+        const rule = {...this.state.rule};
+        rule[type][idx][prop] = val;
+        this.setState({rule});
+      };
+    };
   },
 
   render() {
@@ -188,7 +176,7 @@ const RuleEditor = createReactClass({
     const {actionMatch, actions, conditions, frequency, name, environment} = rule;
 
     return (
-      <form onSubmit={this.onSubmit} ref={node => (this.formNode = node)}>
+      <form onSubmit={this.handleSubmit} ref={node => (this.formNode = node)}>
         <div className="box rule-detail">
           <div className="box-header">
             <h3>{rule.id ? 'Edit Alert Rule' : 'New Alert Rule'}</h3>
@@ -242,6 +230,7 @@ const RuleEditor = createReactClass({
               nodes={this.props.conditions}
               initialItems={conditions}
               className="rule-condition-list"
+              handlePropertyChange={this.handlePropertyChange('conditions')}
             />
 
             <hr />
@@ -273,6 +262,7 @@ const RuleEditor = createReactClass({
               nodes={this.props.actions}
               initialItems={actions}
               className="rule-action-list"
+              handlePropertyChange={this.handlePropertyChange('actions')}
             />
 
             <hr />
