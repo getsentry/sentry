@@ -11,6 +11,7 @@ import Confirm from '../../../components/confirm';
 import DropdownLink from '../../../components/dropdownLink';
 import EmptyMessage from '../components/emptyMessage';
 import IndicatorStore from '../../../stores/indicatorStore';
+import Link from '../../../components/link';
 import MenuItem from '../../../components/menuItem';
 import Panel from '../components/panel';
 import PanelBody from '../components/panelBody';
@@ -60,11 +61,20 @@ const TeamRow = createReactClass({
   },
 
   render() {
-    let team = this.props.team;
+    let {team, access, orgId} = this.props;
+
     return (
       <PanelItem>
         <Box flex="1">
-          <h5 style={{margin: '10px 0px'}}>{team.name}</h5>
+          <h5 style={{margin: '10px 0px'}}>
+            {access.has('team:write') ? (
+              <Link to={`/settings/organization/${orgId}/teams/${team.slug}`}>
+                {team.name}
+              </Link>
+            ) : (
+              team.name
+            )}
+          </h5>
         </Box>
         {this.props.access.has('project:write') && (
           <Box pl={2}>
