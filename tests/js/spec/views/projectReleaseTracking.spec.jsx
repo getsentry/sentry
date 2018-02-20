@@ -1,7 +1,7 @@
 import React from 'react';
 
 import {mount} from 'enzyme';
-import {ProjectReleaseTracking} from 'app/views/projectReleaseTracking';
+import {ProjectReleaseTracking} from 'app/views/settings/project/projectReleaseTracking';
 
 describe('ProjectReleaseTracking', function() {
   let org = TestStubs.Organization();

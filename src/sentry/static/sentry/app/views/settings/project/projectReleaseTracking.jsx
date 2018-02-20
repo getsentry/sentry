@@ -2,24 +2,24 @@ import PropTypes from 'prop-types';
 import React from 'react';
 import styled from 'react-emotion';
 
-import {t, tct} from '../locale';
-import AlertActions from '../actions/alertActions';
-import AsyncView from '../views/asyncView';
-import AutoSelectText from '../components/autoSelectText';
-import Button from '../components/buttons/button';
-import Confirm from '../components/confirm';
-import DynamicWrapper from '../components/dynamicWrapper';
-import LoadingIndicator from '../components/loadingIndicator';
-import Panel from './settings/components/panel';
-import PanelBody from './settings/components/panelBody';
-import PanelHeader from './settings/components/panelHeader';
-import Field from './settings/components/forms/field';
-import PluginList from '../components/pluginList';
-import SentryTypes from '../proptypes';
-import SettingsPageHeader from './settings/components/settingsPageHeader';
-import TextBlock from './settings/components/text/textBlock';
-import TextCopyInput from './settings/components/forms/textCopyInput';
-import withPlugins from '../utils/withPlugins';
+import {addErrorMessage, addSuccessMessage} from '../../../actionCreators/indicator';
+import {t, tct} from '../../../locale';
+import AsyncView from '../../asyncView';
+import AutoSelectText from '../../../components/autoSelectText';
+import Button from '../../../components/buttons/button';
+import Confirm from '../../../components/confirm';
+import DynamicWrapper from '../../../components/dynamicWrapper';
+import Field from '../components/forms/field';
+import LoadingIndicator from '../../../components/loadingIndicator';
+import Panel from '../components/panel';
+import PanelBody from '../components/panelBody';
+import PanelHeader from '../components/panelHeader';
+import PluginList from '../../../components/pluginList';
+import SentryTypes from '../../../proptypes';
+import SettingsPageHeader from '../components/settingsPageHeader';
+import TextBlock from '../components/text/textBlock';
+import TextCopyInput from '../components/forms/textCopyInput';
+import withPlugins from '../../../utils/withPlugins';
 
 const noMargin = {margin: 0};
 
@@ -55,17 +55,14 @@ class ProjectReleaseTracking extends AsyncView {
           token: data.token,
           webhookUrl: data.webhookUrl,
         });
-        AlertActions.addAlert({
-          message: t(
-            'Your deploy token has been regenerated. You will need to update any pre-existing deploy hooks.'
-          ),
-          type: 'success',
-        });
+        addSuccessMessage(
+          t(
+            'Your deploy token has been regenerated. You will need to update any existing deploy hooks.'
+          )
+        );
       },
       error: () => {
-        this.setState({
-          error: true,
-        });
+        addErrorMessage(t('Unable to regenerate deploy token, please try again'));
       },
     });
   };
@@ -123,26 +120,26 @@ class ProjectReleaseTracking extends AsyncView {
         <Panel>
           <PanelHeader>{t('Client Configuration')}</PanelHeader>
           <PanelBody disablePadding={false} flex>
-            <p>
+            <TextBlock>
               {tct('Start by binding the [release] attribute in your application:', {
                 release: <code>release</code>,
               })}
-            </p>
+            </TextBlock>
             <AutoSelectText>
               <PreWrap style={noMargin}>
                 {this.getReleaseClientConfigurationIntructions()}
               </PreWrap>
             </AutoSelectText>
-            <p>
+            <TextBlock>
               {t(
                 "This will annotate each event with the version of your application, as well as automatically create a release entity in the system the first time it's seen."
               )}
-            </p>
-            <div>
+            </TextBlock>
+            <TextBlock>
               {t(
                 'In addition you may configure a release hook (or use our API) to push a release and include additional metadata with it.'
               )}
-            </div>
+            </TextBlock>
           </PanelBody>
         </Panel>
 
