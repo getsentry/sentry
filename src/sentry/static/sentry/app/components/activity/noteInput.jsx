@@ -331,7 +331,7 @@ const NoteInput = createReactClass({
           {preview ? (
             <div
               className="note-preview"
-              dangerouslySetInnerHTML={{__html: marked(value)}}
+              dangerouslySetInnerHTML={{__html: marked(this.cleanMarkdown(value))}}
             />
           ) : (
             <MentionsInput
