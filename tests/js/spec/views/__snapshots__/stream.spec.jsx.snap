@@ -1,0 +1,201 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`Stream toggles environment select all environments 1`] = `
+<Container>
+  <div
+    className="stream-row"
+  >
+    <div
+      className="stream-content"
+    >
+      <StreamFilters
+        access={Set {}}
+        isSearchDisabled={false}
+        onSavedSearchCreate={[Function]}
+        onSearch={[Function]}
+        onSidebarToggle={[Function]}
+        onSortChange={[Function]}
+        orgId="123"
+        projectId="456"
+        query="is:unresolved"
+        queryCount={null}
+        savedSearchList={Array []}
+        searchId={null}
+        sort="date"
+        tags={
+          Object {
+            "assigned": Object {
+              "key": "assigned",
+              "name": "Assigned To",
+              "predefined": true,
+              "values": Array [],
+            },
+            "bookmarks": Object {
+              "key": "bookmarks",
+              "name": "Bookmarked By",
+              "predefined": true,
+              "values": Array [],
+            },
+            "event.timestamp": Object {
+              "key": "event.timestamp",
+              "name": "Event Timestamp",
+              "predefined": true,
+              "values": Array [
+                "2017-01-02",
+                ">=2017-01-02T01:00:00",
+                "<2017-01-02T02:00:00",
+              ],
+            },
+            "firstSeen": Object {
+              "key": "firstSeen",
+              "name": "First Seen",
+              "predefined": true,
+              "values": Array [
+                "-1h",
+                "+1d",
+                "-1w",
+              ],
+            },
+            "has": Object {
+              "key": "has",
+              "name": "Has Tag",
+              "predefined": true,
+              "values": Array [],
+            },
+            "is": Object {
+              "key": "is",
+              "name": "Status",
+              "predefined": true,
+              "values": Array [
+                "resolved",
+                "unresolved",
+                "ignored",
+                "muted",
+                "assigned",
+                "unassigned",
+              ],
+            },
+            "lastSeen": Object {
+              "key": "lastSeen",
+              "name": "Last Seen",
+              "predefined": true,
+              "values": Array [
+                "-1h",
+                "+1d",
+                "-1w",
+              ],
+            },
+            "timesSeen": Object {
+              "key": "timesSeen",
+              "name": "Times Seen",
+              "predefined": true,
+              "values": Array [],
+            },
+          }
+        }
+      />
+      <Sticky
+        bottomOffset={0}
+        disableCompensation={false}
+        disableHardwareAcceleration={false}
+        relative={false}
+        topOffset={59}
+      />
+      <ul
+        className="group-list"
+      >
+        <StreamGroup
+          canSelect={true}
+          id="1"
+          key="1"
+          orgId="123"
+          projectId="456"
+          statsPeriod="24h"
+        />
+      </ul>
+      <Pagination
+        onCursor={[Function]}
+        pageLinks=""
+      />
+    </div>
+    <StreamSidebar
+      loading={true}
+      onQueryChange={[Function]}
+      orgId="123"
+      projectId="456"
+      query="is:unresolved"
+      tags={
+        Object {
+          "assigned": Object {
+            "key": "assigned",
+            "name": "Assigned To",
+            "predefined": true,
+            "values": Array [],
+          },
+          "bookmarks": Object {
+            "key": "bookmarks",
+            "name": "Bookmarked By",
+            "predefined": true,
+            "values": Array [],
+          },
+          "event.timestamp": Object {
+            "key": "event.timestamp",
+            "name": "Event Timestamp",
+            "predefined": true,
+            "values": Array [
+              "2017-01-02",
+              ">=2017-01-02T01:00:00",
+              "<2017-01-02T02:00:00",
+            ],
+          },
+          "firstSeen": Object {
+            "key": "firstSeen",
+            "name": "First Seen",
+            "predefined": true,
+            "values": Array [
+              "-1h",
+              "+1d",
+              "-1w",
+            ],
+          },
+          "has": Object {
+            "key": "has",
+            "name": "Has Tag",
+            "predefined": true,
+            "values": Array [],
+          },
+          "is": Object {
+            "key": "is",
+            "name": "Status",
+            "predefined": true,
+            "values": Array [
+              "resolved",
+              "unresolved",
+              "ignored",
+              "muted",
+              "assigned",
+              "unassigned",
+            ],
+          },
+          "lastSeen": Object {
+            "key": "lastSeen",
+            "name": "Last Seen",
+            "predefined": true,
+            "values": Array [
+              "-1h",
+              "+1d",
+              "-1w",
+            ],
+          },
+          "timesSeen": Object {
+            "key": "timesSeen",
+            "name": "Times Seen",
+            "predefined": true,
+            "values": Array [],
+          },
+        }
+      }
+    />
+  </div>
+</Container>
+`;
