@@ -32,7 +32,7 @@ from sentry import options
 from sentry.cache import default_cache
 from sentry.db.models import FlexibleForeignKey, Model, \
     sane_repr, BaseManager, BoundedPositiveIntegerField
-from sentry.models.file import File
+from sentry.models.file import File, ChunkFileState
 from sentry.utils.zip import safe_extract_zip
 from sentry.constants import KNOWN_DSYM_TYPES
 from sentry.reprocessing import resolve_processing_issue, \
@@ -78,7 +78,13 @@ def get_assemble_status(project, checksum):
 def set_assemble_status(project, checksum, state, detail=None):
     cache_key = 'assemble-status:%s' % _get_idempotency_id(
         project, checksum)
-    default_cache.set(cache_key, (state, detail), 300)
+
+    # If the state is okay we actually clear it from the cache because in
+    # that case a project dsym file was created.
+    if state == ChunkFileState.OK:
+        default_cache.delete(cache_key)
+    else:
+        default_cache.set(cache_key, (state, detail), 300)
 
 
 class BadDif(Exception):
