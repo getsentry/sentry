@@ -305,6 +305,8 @@ class File(Model):
         metrics.timing('filestore.file-size', offset)
         if commit:
             self.save()
+        tf.flush()
+        tf.seek(0)
         return tf
 
 
