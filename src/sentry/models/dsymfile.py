@@ -32,7 +32,7 @@ from sentry import options
 from sentry.cache import default_cache
 from sentry.db.models import FlexibleForeignKey, Model, \
     sane_repr, BaseManager, BoundedPositiveIntegerField
-from sentry.models.file import File
+from sentry.models.file import File, ChunkFileState
 from sentry.utils.zip import safe_extract_zip
 from sentry.constants import KNOWN_DSYM_TYPES
 from sentry.reprocessing import resolve_processing_issue, \
@@ -78,7 +78,13 @@ def get_assemble_status(project, checksum):
 def set_assemble_status(project, checksum, state, detail=None):
     cache_key = 'assemble-status:%s' % _get_idempotency_id(
         project, checksum)
-    default_cache.set(cache_key, (state, detail), 300)
+
+    # If the state is okay we actually clear it from the cache because in
+    # that case a project dsym file was created.
+    if state == ChunkFileState.OK:
+        default_cache.delete(cache_key)
+    else:
+        default_cache.set(cache_key, (state, detail), 300)
 
 
 class BadDif(Exception):
@@ -485,13 +491,23 @@ class DSymCache(object):
                                    for k, v in conversion_errors.items())
         return symcaches
 
-    def get_symcache(self, project, uuid, with_conversion_errors=False):
-        """Return a single symcache."""
-        symcaches, errors = self.get_symcaches(
-            project, [uuid], with_conversion_errors=True)
-        if with_conversion_errors:
-            return symcaches.get(uuid), errors.get(uuid)
-        return symcaches.get(uuid)
+    def generate_symcache(self, project, dsym_file, tf=None):
+        """Generate a single symcache for a uuid based on the passed file
+        contents.  If the tempfile is not passed then its opened again.
+        """
+        if not dsym_file.supports_symcache:
+            raise RuntimeError('This file type does not support symcaches')
+        close_tf = False
+        if tf is None:
+            tf = dsym_file.file.getfile(as_tempfile=True)
+            close_tf = True
+        else:
+            tf.seek(0)
+        try:
+            return self._update_cachefile(dsym_file, tf)
+        finally:
+            if close_tf:
+                tf.close()
 
     def fetch_dsyms(self, project, uuids):
         """Given some uuids returns a uuid to path mapping for where the
@@ -584,22 +600,36 @@ class DSymCache(object):
             if dsym_uuid in conversion_errors:
                 continue
 
-            try:
-                with dsym_file.file.getfile(as_tempfile=True) as tf:
-                    fo = FatObject.from_path(tf.name)
-                    o = fo.get_object(uuid=dsym_file.uuid)
-                    if o is None:
-                        continue
-                    symcache = o.make_symcache()
-            except SymbolicError as e:
-                default_cache.set('scbe:%s:%s' % (
-                    dsym_uuid, dsym_file.file.checksum), e.message,
-                    CONVERSION_ERROR_TTL)
-                conversion_errors[dsym_uuid] = e.message
-                logger.error('dsymfile.symcache-build-error',
-                             exc_info=True, extra=dict(dsym_uuid=dsym_uuid))
-                continue
+            with dsym_file.file.getfile(as_tempfile=True) as tf:
+                symcache_file, conversion_error = self._update_cachefile(
+                    dsym_file, tf)
+            if symcache_file is not None:
+                rv.append((dsym_uuid, symcache_file))
+            elif conversion_error is not None:
+                conversion_errors[dsym_uuid] = conversion_error
 
+        return rv, conversion_errors
+
+    def _update_cachefile(self, dsym_file, tf):
+        try:
+            fo = FatObject.from_path(tf.name)
+            o = fo.get_object(uuid=dsym_file.uuid)
+            if o is None:
+                return None, None
+            symcache = o.make_symcache()
+        except SymbolicError as e:
+            default_cache.set('scbe:%s:%s' % (
+                dsym_file.uuid, dsym_file.file.checksum), e.message,
+                CONVERSION_ERROR_TTL)
+            logger.error('dsymfile.symcache-build-error',
+                         exc_info=True, extra=dict(dsym_uuid=dsym_file.uuid))
+            return None, e.message
+
+        # We seem to have this task running onconcurrently or some
+        # other task might delete symcaches while this is running
+        # which is why this requires a loop instead of just a retry
+        # on get.
+        for iteration in range(5):
             file = File.objects.create(
                 name=dsym_file.uuid,
                 type='project.symcache',
@@ -607,23 +637,26 @@ class DSymCache(object):
             file.putfile(symcache.open_stream())
             try:
                 with transaction.atomic():
-                    rv.append((dsym_uuid, ProjectSymCacheFile.objects.get_or_create(
-                        project=project,
+                    return ProjectSymCacheFile.objects.get_or_create(
+                        project=dsym_file.project,
                         cache_file=file,
                         dsym_file=dsym_file,
                         defaults=dict(
                             checksum=dsym_file.file.checksum,
                             version=symcache.file_format_version,
                         )
-                    )[0]))
+                    )[0], None
             except IntegrityError:
                 file.delete()
-                rv.append((dsym_uuid, ProjectSymCacheFile.objects.get(
-                    project=project,
-                    dsym_file=dsym_file,
-                )))
+                try:
+                    return ProjectSymCacheFile.objects.get(
+                        project=dsym_file.project,
+                        dsym_file=dsym_file,
+                    ), None
+                except ProjectSymCacheFile.DoesNotExist:
+                    continue
 
-        return rv, conversion_errors
+        raise RuntimeError('Concurrency error on symcache update')
 
     def _load_cachefiles_via_fs(self, project, cachefiles):
         rv = {}

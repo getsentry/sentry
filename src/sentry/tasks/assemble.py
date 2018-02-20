@@ -20,21 +20,22 @@ def assemble_dif(project_id, name, checksum, chunks, **kwargs):
         set_assemble_status(project, checksum, ChunkFileState.ASSEMBLING)
 
         # Assemble the chunks into files
-        file = assemble_file(project, name, checksum, chunks,
-                             file_type='project.dsym')
+        rv = assemble_file(project, name, checksum, chunks,
+                           file_type='project.dsym')
 
         # If not file has been created this means that the file failed to
         # assemble because of bad input data.  Return.
-        if file is None:
+        if rv is None:
             return
 
+        file, temp_file = rv
         delete_file = True
         try:
-            with file.getfile(as_tempfile=True) as tf:
+            with temp_file:
                 # We only permit split difs to hit this endpoint.  The
                 # client is required to split them up first or we error.
                 try:
-                    result = dsymfile.detect_dif_from_path(tf.name)
+                    result = dsymfile.detect_dif_from_path(temp_file.name)
                 except BadDif as e:
                     set_assemble_status(project, checksum, ChunkFileState.ERROR,
                                         detail=e.args[0])
@@ -55,13 +56,21 @@ def assemble_dif(project_id, name, checksum, chunks, **kwargs):
                 delete_file = False
                 bump_reprocessing_revision(project)
 
-                # XXX: this should only be done for files that
-                symcache, error = ProjectDSymFile.dsymcache.get_symcache(
-                    project, file_uuid, with_conversion_errors=True)
-                if error is not None:
-                    set_assemble_status(project, checksum, ChunkFileState.ERROR,
-                                        detail=error)
-                else:
+                indicate_success = True
+
+                # If we need to write a symcache we can use the
+                # `generate_symcache` method to attempt to write one.
+                # This way we can also capture down the error if we need
+                # to.
+                if dsym.supports_symcache:
+                    symcache, error = ProjectDSymFile.dsymcache.generate_symcache(
+                        project, dsym, temp_file)
+                    if error is not None:
+                        set_assemble_status(project, checksum, ChunkFileState.ERROR,
+                                            detail=error)
+                        indicate_success = False
+
+                if indicate_success:
                     set_assemble_status(project, checksum, ChunkFileState.OK)
         finally:
             if delete_file:
@@ -100,11 +109,11 @@ def assemble_file(project, name, checksum, chunks, file_type):
         type=file_type,
     )
     try:
-        file.assemble_from_file_blob_ids(file_blob_ids, checksum)
+        temp_file = file.assemble_from_file_blob_ids(file_blob_ids, checksum)
     except AssembleChecksumMismatch:
         file.delete()
         set_assemble_status(project, checksum, ChunkFileState.ERROR,
                             detail='Reported checksum mismatch')
     else:
         file.save()
-        return file
+        return file, temp_file

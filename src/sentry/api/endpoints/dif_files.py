@@ -67,13 +67,14 @@ class DifAssembleEndpoint(ProjectEndpoint):
             name = file_to_assemble.get('name', None)
             chunks = file_to_assemble.get('chunks', [])
 
-            # First, check if this project already owns the DSymFile
-            try:
-                dif = ProjectDSymFile.objects.filter(
-                    project=project,
-                    file__checksum=checksum
-                ).get()
-            except ProjectDSymFile.DoesNotExist:
+            # First, check if this project already owns the DSymFile.
+            # This can under rare circumstances yield more than one file
+            # which is why we use first() here instead of get().
+            dif = ProjectDSymFile.objects.filter(
+                project=project,
+                file__checksum=checksum
+            ).first()
+            if dif is None:
                 # It does not exist yet.  Check the state we have in cache
                 # in case this is a retry poll.
                 state, detail = get_assemble_status(project, checksum)
