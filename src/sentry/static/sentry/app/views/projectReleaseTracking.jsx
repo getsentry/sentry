@@ -1,16 +1,14 @@
 import PropTypes from 'prop-types';
 import React from 'react';
-import createReactClass from 'create-react-class';
 import styled from 'react-emotion';
 
 import {t, tct} from '../locale';
 import AlertActions from '../actions/alertActions';
-import ApiMixin from '../mixins/apiMixin';
+import AsyncView from '../views/asyncView';
 import AutoSelectText from '../components/autoSelectText';
 import Button from '../components/buttons/button';
 import Confirm from '../components/confirm';
 import DynamicWrapper from '../components/dynamicWrapper';
-import LoadingError from '../components/loadingError';
 import LoadingIndicator from '../components/loadingIndicator';
 import Panel from './settings/components/panel';
 import PanelBody from './settings/components/panelBody';
@@ -30,52 +28,24 @@ const PreWrap = styled.pre`
   white-space: pre-wrap;
 `;
 
-const ProjectReleaseTracking = createReactClass({
-  displayName: 'ProjectReleaseTracking',
-
-  propTypes: {
+class ProjectReleaseTracking extends AsyncView {
+  static propTypes = {
     organization: PropTypes.object,
     project: PropTypes.object,
     plugins: SentryTypes.PluginsStore,
-  },
+  };
 
-  mixins: [ApiMixin],
+  getTitle() {
+    return 'Release Tracking';
+  }
 
-  getInitialState() {
-    return {
-      loading: true,
-      error: false,
-      webhookUrl: '',
-      token: '',
-    };
-  },
-
-  componentDidMount() {
-    this.fetchData();
-  },
-
-  fetchData() {
+  getEndpoints() {
     let {orgId, projectId} = this.props.params;
 
-    this.api.request(`/projects/${orgId}/${projectId}/releases/token/`, {
-      method: 'GET',
-      success: data =>
-        this.setState({
-          webhookUrl: data.webhookUrl,
-          token: data.token,
-        }),
-      error: () => {
-        this.setState({
-          error: true,
-        });
-      },
-      complete: () => {
-        this.setState({loading: false});
-      },
-    });
-  },
+    return [['data', `/projects/${orgId}/${projectId}/releases/token/`]];
+  }
 
-  handleRegenerateToken() {
+  handleRegenerateToken = () => {
     let {orgId, projectId} = this.props.params;
     this.api.request(`/projects/${orgId}/${projectId}/releases/token/`, {
       method: 'POST',
@@ -98,10 +68,10 @@ const ProjectReleaseTracking = createReactClass({
         });
       },
     });
-  },
+  };
 
   getReleaseWebhookIntructions() {
-    let webhookUrl = this.state.webhookUrl;
+    let {webhookUrl} = this.state.data;
     return (
       'curl ' +
       webhookUrl +
@@ -113,7 +83,7 @@ const ProjectReleaseTracking = createReactClass({
       '\n  ' +
       '-d \'{"version": "abcdefg"}\''
     );
-  },
+  }
 
   getReleaseClientConfigurationIntructions() {
     return (
@@ -126,22 +96,20 @@ const ProjectReleaseTracking = createReactClass({
       '\n' +
       '});'
     );
-  },
+  }
 
-  render() {
+  renderBody() {
     let {organization, project, plugins} = this.props;
 
-    if (this.state.loading || plugins.loading)
-      return (
-        <div className="box">
-          <LoadingIndicator />
-        </div>
-      );
-    else if (this.state.error) return <LoadingError onRetry={this.fetchData} />;
+    if (plugins.loading) {
+      return <LoadingIndicator />;
+    }
 
     let pluginList = plugins.plugins.filter(
       p => p.type === 'release-tracking' && p.hasConfiguration
     );
+
+    let {token, webhookUrl} = this.state.data;
 
     return (
       <div>
@@ -186,7 +154,7 @@ const ProjectReleaseTracking = createReactClass({
               help={t('A unique secret which is used to generate deploy hook URLs')}
             >
               <DynamicWrapper
-                value={<TextCopyInput>{this.state.token}</TextCopyInput>}
+                value={<TextCopyInput>{token}</TextCopyInput>}
                 fixed="__TOKEN__"
               />
             </Field>
@@ -226,7 +194,7 @@ const ProjectReleaseTracking = createReactClass({
               <DynamicWrapper
                 value={
                   <AutoSelectText>
-                    <PreWrap>{this.state.webhookUrl}</PreWrap>
+                    <PreWrap>{webhookUrl}</PreWrap>
                   </AutoSelectText>
                 }
                 fixed={<PreWrap>__WEBHOOK_URL__</PreWrap>}
@@ -285,7 +253,10 @@ const ProjectReleaseTracking = createReactClass({
         </Panel>
       </div>
     );
-  },
-});
+  }
+}
 
 export default withPlugins(ProjectReleaseTracking);
+
+// Export for tests
+export {ProjectReleaseTracking};
