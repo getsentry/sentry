@@ -694,6 +694,19 @@ class EventManager(object):
                 sender=EventManager,
             )
 
+        environment = Environment.get_or_create(
+            project=project,
+            name=environment,
+        )
+
+        UserReport.objects.filter(
+            project=project,
+            event_id=event_id,
+        ).update(
+            group=group,
+            environment=environment,
+        )
+
         event.group = group
         # store a reference to the group id to guarantee validation of isolation
         event.data.bind_ref(event)
@@ -737,11 +750,6 @@ class EventManager(object):
                 }
             )
             return event
-
-        environment = Environment.get_or_create(
-            project=project,
-            name=environment,
-        )
 
         group_environment, is_new_group_environment = GroupEnvironment.get_or_create(
             group_id=group.id,
@@ -804,14 +812,6 @@ class EventManager(object):
             )
 
         tsdb.record_frequency_multi(frequencies, timestamp=event.datetime)
-
-        UserReport.objects.filter(
-            project=project,
-            event_id=event_id,
-        ).update(
-            group=group,
-            environment=environment,
-        )
 
         # save the event unless its been sampled
         if not is_sample:
