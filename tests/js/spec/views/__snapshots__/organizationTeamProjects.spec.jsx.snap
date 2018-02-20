@@ -80,6 +80,10 @@ exports[`OrganizationTeamProjects Should render 1`] = `
   display: -webkit-flex;
   display: -ms-flexbox;
   display: flex;
+  -webkit-align-items: center;
+  -webkit-box-align: center;
+  -ms-flex-align: center;
+  align-items: center;
 }
 
 <TeamProjects
@@ -355,19 +359,19 @@ exports[`OrganizationTeamProjects Should render 1`] = `
                               onClick={[Function]}
                               role="button"
                             >
-                              <Flex>
+                              <Flex
+                                align="center"
+                                className="button-label"
+                              >
                                 <Base
-                                  className="glamor-31"
+                                  align="center"
+                                  className="button-label glamor-31"
                                 >
                                   <div
-                                    className="glamor-31"
+                                    className="button-label glamor-31"
                                     is={null}
                                   >
-                                    <span
-                                      className="button-label"
-                                    >
-                                      Add
-                                    </span>
+                                    Add
                                   </div>
                                 </Base>
                               </Flex>

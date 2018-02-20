@@ -10,6 +10,7 @@ exports[`ApiTokens renders empty result 1`] = `
         <Button
           className="ref-create-token"
           disabled={false}
+          icon="icon-circle-add"
           priority="primary"
           size="small"
           to="/settings/account/api/auth-tokens/new-token/"
@@ -92,13 +93,13 @@ exports[`ApiTokens renders empty result 1`] = `
 `;
 
 exports[`ApiTokens renders with result 1`] = `
-.glamor-6 {
+.glamor-12 {
   font-size: 14px;
   box-shadow: inset 0 -1px 0;
   margin: -20px 0 30px;
 }
 
-.glamor-4 {
+.glamor-8 {
   box-sizing: border-box;
   display: -webkit-box;
   display: -webkit-flex;
@@ -119,27 +120,33 @@ exports[`ApiTokens renders with result 1`] = `
   flex: 1;
 }
 
-.glamor-2 {
+.glamor-4 {
   box-sizing: border-box;
-  display: -webkit-box;
-  display: -webkit-flex;
-  display: -ms-flexbox;
-  display: flex;
+  margin-right: 6px;
+  margin-left: -2px;
 }
 
-.glamor-8 {
+.glamor-4 svg {
+  display: block;
+}
+
+.glamor-2 {
+  vertical-align: middle;
+}
+
+.glamor-14 {
   line-height: 1.5;
   margin-bottom: 30px;
 }
 
-.glamor-53 {
+.glamor-59 {
   background: #fff;
   border: 1px solid;
   margin-bottom: NaNpx;
   position: relative;
 }
 
-.glamor-25 {
+.glamor-31 {
   border-bottom: 1px solid;
   border-radius: 0 0;
   text-transform: uppercase;
@@ -148,13 +155,13 @@ exports[`ApiTokens renders with result 1`] = `
   padding: 15px 0;
 }
 
-.glamor-21 {
+.glamor-27 {
   font-size: inherit;
   text-transform: inherit;
   margin: 0;
 }
 
-.glamor-19 {
+.glamor-25 {
   font-size: 12px;
   font-weight: 600;
   text-transform: uppercase;
@@ -164,7 +171,7 @@ exports[`ApiTokens renders with result 1`] = `
   margin: 0;
 }
 
-.glamor-14 {
+.glamor-20 {
   box-sizing: border-box;
   padding-left: 16px;
   padding-right: 16px;
@@ -173,7 +180,7 @@ exports[`ApiTokens renders with result 1`] = `
   flex: 1;
 }
 
-.glamor-49 {
+.glamor-55 {
   box-sizing: border-box;
   padding: 16px;
   padding-left: 16px;
@@ -191,18 +198,26 @@ exports[`ApiTokens renders with result 1`] = `
   border-bottom: 1px solid;
 }
 
-.glamor-49:last-child {
+.glamor-55:last-child {
   border: 0;
 }
 
-.glamor-41 {
+.glamor-47 {
   box-sizing: border-box;
   -webkit-flex: 1;
   -ms-flex: 1;
   flex: 1;
 }
 
-.glamor-33 {
+.glamor-41 {
+  box-sizing: border-box;
+  display: -webkit-box;
+  display: -webkit-flex;
+  display: -ms-flexbox;
+  display: flex;
+}
+
+.glamor-39 {
   -webkit-box-flex: 1;
   -webkit-flex-grow: 1;
   -ms-flex-positive: 1;
@@ -210,7 +225,7 @@ exports[`ApiTokens renders with result 1`] = `
   border: none;
 }
 
-.glamor-29 {
+.glamor-35 {
   display: block;
   width: 100%;
   background: #fff;
@@ -226,46 +241,46 @@ exports[`ApiTokens renders with result 1`] = `
   border-bottom-right-radius: 0;
 }
 
-.glamor-29:focus {
+.glamor-35:focus {
   outline: none;
 }
 
-.glamor-29:hover,
-.glamor-29:focus,
-.glamor-29:active {
+.glamor-35:hover,
+.glamor-35:focus,
+.glamor-35:active {
   border: 1px solid;
 }
 
-.glamor-29:hover,
-.glamor-29:focus {
+.glamor-35:hover,
+.glamor-35:focus {
   border-right-width: 0;
 }
 
-.glamor-29:hover,
-.glamor-29:focus {
+.glamor-35:hover,
+.glamor-35:focus {
   border-right-width: 0;
 }
 
-.glamor-29:hover,
-.glamor-29:focus {
+.glamor-35:hover,
+.glamor-35:focus {
   border-right-width: 0;
 }
 
-.glamor-29:hover,
-.glamor-29:focus {
+.glamor-35:hover,
+.glamor-35:focus {
   border-right-width: 0;
 }
 
-.glamor-37 {
+.glamor-43 {
   font-size: 0.9em;
 }
 
-.glamor-39 {
+.glamor-45 {
   font-size: 0.9em;
   color: #999;
 }
 
-.glamor-45 {
+.glamor-51 {
   box-sizing: border-box;
   padding-left: 16px;
 }
@@ -283,6 +298,7 @@ exports[`ApiTokens renders with result 1`] = `
             <Button
               className="ref-create-token"
               disabled={false}
+              icon="icon-circle-add"
               priority="primary"
               size="small"
               to="/settings/account/api/auth-tokens/new-token/"
@@ -294,17 +310,17 @@ exports[`ApiTokens renders with result 1`] = `
         >
           <Wrapper>
             <div
-              className="glamor-6 glamor-7"
+              className="glamor-12 glamor-13"
             >
               <Flex
                 align="center"
               >
                 <Base
                   align="center"
-                  className="glamor-4"
+                  className="glamor-8"
                 >
                   <div
-                    className="glamor-4"
+                    className="glamor-8"
                     is={null}
                   >
                     <Title>
@@ -318,6 +334,7 @@ exports[`ApiTokens renders with result 1`] = `
                       <Button
                         className="ref-create-token"
                         disabled={false}
+                        icon="icon-circle-add"
                         priority="primary"
                         size="small"
                         to="/settings/account/api/auth-tokens/new-token/"
@@ -338,19 +355,59 @@ exports[`ApiTokens renders with result 1`] = `
                             role="button"
                             style={Object {}}
                           >
-                            <Flex>
+                            <Flex
+                              align="center"
+                              className="button-label"
+                            >
                               <Base
-                                className="glamor-2"
+                                align="center"
+                                className="button-label glamor-8"
                               >
                                 <div
-                                  className="glamor-2"
+                                  className="button-label glamor-8"
                                   is={null}
                                 >
-                                  <span
-                                    className="button-label"
+                                  <Icon
+                                    size="small"
                                   >
-                                    Create New Token
-                                  </span>
+                                    <Base
+                                      className="glamor-4 glamor-5"
+                                      size="small"
+                                    >
+                                      <div
+                                        className="glamor-4 glamor-5"
+                                        is={null}
+                                        size="small"
+                                      >
+                                        <InlineSvg
+                                          size="12px"
+                                          src="icon-circle-add"
+                                        >
+                                          <StyledSvg
+                                            className=""
+                                            height="12px"
+                                            style={Object {}}
+                                            viewBox={Object {}}
+                                            width="12px"
+                                          >
+                                            <svg
+                                              className="glamor-2 glamor-3"
+                                              height="12px"
+                                              style={Object {}}
+                                              viewBox={Object {}}
+                                              width="12px"
+                                            >
+                                              <use
+                                                href="#test"
+                                                xlinkHref="#test"
+                                              />
+                                            </svg>
+                                          </StyledSvg>
+                                        </InlineSvg>
+                                      </div>
+                                    </Base>
+                                  </Icon>
+                                  Create New Token
                                 </div>
                               </Base>
                             </Flex>
@@ -366,14 +423,14 @@ exports[`ApiTokens renders with result 1`] = `
         </SettingsPageHeading>
         <TextBlock>
           <div
-            className="glamor-8 glamor-9"
+            className="glamor-14 glamor-15"
           >
             Authentication tokens allow you to perform actions against the Sentry API on behalf of your account. They're the easiest way to get started using the API.
           </div>
         </TextBlock>
         <TextBlock>
           <div
-            className="glamor-8 glamor-9"
+            className="glamor-14 glamor-15"
           >
             <span
               key="5"
@@ -403,7 +460,7 @@ exports[`ApiTokens renders with result 1`] = `
         </TextBlock>
         <TextBlock>
           <div
-            className="glamor-8 glamor-9"
+            className="glamor-14 glamor-15"
           >
             <small>
               psst. Looking for the 
@@ -421,7 +478,7 @@ exports[`ApiTokens renders with result 1`] = `
         </TextBlock>
         <Panel>
           <div
-            className="glamor-53 glamor-54"
+            className="glamor-59 glamor-60"
           >
             <PanelHeader
               disablePadding={true}
@@ -430,31 +487,31 @@ exports[`ApiTokens renders with result 1`] = `
                 disablePadding={true}
               >
                 <Component
-                  className="glamor-25 glamor-26"
+                  className="glamor-31 glamor-32"
                   disablePadding={true}
                 >
                   <div
-                    className="glamor-25 glamor-26"
+                    className="glamor-31 glamor-32"
                   >
                     <StyledPanelHeading>
                       <Component
-                        className="glamor-21 glamor-18"
+                        className="glamor-27 glamor-24"
                       >
                         <PanelHeading
-                          className="glamor-21 glamor-18"
+                          className="glamor-27 glamor-24"
                         >
                           <div
-                            className="glamor-18 glamor-19 glamor-20"
+                            className="glamor-24 glamor-25 glamor-26"
                           >
                             <Flex
                               align="center"
                             >
                               <Base
                                 align="center"
-                                className="glamor-4"
+                                className="glamor-8"
                               >
                                 <div
-                                  className="glamor-4"
+                                  className="glamor-8"
                                   is={null}
                                 >
                                   <Box
@@ -462,12 +519,12 @@ exports[`ApiTokens renders with result 1`] = `
                                     px={2}
                                   >
                                     <Base
-                                      className="glamor-14"
+                                      className="glamor-20"
                                       flex="1"
                                       px={2}
                                     >
                                       <div
-                                        className="glamor-14"
+                                        className="glamor-20"
                                         is={null}
                                       >
                                         Auth Token
@@ -520,25 +577,25 @@ exports[`ApiTokens renders with result 1`] = `
                       py={2}
                     >
                       <Base
-                        className="glamor-49 glamor-50"
+                        className="glamor-55 glamor-56"
                         justify="space-between"
                         p={2}
                         px={2}
                         py={2}
                       >
                         <div
-                          className="glamor-49 glamor-50"
+                          className="glamor-55 glamor-56"
                           is={null}
                         >
                           <Box
                             flex="1"
                           >
                             <Base
-                              className="glamor-41"
+                              className="glamor-47"
                               flex="1"
                             >
                               <div
-                                className="glamor-41"
+                                className="glamor-47"
                                 is={null}
                               >
                                 <div
@@ -556,15 +613,15 @@ exports[`ApiTokens renders with result 1`] = `
                                     >
                                       <Flex>
                                         <Base
-                                          className="glamor-2"
+                                          className="glamor-41"
                                         >
                                           <div
-                                            className="glamor-2"
+                                            className="glamor-41"
                                             is={null}
                                           >
                                             <OverflowContainer>
                                               <div
-                                                className="glamor-33 glamor-34"
+                                                className="glamor-39 glamor-40"
                                               >
                                                 <StyledInput
                                                   onClick={[Function]}
@@ -572,13 +629,13 @@ exports[`ApiTokens renders with result 1`] = `
                                                   value="apitoken123"
                                                 >
                                                   <Component
-                                                    className="glamor-29 glamor-30"
+                                                    className="glamor-35 glamor-36"
                                                     onClick={[Function]}
                                                     readOnly={true}
                                                     value="apitoken123"
                                                   >
                                                     <input
-                                                      className="glamor-29 glamor-30"
+                                                      className="glamor-35 glamor-36"
                                                       onClick={[Function]}
                                                       readOnly={true}
                                                       value="apitoken123"
@@ -610,7 +667,7 @@ exports[`ApiTokens renders with result 1`] = `
                                 >
                                   <Created>
                                     <div
-                                      className="glamor-37 glamor-38"
+                                      className="glamor-43 glamor-44"
                                     >
                                       Created
                                        
@@ -628,7 +685,7 @@ exports[`ApiTokens renders with result 1`] = `
                                 <div>
                                   <ScopeList>
                                     <div
-                                      className="glamor-39 glamor-40"
+                                      className="glamor-45 glamor-46"
                                     >
                                       scope1, scope2
                                     </div>
@@ -642,21 +699,21 @@ exports[`ApiTokens renders with result 1`] = `
                           >
                             <Base
                               align="center"
-                              className="glamor-4"
+                              className="glamor-8"
                             >
                               <div
-                                className="glamor-4"
+                                className="glamor-8"
                                 is={null}
                               >
                                 <Box
                                   pl={2}
                                 >
                                   <Base
-                                    className="glamor-45"
+                                    className="glamor-51"
                                     pl={2}
                                   >
                                     <div
-                                      className="glamor-45"
+                                      className="glamor-51"
                                       is={null}
                                     >
                                       <Button
@@ -669,21 +726,21 @@ exports[`ApiTokens renders with result 1`] = `
                                           onClick={[Function]}
                                           role="button"
                                         >
-                                          <Flex>
+                                          <Flex
+                                            align="center"
+                                            className="button-label"
+                                          >
                                             <Base
-                                              className="glamor-2"
+                                              align="center"
+                                              className="button-label glamor-8"
                                             >
                                               <div
-                                                className="glamor-2"
+                                                className="button-label glamor-8"
                                                 is={null}
                                               >
                                                 <span
-                                                  className="button-label"
-                                                >
-                                                  <span
-                                                    className="icon icon-trash"
-                                                  />
-                                                </span>
+                                                  className="icon icon-trash"
+                                                />
                                               </div>
                                             </Base>
                                           </Flex>

@@ -50,8 +50,9 @@ class OrganizationTeamsView extends React.Component {
           !canCreateTeams ? t('You do not have permission to create teams') : undefined
         }
         to={`/organizations/${organization.slug}/teams/new/`}
+        icon="icon-circle-add"
       >
-        <span className="icon-plus" /> {t('Create Team')}
+        {t('Create Team')}
       </Button>
     );
 

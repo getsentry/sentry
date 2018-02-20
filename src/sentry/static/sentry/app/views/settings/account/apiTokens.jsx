@@ -68,6 +68,7 @@ class ApiTokens extends AsyncView {
         size="small"
         to="/settings/account/api/auth-tokens/new-token/"
         className="ref-create-token"
+        icon="icon-circle-add"
       >
         {t('Create New Token')}
       </Button>

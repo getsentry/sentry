@@ -113,8 +113,9 @@ const TeamMembers = createReactClass({
               size="small"
               className="pull-right"
               to={`/settings/organization/${params.orgId}/members/new/`}
+              icon="icon-circle-add"
             >
-              <span className="icon-plus" /> {t('Invite Member')}
+              {t('Invite Member')}
             </Button>
           ) : (
             <a

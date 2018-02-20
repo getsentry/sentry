@@ -74,7 +74,8 @@ describe('OrganizationTeamProjects', function() {
       TestStubs.routerOrganizationContext()
     );
 
-    let add = wrapper.find('.button-label');
+    let add = wrapper.find('div.button-label');
+    console.log(wrapper.debug());
     expect(add.length).toBe(1);
     expect(add.text()).toContain('Add');
     add.simulate('click');
@@ -85,7 +86,7 @@ describe('OrganizationTeamProjects', function() {
 
     setTimeout(() => {
       wrapper.update();
-      let remove = wrapper.find('.button-label');
+      let remove = wrapper.find('div.button-label');
       expect(remove.length).toBe(1);
 
       expect(remove.text()).toContain('Remove');

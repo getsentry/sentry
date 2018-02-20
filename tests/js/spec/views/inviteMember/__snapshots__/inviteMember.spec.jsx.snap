@@ -116,14 +116,6 @@ exports[`CreateProject render() should render roles when available and allowed, 
   margin-bottom: 0;
 }
 
-.glamor-66 {
-  box-sizing: border-box;
-  display: -webkit-box;
-  display: -webkit-flex;
-  display: -ms-flexbox;
-  display: flex;
-}
-
 .glamor-62 {
   -webkit-flex-wrap: wrap;
   -ms-flex-wrap: wrap;
@@ -635,19 +627,19 @@ exports[`CreateProject render() should render roles when available and allowed, 
           onClick={[Function]}
           role="button"
         >
-          <Flex>
+          <Flex
+            align="center"
+            className="button-label"
+          >
             <Base
-              className="glamor-66"
+              align="center"
+              className="button-label glamor-2"
             >
               <div
-                className="glamor-66"
+                className="button-label glamor-2"
                 is={null}
               >
-                <span
-                  className="button-label"
-                >
-                  Add Member
-                </span>
+                Add Member
               </div>
             </Base>
           </Flex>

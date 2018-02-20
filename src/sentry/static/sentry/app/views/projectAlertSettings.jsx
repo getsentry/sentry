@@ -192,9 +192,8 @@ export default class ProjectAlertSettings extends AsyncView {
               to={`/${orgId}/${projectId}/settings/alerts/rules/new/`}
               priority="primary"
               size="small"
-              className="pull-right"
+              icon="icon-circle-add"
             >
-              <span className="icon-plus" />
               {t('New Alert Rule')}
             </Button>
           }

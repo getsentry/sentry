@@ -361,14 +361,6 @@ exports[`ProjectEnvironments render active renders environment list 1`] = `
   border: 0;
 }
 
-.glamor-17 {
-  box-sizing: border-box;
-  display: -webkit-box;
-  display: -webkit-flex;
-  display: -ms-flexbox;
-  display: flex;
-}
-
 <ProjectEnvironments
   params={
     Object {
@@ -615,19 +607,19 @@ exports[`ProjectEnvironments render active renders environment list 1`] = `
                         onClick={[Function]}
                         role="button"
                       >
-                        <Flex>
+                        <Flex
+                          align="center"
+                          className="button-label"
+                        >
                           <Base
-                            className="glamor-17"
+                            align="center"
+                            className="button-label glamor-2"
                           >
                             <div
-                              className="glamor-17"
+                              className="button-label glamor-2"
                               is={null}
                             >
-                              <span
-                                className="button-label"
-                              >
-                                Hide
-                              </span>
+                              Hide
                             </div>
                           </Base>
                         </Flex>
@@ -686,19 +678,19 @@ exports[`ProjectEnvironments render active renders environment list 1`] = `
                         onClick={[Function]}
                         role="button"
                       >
-                        <Flex>
+                        <Flex
+                          align="center"
+                          className="button-label"
+                        >
                           <Base
-                            className="glamor-17"
+                            align="center"
+                            className="button-label glamor-2"
                           >
                             <div
-                              className="glamor-17"
+                              className="button-label glamor-2"
                               is={null}
                             >
-                              <span
-                                className="button-label"
-                              >
-                                Hide
-                              </span>
+                              Hide
                             </div>
                           </Base>
                         </Flex>
@@ -1077,14 +1069,6 @@ exports[`ProjectEnvironments render hidden renders environment list 1`] = `
   border: 0;
 }
 
-.glamor-17 {
-  box-sizing: border-box;
-  display: -webkit-box;
-  display: -webkit-flex;
-  display: -ms-flexbox;
-  display: flex;
-}
-
 <ProjectEnvironments
   params={
     Object {
@@ -1331,19 +1315,19 @@ exports[`ProjectEnvironments render hidden renders environment list 1`] = `
                         onClick={[Function]}
                         role="button"
                       >
-                        <Flex>
+                        <Flex
+                          align="center"
+                          className="button-label"
+                        >
                           <Base
-                            className="glamor-17"
+                            align="center"
+                            className="button-label glamor-2"
                           >
                             <div
-                              className="glamor-17"
+                              className="button-label glamor-2"
                               is={null}
                             >
-                              <span
-                                className="button-label"
-                              >
-                                Show
-                              </span>
+                              Show
                             </div>
                           </Base>
                         </Flex>

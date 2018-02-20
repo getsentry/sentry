@@ -365,8 +365,13 @@ export default createReactClass({
             title={t('Client Keys')}
             action={
               access.has('project:write') ? (
-                <Button onClick={this.onCreateKey} size="small" priority="primary">
-                  <span className="icon-plus" />&nbsp;{t('Generate New Key')}
+                <Button
+                  onClick={this.onCreateKey}
+                  size="small"
+                  priority="primary"
+                  icon="icon-circle-add"
+                >
+                  {t('Generate New Key')}
                 </Button>
               ) : null
             }
