@@ -352,7 +352,7 @@ class FormModel {
 
     let fieldDescriptor = this.fieldDescriptor.get(id);
 
-    // Check if field needs to handle
+    // Check if field needs to handle transforming request object
     let getData =
       typeof fieldDescriptor.getData === 'function' ? fieldDescriptor.getData : a => a;
 
@@ -374,7 +374,7 @@ class FormModel {
         }
 
         // Update initialData after successfully saving a field as it will now be the baseline value
-        this.initialData[id] = newValue;
+        this.initialData[id] = this.getValue(id);
 
         return data;
       })
