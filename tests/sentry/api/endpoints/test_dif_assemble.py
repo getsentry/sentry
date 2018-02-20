@@ -253,7 +253,7 @@ class DifAssembleEndpoint(APITestCase):
             }
         )
 
-        file = assemble_file(self.project, 'test', total_checksum, chunks, 'project.dsym')
+        file = assemble_file(self.project, 'test', total_checksum, chunks, 'project.dsym')[0]
         assert get_assemble_status(self.project, total_checksum)[0] != ChunkFileState.ERROR
         assert file.checksum == total_checksum
 
