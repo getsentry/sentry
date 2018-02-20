@@ -212,23 +212,23 @@ class UserNotificationFineTuningTest(APITestCase):
         resp = self.client.put(url, data=update)
         assert resp.status_code == 204
 
-        assert UserOption.objects.get(
+        assert set(UserOption.objects.get(
             user=self.user,
-            key="reports:disabled-organizations").value == [self.org.id, self.org2.id]
+            key="reports:disabled-organizations").value) == set([self.org.id, self.org2.id])
 
         update = {}
         update[self.org.id] = 1
         resp = self.client.put(url, data=update)
-        assert UserOption.objects.get(
+        assert set(UserOption.objects.get(
             user=self.user,
-            key="reports:disabled-organizations").value == [self.org2.id]
+            key="reports:disabled-organizations").value) == set([self.org2.id])
 
         update = {}
         update[self.org.id] = 0
         resp = self.client.put(url, data=update)
-        assert UserOption.objects.get(
+        assert set(UserOption.objects.get(
             user=self.user,
-            key="reports:disabled-organizations").value == [self.org.id, self.org2.id]
+            key="reports:disabled-organizations").value) == set([self.org.id, self.org2.id])
 
     def test_permissions(self):
         new_user = self.create_user(email='b@example.com')
