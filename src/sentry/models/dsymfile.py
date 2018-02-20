@@ -600,28 +600,39 @@ class DSymCache(object):
                              exc_info=True, extra=dict(dsym_uuid=dsym_uuid))
                 continue
 
-            file = File.objects.create(
-                name=dsym_file.uuid,
-                type='project.symcache',
-            )
-            file.putfile(symcache.open_stream())
-            try:
-                with transaction.atomic():
-                    rv.append((dsym_uuid, ProjectSymCacheFile.objects.get_or_create(
-                        project=project,
-                        cache_file=file,
-                        dsym_file=dsym_file,
-                        defaults=dict(
-                            checksum=dsym_file.file.checksum,
-                            version=symcache.file_format_version,
-                        )
-                    )[0]))
-            except IntegrityError:
-                file.delete()
-                rv.append((dsym_uuid, ProjectSymCacheFile.objects.get(
-                    project=project,
-                    dsym_file=dsym_file,
-                )))
+            # We seem to have this task running onconcurrently or some
+            # other task might delete symcaches while this is running
+            # which is why this requires a loop instead of just a retry
+            # on get.
+            for iteration in range(5):
+                file = File.objects.create(
+                    name=dsym_file.uuid,
+                    type='project.symcache',
+                )
+                file.putfile(symcache.open_stream())
+                try:
+                    with transaction.atomic():
+                        rv.append((dsym_uuid, ProjectSymCacheFile.objects.get_or_create(
+                            project=project,
+                            cache_file=file,
+                            dsym_file=dsym_file,
+                            defaults=dict(
+                                checksum=dsym_file.file.checksum,
+                                version=symcache.file_format_version,
+                            )
+                        )[0]))
+                except IntegrityError:
+                    file.delete()
+                    try:
+                        rv.append((dsym_uuid, ProjectSymCacheFile.objects.get(
+                            project=project,
+                            dsym_file=dsym_file,
+                        )))
+                    except ProjectSymCacheFile.DoesNotExist:
+                        continue
+                break
+            else:
+                raise RuntimeError('Concurrency error on symcache update')
 
         return rv, conversion_errors
 
