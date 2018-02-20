@@ -207,7 +207,7 @@ class UserNotificationFineTuningTest(APITestCase):
 
         update = {}
         update[self.org.id] = 0
-        update[self.org2.id] = 0
+        update[self.org2.id] = "0"
 
         resp = self.client.put(url, data=update)
         assert resp.status_code == 204

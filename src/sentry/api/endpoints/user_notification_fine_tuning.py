@@ -112,9 +112,10 @@ class UserNotificationFineTuningEndpoint(UserEndpoint):
 
             # set of org ids that user is a member of
             org_ids = self.get_org_ids(user)
-
             for org_id, enabled in request.DATA.items():
                 org_id = int(org_id)
+                # We want "0" to be falsey
+                enabled = int(enabled)
 
                 # make sure user is in org
                 if org_id not in org_ids:
