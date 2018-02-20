@@ -75,7 +75,6 @@ describe('OrganizationTeamProjects', function() {
     );
 
     let add = wrapper.find('div.button-label');
-    console.log(wrapper.debug());
     expect(add.length).toBe(1);
     expect(add.text()).toContain('Add');
     add.simulate('click');
