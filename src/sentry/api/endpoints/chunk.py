@@ -5,6 +5,7 @@ from rest_framework import status
 from six.moves.urllib.parse import urljoin
 from rest_framework.response import Response
 from django.core.urlresolvers import reverse
+from django.conf import settings
 from django.db import IntegrityError, transaction
 
 from sentry import options
@@ -16,7 +17,7 @@ from sentry.api.bases.organization import (OrganizationEndpoint,
 
 MAX_CHUNKS_PER_REQUEST = 64
 MAX_REQUEST_SIZE = 32 * 1024 * 1024
-MAX_CONCURRENCY = 4
+MAX_CONCURRENCY = settings.DEBUG and 1 or 4
 HASH_ALGORITHM = 'sha1'
 
 
