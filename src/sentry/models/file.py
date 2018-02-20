@@ -274,8 +274,10 @@ class File(Model):
 
     def assemble_from_file_blob_ids(self, file_blob_ids, checksum, commit=True):
         """
-        This creates a file, from file blobs
+        This creates a file, from file blobs and returns a temp file with the
+        contents.
         """
+        tf = tempfile.NamedTemporaryFile()
         with transaction.atomic():
             file_blobs = FileBlob.objects.filter(id__in=file_blob_ids).all()
             # Make sure the blobs are sorted with the order provided
@@ -291,6 +293,7 @@ class File(Model):
                 )
                 for chunk in blob.getfile().chunks():
                     new_checksum.update(chunk)
+                    tf.write(chunk)
                 offset += blob.size
 
             self.size = offset
@@ -302,6 +305,7 @@ class File(Model):
         metrics.timing('filestore.file-size', offset)
         if commit:
             self.save()
+        return tf
 
 
 class FileBlobIndex(Model):
