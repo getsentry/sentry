@@ -138,6 +138,7 @@ class ApiApplications extends AsyncView {
         size="small"
         className="ref-create-application"
         onClick={this.handleCreateApplication}
+        icon="icon-circle-add"
       >
         {t('Create New Application')}
       </Button>

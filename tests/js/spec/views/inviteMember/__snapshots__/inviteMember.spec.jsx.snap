@@ -116,6 +116,14 @@ exports[`CreateProject render() should render roles when available and allowed, 
   margin-bottom: 0;
 }
 
+.glamor-66 {
+  box-sizing: border-box;
+  display: -webkit-box;
+  display: -webkit-flex;
+  display: -ms-flexbox;
+  display: flex;
+}
+
 .glamor-62 {
   -webkit-flex-wrap: wrap;
   -ms-flex-wrap: wrap;
@@ -627,19 +635,22 @@ exports[`CreateProject render() should render roles when available and allowed, 
           onClick={[Function]}
           role="button"
         >
-          <FlowLayout
-            truncate={false}
-          >
-            <div
-              className="flow-layout"
+          <Flex>
+            <Base
+              className="glamor-66"
             >
-              <span
-                className="button-label"
+              <div
+                className="glamor-66"
+                is={null}
               >
-                Add Member
-              </span>
-            </div>
-          </FlowLayout>
+                <span
+                  className="button-label"
+                >
+                  Add Member
+                </span>
+              </div>
+            </Base>
+          </Flex>
         </button>
       </Button>
     </div>

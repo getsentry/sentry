@@ -1,17 +1,17 @@
 // Jest Snapshot v1, https://goo.gl/fbAQLP
 
 exports[`OrganizationProjectsView render() Should render the projects in the store 1`] = `
-.glamor-30 {
+.glamor-32 {
   width: 100%;
 }
 
-.glamor-4 {
+.glamor-6 {
   font-size: 14px;
   box-shadow: inset 0 -1px 0;
   margin: -20px 0 30px;
 }
 
-.glamor-2 {
+.glamor-4 {
   box-sizing: border-box;
   display: -webkit-box;
   display: -webkit-flex;
@@ -32,14 +32,22 @@ exports[`OrganizationProjectsView render() Should render the projects in the sto
   flex: 1;
 }
 
-.glamor-32 {
+.glamor-2 {
+  box-sizing: border-box;
+  display: -webkit-box;
+  display: -webkit-flex;
+  display: -ms-flexbox;
+  display: flex;
+}
+
+.glamor-34 {
   background: #fff;
   border: 1px solid;
   margin-bottom: NaNpx;
   position: relative;
 }
 
-.glamor-13 {
+.glamor-15 {
   border-bottom: 1px solid;
   border-radius: 0 0;
   text-transform: uppercase;
@@ -48,13 +56,13 @@ exports[`OrganizationProjectsView render() Should render the projects in the sto
   padding: 15px 20px;
 }
 
-.glamor-9 {
+.glamor-11 {
   font-size: inherit;
   text-transform: inherit;
   margin: 0;
 }
 
-.glamor-7 {
+.glamor-9 {
   font-size: 12px;
   font-weight: 600;
   text-transform: uppercase;
@@ -64,7 +72,7 @@ exports[`OrganizationProjectsView render() Should render the projects in the sto
   margin: 0;
 }
 
-.glamor-26 {
+.glamor-28 {
   box-sizing: border-box;
   padding: 0px;
   display: -webkit-box;
@@ -78,21 +86,21 @@ exports[`OrganizationProjectsView render() Should render the projects in the sto
   border-bottom: 1px solid;
 }
 
-.glamor-26:last-child {
+.glamor-28:last-child {
   border: 0;
 }
 
-.glamor-22 {
+.glamor-24 {
   box-sizing: border-box;
   width: 50%;
   padding: 16px;
 }
 
-.glamor-19 {
+.glamor-21 {
   color: #645574;
 }
 
-.glamor-17 {
+.glamor-19 {
   border: none;
   background-color: inherit;
   padding: 0;
@@ -151,17 +159,17 @@ exports[`OrganizationProjectsView render() Should render the projects in the sto
           >
             <Wrapper>
               <div
-                className="glamor-4 glamor-5"
+                className="glamor-6 glamor-7"
               >
                 <Flex
                   align="center"
                 >
                   <Base
                     align="center"
-                    className="glamor-2"
+                    className="glamor-4"
                   >
                     <div
-                      className="glamor-2"
+                      className="glamor-4"
                       is={null}
                     >
                       <Title>
@@ -194,23 +202,26 @@ exports[`OrganizationProjectsView render() Should render the projects in the sto
                               role="button"
                               style={Object {}}
                             >
-                              <FlowLayout
-                                truncate={false}
-                              >
-                                <div
-                                  className="flow-layout"
+                              <Flex>
+                                <Base
+                                  className="glamor-2"
                                 >
-                                  <span
-                                    className="button-label"
+                                  <div
+                                    className="glamor-2"
+                                    is={null}
                                   >
                                     <span
-                                      className="icon-plus"
-                                    />
-                                     
-                                    Create Project
-                                  </span>
-                                </div>
-                              </FlowLayout>
+                                      className="button-label"
+                                    >
+                                      <span
+                                        className="icon-plus"
+                                      />
+                                       
+                                      Create Project
+                                    </span>
+                                  </div>
+                                </Base>
+                              </Flex>
                             </a>
                           </Link>
                         </Button>
@@ -225,25 +236,25 @@ exports[`OrganizationProjectsView render() Should render the projects in the sto
             className="table table-no-top-border m-b-0"
           >
             <div
-              className="table table-no-top-border m-b-0 glamor-32 glamor-33"
+              className="table table-no-top-border m-b-0 glamor-34 glamor-35"
             >
               <PanelHeader>
                 <StyledPanelHeader>
                   <Component
-                    className="glamor-13 glamor-14"
+                    className="glamor-15 glamor-16"
                   >
                     <div
-                      className="glamor-13 glamor-14"
+                      className="glamor-15 glamor-16"
                     >
                       <StyledPanelHeading>
                         <Component
-                          className="glamor-9 glamor-6"
+                          className="glamor-11 glamor-8"
                         >
                           <PanelHeading
-                            className="glamor-9 glamor-6"
+                            className="glamor-11 glamor-8"
                           >
                             <div
-                              className="glamor-6 glamor-7 glamor-8"
+                              className="glamor-8 glamor-9 glamor-10"
                             >
                               Projects
                             </div>
@@ -255,13 +266,13 @@ exports[`OrganizationProjectsView render() Should render the projects in the sto
                 </StyledPanelHeader>
               </PanelHeader>
               <PanelBody
-                className="glamor-30"
+                className="glamor-32"
                 direction="column"
                 disablePadding={true}
                 flex={false}
               >
                 <div
-                  className="glamor-30"
+                  className="glamor-32"
                 >
                   <PanelItem
                     align="center"
@@ -274,11 +285,11 @@ exports[`OrganizationProjectsView render() Should render the projects in the sto
                     >
                       <Base
                         align="center"
-                        className="glamor-26 glamor-27"
+                        className="glamor-28 glamor-29"
                         p={0}
                       >
                         <div
-                          className="glamor-26 glamor-27"
+                          className="glamor-28 glamor-29"
                           is={null}
                         >
                           <Box
@@ -286,12 +297,12 @@ exports[`OrganizationProjectsView render() Should render the projects in the sto
                             w={0.5}
                           >
                             <Base
-                              className="glamor-22"
+                              className="glamor-24"
                               p={2}
                               w={0.5}
                             >
                               <div
-                                className="glamor-22"
+                                className="glamor-24"
                                 is={null}
                               >
                                 <ProjectItem
@@ -344,7 +355,7 @@ exports[`OrganizationProjectsView render() Should render the projects in the sto
                                         title="Add to bookmarks"
                                       >
                                         <button
-                                          className="tip glamor-17 glamor-18"
+                                          className="tip glamor-19 glamor-20"
                                           onClick={[Function]}
                                           title="Add to bookmarks"
                                         >
@@ -355,17 +366,17 @@ exports[`OrganizationProjectsView render() Should render the projects in the sto
                                       </InlineButton>
                                     </Tooltip>
                                     <Link
-                                      className="glamor-19"
+                                      className="glamor-21"
                                       to="/settings/organization/org-slug/project/project-slug/"
                                     >
                                       <Link
-                                        className="glamor-19"
+                                        className="glamor-21"
                                         onlyActiveOnIndex={false}
                                         style={Object {}}
                                         to="/settings/organization/org-slug/project/project-slug/"
                                       >
                                         <a
-                                          className="glamor-19"
+                                          className="glamor-21"
                                           onClick={[Function]}
                                           style={Object {}}
                                         >
@@ -429,12 +440,12 @@ exports[`OrganizationProjectsView render() Should render the projects in the sto
                             w={0.5}
                           >
                             <Base
-                              className="glamor-22"
+                              className="glamor-24"
                               p={2}
                               w={0.5}
                             >
                               <div
-                                className="glamor-22"
+                                className="glamor-24"
                                 is={null}
                               >
                                 <ProjectListItem

@@ -33,7 +33,7 @@ exports[`OrganizationTeamProjects Should render 1`] = `
   margin: 0;
 }
 
-.glamor-33 {
+.glamor-35 {
   box-sizing: border-box;
   padding: 0px;
   display: -webkit-box;
@@ -47,7 +47,7 @@ exports[`OrganizationTeamProjects Should render 1`] = `
   border-bottom: 1px solid;
 }
 
-.glamor-33:last-child {
+.glamor-35:last-child {
   border: 0;
 }
 
@@ -69,9 +69,17 @@ exports[`OrganizationTeamProjects Should render 1`] = `
   padding: 0;
 }
 
-.glamor-31 {
+.glamor-33 {
   box-sizing: border-box;
   padding: 16px;
+}
+
+.glamor-31 {
+  box-sizing: border-box;
+  display: -webkit-box;
+  display: -webkit-flex;
+  display: -ms-flexbox;
+  display: flex;
 }
 
 <TeamProjects
@@ -175,11 +183,11 @@ exports[`OrganizationTeamProjects Should render 1`] = `
               >
                 <Base
                   align="center"
-                  className="glamor-33 glamor-34"
+                  className="glamor-35 glamor-36"
                   p={0}
                 >
                   <div
-                    className="glamor-33 glamor-34"
+                    className="glamor-35 glamor-36"
                     is={null}
                   >
                     <Box
@@ -329,11 +337,11 @@ exports[`OrganizationTeamProjects Should render 1`] = `
                       p={2}
                     >
                       <Base
-                        className="glamor-31"
+                        className="glamor-33"
                         p={2}
                       >
                         <div
-                          className="glamor-31"
+                          className="glamor-33"
                           is={null}
                         >
                           <Button
@@ -347,19 +355,22 @@ exports[`OrganizationTeamProjects Should render 1`] = `
                               onClick={[Function]}
                               role="button"
                             >
-                              <FlowLayout
-                                truncate={false}
-                              >
-                                <div
-                                  className="flow-layout"
+                              <Flex>
+                                <Base
+                                  className="glamor-31"
                                 >
-                                  <span
-                                    className="button-label"
+                                  <div
+                                    className="glamor-31"
+                                    is={null}
                                   >
-                                    Add
-                                  </span>
-                                </div>
-                              </FlowLayout>
+                                    <span
+                                      className="button-label"
+                                    >
+                                      Add
+                                    </span>
+                                  </div>
+                                </Base>
+                              </Flex>
                             </button>
                           </Button>
                         </div>

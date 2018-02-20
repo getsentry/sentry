@@ -76,7 +76,7 @@ describe('OrganizationTeamProjects', function() {
 
     let add = wrapper.find('.button-label');
     expect(add.length).toBe(1);
-    expect(add.text()).toBe('Add');
+    expect(add.text()).toContain('Add');
     add.simulate('click');
 
     wrapper.update();
@@ -85,10 +85,10 @@ describe('OrganizationTeamProjects', function() {
 
     setTimeout(() => {
       wrapper.update();
-      let remove = wrapper.find('.flow-layout .button-label');
+      let remove = wrapper.find('.button-label');
       expect(remove.length).toBe(1);
 
-      expect(remove.text()).toBe('Remove');
+      expect(remove.text()).toContain('Remove');
       remove.simulate('click');
 
       expect(deleteMock).toHaveBeenCalledTimes(1);

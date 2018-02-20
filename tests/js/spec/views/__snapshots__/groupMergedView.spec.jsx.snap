@@ -17,6 +17,14 @@ exports[`Issues -> Merged View renders initially with loading component 1`] = `
 `;
 
 exports[`Issues -> Merged View renders with mocked data 1`] = `
+.glamor-0 {
+  box-sizing: border-box;
+  display: -webkit-box;
+  display: -webkit-flex;
+  display: -ms-flexbox;
+  display: flex;
+}
+
 <GroupMergedView
   location={
     Object {
@@ -411,19 +419,22 @@ exports[`Issues -> Merged View renders with mocked data 1`] = `
                               }
                             }
                           >
-                            <FlowLayout
-                              truncate={false}
-                            >
-                              <div
-                                className="flow-layout"
+                            <Flex>
+                              <Base
+                                className="glamor-0"
                               >
-                                <span
-                                  className="button-label"
+                                <div
+                                  className="glamor-0"
+                                  is={null}
                                 >
-                                  Compare
-                                </span>
-                              </div>
-                            </FlowLayout>
+                                  <span
+                                    className="button-label"
+                                  >
+                                    Compare
+                                  </span>
+                                </div>
+                              </Base>
+                            </Flex>
                           </button>
                         </Button>
                       </div>
@@ -449,19 +460,22 @@ exports[`Issues -> Merged View renders with mocked data 1`] = `
                             onClick={[Function]}
                             role="button"
                           >
-                            <FlowLayout
-                              truncate={false}
-                            >
-                              <div
-                                className="flow-layout"
+                            <Flex>
+                              <Base
+                                className="glamor-0"
                               >
-                                <span
-                                  className="button-label"
+                                <div
+                                  className="glamor-0"
+                                  is={null}
                                 >
-                                  Collapse All
-                                </span>
-                              </div>
-                            </FlowLayout>
+                                  <span
+                                    className="button-label"
+                                  >
+                                    Collapse All
+                                  </span>
+                                </div>
+                              </Base>
+                            </Flex>
                           </button>
                         </Button>
                       </div>
@@ -1344,6 +1358,14 @@ exports[`Issues -> Merged View renders with mocked data 1`] = `
 `;
 
 exports[`Issues -> Merged View renders with mocked data 2`] = `
+.glamor-0 {
+  box-sizing: border-box;
+  display: -webkit-box;
+  display: -webkit-flex;
+  display: -ms-flexbox;
+  display: flex;
+}
+
 <GroupMergedView
   location={
     Object {
@@ -1738,19 +1760,22 @@ exports[`Issues -> Merged View renders with mocked data 2`] = `
                               }
                             }
                           >
-                            <FlowLayout
-                              truncate={false}
-                            >
-                              <div
-                                className="flow-layout"
+                            <Flex>
+                              <Base
+                                className="glamor-0"
                               >
-                                <span
-                                  className="button-label"
+                                <div
+                                  className="glamor-0"
+                                  is={null}
                                 >
-                                  Compare
-                                </span>
-                              </div>
-                            </FlowLayout>
+                                  <span
+                                    className="button-label"
+                                  >
+                                    Compare
+                                  </span>
+                                </div>
+                              </Base>
+                            </Flex>
                           </button>
                         </Button>
                       </div>
@@ -1776,19 +1801,22 @@ exports[`Issues -> Merged View renders with mocked data 2`] = `
                             onClick={[Function]}
                             role="button"
                           >
-                            <FlowLayout
-                              truncate={false}
-                            >
-                              <div
-                                className="flow-layout"
+                            <Flex>
+                              <Base
+                                className="glamor-0"
                               >
-                                <span
-                                  className="button-label"
+                                <div
+                                  className="glamor-0"
+                                  is={null}
                                 >
-                                  Collapse All
-                                </span>
-                              </div>
-                            </FlowLayout>
+                                  <span
+                                    className="button-label"
+                                  >
+                                    Collapse All
+                                  </span>
+                                </div>
+                              </Base>
+                            </Flex>
                           </button>
                         </Button>
                       </div>

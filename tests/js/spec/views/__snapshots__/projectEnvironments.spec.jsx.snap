@@ -315,7 +315,7 @@ exports[`ProjectEnvironments render active renders environment list 1`] = `
   flex: 1;
 }
 
-.glamor-25 {
+.glamor-29 {
   background: #fff;
   border: 1px solid;
   margin-bottom: NaNpx;
@@ -347,7 +347,7 @@ exports[`ProjectEnvironments render active renders environment list 1`] = `
   margin: 0;
 }
 
-.glamor-17 {
+.glamor-19 {
   box-sizing: border-box;
   padding: 16px;
   display: -webkit-box;
@@ -357,8 +357,16 @@ exports[`ProjectEnvironments render active renders environment list 1`] = `
   border-bottom: 1px solid;
 }
 
-.glamor-17:last-child {
+.glamor-19:last-child {
   border: 0;
+}
+
+.glamor-17 {
+  box-sizing: border-box;
+  display: -webkit-box;
+  display: -webkit-flex;
+  display: -ms-flexbox;
+  display: flex;
 }
 
 <ProjectEnvironments
@@ -521,7 +529,7 @@ exports[`ProjectEnvironments render active renders environment list 1`] = `
     </SettingsPageHeading>
     <Panel>
       <div
-        className="glamor-25 glamor-26"
+        className="glamor-29 glamor-30"
       >
         <PanelHeader>
           <StyledPanelHeader>
@@ -576,7 +584,7 @@ exports[`ProjectEnvironments render active renders environment list 1`] = `
                 }
               >
                 <Base
-                  className="glamor-17 glamor-18"
+                  className="glamor-19 glamor-20"
                   p={2}
                   style={
                     Object {
@@ -585,7 +593,7 @@ exports[`ProjectEnvironments render active renders environment list 1`] = `
                   }
                 >
                   <div
-                    className="glamor-17 glamor-18"
+                    className="glamor-19 glamor-20"
                     is={null}
                     style={
                       Object {
@@ -607,19 +615,22 @@ exports[`ProjectEnvironments render active renders environment list 1`] = `
                         onClick={[Function]}
                         role="button"
                       >
-                        <FlowLayout
-                          truncate={false}
-                        >
-                          <div
-                            className="flow-layout"
+                        <Flex>
+                          <Base
+                            className="glamor-17"
                           >
-                            <span
-                              className="button-label"
+                            <div
+                              className="glamor-17"
+                              is={null}
                             >
-                              Hide
-                            </span>
-                          </div>
-                        </FlowLayout>
+                              <span
+                                className="button-label"
+                              >
+                                Hide
+                              </span>
+                            </div>
+                          </Base>
+                        </Flex>
                       </button>
                     </Button>
                   </div>
@@ -644,7 +655,7 @@ exports[`ProjectEnvironments render active renders environment list 1`] = `
                 }
               >
                 <Base
-                  className="glamor-17 glamor-18"
+                  className="glamor-19 glamor-20"
                   p={2}
                   style={
                     Object {
@@ -653,7 +664,7 @@ exports[`ProjectEnvironments render active renders environment list 1`] = `
                   }
                 >
                   <div
-                    className="glamor-17 glamor-18"
+                    className="glamor-19 glamor-20"
                     is={null}
                     style={
                       Object {
@@ -675,19 +686,22 @@ exports[`ProjectEnvironments render active renders environment list 1`] = `
                         onClick={[Function]}
                         role="button"
                       >
-                        <FlowLayout
-                          truncate={false}
-                        >
-                          <div
-                            className="flow-layout"
+                        <Flex>
+                          <Base
+                            className="glamor-17"
                           >
-                            <span
-                              className="button-label"
+                            <div
+                              className="glamor-17"
+                              is={null}
                             >
-                              Hide
-                            </span>
-                          </div>
-                        </FlowLayout>
+                              <span
+                                className="button-label"
+                              >
+                                Hide
+                              </span>
+                            </div>
+                          </Base>
+                        </Flex>
                       </button>
                     </Button>
                   </div>
@@ -1017,7 +1031,7 @@ exports[`ProjectEnvironments render hidden renders environment list 1`] = `
   flex: 1;
 }
 
-.glamor-21 {
+.glamor-23 {
   background: #fff;
   border: 1px solid;
   margin-bottom: NaNpx;
@@ -1049,7 +1063,7 @@ exports[`ProjectEnvironments render hidden renders environment list 1`] = `
   margin: 0;
 }
 
-.glamor-17 {
+.glamor-19 {
   box-sizing: border-box;
   padding: 16px;
   display: -webkit-box;
@@ -1059,8 +1073,16 @@ exports[`ProjectEnvironments render hidden renders environment list 1`] = `
   border-bottom: 1px solid;
 }
 
-.glamor-17:last-child {
+.glamor-19:last-child {
   border: 0;
+}
+
+.glamor-17 {
+  box-sizing: border-box;
+  display: -webkit-box;
+  display: -webkit-flex;
+  display: -ms-flexbox;
+  display: flex;
 }
 
 <ProjectEnvironments
@@ -1223,7 +1245,7 @@ exports[`ProjectEnvironments render hidden renders environment list 1`] = `
     </SettingsPageHeading>
     <Panel>
       <div
-        className="glamor-21 glamor-22"
+        className="glamor-23 glamor-24"
       >
         <PanelHeader>
           <StyledPanelHeader>
@@ -1278,7 +1300,7 @@ exports[`ProjectEnvironments render hidden renders environment list 1`] = `
                 }
               >
                 <Base
-                  className="glamor-17 glamor-18"
+                  className="glamor-19 glamor-20"
                   p={2}
                   style={
                     Object {
@@ -1287,7 +1309,7 @@ exports[`ProjectEnvironments render hidden renders environment list 1`] = `
                   }
                 >
                   <div
-                    className="glamor-17 glamor-18"
+                    className="glamor-19 glamor-20"
                     is={null}
                     style={
                       Object {
@@ -1309,19 +1331,22 @@ exports[`ProjectEnvironments render hidden renders environment list 1`] = `
                         onClick={[Function]}
                         role="button"
                       >
-                        <FlowLayout
-                          truncate={false}
-                        >
-                          <div
-                            className="flow-layout"
+                        <Flex>
+                          <Base
+                            className="glamor-17"
                           >
-                            <span
-                              className="button-label"
+                            <div
+                              className="glamor-17"
+                              is={null}
                             >
-                              Show
-                            </span>
-                          </div>
-                        </FlowLayout>
+                              <span
+                                className="button-label"
+                              >
+                                Show
+                              </span>
+                            </div>
+                          </Base>
+                        </Flex>
                       </button>
                     </Button>
                   </div>

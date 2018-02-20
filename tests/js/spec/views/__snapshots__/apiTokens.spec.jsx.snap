@@ -92,13 +92,13 @@ exports[`ApiTokens renders empty result 1`] = `
 `;
 
 exports[`ApiTokens renders with result 1`] = `
-.glamor-4 {
+.glamor-6 {
   font-size: 14px;
   box-shadow: inset 0 -1px 0;
   margin: -20px 0 30px;
 }
 
-.glamor-2 {
+.glamor-4 {
   box-sizing: border-box;
   display: -webkit-box;
   display: -webkit-flex;
@@ -119,19 +119,27 @@ exports[`ApiTokens renders with result 1`] = `
   flex: 1;
 }
 
-.glamor-6 {
+.glamor-2 {
+  box-sizing: border-box;
+  display: -webkit-box;
+  display: -webkit-flex;
+  display: -ms-flexbox;
+  display: flex;
+}
+
+.glamor-8 {
   line-height: 1.5;
   margin-bottom: 30px;
 }
 
-.glamor-49 {
+.glamor-53 {
   background: #fff;
   border: 1px solid;
   margin-bottom: NaNpx;
   position: relative;
 }
 
-.glamor-23 {
+.glamor-25 {
   border-bottom: 1px solid;
   border-radius: 0 0;
   text-transform: uppercase;
@@ -140,13 +148,13 @@ exports[`ApiTokens renders with result 1`] = `
   padding: 15px 0;
 }
 
-.glamor-19 {
+.glamor-21 {
   font-size: inherit;
   text-transform: inherit;
   margin: 0;
 }
 
-.glamor-17 {
+.glamor-19 {
   font-size: 12px;
   font-weight: 600;
   text-transform: uppercase;
@@ -156,7 +164,7 @@ exports[`ApiTokens renders with result 1`] = `
   margin: 0;
 }
 
-.glamor-12 {
+.glamor-14 {
   box-sizing: border-box;
   padding-left: 16px;
   padding-right: 16px;
@@ -165,7 +173,7 @@ exports[`ApiTokens renders with result 1`] = `
   flex: 1;
 }
 
-.glamor-45 {
+.glamor-49 {
   box-sizing: border-box;
   padding: 16px;
   padding-left: 16px;
@@ -183,11 +191,11 @@ exports[`ApiTokens renders with result 1`] = `
   border-bottom: 1px solid;
 }
 
-.glamor-45:last-child {
+.glamor-49:last-child {
   border: 0;
 }
 
-.glamor-39 {
+.glamor-41 {
   box-sizing: border-box;
   -webkit-flex: 1;
   -ms-flex: 1;
@@ -195,14 +203,6 @@ exports[`ApiTokens renders with result 1`] = `
 }
 
 .glamor-33 {
-  box-sizing: border-box;
-  display: -webkit-box;
-  display: -webkit-flex;
-  display: -ms-flexbox;
-  display: flex;
-}
-
-.glamor-31 {
   -webkit-box-flex: 1;
   -webkit-flex-grow: 1;
   -ms-flex-positive: 1;
@@ -210,7 +210,7 @@ exports[`ApiTokens renders with result 1`] = `
   border: none;
 }
 
-.glamor-27 {
+.glamor-29 {
   display: block;
   width: 100%;
   background: #fff;
@@ -226,46 +226,46 @@ exports[`ApiTokens renders with result 1`] = `
   border-bottom-right-radius: 0;
 }
 
-.glamor-27:focus {
+.glamor-29:focus {
   outline: none;
 }
 
-.glamor-27:hover,
-.glamor-27:focus,
-.glamor-27:active {
+.glamor-29:hover,
+.glamor-29:focus,
+.glamor-29:active {
   border: 1px solid;
 }
 
-.glamor-27:hover,
-.glamor-27:focus {
+.glamor-29:hover,
+.glamor-29:focus {
   border-right-width: 0;
 }
 
-.glamor-27:hover,
-.glamor-27:focus {
+.glamor-29:hover,
+.glamor-29:focus {
   border-right-width: 0;
 }
 
-.glamor-27:hover,
-.glamor-27:focus {
+.glamor-29:hover,
+.glamor-29:focus {
   border-right-width: 0;
 }
 
-.glamor-27:hover,
-.glamor-27:focus {
+.glamor-29:hover,
+.glamor-29:focus {
   border-right-width: 0;
-}
-
-.glamor-35 {
-  font-size: 0.9em;
 }
 
 .glamor-37 {
   font-size: 0.9em;
+}
+
+.glamor-39 {
+  font-size: 0.9em;
   color: #999;
 }
 
-.glamor-41 {
+.glamor-45 {
   box-sizing: border-box;
   padding-left: 16px;
 }
@@ -294,17 +294,17 @@ exports[`ApiTokens renders with result 1`] = `
         >
           <Wrapper>
             <div
-              className="glamor-4 glamor-5"
+              className="glamor-6 glamor-7"
             >
               <Flex
                 align="center"
               >
                 <Base
                   align="center"
-                  className="glamor-2"
+                  className="glamor-4"
                 >
                   <div
-                    className="glamor-2"
+                    className="glamor-4"
                     is={null}
                   >
                     <Title>
@@ -338,19 +338,22 @@ exports[`ApiTokens renders with result 1`] = `
                             role="button"
                             style={Object {}}
                           >
-                            <FlowLayout
-                              truncate={false}
-                            >
-                              <div
-                                className="flow-layout"
+                            <Flex>
+                              <Base
+                                className="glamor-2"
                               >
-                                <span
-                                  className="button-label"
+                                <div
+                                  className="glamor-2"
+                                  is={null}
                                 >
-                                  Create New Token
-                                </span>
-                              </div>
-                            </FlowLayout>
+                                  <span
+                                    className="button-label"
+                                  >
+                                    Create New Token
+                                  </span>
+                                </div>
+                              </Base>
+                            </Flex>
                           </a>
                         </Link>
                       </Button>
@@ -363,14 +366,14 @@ exports[`ApiTokens renders with result 1`] = `
         </SettingsPageHeading>
         <TextBlock>
           <div
-            className="glamor-6 glamor-7"
+            className="glamor-8 glamor-9"
           >
             Authentication tokens allow you to perform actions against the Sentry API on behalf of your account. They're the easiest way to get started using the API.
           </div>
         </TextBlock>
         <TextBlock>
           <div
-            className="glamor-6 glamor-7"
+            className="glamor-8 glamor-9"
           >
             <span
               key="5"
@@ -400,7 +403,7 @@ exports[`ApiTokens renders with result 1`] = `
         </TextBlock>
         <TextBlock>
           <div
-            className="glamor-6 glamor-7"
+            className="glamor-8 glamor-9"
           >
             <small>
               psst. Looking for the 
@@ -418,7 +421,7 @@ exports[`ApiTokens renders with result 1`] = `
         </TextBlock>
         <Panel>
           <div
-            className="glamor-49 glamor-50"
+            className="glamor-53 glamor-54"
           >
             <PanelHeader
               disablePadding={true}
@@ -427,31 +430,31 @@ exports[`ApiTokens renders with result 1`] = `
                 disablePadding={true}
               >
                 <Component
-                  className="glamor-23 glamor-24"
+                  className="glamor-25 glamor-26"
                   disablePadding={true}
                 >
                   <div
-                    className="glamor-23 glamor-24"
+                    className="glamor-25 glamor-26"
                   >
                     <StyledPanelHeading>
                       <Component
-                        className="glamor-19 glamor-16"
+                        className="glamor-21 glamor-18"
                       >
                         <PanelHeading
-                          className="glamor-19 glamor-16"
+                          className="glamor-21 glamor-18"
                         >
                           <div
-                            className="glamor-16 glamor-17 glamor-18"
+                            className="glamor-18 glamor-19 glamor-20"
                           >
                             <Flex
                               align="center"
                             >
                               <Base
                                 align="center"
-                                className="glamor-2"
+                                className="glamor-4"
                               >
                                 <div
-                                  className="glamor-2"
+                                  className="glamor-4"
                                   is={null}
                                 >
                                   <Box
@@ -459,12 +462,12 @@ exports[`ApiTokens renders with result 1`] = `
                                     px={2}
                                   >
                                     <Base
-                                      className="glamor-12"
+                                      className="glamor-14"
                                       flex="1"
                                       px={2}
                                     >
                                       <div
-                                        className="glamor-12"
+                                        className="glamor-14"
                                         is={null}
                                       >
                                         Auth Token
@@ -517,25 +520,25 @@ exports[`ApiTokens renders with result 1`] = `
                       py={2}
                     >
                       <Base
-                        className="glamor-45 glamor-46"
+                        className="glamor-49 glamor-50"
                         justify="space-between"
                         p={2}
                         px={2}
                         py={2}
                       >
                         <div
-                          className="glamor-45 glamor-46"
+                          className="glamor-49 glamor-50"
                           is={null}
                         >
                           <Box
                             flex="1"
                           >
                             <Base
-                              className="glamor-39"
+                              className="glamor-41"
                               flex="1"
                             >
                               <div
-                                className="glamor-39"
+                                className="glamor-41"
                                 is={null}
                               >
                                 <div
@@ -553,15 +556,15 @@ exports[`ApiTokens renders with result 1`] = `
                                     >
                                       <Flex>
                                         <Base
-                                          className="glamor-33"
+                                          className="glamor-2"
                                         >
                                           <div
-                                            className="glamor-33"
+                                            className="glamor-2"
                                             is={null}
                                           >
                                             <OverflowContainer>
                                               <div
-                                                className="glamor-31 glamor-32"
+                                                className="glamor-33 glamor-34"
                                               >
                                                 <StyledInput
                                                   onClick={[Function]}
@@ -569,13 +572,13 @@ exports[`ApiTokens renders with result 1`] = `
                                                   value="apitoken123"
                                                 >
                                                   <Component
-                                                    className="glamor-27 glamor-28"
+                                                    className="glamor-29 glamor-30"
                                                     onClick={[Function]}
                                                     readOnly={true}
                                                     value="apitoken123"
                                                   >
                                                     <input
-                                                      className="glamor-27 glamor-28"
+                                                      className="glamor-29 glamor-30"
                                                       onClick={[Function]}
                                                       readOnly={true}
                                                       value="apitoken123"
@@ -607,7 +610,7 @@ exports[`ApiTokens renders with result 1`] = `
                                 >
                                   <Created>
                                     <div
-                                      className="glamor-35 glamor-36"
+                                      className="glamor-37 glamor-38"
                                     >
                                       Created
                                        
@@ -625,7 +628,7 @@ exports[`ApiTokens renders with result 1`] = `
                                 <div>
                                   <ScopeList>
                                     <div
-                                      className="glamor-37 glamor-38"
+                                      className="glamor-39 glamor-40"
                                     >
                                       scope1, scope2
                                     </div>
@@ -639,21 +642,21 @@ exports[`ApiTokens renders with result 1`] = `
                           >
                             <Base
                               align="center"
-                              className="glamor-2"
+                              className="glamor-4"
                             >
                               <div
-                                className="glamor-2"
+                                className="glamor-4"
                                 is={null}
                               >
                                 <Box
                                   pl={2}
                                 >
                                   <Base
-                                    className="glamor-41"
+                                    className="glamor-45"
                                     pl={2}
                                   >
                                     <div
-                                      className="glamor-41"
+                                      className="glamor-45"
                                       is={null}
                                     >
                                       <Button
@@ -666,21 +669,24 @@ exports[`ApiTokens renders with result 1`] = `
                                           onClick={[Function]}
                                           role="button"
                                         >
-                                          <FlowLayout
-                                            truncate={false}
-                                          >
-                                            <div
-                                              className="flow-layout"
+                                          <Flex>
+                                            <Base
+                                              className="glamor-2"
                                             >
-                                              <span
-                                                className="button-label"
+                                              <div
+                                                className="glamor-2"
+                                                is={null}
                                               >
                                                 <span
-                                                  className="icon icon-trash"
-                                                />
-                                              </span>
-                                            </div>
-                                          </FlowLayout>
+                                                  className="button-label"
+                                                >
+                                                  <span
+                                                    className="icon icon-trash"
+                                                  />
+                                                </span>
+                                              </div>
+                                            </Base>
+                                          </Flex>
                                         </button>
                                       </Button>
                                     </div>

@@ -1,13 +1,13 @@
 // Jest Snapshot v1, https://goo.gl/fbAQLP
 
 exports[`ProjectPluginDetails renders 1`] = `
-.glamor-4 {
+.glamor-8 {
   font-size: 14px;
   box-shadow: inset 0 -1px 0;
   margin: -20px 0 30px;
 }
 
-.glamor-2 {
+.glamor-6 {
   box-sizing: border-box;
   display: -webkit-box;
   display: -webkit-flex;
@@ -28,14 +28,22 @@ exports[`ProjectPluginDetails renders 1`] = `
   flex: 1;
 }
 
-.glamor-27 {
+.glamor-2 {
+  box-sizing: border-box;
+  display: -webkit-box;
+  display: -webkit-flex;
+  display: -ms-flexbox;
+  display: flex;
+}
+
+.glamor-31 {
   background: #fff;
   border: 1px solid;
   margin-bottom: NaNpx;
   position: relative;
 }
 
-.glamor-21 {
+.glamor-25 {
   border-bottom: 1px solid;
   border-radius: 0 0;
   text-transform: uppercase;
@@ -44,13 +52,13 @@ exports[`ProjectPluginDetails renders 1`] = `
   padding: 8px 20px;
 }
 
-.glamor-17 {
+.glamor-21 {
   font-size: inherit;
   text-transform: inherit;
   margin: 0;
 }
 
-.glamor-15 {
+.glamor-19 {
   font-size: 12px;
   font-weight: 600;
   text-transform: uppercase;
@@ -60,15 +68,7 @@ exports[`ProjectPluginDetails renders 1`] = `
   margin: 0;
 }
 
-.glamor-12 {
-  box-sizing: border-box;
-  display: -webkit-box;
-  display: -webkit-flex;
-  display: -ms-flexbox;
-  display: flex;
-}
-
-.glamor-10 {
+.glamor-14 {
   box-sizing: border-box;
   -webkit-flex: 1;
   -ms-flex: 1;
@@ -83,7 +83,7 @@ exports[`ProjectPluginDetails renders 1`] = `
   align-items: center;
 }
 
-.glamor-8 {
+.glamor-12 {
   box-sizing: border-box;
   margin-right: 8px;
   display: -webkit-box;
@@ -96,7 +96,7 @@ exports[`ProjectPluginDetails renders 1`] = `
   align-items: center;
 }
 
-.glamor-6 {
+.glamor-10 {
   position: relative;
   height: 20px;
   width: 20px;
@@ -110,7 +110,7 @@ exports[`ProjectPluginDetails renders 1`] = `
   background-image: url();
 }
 
-.glamor-25 {
+.glamor-29 {
   box-sizing: border-box;
   padding-top: 16px;
   padding-left: 16px;
@@ -270,17 +270,17 @@ exports[`ProjectPluginDetails renders 1`] = `
           >
             <Wrapper>
               <div
-                className="glamor-4 glamor-5"
+                className="glamor-8 glamor-9"
               >
                 <Flex
                   align="center"
                 >
                   <Base
                     align="center"
-                    className="glamor-2"
+                    className="glamor-6"
                   >
                     <div
-                      className="glamor-2"
+                      className="glamor-6"
                       is={null}
                     >
                       <Title>
@@ -314,19 +314,22 @@ exports[`ProjectPluginDetails renders 1`] = `
                                 }
                               }
                             >
-                              <FlowLayout
-                                truncate={false}
-                              >
-                                <div
-                                  className="flow-layout"
+                              <Flex>
+                                <Base
+                                  className="glamor-2"
                                 >
-                                  <span
-                                    className="button-label"
+                                  <div
+                                    className="glamor-2"
+                                    is={null}
                                   >
-                                    Enable Plugin
-                                  </span>
-                                </div>
-                              </FlowLayout>
+                                    <span
+                                      className="button-label"
+                                    >
+                                      Enable Plugin
+                                    </span>
+                                  </div>
+                                </Base>
+                              </Flex>
                             </button>
                           </Button>
                           <Button
@@ -339,19 +342,22 @@ exports[`ProjectPluginDetails renders 1`] = `
                               onClick={[Function]}
                               role="button"
                             >
-                              <FlowLayout
-                                truncate={false}
-                              >
-                                <div
-                                  className="flow-layout"
+                              <Flex>
+                                <Base
+                                  className="glamor-2"
                                 >
-                                  <span
-                                    className="button-label"
+                                  <div
+                                    className="glamor-2"
+                                    is={null}
                                   >
-                                    Reset Configuration
-                                  </span>
-                                </div>
-                              </FlowLayout>
+                                    <span
+                                      className="button-label"
+                                    >
+                                      Reset Configuration
+                                    </span>
+                                  </div>
+                                </Base>
+                              </Flex>
                             </button>
                           </Button>
                         </div>
@@ -427,7 +433,7 @@ exports[`ProjectPluginDetails renders 1`] = `
                   className="plugin-config ref-plugin-config-amazon-sqs"
                 >
                   <div
-                    className="plugin-config ref-plugin-config-amazon-sqs glamor-27 glamor-28"
+                    className="plugin-config ref-plugin-config-amazon-sqs glamor-31 glamor-32"
                   >
                     <PanelHeader
                       hasButtons={true}
@@ -436,29 +442,29 @@ exports[`ProjectPluginDetails renders 1`] = `
                         hasButtons={true}
                       >
                         <Component
-                          className="glamor-21 glamor-22"
+                          className="glamor-25 glamor-26"
                           hasButtons={true}
                         >
                           <div
-                            className="glamor-21 glamor-22"
+                            className="glamor-25 glamor-26"
                             hasButtons={true}
                           >
                             <StyledPanelHeading>
                               <Component
-                                className="glamor-17 glamor-14"
+                                className="glamor-21 glamor-18"
                               >
                                 <PanelHeading
-                                  className="glamor-17 glamor-14"
+                                  className="glamor-21 glamor-18"
                                 >
                                   <div
-                                    className="glamor-14 glamor-15 glamor-16"
+                                    className="glamor-18 glamor-19 glamor-20"
                                   >
                                     <Flex>
                                       <Base
-                                        className="glamor-12"
+                                        className="glamor-2"
                                       >
                                         <div
-                                          className="glamor-12"
+                                          className="glamor-2"
                                           is={null}
                                         >
                                           <Flex
@@ -467,11 +473,11 @@ exports[`ProjectPluginDetails renders 1`] = `
                                           >
                                             <Base
                                               align="center"
-                                              className="glamor-10"
+                                              className="glamor-14"
                                               flex="1"
                                             >
                                               <div
-                                                className="glamor-10"
+                                                className="glamor-14"
                                                 is={null}
                                               >
                                                 <Flex
@@ -480,11 +486,11 @@ exports[`ProjectPluginDetails renders 1`] = `
                                                 >
                                                   <Base
                                                     align="center"
-                                                    className="glamor-8"
+                                                    className="glamor-12"
                                                     mr={1}
                                                   >
                                                     <div
-                                                      className="glamor-8"
+                                                      className="glamor-12"
                                                       is={null}
                                                     >
                                                       <PluginIcon
@@ -496,7 +502,7 @@ exports[`ProjectPluginDetails renders 1`] = `
                                                           size={20}
                                                         >
                                                           <div
-                                                            className="glamor-6 glamor-7"
+                                                            className="glamor-10 glamor-11"
                                                             size={20}
                                                           />
                                                         </IntegrationIcon>
@@ -537,14 +543,14 @@ exports[`ProjectPluginDetails renders 1`] = `
                         wrap="wrap"
                       >
                         <Base
-                          className="glamor-25"
+                          className="glamor-29"
                           direction="column"
                           pt={2}
                           px={2}
                           wrap="wrap"
                         >
                           <div
-                            className="glamor-25"
+                            className="glamor-29"
                             is={null}
                           >
                             <div
