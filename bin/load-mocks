@@ -57,6 +57,7 @@ ENVIRONMENTS = itertools.cycle([
     'staging',
     'alpha',
     'beta',
+    ''
 ])
 
 
@@ -75,6 +76,7 @@ def create_sample_event(*args, **kwargs):
         if event is not None:
             features.record([event])
             return event
+
 
 def generate_commits(user):
     commits = []
