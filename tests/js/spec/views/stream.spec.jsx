@@ -7,6 +7,8 @@ import {Client} from 'app/api';
 import CursorPoller from 'app/utils/cursorPoller';
 import LoadingError from 'app/components/loadingError';
 import Stream from 'app/views/stream';
+import EnvironmentStore from 'app/stores/environmentStore';
+import {setActiveEnvironment} from 'app/actionCreators/environments';
 
 jest.unmock('app/api');
 jest.mock('app/stores/groupStore');
@@ -135,7 +137,7 @@ describe('Stream', function() {
       expect(stream.lastRequest).toBeNull();
     });
 
-    it('sends environment attribute if one is set', function() {
+    it('sends environment attribute', function() {
       stubbedApiRequest.restore();
 
       let requestCancel = sandbox.stub();
@@ -268,6 +270,20 @@ describe('Stream', function() {
       });
 
       expect(wrapper.state('realtimeActive')).toBe(true);
+    });
+  });
+
+  describe('toggles environment', function() {
+    it('select all environments', function() {
+      EnvironmentStore.loadInitialData(TestStubs.Environments());
+      setActiveEnvironment(null);
+      wrapper.setState({
+        error: false,
+        groupIds: ['1'],
+        loading: false,
+        dataLoading: false,
+      });
+      expect(wrapper).toMatchSnapshot();
     });
   });
 

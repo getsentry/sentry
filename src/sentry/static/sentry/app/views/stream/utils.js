@@ -10,7 +10,7 @@ function getQueryEnvironment(qs) {
 }
 
 function getQueryStringWithEnvironment(qs, env) {
-  const qsWithoutEnv = qs.replace(/environment:\w+/g, '');
+  const qsWithoutEnv = qs.replace(/environment:\w*/g, '');
   return formatQueryString(
     env === null ? qsWithoutEnv : qsWithoutEnv + ` environment:${env}`
   );

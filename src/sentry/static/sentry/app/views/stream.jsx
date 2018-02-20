@@ -538,7 +538,7 @@ const Stream = createReactClass({
 
       let query = streamUtils.getQueryStringWithEnvironment(
         this.state.query,
-        environment.name
+        environment === null ? null : environment.name
       );
 
       this.setState(
