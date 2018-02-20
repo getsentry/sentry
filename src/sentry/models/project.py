@@ -309,9 +309,15 @@ class Project(Model):
                 team=team,
             )
 
-        # We only need to delete ReleaseProjects when moving to a different
-        # Organization. Releases are bound to Organization, so it's not realistic
-        # to keep this link unless we say, copied all Releases as well.
+        # Both environments and releases are bound at an organization level.
+        # Due to this, when you transfer a project into another org, we have to
+        # handle this behavior somehow. We really only have two options here:
+        # * Copy over all releases/environments into the new org and handle de-duping
+        # * Delete the bindings and let them reform with new data.
+        # We're choosing to just delete the bindings since new data flowing in will
+        # recreate links correctly. The tradeoff is that historical data is
+        # lost, but this is a compromise we're willing to take and a side effect
+        # of allowing this feature.
         if org_changed:
             for model in ReleaseProject, EnvironmentProject:
                 model.objects.filter(
