@@ -131,7 +131,7 @@ const ProjectEnvironments = createReactClass({
     const {isHidden} = this.state;
     const buttonText = isHidden ? t('Show') : t('Hide');
     return envs.map(env => (
-      <PanelItem key={env.id} style={{justifyContent: 'space-between'}}>
+      <PanelItem key={env.id} align="center" justify="space-between">
         <span>{env.displayName}</span>
         <Button size="xsmall" onClick={() => this.toggleEnv(env, !isHidden)}>
           {buttonText}

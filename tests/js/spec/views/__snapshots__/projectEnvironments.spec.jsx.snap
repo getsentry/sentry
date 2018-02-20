@@ -354,6 +354,14 @@ exports[`ProjectEnvironments render active renders environment list 1`] = `
   display: -webkit-flex;
   display: -ms-flexbox;
   display: flex;
+  -webkit-align-items: center;
+  -webkit-box-align: center;
+  -ms-flex-align: center;
+  align-items: center;
+  -webkit-box-pack: justify;
+  -webkit-justify-content: space-between;
+  -ms-flex-pack: justify;
+  justify-content: space-between;
   border-bottom: 1px solid;
 }
 
@@ -559,39 +567,25 @@ exports[`ProjectEnvironments render active renders environment list 1`] = `
             className=""
           >
             <PanelItem
+              align="center"
+              justify="space-between"
               key="1"
               p={2}
-              style={
-                Object {
-                  "justifyContent": "space-between",
-                }
-              }
             >
               <StyledPanelItem
+                align="center"
+                justify="space-between"
                 p={2}
-                style={
-                  Object {
-                    "justifyContent": "space-between",
-                  }
-                }
               >
                 <Base
+                  align="center"
                   className="glamor-17 glamor-18"
+                  justify="space-between"
                   p={2}
-                  style={
-                    Object {
-                      "justifyContent": "space-between",
-                    }
-                  }
                 >
                   <div
                     className="glamor-17 glamor-18"
                     is={null}
-                    style={
-                      Object {
-                        "justifyContent": "space-between",
-                      }
-                    }
                   >
                     <span>
                       Production
@@ -627,39 +621,25 @@ exports[`ProjectEnvironments render active renders environment list 1`] = `
               </StyledPanelItem>
             </PanelItem>
             <PanelItem
+              align="center"
+              justify="space-between"
               key="2"
               p={2}
-              style={
-                Object {
-                  "justifyContent": "space-between",
-                }
-              }
             >
               <StyledPanelItem
+                align="center"
+                justify="space-between"
                 p={2}
-                style={
-                  Object {
-                    "justifyContent": "space-between",
-                  }
-                }
               >
                 <Base
+                  align="center"
                   className="glamor-17 glamor-18"
+                  justify="space-between"
                   p={2}
-                  style={
-                    Object {
-                      "justifyContent": "space-between",
-                    }
-                  }
                 >
                   <div
                     className="glamor-17 glamor-18"
                     is={null}
-                    style={
-                      Object {
-                        "justifyContent": "space-between",
-                      }
-                    }
                   >
                     <span>
                       Staging
@@ -1056,6 +1036,14 @@ exports[`ProjectEnvironments render hidden renders environment list 1`] = `
   display: -webkit-flex;
   display: -ms-flexbox;
   display: flex;
+  -webkit-align-items: center;
+  -webkit-box-align: center;
+  -ms-flex-align: center;
+  align-items: center;
+  -webkit-box-pack: justify;
+  -webkit-justify-content: space-between;
+  -ms-flex-pack: justify;
+  justify-content: space-between;
   border-bottom: 1px solid;
 }
 
@@ -1261,39 +1249,25 @@ exports[`ProjectEnvironments render hidden renders environment list 1`] = `
             className=""
           >
             <PanelItem
+              align="center"
+              justify="space-between"
               key="1"
               p={2}
-              style={
-                Object {
-                  "justifyContent": "space-between",
-                }
-              }
             >
               <StyledPanelItem
+                align="center"
+                justify="space-between"
                 p={2}
-                style={
-                  Object {
-                    "justifyContent": "space-between",
-                  }
-                }
               >
                 <Base
+                  align="center"
                   className="glamor-17 glamor-18"
+                  justify="space-between"
                   p={2}
-                  style={
-                    Object {
-                      "justifyContent": "space-between",
-                    }
-                  }
                 >
                   <div
                     className="glamor-17 glamor-18"
                     is={null}
-                    style={
-                      Object {
-                        "justifyContent": "space-between",
-                      }
-                    }
                   >
                     <span>
                       Zzz
