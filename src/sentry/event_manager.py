@@ -698,6 +698,14 @@ class EventManager(object):
         # store a reference to the group id to guarantee validation of isolation
         event.data.bind_ref(event)
 
+        UserReport.objects.filter(
+            project=project,
+            event_id=event_id,
+        ).update(
+            group=group,
+            environment=environment,
+        )
+
         # When an event was sampled, the canonical source of truth
         # is the EventMapping table since we aren't going to be writing out an actual
         # Event row. Otherwise, if the Event isn't being sampled, we can safely
@@ -804,14 +812,6 @@ class EventManager(object):
             )
 
         tsdb.record_frequency_multi(frequencies, timestamp=event.datetime)
-
-        UserReport.objects.filter(
-            project=project,
-            event_id=event_id,
-        ).update(
-            group=group,
-            environment=environment,
-        )
 
         # save the event unless its been sampled
         if not is_sample:
