@@ -3,7 +3,6 @@ import {storiesOf} from '@storybook/react';
 import {withInfo} from '@storybook/addon-info';
 
 import DropdownAutoComplete from 'sentry-ui/dropdownAutoComplete';
-import DropdownButton from 'sentry-ui/dropdownButton';
 
 const items = [
   {
@@ -49,11 +48,9 @@ const items = [
   },
 ];
 
-storiesOf('DropdownButton', module).add(
+storiesOf('DropdownAutoComplete', module).add(
   'default',
-  withInfo('A button meant to be used with some sort of dropdown')(() => (
-    <DropdownAutoComplete items={items}>
-      {({isOpen}) => <DropdownButton isOpen={isOpen}>Click me!</DropdownButton>}
-    </DropdownAutoComplete>
+  withInfo('A flexible dropdown with autocomplete and grouping')(() => (
+    <DropdownAutoComplete items={items}>Click Me!</DropdownAutoComplete>
   ))
 );

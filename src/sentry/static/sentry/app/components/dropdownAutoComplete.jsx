@@ -110,7 +110,11 @@ class DropdownAutoComplete extends React.Component {
             </AutoComplete>
           </StyledMenu>
         )}
-        <div onClick={this.onSelect}>{this.props.children}</div>
+        <div onClick={this.onSelect}>
+          {this.props.children({
+            isOpen: this.state.isOpen,
+          })}
+        </div>
       </div>
     );
   }
@@ -118,9 +122,9 @@ class DropdownAutoComplete extends React.Component {
 
 DropdownAutoComplete.propTypes = {
   items: PropTypes.array,
-  onBlur: PropTypes.func,
-  onSelect: PropTypes.func,
   isOpen: PropTypes.bool,
+  onSelect: PropTypes.func,
+  children: PropTypes.func,
 };
 
 const StyledInput = styled(Input)`
