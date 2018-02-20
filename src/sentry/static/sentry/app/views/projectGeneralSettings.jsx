@@ -103,30 +103,30 @@ export default class ProjectGeneralSettings extends AsyncView {
           })}
           help={t('Careful, this action cannot be undone.')}
         >
-          <div>
-            <Confirm
-              onConfirm={this.handleRemoveProject}
-              priority="danger"
-              title={t('Remove project?')}
-              confirmText={t('Remove project')}
-              message={
-                <div>
-                  <TextBlock>
-                    <strong>
-                      {t('Removing this project is permanent and cannot be undone!')}
-                    </strong>
-                  </TextBlock>
-                  <TextBlock>
-                    {t('This will also remove all associated event data.')}
-                  </TextBlock>
-                </div>
-              }
-            >
+          <Confirm
+            onConfirm={this.handleRemoveProject}
+            priority="danger"
+            title={t('Remove project?')}
+            confirmText={t('Remove project')}
+            message={
+              <div>
+                <TextBlock>
+                  <strong>
+                    {t('Removing this project is permanent and cannot be undone!')}
+                  </strong>
+                </TextBlock>
+                <TextBlock>
+                  {t('This will also remove all associated event data.')}
+                </TextBlock>
+              </div>
+            }
+          >
+            <div>
               <Button className="ref-remove-project" type="button" priority="danger">
                 {t('Remove Project')}
               </Button>
-            </Confirm>
-          </div>
+            </div>
+          </Confirm>
         </Field>
       );
     }
@@ -160,56 +160,56 @@ export default class ProjectGeneralSettings extends AsyncView {
           })}
           help={t('Careful, this action cannot be undone.')}
         >
-          <div>
-            <Confirm
-              onConfirm={this.handleTransferProject}
-              priority="danger"
-              title={`${t('Transfer project')}?`}
-              confirmText={t('Transfer project')}
-              renderMessage={({doConfirm, doClose}) => (
-                <div>
-                  <TextBlock>
-                    <strong>
-                      {t('Transferring this project is permanent and cannot be undone!')}
-                    </strong>
-                  </TextBlock>
-                  <TextBlock>
-                    {t(
-                      'Please enter the owner of the organization you would like to transfer this project to.'
-                    )}
-                  </TextBlock>
-                  <Panel>
-                    <PanelHeader>{t('Transfer to')}</PanelHeader>
-                    <Form
-                      hideFooter
-                      onFieldChange={this.handleTransferFieldChange}
-                      onSubmit={(data, onSuccess, onError, e) => {
-                        e.stopPropagation();
-                        doConfirm();
-                      }}
-                    >
-                      <TextField
-                        name="email"
-                        label={t('Organization Owner')}
-                        placeholder="admin@example.com"
-                        required
-                        help={tct(
-                          'A request will be emailed to the new owner in order to transfer [project] to a new organization.',
-                          {
-                            project: <strong> {project.slug} </strong>,
-                          }
-                        )}
-                      />
-                    </Form>
-                  </Panel>
-                </div>
-              )}
-            >
+          <Confirm
+            onConfirm={this.handleTransferProject}
+            priority="danger"
+            title={`${t('Transfer project')}?`}
+            confirmText={t('Transfer project')}
+            renderMessage={({doConfirm, doClose}) => (
+              <div>
+                <TextBlock>
+                  <strong>
+                    {t('Transferring this project is permanent and cannot be undone!')}
+                  </strong>
+                </TextBlock>
+                <TextBlock>
+                  {t(
+                    'Please enter the owner of the organization you would like to transfer this project to.'
+                  )}
+                </TextBlock>
+                <Panel>
+                  <PanelHeader>{t('Transfer to')}</PanelHeader>
+                  <Form
+                    hideFooter
+                    onFieldChange={this.handleTransferFieldChange}
+                    onSubmit={(data, onSuccess, onError, e) => {
+                      e.stopPropagation();
+                      doConfirm();
+                    }}
+                  >
+                    <TextField
+                      name="email"
+                      label={t('Organization Owner')}
+                      placeholder="admin@example.com"
+                      required
+                      help={tct(
+                        'A request will be emailed to the new owner in order to transfer [project] to a new organization.',
+                        {
+                          project: <strong> {project.slug} </strong>,
+                        }
+                      )}
+                    />
+                  </Form>
+                </Panel>
+              </div>
+            )}
+          >
+            <div>
               <Button className="ref-transfer-project" type="button" priority="danger">
                 {t('Transfer Project')}
               </Button>
-            </Confirm>
-          </div>
+            </div>
+          </Confirm>
         </Field>
       );
     }
