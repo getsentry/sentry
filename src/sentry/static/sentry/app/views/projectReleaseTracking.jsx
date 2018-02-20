@@ -7,16 +7,20 @@ import {t, tct} from '../locale';
 import AlertActions from '../actions/alertActions';
 import ApiMixin from '../mixins/apiMixin';
 import AutoSelectText from '../components/autoSelectText';
+import Button from '../components/buttons/button';
+import Confirm from '../components/confirm';
 import DynamicWrapper from '../components/dynamicWrapper';
 import LoadingError from '../components/loadingError';
 import LoadingIndicator from '../components/loadingIndicator';
 import Panel from './settings/components/panel';
 import PanelBody from './settings/components/panelBody';
 import PanelHeader from './settings/components/panelHeader';
+import Field from './settings/components/forms/field';
 import PluginList from '../components/pluginList';
 import SentryTypes from '../proptypes';
 import SettingsPageHeader from './settings/components/settingsPageHeader';
 import TextBlock from './settings/components/text/textBlock';
+import TextCopyInput from './settings/components/forms/textCopyInput';
 import withPlugins from '../utils/withPlugins';
 
 const noMargin = {margin: 0};
@@ -71,12 +75,7 @@ const ProjectReleaseTracking = createReactClass({
     });
   },
 
-  onSubmit(evt) {
-    evt.preventDefault();
-    this.regenerateToken();
-  },
-
-  regenerateToken() {
+  handleRegenerateToken() {
     let {orgId, projectId} = this.props.params;
     this.api.request(`/projects/${orgId}/${projectId}/releases/token/`, {
       method: 'POST',
@@ -180,31 +179,37 @@ const ProjectReleaseTracking = createReactClass({
         </Panel>
 
         <Panel>
-          <PanelHeader>{t('Token')}</PanelHeader>
-          <PanelBody disablePadding={false} flex>
-            <form>
-              <p>
-                {t(
-                  'Your token is a unique secret which is used to generate deploy hook URLs. If a service becomes compromised, you should regenerate the token and re-configure any deploy hooks with the newly generated URL.'
-                )}
-              </p>
-              <p>
-                <code style={{display: 'inlineBlock'}} className="auto-select">
-                  <DynamicWrapper value={this.state.token} fixed="__TOKEN__" />
-                </code>
-              </p>
+          <PanelHeader>{t('Deploy Token')}</PanelHeader>
+          <PanelBody flex>
+            <Field
+              label={t('Token')}
+              help={t('A unique secret which is used to generate deploy hook URLs')}
+            >
+              <DynamicWrapper
+                value={<TextCopyInput>{this.state.token}</TextCopyInput>}
+                fixed="__TOKEN__"
+              />
+            </Field>
+            <Field
+              label={t('Regenerate Token')}
+              help={t(
+                'If a service becomes compromised, you should regenerate the token and re-configure any deploy hooks with the newly generated URL.'
+              )}
+            >
               <div>
-                <button
-                  type="submit"
-                  className="btn btn-sm btn-danger"
-                  name="op"
-                  value="regenerate-token"
-                  onClick={this.onSubmit}
+                <Confirm
+                  priority="danger"
+                  onConfirm={this.handleRegenerateToken}
+                  message={t(
+                    'Are you sure you want to regenerate your token? Your current token will no longer be usable.'
+                  )}
                 >
-                  {t('Regenerate Token')}
-                </button>
+                  <Button type="button" priority="danger">
+                    {t('Regenerate Token')}
+                  </Button>
+                </Confirm>
               </div>
-            </form>
+            </Field>
           </PanelBody>
         </Panel>
 
