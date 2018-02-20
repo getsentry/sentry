@@ -47,14 +47,14 @@ exports[`OrganizationIntegrationConfig render() with one integration renders 1`]
   flex: 1;
 }
 
-.glamor-43 {
+.glamor-47 {
   background: #fff;
   border: 1px solid;
   margin-bottom: NaNpx;
   position: relative;
 }
 
-.glamor-23 {
+.glamor-25 {
   border-bottom: 1px solid;
   border-radius: 0 0;
   text-transform: uppercase;
@@ -63,13 +63,13 @@ exports[`OrganizationIntegrationConfig render() with one integration renders 1`]
   padding: 8px 0;
 }
 
-.glamor-19 {
+.glamor-21 {
   font-size: inherit;
   text-transform: inherit;
   margin: 0;
 }
 
-.glamor-17 {
+.glamor-19 {
   font-size: 12px;
   font-weight: 600;
   text-transform: uppercase;
@@ -88,12 +88,20 @@ exports[`OrganizationIntegrationConfig render() with one integration renders 1`]
   flex: 1;
 }
 
-.glamor-12 {
+.glamor-14 {
   box-sizing: border-box;
   margin-right: 8px;
 }
 
-.glamor-39 {
+.glamor-12 {
+  box-sizing: border-box;
+  display: -webkit-box;
+  display: -webkit-flex;
+  display: -ms-flexbox;
+  display: flex;
+}
+
+.glamor-43 {
   box-sizing: border-box;
   padding: 0px;
   padding-top: 16px;
@@ -105,38 +113,38 @@ exports[`OrganizationIntegrationConfig render() with one integration renders 1`]
   border-bottom: 1px solid;
 }
 
-.glamor-39:last-child {
+.glamor-43:last-child {
   border: 0;
 }
 
-.glamor-29 {
+.glamor-31 {
   box-sizing: border-box;
   padding-left: 16px;
 }
 
-.glamor-27 {
+.glamor-29 {
   height: 32px;
   width: 32px;
   border-radius: 3px;
   display: block;
 }
 
-.glamor-31 {
+.glamor-33 {
   font-size: 1.6rem;
   margin-bottom: 3px;
 }
 
-.glamor-33 {
+.glamor-35 {
   font-size: 1.4rem;
 }
 
-.glamor-37 {
+.glamor-41 {
   box-sizing: border-box;
   margin-right: 8px;
   padding-right: 16px;
 }
 
-.glamor-49 {
+.glamor-53 {
   display: -webkit-box;
   display: -webkit-flex;
   display: -ms-flexbox;
@@ -153,18 +161,18 @@ exports[`OrganizationIntegrationConfig render() with one integration renders 1`]
   transition: 0.2s border-color;
 }
 
-.glamor-45 {
+.glamor-49 {
   -webkit-box-flex: 1;
   -webkit-flex-grow: 1;
   -ms-flex-positive: 1;
   flex-grow: 1;
 }
 
-.glamor-47 {
+.glamor-51 {
   vertical-align: middle;
 }
 
-.glamor-69 {
+.glamor-73 {
   box-sizing: border-box;
   display: -webkit-box;
   display: -webkit-flex;
@@ -174,21 +182,21 @@ exports[`OrganizationIntegrationConfig render() with one integration renders 1`]
   line-height: 2.1rem;
 }
 
-.glamor-61 {
+.glamor-65 {
   box-sizing: border-box;
   width: 62.5%;
 }
 
-.glamor-57 li {
+.glamor-61 li {
   margin-bottom: 6px;
 }
 
-.glamor-67 {
+.glamor-71 {
   box-sizing: border-box;
   margin-left: 60px;
 }
 
-.glamor-63 {
+.glamor-67 {
   display: block;
   margin-bottom: 6px;
 }
@@ -274,7 +282,7 @@ exports[`OrganizationIntegrationConfig render() with one integration renders 1`]
       </SettingsPageHeading>
       <Panel>
         <div
-          className="glamor-43 glamor-44"
+          className="glamor-47 glamor-48"
         >
           <PanelHeader
             disablePadding={true}
@@ -285,22 +293,22 @@ exports[`OrganizationIntegrationConfig render() with one integration renders 1`]
               hasButtons={true}
             >
               <Component
-                className="glamor-23 glamor-24"
+                className="glamor-25 glamor-26"
                 disablePadding={true}
                 hasButtons={true}
               >
                 <div
-                  className="glamor-23 glamor-24"
+                  className="glamor-25 glamor-26"
                 >
                   <StyledPanelHeading>
                     <Component
-                      className="glamor-19 glamor-16"
+                      className="glamor-21 glamor-18"
                     >
                       <PanelHeading
-                        className="glamor-19 glamor-16"
+                        className="glamor-21 glamor-18"
                       >
                         <div
-                          className="glamor-16 glamor-17 glamor-18"
+                          className="glamor-18 glamor-19 glamor-20"
                         >
                           <Flex
                             align="center"
@@ -334,11 +342,11 @@ exports[`OrganizationIntegrationConfig render() with one integration renders 1`]
                                   mr={1}
                                 >
                                   <Base
-                                    className="glamor-12"
+                                    className="glamor-14"
                                     mr={1}
                                   >
                                     <div
-                                      className="glamor-12"
+                                      className="glamor-14"
                                       is={null}
                                     >
                                       <Button
@@ -352,23 +360,26 @@ exports[`OrganizationIntegrationConfig render() with one integration renders 1`]
                                           onClick={[Function]}
                                           role="button"
                                         >
-                                          <FlowLayout
-                                            truncate={false}
-                                          >
-                                            <div
-                                              className="flow-layout"
+                                          <Flex>
+                                            <Base
+                                              className="glamor-12"
                                             >
-                                              <span
-                                                className="button-label"
+                                              <div
+                                                className="glamor-12"
+                                                is={null}
                                               >
                                                 <span
-                                                  className="icon icon-add"
-                                                />
-                                                 
-                                                Add Workspace
-                                              </span>
-                                            </div>
-                                          </FlowLayout>
+                                                  className="button-label"
+                                                >
+                                                  <span
+                                                    className="icon icon-add"
+                                                  />
+                                                   
+                                                  Add Workspace
+                                                </span>
+                                              </div>
+                                            </Base>
+                                          </Flex>
                                         </button>
                                       </Button>
                                     </div>
@@ -403,30 +414,30 @@ exports[`OrganizationIntegrationConfig render() with one integration renders 1`]
                   py={2}
                 >
                   <Base
-                    className="glamor-39 glamor-40"
+                    className="glamor-43 glamor-44"
                     p={0}
                     py={2}
                   >
                     <div
-                      className="glamor-39 glamor-40"
+                      className="glamor-43 glamor-44"
                       is={null}
                     >
                       <Box
                         pl={2}
                       >
                         <Base
-                          className="glamor-29"
+                          className="glamor-31"
                           pl={2}
                         >
                           <div
-                            className="glamor-29"
+                            className="glamor-31"
                             is={null}
                           >
                             <IntegrationIcon
                               src="http://example.com/integration_icon.png"
                             >
                               <img
-                                className="glamor-27 glamor-28"
+                                className="glamor-29 glamor-30"
                                 src="http://example.com/integration_icon.png"
                               />
                             </IntegrationIcon>
@@ -448,14 +459,14 @@ exports[`OrganizationIntegrationConfig render() with one integration renders 1`]
                           >
                             <IntegrationName>
                               <div
-                                className="glamor-31 glamor-32"
+                                className="glamor-33 glamor-34"
                               >
                                 Test Integration
                               </div>
                             </IntegrationName>
                             <DomainName>
                               <div
-                                className="glamor-33 glamor-34"
+                                className="glamor-35 glamor-36"
                               >
                                 gtithub.com/test-integration
                               </div>
@@ -468,12 +479,12 @@ exports[`OrganizationIntegrationConfig render() with one integration renders 1`]
                         pr={2}
                       >
                         <Base
-                          className="glamor-37"
+                          className="glamor-41"
                           mr={1}
                           pr={2}
                         >
                           <div
-                            className="glamor-37"
+                            className="glamor-41"
                             is={null}
                           >
                             <Confirm
@@ -494,26 +505,29 @@ exports[`OrganizationIntegrationConfig render() with one integration renders 1`]
                                   onClick={[Function]}
                                   role="button"
                                 >
-                                  <FlowLayout
-                                    truncate={false}
-                                  >
-                                    <div
-                                      className="flow-layout"
+                                  <Flex>
+                                    <Base
+                                      className="glamor-12"
                                     >
-                                      <span
-                                        className="button-label"
+                                      <div
+                                        className="glamor-12"
+                                        is={null}
                                       >
                                         <span
-                                          className="icon icon-trash"
-                                          style={
-                                            Object {
-                                              "margin": 0,
+                                          className="button-label"
+                                        >
+                                          <span
+                                            className="icon icon-trash"
+                                            style={
+                                              Object {
+                                                "margin": 0,
+                                              }
                                             }
-                                          }
-                                        />
-                                      </span>
-                                    </div>
-                                  </FlowLayout>
+                                          />
+                                        </span>
+                                      </div>
+                                    </Base>
+                                  </Flex>
                                 </button>
                               </Button>
                               <Modal
@@ -584,27 +598,27 @@ exports[`OrganizationIntegrationConfig render() with one integration renders 1`]
         to="/url/with/params/org-slug/"
       >
         <Component
-          className="glamor-49 glamor-50"
+          className="glamor-53 glamor-54"
           to="/url/with/params/org-slug/"
         >
           <Link
-            className="glamor-49 glamor-50"
+            className="glamor-53 glamor-54"
             to="/url/with/params/org-slug/"
           >
             <Link
-              className="glamor-49 glamor-50"
+              className="glamor-53 glamor-54"
               onlyActiveOnIndex={false}
               style={Object {}}
               to="/url/with/params/org-slug/"
             >
               <a
-                className="glamor-49 glamor-50"
+                className="glamor-53 glamor-54"
                 onClick={[Function]}
                 style={Object {}}
               >
                 <AlertLinkText>
                   <div
-                    className="glamor-45 glamor-46"
+                    className="glamor-49 glamor-50"
                   >
                     <span
                       dangerouslySetInnerHTML={
@@ -627,7 +641,7 @@ exports[`OrganizationIntegrationConfig render() with one integration renders 1`]
                     width="1em"
                   >
                     <svg
-                      className="glamor-47 glamor-48"
+                      className="glamor-51 glamor-52"
                       height="1em"
                       style={Object {}}
                       viewBox={Object {}}
@@ -651,21 +665,21 @@ exports[`OrganizationIntegrationConfig render() with one integration renders 1`]
       </h5>
       <Details>
         <Base
-          className="glamor-69 glamor-70"
+          className="glamor-73 glamor-74"
         >
           <div
-            className="glamor-69 glamor-70"
+            className="glamor-73 glamor-74"
             is={null}
           >
             <Box
               width={0.625}
             >
               <Base
-                className="glamor-61"
+                className="glamor-65"
                 width={0.625}
               >
                 <div
-                  className="glamor-61"
+                  className="glamor-65"
                   is={null}
                 >
                   <Description
@@ -677,7 +691,7 @@ exports[`OrganizationIntegrationConfig render() with one integration renders 1`]
                     }
                   >
                     <div
-                      className="glamor-57 glamor-58"
+                      className="glamor-61 glamor-62"
                       dangerouslySetInnerHTML={
                         Object {
                           "__html": "<p><em>markdown</em> formatted <em>description</em></p>
@@ -688,7 +702,7 @@ exports[`OrganizationIntegrationConfig render() with one integration renders 1`]
                   </Description>
                   <AuthorName>
                     <div
-                      className="glamor-59 glamor-60"
+                      className="glamor-63 glamor-64"
                     >
                       By Morty
                     </div>
@@ -700,18 +714,18 @@ exports[`OrganizationIntegrationConfig render() with one integration renders 1`]
               ml={60}
             >
               <Base
-                className="glamor-67"
+                className="glamor-71"
                 ml={60}
               >
                 <div
-                  className="glamor-67"
+                  className="glamor-71"
                   is={null}
                 >
                   <MetadataLink
                     href="http://example.com/integration_issue_url"
                   >
                     <a
-                      className="glamor-63 glamor-64"
+                      className="glamor-67 glamor-68"
                       href="http://example.com/integration_issue_url"
                     >
                       Report an Issue
@@ -721,7 +735,7 @@ exports[`OrganizationIntegrationConfig render() with one integration renders 1`]
                     href="http://example.com/integration_source_url"
                   >
                     <a
-                      className="glamor-63 glamor-64"
+                      className="glamor-67 glamor-68"
                       href="http://example.com/integration_source_url"
                     >
                       View Source
