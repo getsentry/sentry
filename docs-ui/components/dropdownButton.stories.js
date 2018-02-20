@@ -2,7 +2,7 @@ import React from 'react';
 import {storiesOf} from '@storybook/react';
 import {withInfo} from '@storybook/addon-info';
 
-import DropdownButton from 'sentry-ui/dropdownButton';
+import DropdownAutoComplete from 'sentry-ui/dropdownAutoComplete';
 
 const items = [
   {
@@ -51,6 +51,6 @@ const items = [
 storiesOf('DropdownButton', module).add(
   'dropdown button',
   withInfo('A button that turns into a select')(() => (
-    <DropdownButton items={items} onSelect={e => console.log(e)} />
+    <DropdownAutoComplete items={items}>Click Me!</DropdownAutoComplete>
   ))
 );

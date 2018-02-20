@@ -1,11 +1,29 @@
 import PropTypes from 'prop-types';
 import React from 'react';
 import styled from 'react-emotion';
+import _ from 'lodash';
 import AutoComplete from './autoComplete';
 import Input from '../views/settings/components/forms/styled/input.jsx';
 
-const DropdownAutoComplete = ({items, onBlur, onSelect}) => {
-  const ungroupItems = () => {
+class DropdownAutoComplete extends React.Component {
+  constructor(props) {
+    super(props);
+
+    this.state = {
+      isOpen: this.props.isOpen || false,
+    };
+  }
+
+  toggleOpen = _.throttle(() => {
+    this.setState({isOpen: !this.state.isOpen});
+  }, 1);
+
+  onSelect = selectedItem => {
+    this.toggleOpen();
+    if (this.props.onSelect) this.props.onSelect(selectedItem);
+  };
+
+  ungroupItems = items => {
     return items.reduce((accumulator, item, index) => {
       const labelItem = {type: 'label', content: item.groupLabel};
       const groupItems = item.groupItems.map((gi, i) => ({
@@ -18,8 +36,8 @@ const DropdownAutoComplete = ({items, onBlur, onSelect}) => {
     }, []);
   };
 
-  const applyAutocompleteFilter = inputValue => {
-    const flattenedItems = items[0].groupItems ? ungroupItems() : items;
+  applyAutocompleteFilter = (inputValue, items) => {
+    const flattenedItems = items[0].groupItems ? this.ungroupItems(items) : items;
 
     const filteredItems = flattenedItems.filter(
       i =>
@@ -44,51 +62,65 @@ const DropdownAutoComplete = ({items, onBlur, onSelect}) => {
     return filteredLabelsWithIndeces;
   };
 
-  return (
-    <AutoComplete itemToString={item => item.searchKey} onSelect={onSelect}>
-      {({
-        getRootProps,
-        getInputProps,
-        getMenuProps,
-        getItemProps,
-        inputValue,
-        highlightedIndex,
-      }) => {
-        return (
-          <div {...getRootProps()}>
-            <StyledInputContainer>
-              <StyledInput autoFocus {...getInputProps({})} onBlur={onBlur} />
-            </StyledInputContainer>
-            <div {...getMenuProps()}>
-              <div>
-                {applyAutocompleteFilter(inputValue).map(
-                  (item, index) =>
-                    item.searchKey ? (
-                      <StyledItem
-                        key={index}
-                        highlightedIndex={highlightedIndex}
-                        index={item.index}
-                        {...getItemProps({item, index: item.index})}
-                      >
-                        {item.content}
-                      </StyledItem>
-                    ) : (
-                      <StyledLabel key={index}>{item.content}</StyledLabel>
-                    )
-                )}
-              </div>
-            </div>
-          </div>
-        );
-      }}
-    </AutoComplete>
-  );
-};
+  render() {
+    return (
+      <div style={{position: 'relative', display: 'inline-block'}}>
+        {this.state.isOpen && (
+          <StyledMenu>
+            <AutoComplete itemToString={item => item.searchKey} onSelect={this.onSelect}>
+              {({
+                getRootProps,
+                getInputProps,
+                getMenuProps,
+                getItemProps,
+                inputValue,
+                highlightedIndex,
+              }) => {
+                return (
+                  <div {...getRootProps()}>
+                    <StyledInputContainer>
+                      <StyledInput
+                        autoFocus
+                        {...getInputProps({})}
+                        onBlur={this.toggleOpen}
+                      />
+                    </StyledInputContainer>
+                    <div {...getMenuProps()}>
+                      <div>
+                        {this.applyAutocompleteFilter(inputValue, this.props.items).map(
+                          (item, index) =>
+                            item.searchKey ? (
+                              <StyledItem
+                                key={index}
+                                highlightedIndex={highlightedIndex}
+                                index={item.index}
+                                {...getItemProps({item, index: item.index})}
+                              >
+                                {item.content}
+                              </StyledItem>
+                            ) : (
+                              <StyledLabel key={index}>{item.content}</StyledLabel>
+                            )
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                );
+              }}
+            </AutoComplete>
+          </StyledMenu>
+        )}
+        <div onClick={this.onSelect}>{this.props.children}</div>
+      </div>
+    );
+  }
+}
 
 DropdownAutoComplete.propTypes = {
   items: PropTypes.array,
   onBlur: PropTypes.func,
   onSelect: PropTypes.func,
+  isOpen: PropTypes.bool,
 };
 
 const StyledInput = styled(Input)`
@@ -115,6 +147,18 @@ const StyledLabel = styled('div')`
   background-color: ${p => p.theme.offWhite};
   border: 1px solid ${p => p.theme.borderLight};
   border-width: 1px 0;
+`;
+
+const StyledMenu = styled('div')`
+  background: #fff;
+  border: 1px solid ${p => p.theme.borderLight};
+  border-radius: 0 ${p => p.theme.borderRadius} ${p => p.theme.borderRadius}
+    ${p => p.theme.borderRadius};
+  position: absolute;
+  top: calc(100% - 1px);
+  left: 0;
+  min-width: 250px;
+  font-size: 0.9em;
 `;
 
 export default DropdownAutoComplete;
