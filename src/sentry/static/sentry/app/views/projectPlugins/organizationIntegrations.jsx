@@ -9,7 +9,7 @@ import Panel from '../settings/components/panel';
 import PanelBody from '../settings/components/panelBody';
 import PanelHeader from '../settings/components/panelHeader';
 import PluginIcon from '../../plugins/components/pluginIcon';
-import Row from '../settings/components/row';
+import PanelItem from '../settings/components/panelItem';
 import theme from '../../utils/theme';
 
 const ProviderName = styled.div`
@@ -46,7 +46,7 @@ export default class OrganizationIntegrations extends AsyncComponent {
         <PanelBody>
           {this.state.config.providers.map(provider => {
             return (
-              <Row key={provider.key}>
+              <PanelItem key={provider.key}>
                 <Box>
                   <PluginIcon size={32} pluginId={provider.key} />
                 </Box>
@@ -61,7 +61,7 @@ export default class OrganizationIntegrations extends AsyncComponent {
                   </ProviderName>
                   <TeamName>{provider.metadata.author}</TeamName>
                 </Box>
-              </Row>
+              </PanelItem>
             );
           })}
         </PanelBody>

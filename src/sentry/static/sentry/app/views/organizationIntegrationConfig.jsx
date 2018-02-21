@@ -9,12 +9,13 @@ import AlertLink from '../components/alertLink';
 import AsyncView from './asyncView';
 import Button from '../components/buttons/button';
 import Confirm from '../components/confirm';
-import Panel from './settings/components/panel';
 import EmptyMessage from './settings/components/emptyMessage';
+import IndicatorStore from '../stores/indicatorStore';
+import Panel from './settings/components/panel';
 import PanelBody from './settings/components/panelBody';
 import PanelHeader from './settings/components/panelHeader';
+import PanelItem from './settings/components/panelItem';
 import PluginIcon from '../plugins/components/pluginIcon';
-import Row from './settings/components/row';
 import SettingsPageHeader from './settings/components/settingsPageHeader';
 import marked from '../utils/marked';
 
@@ -223,7 +224,7 @@ export default class OrganizationIntegrationConfig extends AsyncView {
 
     let integrationList = integrations.map(integration => {
       return (
-        <Row p={0} py={2} key={integration.id}>
+        <PanelItem p={0} py={2} key={integration.id}>
           <Box pl={2}>
             <IntegrationIcon src={integration.icon} />
           </Box>
@@ -243,7 +244,7 @@ export default class OrganizationIntegrationConfig extends AsyncView {
               </Button>
             </Confirm>
           </Box>
-        </Row>
+        </PanelItem>
       );
     });
 
