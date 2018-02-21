@@ -16,7 +16,7 @@ strip_channel_chars = ''.join([MEMBER_PREFIX, CHANNEL_PREFIX])
 
 
 class SlackNotifyServiceForm(forms.Form):
-    team = forms.ChoiceField(choices=(), widget=forms.Select(
+    workspace = forms.ChoiceField(choices=(), widget=forms.Select(
         attrs={'style': 'width:150px'},
     ))
     channel = forms.CharField(widget=forms.TextInput(
@@ -25,34 +25,34 @@ class SlackNotifyServiceForm(forms.Form):
     channel_id = forms.HiddenInput()
 
     def __init__(self, *args, **kwargs):
-        # NOTE: Team maps directly to the integration ID
-        team_list = [(i.id, i.name) for i in kwargs.pop('integrations')]
+        # NOTE: Workspace maps directly to the integration ID
+        workspace_list = [(i.id, i.name) for i in kwargs.pop('integrations')]
         self.channel_transformer = kwargs.pop('channel_transformer')
 
         super(SlackNotifyServiceForm, self).__init__(*args, **kwargs)
 
-        if team_list:
-            self.fields['team'].initial = team_list[0][0]
+        if workspace_list:
+            self.fields['workspace'].initial = workspace_list[0][0]
 
-        self.fields['team'].choices = team_list
-        self.fields['team'].widget.choices = self.fields['team'].choices
+        self.fields['workspace'].choices = workspace_list
+        self.fields['workspace'].widget.choices = self.fields['workspace'].choices
 
     def clean(self):
         cleaned_data = super(SlackNotifyServiceForm, self).clean()
 
-        team = cleaned_data.get('team')
+        workspace = cleaned_data.get('workspace')
         channel = cleaned_data.get('channel', '').lstrip(strip_channel_chars)
 
-        channel_id = self.channel_transformer(team, channel)
+        channel_id = self.channel_transformer(workspace, channel)
 
-        if channel_id is None and team is not None:
+        if channel_id is None and workspace is not None:
             params = {
                 'channel': channel,
-                'team': dict(self.fields['team'].choices).get(int(team)),
+                'workspace': dict(self.fields['workspace'].choices).get(int(workspace)),
             }
 
             raise forms.ValidationError(
-                _('The "%(channel)s" channel or user does not exist in the %(team)s Slack workspace.'),
+                _('The "%(channel)s" channel or user does not exist in the %(workspace)s Slack workspace.'),
                 code='invalid',
                 params=params,
             )
@@ -66,20 +66,24 @@ class SlackNotifyServiceForm(forms.Form):
 
 class SlackNotifyServiceAction(EventAction):
     form_cls = SlackNotifyServiceForm
-    label = u'Send a notification to the Slack {team} team in {channel}'
+    label = u'Send a notification to the Slack {workspace} workspace to {channel}'
 
     def is_enabled(self):
         return self.get_integrations().exists()
 
     def after(self, event, state):
-        integration_id = self.get_option('team')
+        integration_id = self.get_option('workspace')
         channel = self.get_option('channel_id')
 
-        integration = Integration.objects.get(
-            provider='slack',
-            organizations=self.project.organization,
-            id=integration_id
-        )
+        try:
+            integration = Integration.objects.get(
+                provider='slack',
+                organizations=self.project.organization,
+                id=integration_id
+            )
+        except Integration.DoesNotExist:
+            # Integration removed, rule still active.
+            return
 
         def send_notification(event, futures):
             attachment = build_attachment(event.group, event=event)
@@ -105,13 +109,13 @@ class SlackNotifyServiceAction(EventAction):
             integration_name = Integration.objects.get(
                 provider='slack',
                 organizations=self.project.organization,
-                id=self.data['team'],
+                id=self.data.get('workspace')
             ).name
         except Integration.DoesNotExist:
             integration_name = '[removed]'
 
         return self.label.format(
-            team=integration_name,
+            workspace=integration_name,
             channel=self.data['channel'],
         )
 

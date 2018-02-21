@@ -35,7 +35,7 @@ class SlackNotifyActionTest(RuleTestCase):
         event = self.get_event()
 
         rule = self.get_rule(data={
-            'team': self.integration.id,
+            'workspace': self.integration.id,
             'channel': '#my-channel',
         })
 
@@ -62,27 +62,27 @@ class SlackNotifyActionTest(RuleTestCase):
 
     def test_render_label(self):
         rule = self.get_rule(data={
-            'team': self.integration.id,
+            'workspace': self.integration.id,
             'channel': '#my-channel',
         })
 
-        assert rule.render_label() == 'Send a notification to the Slack Awesome Team team in #my-channel'
+        assert rule.render_label() == 'Send a notification to the Slack Awesome Team workspace to #my-channel'
 
     def test_render_label_without_integration(self):
         self.integration.delete()
 
         rule = self.get_rule(data={
-            'team': self.integration.id,
+            'workspace': self.integration.id,
             'channel': '#my-channel',
         })
 
         label = rule.render_label()
-        assert label == 'Send a notification to the Slack [removed] team in #my-channel'
+        assert label == 'Send a notification to the Slack [removed] workspace to #my-channel'
 
     @responses.activate
     def test_valid_channel_selected(self):
         rule = self.get_rule(data={
-            'team': self.integration.id,
+            'workspace': self.integration.id,
             'channel': '#my-channel',
         })
 
@@ -108,7 +108,7 @@ class SlackNotifyActionTest(RuleTestCase):
     @responses.activate
     def test_valid_member_selected(self):
         rule = self.get_rule(data={
-            'team': self.integration.id,
+            'workspace': self.integration.id,
             'channel': '@morty',
         })
 
@@ -150,7 +150,7 @@ class SlackNotifyActionTest(RuleTestCase):
     @responses.activate
     def test_invalid_channel_selected(self):
         rule = self.get_rule(data={
-            'team': self.integration.id,
+            'workspace': self.integration.id,
             'channel': '#my-channel',
         })
 
