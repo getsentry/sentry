@@ -9,7 +9,7 @@ from django.db.models import Count
 
 from sentry.db.models.query import in_iexact
 from sentry.models import (
-    CommitFileChange, Deploy, Environment, Group, GroupSubscriptionReason, GroupLink,
+    CommitFileChange, Deploy, Environment, Group, GroupSubscriptionReason, GroupLink, ProjectTeam,
     Release, ReleaseCommit, Repository, Team, User, UserEmail, UserOption, UserOptionValue
 )
 from sentry.utils.http import absolute_uri
@@ -106,8 +106,11 @@ class ReleaseActivityEmail(ActivityEmail):
         users = list(
             User.objects.filter(
                 emails__is_verified=True,
-                sentry_orgmember_set__teams=Team.objects.
-                filter(id__in=[p.team_id for p in self.projects]),
+                sentry_orgmember_set__teams=Team.objects.filter(
+                    id__in=ProjectTeam.objects.filter(
+                        project__in=self.projects,
+                    ).values_list('team_id', flat=True),
+                ),
                 is_active=True,
             ).distinct()
         )
@@ -187,7 +190,12 @@ class ReleaseActivityEmail(ActivityEmail):
             projects = self.projects
         else:
             teams = self.get_users_by_teams()[user.id]
-            projects = [p for p in self.projects if p.team_id in teams]
+            team_projects = set(
+                ProjectTeam.objects.filter(
+                    team_id__in=teams,
+                ).values_list('project_id', flat=True).distinct()
+            )
+            projects = [p for p in self.projects if p.id in team_projects]
         release_links = [
             absolute_uri(
                 '/{}/{}/releases/{}/'.format(
