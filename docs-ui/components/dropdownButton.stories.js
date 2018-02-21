@@ -7,43 +7,49 @@ import DropdownButton from 'sentry-ui/dropdownButton';
 
 const items = [
   {
-    groupLabel: (
-      <div>
-        Countries{' '}
-        <a style={{float: 'right'}} href="#">
-          + Add
-        </a>
-      </div>
-    ),
-    groupItems: [
+    group: {
+      value: 'countries',
+      label: (
+        <div>
+          Countries{' '}
+          <a style={{float: 'right'}} href="#">
+            + Add
+          </a>
+        </div>
+      ),
+    },
+    items: [
       {
-        searchKey: 'new zealand',
-        content: <div>🇨🇷 New Zealand</div>,
+        value: 'new zealand',
+        label: <div>🇨🇷 New Zealand</div>,
       },
       {
-        searchKey: 'australia',
-        content: <div>🇦🇺 Australia</div>,
+        value: 'australia',
+        label: <div>🇦🇺 Australia</div>,
       },
       {
-        searchKey: 'brazil',
-        content: <div>🇧🇷 Brazil</div>,
+        value: 'brazil',
+        label: <div>🇧🇷 Brazil</div>,
       },
     ],
   },
   {
-    groupLabel: 'Foods',
-    groupItems: [
+    group: {
+      value: 'foods',
+      label: 'Foods',
+    },
+    items: [
       {
-        searchKey: 'apple',
-        content: <div>🍎 Apple</div>,
+        value: 'apple',
+        label: <div>🍎 Apple</div>,
       },
       {
-        searchKey: 'bacon',
-        content: <div>🥓 Bacon</div>,
+        value: 'bacon',
+        label: <div>🥓 Bacon</div>,
       },
       {
-        searchKey: 'corn',
-        content: <div>🌽 Corn</div>,
+        value: 'corn',
+        label: <div>🌽 Corn</div>,
       },
     ],
   },
@@ -55,7 +61,7 @@ storiesOf('DropdownButton', module).add(
     <DropdownAutoComplete items={items}>
       {({isOpen, selectedItem}) => (
         <DropdownButton isOpen={isOpen}>
-          {selectedItem ? selectedItem.content : 'Click me!'}
+          {selectedItem ? selectedItem.label : 'Click me!'}
         </DropdownButton>
       )}
     </DropdownAutoComplete>

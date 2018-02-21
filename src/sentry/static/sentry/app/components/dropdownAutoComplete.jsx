@@ -24,53 +24,42 @@ class DropdownAutoComplete extends React.Component {
     };
   }
 
-  toggleOpen = () => this.setState({isOpen: !this.state.isOpen});
+  toggleMenu = () => this.setState({isOpen: !this.state.isOpen});
 
   openMenu = e => this.setState({isOpen: true});
 
   onSelect = selectedItem => {
-    if (this.props.onSelect) this.props.onSelect(selectedItem);
     this.setState({selectedItem});
-    this.toggleOpen();
+    if (this.props.onSelect) this.props.onSelect(selectedItem);
+    this.toggleMenu();
   };
 
-  ungroupItems = items => {
-    return items.reduce((accumulator, item, index) => {
-      const labelItem = {type: 'label', content: item.groupLabel};
-      const groupItems = item.groupItems.map((gi, i) => ({
-        type: 'item',
-        group: item.groupLabel,
-        ...gi,
-      }));
-
-      return [...accumulator, labelItem, ...groupItems];
+  ungroupItems = itemsToUngroup =>
+    itemsToUngroup.reduce((accumulator, {group, items}) => {
+      return [
+        ...accumulator,
+        {...group, group: true},
+        ...items.map(g => ({...g, groupedWith: group.value})),
+      ];
     }, []);
-  };
 
-  applyAutocompleteFilter = (inputValue, items) => {
-    const flattenedItems = items[0].groupItems ? this.ungroupItems(items) : items;
-
-    const filteredItems = flattenedItems.filter(
-      i =>
-        i.type == 'label' ||
-        i.searchKey.toLowerCase().indexOf(inputValue.toLowerCase()) > -1
+  filterItems = (items, inputValue) =>
+    items.filter(
+      i => i.group || i.value.toLowerCase().indexOf(inputValue.toLowerCase()) > -1
     );
 
-    const filteredLabels = filteredItems.filter(
-      l =>
-        l.type == 'item' ||
-        (l.type == 'label' && filteredItems.filter(i => i.group == l.content).length > 0)
-    );
+  removeUnusedGroups = items =>
+    items.filter(i => !i.group || (i.group && items.some(g => i.value == g.groupedWith)));
+
+  autocompleteFilter = (items, inputValue) => {
+    const transformedItems = items[0].items
+      ? this.removeUnusedGroups(this.filterItems(this.ungroupItems(items), inputValue))
+      : this.filterItems(items, inputValue);
 
     let itemCounter = 0;
-    const filteredLabelsWithIndeces = filteredLabels.map(i => {
-      if (i.type == 'item') {
-        return {...i, index: itemCounter++};
-      }
-      return i;
+    return transformedItems.map(i => {
+      return !i.group ? {...i, index: itemCounter++} : i;
     });
-
-    return filteredLabelsWithIndeces;
   };
 
   render() {
@@ -94,24 +83,24 @@ class DropdownAutoComplete extends React.Component {
                     <StyledInputContainer>
                       <StyledInput
                         autoFocus
-                        {...getInputProps({onBlur: this.toggleOpen})}
+                        {...getInputProps({onBlur: this.toggleMenu})}
                       />
                     </StyledInputContainer>
                     <div {...getMenuProps()}>
                       <div>
-                        {this.applyAutocompleteFilter(inputValue, this.props.items).map(
+                        {this.autocompleteFilter(this.props.items, inputValue).map(
                           (item, index) =>
-                            item.searchKey ? (
+                            item.group ? (
+                              <StyledLabel key={index}>{item.label}</StyledLabel>
+                            ) : (
                               <StyledItem
                                 key={index}
                                 highlightedIndex={highlightedIndex}
                                 index={item.index}
                                 {...getItemProps({item, index: item.index})}
                               >
-                                {item.content}
+                                {item.label}
                               </StyledItem>
-                            ) : (
-                              <StyledLabel key={index}>{item.content}</StyledLabel>
                             )
                         )}
                       </div>
