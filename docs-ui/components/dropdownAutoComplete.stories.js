@@ -3,6 +3,7 @@ import {storiesOf} from '@storybook/react';
 import {withInfo} from '@storybook/addon-info';
 
 import DropdownAutoComplete from 'sentry-ui/dropdownAutoComplete';
+import DropdownButton from 'sentry-ui/dropdownButton';
 
 const items = [
   {
@@ -83,6 +84,18 @@ storiesOf('DropdownAutoComplete', module)
     withInfo('Group labels can receive a component too')(() => (
       <DropdownAutoComplete items={groupedItems}>
         {({isOpen, selectedItem}) => (selectedItem ? selectedItem.label : 'Click me!')}
+      </DropdownAutoComplete>
+    ))
+  )
+  .add(
+    'with dropdownButton',
+    withInfo('Use it with dropdownbutton for maximum fun')(() => (
+      <DropdownAutoComplete items={groupedItems}>
+        {({isOpen, selectedItem}) => (
+          <DropdownButton isOpen={isOpen}>
+            {selectedItem ? selectedItem.label : 'Click me!'}
+          </DropdownButton>
+        )}
       </DropdownAutoComplete>
     ))
   );
