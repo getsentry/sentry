@@ -24,11 +24,9 @@ class DropdownAutoComplete extends React.Component {
     };
   }
 
-  toggleOpen = () => {
-    this.setState({isOpen: !this.state.isOpen});
-  };
+  toggleOpen = () => this.setState({isOpen: !this.state.isOpen});
 
-  handleClick = e => {
+  openMenu = e => {
     if (this.state.isOpen == false) this.setState({isOpen: true});
   };
 
@@ -126,7 +124,7 @@ class DropdownAutoComplete extends React.Component {
             </AutoComplete>
           </StyledMenu>
         )}
-        <div onClick={this.handleClick}>
+        <div onClick={this.openMenu}>
           {this.props.children({
             isOpen: this.state.isOpen,
             selectedItem: this.state.selectedItem,
