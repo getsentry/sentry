@@ -10,7 +10,6 @@ class DropdownAutoComplete extends React.Component {
     isOpen: PropTypes.bool,
     onSelect: PropTypes.func,
     children: PropTypes.func,
-    defaultItem: PropTypes.object,
   };
 
   static defaultProps = {
@@ -22,7 +21,6 @@ class DropdownAutoComplete extends React.Component {
 
     this.state = {
       isOpen: this.props.isOpen,
-      selectedItem: this.props.defaultItem,
     };
   }
 
