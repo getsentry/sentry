@@ -3,7 +3,6 @@ from __future__ import absolute_import, print_function
 import os
 import logging
 
-from django.db import transaction
 from sentry.tasks.base import instrumented_task
 
 logger = logging.getLogger(__name__)
@@ -15,66 +14,65 @@ def assemble_dif(project_id, name, checksum, chunks, **kwargs):
         ProjectDSymFile, set_assemble_status, BadDif
     from sentry.reprocessing import bump_reprocessing_revision
 
-    with transaction.atomic():
-        project = Project.objects.filter(id=project_id).get()
-        set_assemble_status(project, checksum, ChunkFileState.ASSEMBLING)
+    project = Project.objects.filter(id=project_id).get()
+    set_assemble_status(project, checksum, ChunkFileState.ASSEMBLING)
 
-        # Assemble the chunks into files
-        rv = assemble_file(project, name, checksum, chunks,
-                           file_type='project.dsym')
+    # Assemble the chunks into files
+    rv = assemble_file(project, name, checksum, chunks,
+                       file_type='project.dsym')
 
-        # If not file has been created this means that the file failed to
-        # assemble because of bad input data.  Return.
-        if rv is None:
-            return
+    # If not file has been created this means that the file failed to
+    # assemble because of bad input data.  Return.
+    if rv is None:
+        return
 
-        file, temp_file = rv
-        delete_file = True
-        try:
-            with temp_file:
-                # We only permit split difs to hit this endpoint.  The
-                # client is required to split them up first or we error.
-                try:
-                    result = dsymfile.detect_dif_from_path(temp_file.name)
-                except BadDif as e:
+    file, temp_file = rv
+    delete_file = True
+    try:
+        with temp_file:
+            # We only permit split difs to hit this endpoint.  The
+            # client is required to split them up first or we error.
+            try:
+                result = dsymfile.detect_dif_from_path(temp_file.name)
+            except BadDif as e:
+                set_assemble_status(project, checksum, ChunkFileState.ERROR,
+                                    detail=e.args[0])
+                return
+
+            if len(result) != 1:
+                set_assemble_status(project, checksum, ChunkFileState.ERROR,
+                                    detail='Contained wrong number of '
+                                    'architectures (expected one, got %s)'
+                                    % len(result))
+                return
+
+            dsym_type, cpu, file_uuid, filename = result[0]
+            dsym, created = dsymfile.create_dsym_from_uuid(
+                project, dsym_type, cpu, file_uuid,
+                os.path.basename(name),
+                file=file)
+            delete_file = False
+            bump_reprocessing_revision(project)
+
+            indicate_success = True
+
+            # If we need to write a symcache we can use the
+            # `generate_symcache` method to attempt to write one.
+            # This way we can also capture down the error if we need
+            # to.
+            if dsym.supports_symcache:
+                symcache, error = ProjectDSymFile.dsymcache.generate_symcache(
+                    project, dsym, temp_file)
+                if error is not None:
                     set_assemble_status(project, checksum, ChunkFileState.ERROR,
-                                        detail=e.args[0])
-                    return
+                                        detail=error)
+                    indicate_success = False
 
-                if len(result) != 1:
-                    set_assemble_status(project, checksum, ChunkFileState.ERROR,
-                                        detail='Contained wrong number of '
-                                        'architectures (expected one, got %s)'
-                                        % len(result))
-                    return
-
-                dsym_type, cpu, file_uuid, filename = result[0]
-                dsym, created = dsymfile.create_dsym_from_uuid(
-                    project, dsym_type, cpu, file_uuid,
-                    os.path.basename(name),
-                    file=file)
-                delete_file = False
-                bump_reprocessing_revision(project)
-
-                indicate_success = True
-
-                # If we need to write a symcache we can use the
-                # `generate_symcache` method to attempt to write one.
-                # This way we can also capture down the error if we need
-                # to.
-                if dsym.supports_symcache:
-                    symcache, error = ProjectDSymFile.dsymcache.generate_symcache(
-                        project, dsym, temp_file)
-                    if error is not None:
-                        set_assemble_status(project, checksum, ChunkFileState.ERROR,
-                                            detail=error)
-                        indicate_success = False
-
-                if indicate_success:
-                    set_assemble_status(project, checksum, ChunkFileState.OK)
-        finally:
-            if delete_file:
-                file.delete()
+            if indicate_success:
+                set_assemble_status(project, checksum, ChunkFileState.OK)
+    finally:
+        if delete_file:
+            file.delete()
 
 
 def assemble_file(project, name, checksum, chunks, file_type):
