@@ -19,8 +19,8 @@ class DropdownAutoComplete extends React.Component {
   }, 1);
 
   onSelect = selectedItem => {
-    this.toggleOpen();
     if (this.props.onSelect) this.props.onSelect(selectedItem);
+    this.toggleOpen();
   };
 
   ungroupItems = items => {
@@ -74,15 +74,16 @@ class DropdownAutoComplete extends React.Component {
                 getMenuProps,
                 getItemProps,
                 inputValue,
+                selectedItem,
                 highlightedIndex,
+                isOpen,
               }) => {
                 return (
                   <div {...getRootProps()}>
                     <StyledInputContainer>
                       <StyledInput
                         autoFocus
-                        {...getInputProps({})}
-                        onBlur={this.toggleOpen}
+                        {...getInputProps({onBlur: this.toggleOpen})}
                       />
                     </StyledInputContainer>
                     <div {...getMenuProps()}>
@@ -110,7 +111,7 @@ class DropdownAutoComplete extends React.Component {
             </AutoComplete>
           </StyledMenu>
         )}
-        <div onClick={this.onSelect}>
+        <div onClick={this.toggleOpen}>
           {this.props.children({
             isOpen: this.state.isOpen,
           })}
