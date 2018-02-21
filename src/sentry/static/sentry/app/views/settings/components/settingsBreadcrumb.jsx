@@ -6,7 +6,6 @@ import Crumb from './crumb.styled';
 import Link from '../../../components/link';
 import LoadingIndicator from '../../../components/loadingIndicator';
 import SentryTypes from '../../../proptypes';
-import SettingsBackButton from './settingsBackButton';
 import SettingsBreadcrumbDivider from './settingsBreadcrumbDivider';
 import SettingsBreadcrumbDropdown from './settingsBreadcrumbDropdown';
 import recreateRoute from '../../../utils/recreateRoute';
@@ -179,11 +178,6 @@ class SettingsBreadcrumb extends React.Component {
     let lastRouteIndex = routesWithNames.length - 1;
     return (
       <Breadcrumbs>
-        <Crumb>
-          <SettingsBackButton params={params} />
-          <SettingsBreadcrumbDivider />
-        </Crumb>
-
         {routesWithNames.map((route, i) => {
           let isLast = i === lastRouteIndex;
           let createMenu = MENUS[route.name];

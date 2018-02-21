@@ -8,14 +8,10 @@ const StyledSettingsWrapper = withTheme(
     font-family: 'Rubik', sans-serif;
     font-size: 16px;
     color: ${p => p.theme.gray5};
+    margin: 0 auto;
+    line-height: 1;
   `
 );
-const StyledSettingsContainer = styled.div`
-  max-width: 1040px;
-  padding: 0 16px;
-  margin: 0 auto;
-  line-height: 1;
-`;
 
 class SettingsWrapper extends React.Component {
   componentWillMount() {
@@ -26,11 +22,7 @@ class SettingsWrapper extends React.Component {
   }
 
   render() {
-    return (
-      <StyledSettingsWrapper>
-        <StyledSettingsContainer>{this.props.children}</StyledSettingsContainer>
-      </StyledSettingsWrapper>
-    );
+    return <StyledSettingsWrapper>{this.props.children}</StyledSettingsWrapper>;
   }
 }
 

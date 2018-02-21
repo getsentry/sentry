@@ -1,12 +1,9 @@
-import {Flex} from 'grid-emotion';
 import styled from 'react-emotion';
 
-const SettingsHeader = styled(Flex)`
-  align-items: center;
+const SettingsHeader = styled.div`
   position: sticky;
   top: 0;
-  height: 105px;
-  width: 1010px;
+  height: 115px;
   z-index: ${p => p.theme.zIndex.header};
   &:before {
     position: absolute;

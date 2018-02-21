@@ -5,6 +5,7 @@ import React from 'react';
 import styled from 'react-emotion';
 
 import Alert from '../../components/alert';
+import SettingsBackButton from './components/settingsBackButton';
 import SettingsBreadcrumb from './components/settingsBreadcrumb';
 import SettingsHeader from './components/settingsHeader';
 import SettingsSearch from './components/settingsSearch';
@@ -55,8 +56,23 @@ let NewSettingsWarning = ({location = {}}) => {
   );
 };
 
+const Container = styled(Flex)`
+  width: 1010px;
+  margin: 0 auto;
+`;
+
 const Content = styled(Box)`
   flex: 1;
+`;
+
+const SettingsSubheader = styled.div`
+  position: relative;
+  z-index: ${p => p.theme.zIndex.dropdown};
+  padding: ${p => p.theme.grid}px 0;
+  margin-bottom: ${p => p.theme.grid * 3}px;
+  border-bottom: 1px solid ${p => p.theme.borderLight};
+  background: ${p => p.theme.offWhite};
+  font-size: 14px;
 `;
 
 class SettingsLayout extends React.Component {
@@ -75,12 +91,25 @@ class SettingsLayout extends React.Component {
     return (
       <div>
         <SettingsHeader>
-          <Box flex="1">
-            <SettingsBreadcrumb params={params} routes={childRoutes} route={childRoute} />
-          </Box>
-          <SettingsSearch params={params} />
+          <SettingsSubheader>
+            <Container>
+              <SettingsBackButton params={params}>Back to Project</SettingsBackButton>
+            </Container>
+          </SettingsSubheader>
+          <Container>
+            <Flex align="center" width={1}>
+              <Box flex="1">
+                <SettingsBreadcrumb
+                  params={params}
+                  routes={childRoutes}
+                  route={childRoute}
+                />
+              </Box>
+              <SettingsSearch params={params} />
+            </Flex>
+          </Container>
         </SettingsHeader>
-        <Flex>
+        <Container>
           {typeof renderNavigation === 'function' && (
             <Box flex="0 0 210px">
               <StickySidebar>{renderNavigation()}</StickySidebar>
@@ -90,14 +119,14 @@ class SettingsLayout extends React.Component {
             {children}
             <NewSettingsWarning location={this.props.location} />
           </Content>
-        </Flex>
+        </Container>
       </div>
     );
   }
 }
 const StickySidebar = styled.div`
   position: sticky;
-  top: 105px;
+  top: 115px;
 `;
 
 export default SettingsLayout;
