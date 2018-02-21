@@ -314,7 +314,6 @@ class MailPlugin(NotificationPlugin):
         ))
 
         headers = {
-            'X-Sentry-Team': project.team.slug,
             'X-Sentry-Project': project.slug,
         }
 
