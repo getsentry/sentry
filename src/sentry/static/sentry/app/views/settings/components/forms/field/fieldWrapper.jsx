@@ -19,7 +19,7 @@ const highlightedStyle = p =>
       `
     : '';
 
-const FormFieldWrapper = styled(({highlighted, inline, ...props}) => <Flex {...props} />)`
+const FieldWrapper = styled(({highlighted, inline, ...props}) => <Flex {...props} />)`
   padding: 0.9em 0 0.9em 1.3em;
   border-bottom: 1px solid ${p => p.theme.borderLight};
   transition: background 0.15s;
@@ -29,4 +29,4 @@ const FormFieldWrapper = styled(({highlighted, inline, ...props}) => <Flex {...p
   }
 `;
 
-export default FormFieldWrapper;
+export default FieldWrapper;

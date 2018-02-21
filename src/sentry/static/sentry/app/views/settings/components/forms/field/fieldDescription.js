@@ -12,11 +12,11 @@ const inlineStyle = p =>
         margin-bottom: 10px;
       `;
 
-const FormFieldDescription = styled(({inline, ...props}) => <label {...props} />)`
+const FieldDescription = styled(({inline, ...props}) => <label {...props} />)`
   font-weight: normal;
   margin-bottom: 0;
 
   ${inlineStyle};
 `;
 
-export default FormFieldDescription;
+export default FieldDescription;
