@@ -107,47 +107,108 @@ const Label = styled.label`
 
 class RangeSlider extends React.Component {
   static propTypes = {
-    initialValue: PropTypes.number.isRequired,
+    value: PropTypes.number.isRequired,
     name: PropTypes.string.isRequired,
     min: PropTypes.number.isRequired,
     max: PropTypes.number.isRequired,
-    step: PropTypes.number.isRequired,
-    label: PropTypes.string,
-    plural: PropTypes.string,
+    step: PropTypes.number,
+    onChange: PropTypes.func,
+
+    /**
+     * Render prop for slider's label
+     * Is passed the value as an argument
+     */
+    formatLabel: PropTypes.func,
+
+    /**
+     * Array of allowed values. Make sure `value` is in this list.
+     * THIS NEEDS TO BE SORTED
+     */
+    allowedValues: PropTypes.arrayOf(PropTypes.number),
+
+    /**
+     * This is called when *any* MouseUp or KeyUp event happens.
+     * Used for "smart" Fields to trigger a "blur" event. `onChange` can
+     * be triggered quite frequently
+     */
+    onBlur: PropTypes.func,
   };
 
   constructor(props) {
     super(props);
-    this.state = {value: props.initialValue};
-    this.handleValue = this.handleValue.bind(this);
+
+    let state = {sliderValue: props.value};
+    if (props.allowedValues) {
+      // With `allowedValues` sliderValue will be the index to value in `allowedValues`
+      // This is so we can snap the rangeSlider using `step`
+      // This means that the range slider will have a uniform `step` in the UI
+      // and scale won't match `allowedValues
+      // e.g. with allowedValues = [0, 100, 1000, 10000] - in UI we'll have values = [0, 3] w/ step of 1
+      // so it always snaps at 25% width
+      state.sliderValue = props.allowedValues.indexOf(props.value);
+    }
+
+    this.state = state;
   }
 
-  handleValue = e => {
+  componentWillReceiveProps(nextProps) {
+    if (typeof nextProps.value !== 'undefined') {
+      this.setState({value: nextProps.value});
+    }
+  }
+
+  handleInput = e => {
+    let {allowedValues} = this.props;
+    let sliderValue = parseInt(e.target.value, 10);
+    let value;
+
+    if (allowedValues) {
+      // If `allowedValues` is defined, then `sliderValue` represents index to `allowedValues`
+      value = allowedValues[sliderValue];
+    } else {
+      value = sliderValue;
+    }
+
     this.setState({
-      value: e.currentTarget.value,
+      sliderValue,
     });
+
+    if (this.props.onChange) {
+      this.props.onChange(value, e);
+    }
   };
 
   render() {
-    let {name, label, plural, min, max, step} = this.props;
-    let {value} = this.state;
+    let {name, min, max, step, allowedValues, formatLabel} = this.props;
+    let {sliderValue} = this.state;
+    let actualValue = sliderValue;
+    let displayValue = actualValue;
 
-    let renderedLabel;
-    value == 1 ? (renderedLabel = label) : (renderedLabel = plural);
+    if (allowedValues) {
+      step = 1;
+      min = 0;
+      max = allowedValues.length - 1;
+      actualValue = allowedValues[sliderValue];
+      displayValue = typeof actualValue !== 'undefined' ? actualValue : 'Invalid value';
+    }
+
+    displayValue =
+      typeof formatLabel === 'function' ? formatLabel(actualValue) : displayValue;
 
     return (
       <div>
-        <Label for={name}>
-          {value} {renderedLabel}
-        </Label>
+        <Label for={name}>{displayValue}</Label>
         <Slider
           type="range"
           name={name}
           min={min}
           max={max}
           step={step}
-          onInput={this.handleValue}
-          defaultValue={value}
+          onInput={this.handleInput}
+          onChange={() => {}}
+          onMouseUp={e => this.props.onBlur(e)}
+          onKeyUp={e => this.props.onBlur(e)}
+          value={sliderValue}
         />
       </div>
     );

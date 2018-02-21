@@ -10,9 +10,10 @@ import {
   PasswordField,
   BooleanField,
 } from 'sentry-ui/forms';
+import NewBooleanField from 'settings-ui/forms/booleanField';
 import RadioField from 'settings-ui/forms/radioField';
-import RadioGroup from 'settings-ui/forms/radioGroup';
-import RangeSlider from 'settings-ui/forms/rangeSlider';
+import RadioGroup from 'settings-ui/forms/controls/radioGroup';
+import RangeSlider from 'settings-ui/forms/controls/rangeSlider';
 import Form from 'settings-ui/forms/form';
 import FormField from 'settings-ui/forms/formField';
 import TextField from 'settings-ui/forms/textField';
@@ -61,10 +62,37 @@ storiesOf('Forms/Form', module)
     ))
   );
 
-storiesOf('Forms/Fields', module)
+storiesOf('Forms/Fields/Old', module)
+  .add(
+    'PasswordField',
+    withInfo({
+      text: 'Password input',
+      propTablesExclude: [LegacyForm],
+    })(() => (
+      <LegacyForm>
+        <PasswordField hasSavedValue name="password" label="password" />
+      </LegacyForm>
+    ))
+  )
+  .add(
+    'BooleanField',
+    withInfo({
+      text: 'Boolean field (i.e. checkbox)',
+      propTablesExclude: [LegacyForm],
+    })(() => (
+      <LegacyForm>
+        <BooleanField name="field" />
+      </LegacyForm>
+    ))
+  );
+
+storiesOf('Forms/Fields/New', module)
   .add(
     'TextField',
-    withInfo('Simple text input')(() => (
+    withInfo({
+      text: 'Simple text input',
+      propTablesExclude: [Form],
+    })(() => (
       <Form initialData={{context: {location: 'cat'}}}>
         <TextField
           name="simpletextfield"
@@ -81,24 +109,22 @@ storiesOf('Forms/Fields', module)
     ))
   )
   .add(
-    'PasswordField',
-    withInfo('Password input')(() => (
-      <LegacyForm>
-        <PasswordField hasSavedValue name="password" label="password" />
-      </LegacyForm>
-    ))
-  )
-  .add(
     'BooleanField',
-    withInfo('Boolean field (i.e. checkbox)')(() => (
-      <LegacyForm>
-        <BooleanField name="field" />
-      </LegacyForm>
+    withInfo({
+      text: 'Boolean field (i.e. checkbox)',
+      propTablesExclude: [Form],
+    })(() => (
+      <Form>
+        <NewBooleanField name="field" label="New Boolean Field" />
+      </Form>
     ))
   )
   .add(
     'RadioField',
-    withInfo('Radio field')(() => (
+    withInfo({
+      text: 'Radio field',
+      propTablesExclude: [Form],
+    })(() => (
       <Form>
         <RadioField
           name="radio"
@@ -114,7 +140,10 @@ storiesOf('Forms/Fields', module)
   )
   .add(
     'Non-inline field',
-    withInfo('Radio field')(() => (
+    withInfo({
+      text: 'Radio Group used w/ FormField',
+      propTablesExclude: [Form],
+    })(() => (
       <Form>
         <FormField name="radio" label="Radio Field" inline={false}>
           {({value, label, onChange}) => (
@@ -139,12 +168,13 @@ storiesOf('Forms/Fields', module)
       <div style={{backgroundColor: '#fff', padding: 20}}>
         <RangeSlider
           name="rangeField"
-          label="Toaster Strudle"
-          plural="Toaster Strudles"
           min={1}
           max={10}
           step={1}
-          initialValue={1}
+          value={1}
+          formatLabel={value => {
+            return `${value} Toaster Strudle${value > 1 ? 's' : ''}`;
+          }}
         />
       </div>
     ))

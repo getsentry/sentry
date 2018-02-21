@@ -13,7 +13,7 @@ import LoadingIndicator from '../../../components/loadingIndicator';
 import Panel from '../components/panel';
 import PanelBody from '../components/panelBody';
 import PanelHeader from '../components/panelHeader';
-import RadioGroup from '../components/forms/radioGroup';
+import RadioGroup from '../components/forms/controls/radioGroup';
 import SentryTypes from '../../../proptypes';
 
 const AccountAvatar = createReactClass({
