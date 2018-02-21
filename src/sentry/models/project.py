@@ -283,15 +283,19 @@ class Project(Model):
         return is_enabled
 
     def transfer_to(self, team):
+        # TODO(jess): refactor this to make it an org transfer only
         from sentry.models import ProjectTeam, ReleaseProject
 
         organization = team.organization
         from_team_id = self.team_id
 
+        old_org_id = self.organization_id
+        org_changed = old_org_id != organization.id
+
         # We only need to delete ReleaseProjects when moving to a different
         # Organization. Releases are bound to Organization, so it's not realistic
         # to keep this link unless we say, copied all Releases as well.
-        if self.organization_id != organization.id:
+        if org_changed:
             ReleaseProject.objects.filter(
                 project_id=self.id,
             ).delete()
@@ -314,6 +318,12 @@ class Project(Model):
             )
 
         ProjectTeam.objects.filter(project=self, team_id=from_team_id).update(team=team)
+        # this is getting really gross, but make sure there aren't lingering associations
+        # with old orgs or teams
+        if org_changed:
+            ProjectTeam.objects.filter(project=self, team__organization_id=old_org_id).delete()
+        # ensure this actually exists in case from team was null
+        self.add_team(team)
 
     def add_team(self, team):
         try:
