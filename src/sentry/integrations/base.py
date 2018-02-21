@@ -13,6 +13,7 @@ IntegrationMetadata = namedtuple('IntegrationMetadata', [
     'author',       # The integration author's name
     'issue_url',    # URL where issues should be opened
     'source_url',   # URL to view the source
+    'aspects',      # A map of integration specific 'aspects' to the aspect config.
 ])
 
 

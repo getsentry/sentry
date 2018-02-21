@@ -55,6 +55,9 @@ const MetadataLink = styled.a`
   margin-bottom: 6px;
 `;
 
+const alertLinkMarkedRenderer = new marked.Renderer();
+alertLinkMarkedRenderer.paragraph = s => s;
+
 function computeCenteredWindow(width, height) {
   const screenLeft = window.screenLeft != undefined ? window.screenLeft : screen.left;
   const screenTop = window.screenTop != undefined ? window.screenTop : screen.top;
@@ -170,8 +173,29 @@ export default class OrganizationIntegrationConfig extends AsyncView {
     this.api.request(`/organizations/${orgId}/integrations/${integration.id}/`, options);
   };
 
+  renderAlertLink(provider) {
+    const config = provider.metadata.aspects.alert_link;
+
+    if (config === undefined) {
+      return undefined;
+    }
+
+    const linkHtml = marked(config.text, {renderer: alertLinkMarkedRenderer});
+    let link = config.link;
+
+    for (const key in this.props.params) {
+      link = link.replace(`{${key}}`, this.props.params[key]);
+    }
+
+    return (
+      <AlertLink to={link}>
+        <span dangerouslySetInnerHTML={{__html: linkHtml}} />
+      </AlertLink>
+    );
+  }
+
   renderBody() {
-    const {orgId, projectId, providerKey} = this.props.params;
+    const {providerKey} = this.props.params;
 
     const integrations = this.state.itemList.filter(i => i.provider.key === providerKey);
     const provider = this.state.config.providers.find(p => p.key == providerKey);
@@ -238,12 +262,7 @@ export default class OrganizationIntegrationConfig extends AsyncView {
           <PanelBody>{integrationList}</PanelBody>
         </Panel>
 
-        <AlertLink
-          to={`/settings/organization/${orgId}/project/${projectId}/alerts/rules/`}
-        >
-          Looking to send Sentry alerts to Slack? Add an <strong>Alert Rule</strong> for
-          this project.
-        </AlertLink>
+        {this.renderAlertLink(provider)}
 
         <hr />
 
