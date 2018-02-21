@@ -148,9 +148,7 @@ const OrganizationGeneralSettingsView = createReactClass({
                         className="btn btn-danger"
                         priority="danger"
                         size="small"
-                        title={tct('Remove [name] organization', {
-                          name: data && data.name,
-                        })}
+                        title={t('Remove %s organization', data && data.name)}
                         message={
                           <div>
                             <p>
