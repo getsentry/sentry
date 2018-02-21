@@ -24,9 +24,11 @@ class Actor(namedtuple('Actor', 'id type')):
         if actor_id.isdigit():
             return Actor(int(actor_id), User)
 
-        if u':' in actor_id:
-            type_name, _, id = actor_id.partition(':')
-            return cls(int(id), {'user': User, 'team': Team}[type_name])
+        if actor_id.startswith('user:'):
+            return cls(int(actor_id[5:]), User)
+
+        if actor_id.startswith('team:'):
+            return cls(int(actor_id[5:]), Team)
 
         try:
             return Actor(find_users(actor_id)[0].id, User)

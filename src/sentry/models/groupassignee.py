@@ -61,7 +61,8 @@ class GroupAssigneeManager(BaseManager):
                 type=Activity.ASSIGNED,
                 user=acting_user,
                 data={
-                    'assignee': assigned_to,
+                    # todo(maxbittker) use actor_ids here?
+                    'assignee': assigned_to.id,
                     'assigneeEmail': getattr(assigned_to, 'email', None),
                     'assigneeType': assignee_type,
                 },
