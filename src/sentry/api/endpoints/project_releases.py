@@ -54,7 +54,7 @@ class ProjectReleasesEndpoint(ProjectEndpoint, EnvironmentMixin):
         try:
             environment = self._get_environment_from_request(
                 request,
-                project.organization.id,
+                project.organization_id,
             )
         except Environment.DoesNotExist:
             queryset = Release.objects.none()
@@ -64,7 +64,7 @@ class ProjectReleasesEndpoint(ProjectEndpoint, EnvironmentMixin):
             ).select_related('owner')
             if environment is not None:
                 queryset = queryset.filter(id__in=ReleaseEnvironment.objects.filter(
-                    organization_id=project.organization.id,
+                    organization_id=project.organization_id,
                     environment_id=environment.id,
                 ).values_list('release_id', flat=True))
 

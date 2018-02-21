@@ -205,17 +205,6 @@ class ProjectReleaseListEnvironmentsTest(APITestCase):
         response = self.client.get(url + '?environment=' + self.env2.name, format='json')
         self.assert_releases(response, [self.release2])
 
-    def test_no_environment(self):
-        url = reverse(
-            'sentry-api-0-project-releases',
-            kwargs={
-                'organization_slug': self.project2.organization.slug,
-                'project_slug': self.project2.slug,
-            }
-        )
-        response = self.client.get(url + '?environment=', format='json')
-        self.assert_releases(response, [])
-
     def test_empty_environment(self):
         url = reverse(
             'sentry-api-0-project-releases',

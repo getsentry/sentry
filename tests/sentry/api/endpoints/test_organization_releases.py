@@ -992,16 +992,6 @@ class OrganizationReleaseListEnvironmentsTest(APITestCase):
         response = self.client.get(url + '?environment=' + self.env2.name, format='json')
         self.assert_releases(response, [self.release2, self.release3])
 
-    def test_no_environment(self):
-        url = reverse(
-            'sentry-api-0-organization-releases',
-            kwargs={
-                'organization_slug': self.org.slug,
-            }
-        )
-        response = self.client.get(url + '?environment=', format='json')
-        self.assert_releases(response, [])
-
     def test_empty_environment(self):
         url = reverse(
             'sentry-api-0-organization-releases',
