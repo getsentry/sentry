@@ -2,7 +2,7 @@ import React from 'react';
 import styled from 'react-emotion';
 import PropTypes from 'prop-types';
 
-import {growIn} from './styled/animations';
+import {growIn} from '../../../../../styles/animations';
 
 const RadioGroup = ({value, choices, label, onChange, ...props}) => {
   const isSelected = id => {

@@ -2,7 +2,7 @@ import PropTypes from 'prop-types';
 import React from 'react';
 
 import FormField from './formField';
-import Input from './styled/input';
+import Input from './controls/input';
 
 export default class InputField extends React.Component {
   static propTypes = {

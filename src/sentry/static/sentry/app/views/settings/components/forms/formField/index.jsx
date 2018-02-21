@@ -6,7 +6,7 @@ import ReactDOM from 'react-dom';
 import styled from 'react-emotion';
 
 import {defined} from '../../../../../utils';
-import {pulse, fadeOut} from '../styled/animations';
+import {pulse, fadeOut} from '../../../../../styles/animations';
 import FormFieldControl from './formFieldControl';
 import FormFieldControlState from './formFieldControlState';
 import FormFieldDescription from './formFieldDescription';
@@ -16,7 +16,7 @@ import FormFieldRequiredBadge from './formFieldRequiredBadge';
 import FormFieldWrapper from './formFieldWrapper';
 import FormState from '../../../../../components/forms/state';
 import InlineSvg from '../../../../../components/inlineSvg';
-import Spinner from '../styled/spinner';
+import Spinner from '../spinner';
 import returnButton from '../returnButton';
 
 // This wraps Control + ControlError message
