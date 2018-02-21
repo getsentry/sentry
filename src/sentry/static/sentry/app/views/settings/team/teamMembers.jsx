@@ -1,8 +1,9 @@
 import React from 'react';
 import createReactClass from 'create-react-class';
+import {Link} from 'react-router';
 
 import ApiMixin from '../../../mixins/apiMixin';
-import UserBadge from '../../../components/userBadge';
+import Avatar from '../../../components/avatar';
 import Button from '../../../components/buttons/button';
 import IndicatorStore from '../../../stores/indicatorStore';
 import {leaveTeam} from '../../../actionCreators/teams';
@@ -140,7 +141,15 @@ const TeamMembers = createReactClass({
               return (
                 <tr key={i}>
                   <td className="table-user-info">
-                    <UserBadge user={member} orgId={params.orgId} />
+                    <Avatar user={member} size={80} />
+                    <h5>
+                      <Link
+                        to={`/settings/organization/${params.orgId}/members/${member.id}`}
+                      >
+                        {member.email}
+                      </Link>
+                    </h5>
+                    {member.email}
                   </td>
                   <td>
                     {access.has('org:write') ? (
