@@ -5,12 +5,13 @@ from django.db import IntegrityError, transaction
 from rest_framework import serializers
 from rest_framework.response import Response
 
+from sentry.api.base import EnvironmentMixin
 from sentry.api.bases.project import ProjectEndpoint, ProjectReleasePermission
 from sentry.api.paginator import OffsetPaginator
 from sentry.api.fields.user import UserField
 from sentry.api.serializers import serialize
 from sentry.api.serializers.rest_framework import CommitSerializer, ListField
-from sentry.models import Activity, Release
+from sentry.models import Activity, Environment, Release, ReleaseEnvironment
 from sentry.plugins.interfaces.releasehook import ReleaseHook
 from sentry.constants import VERSION_LENGTH
 
@@ -32,7 +33,7 @@ class ReleaseSerializer(serializers.Serializer):
         return attrs
 
 
-class ProjectReleasesEndpoint(ProjectEndpoint):
+class ProjectReleasesEndpoint(ProjectEndpoint, EnvironmentMixin):
     permission_classes = (ProjectReleasePermission, )
 
     def get(self, request, project):
@@ -50,10 +51,22 @@ class ProjectReleasesEndpoint(ProjectEndpoint):
                               "starts with" filter for the version.
         """
         query = request.GET.get('query')
-
-        queryset = Release.objects.filter(
-            projects=project, organization_id=project.organization_id
-        ).select_related('owner')
+        try:
+            environment = self._get_environment_from_request(
+                request,
+                project.organization.id,
+            )
+        except Environment.DoesNotExist:
+            queryset = Release.objects.none()
+        else:
+            queryset = Release.objects.filter(
+                projects=project, organization_id=project.organization_id
+            ).select_related('owner')
+            if environment is not None:
+                queryset = queryset.filter(id__in=ReleaseEnvironment.objects.filter(
+                    organization_id=project.organization.id,
+                    environment_id=environment.id,
+                ).values_list('release_id', flat=True))
 
         if query:
             queryset = queryset.filter(
