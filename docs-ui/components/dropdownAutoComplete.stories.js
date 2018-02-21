@@ -6,6 +6,21 @@ import DropdownAutoComplete from 'sentry-ui/dropdownAutoComplete';
 
 const items = [
   {
+    value: 'apple',
+    label: '🍎 Apple',
+  },
+  {
+    value: 'bacon',
+    label: '🥓 Bacon',
+  },
+  {
+    value: 'corn',
+    label: '🌽 Corn',
+  },
+];
+
+const groupedItems = [
+  {
     group: {
       value: 'countries',
       label: (
@@ -54,11 +69,20 @@ const items = [
   },
 ];
 
-storiesOf('DropdownAutoComplete', module).add(
-  'default',
-  withInfo('A flexible dropdown with autocomplete and grouping')(() => (
-    <DropdownAutoComplete items={items}>
-      {({isOpen, selectedItem}) => (selectedItem ? selectedItem.label : 'Click me!')}
-    </DropdownAutoComplete>
-  ))
-);
+storiesOf('DropdownAutoComplete', module)
+  .add(
+    'ungrouped',
+    withInfo('The item label can be a component or a string')(() => (
+      <DropdownAutoComplete items={items}>
+        {({isOpen, selectedItem}) => (selectedItem ? selectedItem.label : 'Click me!')}
+      </DropdownAutoComplete>
+    ))
+  )
+  .add(
+    'grouped',
+    withInfo('Group labels can receive a component too')(() => (
+      <DropdownAutoComplete items={groupedItems}>
+        {({isOpen, selectedItem}) => (selectedItem ? selectedItem.label : 'Click me!')}
+      </DropdownAutoComplete>
+    ))
+  );
