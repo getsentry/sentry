@@ -5,7 +5,6 @@ import React from 'react';
 import LazyLoad from '../../../../components/lazyLoad';
 import OrganizationSettingsView from '../../../organizationSettingsView';
 import SentryTypes from '../../../../proptypes';
-import getSettingsComponent from '../../../../utils/getSettingsComponent';
 
 const EVENT_TYPES = [
   'member.invite',
@@ -87,10 +86,8 @@ class AuditLogView extends OrganizationSettingsView {
     return (
       <LazyLoad
         component={() =>
-          getSettingsComponent(
-            () => import(/*webpackChunkName: "auditLogList"*/ './auditLogList'),
-            () => import(/*webpackChunkName: "auditLogList.old"*/ './auditLogList.old'),
-            this.props.routes
+          import(/*webpackChunkName: "auditLogList"*/ './auditLogList').then(
+            mod => mod.default
           )}
         entries={this.state.entryList}
         pageLinks={this.state.pageLinks}
