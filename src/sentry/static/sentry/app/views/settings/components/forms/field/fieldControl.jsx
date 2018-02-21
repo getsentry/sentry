@@ -7,7 +7,7 @@ import FieldControlState from './fieldControlState';
 import Tooltip from '../../../../../components/tooltip';
 
 // This wraps Control + ControlError message
-// * can NOT be a flex box have because of position: absolute on "control error message"
+// * can NOT be a flex box here because of `position: absolute` on "control error message"
 // * can NOT have overflow hidden because "control error message" overflows
 const FieldControlErrorWrapper = styled(({inline, ...props}) => <Box {...props} />)`
   ${p => (p.inline ? 'width: 50%; padding-left: 10px;' : '')};
