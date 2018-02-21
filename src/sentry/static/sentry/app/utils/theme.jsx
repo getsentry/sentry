@@ -86,6 +86,12 @@ const theme = {
 
   grid: 8,
 
+  settings: {
+    containerWidth: '1040px',
+    headerHeight: '115px',
+    sidebarWidth: '210px',
+  },
+
   text: {
     family: '"Rubik", "Avenir Next", sans-serif',
     familyMono: 'Monaco, Consolas, "Courier New", monospace',

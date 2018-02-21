@@ -57,8 +57,13 @@ let NewSettingsWarning = ({location = {}}) => {
 };
 
 const Container = styled(Flex)`
-  width: 1010px;
+  max-width: ${p => p.theme.settings.containerWidth};
   margin: 0 auto;
+  padding: 0 ${p => p.theme.grid * 2}px;
+`;
+
+const SidebarWrapper = styled(Box)`
+  flex: 0 0 ${p => p.theme.settings.sidebarWidth};
 `;
 
 const Content = styled(Box)`
@@ -111,9 +116,9 @@ class SettingsLayout extends React.Component {
         </SettingsHeader>
         <Container>
           {typeof renderNavigation === 'function' && (
-            <Box flex="0 0 210px">
+            <SidebarWrapper>
               <StickySidebar>{renderNavigation()}</StickySidebar>
-            </Box>
+            </SidebarWrapper>
           )}
           <Content>
             {children}
@@ -126,7 +131,7 @@ class SettingsLayout extends React.Component {
 }
 const StickySidebar = styled.div`
   position: sticky;
-  top: 115px;
+  top: ${p => p.theme.settings.headerHeight};
 `;
 
 export default SettingsLayout;

@@ -3,7 +3,7 @@ import styled from 'react-emotion';
 const SettingsHeader = styled.div`
   position: sticky;
   top: 0;
-  height: 115px;
+  height: ${p => p.theme.settings.headerHeight};
   z-index: ${p => p.theme.zIndex.header};
   &:before {
     position: absolute;
