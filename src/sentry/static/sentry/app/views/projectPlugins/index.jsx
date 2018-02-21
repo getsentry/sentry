@@ -29,8 +29,11 @@ class ProjectPluginsContainer extends React.Component {
 
   render() {
     let {loading, error, plugins} = this.props.plugins || {};
+    const {features} = this.props.organization;
 
-    console.log(this.props);
+    const globalIntegrations = features.includes('integrations-v3') ? (
+      <OrganizationIntegrations {...this.props} />
+    ) : null;
 
     // TODO: We shouldn't be passing all the props to OrgnizationIntegrations,
     // maybe just need the params
@@ -38,7 +41,7 @@ class ProjectPluginsContainer extends React.Component {
       <React.Fragment>
         <SettingsPageHeader title={t('Integrations')} />
 
-        <OrganizationIntegrations {...this.props} />
+        {globalIntegrations}
 
         <ProjectPlugins
           {...this.props}
