@@ -155,20 +155,24 @@ export default class OrganizationIntegrationConfig extends AsyncView {
     itemList = sortArray(itemList, i => i.name);
     itemList = _.uniqBy(itemList, i => i.id);
 
+    IndicatorStore.addSuccess(t('Integration Added'));
     this.setState({itemList});
   };
 
   deleteIntegration = integration => {
     const {orgId} = this.props.params;
+    const saveIndicator = IndicatorStore.add(t('Removing Integration'));
 
     const options = {
       method: 'DELETE',
-      success: () =>
+      success: () => {
         this.setState({
           itemList: this.state.itemList.filter(item => item.id !== integration.id),
-        }),
-
-      // TODO toast indoactor for errors / complete
+        });
+        IndicatorStore.addSuccess(t('Integration removed'));
+      },
+      error: () => IndicatorStore.addERror(t('Failed to remove Integration')),
+      complete: () => IndicatorStore.remove(saveIndicator),
     };
 
     this.api.request(`/organizations/${orgId}/integrations/${integration.id}/`, options);
