@@ -55,7 +55,7 @@ const EnvironmentStore = Reflux.createStore({
         return item.name || DEFAULT_EMPTY_ROUTING_NAME;
       },
     }));
-    this.trigger(this[key]);
+    this.trigger(this.items);
   },
 
   getByName(name) {
