@@ -245,6 +245,17 @@ class ProjectReleaseListEnvironmentsTest(APITestCase):
         response = self.client.get(url, format='json')
         self.assert_releases(response, [self.release1, self.release3])
 
+    def test_invalid_environment(self):
+        url = reverse(
+            'sentry-api-0-project-releases',
+            kwargs={
+                'organization_slug': self.project1.organization.slug,
+                'project_slug': self.project1.slug,
+            }
+        )
+        response = self.client.get(url + '?environment=' + 'invalid_environment', format='json')
+        self.assert_releases(response, [])
+
 
 class ProjectReleaseCreateTest(APITestCase):
     def test_minimal(self):
