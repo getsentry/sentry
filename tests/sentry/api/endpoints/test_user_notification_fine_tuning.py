@@ -53,7 +53,7 @@ class UserNotificationFineTuningTest(APITestCase):
 
         UserOption.objects.create(
             user=self.user,
-            organization=self.org,
+            organization=None,
             key="reports:disabled-organizations",
             value=[
                 self.org.id])
