@@ -78,9 +78,10 @@ class OrganizationReleasesEndpoint(OrganizationReleasesBaseEndpoint, Environment
             ).select_related('owner')
 
             if environment is not None:
-                # should I put this in a try-catch?
                 queryset = queryset.filter(id__in=ReleaseEnvironment.objects.filter(
-                    environment_id=environment.id).values_list('release_id', flat=True))
+                    organization_id=organization.id,
+                    environment_id=environment.id,
+                ).values_list('release_id', flat=True))
 
         if query:
             queryset = queryset.filter(
