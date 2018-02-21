@@ -40,13 +40,13 @@ class UserNotificationsSerializer(Serializer):
         data = {}
 
         for uo in attrs:
-            if uo.project is not None:
-                data[uo.project.id] = uo.value
-            elif uo.organization is not None:
-                data[uo.organization.id] = uo.value
-            elif notification_option_key == 'reports:disabled-organizations':
+            if notification_option_key == 'reports:disabled-organizations':
                 # UserOption for key=reports:disabled-organizations saves a list of orgIds
                 # that should not receive reports
                 for org_id in uo.value:
                     data[org_id] = 0
+            elif uo.project is not None:
+                data[uo.project.id] = uo.value
+            elif uo.organization is not None:
+                data[uo.organization.id] = uo.value
         return data

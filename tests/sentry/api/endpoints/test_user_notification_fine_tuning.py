@@ -34,9 +34,50 @@ class UserNotificationFineTuningTest(APITestCase):
                 'notification_type': 'alerts',
             }
         )
-        resp = self.client.get(url, format='json')
-
+        resp = self.client.get(url)
         assert resp.data.get(self.project.id) == 1
+
+        UserOption.objects.create(
+            user=self.user,
+            organization=self.org,
+            key="deploy-emails",
+            value=1)
+        url = reverse(
+            'sentry-api-0-user-notifications-fine-tuning', kwargs={
+                'user_id': 'me',
+                'notification_type': 'deploy',
+            }
+        )
+        resp = self.client.get(url)
+        assert resp.data.get(self.org.id) == 1
+
+        UserOption.objects.create(
+            user=self.user,
+            organization=self.org,
+            key="reports:disabled-organizations",
+            value=[
+                self.org.id])
+        url = reverse(
+            'sentry-api-0-user-notifications-fine-tuning', kwargs={
+                'user_id': 'me',
+                'notification_type': 'reports',
+            }
+        )
+        resp = self.client.get(url)
+        assert resp.data.get(self.org.id) == 0
+
+    def test_invalid_notification_type(self):
+        url = reverse(
+            'sentry-api-0-user-notifications-fine-tuning', kwargs={
+                'user_id': 'me',
+                'notification_type': 'invalid',
+            }
+        )
+        resp = self.client.get(url)
+        assert resp.status_code == 404
+
+        resp = self.client.put(url)
+        assert resp.status_code == 404
 
     def test_update_invalid_project(self):
         url = reverse(
@@ -86,7 +127,7 @@ class UserNotificationFineTuningTest(APITestCase):
         assert not UserOption.objects.filter(
             user=self.user,
             project=self.project,
-            key="mail:alert")
+            key="mail:alert").exists()
 
         assert UserOption.objects.get(
             user=self.user,
@@ -196,6 +237,41 @@ class UserNotificationFineTuningTest(APITestCase):
 
         resp = self.client.put(url, data=update)
         assert resp.status_code == 400
+
+    def test_saves_and_returns_deploy(self):
+        url = reverse(
+            'sentry-api-0-user-notifications-fine-tuning', kwargs={
+                'user_id': 'me',
+                'notification_type': 'deploy',
+            }
+        )
+
+        update = {}
+        update[self.org.id] = 0
+
+        resp = self.client.put(url, data=update)
+        assert resp.status_code == 204
+
+        assert UserOption.objects.get(
+            user=self.user,
+            organization=self.org.id,
+            key="deploy-emails").value == '0'
+
+        update = {}
+        update[self.org.id] = 1
+        resp = self.client.put(url, data=update)
+        assert UserOption.objects.get(
+            user=self.user,
+            organization=self.org,
+            key="deploy-emails").value == '1'
+
+        update = {}
+        update[self.org.id] = -1
+        resp = self.client.put(url, data=update)
+        assert not UserOption.objects.filter(
+            user=self.user,
+            organization=self.org,
+            key="deploy-emails").exists()
 
     def test_saves_and_returns_weekly_reports(self):
         url = reverse(
