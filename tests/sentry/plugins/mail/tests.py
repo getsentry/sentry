@@ -340,7 +340,7 @@ class MailPluginTest(TestCase):
             },
         )
 
-        self.project.team.organization.member_set.create(user=user_foo)
+        self.project.teams.first().organization.member_set.create(user=user_foo)
 
         with self.tasks():
             self.plugin.notify_about_activity(activity)
@@ -368,7 +368,7 @@ class MailPluginSignalsTest(TestCase):
             email='homer.simpson@example.com'
         )
 
-        self.project.team.organization.member_set.create(user=user_foo)
+        self.project.teams.first().organization.member_set.create(user=user_foo)
 
         with self.tasks():
             self.plugin.handle_signal(

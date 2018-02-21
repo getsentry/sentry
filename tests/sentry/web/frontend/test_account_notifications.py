@@ -37,7 +37,7 @@ class NotificationSettingsTest(TestCase):
             organization=organization, teams=[team], status=ProjectStatus.PENDING_DELETION
         )
         self.create_project(organization=organization, teams=[team2])
-        self.create_member(organization=organization, user=user, teams=[project.team])
+        self.create_member(organization=organization, user=user, teams=[project.teams.first()])
         self.login_as(user)
         resp = self.client.get(self.path)
         assert resp.status_code == 200

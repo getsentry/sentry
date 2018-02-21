@@ -146,7 +146,7 @@ class UpdateProjectSearchDetailsTest(APITestCase):
             user=member,
             role='member',
             organization=project.organization,
-            teams=[project.team],
+            teams=[project.teams.first()],
         )
 
         search = SavedSearch.objects.create(

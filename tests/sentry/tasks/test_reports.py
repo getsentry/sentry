@@ -282,7 +282,7 @@ class ReportTestCase(TestCase):
             now - timedelta(days=1),
         )
 
-        member_set = set(project.team.member_set.all())
+        member_set = set(project.teams.first().member_set.all())
 
         with self.tasks(), \
                 mock.patch.object(tsdb, 'get_earliest_timestamp') as get_earliest_timestamp:
