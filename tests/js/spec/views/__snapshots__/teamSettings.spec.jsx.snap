@@ -4,69 +4,51 @@ exports[`TeamSettings render() renders 1`] = `
 <SideEffect(DocumentTitle)
   title="Team Settings - Sentry"
 >
-  <React.Fragment>
-    <Form
-      allowUndo={true}
-      apiMethod="PUT"
-      cancelLabel="Cancel"
-      className="form-stacked"
-      footerClass="form-actions align-right"
-      initialData={
-        Object {
-          "name": "Team Name",
-          "slug": "team-slug",
-        }
-      }
-      model={
-        TeamFormModel {
-          "api": Client {},
-          "fieldDescriptor": Map {},
-          "initialData": Object {},
-          "options": Object {},
-          "orgId": "org",
-          "snapshots": Array [],
-          "teamId": "team-slug",
-        }
-      }
-      onSubmitError={[Function]}
-      onSubmitSuccess={[Function]}
-      requireChanges={false}
-      saveOnBlur={true}
-      submitDisabled={false}
-      submitLabel="Save Changes"
+  <div
+    className="box"
+  >
+    <div
+      className="box-content with-padding"
     >
-      <Box>
-        <JsonForm
-          additionalFieldProps={Object {}}
-          forms={
-            Array [
-              Object {
-                "fields": Array [
-                  Object {
-                    "help": "The name of your team",
-                    "label": "Name",
-                    "name": "name",
-                    "placeholder": "e.g. API Team",
-                    "required": true,
-                    "type": "string",
-                  },
-                  Object {
-                    "help": "A unique ID used to identify the team",
-                    "label": "Short Name",
-                    "name": "slug",
-                    "placeholder": "e.g. api-team",
-                    "required": true,
-                    "type": "string",
-                  },
-                ],
-                "title": "Team Settings",
-              },
-            ]
+      <ApiForm
+        apiEndpoint="/teams/org/team-slug/"
+        apiMethod="PUT"
+        cancelLabel="Cancel"
+        className="form-stacked"
+        errorMessage="Unable to save your changes. Please ensure all fields are valid and try again."
+        footerClass="form-actions align-right"
+        hideErrors={false}
+        initialData={
+          Object {
+            "name": "Team Name",
+            "slug": "team-slug",
           }
+        }
+        onSubmitSuccess={[Function]}
+        requireChanges={true}
+        resetOnError={false}
+        submitDisabled={false}
+        submitLabel="Save Changes"
+      >
+        <TextField
+          disabled={false}
+          hideErrorMessage={false}
+          label="Name"
+          name="name"
+          placeholder="e.g. API Team"
+          required={true}
         />
-      </Box>
-    </Form>
-  </React.Fragment>
+        <TextField
+          disabled={false}
+          hideErrorMessage={false}
+          label="Short name"
+          name="slug"
+          placeholder="e.g. api-team"
+          required={true}
+        />
+      </ApiForm>
+    </div>
+  </div>
 </SideEffect(DocumentTitle)>
 `;
 
@@ -74,92 +56,50 @@ exports[`TeamSettings render() renders with remove team 1`] = `
 <SideEffect(DocumentTitle)
   title="Team Settings - Sentry"
 >
-  <React.Fragment>
-    <Form
-      allowUndo={true}
-      apiMethod="PUT"
-      cancelLabel="Cancel"
-      className="form-stacked"
-      footerClass="form-actions align-right"
-      initialData={
-        Object {
-          "name": "Team Name",
-          "slug": "team-slug",
-        }
-      }
-      model={
-        TeamFormModel {
-          "api": Client {},
-          "fieldDescriptor": Map {},
-          "initialData": Object {},
-          "options": Object {},
-          "orgId": "org",
-          "snapshots": Array [],
-          "teamId": "team-slug",
-        }
-      }
-      onSubmitError={[Function]}
-      onSubmitSuccess={[Function]}
-      requireChanges={false}
-      saveOnBlur={true}
-      submitDisabled={false}
-      submitLabel="Save Changes"
-    >
-      <Box>
-        <JsonForm
-          additionalFieldProps={Object {}}
-          forms={
-            Array [
-              Object {
-                "fields": Array [
-                  Object {
-                    "help": "The name of your team",
-                    "label": "Name",
-                    "name": "name",
-                    "placeholder": "e.g. API Team",
-                    "required": true,
-                    "type": "string",
-                  },
-                  Object {
-                    "help": "A unique ID used to identify the team",
-                    "label": "Short Name",
-                    "name": "slug",
-                    "placeholder": "e.g. api-team",
-                    "required": true,
-                    "type": "string",
-                  },
-                ],
-                "title": "Team Settings",
-              },
-            ]
-          }
-        />
-      </Box>
-    </Form>
+  <div
+    className="box"
+  >
     <div
-      className="box"
+      className="box-content with-padding"
     >
-      <div
-        className="box-header"
+      <ApiForm
+        apiEndpoint="/teams/org/team-slug/"
+        apiMethod="PUT"
+        cancelLabel="Cancel"
+        className="form-stacked"
+        errorMessage="Unable to save your changes. Please ensure all fields are valid and try again."
+        footerClass="form-actions align-right"
+        hideErrors={false}
+        initialData={
+          Object {
+            "name": "Team Name",
+            "slug": "team-slug",
+          }
+        }
+        onSubmitSuccess={[Function]}
+        requireChanges={true}
+        resetOnError={false}
+        submitDisabled={false}
+        submitLabel="Save Changes"
       >
-        <h3>
-          Remove Team
-        </h3>
-      </div>
-      <div
-        className="box-content with-padding"
-      >
-        <p>
-          <a
-            className="btn btn-danger pull-right"
-            href="/organizations/org/teams/team-slug/remove/"
-          >
-            Remove Team
-          </a>
-          Remove team. This may affect team members' access to projects and associated alert delivery.
-        </p>
-      </div>
+        <TextField
+          disabled={false}
+          hideErrorMessage={false}
+          label="Name"
+          name="name"
+          placeholder="e.g. API Team"
+          required={true}
+        />
+        <TextField
+          disabled={false}
+          hideErrorMessage={false}
+          label="Short name"
+          name="slug"
+          placeholder="e.g. api-team"
+          required={true}
+        />
+      </ApiForm>
     </div>
-  </React.Fragment>
+  </div>
 </SideEffect(DocumentTitle)>
 `;
