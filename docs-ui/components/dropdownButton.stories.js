@@ -53,7 +53,11 @@ storiesOf('DropdownButton', module).add(
   'default',
   withInfo('A button meant to be used with some sort of dropdown')(() => (
     <DropdownAutoComplete items={items}>
-      {({isOpen}) => <DropdownButton isOpen={isOpen}>Click me!</DropdownButton>}
+      {({isOpen, selectedItem}) => (
+        <DropdownButton isOpen={isOpen}>
+          {selectedItem ? selectedItem.content : 'Click me!'}
+        </DropdownButton>
+      )}
     </DropdownAutoComplete>
   ))
 );

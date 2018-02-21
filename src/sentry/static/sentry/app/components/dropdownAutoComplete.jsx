@@ -6,11 +6,24 @@ import AutoComplete from './autoComplete';
 import Input from '../views/settings/components/forms/styled/input.jsx';
 
 class DropdownAutoComplete extends React.Component {
+  static propTypes = {
+    items: PropTypes.array,
+    isOpen: PropTypes.bool,
+    onSelect: PropTypes.func,
+    children: PropTypes.func,
+    defaultItem: PropTypes.object,
+  };
+
+  static defaultProps = {
+    isOpen: false,
+  };
+
   constructor(props) {
     super(props);
 
     this.state = {
-      isOpen: this.props.isOpen || false,
+      isOpen: this.props.isOpen,
+      selectedItem: this.props.defaultItem,
     };
   }
 
@@ -20,6 +33,7 @@ class DropdownAutoComplete extends React.Component {
 
   onSelect = selectedItem => {
     if (this.props.onSelect) this.props.onSelect(selectedItem);
+    this.setState({selectedItem: selectedItem});
     this.toggleOpen();
   };
 
@@ -114,19 +128,13 @@ class DropdownAutoComplete extends React.Component {
         <div onClick={this.toggleOpen}>
           {this.props.children({
             isOpen: this.state.isOpen,
+            selectedItem: this.state.selectedItem,
           })}
         </div>
       </div>
     );
   }
 }
-
-DropdownAutoComplete.propTypes = {
-  items: PropTypes.array,
-  isOpen: PropTypes.bool,
-  onSelect: PropTypes.func,
-  children: PropTypes.func,
-};
 
 const StyledInput = styled(Input)`
   height: 1.75em;

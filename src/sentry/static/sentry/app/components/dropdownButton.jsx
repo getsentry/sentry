@@ -13,7 +13,7 @@ class DropdownButton extends React.Component {
     return (
       <StyledButton isOpen={this.props.isOpen}>
         <StyledChevronDown />
-        Add Something
+        {this.props.children}
       </StyledButton>
     );
   }
