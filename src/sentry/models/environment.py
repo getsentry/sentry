@@ -92,3 +92,12 @@ class Environment(Model):
                 EnvironmentProject.objects.create(project=project, environment=self)
         except IntegrityError:
             pass
+
+    @staticmethod
+    def get_name_from_path_segment(segment):
+        # In cases where the environment name is passed as a URL path segment,
+        # the (case-sensitive) string "none" represents the empty string
+        # environment name for historic reasons (see commit b09858f.) In all
+        # other contexts (incl. request query string parameters), the empty
+        # string should be used.
+        return segment if segment != 'none' else ''

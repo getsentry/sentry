@@ -6,7 +6,7 @@ from rest_framework.response import Response
 from sentry.api.bases.project import ProjectEndpoint
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.serializers import serialize
-from sentry.models import EnvironmentProject
+from sentry.models import Environment, EnvironmentProject
 
 
 class ProjectEnvironmentSerializer(serializers.Serializer):
@@ -18,7 +18,7 @@ class ProjectEnvironmentDetailsEndpoint(ProjectEndpoint):
         try:
             instance = EnvironmentProject.objects.select_related('environment').get(
                 project=project,
-                environment__name='' if environment == 'none' else environment,
+                environment__name=Environment.get_name_from_path_segment(environment),
             )
         except EnvironmentProject.DoesNotExist:
             raise ResourceDoesNotExist
@@ -29,7 +29,7 @@ class ProjectEnvironmentDetailsEndpoint(ProjectEndpoint):
         try:
             instance = EnvironmentProject.objects.select_related('environment').get(
                 project=project,
-                environment__name='' if environment == 'none' else environment,
+                environment__name=Environment.get_name_from_path_segment(environment),
             )
         except EnvironmentProject.DoesNotExist:
             raise ResourceDoesNotExist

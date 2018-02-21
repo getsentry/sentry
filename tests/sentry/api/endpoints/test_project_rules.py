@@ -118,6 +118,7 @@ class CreateProjectRuleTest(APITestCase):
 
         assert response.status_code == 200, response.content
         assert response.data['id']
+        assert response.data['environment'] == 'production'
 
         rule = Rule.objects.get(id=response.data['id'])
         assert rule.label == 'hello world'
@@ -125,6 +126,50 @@ class CreateProjectRuleTest(APITestCase):
             rule.project,
             'production',
         ).id
+
+    def test_with_null_environment(self):
+        self.login_as(user=self.user)
+
+        project = self.create_project()
+
+        conditions = [
+            {
+                'id': 'sentry.rules.conditions.first_seen_event.FirstSeenEventCondition',
+                'key': 'foo',
+                'match': 'eq',
+                'value': 'bar',
+            }
+        ]
+
+        actions = [{'id': 'sentry.rules.actions.notify_event.NotifyEventAction'}]
+
+        url = reverse(
+            'sentry-api-0-project-rules',
+            kwargs={
+                'organization_slug': project.organization.slug,
+                'project_slug': project.slug,
+            }
+        )
+        response = self.client.post(
+            url,
+            data={
+                'name': 'hello world',
+                'environment': None,
+                'conditions': conditions,
+                'actions': actions,
+                'actionMatch': 'any',
+                'frequency': 30,
+            },
+            format='json'
+        )
+
+        assert response.status_code == 200, response.content
+        assert response.data['id']
+        assert response.data['environment'] is None
+
+        rule = Rule.objects.get(id=response.data['id'])
+        assert rule.label == 'hello world'
+        assert rule.environment_id is None
 
     def test_missing_name(self):
         self.login_as(user=self.user)
