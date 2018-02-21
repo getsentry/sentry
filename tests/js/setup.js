@@ -96,6 +96,121 @@ window.TestStubs = {
     };
   },
 
+  AuditLogs: () => [
+    {
+      note: 'edited project ludic-science',
+      targetObject: 2,
+      targetUser: null,
+      data: {
+        status: 0,
+        slug: 'ludic-science',
+        public: false,
+        name: 'Ludic Science',
+        id: 2,
+      },
+      dateCreated: '2018-02-21T03:04:23.157Z',
+      ipAddress: '127.0.0.1',
+      id: '465',
+      actor: {
+        username: 'billy@sentry.io',
+        emails: [
+          {is_verified: true, id: '5', email: 'billy@sentry.io'},
+          {is_verified: false, id: '17', email: 'billy36@sentry.io'},
+          {is_verified: false, id: '11', email: 'awerawer@awe.com'},
+          {is_verified: false, id: '28', email: 'test@test.com'},
+          {is_verified: true, id: '10', email: 'billy2@sentry.io'},
+        ],
+        isManaged: false,
+        lastActive: '2018-02-21T17:40:31.555Z',
+        identities: [
+          {
+            name: '79684',
+            dateVerified: '2018-02-21T17:09:46.248Z',
+            provider: {id: 'github', name: 'GitHub'},
+            dateSynced: '2018-02-21T17:09:46.248Z',
+            organization: {slug: 'default', name: 'default'},
+            id: '1',
+          },
+        ],
+        id: '1',
+        isActive: true,
+        has2fa: true,
+        name: 'billy vong',
+        avatarUrl:
+          'https://secure.gravatar.com/avatar/7b544e8eb9d08ed777be5aa82121155a?s=32&d=mm',
+        dateJoined: '2018-01-10T00:19:59Z',
+        options: {
+          timezone: 'America/Los_Angeles',
+          seenReleaseBroadcast: true,
+          stacktraceOrder: -1,
+          language: 'en',
+          clock24Hours: false,
+        },
+        avatar: {
+          avatarUuid: '483ed7478a2248d59211f538c2997e0b',
+          avatarType: 'letter_avatar',
+        },
+        lastLogin: '2018-02-14T07:09:37.536Z',
+        permissions: [],
+        email: 'billy@sentry.io',
+      },
+      event: 'project.edit',
+    },
+    {
+      note: 'edited the organization setting(s): accountRateLimit from 1000 to 0',
+      targetObject: 2,
+      targetUser: null,
+      data: {accountRateLimit: 'from 1000 to 0'},
+      dateCreated: '2018-02-16T23:45:59.813Z',
+      ipAddress: '127.0.0.1',
+      id: '408',
+      actor: {
+        username: 'billy@sentry.io',
+        emails: [
+          {is_verified: true, id: '5', email: 'billy@sentry.io'},
+          {is_verified: false, id: '17', email: 'billy36@sentry.io'},
+          {is_verified: false, id: '11', email: 'awerawer@awe.com'},
+          {is_verified: false, id: '28', email: 'test@test.com'},
+          {is_verified: true, id: '10', email: 'billy2@sentry.io'},
+        ],
+        isManaged: false,
+        lastActive: '2018-02-21T17:40:31.555Z',
+        identities: [
+          {
+            name: '79684',
+            dateVerified: '2018-02-21T17:09:46.248Z',
+            provider: {id: 'github', name: 'GitHub'},
+            dateSynced: '2018-02-21T17:09:46.248Z',
+            organization: {slug: 'default', name: 'default'},
+            id: '1',
+          },
+        ],
+        id: '1',
+        isActive: true,
+        has2fa: true,
+        name: 'billy vong',
+        avatarUrl:
+          'https://secure.gravatar.com/avatar/7b544e8eb9d08ed777be5aa82121155a?s=32&d=mm',
+        dateJoined: '2018-01-10T00:19:59Z',
+        options: {
+          timezone: 'America/Los_Angeles',
+          seenReleaseBroadcast: true,
+          stacktraceOrder: -1,
+          language: 'en',
+          clock24Hours: false,
+        },
+        avatar: {
+          avatarUuid: '483ed7478a2248d59211f538c2997e0b',
+          avatarType: 'letter_avatar',
+        },
+        lastLogin: '2018-02-14T07:09:37.536Z',
+        permissions: [],
+        email: 'billy@sentry.io',
+      },
+      event: 'org.edit',
+    },
+  ],
+
   AuthProviders: () => {
     return [['dummy', 'Dummy']];
   },
