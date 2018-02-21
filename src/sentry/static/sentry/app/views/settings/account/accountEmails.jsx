@@ -147,6 +147,7 @@ class AccountEmails extends AsyncView {
           apiMethod="POST"
           apiEndpoint={ENDPOINT}
           saveOnBlur
+          allowUndo={false}
           onSubmitSuccess={this.handleSubmitSuccess}
         >
           <JsonForm location={this.props.location} forms={accountEmailsFields} />

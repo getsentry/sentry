@@ -1,8 +1,8 @@
 import React from 'react';
-import {mount} from 'enzyme';
 
-import NewOrganizationSettingsForm from 'app/views/settings/organization/general/organizationSettingsForm';
+import {mount} from 'enzyme';
 import {saveOnBlurUndoMessage} from 'app/actionCreators/indicator';
+import NewOrganizationSettingsForm from 'app/views/settings/organization/general/organizationSettingsForm';
 
 jest.mock('jquery');
 jest.mock('app/actionCreators/indicator');
@@ -53,7 +53,11 @@ describe('OrganizationSettingsForm', function() {
       })
     );
 
-    saveOnBlurUndoMessage.mockImplementation(function(change, model, fieldName) {
+    saveOnBlurUndoMessage.mockImplementationOnce(async function(
+      change,
+      model,
+      fieldName
+    ) {
       try {
         expect(fieldName).toBe('name');
         expect(change.old).toBe('Organization Name');
@@ -63,6 +67,17 @@ describe('OrganizationSettingsForm', function() {
         expect(model.getValue('name')).toBe('New Name');
         model.undo();
         expect(model.getValue('name')).toBe('Organization Name');
+
+        // `saveOnBlurUndoMessage` saves the new field, so reimplement this
+        await model.saveField('name', 'Organization Name');
+
+        // Initial data should be updated to original name
+        expect(model.initialData.name).toBe('Organization Name');
+
+        putMock.mockReset();
+        // Blurring the name field again should NOT trigger a save
+        input.simulate('blur');
+        expect(putMock).not.toHaveBeenCalled();
         done();
       } catch (err) {
         done(err);

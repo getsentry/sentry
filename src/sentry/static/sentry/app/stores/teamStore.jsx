@@ -35,6 +35,18 @@ const TeamStore = Reflux.createStore({
     if (!item) {
       this.items.push(response);
     } else {
+      // Slug was changed
+      // Note: This is the proper way to handle slug changes but unfortunately not all of our
+      // components use stores correctly. To be safe reload browser :((
+      if (response.slug !== itemId) {
+        // Remove old team
+        this.items = this.items.filter(({slug}) => slug !== itemId);
+        // Add team w/ updated slug
+        this.items.push(response);
+        this.trigger(new Set([response.slug]));
+        return;
+      }
+
       $.extend(true /*deep*/, item, response);
     }
 

@@ -2,7 +2,7 @@ import {Box} from 'grid-emotion';
 import PropTypes from 'prop-types';
 import React from 'react';
 
-import {addErrorMessage, addSuccessMessage} from '../../../actionCreators/indicator';
+import {addErrorMessage} from '../../../actionCreators/indicator';
 import {t} from '../../../locale';
 import AsyncView from '../../asyncView';
 import ConfigStore from '../../../stores/configStore';
@@ -12,6 +12,7 @@ import JsonForm from '../components/forms/jsonForm';
 import Panel from '../components/panel';
 import PanelBody from '../components/panelBody';
 import PanelHeader from '../components/panelHeader';
+import SettingsPageHeader from '../components/settingsPageHeader';
 import TextCopyInput from '../components/forms/textCopyInput';
 import apiApplication from '../../../data/forms/apiApplication';
 
@@ -37,36 +38,19 @@ class ApiApplicationDetails extends AsyncView {
     return 'Application Details';
   }
 
-  handleSubmitSuccess = (change, model, id) => {
-    if (!model) return;
-
-    let label = model.getDescriptor(id, 'label');
-
-    if (!label) return;
-
-    addSuccessMessage(`Changed ${label} from "${change.old}" to "${change.new}"`, 2000, {
-      model,
-      id,
-    });
-
-    // Special case for slug, need to forward to new slug
-    if (typeof onSave === 'function') {
-      this.props.onSave(this.props.initialData, model.initialData);
-    }
-  };
-
   renderBody() {
     let urlPrefix = ConfigStore.get('urlPrefix');
 
     return (
       <div>
+        <SettingsPageHeader title={this.getTitle()} />
+
         <Form
           apiMethod="PUT"
           apiEndpoint={`/api-applications/${this.props.params.appId}/`}
           saveOnBlur
           allowUndo
           initialData={this.state.app}
-          onSubmitSuccess={this.handleSubmitSuccess}
           onSubmitError={err => addErrorMessage('Unable to save change')}
         >
           <Box>
