@@ -289,17 +289,20 @@ class GroupDetailsEndpoint(GroupEndpoint, EnvironmentMixin):
 
         # TODO(dcramer): we need to implement assignedTo in the bulk mutation
         # endpoint
-        response = client.put(
-            path='/projects/{}/{}/issues/'.format(
-                group.project.organization.slug,
-                group.project.slug,
-            ),
-            params={
-                'id': group.id,
-            },
-            data=request.DATA,
-            request=request,
-        )
+        try:
+            response = client.put(
+                path='/projects/{}/{}/issues/'.format(
+                    group.project.organization.slug,
+                    group.project.slug,
+                ),
+                params={
+                    'id': group.id,
+                },
+                data=request.DATA,
+                request=request,
+            )
+        except client.ApiError as e:
+            return Response(e.body, status=e.status_code)
 
         # if action was discard, there isn't a group to serialize anymore
         if discard:

@@ -315,6 +315,7 @@ class GroupUpdateTest(APITestCase):
 
         group = self.create_group()
         team = self.create_team(organization=group.project.organization, members=[self.user])
+        group.project.add_team(team)
 
         url = '/api/0/issues/{}/'.format(group.id)
 
@@ -348,6 +349,22 @@ class GroupUpdateTest(APITestCase):
         assert response.status_code == 200, response.content
 
         assert not GroupAssignee.objects.filter(group=group, team=team).exists()
+
+    def test_assign_unavailable_team(self):
+        self.login_as(user=self.user)
+
+        group = self.create_group()
+        team = self.create_team(organization=group.project.organization, members=[self.user])
+
+        url = '/api/0/issues/{}/'.format(group.id)
+
+        response = self.client.put(
+            url, data={
+                'assignedTo': u'team:{}'.format(team.id),
+            }, format='json'
+        )
+
+        assert response.status_code == 400, response.content
 
     def test_mark_seen(self):
         self.login_as(user=self.user)
