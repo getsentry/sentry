@@ -147,6 +147,7 @@ from .endpoints.user_emails import UserEmailsEndpoint
 from .endpoints.user_organizations import UserOrganizationsEndpoint
 from .endpoints.user_notification_details import UserNotificationDetailsEndpoint
 from .endpoints.user_password import UserPasswordEndpoint
+from .endpoints.user_notification_fine_tuning import UserNotificationFineTuningEndpoint
 from .endpoints.user_social_identities_index import UserSocialIdentitiesIndexEndpoint
 from .endpoints.user_social_identity_details import UserSocialIdentityDetailsEndpoint
 from .endpoints.user_subscriptions import UserSubscriptionsEndpoint
@@ -257,6 +258,11 @@ urlpatterns = patterns(
         r'^users/(?P<user_id>[^\/]+)/password/$',
         UserPasswordEndpoint.as_view(),
         name='sentry-api-0-user-password'
+    ),
+    url(
+        r'^users/(?P<user_id>[^\/]+)/notifications/(?P<notification_type>[^\/]+)/$',
+        UserNotificationFineTuningEndpoint.as_view(),
+        name='sentry-api-0-user-notifications-fine-tuning'
     ),
     url(
         r'^users/(?P<user_id>[^\/]+)/social-identities/$',
