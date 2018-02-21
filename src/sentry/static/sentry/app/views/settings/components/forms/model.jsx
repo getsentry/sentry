@@ -2,9 +2,12 @@ import {observable, computed, action} from 'mobx';
 import _ from 'lodash';
 
 import {Client} from '../../../../api';
+import {
+  addErrorMessage,
+  saveOnBlurUndoMessage,
+} from '../../../../actionCreators/indicator';
 import {defined} from '../../../../utils';
 import FormState from '../../../../components/forms/state';
-import {addErrorMessage} from '../../../../actionCreators/indicator';
 
 class FormModel {
   /**
@@ -349,7 +352,7 @@ class FormModel {
 
     let fieldDescriptor = this.fieldDescriptor.get(id);
 
-    // Check if field needs to handle
+    // Check if field needs to handle transforming request object
     let getData =
       typeof fieldDescriptor.getData === 'function' ? fieldDescriptor.getData : a => a;
 
@@ -369,6 +372,9 @@ class FormModel {
           saveSnapshot();
           saveSnapshot = null;
         }
+
+        // Update initialData after successfully saving a field as it will now be the baseline value
+        this.initialData[id] = this.getValue(id);
 
         return data;
       })
@@ -420,16 +426,20 @@ class FormModel {
     if (!savePromise) return null;
 
     return savePromise
-      .then(change => {
+      .then(resp => {
         let newValue = this.getValue(id);
-        this.initialData[id] = newValue;
-        let result = {old: oldValue, new: newValue};
+        let change = {old: oldValue, new: newValue};
 
-        if (this.options.onSubmitSuccess) {
-          this.options.onSubmitSuccess(result, this, id);
+        // Only use `allowUndo` option if explicity defined
+        if (typeof this.options.allowUndo === 'undefined' || this.options.allowUndo) {
+          saveOnBlurUndoMessage(change, this, id);
         }
 
-        return result;
+        if (this.options.onSubmitSuccess) {
+          this.options.onSubmitSuccess(resp, this, id, change);
+        }
+
+        return resp;
       })
       .catch(error => {
         if (this.options.onSubmitError) {
