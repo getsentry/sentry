@@ -6,7 +6,11 @@ import $ from 'jquery';
 import styled from 'react-emotion';
 
 import ApiMixin from '../../mixins/apiMixin';
-import IndicatorStore from '../../stores/indicatorStore';
+import {
+  addErrorMessage,
+  addSuccessMessage,
+  addMessage,
+} from '../../actionCreators/indicator';
 import {Select2Field} from '../../components/forms';
 import {t} from '../../locale';
 import LoadingIndicator from '../../components/loadingIndicator';
@@ -114,9 +118,6 @@ const RuleEditor = createReactClass({
 
     let data = {...this.state.rule, actions, conditions};
 
-    // TODO(lyn): Very temporary fix: always remove the environment key from the API request
-    delete data.environment;
-
     let rule = this.state.rule;
     let project = this.props.project;
     let org = this.props.organization;
@@ -125,7 +126,7 @@ const RuleEditor = createReactClass({
       endpoint += rule.id + '/';
     }
 
-    let loadingIndicator = IndicatorStore.add('Saving...');
+    addMessage(t('Saving...'));
 
     this.api.request(endpoint, {
       method: rule.id ? 'PUT' : 'POST',
@@ -136,14 +137,14 @@ const RuleEditor = createReactClass({
         browserHistory.replace(
           `/${org.slug}/${project.slug}/settings/alerts/rules/${resp.id}/`
         );
-        IndicatorStore.remove(loadingIndicator);
+        addSuccessMessage(rule.id ? t('Updated alert rule') : t('Created alert rule'));
       },
       error: response => {
         this.setState({
           error: response.responseJSON || {__all__: 'Unknown error'},
           loading: false,
         });
-        IndicatorStore.remove(loadingIndicator);
+        addErrorMessage(t('An error occurred'));
       },
     });
   },
@@ -155,13 +156,9 @@ const RuleEditor = createReactClass({
   },
 
   handleEnvironmentChange(val) {
-    // If 'All Environments' is selected remove the environment property from the data
+    // If 'All Environments' is selected the value should be null
     if (val === 'all') {
-      this.setState(state => {
-        const rule = {...state.rule};
-        delete rule.environment;
-        return {rule};
-      });
+      this.handleChange('environment', null);
     } else {
       this.handleChange('environment', val);
     }
