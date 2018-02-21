@@ -68,7 +68,7 @@ export function transferProject(api, orgId, project, email) {
     .requestPromise(endpoint, {
       method: 'POST',
       data: {
-        transfer: email,
+        email,
       },
     })
     .then(
