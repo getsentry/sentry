@@ -26,9 +26,7 @@ class DropdownAutoComplete extends React.Component {
 
   toggleOpen = () => this.setState({isOpen: !this.state.isOpen});
 
-  openMenu = e => {
-    if (this.state.isOpen == false) this.setState({isOpen: true});
-  };
+  openMenu = e => this.setState({isOpen: true});
 
   onSelect = selectedItem => {
     if (this.props.onSelect) this.props.onSelect(selectedItem);
