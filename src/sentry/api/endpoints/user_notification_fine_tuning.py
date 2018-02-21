@@ -1,14 +1,14 @@
 from __future__ import absolute_import
 
 import six
-from collections import defaultdict
 
 from django.db import transaction
 from rest_framework import status
 from rest_framework.response import Response
 
 from sentry.api.bases.user import UserEndpoint
-from sentry.api.serializers import serialize, Serializer
+from sentry.api.serializers import serialize
+from sentry.api.serializers.models import UserNotificationsSerializer
 from sentry.models import OrganizationMember, OrganizationMemberTeam, OrganizationStatus, ProjectTeam, UserOption, UserEmail
 
 
@@ -40,46 +40,6 @@ KEY_MAP = {
 }
 
 
-class UserNotificationsSerializer(Serializer):
-    def get_attrs(self, item_list, user, *args, **kwargs):
-        notification_type = kwargs['notification_type']
-        filter_args = {}
-
-        if notification_type in ['alerts', 'workflow', 'email']:
-            filter_args['project__isnull'] = False
-        elif notification_type == 'deploy':
-            filter_args['organization__isnull'] = False
-
-        data = list(UserOption.objects.filter(
-            key=KEY_MAP[notification_type]['key'],
-            user__in=item_list,
-            **filter_args
-        ).select_related('user', 'project', 'organization'))
-
-        results = defaultdict(list)
-
-        for uo in data:
-            results[uo.user].append(uo)
-
-        return results
-
-    def serialize(self, obj, attrs, user, *args, **kwargs):
-        notification_type = kwargs['notification_type']
-        data = {}
-
-        for uo in attrs:
-            if uo.project is not None:
-                data[uo.project.id] = uo.value
-            elif uo.organization is not None:
-                data[uo.organization.id] = uo.value
-            elif notification_type == 'reports':
-                # UserOption for key=reports:disabled-organizations saves a list of orgIds
-                # that should not receive reports
-                for org_id in uo.value:
-                    data[org_id] = 0
-        return data
-
-
 class UserNotificationFineTuningEndpoint(UserEndpoint):
     def get(self, request, user, notification_type):
         if notification_type not in KEY_MAP:
@@ -91,11 +51,33 @@ class UserNotificationFineTuningEndpoint(UserEndpoint):
             user,
             request.user,
             notifications,
-            notification_type=notification_type
+            notification_option_key=KEY_MAP[notification_type]['key']
         )
         return Response(serialized)
 
     def put(self, request, user, notification_type):
+        """
+        Update user notification options
+        ````````````````````````````````
+
+        Updates user's notification options on a per project or organization basis.
+        Expected payload is a map/dict whose key is a project or org id and value varies depending on `notification_type`.
+
+        For `alerts`, `workflow`, `email` it expects a key of projectId
+        For `deploy` and `reports` it expects a key of organizationId
+
+        For `alerts`, `workflow`, `deploy`, it expects a value of:
+            - "-1" = for "default" value (i.e. delete the option)
+            - "0"  = disabled
+            - "1"  = enabled
+        For `reports` it is only a boolean.
+        For `email` it is a verified email (string).
+
+        :auth required:
+        :pparam string notification_type:  One of:  alerts, workflow, reports, deploy, email
+        :param map: Expects a map of id -> value (enabled or email)
+        """
+
         if notification_type not in KEY_MAP:
             return Response(status=status.HTTP_404_NOT_FOUND)
 
@@ -166,13 +148,9 @@ class UserNotificationFineTuningEndpoint(UserEndpoint):
                 # 'email' doesn't have a default to delete, and it's a string
                 # -1 is a magic value to use "default" value, so just delete option
                 if int_val == -1:
-                    try:
-                        UserOption.objects.get(**filter_args).delete()
-                    except UserOption.DoesNotExist:
-                        # This state is actually what we want
-                        pass
+                    UserOption.objects.filter(**filter_args).delete()
                 else:
-                    (user_option, _) = UserOption.objects.get_or_create(**filter_args)
+                    user_option, _ = UserOption.objects.get_or_create(**filter_args)
 
                     # Values have been saved as strings for `mail:alerts` *shrug*
                     # `reports:disabled-organizations` requires an array of ids
