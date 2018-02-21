@@ -10,14 +10,19 @@ from sentry.models import Integration
 
 from .utils import build_attachment
 
+MEMBER_PREFIX = '@'
+CHANNEL_PREFIX = '#'
+strip_channel_chars = ''.join([MEMBER_PREFIX, CHANNEL_PREFIX])
+
 
 class SlackNotifyServiceForm(forms.Form):
     team = forms.ChoiceField(choices=(), widget=forms.Select(
         attrs={'style': 'width:150px'},
     ))
     channel = forms.CharField(widget=forms.TextInput(
-        attrs={'placeholder': 'i.e #critical-errors'},
+        attrs={'placeholder': 'i.e #critical or @evan'},
     ))
+    channel_id = forms.HiddenInput()
 
     def __init__(self, *args, **kwargs):
         # NOTE: Team maps directly to the integration ID
@@ -32,9 +37,11 @@ class SlackNotifyServiceForm(forms.Form):
         self.fields['team'].choices = team_list
         self.fields['team'].widget.choices = self.fields['team'].choices
 
-    def clean_channel(self):
-        team = self.cleaned_data.get('team')
-        channel = self.cleaned_data.get('channel', '').lstrip('#')
+    def clean(self):
+        cleaned_data = super(SlackNotifyServiceForm, self).clean()
+
+        team = cleaned_data.get('team')
+        channel = cleaned_data.get('channel', '').lstrip(strip_channel_chars)
 
         channel_id = self.channel_transformer(team, channel)
 
@@ -45,12 +52,16 @@ class SlackNotifyServiceForm(forms.Form):
             }
 
             raise forms.ValidationError(
-                _('The #%(channel)s channel does not exist in the %(team)s Slack team.'),
+                _('The "%(channel)s" channel or user does not exist in the %(team)s Slack workspace.'),
                 code='invalid',
                 params=params,
             )
 
-        return channel
+        channel_prefix, channel_id = channel_id
+        cleaned_data['channel'] = channel_prefix + channel
+        cleaned_data['channel_id'] = channel_id
+
+        return cleaned_data
 
 
 class SlackNotifyServiceAction(EventAction):
@@ -62,7 +73,7 @@ class SlackNotifyServiceAction(EventAction):
 
     def after(self, event, state):
         integration_id = self.get_option('team')
-        channel = self.get_option('channel')
+        channel = self.get_option('channel_id')
 
         integration = Integration.objects.get(
             provider='slack',
@@ -101,7 +112,7 @@ class SlackNotifyServiceAction(EventAction):
 
         return self.label.format(
             team=integration_name,
-            channel='#' + self.data['channel'],
+            channel=self.data['channel'],
         )
 
     def get_integrations(self):
@@ -110,7 +121,7 @@ class SlackNotifyServiceAction(EventAction):
             organizations=self.project.organization,
         )
 
-    def get_channel_id(self, integration_id, channel_name):
+    def get_channel_id(self, integration_id, name):
         try:
             integration = Integration.objects.get(
                 provider='slack',
@@ -120,6 +131,7 @@ class SlackNotifyServiceAction(EventAction):
         except Integration.DoesNotExist:
             return None
 
+        # Look for channel ID
         payload = {
             'token': integration.metadata['access_token'],
             'exclude_archived': False,
@@ -128,13 +140,33 @@ class SlackNotifyServiceAction(EventAction):
 
         session = http.build_session()
         resp = session.get('https://slack.com/api/channels.list', params=payload)
-        resp.raise_for_status()
         resp = resp.json()
         if not resp.get('ok'):
             self.logger.info('rule.slack.channel_list_failed', extra={'error': resp.get('error')})
             return None
 
-        return {c['name']: c['id'] for c in resp['channels']}.get(channel_name)
+        channel_id = {c['name']: c['id'] for c in resp['channels']}.get(name)
+
+        if channel_id:
+            return (CHANNEL_PREFIX, channel_id)
+
+        # Look for user ID
+        payload = {
+            'token': integration.metadata['access_token'],
+        }
+
+        resp = session.get('https://slack.com/api/users.list', params=payload)
+        resp = resp.json()
+        if not resp.get('ok'):
+            self.logger.info('rule.slack.user_list_failed', extra={'error': resp.get('error')})
+            return None
+
+        member_id = {c['name']: c['id'] for c in resp['members']}.get(name)
+
+        if member_id:
+            return (MEMBER_PREFIX, member_id)
+
+        return None
 
     def get_form_instance(self):
         return self.form_cls(
