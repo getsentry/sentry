@@ -54,6 +54,24 @@ class UserNotificationDetailsTest(APITestCase):
 
     def test_returns_correct_defaults(self):
         user = self.create_user(email='a@example.com')
+        org = self.create_organization(name='Org Name', owner=user)
+
+        # Adding existing UserOptions for a project or org to test that defaults are correct
+        # default is 3
+        UserOption.objects.create(
+            user=user,
+            project=None,
+            organization=org,
+            key="deploy-emails",
+            value=1)
+
+        # default is 0
+        UserOption.objects.create(
+            user=user,
+            project=None,
+            organization=org,
+            key="workflow:notifications",
+            value=1)
 
         self.login_as(user=user)
 

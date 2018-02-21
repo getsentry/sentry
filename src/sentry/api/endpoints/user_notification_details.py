@@ -46,6 +46,7 @@ class UserNotificationsSerializer(Serializer):
     def get_attrs(self, item_list, user, *args, **kwargs):
         data = list(UserOption.objects.filter(
             user__in=item_list,
+            organization=None,
             project=None).select_related('user'))
 
         results = defaultdict(list)
