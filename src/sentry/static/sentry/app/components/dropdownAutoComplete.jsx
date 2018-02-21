@@ -2,7 +2,7 @@ import PropTypes from 'prop-types';
 import React from 'react';
 import styled from 'react-emotion';
 import AutoComplete from './autoComplete';
-import Input from '../views/settings/components/forms/styled/input.jsx';
+import Input from '../views/settings/components/forms/styled/input';
 
 class DropdownAutoComplete extends React.Component {
   static propTypes = {
