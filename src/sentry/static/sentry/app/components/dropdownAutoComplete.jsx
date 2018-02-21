@@ -1,7 +1,6 @@
 import PropTypes from 'prop-types';
 import React from 'react';
 import styled from 'react-emotion';
-import _ from 'lodash';
 import AutoComplete from './autoComplete';
 import Input from '../views/settings/components/forms/styled/input.jsx';
 
@@ -27,9 +26,13 @@ class DropdownAutoComplete extends React.Component {
     };
   }
 
-  toggleOpen = _.throttle(() => {
+  toggleOpen = () => {
     this.setState({isOpen: !this.state.isOpen});
-  }, 201);
+  };
+
+  handleClick = e => {
+    if (this.state.isOpen == false) this.setState({isOpen: true});
+  };
 
   onSelect = selectedItem => {
     if (this.props.onSelect) this.props.onSelect(selectedItem);
@@ -125,7 +128,7 @@ class DropdownAutoComplete extends React.Component {
             </AutoComplete>
           </StyledMenu>
         )}
-        <div onClick={this.toggleOpen}>
+        <div onClick={this.handleClick}>
           {this.props.children({
             isOpen: this.state.isOpen,
             selectedItem: this.state.selectedItem,
