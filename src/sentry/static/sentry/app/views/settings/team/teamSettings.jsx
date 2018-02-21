@@ -59,7 +59,7 @@ export default class TeamSettings extends AsyncView {
     let access = new Set(this.context.organization.access);
 
     return (
-      <div>
+      <React.Fragment>
         <Form
           model={this.model}
           apiMethod="PUT"
@@ -96,7 +96,7 @@ export default class TeamSettings extends AsyncView {
             </div>
           </div>
         )}
-      </div>
+      </React.Fragment>
     );
   }
 }
