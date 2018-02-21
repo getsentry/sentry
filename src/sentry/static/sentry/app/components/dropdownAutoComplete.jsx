@@ -29,11 +29,11 @@ class DropdownAutoComplete extends React.Component {
 
   toggleOpen = _.throttle(() => {
     this.setState({isOpen: !this.state.isOpen});
-  }, 1);
+  }, 201);
 
   onSelect = selectedItem => {
     if (this.props.onSelect) this.props.onSelect(selectedItem);
-    this.setState({selectedItem: selectedItem});
+    this.setState({selectedItem});
     this.toggleOpen();
   };
 
