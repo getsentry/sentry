@@ -91,7 +91,6 @@ class ProjectUpdateTest(APITestCase):
         )
         assert resp.status_code == 200, resp.content
         project = Project.objects.get(id=project.id)
-        assert project.team == team
         assert project.teams.first() == team
 
     def test_team_changes_not_found(self):
@@ -113,7 +112,7 @@ class ProjectUpdateTest(APITestCase):
         assert resp.data['detail'][0] == 'The new team is not found.'
         project = Project.objects.get(id=project.id)
 
-        assert project.team == self.team
+        assert project.teams.first() == self.team
 
     def test_simple_member_restriction(self):
         project = self.create_project()
@@ -121,7 +120,7 @@ class ProjectUpdateTest(APITestCase):
         self.create_member(
             user=user,
             organization=project.organization,
-            teams=[project.team],
+            teams=[project.teams.first()],
             role='member',
         )
         self.login_as(user)
@@ -141,7 +140,7 @@ class ProjectUpdateTest(APITestCase):
         self.create_member(
             user=user,
             organization=project.organization,
-            teams=[project.team],
+            teams=[project.teams.first()],
             role='member',
         )
         self.login_as(user=user)
