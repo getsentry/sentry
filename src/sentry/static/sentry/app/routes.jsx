@@ -122,276 +122,236 @@ function appendTrailingSlash(nextState, replace) {
  */
 const lazyLoad = cb => m => cb(null, m.default);
 
-const accountSettingsRoutes = [
-  <IndexRedirect key="account-settings-index" to="details/" />,
-
-  <Route
-    key="details/"
-    path="details/"
-    name="Details"
-    componentPromise={() =>
-      import(/* webpackChunkName: "AccountDetails" */ './views/settings/account/accountDetails')}
-    component={errorHandler(LazyLoad)}
-  />,
-
-  <Route key="notifications/" path="notifications/" name="Notifications">
-    <IndexRoute
-      componentPromise={() =>
-        import(/* webpackChunkName: "AccountNotifications" */ './views/settings/account/accountNotifications')}
-      component={errorHandler(LazyLoad)}
-    />
-    <Route
-      path="project-alerts/"
-      name="Fine Tune Alerts"
-      componentPromise={() =>
-        import(/* webpackChunkName: "AccountNotificationsFineTuning" */ './views/settings/account/accountNotificationFineTuning')}
-      component={errorHandler(LazyLoad)}
-    />
-  </Route>,
-  <Route
-    key="emails/"
-    path="emails/"
-    name="Emails"
-    componentPromise={() =>
-      import(/* webpackChunkName: "AccountEmails" */ './views/settings/account/accountEmails')}
-    component={errorHandler(LazyLoad)}
-  />,
-
-  <Route
-    key="authorizations/"
-    path="authorizations/"
-    componentPromise={() =>
-      import(/*webpackChunkName: "AccountAuthorizations"*/ './views/settings/account/accountAuthorizations')}
-    component={errorHandler(LazyLoad)}
-  />,
-
-  <Route key="security/" name="Security" path="security/">
-    <IndexRoute
-      componentPromise={() =>
-        import(/*webpackChunkName: "AccountSecurity"*/ './views/settings/account/accountSecurity/index')}
-      component={errorHandler(LazyLoad)}
-    />
+const accountSettingsRoutes = (
+  <React.Fragment>
+    <IndexRedirect to="details/" />
 
     <Route
-      path=":authId/enroll/"
-      name="Enroll"
-      componentPromise={() =>
-        import(/*webpackChunkName: "AccountSecurityEnroll"*/ './views/settings/account/accountSecurity/accountSecurityEnroll')}
-      component={errorHandler(LazyLoad)}
-    />
-
-    <Route
-      path=":authId/"
+      path="details/"
       name="Details"
       componentPromise={() =>
-        import(/*webpackChunkName: "AccountSecurityDetails"*/ './views/settings/account/accountSecurity/accountSecurityDetails')}
+        import(/* webpackChunkName: "AccountDetails" */ './views/settings/account/accountDetails')}
       component={errorHandler(LazyLoad)}
     />
-  </Route>,
 
-  <Route
-    key="subscriptions/"
-    path="subscriptions/"
-    name="Subscriptions"
-    componentPromise={() =>
-      import(/*webpackChunkName: "AccountSubscriptions"*/ './views/settings/account/accountSubscriptions')}
-    component={errorHandler(LazyLoad)}
-  />,
-
-  <Route
-    key="identities/"
-    path="identities/"
-    name="Identities"
-    componentPromise={() =>
-      import(/*webpackChunkName: "AccountSocialIdentities"*/ './views/settings/account/accountIdentities')}
-    component={errorHandler(LazyLoad)}
-  />,
-
-  <Route key="api" path="api/" name="API">
-    <IndexRedirect to="auth-tokens/" />
-
-    <Route path="auth-tokens/" name="Auth Tokens">
+    <Route path="notifications/" name="Notifications">
       <IndexRoute
         componentPromise={() =>
-          import(/*webpackChunkName: "ApiTokensIndex"*/ './views/settings/account/apiTokens')}
+          import(/* webpackChunkName: "AccountNotifications" */ './views/settings/account/accountNotifications')}
         component={errorHandler(LazyLoad)}
       />
       <Route
-        path="new-token/"
-        name="Create New Token"
+        path="project-alerts/"
+        name="Fine Tune Alerts"
         componentPromise={() =>
-          import(/*webpackChunkName: "ApiTokenCreate"*/ './views/settings/account/apiNewToken')}
+          import(/* webpackChunkName: "AccountNotificationsFineTuning" */ './views/settings/account/accountNotificationFineTuning')}
         component={errorHandler(LazyLoad)}
       />
     </Route>
+    <Route
+      path="emails/"
+      name="Emails"
+      componentPromise={() =>
+        import(/* webpackChunkName: "AccountEmails" */ './views/settings/account/accountEmails')}
+      component={errorHandler(LazyLoad)}
+    />
 
-    <Route path="applications/" name="Applications">
+    <Route
+      path="authorizations/"
+      componentPromise={() =>
+        import(/*webpackChunkName: "AccountAuthorizations"*/ './views/settings/account/accountAuthorizations')}
+      component={errorHandler(LazyLoad)}
+    />
+
+    <Route name="Security" path="security/">
       <IndexRoute
         componentPromise={() =>
-          import(/*webpackChunkName: "ApiApplications"*/ './views/settings/account/apiApplications')}
+          import(/*webpackChunkName: "AccountSecurity"*/ './views/settings/account/accountSecurity/index')}
         component={errorHandler(LazyLoad)}
       />
+
       <Route
-        path=":appId/"
+        path=":authId/enroll/"
+        name="Enroll"
+        componentPromise={() =>
+          import(/*webpackChunkName: "AccountSecurityEnroll"*/ './views/settings/account/accountSecurity/accountSecurityEnroll')}
+        component={errorHandler(LazyLoad)}
+      />
+
+      <Route
+        path=":authId/"
         name="Details"
         componentPromise={() =>
-          import(/*webpackChunkName: "ApiApplicationDetails"*/ './views/settings/account/apiApplicationDetails')}
+          import(/*webpackChunkName: "AccountSecurityDetails"*/ './views/settings/account/accountSecurity/accountSecurityDetails')}
         component={errorHandler(LazyLoad)}
       />
     </Route>
-  </Route>,
 
-  <Route
-    key="close-account/"
-    path="close-account/"
-    name="Close Account"
-    componentPromise={() =>
-      import(/*webpackChunkName: "AccountClose"*/ './views/settings/account/accountClose')}
-    component={errorHandler(LazyLoad)}
-  />,
-];
+    <Route
+      path="subscriptions/"
+      name="Subscriptions"
+      componentPromise={() =>
+        import(/*webpackChunkName: "AccountSubscriptions"*/ './views/settings/account/accountSubscriptions')}
+      component={errorHandler(LazyLoad)}
+    />
 
-const projectSettingsRoutes = [
-  <IndexRedirect key="projects-index" to="settings/" />,
-  <Route
-    key="settings/"
-    path="settings/"
-    name="General"
-    component={errorHandler(ProjectGeneralSettings)}
-  />,
-  <Route
-    key="teams/"
-    path="teams/"
-    name="Teams"
-    componentPromise={() =>
-      import(/*webpackChunkName: "ProjectTeams"*/ './views/settings/project/projectTeams')}
-    component={errorHandler(LazyLoad)}
-  />,
-  <Route
-    key="alerts/"
-    name="Alerts"
-    path="alerts/"
-    component={errorHandler(ProjectAlertSettings)}
-  />,
-  <Route
-    key="alerts/rules/"
-    path="alerts/rules/"
-    name="Alert Rules"
-    component={errorHandler(ProjectAlertRules)}
-  />,
-  <Route
-    key="alerts/rules/new/"
-    path="alerts/rules/new/"
-    name="New Alert Rule"
-    component={errorHandler(ProjectAlertRuleDetails)}
-  />,
-  <Route
-    key="alerts/rules/rule/edit"
-    path="alerts/rules/:ruleId/"
-    name="Edit Alert Rule"
-    component={errorHandler(ProjectAlertRuleDetails)}
-  />,
-  <Route
-    key="environments/"
-    name="Environments"
-    path="environments/"
-    component={errorHandler(ProjectEnvironments)}
-  />,
-  <Route
-    key="environments/hidden/"
-    name="Hidden Environments"
-    path="environments/hidden/"
-    component={errorHandler(ProjectEnvironments)}
-  />,
-  <Route key="tags/" name="Tags" path="tags/" component={errorHandler(ProjectTags)} />,
-  <Route
-    key="issue-tracking/"
-    path="issue-tracking/"
-    name="Issue Tracking"
-    component={errorHandler(ProjectIssueTracking)}
-  />,
-  <Route
-    key="release-tracking/"
-    path="release-tracking/"
-    name="Release Tracking"
-    component={errorHandler(ProjectReleaseTracking)}
-  />,
-  <Route
-    key="data-forwarding/"
-    path="data-forwarding/"
-    name="Data Forwarding"
-    component={errorHandler(ProjectDataForwarding)}
-  />,
-  <Route
-    key="saved-searches/"
-    path="saved-searches/"
-    name="Saved Searches"
-    component={errorHandler(ProjectSavedSearches)}
-  />,
-  <Route
-    key="debug-symbols/"
-    path="debug-symbols/"
-    name="Debug Information Files"
-    component={errorHandler(ProjectDebugSymbols)}
-  />,
-  <Route
-    key="processing-issues/"
-    path="processing-issues/"
-    name="Processing Issues"
-    component={errorHandler(ProjectProcessingIssues)}
-  />,
-  <Route
-    key="filters/"
-    path="filters/"
-    name="Inbound Filters"
-    component={errorHandler(ProjectFilters)}
-  />,
-  <Route
-    key="keys/"
-    path="keys/"
-    name="Client Keys"
-    component={errorHandler(ProjectKeys)}
-  />,
-  <Route
-    key="keys/:keyId/"
-    path="keys/:keyId/"
-    name="Client Key Details"
-    component={errorHandler(ProjectKeyDetails)}
-  />,
-  <Route
-    key="user-feedback/"
-    path="user-feedback/"
-    name="User Feedback"
-    component={errorHandler(ProjectUserReportSettings)}
-  />,
-  <Route
-    key="csp/"
-    path="csp/"
-    name="CSP Reports"
-    component={errorHandler(ProjectCspSettings)}
-  />,
-  <Route
-    key="plugins/"
-    path="plugins/"
-    name="Integrations"
-    component={errorHandler(ProjectPlugins)}
-  />,
-  <Route
-    key="plugins/:pluginId/"
-    path="plugins/:pluginId/"
-    name="Integration Details"
-    component={errorHandler(ProjectPluginDetails)}
-  />,
-  <Route
-    key="install/"
-    path="install/"
-    name="Basic Configuration"
-    component={errorHandler(ProjectDocsContext)}
-  >
-    <IndexRoute component={errorHandler(ProjectInstallOverview)} />
-    <Route path=":platform/" component={errorHandler(ProjectInstallPlatform)} />
-  </Route>,
-];
+    <Route
+      path="identities/"
+      name="Identities"
+      componentPromise={() =>
+        import(/*webpackChunkName: "AccountSocialIdentities"*/ './views/settings/account/accountIdentities')}
+      component={errorHandler(LazyLoad)}
+    />
+
+    <Route path="api/" name="API">
+      <IndexRedirect to="auth-tokens/" />
+
+      <Route path="auth-tokens/" name="Auth Tokens">
+        <IndexRoute
+          componentPromise={() =>
+            import(/*webpackChunkName: "ApiTokensIndex"*/ './views/settings/account/apiTokens')}
+          component={errorHandler(LazyLoad)}
+        />
+        <Route
+          path="new-token/"
+          name="Create New Token"
+          componentPromise={() =>
+            import(/*webpackChunkName: "ApiTokenCreate"*/ './views/settings/account/apiNewToken')}
+          component={errorHandler(LazyLoad)}
+        />
+      </Route>
+
+      <Route path="applications/" name="Applications">
+        <IndexRoute
+          componentPromise={() =>
+            import(/*webpackChunkName: "ApiApplications"*/ './views/settings/account/apiApplications')}
+          component={errorHandler(LazyLoad)}
+        />
+        <Route
+          path=":appId/"
+          name="Details"
+          componentPromise={() =>
+            import(/*webpackChunkName: "ApiApplicationDetails"*/ './views/settings/account/apiApplicationDetails')}
+          component={errorHandler(LazyLoad)}
+        />
+      </Route>
+    </Route>
+
+    <Route
+      path="close-account/"
+      name="Close Account"
+      componentPromise={() =>
+        import(/*webpackChunkName: "AccountClose"*/ './views/settings/account/accountClose')}
+      component={errorHandler(LazyLoad)}
+    />
+  </React.Fragment>
+);
+
+const projectSettingsRoutes = (
+  <React.Fragment>
+    <IndexRedirect to="settings/" />
+    <Route
+      path="settings/"
+      name="General"
+      component={errorHandler(ProjectGeneralSettings)}
+    />
+    <Route
+      path="teams/"
+      name="Teams"
+      componentPromise={() =>
+        import(/*webpackChunkName: "ProjectTeams"*/ './views/settings/project/projectTeams')}
+      component={errorHandler(LazyLoad)}
+    />
+    <Route name="Alerts" path="alerts/" component={errorHandler(ProjectAlertSettings)} />
+    <Route
+      path="alerts/rules/"
+      name="Alert Rules"
+      component={errorHandler(ProjectAlertRules)}
+    />
+    <Route
+      path="alerts/rules/new/"
+      name="New Alert Rule"
+      component={errorHandler(ProjectAlertRuleDetails)}
+    />
+    <Route
+      path="alerts/rules/:ruleId/"
+      name="Edit Alert Rule"
+      component={errorHandler(ProjectAlertRuleDetails)}
+    />
+    <Route
+      name="Environments"
+      path="environments/"
+      component={errorHandler(ProjectEnvironments)}
+    />
+    <Route
+      name="Hidden Environments"
+      path="environments/hidden/"
+      component={errorHandler(ProjectEnvironments)}
+    />
+    <Route name="Tags" path="tags/" component={errorHandler(ProjectTags)} />
+    <Route
+      path="issue-tracking/"
+      name="Issue Tracking"
+      component={errorHandler(ProjectIssueTracking)}
+    />
+    <Route
+      path="release-tracking/"
+      name="Release Tracking"
+      component={errorHandler(ProjectReleaseTracking)}
+    />
+    <Route
+      path="data-forwarding/"
+      name="Data Forwarding"
+      component={errorHandler(ProjectDataForwarding)}
+    />
+    <Route
+      path="saved-searches/"
+      name="Saved Searches"
+      component={errorHandler(ProjectSavedSearches)}
+    />
+    <Route
+      path="debug-symbols/"
+      name="Debug Information Files"
+      component={errorHandler(ProjectDebugSymbols)}
+    />
+    <Route
+      path="processing-issues/"
+      name="Processing Issues"
+      component={errorHandler(ProjectProcessingIssues)}
+    />
+    <Route
+      path="filters/"
+      name="Inbound Filters"
+      component={errorHandler(ProjectFilters)}
+    />
+    <Route path="keys/" name="Client Keys" component={errorHandler(ProjectKeys)} />
+    <Route
+      path="keys/:keyId/"
+      name="Client Key Details"
+      component={errorHandler(ProjectKeyDetails)}
+    />
+    <Route
+      path="user-feedback/"
+      name="User Feedback"
+      component={errorHandler(ProjectUserReportSettings)}
+    />
+    <Route path="csp/" name="CSP Reports" component={errorHandler(ProjectCspSettings)} />
+    <Route path="plugins/" name="Integrations" component={errorHandler(ProjectPlugins)} />
+    <Route
+      path="plugins/:pluginId/"
+      name="Integration Details"
+      component={errorHandler(ProjectPluginDetails)}
+    />
+    <Route
+      path="install/"
+      name="Basic Configuration"
+      component={errorHandler(ProjectDocsContext)}
+    >
+      <IndexRoute component={errorHandler(ProjectInstallOverview)} />
+      <Route path=":platform/" component={errorHandler(ProjectInstallPlatform)} />
+    </Route>
+  </React.Fragment>
+);
 
 function routes() {
   let hooksRoutes = [];
@@ -411,128 +371,115 @@ function routes() {
 
   // This is declared in the routes() function because some routes need the
   // hook store which is not available at import time.
-  const orgSettingsRoutes = [
-    <IndexRedirect key="index-org-settings" to="settings/" />,
+  const orgSettingsRoutes = (
+    <React.Fragment>
+      <IndexRedirect to="settings/" />
 
-    <Route
-      key="projects"
-      path="projects/"
-      name="Projects"
-      component={errorHandler(OrganizationProjectsView)}
-    />,
-
-    <Route
-      key="settings"
-      path="settings/"
-      name="General"
-      component={errorHandler(OrganizationGeneralSettingsView)}
-    />,
-
-    <Route
-      key="api-keys"
-      path="api-keys/"
-      name="API Key"
-      component={errorHandler(OrganizationApiKeysView)}
-    />,
-
-    <Route
-      key="api-keys-detail"
-      path="api-keys/:apiKey/"
-      component={errorHandler(OrganizationApiKeyDetailsView)}
-    />,
-
-    <Route
-      key="audit-log"
-      path="audit-log/"
-      name="Audit Log"
-      component={errorHandler(OrganizationAuditLogView)}
-    />,
-
-    <Route
-      key="auth"
-      path="auth/"
-      name="Auth Providers"
-      component={errorHandler(OrganizationAuthView)}
-    />,
-
-    <Route
-      key="integrations"
-      path="integrations/"
-      name="Integrations"
-      component={errorHandler(OrganizationIntegrations)}
-    />,
-
-    <Route key="members" path="members/" name="Members">
-      <IndexRoute
-        component={
-          HookStore.get('component:org-members-view').length
-            ? HookStore.get('component:org-members-view')[0]()
-            : OrganizationMembersView
-        }
-      />
-      <Route path="new/" name="Invite" component={errorHandler(InviteMember)} />,
       <Route
-        path=":memberId/"
-        name="Details"
-        component={errorHandler(OrganizationMemberDetail)}
-      />,
-    </Route>,
-
-    <Route
-      key="rate-limits"
-      path="rate-limits/"
-      name="Rate Limits"
-      component={errorHandler(OrganizationRateLimits)}
-    />,
-
-    <Route
-      key="repos"
-      path="repos/"
-      name="Repositories"
-      component={errorHandler(OrganizationRepositoriesView)}
-    />,
-
-    <Route
-      key="settings"
-      path="settings/"
-      component={errorHandler(OrganizationGeneralSettingsView)}
-    />,
-
-    <Route key="teams" name="Teams" path="teams/">
-      <IndexRedirect to="your-teams" />
-      <Route
-        path="all-teams/"
-        name="All Teams"
-        allTeams
-        component={errorHandler(OrganizationTeams)}
+        path="projects/"
+        name="Projects"
+        component={errorHandler(OrganizationProjectsView)}
       />
 
       <Route
-        name="Your Teams"
-        path="your-teams/"
-        component={errorHandler(OrganizationTeams)}
+        path="settings/"
+        name="General"
+        component={errorHandler(OrganizationGeneralSettingsView)}
       />
 
       <Route
-        key="team-details"
-        name="Team"
-        path=":teamId/"
-        component={errorHandler(TeamDetails)}
-      >
-        <IndexRedirect to="settings/" />
-        <Route path="settings/" name="Settings" component={errorHandler(TeamSettings)} />
-        <Route path="members/" name="Members" component={errorHandler(TeamMembers)} />
-        <Route path="projects/" name="Projects" component={errorHandler(TeamProjects)} />
+        path="api-keys/"
+        name="API Key"
+        component={errorHandler(OrganizationApiKeysView)}
+      />
+
+      <Route
+        path="api-keys/:apiKey/"
+        component={errorHandler(OrganizationApiKeyDetailsView)}
+      />
+
+      <Route
+        path="audit-log/"
+        name="Audit Log"
+        component={errorHandler(OrganizationAuditLogView)}
+      />
+
+      <Route
+        path="auth/"
+        name="Auth Providers"
+        component={errorHandler(OrganizationAuthView)}
+      />
+
+      <Route
+        path="integrations/"
+        name="Integrations"
+        component={errorHandler(OrganizationIntegrations)}
+      />
+
+      <Route path="members/" name="Members">
+        <IndexRoute
+          component={
+            HookStore.get('component:org-members-view').length
+              ? HookStore.get('component:org-members-view')[0]()
+              : OrganizationMembersView
+          }
+        />
+        <Route path="new/" name="Invite" component={errorHandler(InviteMember)} />
+        <Route
+          path=":memberId/"
+          name="Details"
+          component={errorHandler(OrganizationMemberDetail)}
+        />
       </Route>
-    </Route>,
 
-    <Route
-      key="org-stats"
-      name="Stats"
-      path="stats/"
-      component={errorHandler(OrganizationStats)}
-    />,
-  ];
+      <Route
+        path="rate-limits/"
+        name="Rate Limits"
+        component={errorHandler(OrganizationRateLimits)}
+      />
+
+      <Route
+        path="repos/"
+        name="Repositories"
+        component={errorHandler(OrganizationRepositoriesView)}
+      />
+
+      <Route path="settings/" component={errorHandler(OrganizationGeneralSettingsView)} />
+
+      <Route name="Teams" path="teams/">
+        <IndexRedirect to="your-teams" />
+        <Route
+          path="all-teams/"
+          name="All Teams"
+          allTeams
+          component={errorHandler(OrganizationTeams)}
+        />
+
+        <Route
+          name="Your Teams"
+          path="your-teams/"
+          component={errorHandler(OrganizationTeams)}
+        />
+
+        <Route name="Team" path=":teamId/" component={errorHandler(TeamDetails)}>
+          <IndexRedirect to="settings/" />
+          <Route
+            path="settings/"
+            name="Settings"
+            component={errorHandler(TeamSettings)}
+          />
+          <Route path="members/" name="Members" component={errorHandler(TeamMembers)} />
+          <Route
+            path="projects/"
+            name="Projects"
+            component={errorHandler(TeamProjects)}
+          />
+        </Route>
+      </Route>
+
+      <Route name="Stats" path="stats/" component={errorHandler(OrganizationStats)} />
+    </React.Fragment>
+  );
 
   return (
     <Route path="/" component={errorHandler(App)}>
