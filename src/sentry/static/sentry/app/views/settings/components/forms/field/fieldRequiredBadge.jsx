@@ -1,6 +1,6 @@
 import styled from 'react-emotion';
 
-const FormFieldRequiredBadge = styled.div`
+const FieldRequiredBadge = styled.div`
   display: inline-block;
   background: ${p => p.theme.gray2};
   width: 5px;
@@ -10,4 +10,4 @@ const FormFieldRequiredBadge = styled.div`
   vertical-align: super;
 `;
 
-export default FormFieldRequiredBadge;
+export default FieldRequiredBadge;
