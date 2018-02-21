@@ -10,6 +10,7 @@ import AsyncView from './asyncView';
 import Button from '../components/buttons/button';
 import Confirm from '../components/confirm';
 import Panel from './settings/components/panel';
+import EmptyMessage from './settings/components/emptyMessage';
 import PanelBody from './settings/components/panelBody';
 import PanelHeader from './settings/components/panelHeader';
 import PluginIcon from '../plugins/components/pluginIcon';
@@ -196,7 +197,7 @@ export default class OrganizationIntegrationConfig extends AsyncView {
       </PanelHeader>
     );
 
-    const integrationList = integrations.map(integration => {
+    let integrationList = integrations.map(integration => {
       return (
         <Row p={0} py={2} key={integration.id}>
           <Box pl={2}>
@@ -221,6 +222,12 @@ export default class OrganizationIntegrationConfig extends AsyncView {
         </Row>
       );
     });
+
+    if (integrationList.length === 0) {
+      integrationList = (
+        <EmptyMessage>{t('No %s integrations configured.', provider.name)}</EmptyMessage>
+      );
+    }
 
     return (
       <React.Fragment>
