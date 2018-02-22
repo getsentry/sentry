@@ -6,7 +6,7 @@ import RuleNode from './ruleNode';
 
 class RuleNodeList extends React.Component {
   static propTypes = {
-    initialItems: PropTypes.array,
+    initialItems: PropTypes.array.isRequired,
     nodes: PropTypes.array.isRequired,
     handlePropertyChange: PropTypes.func.isRequired,
   };
