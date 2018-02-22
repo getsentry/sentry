@@ -1,6 +1,7 @@
 import PropTypes from 'prop-types';
 import React from 'react';
 import styled from 'react-emotion';
+import _ from 'lodash';
 import AutoComplete from './autoComplete';
 import Input from '../views/settings/components/forms/controls/input';
 
@@ -34,32 +35,33 @@ class DropdownAutoComplete extends React.Component {
     this.toggleMenu();
   };
 
-  ungroupItems = itemsToUngroup =>
-    itemsToUngroup.reduce((accumulator, {group, items}) => {
-      return [
-        ...accumulator,
-        {...group, group: true},
-        ...items.map(g => ({...g, groupedWith: group.value})),
-      ];
-    }, []);
-
   filterItems = (items, inputValue) =>
-    items.filter(
-      i => i.group || i.value.toLowerCase().indexOf(inputValue.toLowerCase()) > -1
-    );
-
-  removeUnusedGroups = items =>
-    items.filter(i => !i.group || (i.group && items.some(g => i.value == g.groupedWith)));
-
-  autocompleteFilter = (items, inputValue) => {
-    const transformedItems = items[0].items
-      ? this.removeUnusedGroups(this.filterItems(this.ungroupItems(items), inputValue))
-      : this.filterItems(items, inputValue);
-
-    let itemCounter = 0;
-    return transformedItems.map(i => {
-      return !i.group ? {...i, index: itemCounter++} : i;
+    items.filter(item => {
+      return item.value.toLowerCase().indexOf(inputValue.toLowerCase()) > -1;
     });
+
+  filterGroupedItems = (groups, inputValue) =>
+    groups
+      .map(group => {
+        return {
+          ...group,
+          items: this.filterItems(group.items, inputValue),
+        };
+      })
+      .filter(group => group.items.length > 0);
+
+  autoCompleteFilter = (items, inputValue) => {
+    let itemCount = 0;
+
+    if (items[0].items)
+      return _.flatMap(this.filterGroupedItems(items, inputValue), item => {
+        return [
+          {...item.group},
+          ...item.items.map(groupedItem => ({...groupedItem, index: itemCount++})),
+        ];
+      });
+
+    return this.filterItems(items).map((item, index) => ({...item, index}));
   };
 
   render() {
@@ -88,11 +90,9 @@ class DropdownAutoComplete extends React.Component {
                     </StyledInputContainer>
                     <div {...getMenuProps()}>
                       <div>
-                        {this.autocompleteFilter(this.props.items, inputValue).map(
+                        {this.autoCompleteFilter(this.props.items, inputValue).map(
                           (item, index) =>
-                            item.group ? (
-                              <StyledLabel key={index}>{item.label}</StyledLabel>
-                            ) : (
+                            item.index || item.index == 0 ? (
                               <StyledItem
                                 key={index}
                                 highlightedIndex={highlightedIndex}
@@ -101,6 +101,8 @@ class DropdownAutoComplete extends React.Component {
                               >
                                 {item.label}
                               </StyledItem>
+                            ) : (
+                              <StyledLabel key={index}>{item.label}</StyledLabel>
                             )
                         )}
                       </div>
