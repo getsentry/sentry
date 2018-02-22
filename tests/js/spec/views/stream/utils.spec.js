@@ -16,6 +16,11 @@ describe('getQueryEnvironment()', function() {
     const qs = 'is:unresolved is:unassigned';
     expect(utils.getQueryEnvironment(qs)).toBe(null);
   });
+
+  it('handles environment with non word characters', function() {
+    const qs = 'is:unresolved is:unassigned environment:something.com';
+    expect(utils.getQueryEnvironment(qs)).toBe('something.com');
+  });
 });
 
 describe('getQueryStringWithEnvironment', function() {
@@ -37,6 +42,13 @@ describe('getQueryStringWithEnvironment', function() {
     const qs = 'is:unresolved environment:development is:unassigned';
     expect(utils.getQueryStringWithEnvironment(qs, null)).toBe(
       'is:unresolved is:unassigned'
+    );
+  });
+
+  it('handles environment with non word characters', function() {
+    const qs = 'is:unresolved environment:something.com is:unassigned';
+    expect(utils.getQueryStringWithEnvironment(qs, 'test.com')).toBe(
+      'is:unresolved is:unassigned environment:test.com'
     );
   });
 });
