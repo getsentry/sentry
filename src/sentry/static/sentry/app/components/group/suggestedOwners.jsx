@@ -8,7 +8,7 @@ import Avatar from '../avatar';
 import TooltipMixin from '../../mixins/tooltip';
 import ApiMixin from '../../mixins/apiMixin';
 import GroupState from '../../mixins/groupState';
-import GroupActionCreators from '../../actionCreators/group';
+import {assignTo} from '../../actionCreators/group';
 import {t} from '../../locale';
 
 const SuggestedOwners = createReactClass({
@@ -81,7 +81,7 @@ const SuggestedOwners = createReactClass({
 
   assignTo(member) {
     if (member.id !== undefined) {
-      GroupActionCreators.assignTo({id: this.props.event.groupID, member});
+      assignTo({id: this.props.event.groupID, member});
     }
   },
 

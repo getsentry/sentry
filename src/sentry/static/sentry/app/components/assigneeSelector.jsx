@@ -12,7 +12,7 @@ import ConfigStore from '../stores/configStore';
 import DropdownLink from './dropdownLink';
 import FlowLayout from './flowLayout';
 import GroupStore from '../stores/groupStore';
-import GroupActionCreators from '../actionCreators/group';
+import {assignTo} from '../actionCreators/group';
 import LoadingIndicator from '../components/loadingIndicator';
 import MemberListStore from '../stores/memberListStore';
 import MenuItem from './menuItem';
@@ -128,12 +128,12 @@ const AssigneeSelector = createReactClass({
   },
 
   assignTo(member) {
-    GroupActionCreators.assignTo({id: this.props.id, member});
+    assignTo({id: this.props.id, member});
     this.setState({filter: '', loading: true});
   },
 
   clearAssignTo() {
-    GroupActionCreators.assignTo({id: this.props.id});
+    assignTo({id: this.props.id});
     this.setState({filter: '', loading: true});
   },
 
