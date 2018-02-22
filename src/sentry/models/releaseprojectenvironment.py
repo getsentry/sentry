@@ -2,7 +2,7 @@ from __future__ import absolute_import
 from django.db import models
 from django.utils import timezone
 
-from sentry.db.models import (FlexibleForeignKey, Model, sane_repr)
+from sentry.db.models import (BoundedPositiveIntegerField, FlexibleForeignKey, Model, sane_repr)
 
 
 class ReleaseProjectEnvironment(Model):
@@ -11,6 +11,7 @@ class ReleaseProjectEnvironment(Model):
     release = FlexibleForeignKey('sentry.Release')
     project = FlexibleForeignKey('sentry.Project')
     environment = FlexibleForeignKey('sentry.Environment')
+    new_issues_count = BoundedPositiveIntegerField(default=0)
     first_seen = models.DateTimeField(default=timezone.now)
     last_seen = models.DateTimeField(default=timezone.now, db_index=True)
 
