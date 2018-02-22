@@ -26,7 +26,7 @@ import parseLinkHeader from '../../utils/parseLinkHeader';
 import {t, tn, tct} from '../../locale';
 
 import {setActiveEnvironment} from '../../actionCreators/environments';
-import {addIssues} from '../../actionCreators/groups';
+import {loadIssues} from '../../actionCreators/groups';
 
 const DEFAULT_SORT = 'date';
 const DEFAULT_STATS_PERIOD = '24h';
@@ -40,8 +40,8 @@ const Stream = createReactClass({
     project: PropTypes.object,
     environment: PropTypes.object,
     tags: PropTypes.object,
-    tagsLoading: PropTypes.bool,
     groupIds: PropTypes.array,
+    savedSearches: PropTypes.array,
   },
 
   mixins: [ApiMixin],
@@ -60,7 +60,6 @@ const Stream = createReactClass({
       searchId,
       // if we have no query then we can go ahead and fetch data
       loading: searchId || !this.hasQuery() ? true : false,
-      savedSearchLoading: true,
       savedSearchList: [],
       selectAllActive: false,
       multiSelected: false,
@@ -84,7 +83,6 @@ const Stream = createReactClass({
       success: this.onRealtimePoll,
     });
 
-    this.fetchSavedSearches();
     this.fetchProcessingIssues();
   },
 
@@ -111,6 +109,34 @@ const Stream = createReactClass({
       // TODO(dcramer): handle 404 from popState on searchId
       this.setState(this.getQueryState(nextProps), this.fetchData);
     }
+
+    if (nextProps.savedSearches) {
+      const userDefault = nextProps.savedSearches.find(search => search.isUserDefault);
+      const globalDefault = nextProps.savedSearches.find(search => search.isDefault);
+      console.log('+++++++++');
+      console.log(userDefault || globalDefault);
+    }
+    // set default search details
+
+    // }
+
+    // work out default search
+
+    // -          let defaultResults = data.filter(search => {
+    //   -            return search.isUserDefault;
+    //   -          });
+    //   -
+    //   -          if (!defaultResults.length) {
+    //   -            defaultResults = data.filter(search => {
+    //   -              return search.isDefault;
+    //   -            });
+    //   -          }
+    //   -
+    //   -          if (defaultResults.length) {
+    //   -            newState.searchId = defaultResults[0].id;
+    //   -            newState.query = defaultResults[0].query;
+    //   -            newState.isDefaultSearch = true;
+    //   -          }
   },
 
   shouldComponentUpdate(nextProps, nextState) {
@@ -130,74 +156,6 @@ const Stream = createReactClass({
 
   componentWillUnmount() {
     this._poller.disable();
-  },
-
-  fetchSavedSearches() {
-    this.setState({
-      savedSearchLoading: true,
-    });
-
-    let {orgId, projectId} = this.props.params;
-    this.api.request(`/projects/${orgId}/${projectId}/searches/`, {
-      success: data => {
-        let newState = {
-          isDefaultSearch: false,
-          savedSearchLoading: false,
-          savedSearchList: data,
-          loading: false,
-        };
-        let searchId = this.state.searchId;
-        let needsData = this.state.loading;
-        if (searchId) {
-          let match = data.filter(search => {
-            return search.id === searchId;
-          });
-          if (match.length) {
-            newState.query = match[0].query;
-          } else {
-            return void this.setState(
-              {
-                savedSearchLoading: false,
-                savedSearchList: data,
-                searchId: null,
-                isDefaultSearch: true,
-              },
-              this.transitionTo
-            );
-          }
-        } else if (!this.hasQuery()) {
-          let defaultResults = data.filter(search => {
-            return search.isUserDefault;
-          });
-
-          if (!defaultResults.length) {
-            defaultResults = data.filter(search => {
-              return search.isDefault;
-            });
-          }
-
-          if (defaultResults.length) {
-            newState.searchId = defaultResults[0].id;
-            newState.query = defaultResults[0].query;
-            newState.isDefaultSearch = true;
-          }
-        }
-
-        return void this.setState(newState, needsData ? this.fetchData : null);
-      },
-      error: error => {
-        // XXX(dcramer): fail gracefully by still loading the stream
-        logAjaxError(error);
-        this.setState({
-          loading: false,
-          isDefaultSearch: null,
-          searchId: null,
-          savedSearchList: [],
-          savedSearchLoading: false,
-          query: '',
-        });
-      },
-    });
   },
 
   fetchProcessingIssues() {
@@ -370,7 +328,7 @@ const Stream = createReactClass({
           );
         }
 
-        addIssues(data);
+        loadIssues(data);
 
         let queryCount = jqXHR.getResponseHeader('X-Hits');
         let queryMaxCount = jqXHR.getResponseHeader('X-Max-Hits');
@@ -699,7 +657,7 @@ const Stream = createReactClass({
 
   render() {
     // global loading
-    if (this.state.loading || this.props.groupIds === undefined) {
+    if (this.state.loading) {
       return this.renderLoading();
     }
     let params = this.props.params;
@@ -754,7 +712,6 @@ const Stream = createReactClass({
             <Pagination pageLinks={this.state.pageLinks} />
           </div>
           <StreamSidebar
-            loading={this.props.tagsLoading}
             tags={this.props.tags}
             query={this.state.query}
             onQueryChange={this.onSearch}

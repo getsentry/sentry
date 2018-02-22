@@ -11,11 +11,15 @@ import StreamTagActions from '../../actions/streamTagActions';
 import AlertActions from '../../actions/alertActions';
 import ApiMixin from '../../mixins/apiMixin';
 
-import {resetGroups} from '../../actionCreators/groups';
+import LoadingIndicator from '../../components/loadingIndicator';
+
+import {resetIssues} from '../../actionCreators/groups';
 
 import {t} from '../../locale';
 
 import Stream from './stream';
+
+import {logAjaxError} from '../../utils/logging';
 
 const MAX_TAGS = 500;
 
@@ -45,19 +49,21 @@ const StreamContainer = createReactClass({
         ? LatestContextStore.getInitialState().environment
         : null,
       tags: StreamTagStore.getAllTags(),
-      tagsLoading: true,
-      // Keep track of group Ids
       groupIds: [],
+      savedSearches: [],
+      tagsLoading: true,
+      savedSearchLoading: true,
     };
   },
 
   componentWillMount() {
     this.props.setProjectNavSection('stream');
     this.fetchTags();
+    this.fetchSavedSearches();
   },
 
   componentWillUnmount() {
-    resetGroups();
+    resetIssues();
   },
 
   onLatestContextChange(context) {
@@ -86,13 +92,29 @@ const StreamContainer = createReactClass({
     });
   },
 
+  fetchSavedSearches() {
+    let {orgId, projectId} = this.props.params;
+    this.api.request(`/projects/${orgId}/${projectId}/searches/`, {
+      success: data => {
+        this.setState({
+          savedSearchLoading: false,
+          savedSearches: data,
+        });
+      },
+      error: error => {
+        // Fail gracefully by still loading the stream
+        logAjaxError(error);
+        this.setState({
+          savedSearchLoading: false,
+          savedSearches: [],
+        });
+      },
+    });
+  },
+
   fetchTags() {
     StreamTagStore.reset();
     StreamTagActions.loadTags();
-
-    this.setState({
-      tagsLoading: true,
-    });
 
     let {orgId, projectId} = this.props.params;
 
@@ -116,7 +138,20 @@ const StreamContainer = createReactClass({
     });
   },
 
+  renderLoading: function() {
+    return (
+      <div className="box">
+        <LoadingIndicator />
+      </div>
+    );
+  },
+
   render: function() {
+    // this.state.groupIds === undefined ||
+    if (this.state.savedSearchLoading || this.state.tagsLoading) {
+      return this.renderLoading();
+    }
+
     return (
       <Stream
         location={this.props.location}
@@ -125,8 +160,8 @@ const StreamContainer = createReactClass({
         project={this.getProject()}
         organization={this.getOrganization()}
         tags={this.state.tags}
-        tagsLoading={this.state.tagsLoading}
         groupIds={this.state.groupIds}
+        savedSearches={this.state.savedSearches}
       />
     );
   },

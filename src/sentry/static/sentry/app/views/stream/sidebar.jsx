@@ -3,7 +3,6 @@ import React from 'react';
 import createReactClass from 'create-react-class';
 import _ from 'lodash';
 import StreamTagFilter from './tagFilter';
-import LoadingIndicator from '../../components/loadingIndicator';
 import {queryToObj, objToQuery} from '../../utils/stream';
 import {t} from '../../locale';
 
@@ -20,7 +19,6 @@ const StreamSidebar = createReactClass({
     query: PropTypes.string,
     onQueryChange: PropTypes.func.isRequired,
     defaultQuery: PropTypes.string,
-    loading: PropTypes.bool,
   },
 
   getDefaultProps() {
@@ -112,9 +110,7 @@ const StreamSidebar = createReactClass({
   render() {
     return (
       <div className="stream-sidebar">
-        {this.props.loading ? (
-          <LoadingIndicator />
-        ) : (
+        {
           <div>
             <div className="stream-tag-filter">
               <h6 className="nav-header">{t('Text')}</h6>
@@ -147,7 +143,7 @@ const StreamSidebar = createReactClass({
               );
             })}
           </div>
-        )}
+        }
       </div>
     );
   },
