@@ -7,12 +7,12 @@ import classNames from 'classnames';
 import {t} from '../locale';
 import {userDisplayName} from '../utils/formatters';
 import {valueIsEqual} from '../utils';
-import ApiMixin from '../mixins/apiMixin';
 import Avatar from '../components/avatar';
 import ConfigStore from '../stores/configStore';
 import DropdownLink from './dropdownLink';
 import FlowLayout from './flowLayout';
 import GroupStore from '../stores/groupStore';
+import {assignTo} from '../actionCreators/group';
 import LoadingIndicator from '../components/loadingIndicator';
 import MemberListStore from '../stores/memberListStore';
 import MenuItem from './menuItem';
@@ -31,7 +31,6 @@ const AssigneeSelector = createReactClass({
     TooltipMixin({
       selector: '.tip',
     }),
-    ApiMixin,
   ],
 
   statics: {
@@ -129,12 +128,12 @@ const AssigneeSelector = createReactClass({
   },
 
   assignTo(member) {
-    this.api.assignTo({id: this.props.id, member});
+    assignTo({id: this.props.id, member});
     this.setState({filter: '', loading: true});
   },
 
   clearAssignTo() {
-    this.api.assignTo({id: this.props.id});
+    assignTo({id: this.props.id});
     this.setState({filter: '', loading: true});
   },
 
