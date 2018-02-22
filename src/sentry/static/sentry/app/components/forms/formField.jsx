@@ -1,9 +1,16 @@
 import classNames from 'classnames';
 import PropTypes from 'prop-types';
 import React from 'react';
+import styled from 'react-emotion';
 import idx from 'idx';
 
 import {defined} from '../../utils';
+import InlineSvg from '../inlineSvg';
+
+const StyledInlineSvg = styled(InlineSvg)`
+  display: block;
+  color: ${p => p.theme.gray3};
+`;
 
 export default class FormField extends React.PureComponent {
   static propTypes = {
@@ -145,7 +152,7 @@ export default class FormField extends React.PureComponent {
           {disabled &&
             disabledReason && (
               <span className="disabled-indicator tip" title={disabledReason}>
-                <span className="icon-question" />
+                <StyledInlineSvg src="icon-circle-question" size="18px" />
               </span>
             )}
           {defined(help) && <p className="help-block">{help}</p>}
