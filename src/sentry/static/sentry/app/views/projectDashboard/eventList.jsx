@@ -26,7 +26,6 @@ const EventList = createReactClass({
       loading: true,
       error: false,
       statsPeriod: '24h',
-      title: this.props.type === 'new' ? t('New issues') : t('Trending issues'),
     };
   },
 
@@ -116,7 +115,9 @@ const EventList = createReactClass({
         <div className="box-header clearfix">
           <div className="row">
             <div className="col-xs-8">
-              <h3>{this.state.title}</h3>
+              <h3>
+                {this.props.type === 'new' ? t('New issues') : t('Trending issues')}
+              </h3>
             </div>
             <div className="col-xs-2 align-right">{t('Events')}</div>
             <div className="col-xs-2 align-right">{t('Users')}</div>
