@@ -2,11 +2,11 @@ import PropTypes from 'prop-types';
 import React from 'react';
 import Reflux from 'reflux';
 import createReactClass from 'create-react-class';
-import {browserHistory} from 'react-router';
 import {get as getPath} from 'lodash';
 
 import ApiMixin from '../../mixins/apiMixin';
 import DropdownLink from '../dropdownLink';
+import {setActiveEnvironment} from '../../actionCreators/environments';
 import EnvironmentStore from '../../stores/environmentStore';
 import LatestContextStore from '../../stores/latestContextStore';
 import LoadingIndicator from '../loadingIndicator';
@@ -24,7 +24,6 @@ const GroupReleaseStats = createReactClass({
 
   propTypes: {
     group: PropTypes.object,
-    location: PropTypes.object,
   },
 
   contextTypes: {
@@ -39,14 +38,13 @@ const GroupReleaseStats = createReactClass({
 
   getInitialState() {
     let envList = EnvironmentStore.getActive();
-    let environmentQueryParam = this.props.location.query.environment;
 
     return {
       loading: true,
       error: false,
       data: {environment: {}},
       envList,
-      environment: this.getEnvironment(environmentQueryParam),
+      environment: LatestContextStore.getInitialState().environment,
       hasEnvironmentsFeature: new Set(this.context.organization.features).has(
         'environments'
       ),
@@ -59,23 +57,6 @@ const GroupReleaseStats = createReactClass({
     }
     // onLatestContextChange might not be triggered when component mounted
     this.onLatestContextChange(LatestContextStore.getInitialState());
-  },
-
-  componentWillReceiveProps(nextProps) {
-    let queryParams = nextProps.location.query;
-    if (
-      'environment' in queryParams &&
-      queryParams.environment !== this.props.location.query.environment
-    ) {
-      this.setState(
-        {
-          environment: this.getEnvironment(queryParams.environment),
-          loading: true,
-          error: false,
-        },
-        this.fetchData
-      );
-    }
   },
 
   shouldComponentUpdate(nextProps, nextState) {
@@ -96,9 +77,7 @@ const GroupReleaseStats = createReactClass({
   },
 
   onLatestContextChange(context) {
-    if (this.state.hasEnvironmentsFeature) {
-      this.setState({environment: context.environment || null}, this.fetchData);
-    }
+    this.setState({environment: context.environment || null}, this.fetchData);
   },
 
   fetchData() {
@@ -169,26 +148,6 @@ const GroupReleaseStats = createReactClass({
     });
   },
 
-  switchEnv(env) {
-    if (this.state.environment === env) return;
-
-    let queryParams = Object.assign({}, this.props.location.query);
-    queryParams.environment = env;
-
-    browserHistory.push({
-      pathname: this.props.location.pathname,
-      query: queryParams,
-    });
-  },
-
-  selectAllEnvs() {
-    this.setState({environment: null}, this.fetchData);
-
-    browserHistory.push({
-      pathname: this.props.location.pathname,
-    });
-  },
-
   render() {
     let group = this.props.group;
     let {environment, data, hasEnvironmentsFeature} = this.state;
@@ -209,7 +168,10 @@ const GroupReleaseStats = createReactClass({
               envName
             ) : (
               <DropdownLink title={envName}>
-                <MenuItem isActive={environment === null} onClick={this.selectAllEnvs}>
+                <MenuItem
+                  isActive={environment === null}
+                  onClick={() => setActiveEnvironment(null)}
+                >
                   {t('All Environments')}
                 </MenuItem>
                 {envList.map(env => {
@@ -217,7 +179,7 @@ const GroupReleaseStats = createReactClass({
                     <MenuItem
                       key={env.name}
                       isActive={env.name === envName}
-                      onClick={() => this.switchEnv(env.name)}
+                      onClick={() => setActiveEnvironment(env)}
                     >
                       {env.displayName}
                     </MenuItem>
