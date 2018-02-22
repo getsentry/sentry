@@ -1,4 +1,3 @@
-import jQuery from 'jquery';
 import PropTypes from 'prop-types';
 import React from 'react';
 import createReactClass from 'create-react-class';
@@ -93,42 +92,6 @@ const ProjectDashboard = createReactClass({
     }
   },
 
-  getTrendingIssuesEndpoint(dateSince) {
-    let {params} = this.props;
-    let {activeEnvironment} = this.state;
-
-    let qs = {
-      sort: 'priority',
-      query: 'is:unresolved',
-      since: dateSince,
-    };
-
-    if (activeEnvironment) {
-      qs.environment = activeEnvironment.name;
-      qs.query = `${qs.query} environment:${activeEnvironment.name}`;
-    }
-
-    return `/projects/${params.orgId}/${params.projectId}/issues/?${jQuery.param(qs)}`;
-  },
-
-  getNewIssuesEndpoint(dateSince) {
-    let {params} = this.props;
-    let {activeEnvironment} = this.state;
-
-    let qs = {
-      sort: 'new',
-      query: 'is:unresolved',
-      since: dateSince,
-    };
-
-    if (activeEnvironment) {
-      qs.environment = activeEnvironment.name;
-      qs.query = `${qs.query} environment:${activeEnvironment.name}`;
-    }
-
-    return `/projects/${params.orgId}/${params.projectId}/issues/?${jQuery.param(qs)}`;
-  },
-
   onLatestContextChange(context) {
     if (this.state.hasEnvironmentsFeature) {
       this.setState({
@@ -193,14 +156,18 @@ const ProjectDashboard = createReactClass({
         <div className="row">
           <div className="col-md-6">
             <EventList
-              title={t('Trending Issues')}
-              endpoint={this.getTrendingIssuesEndpoint(dateSince)}
+              type="priority"
+              environment={this.state.activeEnvironment}
+              dateSince={dateSince}
+              params={this.props.params}
             />
           </div>
           <div className="col-md-6">
             <EventList
-              title={t('New Issues')}
-              endpoint={this.getNewIssuesEndpoint(dateSince)}
+              type="new"
+              environment={this.state.activeEnvironment}
+              dateSince={dateSince}
+              params={this.props.params}
             />
           </div>
         </div>
