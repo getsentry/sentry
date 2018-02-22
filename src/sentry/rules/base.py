@@ -46,7 +46,7 @@ from django.utils.safestring import mark_safe
 
 from sentry.utils.html import escape
 
-CallbackFuture = namedtuple('CallbackFuture', ['callback', 'kwargs'])
+CallbackFuture = namedtuple('CallbackFuture', ['callback', 'key', 'kwargs'])
 
 
 class RuleDescriptor(type):
@@ -105,9 +105,10 @@ class RuleBase(object):
 
         return form.is_valid()
 
-    def future(self, callback, **kwargs):
+    def future(self, callback, key=None, **kwargs):
         return CallbackFuture(
             callback=callback,
+            key=key,
             kwargs=kwargs,
         )
 
