@@ -6,7 +6,7 @@ import createReactClass from 'create-react-class';
 import StackedBarChart from '../stackedBarChart';
 import SentryTypes from '../../proptypes';
 import {t} from '../../locale';
-import {defined, escape, intcomma} from '../../utils';
+import {escape, intcomma} from '../../utils';
 
 const GroupReleaseChart = createReactClass({
   displayName: 'GroupReleaseChart',
@@ -25,20 +25,27 @@ const GroupReleaseChart = createReactClass({
     title: PropTypes.string,
   },
 
-  getInitialState(props) {
-    if (!defined(props)) props = this.props;
+  getInitialState() {
+    return this.getNextState(this.props);
+  },
+
+  componentWillReceiveProps(nextProps) {
+    this.setState(this.getNextState(nextProps));
+  },
+
+  getNextState(props) {
     let releaseStats = props.releaseStats;
     let releasePoints = {};
-    if (defined(releaseStats)) {
-      releaseStats[this.props.statsPeriod].forEach(point => {
+    if (releaseStats) {
+      releaseStats[props.statsPeriod].forEach(point => {
         releasePoints[point[0]] = point[1];
       });
     }
 
     let envStats = props.environmentStats;
     let envPoints = {};
-    if (defined(envStats)) {
-      envStats[this.props.statsPeriod].forEach(point => {
+    if (envStats) {
+      envStats[props.statsPeriod].forEach(point => {
         envPoints[point[0]] = point[1];
       });
     }
@@ -47,18 +54,6 @@ const GroupReleaseChart = createReactClass({
       releasePoints,
       envPoints,
     };
-  },
-
-  componentWillReceiveProps(nextProps) {
-    this.setState(this.getInitialState());
-  },
-
-  shouldComponentUpdate(nextProps, nextState) {
-    return (
-      // environment comes from grouprelease, so we can hack
-      this.props.environment !== nextProps.environment ||
-      this.props.group.id !== nextProps.group.id
-    );
   },
 
   renderTooltip(point, pointIdx, chart) {
