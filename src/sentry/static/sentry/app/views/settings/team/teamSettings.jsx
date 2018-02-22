@@ -9,6 +9,10 @@ import Form from '../components/forms/form';
 import JsonForm from '../components/forms/jsonForm';
 import TeamModel from './model';
 import teamSettingsFields from '../../../data/forms/teamSettingsFields';
+import Panel from '../components/panel';
+import Field from '../components/forms/field';
+import PanelHeader from '../components/panelHeader';
+import Link from '../../../components/link';
 import SentryTypes from '../../../proptypes';
 
 export default class TeamSettings extends AsyncView {
@@ -78,23 +82,26 @@ export default class TeamSettings extends AsyncView {
         </Form>
 
         {access.has('team:admin') && (
-          <div className="box">
-            <div className="box-header">
-              <h3>{t('Remove Team')}</h3>
-            </div>
-            <div className="box-content with-padding">
-              <p>
-                <a
-                  href={`/organizations/${orgId}/teams/${teamId}/remove/`}
-                  className="btn btn-danger pull-right"
+          <Panel>
+            <PanelHeader>{t('Remove Team')}</PanelHeader>
+            <Field
+              help={t(
+                "This may affect team members' access to projects and associated alert delivery."
+              )}
+            >
+              <div>
+                <Link
+                  to={`/organizations/${orgId}/teams/${teamId}/remove/`}
+                  className="btn btn-danger"
+                  priority="danger"
+                  size="small"
+                  title={t('Remove Team')}
                 >
                   {t('Remove Team')}
-                </a>
-                Remove team. This may affect team members' access to projects and
-                associated alert delivery.
-              </p>
-            </div>
-          </div>
+                </Link>
+              </div>
+            </Field>
+          </Panel>
         )}
       </React.Fragment>
     );
