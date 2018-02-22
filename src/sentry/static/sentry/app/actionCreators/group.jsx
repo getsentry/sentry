@@ -12,24 +12,21 @@ export function assignTo(params) {
     email: (params.member && params.member.email) || '',
   });
 
-  return new Promise((resolve, reject) =>
-    api.request(endpoint, {
-      method: 'PUT',
-      // Sending an empty value to assignedTo is the same as "clear",
-      // so if no member exists, that implies that we want to clear the
-      // current assignee.
-      data: {assignedTo: (params.member && params.member.id) || ''},
+  let request = api.requestPromise(endpoint, {
+    method: 'PUT',
+    // Sending an empty value to assignedTo is the same as "clear",
+    // so if no member exists, that implies that we want to clear the
+    // current assignee.
+    data: {assignedTo: (params.member && params.member.id) || ''},
+  });
 
-      success: data => {
-        GroupActions.assignToSuccess(id, params.id, data);
-        resolve(data);
-      },
-      error: data => {
-        GroupActions.assignTodata(id, params.id, data);
-        reject(data);
-      },
+  request
+    .then(data => {
+      GroupActions.assignToSuccess(id, params.id, data);
     })
-  );
-}
+    .catch(data => {
+      GroupActions.assignTodata(id, params.id, data);
+    });
 
-export default {assignTo};
+  return request;
+}
