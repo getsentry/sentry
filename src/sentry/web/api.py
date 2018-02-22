@@ -680,6 +680,7 @@ class SecurityReportView(StoreView):
             'interface': interface.path,
             'report': instance,
             'release': request.GET.get('sentry_release'),
+            'environment': request.GET.get('sentry_environment'),
         }
 
         response_or_event_id = self.process(
