@@ -642,7 +642,7 @@ window.TestStubs = {
 
   ProjectFilters: params => [
     {
-      active: false,
+      active: true,
       id: 'browser-extensions',
       name: 'Filter out errors known to be caused by browser extensions',
       description:
@@ -656,7 +656,7 @@ window.TestStubs = {
         'This applies to both IPv4 (``127.0.0.1``) and IPv6 (``::1``) addresses.',
     },
     {
-      active: false,
+      active: ['ie_pre_9', 'ie9'],
       id: 'legacy-browsers',
       name: 'Filter out known errors from legacy browsers',
       description:

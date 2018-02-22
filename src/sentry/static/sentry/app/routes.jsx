@@ -69,7 +69,6 @@ import ProjectDebugSymbols from './views/projectDebugSymbols';
 import ProjectDetails from './views/projectDetails';
 import ProjectDocsContext from './views/projectInstall/docsContext';
 import ProjectEvents from './views/projectEvents';
-import ProjectFilters from './views/projectFilters';
 import ProjectGeneralSettings from './views/projectGeneralSettings';
 import ProjectGettingStarted from './views/projectInstall/gettingStarted';
 import ProjectInstallOverview from './views/projectInstall/overview';
@@ -331,7 +330,9 @@ const projectSettingsRoutes = (
     <Route
       path="filters/"
       name="Inbound Filters"
-      component={errorHandler(ProjectFilters)}
+      componentPromise={() =>
+        import(/* webpackChunkName: "ProjectFilters" */ './views/settings/project/projectFilters')}
+      component={errorHandler(LazyLoad)}
     />
     <Route path="keys/" name="Client Keys" component={errorHandler(ProjectKeys)} />
     <Route

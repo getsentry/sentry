@@ -1,7 +1,7 @@
 import React from 'react';
 
 import {mount} from 'enzyme';
-import ProjectFilters from 'app/views/projectFilters';
+import ProjectFilters from 'app/views/settings/project/projectFilters';
 
 describe('ProjectFilters', function() {
   let org = TestStubs.Organization();
@@ -31,8 +31,6 @@ describe('ProjectFilters', function() {
       );
     }
 
-    wrapper.instance().setState({loading: false, expected: 0});
-    wrapper.update();
     return wrapper;
   };
 
@@ -61,10 +59,30 @@ describe('ProjectFilters', function() {
     creator();
   });
 
-  it('can toggle filters: browser extensions, localhost, web crawlers', function() {
-    ['browser-extensions', 'localhost', 'web-crawlers'].forEach((filter, i) => {
+  it('has browser extensions enabled initially', function() {
+    let filter = 'browser-extensions';
+    let mock = createFilterMock(filter);
+    const Switch = wrapper.find(`BooleanField[name="${filter}"] Switch`);
+
+    expect(Switch.prop('isActive')).toBe(true);
+
+    // Toggle filter on
+    Switch.simulate('click');
+    expect(mock).toHaveBeenCalledWith(
+      getFilterEndpoint(filter),
+      expect.objectContaining({
+        method: 'PUT',
+        data: {
+          active: false,
+        },
+      })
+    );
+  });
+
+  it('can toggle filters: localhost, web crawlers', function() {
+    ['localhost', 'web-crawlers'].map((filter, i) => {
       let mock = createFilterMock(filter);
-      const Switch = wrapper.find('FilterRow Switch').at(i);
+      const Switch = wrapper.find(`BooleanField[name="${filter}"] Switch`);
 
       // Toggle filter on
       Switch.simulate('click');
@@ -77,36 +95,58 @@ describe('ProjectFilters', function() {
           },
         })
       );
-
-      // Toggle filter off
-      Switch.simulate('click');
-
-      expect(mock).toHaveBeenCalledWith(
-        getFilterEndpoint(filter),
-        expect.objectContaining({
-          method: 'PUT',
-          data: {
-            active: false,
-          },
-        })
-      );
     });
+  });
+
+  it('has correct legacy browsers selected', function() {
+    expect(
+      wrapper
+        .find('LegacyBrowserFilterRow Switch')
+        .at(0)
+        .prop('isActive')
+    ).toBe(true);
+    expect(
+      wrapper
+        .find('LegacyBrowserFilterRow Switch')
+        .at(1)
+        .prop('isActive')
+    ).toBe(true);
+    expect(
+      wrapper
+        .find('LegacyBrowserFilterRow Switch')
+        .at(2)
+        .prop('isActive')
+    ).toBe(false);
   });
 
   it('can toggle legacy browser', function() {
     let filter = 'legacy-browsers';
     let mock = createFilterMock(filter);
-    const Switch = wrapper.find('LegacyBrowserFilterRow Switch').at(0);
+
+    // default stubs ie_pre_9 and ie9 selected (first 2 switches)
+    const Switch = wrapper.find('LegacyBrowserFilterRow Switch').at(3);
 
     // Toggle filter on
     Switch.simulate('click');
     expect(mock.mock.calls[0][0]).toBe(getFilterEndpoint(filter));
     // Have to do this because no jest matcher for JS Set
-    expect(Array.from(mock.mock.calls[0][1].data.subfilters)).toEqual(['ie_pre_9']);
+    expect(Array.from(mock.mock.calls[0][1].data.subfilters)).toEqual([
+      'ie_pre_9',
+      'ie9',
+      'opera_pre_15',
+    ]);
 
     // Toggle filter off
-    Switch.simulate('click');
-    expect(Array.from(mock.mock.calls[1][1].data.subfilters)).toEqual([]);
+    wrapper
+      .find('LegacyBrowserFilterRow Switch')
+      .at(4)
+      .simulate('click');
+    expect(Array.from(mock.mock.calls[1][1].data.subfilters)).toEqual([
+      'ie_pre_9',
+      'ie9',
+      'opera_pre_15',
+      'safari_pre_6',
+    ]);
 
     mock.mockReset();
 
@@ -121,16 +161,16 @@ describe('ProjectFilters', function() {
       .simulate('click');
 
     expect(Array.from(mock.mock.calls[1][1].data.subfilters)).toEqual([
-      'ie_pre_9',
-      'ie9',
+      'opera_pre_15',
+      'safari_pre_6',
     ]);
   });
 
   it('can toggle all/none for legacy browser', function() {
     let filter = 'legacy-browsers';
     let mock = createFilterMock(filter);
-    const All = wrapper.find('.filter-grid-filter a').at(0);
-    const None = wrapper.find('.filter-grid-filter a').at(1);
+    const All = wrapper.find('BulkFilterItem').at(0);
+    const None = wrapper.find('BulkFilterItem').at(1);
 
     // Click "All" filter
     All.simulate('click');
@@ -155,8 +195,10 @@ describe('ProjectFilters', function() {
       method: 'PUT',
     });
 
-    wrapper.find('#id-ip').simulate('change', {target: {value: 'test\ntest2'}});
-    wrapper.find('form').simulate('submit');
+    wrapper
+      .find('TextArea[id="filters:blacklisted_ips"]')
+      .simulate('change', {target: {value: 'test\ntest2'}})
+      .simulate('blur');
     expect(mock.mock.calls[0][0]).toBe(PROJECT_URL);
     expect(mock.mock.calls[0][1].data.options['filters:blacklisted_ips']).toBe(
       'test\ntest2'
@@ -164,8 +206,8 @@ describe('ProjectFilters', function() {
   });
 
   it('does not have filter by release/error message because no hooks store', function() {
-    expect(wrapper.find('#id-release')).toHaveLength(0);
-    expect(wrapper.find('#id-error')).toHaveLength(0);
+    expect(wrapper.find('TextArea[id="filters:releases"]')).toHaveLength(0);
+    expect(wrapper.find('TextArea[id="filters:error_messages"]')).toHaveLength(0);
   });
 
   it('has custom inbound filters with flag + can change', function() {
@@ -188,8 +230,8 @@ describe('ProjectFilters', function() {
       );
     });
 
-    expect(wrapper.find('#id-release')).toHaveLength(1);
-    expect(wrapper.find('#id-errorMessage')).toHaveLength(1);
+    expect(wrapper.find('TextArea[id="filters:releases"]')).toHaveLength(1);
+    expect(wrapper.find('TextArea[id="filters:error_messages"]')).toHaveLength(1);
 
     let mock = MockApiClient.addMockResponse({
       url: PROJECT_URL,
@@ -197,18 +239,20 @@ describe('ProjectFilters', function() {
     });
 
     wrapper
-      .find('#id-release')
-      .simulate('change', {target: {value: 'release\nrelease2'}});
-    wrapper
-      .find('#id-errorMessage')
-      .simulate('change', {target: {value: 'error\nerror2'}});
-    wrapper.find('form').simulate('submit');
+      .find('TextArea[id="filters:releases"]')
+      .simulate('change', {target: {value: 'release\nrelease2'}})
+      .simulate('blur');
     expect(mock.mock.calls[0][0]).toBe(PROJECT_URL);
-    expect(mock.mock.calls[0][1].data.options['filters:error_messages']).toBe(
-      'error\nerror2'
-    );
     expect(mock.mock.calls[0][1].data.options['filters:releases']).toBe(
       'release\nrelease2'
+    );
+
+    wrapper
+      .find('TextArea[id="filters:error_messages"]')
+      .simulate('change', {target: {value: 'error\nerror2'}})
+      .simulate('blur');
+    expect(mock.mock.calls[1][1].data.options['filters:error_messages']).toBe(
+      'error\nerror2'
     );
   });
 });

@@ -1,37 +1,25 @@
 import PropTypes from 'prop-types';
 import React from 'react';
-import createReactClass from 'create-react-class';
 import _ from 'lodash';
 
-import Avatar from '../components/avatar';
-import EventOrGroupHeader from '../components/eventOrGroupHeader';
-import IndicatorStore from '../stores/indicatorStore';
-import LoadingError from '../components/loadingError';
-import LinkWithConfirmation from '../components/linkWithConfirmation';
-import TooltipMixin from '../mixins/tooltip';
+import {addErrorMessage, addSuccessMessage} from '../../../../actionCreators/indicator';
+import {t} from '../../../../locale';
+import AsyncComponent from '../../../../components/asyncComponent';
+import Avatar from '../../../../components/avatar';
+import EventOrGroupHeader from '../../../../components/eventOrGroupHeader';
+import LinkWithConfirmation from '../../../../components/linkWithConfirmation';
+import Tooltip from '../../../../components/tooltip';
 
-import ApiMixin from '../mixins/apiMixin';
-
-import {t} from '../locale';
-
-const GroupTombstoneRow = createReactClass({
-  displayName: 'GroupTombstoneRow',
-
-  propTypes: {
+class GroupTombstoneRow extends React.Component {
+  static propTypes = {
     data: PropTypes.object.isRequired,
-    undiscard: PropTypes.func.isRequired,
+    onUndiscard: PropTypes.func.isRequired,
     orgId: PropTypes.string.isRequired,
     projectId: PropTypes.string.isRequired,
-  },
-
-  mixins: [
-    TooltipMixin({
-      selector: '.tip',
-    }),
-  ],
+  };
 
   render() {
-    let {data, undiscard} = this.props,
+    let {data, onUndiscard} = this.props,
       actor = data.actor;
 
     return (
@@ -51,7 +39,7 @@ const GroupTombstoneRow = createReactClass({
           )}
         </div>
         <div className="col-md-1 event-undiscard">
-          <span className="tip" title={t('Undiscard')}>
+          <Tooltip title={t('Undiscard')}>
             <LinkWithConfirmation
               className="group-remove btn btn-default btn-sm"
               message={t(
@@ -62,60 +50,55 @@ const GroupTombstoneRow = createReactClass({
                   'Are you sure you wish to continue?'
               )}
               onConfirm={() => {
-                undiscard(data.id);
+                onUndiscard(data.id);
               }}
             >
               <span className="icon-trash undiscard" />
             </LinkWithConfirmation>
-          </span>
+          </Tooltip>
         </div>
       </li>
     );
-  },
-});
+  }
+}
 
-const GroupTombstones = createReactClass({
-  displayName: 'GroupTombstones',
-
-  propTypes: {
+class GroupTombstones extends AsyncComponent {
+  static propTypes = {
     orgId: PropTypes.string.isRequired,
     projectId: PropTypes.string.isRequired,
     tombstones: PropTypes.array.isRequired,
     tombstoneError: PropTypes.bool.isRequired,
     fetchData: PropTypes.func.isRequired,
-  },
+  };
 
-  mixins: [ApiMixin],
+  getEndpoints() {
+    let {orgId, projectId} = this.props;
+    return [['tombstones', `/projects/${orgId}/${projectId}/tombstones/`]];
+  }
 
-  undiscard(tombstoneId) {
+  handleUndiscard = tombstoneId => {
     let {orgId, projectId} = this.props;
     let path = `/projects/${orgId}/${projectId}/tombstones/${tombstoneId}/`;
     this.api.request(path, {
       method: 'DELETE',
       success: data => {
-        IndicatorStore.add(
-          t('Events similar to these will no longer be filtered'),
-          'success',
-          {duration: 4000}
-        );
+        addSuccessMessage(t('Events similar to these will no longer be filtered'));
       },
       error: () => {
-        IndicatorStore.add(t('We were unable to undiscard this group'), 'error', {
-          duration: 4000,
-        });
+        addErrorMessage(t('We were unable to undiscard this group'));
       },
     });
-    this.props.fetchData();
-  },
+    this.fetchData();
+  };
 
   renderEmpty() {
     return <div className="box empty">{t('You have no discarded issues')}</div>;
-  },
+  }
 
-  render() {
-    if (this.props.tombstoneError) return <LoadingError />;
+  renderBody() {
+    let {orgId, projectId} = this.props;
+    let {tombstones} = this.state;
 
-    let {tombstones, orgId, projectId} = this.props;
     return (
       <div>
         <div className="row" style={{paddingTop: 10}}>
@@ -129,7 +112,7 @@ const GroupTombstones = createReactClass({
                       data={data}
                       orgId={orgId}
                       projectId={projectId}
-                      undiscard={this.undiscard}
+                      onUndiscard={this.handleUndiscard}
                     />
                   );
                 })}
@@ -141,7 +124,7 @@ const GroupTombstones = createReactClass({
         </div>
       </div>
     );
-  },
-});
+  }
+}
 
 export default GroupTombstones;
