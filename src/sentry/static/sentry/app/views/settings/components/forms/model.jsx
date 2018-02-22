@@ -397,6 +397,8 @@ class FormModel {
             addErrorMessage(resp.responseJSON.non_field_errors[0], 10000);
             // Reset saving state
             this.setError(id, '');
+          } else {
+            this.setError(id, 'Failed to save');
           }
         } else {
           // Default error behavior

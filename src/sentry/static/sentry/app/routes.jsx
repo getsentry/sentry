@@ -141,7 +141,7 @@ const accountSettingsRoutes = (
         component={errorHandler(LazyLoad)}
       />
       <Route
-        path="project-alerts/"
+        path=":fineTuneType/"
         name="Fine Tune Alerts"
         componentPromise={() =>
           import(/* webpackChunkName: "AccountNotificationsFineTuning" */ './views/settings/account/accountNotificationFineTuning')}

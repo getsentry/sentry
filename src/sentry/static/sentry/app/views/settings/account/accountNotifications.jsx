@@ -1,22 +1,41 @@
-import React from 'react';
-import PropTypes from 'prop-types';
 import {Box} from 'grid-emotion';
+import PropTypes from 'prop-types';
+import React from 'react';
+import styled from 'react-emotion';
 
+import {t} from '../../../locale';
+import AlertLink from '../../../components/alertLink';
 import AsyncView from '../../asyncView';
+import Form from '../components/forms/form';
+import InlineSvg from '../../../components/inlineSvg';
+import JsonForm from '../components/forms/jsonForm';
 import Link from '../../../components/link';
-
+import PanelFooter from '../components/panelFooter';
 import SettingsPageHeader from '../components/settingsPageHeader';
 import accountNotificationFields from '../../../data/forms/accountNotificationSettings';
 
-import ApiForm from '../components/forms/apiForm';
-import FieldFromConfig from '../components/forms/fieldFromConfig';
-import Panel from '../components/panel';
-import PanelBody from '../components/panelBody';
-import PanelHeader from '../components/panelHeader';
-import PanelFooter from '../components/panelFooter';
-import AlertLink from '../../../components/alertLink';
-import InlineSvg from '../../../components/inlineSvg';
-import {t} from '../../../locale';
+const FINE_TUNE_FOOTERS = {
+  Alerts: {
+    text: 'Fine tune alerts by project',
+    path: 'alerts/',
+  },
+  'Workflow Notifications': {
+    text: 'Fine tune workflow notifications by project',
+    path: 'workflow/',
+  },
+  'Email Routing': {
+    text: 'Fine tune email routing by project',
+    path: 'email/',
+  },
+  'Weekly Reports': {
+    text: 'Fine tune weekly reports by organization',
+    path: 'reports/',
+  },
+  'Deploy Notifications': {
+    text: 'Fine tune deploy notifications by organization',
+    path: 'deploy/',
+  },
+};
 
 export default class AccountNotifications extends AsyncView {
   getEndpoints() {
@@ -31,60 +50,56 @@ export default class AccountNotifications extends AsyncView {
     return (
       <div>
         <SettingsPageHeader title="Notifications" />
-        <ApiForm
+        <Form
           initialData={this.state.data}
+          saveOnBlur
           apiMethod="PUT"
-          apiEndpoint={'/users/me/notifications/'}
+          apiEndpoint="/users/me/notifications/"
         >
           <Box>
-            {accountNotificationFields.map(field => {
-              return <FormField key={field.title} field={field} />;
-            })}
+            <JsonForm
+              forms={accountNotificationFields}
+              renderFooter={({title}) => {
+                if (FINE_TUNE_FOOTERS[title]) {
+                  return <FineTuningFooter {...FINE_TUNE_FOOTERS[title]} />;
+                }
+                return null;
+              }}
+            />
             <AlertLink to="/settings/account/emails" icon="icon-mail">
-              {t('Looking to add, remove, or route an email? Use the emails panel.')}
+              {t('Looking to add or remove an email? Use the emails panel.')}
             </AlertLink>
           </Box>
-        </ApiForm>
+        </Form>
       </div>
     );
   }
 }
 
-class FormField extends React.Component {
+const FineTuneLink = styled(Link)`
+  display: flex;
+  justify-content: space-between;
+  padding: 15px 20px;
+  color: inherit;
+`;
+
+class FineTuningFooter extends React.Component {
   static propTypes = {
-    field: PropTypes.object.isRequired,
+    path: PropTypes.string.isRequired,
+    text: PropTypes.string.isRequired,
   };
 
-  constructor(props) {
-    super(props);
-  }
   render() {
-    let {title, fields, fineTuning} = this.props.field;
-
-    let linkStyle = {
-      display: 'flex',
-      justifyContent: 'space-between',
-      padding: '15px 20px',
-      color: 'inherit',
-    };
-
+    let {path, text} = this.props;
     let baseUrl = '/settings/account/notifications/';
 
     return (
-      <Panel key={title} id={title}>
-        <PanelHeader>{title}</PanelHeader>
-        <PanelBody>
-          {fields.map(field => <FieldFromConfig key={field.name} field={field} />)}
-        </PanelBody>
-        {fineTuning && (
-          <PanelFooter>
-            <Link to={`${baseUrl}${fineTuning.path}`} style={linkStyle}>
-              <span>{fineTuning.text}</span>
-              <InlineSvg src="icon-chevron-right" size="15px" />
-            </Link>
-          </PanelFooter>
-        )}
-      </Panel>
+      <PanelFooter css={{borderTop: 'none'}}>
+        <FineTuneLink to={`${baseUrl}${path}`}>
+          <span>{text}</span>
+          <InlineSvg src="icon-chevron-right" size="15px" />
+        </FineTuneLink>
+      </PanelFooter>
     );
   }
 }

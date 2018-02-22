@@ -1,6 +1,7 @@
 from __future__ import absolute_import
 
 from sentry.testutils import APITestCase
+from sentry.models import UserOption
 
 from django.core.urlresolvers import reverse
 
@@ -53,6 +54,24 @@ class UserNotificationDetailsTest(APITestCase):
 
     def test_returns_correct_defaults(self):
         user = self.create_user(email='a@example.com')
+        org = self.create_organization(name='Org Name', owner=user)
+
+        # Adding existing UserOptions for a project or org to test that defaults are correct
+        # default is 3
+        UserOption.objects.create(
+            user=user,
+            project=None,
+            organization=org,
+            key="deploy-emails",
+            value=1)
+
+        # default is 0
+        UserOption.objects.create(
+            user=user,
+            project=None,
+            organization=org,
+            key="workflow:notifications",
+            value=1)
 
         self.login_as(user=user)
 
@@ -92,6 +111,46 @@ class UserNotificationDetailsTest(APITestCase):
         assert resp.data.get('selfAssignOnResolve') is True
         assert resp.data.get('subscribeByDefault') is True
         assert resp.data.get('workflowNotifications') == 0
+
+        assert UserOption.objects.get(user=user,
+                                      project=None,
+                                      organization=None,
+                                      key='deploy-emails'
+                                      ).value == '2'
+
+    def test_saves_and_returns_values_when_defaults_present(self):
+        user = self.create_user(email='a@example.com')
+        org = self.create_organization(name='Org Name', owner=user)
+        self.login_as(user=user)
+        UserOption.objects.create(
+            user=user,
+            project=None,
+            organization=org,
+            key="deploy-emails",
+            value=1)
+
+        url = reverse(
+            'sentry-api-0-user-notifications', kwargs={
+                'user_id': 'me',
+            }
+        )
+
+        resp = self.client.put(url, format='json', data={
+            'deployNotifications': 2,
+        })
+
+        assert resp.status_code == 200
+        assert resp.data.get('deployNotifications') == 2
+        assert UserOption.objects.get(
+            user=user,
+            project=None,
+            organization=org,
+            key="deploy-emails").value == 1
+        assert UserOption.objects.get(
+            user=user,
+            project=None,
+            organization=None,
+            key="deploy-emails").value == '2'
 
     def test_reject_invalid_values(self):
         user = self.create_user(email='a@example.com')
