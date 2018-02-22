@@ -20,6 +20,10 @@ describe('Sudo Modal', function() {
       },
     });
     Client.addMockResponse({
+      url: '/assistant/',
+      body: [],
+    });
+    Client.addMockResponse({
       url: '/organizations/',
       body: [TestStubs.Organization()],
     });

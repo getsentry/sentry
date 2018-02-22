@@ -2,6 +2,7 @@ import PropTypes from 'prop-types';
 import React from 'react';
 import SentryTypes from '../../proptypes';
 import {t} from '../../locale';
+import GuideAnchor from '../../components/assistant/guideAnchor';
 
 class GroupEventDataSection extends React.Component {
   static propTypes = {
@@ -52,6 +53,9 @@ class GroupEventDataSection extends React.Component {
             ) : (
               <div>{this.props.title}</div>
             )}
+            {this.props.type === 'extra' ? (
+              <GuideAnchor target="extra" type="text" />
+            ) : null}
             {this.props.type === 'extra' && (
               <div className="btn-group pull-right">
                 <a

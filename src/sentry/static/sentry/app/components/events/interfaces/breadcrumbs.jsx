@@ -2,6 +2,7 @@ import PropTypes from 'prop-types';
 import React from 'react';
 import GroupEventDataSection from '../eventDataSection';
 import SentryTypes from '../../../proptypes';
+import GuideAnchor from '../../../components/assistant/guideAnchor';
 import Breadcrumb from './breadcrumbs/breadcrumb';
 import {t} from '../../../locale';
 
@@ -174,8 +175,9 @@ class BreadcrumbsInterface extends React.Component {
 
     let title = (
       <div>
+        <GuideAnchor target="breadcrumbs" type="text" />
         <h3>
-          <strong>{'Breadcrumbs'}</strong>
+          <strong>{t('Breadcrumbs')}</strong>
         </h3>
         {this.getSearchField()}
       </div>
