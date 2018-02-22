@@ -22,6 +22,7 @@ class DropdownAutoComplete extends React.Component {
 
     this.state = {
       isOpen: this.props.isOpen,
+      selectedItem: undefined,
     };
   }
 
@@ -93,7 +94,7 @@ class DropdownAutoComplete extends React.Component {
                           (item, index) =>
                             item.index || item.index == 0 ? (
                               <StyledItem
-                                key={index}
+                                key={item.value}
                                 highlightedIndex={highlightedIndex}
                                 index={item.index}
                                 {...getItemProps({item, index: item.index})}
@@ -101,7 +102,7 @@ class DropdownAutoComplete extends React.Component {
                                 {item.label}
                               </StyledItem>
                             ) : (
-                              <StyledLabel key={index}>{item.label}</StyledLabel>
+                              <StyledLabel key={item.value}>{item.label}</StyledLabel>
                             )
                         )}
                       </div>
