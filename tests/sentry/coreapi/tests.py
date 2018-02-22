@@ -662,6 +662,7 @@ class SecurityApiHelperTest(BaseAPITest):
     def test_csp_validate_basic(self):
         report = {
             "release": "abc123",
+            "environment": "production",
             "interface": 'sentry.interfaces.Csp',
             "report": {
                 "csp-report": {
@@ -678,6 +679,7 @@ class SecurityApiHelperTest(BaseAPITest):
         result = self.validate_and_normalize(report)
         assert result['logger'] == 'csp'
         assert result['release'] == 'abc123'
+        assert result['environment'] == 'production'
         assert result['errors'] == []
         assert 'sentry.interfaces.Message' in result
         assert 'culprit' in result
