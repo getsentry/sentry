@@ -1,0 +1,65 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`Helper renders cue 1`] = `
+<div
+  className="assistant-container"
+>
+  <a
+    className="assistant-cue"
+    onClick={[Function]}
+  >
+    Need Help?
+  </a>
+</div>
+`;
+
+exports[`Helper renders guide drawer 1`] = `
+<div
+  className="assistant-container"
+>
+  <div
+    className="assistant-drawer"
+  >
+    <GuideDrawer
+      guide={
+        Object {
+          "cue": "Click here for a tour of the issue page",
+          "id": 1,
+          "page": "issue",
+          "required_targets": Array [
+            "target 1",
+          ],
+          "steps": Array [
+            Object {
+              "message": "Message 1",
+              "target": "target 1",
+              "title": "1. Title 1",
+            },
+            Object {
+              "message": "Message 2",
+              "target": "target 2",
+              "title": "2. Title 2",
+            },
+          ],
+        }
+      }
+      onClose={[Function]}
+      step={1}
+    />
+  </div>
+</div>
+`;
+
+exports[`Helper renders support drawer 1`] = `
+<div
+  className="assistant-container"
+>
+  <div
+    className="assistant-drawer"
+  >
+    <SupportDrawer
+      onClose={[Function]}
+    />
+  </div>
+</div>
+`;

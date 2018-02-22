@@ -1,0 +1,21 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`GuideAnchor renders 1`] = `
+<div
+  className="guide-anchor text"
+>
+  <span
+    className="target 1 guide-anchor-ping"
+  />
+</div>
+`;
+
+exports[`GuideAnchor turns active when guide state changes 1`] = `
+<div
+  className="guide-anchor text"
+>
+  <span
+    className="target 1 guide-anchor-ping active"
+  />
+</div>
+`;
