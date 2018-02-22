@@ -36,11 +36,13 @@ class AllTeamsList extends React.Component {
       return <Panel>{teamNodes}</Panel>;
     }
 
+    // TODO(jess): update this link to use url prefix when create team
+    // has been moved to new settings
     return tct(
       "You don't have any teams for this organization yet. Get started by [link:creating your first team].",
       {
         root: <p />,
-        link: <Link to={`${urlPrefix}teams/new/`} />,
+        link: <Link to={`/organizations/${organization.slug}/teams/new/`} />,
       }
     );
   }
