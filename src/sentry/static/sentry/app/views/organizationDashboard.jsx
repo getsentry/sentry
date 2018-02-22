@@ -228,7 +228,7 @@ const ProjectListOld = createReactClass({
   },
 });
 
-const ProjectList = createReactClass({
+export const ProjectList = createReactClass({
   displayName: 'ProjectList',
 
   propTypes: {
