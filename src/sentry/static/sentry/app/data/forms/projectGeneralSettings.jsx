@@ -29,9 +29,9 @@ const ORG_DISABLED_REASON = t(
   "This option is enforced by your organization's settings and cannot be customized per-project."
 );
 
-const hasOrgOverride = ({organization, name}) => {
-  return typeof organization[name] !== 'undefined';
-};
+// Check if a field has been set at the organization level.
+const hasOrgOverride = ({organization, name}) =>
+  typeof organization[name] !== 'undefined';
 
 const formGroups = [
   {
@@ -93,6 +93,8 @@ const formGroups = [
       {
         name: 'resolveAge',
         type: 'range',
+        min: 0,
+        max: 30,
 
         allowedValues: RESOLVE_AGE_ALLOWED_VALUES,
         label: t('Auto Resolve'),
