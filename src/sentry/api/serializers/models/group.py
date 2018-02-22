@@ -11,6 +11,8 @@ from django.utils import timezone
 
 from sentry import tagstore, tsdb
 from sentry.api.serializers import Serializer, register, serialize
+from sentry.api.serializers.models.actor import ActorSerializer
+from sentry.api.fields.actor import Actor
 from sentry.constants import LOG_LEVELS, StatsPeriod
 from sentry.models import (
     Environment, Group, GroupAssignee, GroupBookmark, GroupMeta, GroupResolution, GroupSeen, GroupSnooze,
@@ -137,12 +139,13 @@ class GroupSerializer(Serializer):
             seen_groups = {}
             subscriptions = defaultdict(lambda: (False, None))
 
-        assignees = dict(
-            (a.group_id, a.user)
-            for a in GroupAssignee.objects.filter(
+        assignees = {
+            a.group_id: a.assigned_actor() for a in
+            GroupAssignee.objects.filter(
                 group__in=item_list,
-            ).select_related('user')
-        )
+            )
+        }
+        resolved_assignees = Actor.resolve_dict(assignees)
 
         try:
             environment = self.environment_func()
@@ -235,7 +238,7 @@ class GroupSerializer(Serializer):
                 ignore_actor = None
 
             result[item] = {
-                'assigned_to': serialize(assignees.get(item.id)),
+                'assigned_to': resolved_assignees.get(item.id),
                 'is_bookmarked': item.id in bookmarks,
                 'subscription': subscriptions[item.id],
                 'has_seen': seen_groups.get(item.id, active_date) > active_date,
@@ -352,7 +355,7 @@ class GroupSerializer(Serializer):
             'type': obj.get_event_type(),
             'metadata': obj.get_event_metadata(),
             'numComments': obj.num_comments,
-            'assignedTo': attrs['assigned_to'],
+            'assignedTo': serialize(attrs['assigned_to'], user, ActorSerializer()),
             'isBookmarked': attrs['is_bookmarked'],
             'isSubscribed': is_subscribed,
             'subscriptionDetails': subscription_details,

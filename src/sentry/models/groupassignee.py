@@ -117,3 +117,17 @@ class GroupAssignee(Model):
             not (self.user_id is None and self.team_id is None)
         ), 'Must have Team or User, not both'
         super(GroupAssignee, self).save(*args, **kwargs)
+
+    def assigned_actor_id(self):
+        if self.user:
+            return u"user:{}".format(self.user_id)
+
+        if self.team:
+            return u"team:{}".format(self.team_id)
+
+        raise NotImplementedError("Unkown Assignee")
+
+    def assigned_actor(self):
+        from sentry.api.fields.actor import Actor
+
+        return Actor.from_actor_id(self.assigned_actor_id())

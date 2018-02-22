@@ -2,14 +2,20 @@ from __future__ import absolute_import, print_function
 
 import six
 
-from collections import defaultdict, namedtuple
+from collections import defaultdict
 from rest_framework import serializers
 
 from sentry.models import User, Team
 from sentry.utils.auth import find_users
 
 
-class Actor(namedtuple('Actor', 'id type')):
+class Actor(object):
+    def __init__(self, id, type):
+        self.id = id
+        self.type = type
+
+    __slots__ = ['id', 'type']
+
     def get_actor_id(self):
         return '%s:%d' % (self.type.__name__.lower(), self.id)
 
@@ -51,6 +57,24 @@ class Actor(namedtuple('Actor', 'id type')):
             )))
 
         return results
+
+    @classmethod
+    def resolve_dict(cls, actor_dict):
+        actors_by_type = defaultdict(list)
+        for actor in actor_dict.values():
+            actors_by_type[actor.type].append(actor)
+
+        resolved_actors = {}
+        for type, actors in actors_by_type.items():
+            resolved_actors[type] = {
+                actor.id: actor for actor in type.objects.filter(
+                    id__in=[a.id for a in actors]
+                )}
+
+        return {
+            key: resolved_actors[value.type][value.id]
+            for key, value in actor_dict.items()
+        }
 
 
 class ActorField(serializers.WritableField):
