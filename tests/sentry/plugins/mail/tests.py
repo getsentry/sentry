@@ -314,6 +314,7 @@ class MailPluginTest(TestCase):
             user=self.create_user('foo@example.com'),
             data={
                 'assignee': six.text_type(self.user.id),
+                'assigneeType': 'user',
             },
         )
 
