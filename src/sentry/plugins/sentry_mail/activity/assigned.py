@@ -14,7 +14,10 @@ class AssignedActivityEmail(ActivityEmail):
     def get_description(self):
         activity = self.activity
         data = activity.data
-        if data['assigneeType'] == 'user':
+
+        # legacy Activity objects from before assignable teams
+        if data['assigneeType'] not in data or \
+                data['assigneeType'] == 'user':
             if activity.user_id and six.text_type(activity.user_id) == data['assignee']:
                 return u'{author} assigned {an issue} to themselves'
 
@@ -36,12 +39,12 @@ class AssignedActivityEmail(ActivityEmail):
 
         if data['assigneeType'] == 'team':
             try:
-                assignee_team = Team.objects.get(id=data['assignee'])
+                assignee_team = Team.objects.get(id=data['assignee'], organization=self.org)
             except Team.DoesNotExist:
                 return u'{author} assigned {an issue} to an unknown team'
             else:
                 return u'{author} assigned {an issue} to the {assignee} team', {
-                    'assignee': assignee_team.name,
+                    'assignee': assignee_team.slug,
                 }
 
         raise NotImplementedError("Unknown Assignee Type ")
