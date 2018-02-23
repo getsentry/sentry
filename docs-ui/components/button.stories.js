@@ -101,4 +101,16 @@ storiesOf('Buttons', module)
         </Item>
       </div>
     ))
+  )
+  .add(
+    'icons',
+    withInfo('Buttons with Icons')(() => (
+      <div style={{display: 'flex', alignItems: 'center'}}>
+        <Item>
+          <Button priority="" icon="icon-github">
+            View on GitHub
+          </Button>
+        </Item>
+      </div>
+    ))
   );
