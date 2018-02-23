@@ -16,7 +16,7 @@ class AssignedActivityEmail(ActivityEmail):
         data = activity.data
 
         # legacy Activity objects from before assignable teams
-        if data['assigneeType'] not in data or \
+        if 'assigneeType' not in data or \
                 data['assigneeType'] == 'user':
             if activity.user_id and six.text_type(activity.user_id) == data['assignee']:
                 return u'{author} assigned {an issue} to themselves'
@@ -39,7 +39,8 @@ class AssignedActivityEmail(ActivityEmail):
 
         if data['assigneeType'] == 'team':
             try:
-                assignee_team = Team.objects.get(id=data['assignee'], organization=self.org)
+                assignee_team = Team.objects.get(
+                    id=data['assignee'], organization=self.organization)
             except Team.DoesNotExist:
                 return u'{author} assigned {an issue} to an unknown team'
             else:
