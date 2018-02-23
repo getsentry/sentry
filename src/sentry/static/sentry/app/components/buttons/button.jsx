@@ -11,6 +11,10 @@ import '../../../less/components/button.less';
 const Icon = styled(Box)`
   margin-right: ${p => p.theme.grid}px;
   margin-left: -2px;
+
+  {InlineSvg} {
+    display: block;
+  }
 `;
 
 class Button extends React.Component {
