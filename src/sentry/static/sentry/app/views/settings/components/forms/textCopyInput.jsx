@@ -98,7 +98,7 @@ class TextCopyInput extends React.Component {
           />
         </OverflowContainer>
         <Clipboard hideUnsupported onClick={this.handleCopyClick} value={children}>
-          <StyledCopyButton size="xsmall" onClick={this.handleCopyClick}>
+          <StyledCopyButton type="button" size="xsmall" onClick={this.handleCopyClick}>
             <InlineSvg src="icon-clipboard" size="1.25em" />
           </StyledCopyButton>
         </Clipboard>

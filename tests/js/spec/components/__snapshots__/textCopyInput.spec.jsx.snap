@@ -20,6 +20,7 @@ exports[`TextCopyInput renders 1`] = `
     <StyledCopyButton
       onClick={[Function]}
       size="xsmall"
+      type="button"
     >
       <InlineSvg
         size="1.25em"

@@ -79,7 +79,6 @@ import ProjectKeys from './views/projectKeys';
 import ProjectPicker from './views/settings/components/projectPicker';
 import ProjectProcessingIssues from './views/projectProcessingIssues';
 import ProjectIssueTracking from './views/projectIssueTracking';
-import ProjectReleaseTracking from './views/projectReleaseTracking';
 import ProjectReleases from './views/projectReleases';
 import ProjectSavedSearches from './views/projectSavedSearches';
 import ProjectSettings from './views/projectSettings';
@@ -297,7 +296,9 @@ const projectSettingsRoutes = (
     <Route
       path="release-tracking/"
       name="Release Tracking"
-      component={errorHandler(ProjectReleaseTracking)}
+      componentPromise={() =>
+        import(/* webpackChunkName: "ProjectReleaseTracking" */ './views/settings/project/projectReleaseTracking')}
+      component={errorHandler(LazyLoad)}
     />
     <Route
       path="data-forwarding/"

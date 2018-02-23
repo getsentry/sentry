@@ -815,7 +815,9 @@ exports[`Issues Similar View renders with mocked data 1`] = `
                                       onClick={[Function]}
                                     >
                                       <AutoSelectText>
-                                        <div>
+                                        <div
+                                          onClick={[Function]}
+                                        >
                                           INTERNAL-4G
                                         </div>
                                       </AutoSelectText>
@@ -1897,7 +1899,9 @@ exports[`Issues Similar View renders with mocked data 2`] = `
                                       onClick={[Function]}
                                     >
                                       <AutoSelectText>
-                                        <div>
+                                        <div
+                                          onClick={[Function]}
+                                        >
                                           INTERNAL-4G
                                         </div>
                                       </AutoSelectText>

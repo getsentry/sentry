@@ -67,7 +67,15 @@ class JsonForm extends React.Component {
   }
 
   render() {
-    let {forms, access, additionalFieldProps, renderFooter, ...otherProps} = this.props;
+    let {
+      forms,
+      access,
+      additionalFieldProps,
+      renderFooter,
+      // eslint-disable-next-line no-unused-vars
+      location,
+      ...otherProps
+    } = this.props;
     let shouldRenderFooter = typeof renderFooter === 'function';
 
     return (

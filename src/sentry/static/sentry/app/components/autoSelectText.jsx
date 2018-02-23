@@ -1,30 +1,43 @@
 import React from 'react';
-import ReactDOM from 'react-dom';
-import jQuery from 'jquery';
+import PropTypes from 'prop-types';
 
 import {selectText} from '../utils/selectText';
 
 class AutoSelectText extends React.Component {
-  componentDidMount() {
-    let ref = ReactDOM.findDOMNode(this.refs.element);
-    jQuery(ref).bind('click', this.selectText);
-  }
-
-  componentWillUnmount() {
-    let ref = ReactDOM.findDOMNode(this.refs.element);
-    jQuery(ref).unbind('click', this.selectText);
-  }
+  static propTypes = {
+    /**
+     * Can be a `node` for a simple auto select div container.
+     * When children is a render function, it is passed 2 functions:
+     * - `doMount` - should be applied on parent element's `ref`
+     *   (or `innerRef` for styled components) whose children is the
+     *   text to be copied
+     * - `doSelect` - selects text
+     */
+    children: PropTypes.oneOfType([PropTypes.func, PropTypes.node]),
+  };
 
   selectText = () => {
-    let node = ReactDOM.findDOMNode(this.refs.element).firstChild;
-    selectText(node);
+    if (!this.el) return;
+
+    selectText(this.el);
+  };
+
+  handleMount = el => {
+    this.el = el;
   };
 
   render() {
-    let {className, children, style} = this.props;
+    let {children, ...props} = this.props;
+
+    if (typeof children === 'function') {
+      return children({
+        doMount: this.handleMount,
+        doSelect: this.selectText,
+      });
+    }
 
     return (
-      <div ref="element" className={className} style={style}>
+      <div {...props} ref={this.handleMount} onClick={this.selectText}>
         {children}
       </div>
     );
