@@ -8,6 +8,8 @@ import LatestContextStore from '../stores/latestContextStore';
 import EventList from './projectDashboard/eventList';
 import ProjectState from '../mixins/projectState';
 import ProjectChart from './projectDashboard/chart';
+import BurnDown from './projectDashboard/burnDown';
+
 import {t} from '../locale';
 
 const PERIOD_HOUR = '1h';
@@ -107,6 +109,7 @@ const ProjectDashboard = createReactClass({
     let {orgId, projectId} = this.props.params;
     let url = `/${orgId}/${projectId}/dashboard/`;
     let routeQuery = this.props.location.query;
+    let now = new Date().getTime() / 1000;
 
     return (
       <div>
@@ -152,6 +155,8 @@ const ProjectDashboard = createReactClass({
           </div>
           <h3>{t('Overview')}</h3>
         </div>
+        <h4>Triage Status (30 days)</h4>
+        <BurnDown dateSince={now - 3600 * 24 * 30} resolution={resolution} />
         <ProjectChart dateSince={dateSince} resolution={resolution} />
         <div className="row">
           <div className="col-md-6">

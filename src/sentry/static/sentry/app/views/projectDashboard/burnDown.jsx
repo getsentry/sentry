@@ -1,17 +1,16 @@
 import PropTypes from 'prop-types';
 import React from 'react';
-import createReactClass from 'create-react-class';
 import moment from 'moment';
+import {reverse} from 'lodash';
+
 import ApiMixin from '../../mixins/apiMixin';
-import BarChart from '../../components/barChart';
+import StackedBarChart from '../../components/stackedBarChart';
 import DynamicWrapper from '../../components/dynamicWrapper';
 import LoadingError from '../../components/loadingError';
 import LoadingIndicator from '../../components/loadingIndicator';
 import ProjectState from '../../mixins/projectState';
 
-const ProjectChart = createReactClass({
-  displayName: 'ProjectChart',
-
+const BurnDown = React.createClass({
   propTypes: {
     dateSince: PropTypes.number.isRequired,
     resolution: PropTypes.string.isRequired,
@@ -32,20 +31,10 @@ const ProjectChart = createReactClass({
     this.fetchData();
   },
 
-  componentWillReceiveProps() {
-    this.setState(
-      {
-        loading: true,
-        error: false,
-      },
-      this.fetchData
-    );
-  },
-
   getStatsEndpoint() {
     let org = this.getOrganization();
     let project = this.getProject();
-    return '/projects/' + org.slug + '/' + project.slug + '/stats/';
+    return '/projects/' + org.slug + '/' + project.slug + '/triage-stats/';
   },
 
   getProjectReleasesEndpoint() {
@@ -84,12 +73,42 @@ const ProjectChart = createReactClass({
       },
     });
   },
-
-  renderChart() {
-    let points = this.state.stats.map(point => {
-      return {x: point[0], y: point[1]};
+  processRawSeries(stats, type) {
+    return Object.keys(stats).map(key => {
+      let data = stats[key];
+      let value = data[type] || 0;
+      return {x: parseInt(key, 10), y: value * (type === 0 ? -1 : 1)};
     });
-    let startX = this.props.dateSince;
+  },
+  getChartSeries() {
+    let {stats} = this.state;
+    return [
+      {
+        data: this.processRawSeries(stats, 0),
+        color: '#EC5E44',
+        label: 'Unresolved',
+      },
+      {
+        data: this.processRawSeries(stats, 1),
+        color: '#6C5FC7',
+        label: 'Resolved',
+      },
+      {
+        data: this.processRawSeries(stats, 2),
+        color: '#9990AB',
+        label: 'Ignored',
+      },
+      {
+        data: this.processRawSeries(stats, 6),
+        color: '#57BE8C',
+        label: 'Assigned',
+      },
+    ];
+  },
+  getReleaseList() {
+    let startX = new Date().getTime() / 1000;
+    startX -= 3600 * 24 * 30;
+
     let markers = this.state.releaseList
       .filter(release => {
         let date = new Date(release.dateCreated).getTime() / 1000;
@@ -101,14 +120,18 @@ const ProjectChart = createReactClass({
           x: new Date(release.dateCreated).getTime() / 1000,
         };
       });
+    reverse(markers);
+    return markers;
+  },
+  renderChart() {
     return (
       <div className="chart-wrapper">
-        <BarChart
-          points={points}
-          markers={markers}
-          label="events"
+        <StackedBarChart
+          series={this.getChartSeries()}
+          markers={this.getReleaseList()}
+          className="dashboard-barchart standard-barchart"
+          label="Issues"
           height={150}
-          className="standard-barchart"
         />
         <small className="date-legend">
           <DynamicWrapper
@@ -131,4 +154,4 @@ const ProjectChart = createReactClass({
   },
 });
 
-export default ProjectChart;
+export default BurnDown;
