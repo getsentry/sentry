@@ -14,9 +14,10 @@ const childContextTypes = {
 // #NEW-SETTINGS
 describe('TeamSettings', function() {
   describe('render()', function() {
-    it('renders', function() {
+    let wrapper;
+    beforeEach(function() {
       let team = TestStubs.Team();
-      let wrapper = shallow(
+      wrapper = shallow(
         <TeamSettings
           routes={[]}
           params={{orgId: 'org', teamId: team.slug}}
@@ -26,11 +27,28 @@ describe('TeamSettings', function() {
         {
           context: {
             router: TestStubs.router(),
+            organization: {
+              id: '1337',
+              access: [],
+            },
           },
           childContextTypes,
         }
       );
+    });
 
+    it('renders', function() {
+      wrapper.update();
+      expect(wrapper).toMatchSnapshot();
+    });
+
+    it('renders with remove team', function() {
+      wrapper.setContext({
+        organization: {
+          id: '1337',
+          access: ['team:admin'],
+        },
+      });
       wrapper.update();
       expect(wrapper).toMatchSnapshot();
     });

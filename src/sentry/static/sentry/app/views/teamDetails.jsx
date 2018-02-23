@@ -94,19 +94,21 @@ const TeamDetails = createReactClass({
     //TODO(maxbittker) remove hack to not show this page on old settings
     let onNewSettings = routePrefix.startsWith('/settings/');
 
+    const features = new Set(this.context.organization.features);
     return (
       <div>
         <h3>{team.name}</h3>
 
-        {access.has('team:admin') && (
-          <DropdownLink anchorRight title={t('More')}>
-            <MenuItem
-              href={`/organizations/${params.orgId}/teams/${params.teamId}/remove/`}
-            >
-              {t('Remove Team')}
-            </MenuItem>
-          </DropdownLink>
-        )}
+        {!features.has('new-settings') &&
+          access.has('team:admin') && (
+            <DropdownLink anchorRight title={t('More')}>
+              <MenuItem
+                href={`/organizations/${params.orgId}/teams/${params.teamId}/remove/`}
+              >
+                {t('Remove Team')}
+              </MenuItem>
+            </DropdownLink>
+          )}
 
         <ul className="nav nav-tabs border-bottom">
           <ListLink to={`${routePrefix}settings/`}>{t('Settings')}</ListLink>
