@@ -14,13 +14,22 @@ class RuleNode extends React.Component {
   };
 
   getChoiceField(name, data) {
+    // Select the first item on this list
+    // If it's not yet defined, call handlePropertyChange to make sure the value is set on state
+
+    let initialVal;
+    if (this.props.data[name] === undefined) {
+      initialVal = data.choices[0][0];
+      this.props.handlePropertyChange(name, initialVal);
+    } else {
+      initialVal = this.props.data[name];
+    }
+
     return (
       <Select2Field
         name={name}
-        value={this.props.data[name]}
-        // TODO: This is a workaround since Select2Field requires an empty element in
-        // order to default to the placeholder value instead of the first item on the list
-        choices={[[], ...data.choices]}
+        value={initialVal}
+        choices={data.choices}
         key={name}
         style={{marginBottom: 0}}
         onChange={val => this.props.handlePropertyChange(name, val)}
@@ -46,7 +55,7 @@ class RuleNode extends React.Component {
       <NumberField
         name={name}
         value={this.props.data[name]}
-        placeholder={data.placeholder}
+        placeholder={data.placeholder.toString()}
         key={name}
         style={{marginBottom: 0}}
         onChange={val => this.props.handlePropertyChange(name, val)}
