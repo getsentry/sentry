@@ -3,7 +3,7 @@ import {shallow} from 'enzyme';
 import {browserHistory} from 'react-router';
 
 import {Client} from 'app/api';
-import ProjectReleases from 'app/views/projectReleases';
+import {ProjectReleases} from 'app/views/projectReleases';
 import SearchBar from 'app/views/stream/searchBar';
 import Pagination from 'app/components/pagination';
 
@@ -35,8 +35,10 @@ describe('ProjectReleases', function() {
 
   describe('fetchData()', function() {
     it('should call releases endpoint', function() {
-      expect(Client.prototype.request.args[0][0]).toEqual(
-        '/projects/123/456/releases/?per_page=20&query=derp'
+      expect(Client.prototype.request.args[0][1]).toEqual(
+        expect.objectContaining({
+          query: {per_page: 20, query: 'derp'},
+        })
       );
     });
   });
