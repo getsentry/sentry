@@ -11,11 +11,11 @@ import {
 } from '../../../../actionCreators/organizations';
 import {t, tct} from '../../../../locale';
 import ApiMixin from '../../../../mixins/apiMixin';
+import Field from '../../components/forms/field';
 import LinkWithConfirmation from '../../../../components/linkWithConfirmation';
 import LoadingIndicator from '../../../../components/loadingIndicator';
 import OrganizationsStore from '../../../../stores/organizationsStore';
 import Panel from '../../components/panel';
-import Field from '../../components/forms/field';
 import PanelHeader from '../../components/panelHeader';
 import SettingsPageHeader from '../../components/settingsPageHeader';
 import getSettingsComponent from '../../../../utils/getSettingsComponent';
