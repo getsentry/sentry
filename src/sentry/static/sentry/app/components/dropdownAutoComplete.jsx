@@ -7,7 +7,28 @@ import Input from '../views/settings/components/forms/controls/input';
 
 class DropdownAutoComplete extends React.Component {
   static propTypes = {
-    items: PropTypes.array,
+    items: PropTypes.oneOfType([
+      // flat item array
+      PropTypes.arrayOf(
+        PropTypes.shape({
+          value: PropTypes.string,
+          label: PropTypes.node,
+        })
+      ),
+      // grouped item array
+      PropTypes.arrayOf(
+        PropTypes.shape({
+          value: PropTypes.string,
+          label: PropTypes.node,
+          items: PropTypes.arrayOf(
+            PropTypes.shape({
+              value: PropTypes.string,
+              label: PropTypes.node,
+            })
+          ),
+        })
+      ),
+    ]),
     isOpen: PropTypes.bool,
     onSelect: PropTypes.func,
     children: PropTypes.func,
