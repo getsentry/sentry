@@ -75,14 +75,17 @@ class DropdownAutoComplete extends React.Component {
   autoCompleteFilter = (items, inputValue) => {
     let itemCount = 0;
 
-    return items[0].items
-      ? _.flatMap(this.filterGroupedItems(items, inputValue), item => {
-          return [
-            {...item.group},
-            ...item.items.map(groupedItem => ({...groupedItem, index: itemCount++})),
-          ];
-        })
-      : this.filterItems(items).map((item, index) => ({...item, index}));
+    if (items[0].items) {
+      //if the first item has children, we assume it is a group
+      return _.flatMap(this.filterGroupedItems(items, inputValue), item => {
+        return [
+          {...item.group, groupLabel: true},
+          ...item.items.map(groupedItem => ({...groupedItem, index: itemCount++})),
+        ];
+      });
+    } else {
+      return this.filterItems(items, inputValue).map((item, index) => ({...item, index}));
+    }
   };
 
   render() {
@@ -113,7 +116,9 @@ class DropdownAutoComplete extends React.Component {
                       <div>
                         {this.autoCompleteFilter(this.props.items, inputValue).map(
                           (item, index) =>
-                            item.index || item.index == 0 ? (
+                            item.groupLabel ? (
+                              <StyledLabel key={item.value}>{item.label}</StyledLabel>
+                            ) : (
                               <StyledItem
                                 key={item.value}
                                 highlightedIndex={highlightedIndex}
@@ -122,8 +127,6 @@ class DropdownAutoComplete extends React.Component {
                               >
                                 {item.label}
                               </StyledItem>
-                            ) : (
-                              <StyledLabel key={item.value}>{item.label}</StyledLabel>
                             )
                         )}
                       </div>
