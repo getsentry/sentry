@@ -589,6 +589,10 @@ exports[`ProjectEnvironments render active renders environment list 1`] = `
                   >
                     <span>
                       Production
+                       
+                      <code>
+                        production
+                      </code>
                     </span>
                     <Button
                       disabled={false}
@@ -643,6 +647,10 @@ exports[`ProjectEnvironments render active renders environment list 1`] = `
                   >
                     <span>
                       Staging
+                       
+                      <code>
+                        staging
+                      </code>
                     </span>
                     <Button
                       disabled={false}
@@ -1271,6 +1279,10 @@ exports[`ProjectEnvironments render hidden renders environment list 1`] = `
                   >
                     <span>
                       Zzz
+                       
+                      <code>
+                        zzz
+                      </code>
                     </span>
                     <Button
                       disabled={false}
