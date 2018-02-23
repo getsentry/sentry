@@ -6,6 +6,7 @@ sentry.models.groupassignee
 :license: BSD, see LICENSE for more details.
 """
 from __future__ import absolute_import
+import six
 
 from django.conf import settings
 from django.db import models
@@ -64,8 +65,7 @@ class GroupAssigneeManager(BaseManager):
                 type=Activity.ASSIGNED,
                 user=acting_user,
                 data={
-                    # todo(maxbittker) use actor_ids here?
-                    'assignee': assigned_to.id,
+                    'assignee': six.text_type(assigned_to.id),
                     'assigneeEmail': getattr(assigned_to, 'email', None),
                     'assigneeType': assignee_type,
                 },
