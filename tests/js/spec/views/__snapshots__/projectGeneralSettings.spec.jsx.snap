@@ -292,66 +292,67 @@ exports[`projectGeneralSettings renders 1`] = `
         renderFooter={[Function]}
       />
     </Form>
-    <div
-      className="box"
-    >
-      <div
-        className="box-header"
+    <Panel>
+      <PanelHeader>
+        Project Administration
+      </PanelHeader>
+      <FormFieldWrapper
+        inline={true}
       >
-        <h3>
-          Remove Project
-        </h3>
-      </div>
-      <div
-        className="box-content with-padding"
-      >
-        <p>
+        <FormFieldDescription
+          inline={true}
+        >
+          <FormFieldLabel>
+            Remove Project
+          </FormFieldLabel>
+          <FormFieldHelp>
+            Remove the 
+            <strong>
+              project-slug
+            </strong>
+             project and all related data.
+            <br />
+            Careful, this action cannot be undone.
+          </FormFieldHelp>
+        </FormFieldDescription>
+        <FormFieldControl>
           <a
-            className="btn btn-danger pull-right"
+            className="btn btn-danger"
             href="/org-slug/project-slug/settings/remove/"
           >
             Remove Project
           </a>
-          Remove the 
-          <strong>
-            project-slug
-          </strong>
-           project and all related data.
-          <br />
-          Careful, this action cannot be undone.
-        </p>
-      </div>
-    </div>
-    <div
-      className="box"
-    >
-      <div
-        className="box-header"
+        </FormFieldControl>
+      </FormFieldWrapper>
+      <FormFieldWrapper
+        inline={true}
       >
-        <h3>
-          Transfer Project
-        </h3>
-      </div>
-      <div
-        className="box-content with-padding"
-      >
-        <p>
+        <FormFieldDescription
+          inline={true}
+        >
+          <FormFieldLabel>
+            Transfer Project
+          </FormFieldLabel>
+          <FormFieldHelp>
+            Transfer the 
+            <strong>
+              project-slug
+            </strong>
+             project and all related data.
+            <br />
+            Careful, this action cannot be undone.
+          </FormFieldHelp>
+        </FormFieldDescription>
+        <FormFieldControl>
           <a
-            className="btn btn-danger pull-right"
+            className="btn btn-danger"
             href="/org-slug/project-slug/settings/transfer/"
           >
             Transfer Project
           </a>
-          Transfer the 
-          <strong>
-            project-slug
-          </strong>
-           project and all related data.
-          <br />
-          Careful, this action cannot be undone.
-        </p>
-      </div>
-    </div>
+        </FormFieldControl>
+      </FormFieldWrapper>
+    </Panel>
   </div>
 </SideEffect(DocumentTitle)>
 `;

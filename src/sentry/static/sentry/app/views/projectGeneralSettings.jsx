@@ -6,11 +6,18 @@ import {getOrganizationState} from '../mixins/organizationState';
 import {t, tct} from '../locale';
 import AsyncView from './asyncView';
 import Form from './settings/components/forms/form';
+import FormFieldDescription from './settings/components/forms/formField/formFieldDescription';
+import FormFieldWrapper from './settings/components/forms/formField/formFieldWrapper';
 import JsonForm from './settings/components/forms/jsonForm';
+import Panel from './settings/components/panel';
 import PanelAlert from './settings/components/panelAlert';
+import PanelHeader from './settings/components/panelHeader';
 import SettingsPageHeader from './settings/components/settingsPageHeader';
 import TextBlock from './settings/components/text/textBlock';
 import projectFields from '../data/forms/projectGeneralSettings';
+import FormFieldControl from './settings/components/forms/formField/formFieldControl';
+import FormFieldLabel from './settings/components/forms/formField/formFieldLabel';
+import FormFieldHelp from './settings/components/forms/formField/formFieldHelp';
 
 const noMargin = {marginBottom: 0};
 
@@ -46,29 +53,46 @@ export default class ProjectGeneralSettings extends AsyncView {
 
     if (!isProjectAdmin) {
       return (
-        <p>{t('You do not have the required permission to remove this project.')}</p>
+        <FormFieldWrapper inline>
+          <FormFieldDescription inline>
+            <FormFieldHelp>
+              {t('You do not have the required permission to remove this project.')}
+            </FormFieldHelp>
+          </FormFieldDescription>
+        </FormFieldWrapper>
       );
     } else if (project.isInternal) {
       return (
-        <p>
-          {t(
-            'This project cannot be removed. It is used internally by the Sentry server.'
-          )}
-        </p>
+        <FormFieldWrapper inline>
+          <FormFieldDescription inline>
+            <FormFieldHelp>
+              {t(
+                'This project cannot be removed. It is used internally by the Sentry server.'
+              )}
+            </FormFieldHelp>
+          </FormFieldDescription>
+        </FormFieldWrapper>
       );
     } else {
       return (
-        <p>
-          <a
-            href={`/${orgId}/${projectId}/settings/remove/`}
-            className="btn btn-danger pull-right"
-          >
-            {t('Remove Project')}
-          </a>
-          Remove the <strong>{project.slug}</strong> project and all related data.
-          <br />
-          Careful, this action cannot be undone.
-        </p>
+        <FormFieldWrapper inline>
+          <FormFieldDescription inline>
+            <FormFieldLabel>{t('Remove Project')}</FormFieldLabel>
+            <FormFieldHelp>
+              Remove the <strong>{project.slug}</strong> project and all related data.
+              <br />
+              Careful, this action cannot be undone.
+            </FormFieldHelp>
+          </FormFieldDescription>
+          <FormFieldControl>
+            <a
+              href={`/${orgId}/${projectId}/settings/remove/`}
+              className="btn btn-danger"
+            >
+              {t('Remove Project')}
+            </a>
+          </FormFieldControl>
+        </FormFieldWrapper>
       );
     }
   }
@@ -83,29 +107,46 @@ export default class ProjectGeneralSettings extends AsyncView {
 
     if (!isProjectAdmin) {
       return (
-        <p>{t('You do not have the required permission to transfer this project.')}</p>
+        <FormFieldWrapper inline>
+          <FormFieldDescription inline>
+            <FormFieldHelp>
+              {t('You do not have the required permission to transfer this project.')}
+            </FormFieldHelp>
+          </FormFieldDescription>
+        </FormFieldWrapper>
       );
     } else if (project.isInternal) {
       return (
-        <p>
-          {t(
-            'This project cannot be removed. It is used internally by the Sentry server.'
-          )}
-        </p>
+        <FormFieldWrapper inline>
+          <FormFieldDescription inline>
+            <FormFieldHelp>
+              {t(
+                'This project cannot be removed. It is used internally by the Sentry server.'
+              )}
+            </FormFieldHelp>
+          </FormFieldDescription>
+        </FormFieldWrapper>
       );
     } else {
       return (
-        <p>
-          <a
-            href={`/${orgId}/${projectId}/settings/transfer/`}
-            className="btn btn-danger pull-right"
-          >
-            {t('Transfer Project')}
-          </a>
-          Transfer the <strong>{project.slug}</strong> project and all related data.
-          <br />
-          Careful, this action cannot be undone.
-        </p>
+        <FormFieldWrapper inline>
+          <FormFieldDescription inline>
+            <FormFieldLabel>{t('Transfer Project')}</FormFieldLabel>
+            <FormFieldHelp>
+              Transfer the <strong>{project.slug}</strong> project and all related data.
+              <br />
+              Careful, this action cannot be undone.
+            </FormFieldHelp>
+          </FormFieldDescription>
+          <FormFieldControl>
+            <a
+              href={`/${orgId}/${projectId}/settings/transfer/`}
+              className="btn btn-danger"
+            >
+              {t('Transfer Project')}
+            </a>
+          </FormFieldControl>
+        </FormFieldWrapper>
       );
     }
   }
@@ -192,18 +233,11 @@ export default class ProjectGeneralSettings extends AsyncView {
           />
         </Form>
 
-        <div className="box">
-          <div className="box-header">
-            <h3>{t('Remove Project')}</h3>
-          </div>
-          <div className="box-content with-padding">{this.renderRemoveProject()}</div>
-        </div>
-        <div className="box">
-          <div className="box-header">
-            <h3>{t('Transfer Project')}</h3>
-          </div>
-          <div className="box-content with-padding">{this.renderTransferProject()}</div>
-        </div>
+        <Panel>
+          <PanelHeader>{t('Project Administration')}</PanelHeader>
+          {this.renderRemoveProject()}
+          {this.renderTransferProject()}
+        </Panel>
       </div>
     );
   }
