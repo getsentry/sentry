@@ -7,6 +7,7 @@ from collections import defaultdict
 from sentry.api.bases.user import UserEndpoint
 from sentry.models import UserOption, UserOptionValue
 
+from sentry.api.decorators import sudo_required
 from sentry.api.serializers import serialize, Serializer
 
 from rest_framework.response import Response
@@ -87,6 +88,7 @@ class UserNotificationDetailsEndpoint(UserEndpoint):
         serialized = serialize(user, request.user, UserNotificationsSerializer())
         return Response(serialized)
 
+    @sudo_required
     def put(self, request, user):
         serializer = UserNotificationDetailsSerializer(data=request.DATA)
 

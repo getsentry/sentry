@@ -7,6 +7,7 @@ from rest_framework import status
 from rest_framework.response import Response
 
 from sentry.api.bases.user import UserEndpoint
+from sentry.api.decorators import sudo_required
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models import UserNotificationsSerializer
 from sentry.models import OrganizationMember, OrganizationMemberTeam, OrganizationStatus, ProjectTeam, UserOption, UserEmail
@@ -55,6 +56,7 @@ class UserNotificationFineTuningEndpoint(UserEndpoint):
         )
         return Response(serialized)
 
+    @sudo_required
     def put(self, request, user, notification_type):
         """
         Update user notification options
