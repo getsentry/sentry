@@ -29,10 +29,11 @@ class NotifyEventServiceForm(forms.Form):
 
 
 class NotifyEventServiceAction(EventAction):
+    label = 'Send a notification via {service}'
+    form_cls = NotifyEventServiceForm
+
     def __init__(self, *args, **kwargs):
         super(NotifyEventServiceAction, self).__init__(*args, **kwargs)
-        self.label = 'Send a notification via {service}'
-        self.form_cls = NotifyEventServiceForm
         self.form_fields = {
             'service': {
                 'type': 'choice',
