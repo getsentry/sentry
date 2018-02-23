@@ -1,19 +1,17 @@
 import jQuery from 'jquery';
 import PropTypes from 'prop-types';
 import React from 'react';
-import Reflux from 'reflux';
 import createReactClass from 'create-react-class';
-import {isEqual} from 'lodash';
 import {browserHistory, Link} from 'react-router';
 import ApiMixin from '../mixins/apiMixin';
 import GroupStore from '../stores/groupStore';
-import LatestContextStore from '../stores/latestContextStore';
 import LoadingError from '../components/loadingError';
 import LoadingIndicator from '../components/loadingIndicator';
 import Pagination from '../components/pagination';
 import CompactIssue from '../components/compactIssue';
 import EventUserReport from '../components/events/userReport';
 import {t} from '../locale';
+import withEnvironment from '../utils/withEnvironment';
 
 const ProjectUserReports = createReactClass({
   displayName: 'ProjectUserReports',
@@ -22,13 +20,10 @@ const ProjectUserReports = createReactClass({
     defaultQuery: PropTypes.string,
     defaultStatus: PropTypes.string,
     setProjectNavSection: PropTypes.func,
+    environment: PropTypes.object,
   },
 
-  contextTypes: {
-    organization: PropTypes.object,
-  },
-
-  mixins: [ApiMixin, Reflux.listenTo(LatestContextStore, 'onLatestContextChange')],
+  mixins: [ApiMixin],
 
   getDefaultProps() {
     return {
@@ -38,10 +33,6 @@ const ProjectUserReports = createReactClass({
   },
 
   getInitialState() {
-    const hasEnvironmentsFeature = new Set(this.context.organization.features).has(
-      'environments'
-    );
-
     return {
       reportList: [],
       loading: true,
@@ -49,10 +40,7 @@ const ProjectUserReports = createReactClass({
       pageLinks: '',
       query: this.props.defaultQuery,
       status: this.props.defaultStatus,
-      hasEnvironmentsFeature,
-      environment: hasEnvironmentsFeature
-        ? LatestContextStore.getInitialState().environment
-        : null,
+      environment: this.props.environment,
       ...this.getQueryStringState(this.props),
     };
   },
@@ -65,6 +53,15 @@ const ProjectUserReports = createReactClass({
   componentWillReceiveProps(nextProps) {
     if (nextProps.location.search !== this.props.location.search) {
       this.setState(this.getQueryStringState(nextProps), this.fetchData);
+    }
+
+    if (nextProps.environment !== this.props.environment) {
+      this.setState(
+        {
+          environment: nextProps.environment,
+        },
+        this.fetchData
+      );
     }
   },
 
@@ -90,19 +87,6 @@ const ProjectUserReports = createReactClass({
       pathname: `/${orgId}/${projectId}/user-feedback/`,
       query: targetQueryParams,
     });
-  },
-
-  onLatestContextChange(context) {
-    if (isEqual(context.environment, this.state.environment)) return;
-
-    if (!this.state.hasEnvironmentsFeature) return;
-
-    this.setState(
-      {
-        environment: context.environment,
-      },
-      this.fetchData
-    );
   },
 
   fetchData() {
@@ -266,4 +250,4 @@ const ProjectUserReports = createReactClass({
   },
 });
 
-export default ProjectUserReports;
+export default withEnvironment(ProjectUserReports);
