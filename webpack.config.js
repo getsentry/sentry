@@ -59,7 +59,6 @@ var appEntry = {
     'jquery',
     'marked',
     'moment',
-    'moment-timezone',
     'raven-js',
     'react',
     'react-dom',

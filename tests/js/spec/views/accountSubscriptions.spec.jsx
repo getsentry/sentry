@@ -29,7 +29,7 @@ describe('AccountSubscriptions', function() {
     expect(wrapper).toMatchSnapshot();
   });
 
-  it('renders list and can toggle', function() {
+  it('renders list and can toggle', function(done) {
     Client.addMockResponse({
       url: ENDPOINT,
       body: TestStubs.Subscriptions(),
@@ -48,24 +48,28 @@ describe('AccountSubscriptions', function() {
       },
     });
 
-    expect(wrapper).toMatchSnapshot();
+    setTimeout(() => {
+      wrapper.update();
+      expect(wrapper).toMatchSnapshot();
 
-    expect(mock).not.toHaveBeenCalled();
+      expect(mock).not.toHaveBeenCalled();
 
-    wrapper
-      .find('Switch')
-      .first()
-      .simulate('click');
+      wrapper
+        .find('Switch')
+        .first()
+        .simulate('click');
 
-    expect(mock).toHaveBeenCalledWith(
-      ENDPOINT,
-      expect.objectContaining({
-        method: 'PUT',
-        data: {
-          listId: 2,
-          subscribed: false,
-        },
-      })
-    );
+      expect(mock).toHaveBeenCalledWith(
+        ENDPOINT,
+        expect.objectContaining({
+          method: 'PUT',
+          data: {
+            listId: 2,
+            subscribed: false,
+          },
+        })
+      );
+      done();
+    }, 1);
   });
 });
