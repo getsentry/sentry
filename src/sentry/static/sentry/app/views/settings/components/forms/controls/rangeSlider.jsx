@@ -108,8 +108,14 @@ const Label = styled.label`
 class RangeSlider extends React.Component {
   static propTypes = {
     name: PropTypes.string.isRequired,
-    min: PropTypes.number.isRequired,
-    max: PropTypes.number.isRequired,
+    /**
+     * min allowed value, not needed if using `allowedValues`
+     */
+    min: PropTypes.number,
+    /**
+     * max allowed value, not needed if using `allowedValues`
+     */
+    max: PropTypes.number,
     value: PropTypes.number,
     step: PropTypes.number,
     onChange: PropTypes.func,

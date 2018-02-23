@@ -189,7 +189,7 @@ export default class ProjectGeneralSettings extends AsyncView {
           onSubmitSuccess={resp => {
             // Reload if slug has changed
             if (projectId !== resp.slug) {
-              // window.location = `/${orgId}/${resp.slug}/settings/`;
+              window.location = `/${organization.slug}/${resp.slug}/settings/`;
             }
           }}
         >

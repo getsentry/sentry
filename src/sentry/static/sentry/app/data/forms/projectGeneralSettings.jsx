@@ -1,5 +1,5 @@
 import {extractMultilineFields} from '../../utils';
-import {t} from '../../locale';
+import {t, tn} from '../../locale';
 
 // Export route to make these forms searchable by label/help
 export const route = '/settings/organization/:orgId/project/:projectId/settings/';
@@ -25,6 +25,7 @@ const getResolveAgeAllowedValues = () => {
 };
 
 const RESOLVE_AGE_ALLOWED_VALUES = getResolveAgeAllowedValues();
+
 const ORG_DISABLED_REASON = t(
   "This option is enforced by your organization's settings and cannot be customized per-project."
 );
@@ -93,9 +94,6 @@ const formGroups = [
       {
         name: 'resolveAge',
         type: 'range',
-        min: 0,
-        max: 30,
-
         allowedValues: RESOLVE_AGE_ALLOWED_VALUES,
         label: t('Auto Resolve'),
         help: t(
@@ -104,12 +102,13 @@ const formGroups = [
         formatLabel: val => {
           val = parseInt(val, 10);
           if (val === 0) {
-            return 'Disabled';
+            return t('Disabled');
           } else if (val > 23 && val % 24 === 0) {
+            // Based on allowed values, val % 24 should always be true
             val = val / 24;
-            return val + ' day' + (val != 1 ? 's' : '');
+            return tn('%d day', '%d days', val);
           }
-          return val + ' hour' + (val != 1 ? 's' : '');
+          return tn('%d hour', '%d hours', val);
         },
       },
     ],
