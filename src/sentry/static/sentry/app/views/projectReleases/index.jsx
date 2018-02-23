@@ -81,7 +81,7 @@ const ProjectReleases = createReactClass({
 
     const url = `/projects/${orgId}/${projectId}/releases/`;
 
-    let query = {
+    const query = {
       ...this.props.location.query,
       per_page: 20,
       query: this.state.query,
