@@ -16,6 +16,7 @@ from sentry.api.base import DocSection, EnvironmentMixin
 from sentry.api.bases.project import ProjectEndpoint, ProjectEventPermission
 from sentry.api.fields import ActorField, Actor
 from sentry.api.serializers import serialize
+from sentry.api.serializers.models.actor import ActorSerializer
 from sentry.api.serializers.models.group import (
     SUBSCRIPTION_REASON_MAP, StreamGroupSerializer)
 from sentry.constants import DEFAULT_SORT_OPTION
@@ -401,7 +402,7 @@ class ProjectGroupIndexEndpoint(ProjectEndpoint, EnvironmentMixin):
         :param int ignoreDuration: the number of minutes to ignore this issue.
         :param boolean isPublic: sets the issue to public or private.
         :param boolean merge: allows to merge or unmerge different issues.
-        :param string assignedTo: the actor id (or username) of the user or project that should be
+        :param string assignedTo: the actor id (or username) of the user or team that should be
                                   assigned to this issue.
         :param boolean hasSeen: in case this API call is invoked with a user
                                 context this allows changing of the flag
@@ -721,7 +722,8 @@ class ProjectGroupIndexEndpoint(ProjectEndpoint, EnvironmentMixin):
                         actor=resolved_actor,
                         reason=GroupSubscriptionReason.assigned,
                     )
-                result['assignedTo'] = serialize(assigned_actor.get_actor_id())
+                result['assignedTo'] = serialize(
+                    assigned_actor.resolve(), acting_user, ActorSerializer())
             else:
                 for group in group_list:
                     GroupAssignee.objects.deassign(group, acting_user)
