@@ -296,16 +296,16 @@ exports[`projectGeneralSettings renders 1`] = `
       <PanelHeader>
         Project Administration
       </PanelHeader>
-      <FormFieldWrapper
+      <FieldWrapper
         inline={true}
       >
-        <FormFieldDescription
+        <FieldDescription
           inline={true}
         >
-          <FormFieldLabel>
+          <FieldLabel>
             Remove Project
-          </FormFieldLabel>
-          <FormFieldHelp>
+          </FieldLabel>
+          <FieldHelp>
             Remove the 
             <strong>
               project-slug
@@ -313,27 +313,29 @@ exports[`projectGeneralSettings renders 1`] = `
              project and all related data.
             <br />
             Careful, this action cannot be undone.
-          </FormFieldHelp>
-        </FormFieldDescription>
-        <FormFieldControl>
+          </FieldHelp>
+        </FieldDescription>
+        <FieldControl
+          hideControlState={false}
+        >
           <a
             className="btn btn-danger"
             href="/org-slug/project-slug/settings/remove/"
           >
             Remove Project
           </a>
-        </FormFieldControl>
-      </FormFieldWrapper>
-      <FormFieldWrapper
+        </FieldControl>
+      </FieldWrapper>
+      <FieldWrapper
         inline={true}
       >
-        <FormFieldDescription
+        <FieldDescription
           inline={true}
         >
-          <FormFieldLabel>
+          <FieldLabel>
             Transfer Project
-          </FormFieldLabel>
-          <FormFieldHelp>
+          </FieldLabel>
+          <FieldHelp>
             Transfer the 
             <strong>
               project-slug
@@ -341,17 +343,19 @@ exports[`projectGeneralSettings renders 1`] = `
              project and all related data.
             <br />
             Careful, this action cannot be undone.
-          </FormFieldHelp>
-        </FormFieldDescription>
-        <FormFieldControl>
+          </FieldHelp>
+        </FieldDescription>
+        <FieldControl
+          hideControlState={false}
+        >
           <a
             className="btn btn-danger"
             href="/org-slug/project-slug/settings/transfer/"
           >
             Transfer Project
           </a>
-        </FormFieldControl>
-      </FormFieldWrapper>
+        </FieldControl>
+      </FieldWrapper>
     </Panel>
   </div>
 </SideEffect(DocumentTitle)>

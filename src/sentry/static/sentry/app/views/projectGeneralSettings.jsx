@@ -6,8 +6,12 @@ import {getOrganizationState} from '../mixins/organizationState';
 import {t, tct} from '../locale';
 import AsyncView from './asyncView';
 import Form from './settings/components/forms/form';
-import FormFieldDescription from './settings/components/forms/formField/formFieldDescription';
-import FormFieldWrapper from './settings/components/forms/formField/formFieldWrapper';
+
+import FieldControl from './settings/components/forms/field/fieldControl';
+import FieldDescription from './settings/components/forms/field/fieldDescription';
+import FieldLabel from './settings/components/forms/field/fieldLabel';
+import FieldHelp from './settings/components/forms/field/fieldHelp';
+import FieldWrapper from './settings/components/forms/field/fieldWrapper';
 import JsonForm from './settings/components/forms/jsonForm';
 import Panel from './settings/components/panel';
 import PanelAlert from './settings/components/panelAlert';
@@ -15,9 +19,6 @@ import PanelHeader from './settings/components/panelHeader';
 import SettingsPageHeader from './settings/components/settingsPageHeader';
 import TextBlock from './settings/components/text/textBlock';
 import projectFields from '../data/forms/projectGeneralSettings';
-import FormFieldControl from './settings/components/forms/formField/formFieldControl';
-import FormFieldLabel from './settings/components/forms/formField/formFieldLabel';
-import FormFieldHelp from './settings/components/forms/formField/formFieldHelp';
 
 const noMargin = {marginBottom: 0};
 
@@ -53,46 +54,46 @@ export default class ProjectGeneralSettings extends AsyncView {
 
     if (!isProjectAdmin) {
       return (
-        <FormFieldWrapper inline>
-          <FormFieldDescription inline>
-            <FormFieldHelp>
+        <FieldWrapper inline>
+          <FieldDescription inline>
+            <FieldHelp>
               {t('You do not have the required permission to remove this project.')}
-            </FormFieldHelp>
-          </FormFieldDescription>
-        </FormFieldWrapper>
+            </FieldHelp>
+          </FieldDescription>
+        </FieldWrapper>
       );
     } else if (project.isInternal) {
       return (
-        <FormFieldWrapper inline>
-          <FormFieldDescription inline>
-            <FormFieldHelp>
+        <FieldWrapper inline>
+          <FieldDescription inline>
+            <FieldHelp>
               {t(
                 'This project cannot be removed. It is used internally by the Sentry server.'
               )}
-            </FormFieldHelp>
-          </FormFieldDescription>
-        </FormFieldWrapper>
+            </FieldHelp>
+          </FieldDescription>
+        </FieldWrapper>
       );
     } else {
       return (
-        <FormFieldWrapper inline>
-          <FormFieldDescription inline>
-            <FormFieldLabel>{t('Remove Project')}</FormFieldLabel>
-            <FormFieldHelp>
+        <FieldWrapper inline>
+          <FieldDescription inline>
+            <FieldLabel>{t('Remove Project')}</FieldLabel>
+            <FieldHelp>
               Remove the <strong>{project.slug}</strong> project and all related data.
               <br />
               Careful, this action cannot be undone.
-            </FormFieldHelp>
-          </FormFieldDescription>
-          <FormFieldControl>
+            </FieldHelp>
+          </FieldDescription>
+          <FieldControl>
             <a
               href={`/${orgId}/${projectId}/settings/remove/`}
               className="btn btn-danger"
             >
               {t('Remove Project')}
             </a>
-          </FormFieldControl>
-        </FormFieldWrapper>
+          </FieldControl>
+        </FieldWrapper>
       );
     }
   }
@@ -107,46 +108,46 @@ export default class ProjectGeneralSettings extends AsyncView {
 
     if (!isProjectAdmin) {
       return (
-        <FormFieldWrapper inline>
-          <FormFieldDescription inline>
-            <FormFieldHelp>
+        <FieldWrapper inline>
+          <FieldDescription inline>
+            <FieldHelp>
               {t('You do not have the required permission to transfer this project.')}
-            </FormFieldHelp>
-          </FormFieldDescription>
-        </FormFieldWrapper>
+            </FieldHelp>
+          </FieldDescription>
+        </FieldWrapper>
       );
     } else if (project.isInternal) {
       return (
-        <FormFieldWrapper inline>
-          <FormFieldDescription inline>
-            <FormFieldHelp>
+        <FieldWrapper inline>
+          <FieldDescription inline>
+            <FieldHelp>
               {t(
                 'This project cannot be removed. It is used internally by the Sentry server.'
               )}
-            </FormFieldHelp>
-          </FormFieldDescription>
-        </FormFieldWrapper>
+            </FieldHelp>
+          </FieldDescription>
+        </FieldWrapper>
       );
     } else {
       return (
-        <FormFieldWrapper inline>
-          <FormFieldDescription inline>
-            <FormFieldLabel>{t('Transfer Project')}</FormFieldLabel>
-            <FormFieldHelp>
+        <FieldWrapper inline>
+          <FieldDescription inline>
+            <FieldLabel>{t('Transfer Project')}</FieldLabel>
+            <FieldHelp>
               Transfer the <strong>{project.slug}</strong> project and all related data.
               <br />
               Careful, this action cannot be undone.
-            </FormFieldHelp>
-          </FormFieldDescription>
-          <FormFieldControl>
+            </FieldHelp>
+          </FieldDescription>
+          <FieldControl>
             <a
               href={`/${orgId}/${projectId}/settings/transfer/`}
               className="btn btn-danger"
             >
               {t('Transfer Project')}
             </a>
-          </FormFieldControl>
-        </FormFieldWrapper>
+          </FieldControl>
+        </FieldWrapper>
       );
     }
   }
