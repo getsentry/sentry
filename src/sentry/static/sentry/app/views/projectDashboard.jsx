@@ -137,7 +137,11 @@ const ProjectDashboard = createReactClass({
           </div>
           <h3>{t('Overview')}</h3>
         </div>
-        <ProjectChart dateSince={dateSince} resolution={resolution} />
+        <ProjectChart
+          dateSince={dateSince}
+          resolution={resolution}
+          environment={this.props.environment}
+        />
         <div className="row">
           <div className="col-md-6">
             <EventList
