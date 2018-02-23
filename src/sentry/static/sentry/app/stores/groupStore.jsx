@@ -38,7 +38,11 @@ const GroupStore = Reflux.createStore({
     this.trigger(itemIds);
   },
 
-  add(items) {
+  onLoad(items) {
+    this.loadInitialData(items);
+  },
+
+  onAddIssues(items) {
     if (!_.isArray(items)) {
       items = [items];
     }
@@ -67,6 +71,10 @@ const GroupStore = Reflux.createStore({
     }
 
     this.trigger(itemIds);
+  },
+
+  onReset() {
+    this.reset();
   },
 
   remove(itemId) {
