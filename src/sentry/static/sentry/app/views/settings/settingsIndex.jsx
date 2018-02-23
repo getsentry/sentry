@@ -121,7 +121,7 @@ class SettingsIndex extends React.Component {
                 <h3>{t('Quick links')}:</h3>
                 <ul>
                   <li>
-                    <HomeLink href="/account/settings/">
+                    <HomeLink href="/settings/account/security/">
                       {t('Change my password')}
                     </HomeLink>
                   </li>
