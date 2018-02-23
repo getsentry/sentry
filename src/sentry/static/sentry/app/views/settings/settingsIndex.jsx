@@ -13,6 +13,7 @@ import PanelBody from './components/panelBody';
 import PanelHeader from './components/panelHeader';
 import SentryTypes from '../../proptypes';
 import SettingsLayout from './settingsLayout';
+import TextOverflow from '../../components/textOverflow';
 import withLatestContext from '../../utils/withLatestContext';
 
 const LINKS = {
@@ -148,7 +149,9 @@ class SettingsIndex extends React.Component {
                   <HomeIcon color="green">
                     <InlineSvg src="icon-stack" size="44px" />
                   </HomeIcon>
-                  {organization ? organization.name : t('Organization')}
+                  <TextOverflow css={{lineHeight: '1.1em'}}>
+                    {organization ? organization.slug : t('Organization')}
+                  </TextOverflow>
                 </HomeLink>
               </HomePanelHeader>
               <HomePanelBody>
