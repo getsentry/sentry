@@ -42,18 +42,27 @@ const LatestContextStore = Reflux.createStore({
     // Check to make sure current active org is what has been updated
     if (org.slug !== this.state.organization.slug) return;
 
-    this.state.organization = {...org};
+    this.state = {
+      ...this.state,
+      organization: org,
+    };
     this.trigger(this.state);
   },
 
   onSetActiveOrganization(org) {
     if (!org) {
-      this.state.organization = null;
-      this.state.project = null;
+      this.state = {
+        ...this.state,
+        organization: null,
+        project: null,
+      };
     } else if (!this.state.organization || this.state.organization.slug !== org.slug) {
       // Update only if different
-      this.state.organization = {...org};
-      this.state.project = null;
+      this.state = {
+        ...this.state,
+        organization: org,
+        project: null,
+      };
     }
 
     this.trigger(this.state);
@@ -61,28 +70,43 @@ const LatestContextStore = Reflux.createStore({
 
   onSetActiveProject(project) {
     if (!project) {
-      this.state.project = null;
+      this.state = {
+        ...this.state,
+        project: null,
+      };
     } else if (!this.state.project || this.state.project.slug !== project.slug) {
       // Update only if different
-      this.state.project = {...project};
+      this.state = {
+        ...this.state,
+        project,
+      };
     }
 
     this.trigger(this.state);
   },
 
   onUpdateProject(project) {
-    this.state.project = project;
+    this.state = {
+      ...this.state,
+      project,
+    };
     this.trigger(this.state);
   },
 
   onSetActiveEnvironment(environment) {
-    this.state.environment = environment;
+    this.state = {
+      ...this.state,
+      environment,
+    };
 
     this.trigger(this.state);
   },
 
   onClearActiveEnvironment() {
-    this.state.environment = null;
+    this.state = {
+      ...this.state,
+      environment: null,
+    };
     this.trigger(this.state);
   },
 });
