@@ -81,8 +81,6 @@ function computeCenteredWindow(width, height) {
 }
 
 export default class OrganizationIntegrationConfig extends AsyncView {
-  // TODO: proptypes
-
   componentDidMount() {
     this.dialog = null;
     window.addEventListener('message', this.receiveMessage, false);

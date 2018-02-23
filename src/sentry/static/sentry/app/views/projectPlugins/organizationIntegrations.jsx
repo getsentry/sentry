@@ -1,4 +1,5 @@
 import {Box} from 'grid-emotion';
+import PropTypes from 'prop-types';
 import React from 'react';
 import styled from 'react-emotion';
 
@@ -24,17 +25,37 @@ const TeamName = styled.div`
 `;
 
 export default class OrganizationIntegrations extends AsyncComponent {
-  // TODO: proptypes
+  static propTypes = {
+    orgId: PropTypes.string.isRequired,
+    projectId: PropTypes.string.isRequired,
+  };
 
   getEndpoints() {
-    let {orgId} = this.props.params;
-
+    let {orgId} = this.props;
     return [['config', `/organizations/${orgId}/config/integrations/`]];
   }
 
   renderBody() {
-    // TODO: This is for sure being passsed in to many things
-    let {orgId, projectId} = this.props.params;
+    let {orgId, projectId} = this.props;
+
+    const integrations = this.state.config.providers.map(provider => (
+      <PanelItem key={provider.key}>
+        <Box>
+          <PluginIcon size={32} pluginId={provider.key} />
+        </Box>
+        <Box px={2} flex={1}>
+          <ProviderName>
+            <Link
+              to={`/settings/organization/${orgId}/project/${projectId}/integrations/${provider.key}/`}
+              css={{color: theme.gray5}}
+            >
+              {provider.name}
+            </Link>
+          </ProviderName>
+          <TeamName>{provider.metadata.author}</TeamName>
+        </Box>
+      </PanelItem>
+    ));
 
     return (
       <Panel>
@@ -43,28 +64,7 @@ export default class OrganizationIntegrations extends AsyncComponent {
             {t('Global Integrations')}
           </Box>
         </PanelHeader>
-        <PanelBody>
-          {this.state.config.providers.map(provider => {
-            return (
-              <PanelItem key={provider.key}>
-                <Box>
-                  <PluginIcon size={32} pluginId={provider.key} />
-                </Box>
-                <Box px={2} flex={1}>
-                  <ProviderName>
-                    <Link
-                      to={`/settings/organization/${orgId}/project/${projectId}/integrations/${provider.key}/`}
-                      css={{color: theme.gray5}}
-                    >
-                      {provider.name}
-                    </Link>
-                  </ProviderName>
-                  <TeamName>{provider.metadata.author}</TeamName>
-                </Box>
-              </PanelItem>
-            );
-          })}
-        </PanelBody>
+        <PanelBody>{integrations}</PanelBody>
       </Panel>
     );
   }
