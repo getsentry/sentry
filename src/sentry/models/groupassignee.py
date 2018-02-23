@@ -19,6 +19,9 @@ from sentry.signals import issue_assigned
 
 class GroupAssigneeManager(BaseManager):
     def assign(self, group, assigned_to, acting_user=None):
+
+        # TODO(maxbittker): because this relies on GroupSubscriptions to handle
+        # sending notifications, we should move that behavior into this method
         from sentry.models import User, Team
 
         if isinstance(assigned_to, User):
