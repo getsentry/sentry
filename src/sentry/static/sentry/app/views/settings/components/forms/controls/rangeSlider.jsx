@@ -159,7 +159,13 @@ class RangeSlider extends React.Component {
 
   componentWillReceiveProps(nextProps) {
     if (typeof nextProps.value !== 'undefined') {
-      this.setState({value: nextProps.value});
+      let {allowedValues} = this.props;
+      let sliderValue = nextProps.value;
+
+      if (allowedValues && allowedValues.indexOf(sliderValue) > -1) {
+        sliderValue = allowedValues.indexOf(sliderValue);
+      }
+      this.setState({sliderValue});
     }
   }
 

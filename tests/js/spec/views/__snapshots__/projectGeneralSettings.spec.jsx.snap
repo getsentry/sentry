@@ -189,8 +189,6 @@ exports[`projectGeneralSettings renders 1`] = `
                   "formatLabel": [Function],
                   "help": "Automatically resolve an issue if it hasn't been seen for this amount of time",
                   "label": "Auto Resolve",
-                  "max": 30,
-                  "min": 0,
                   "name": "resolveAge",
                   "type": "range",
                 },
