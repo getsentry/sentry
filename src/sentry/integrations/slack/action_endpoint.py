@@ -2,6 +2,7 @@ from __future__ import absolute_import
 
 from django.core.urlresolvers import reverse
 
+from sentry import analytics
 from sentry import http, options
 from sentry.api import client
 from sentry.api.base import Endpoint
@@ -253,11 +254,19 @@ class SlackActionEndpoint(Endpoint):
         # Handle interaction actions
         try:
             for action in action_list:
-                if action['name'] == 'status':
+                action_type = action['name']
+
+                analytics.backend.record(
+                    'integrations.slack.action',
+                    action_type=action_type,
+                    actor_id=identity.user.id
+                )
+
+                if action_type == 'status':
                     self.on_status(request, identity, group, action, data, integration)
-                elif action['name'] == 'assign':
+                elif action_type == 'assign':
                     self.on_assign(request, identity, group, action)
-                elif action['name'] == 'resolve_dialog':
+                elif action_type == 'resolve_dialog':
                     self.open_resolve_dialog(data, group, integration)
                     defer_attachment_update = True
         except client.ApiError as e:
