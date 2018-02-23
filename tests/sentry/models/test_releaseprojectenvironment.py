@@ -31,9 +31,9 @@ class GetOrCreateTest(TestCase):
             datetime=self.datetime_now,
         )
 
-        assert release_project_env.organization_id == self.project.id
+        assert release_project_env.project_id == self.project.id
         assert release_project_env.release_id == self.release.id
-        assert release_project_env.environment_id == self.env.id
+        assert release_project_env.environment_id == self.environment.id
         assert release_project_env.first_seen == self.datetime_now
         assert release_project_env.last_seen == self.datetime_now
         assert release_project_env.new_issues_count == 0
@@ -47,7 +47,7 @@ class GetOrCreateTest(TestCase):
         )
         assert release_project_env.project_id == self.project.id
         assert release_project_env.release_id == self.release.id
-        assert release_project_env.environment_id == self.env.id
+        assert release_project_env.environment_id == self.environment.id
 
         datetime_next = self.datetime_now + timedelta(days=1)
 
@@ -71,9 +71,9 @@ class GetOrCreateTest(TestCase):
             environment=self.environment,
             datetime=self.datetime_now,
         )
-        assert release_project_env.organization_id == self.project.id
+        assert release_project_env.project_id == self.project.id
         assert release_project_env.release_id == self.release.id
-        assert release_project_env.environment_id == self.env.id
+        assert release_project_env.environment_id == self.environment.id
 
         datetime_next = self.datetime_now + timedelta(seconds=1)
 
