@@ -9,6 +9,11 @@ import Form from '../components/forms/form';
 import JsonForm from '../components/forms/jsonForm';
 import TeamModel from './model';
 import teamSettingsFields from '../../../data/forms/teamSettingsFields';
+import Panel from '../components/panel';
+import Field from '../components/forms/field';
+import PanelHeader from '../components/panelHeader';
+import Link from '../../../components/link';
+import SentryTypes from '../../../proptypes';
 
 export default class TeamSettings extends AsyncView {
   static propTypes = {
@@ -19,6 +24,7 @@ export default class TeamSettings extends AsyncView {
 
   static contextTypes = {
     location: PropTypes.object,
+    organization: SentryTypes.Organization,
   };
 
   constructor(props, context) {
@@ -52,24 +58,52 @@ export default class TeamSettings extends AsyncView {
 
   renderBody() {
     let team = this.props.team;
+    let {teamId, orgId} = this.props.params;
+
+    let access = new Set(this.context.organization.access);
 
     return (
-      <Form
-        model={this.model}
-        apiMethod="PUT"
-        saveOnBlur
-        allowUndo
-        onSubmitSuccess={this.handleSubmitSuccess}
-        onSubmitError={() => addErrorMessage(t('Unable to save change'))}
-        initialData={{
-          name: team.name,
-          slug: team.slug,
-        }}
-      >
-        <Box>
-          <JsonForm location={this.context.location} forms={teamSettingsFields} />
-        </Box>
-      </Form>
+      <React.Fragment>
+        <Form
+          model={this.model}
+          apiMethod="PUT"
+          saveOnBlur
+          allowUndo
+          onSubmitSuccess={this.handleSubmitSuccess}
+          onSubmitError={() => addErrorMessage(t('Unable to save change'))}
+          initialData={{
+            name: team.name,
+            slug: team.slug,
+          }}
+        >
+          <Box>
+            <JsonForm location={this.context.location} forms={teamSettingsFields} />
+          </Box>
+        </Form>
+
+        {access.has('team:admin') && (
+          <Panel>
+            <PanelHeader>{t('Remove Team')}</PanelHeader>
+            <Field
+              help={t(
+                "This may affect team members' access to projects and associated alert delivery."
+              )}
+            >
+              <div>
+                <Link
+                  to={`/organizations/${orgId}/teams/${teamId}/remove/`}
+                  className="btn btn-danger"
+                  priority="danger"
+                  size="small"
+                  title={t('Remove Team')}
+                >
+                  {t('Remove Team')}
+                </Link>
+              </div>
+            </Field>
+          </Panel>
+        )}
+      </React.Fragment>
     );
   }
 }
