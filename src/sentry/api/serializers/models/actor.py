@@ -11,15 +11,17 @@ class ActorSerializer(Serializer):
         if isinstance(obj, User):
             actor_type = 'user'
             avatar = obj.avatar.first()
+            name = obj.get_display_name()
         elif isinstance(obj, Team):
             actor_type = 'team'
             avatar = ''
+            name = obj.slug
         else:
             raise AssertionError('Invalid type to assign to: %r' % type(obj))
 
         return {
             'type': actor_type,
             'id': six.text_type(obj.id),
-            'name': obj.get_display_name(),
+            'name': name,
             'avatar': avatar,
         }
