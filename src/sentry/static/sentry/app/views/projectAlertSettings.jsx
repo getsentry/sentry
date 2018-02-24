@@ -1,118 +1,17 @@
 import PropTypes from 'prop-types';
 import React from 'react';
 
-import {ApiForm, RangeField, TextField} from '../components/forms';
 import {t} from '../locale';
 import AlertLink from '../components/alertLink';
 import AsyncView from './asyncView';
 import Button from '../components/buttons/button';
+import Form from './settings/components/forms/form';
+import JsonForm from './settings/components/forms/jsonForm';
 import ListLink from '../components/listLink';
-import Panel from './settings/components/panel';
 import PanelAlert from './settings/components/panelAlert';
-import PanelBody from './settings/components/panelBody';
-import PanelHeader from './settings/components/panelHeader';
 import PluginList from '../components/pluginList';
 import SettingsPageHeader from './settings/components/settingsPageHeader';
-
-class DigestSettings extends React.Component {
-  static propTypes = {
-    orgId: PropTypes.string.isRequired,
-    projectId: PropTypes.string.isRequired,
-    initialData: PropTypes.object.isRequired,
-    onSave: PropTypes.func.isRequired,
-  };
-
-  render() {
-    let {orgId, projectId, initialData, onSave} = this.props;
-    return (
-      <Panel>
-        <PanelHeader>{t('Digests')}</PanelHeader>
-        <PanelBody px={2} pt={2} flex>
-          <PanelAlert type="info" icon="icon-circle-exclamation">
-            {t(
-              'Sentry will automatically digest alerts sent ' +
-                'by some services to avoid flooding your inbox ' +
-                'with individual issue notifications. To control ' +
-                'how frequently notifications are delivered, use ' +
-                'the sliders below.'
-            )}
-          </PanelAlert>
-          <ApiForm
-            onSubmitSuccess={onSave}
-            apiMethod="PUT"
-            apiEndpoint={`/projects/${orgId}/${projectId}/`}
-            initialData={initialData}
-            requireChanges={true}
-          >
-            <div className="row">
-              <div className="col-md-6">
-                <RangeField
-                  min={60}
-                  max={3600}
-                  step={60}
-                  defaultValue={300}
-                  label={t('Minimum delivery interval')}
-                  help={t('Notifications will be delivered at most this often.')}
-                  name="digestsMinDelay"
-                  formatLabel={RangeField.formatMinutes}
-                />
-              </div>
-              <div className="col-md-6">
-                <RangeField
-                  min={60}
-                  max={3600}
-                  step={60}
-                  defaultValue={3600}
-                  label={t('Maximum delivery interval')}
-                  help={t('Notifications will be delivered at least this often.')}
-                  name="digestsMaxDelay"
-                  formatLabel={RangeField.formatMinutes}
-                />
-              </div>
-            </div>
-          </ApiForm>
-        </PanelBody>
-      </Panel>
-    );
-  }
-}
-
-class GeneralSettings extends React.Component {
-  static propTypes = {
-    orgId: PropTypes.string.isRequired,
-    projectId: PropTypes.string.isRequired,
-    initialData: PropTypes.object,
-    onSave: PropTypes.func.isRequired,
-  };
-
-  render() {
-    let {orgId, projectId, initialData, onSave} = this.props;
-    return (
-      <Panel>
-        <PanelHeader>{t('Email Settings')}</PanelHeader>
-
-        <PanelBody px={2} pt={2} flex>
-          <ApiForm
-            onSubmitSuccess={onSave}
-            apiMethod="PUT"
-            apiEndpoint={`/projects/${orgId}/${projectId}/`}
-            initialData={initialData}
-            requireChanges={true}
-          >
-            <TextField
-              name="subjectTemplate"
-              label={t('Subject template')}
-              required={false}
-              help={t(
-                'The email subject to use (excluding the prefix) for individual alerts. Usable variables include: $project, $title, $shortID, and ${tag:key}, such as ${tag:environment} or ${tag:release}.'
-              )}
-            />
-          </ApiForm>
-        </PanelBody>
-      </Panel>
-    );
-  }
-}
+import alertsFormGroups from '../data/forms/projectAlerts';
 
 export default class ProjectAlertSettings extends AsyncView {
   static propTypes = {
@@ -132,27 +31,9 @@ export default class ProjectAlertSettings extends AsyncView {
     ];
   }
 
-  onDigestsChange = data => {
-    // TODO(dcramer): propagate this in a more correct way
-    this.setState({
-      project: {
-        ...this.state.project,
-        ...data,
-      },
-    });
-  };
+  handleSaveSuccess = () => {};
 
-  onGeneralChange = data => {
-    // TODO(dcramer): propagate this in a more correct way
-    this.setState({
-      project: {
-        ...this.state.project,
-        ...data,
-      },
-    });
-  };
-
-  onEnablePlugin = plugin => {
+  handleEnablePlugin = plugin => {
     this.setState({
       pluginList: this.state.pluginList.map(p => {
         if (p.id !== plugin.id) return p;
@@ -164,7 +45,7 @@ export default class ProjectAlertSettings extends AsyncView {
     });
   };
 
-  onDisablePlugin = plugin => {
+  handleDisablePlugin = plugin => {
     this.setState({
       pluginList: this.state.pluginList.map(p => {
         if (p.id !== plugin.id) return p;
@@ -209,31 +90,43 @@ export default class ProjectAlertSettings extends AsyncView {
             </ul>
           }
         />
-        {/* todo(ckj): change 'href' to 'to' when new settings is launched */}
+        {/* TODO(ckj): change 'href' to 'to' when new settings is launched #NEW-SETTINGS */}
         <AlertLink href={'/account/settings/notifications/'} icon="icon-mail">
           {t(
             'Looking to fine-tune your personal notification preferences? Visit your Account Settings'
           )}
         </AlertLink>
 
-        <GeneralSettings
-          orgId={orgId}
-          projectId={projectId}
+        <Form
+          saveOnBlur
+          allowUndo
           initialData={{
             subjectTemplate: this.state.project.subjectTemplate,
-          }}
-          onSave={this.onGeneralChange}
-        />
-
-        <DigestSettings
-          orgId={orgId}
-          projectId={projectId}
-          initialData={{
             digestsMinDelay: this.state.project.digestsMinDelay,
             digestsMaxDelay: this.state.project.digestsMaxDelay,
           }}
-          onSave={this.onDigestsChange}
-        />
+          apiMethod="PUT"
+          apiEndpoint={`/projects/${orgId}/${projectId}/`}
+        >
+          <JsonForm
+            forms={alertsFormGroups}
+            renderHeader={({title}) => {
+              if (title === 'Digests') {
+                return (
+                  <PanelAlert m={0} mb={0} type="info" icon="icon-circle-exclamation">
+                    {t(`Sentry will automatically digest alerts sent
+                        by some services to avoid flooding your inbox
+                        with individual issue notifications. To control
+                        how frequently notifications are delivered, use
+                        the sliders below.`)}
+                  </PanelAlert>
+                );
+              }
+
+              return null;
+            }}
+          />
+        </Form>
 
         <PluginList
           organization={organization}
@@ -241,8 +134,8 @@ export default class ProjectAlertSettings extends AsyncView {
           pluginList={this.state.pluginList.filter(
             p => p.type === 'notification' && p.hasConfiguration
           )}
-          onEnablePlugin={this.onEnablePlugin}
-          onDisablePlugin={this.onDisablePlugin}
+          onEnablePlugin={this.handleEnablePlugin}
+          onDisablePlugin={this.handleDisablePlugin}
         />
       </div>
     );
