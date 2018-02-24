@@ -224,21 +224,4 @@ describe('AssigneeSelector', function() {
       expect(assigneeSelector.state('filter')).toEqual('foo');
     });
   });
-
-  describe('componentDidUpdate()', function() {
-    beforeEach(function() {
-      assigneeSelector = mount(<AssigneeSelector id="1337" />);
-    });
-
-    it('should destroy old assignee tooltip and create a new assignee tooltip', function() {
-      let instance = assigneeSelector.instance();
-      sandbox.spy(instance, 'attachTooltips');
-      sandbox.spy(instance, 'removeTooltips');
-
-      assigneeSelector.setState({assignedTo: USER_1});
-
-      expect(instance.attachTooltips.calledOnce).toBeTruthy();
-      expect(instance.removeTooltips.calledOnce).toBeTruthy();
-    });
-  });
 });

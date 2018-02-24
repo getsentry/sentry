@@ -3,20 +3,24 @@ import React from 'react';
 import createReactClass from 'create-react-class';
 import Reflux from 'reflux';
 import classNames from 'classnames';
+import _ from 'lodash';
 
 import {t} from '../locale';
+import {valueIsEqual, buildUserId, buildTeamId} from '../utils';
 import {userDisplayName} from '../utils/formatters';
-import {valueIsEqual} from '../utils';
 import Avatar from '../components/avatar';
+import TeamAvatar from '../components/teamAvatar';
+import ActorAvatar from '../components/actorAvatar';
+import Tooltip from '../components/tooltip';
 import ConfigStore from '../stores/configStore';
 import DropdownLink from './dropdownLink';
 import FlowLayout from './flowLayout';
 import GroupStore from '../stores/groupStore';
-import {assignTo} from '../actionCreators/group';
+import {assignToUser, assignToActor} from '../actionCreators/group';
+import TeamStore from '../stores/teamStore';
 import LoadingIndicator from '../components/loadingIndicator';
 import MemberListStore from '../stores/memberListStore';
 import MenuItem from './menuItem';
-import TooltipMixin from '../mixins/tooltip';
 
 const AssigneeSelector = createReactClass({
   displayName: 'AssigneeSelector',
@@ -28,9 +32,6 @@ const AssigneeSelector = createReactClass({
   mixins: [
     Reflux.listenTo(GroupStore, 'onGroupChange'),
     Reflux.connect(MemberListStore, 'memberList'),
-    TooltipMixin({
-      selector: '.tip',
-    }),
   ],
 
   statics: {
@@ -105,15 +106,16 @@ const AssigneeSelector = createReactClass({
     return !valueIsEqual(nextState.assignedTo, this.state.assignedTo, true);
   },
 
-  componentDidUpdate(prevProps, prevState) {
-    let oldAssignee = prevState.assignedTo && prevState.assignedTo.id;
-    let newAssignee = this.state.assignedTo && this.state.assignedTo.id;
-    if (oldAssignee !== newAssignee) {
-      this.removeTooltips();
-      if (newAssignee) {
-        this.attachTooltips();
-      }
-    }
+  assignableTeams() {
+    let group = GroupStore.get(this.props.id);
+    return _.uniqBy(TeamStore.getAll(), ({id}) => id)
+      .filter(({projects}) => !!projects.find(p => p.slug === group.project.slug))
+      .map(team => ({
+        id: buildTeamId(team.id),
+        name: team.slug,
+        display: team.slug,
+        team,
+      }));
   },
 
   onGroupChange(itemIds) {
@@ -128,12 +130,17 @@ const AssigneeSelector = createReactClass({
   },
 
   assignTo(member) {
-    assignTo({id: this.props.id, member});
+    assignToUser({id: this.props.id, member});
+    this.setState({filter: '', loading: true});
+  },
+
+  assignToTeam(team) {
+    assignToActor({type: 'team', actor: {id: team.id, type: 'team'}, id: this.props.id});
     this.setState({filter: '', loading: true});
   },
 
   clearAssignTo() {
-    assignTo({id: this.props.id});
+    assignToUser({id: this.props.id});
     this.setState({filter: '', loading: true});
   },
 
@@ -213,10 +220,10 @@ const AssigneeSelector = createReactClass({
 
     let memberNodes =
       members && members.length ? (
-        members.map(item => {
+        _.uniqBy(memberList, ({id}) => id).map(item => {
           return (
             <MenuItem
-              key={item.id}
+              key={buildUserId(item.id)}
               disabled={loading}
               onSelect={this.assignTo.bind(this, item)}
             >
@@ -231,68 +238,90 @@ const AssigneeSelector = createReactClass({
         </li>
       );
 
+    // Outer div is needed to make tooltip work
+    let teamNodes = AssigneeSelector.filterMembers(
+      this.assignableTeams(),
+      filter
+    ).map(({id, display, team}) => {
+      return (
+        <MenuItem
+          key={id}
+          disabled={loading}
+          onSelect={this.assignToTeam.bind(this, team)}
+        >
+          <TeamAvatar team={team} className="avatar" size={48} />
+          {this.highlight(display, filter)}
+        </MenuItem>
+      );
+    });
+    if (teamNodes.length > 0) {
+      teamNodes = [...teamNodes, <hr key="divider" style={{margin: 0}} />];
+    }
+
     let assignedUser = assignedTo && MemberListStore.getById(assignedTo.id);
     let tooltipTitle = assignedUser ? userDisplayName(assignedUser) : null;
-    // Outer div is needed to make tooltip work
+
     return (
       <div>
-        <div className={classNames(className, 'tip')} title={tooltipTitle}>
-          {loading ? (
-            <LoadingIndicator mini />
-          ) : (
-            <DropdownLink
-              className="assignee-selector-toggle"
-              onOpen={this.onDropdownOpen}
-              onClose={this.onDropdownClose}
-              isOpen={this.state.isOpen}
-              alwaysRenderMenu={false}
-              title={
-                assignedTo ? (
-                  <Avatar user={assignedUser} className="avatar" size={48} />
-                ) : (
-                  <span className="icon-user" />
-                )
-              }
-            >
-              {!memberListLoading && (
-                <MenuItem noAnchor>
-                  <input
-                    type="text"
-                    className="form-control input-sm"
-                    placeholder={t('Filter people')}
-                    ref={ref => this.onFilterMount(ref)}
-                    onClick={this.onFilterClick}
-                    onKeyDown={this.onFilterKeyDown}
-                    onKeyUp={this.onFilterKeyUp}
-                  />
-                </MenuItem>
-              )}
-              {!memberListLoading &&
-                assignedTo && (
-                  <MenuItem
-                    className="clear-assignee"
-                    disabled={!loading}
-                    onSelect={this.clearAssignTo}
-                  >
-                    <span className="icon-circle-cross" /> {t('Clear Assignee')}
+        <Tooltip title={tooltipTitle} disabled={!tooltipTitle}>
+          <div className={className}>
+            {loading ? (
+              <LoadingIndicator mini />
+            ) : (
+              <DropdownLink
+                className="assignee-selector-toggle"
+                onOpen={this.onDropdownOpen}
+                onClose={this.onDropdownClose}
+                isOpen={this.state.isOpen}
+                alwaysRenderMenu={false}
+                title={
+                  assignedTo ? (
+                    <ActorAvatar actor={assignedTo} className="avatar" size={48} />
+                  ) : (
+                    <span className="icon-user" />
+                  )
+                }
+              >
+                {!memberListLoading && (
+                  <MenuItem noAnchor>
+                    <input
+                      type="text"
+                      className="form-control input-sm"
+                      placeholder={t('Filter teams and people')}
+                      ref={ref => this.onFilterMount(ref)}
+                      onClick={this.onFilterClick}
+                      onKeyDown={this.onFilterKeyDown}
+                      onKeyUp={this.onFilterKeyUp}
+                    />
                   </MenuItem>
                 )}
-              {!memberListLoading && (
-                <li>
-                  <ul>{memberNodes}</ul>
-                </li>
-              )}
+                {!memberListLoading &&
+                  assignedTo && (
+                    <MenuItem
+                      className="clear-assignee"
+                      disabled={!loading}
+                      onSelect={this.clearAssignTo}
+                    >
+                      <span className="icon-circle-cross" /> {t('Clear Assignee')}
+                    </MenuItem>
+                  )}
+                {!memberListLoading && (
+                  <li>
+                    <ul>{[...teamNodes, ...memberNodes]}</ul>
+                  </li>
+                )}
 
-              {memberListLoading && (
-                <li>
-                  <FlowLayout center className="list-loading-container">
-                    <LoadingIndicator mini />
-                  </FlowLayout>
-                </li>
-              )}
-            </DropdownLink>
-          )}
-        </div>
+                {memberListLoading && (
+                  <li>
+                    <FlowLayout center className="list-loading-container">
+                      <LoadingIndicator mini />
+                    </FlowLayout>
+                  </li>
+                )}
+              </DropdownLink>
+            )}
+          </div>
+        </Tooltip>
       </div>
     );
   },
