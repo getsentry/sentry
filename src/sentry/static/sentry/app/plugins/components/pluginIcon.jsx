@@ -7,6 +7,7 @@ import sentry from '../../../images/integrations/integration-sentry.png';
 import asana from '../../../images/integrations/asana-logo.png';
 import bitbucket from '../../../images/integrations/bitbucket-logo.png';
 import campfire from '../../../images/integrations/campfire-logo.png';
+import clubhouse from '../../../images/integrations/clubhouse-logo.png';
 import flowdock from '../../../images/integrations/flowdock-logo.png';
 import github from '../../../images/integrations/github-logo.png';
 import gitlab from '../../../images/integrations/gitlab-logo.png';
@@ -43,6 +44,7 @@ export const ICON_PATHS = {
   asana,
   bitbucket,
   campfire,
+  clubhouse,
   flowdock,
   github,
   gitlab,
