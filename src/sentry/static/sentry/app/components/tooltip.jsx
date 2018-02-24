@@ -14,10 +14,16 @@ class Tooltip extends React.Component {
     title: PropTypes.node,
   };
 
-  componentDidUpdate = prevProps => {
-    if ( prevProps.title != this.props.title ) {
+  componentWillReceiveProps(newProps) {
+    let {disabled} = this.props;
+    if (newProps.disabled && !disabled) {
       this.removeTooltips(this.$ref);
-      this.attachTooltips(this.$ref);
+    }
+  }
+
+  componentDidUpdate = prevProps => {
+    if (prevProps.title != this.props.title) {
+      this.removeTooltips(this.$ref);
     }
   };
 
@@ -40,15 +46,21 @@ class Tooltip extends React.Component {
       typeof tooltipOptions === 'function'
         ? tooltipOptions.call(this)
         : tooltipOptions || {};
-    $el.tooltip({
-      title,
-      ...options,
-    });
+
+    $el &&
+      $el.tooltip({
+        title,
+        ...options,
+      });
   };
 
   removeTooltips = $el => {
     let {tooltipOptions} = this.props;
-    $el
+    let tooltipEl = $el;
+    if (!tooltipEl) {
+      return;
+    }
+    tooltipEl
       .tooltip('destroy') // destroy tooltips on parent ...
       .find(tooltipOptions && tooltipOptions.selector)
       .tooltip('destroy'); // ... and descendents
