@@ -1,4 +1,3 @@
-import PropTypes from 'prop-types';
 import React from 'react';
 
 import {t} from '../locale';
@@ -10,8 +9,10 @@ import JsonForm from './settings/components/forms/jsonForm';
 import ListLink from '../components/listLink';
 import PanelAlert from './settings/components/panelAlert';
 import PluginList from '../components/pluginList';
+import SentryTypes from '../proptypes';
 import SettingsPageHeader from './settings/components/settingsPageHeader';
 import alertsFormGroups from '../data/forms/projectAlerts';
+import recreateRoute from '../utils/recreateRoute';
 
 export default class ProjectAlertSettings extends AsyncView {
   static propTypes = {
@@ -19,8 +20,8 @@ export default class ProjectAlertSettings extends AsyncView {
     // these are not declared as required of issues with cloned elements
     // not initially defining them (though they are bound before) ever
     // rendered
-    organization: PropTypes.object,
-    project: PropTypes.object,
+    organization: SentryTypes.Organization,
+    project: SentryTypes.Project,
   };
 
   getEndpoints() {
@@ -64,13 +65,14 @@ export default class ProjectAlertSettings extends AsyncView {
   renderBody() {
     let {orgId, projectId} = this.props.params;
     let {organization} = this.props;
+
     return (
       <div>
         <SettingsPageHeader
           title={t('Alerts')}
           action={
             <Button
-              to={`/${orgId}/${projectId}/settings/alerts/rules/new/`}
+              to={recreateRoute('rules/new/', this.props)}
               priority="primary"
               size="small"
               className="pull-right"
@@ -81,12 +83,10 @@ export default class ProjectAlertSettings extends AsyncView {
           }
           tabs={
             <ul className="nav nav-tabs" style={{borderBottom: '1px solid #ddd'}}>
-              <ListLink to={`/${orgId}/${projectId}/settings/alerts/`} index={true}>
+              <ListLink to={recreateRoute('', this.props)} index={true}>
                 {t('Settings')}
               </ListLink>
-              <ListLink to={`/${orgId}/${projectId}/settings/alerts/rules/`}>
-                {t('Rules')}
-              </ListLink>
+              <ListLink to={recreateRoute('rules/', this.props)}>{t('Rules')}</ListLink>
             </ul>
           }
         />

@@ -1,6 +1,6 @@
+import {Link} from 'react-router';
 import PropTypes from 'prop-types';
 import React from 'react';
-import {Link} from 'react-router';
 import createReactClass from 'create-react-class';
 
 import {t} from '../locale';
@@ -13,6 +13,7 @@ import ListLink from '../components/listLink';
 import LoadingError from '../components/loadingError';
 import LoadingIndicator from '../components/loadingIndicator';
 import SettingsPageHeader from './settings/components/settingsPageHeader';
+import recreateRoute from '../utils/recreateRoute';
 
 const RuleRow = createReactClass({
   displayName: 'RuleRow',
@@ -56,8 +57,9 @@ const RuleRow = createReactClass({
   },
 
   render() {
-    let {orgId, projectId, data} = this.props;
-    let editLink = `/${orgId}/${projectId}/settings/alerts/rules/${data.id}/`;
+    let {data} = this.props;
+    let editLink = recreateRoute(`${data.id}/`, this.props);
+
     return (
       <div className="box">
         <div className="box-header">
@@ -134,6 +136,9 @@ const RuleRow = createReactClass({
 
 const ProjectAlertRules = createReactClass({
   displayName: 'ProjectAlertRules',
+  propTypes: {
+    routes: PropTypes.array.isRequired,
+  },
   mixins: [ApiMixin],
 
   getInitialState() {
@@ -212,6 +217,8 @@ const ProjectAlertRules = createReactClass({
               data={rule}
               orgId={orgId}
               projectId={projectId}
+              params={this.props.params}
+              routes={this.props.routes}
               onDelete={this.onDeleteRule.bind(this, rule)}
             />
           );
@@ -221,14 +228,13 @@ const ProjectAlertRules = createReactClass({
   },
 
   render() {
-    let {orgId, projectId} = this.props.params;
     return (
       <div>
         <SettingsPageHeader
           title={t('Alerts')}
           action={
             <Button
-              to={`/${orgId}/${projectId}/settings/alerts/rules/new/`}
+              to={recreateRoute('new/', this.props)}
               priority="primary"
               size="small"
               className="pull-right"
@@ -239,12 +245,13 @@ const ProjectAlertRules = createReactClass({
           }
           tabs={
             <ul className="nav nav-tabs" style={{borderBottom: '1px solid #ddd'}}>
-              <ListLink to={`/${orgId}/${projectId}/settings/alerts/`} index={true}>
+              <ListLink
+                to={recreateRoute('alerts/', {...this.props, stepBack: -1})}
+                index={true}
+              >
                 {t('Settings')}
               </ListLink>
-              <ListLink to={`/${orgId}/${projectId}/settings/alerts/rules/`}>
-                {t('Rules')}
-              </ListLink>
+              <ListLink to={recreateRoute('', this.props)}>{t('Rules')}</ListLink>
             </ul>
           }
         />

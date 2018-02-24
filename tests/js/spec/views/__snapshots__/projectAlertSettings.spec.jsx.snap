@@ -12,7 +12,7 @@ exports[`ProjectAlertSettings render() renders 1`] = `
           disabled={false}
           priority="primary"
           size="small"
-          to="/org-slug/project-slug/settings/alerts/rules/new/"
+          to="rules/new/"
         >
           <span
             className="icon-plus"
@@ -32,14 +32,14 @@ exports[`ProjectAlertSettings render() renders 1`] = `
           <ListLink
             activeClassName="active"
             index={true}
-            to="/org-slug/project-slug/settings/alerts/"
+            to=""
           >
             Settings
           </ListLink>
           <ListLink
             activeClassName="active"
             index={false}
-            to="/org-slug/project-slug/settings/alerts/rules/"
+            to="rules/"
           >
             Rules
           </ListLink>
