@@ -136,9 +136,8 @@ const RuleEditor = createReactClass({
       success: resp => {
         this.setState({error: null, loading: false, rule: resp});
 
-        browserHistory.replace(
-          `/${org.slug}/${project.slug}/settings/alerts/rules/${resp.id}/`
-        );
+        browserHistory.replace(`/${org.slug}/${project.slug}/settings/alerts/rules/`);
+
         addSuccessMessage(rule.id ? t('Updated alert rule') : t('Created alert rule'));
       },
       error: response => {
