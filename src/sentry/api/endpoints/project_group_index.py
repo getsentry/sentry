@@ -715,13 +715,8 @@ class ProjectGroupIndexEndpoint(ProjectEndpoint, EnvironmentMixin):
             if assigned_actor:
                 for group in group_list:
                     resolved_actor = assigned_actor.resolve()
-                    GroupAssignee.objects.assign(group, resolved_actor, acting_user)
 
-                    GroupSubscription.objects.subscribe_actor(
-                        group=group,
-                        actor=resolved_actor,
-                        reason=GroupSubscriptionReason.assigned,
-                    )
+                    GroupAssignee.objects.assign(group, resolved_actor, acting_user)
                 result['assignedTo'] = serialize(
                     assigned_actor.resolve(), acting_user, ActorSerializer())
             else:

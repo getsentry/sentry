@@ -20,10 +20,13 @@ from sentry.signals import issue_assigned
 
 class GroupAssigneeManager(BaseManager):
     def assign(self, group, assigned_to, acting_user=None):
+        from sentry.models import User, Team, GroupSubscription, GroupSubscriptionReason
 
-        # TODO(maxbittker): because this relies on GroupSubscriptions to handle
-        # sending notifications, we should move that behavior into this method
-        from sentry.models import User, Team
+        GroupSubscription.objects.subscribe_actor(
+            group=group,
+            actor=assigned_to,
+            reason=GroupSubscriptionReason.assigned,
+        )
 
         if isinstance(assigned_to, User):
             assignee_type = 'user'

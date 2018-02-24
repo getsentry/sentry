@@ -10,6 +10,7 @@ import Duration from '../../components/duration';
 import Avatar from '../../components/avatar';
 import IssueLink from '../../components/issueLink';
 import MemberListStore from '../../stores/memberListStore';
+import TeamStore from '../../stores/teamStore';
 import TimeSince from '../../components/timeSince';
 import Version from '../../components/version';
 
@@ -222,6 +223,12 @@ class ActivityItem extends React.Component {
           issue: issueLink,
         });
       case 'assigned':
+        if (data.assigneeType == 'team') {
+          return t('%(author)s assigned this event to the %(assignee)s Team', {
+            author,
+            assignee: TeamStore.getById(data.assignee).name,
+          });
+        }
         let assignee;
         if (item.user && data.assignee === item.user.id) {
           return tct('[author] assigned [issue] to themselves', {

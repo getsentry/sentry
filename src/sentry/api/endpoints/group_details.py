@@ -79,7 +79,7 @@ class GroupDetailsEndpoint(GroupEndpoint, EnvironmentMixin):
         ).order_by('-datetime').select_related('user')
         # we select excess so we can filter dupes
         for item in activity_qs[:num * 2]:
-            sig = (item.type, item.ident, item.user_id)
+            sig = (item.type, item.ident, item.user_id, hash(frozenset(item.data.items())))
             # TODO: we could just generate a signature (hash(text)) for notes
             # so there's no special casing
             if item.type == Activity.NOTE:
