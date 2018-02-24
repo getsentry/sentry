@@ -2,6 +2,7 @@ import {Link} from 'react-router';
 import PropTypes from 'prop-types';
 import React from 'react';
 import createReactClass from 'create-react-class';
+import styled from 'react-emotion';
 
 import {t} from '../locale';
 import ApiMixin from '../mixins/apiMixin';
@@ -12,8 +13,30 @@ import IndicatorStore from '../stores/indicatorStore';
 import ListLink from '../components/listLink';
 import LoadingError from '../components/loadingError';
 import LoadingIndicator from '../components/loadingIndicator';
+import Panel from './settings/components/panel';
+import PanelBody from './settings/components/panelBody';
+import PanelHeader from './settings/components/panelHeader';
 import SettingsPageHeader from './settings/components/settingsPageHeader';
 import recreateRoute from '../utils/recreateRoute';
+
+const TextColorLink = styled(Link)`
+  color: ${p => p.theme.gray3};
+`;
+
+const RuleDescriptionRow = styled.div`
+  display: flex;
+`;
+const RuleDescriptionColumn = styled.div`
+  flex: 1;
+  padding: ${p => p.theme.grid * 2}px;
+  height: 100%;
+`;
+const Condition = styled.div`
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  height: 100%;
+`;
 
 const RuleRow = createReactClass({
   displayName: 'RuleRow',
@@ -61,9 +84,16 @@ const RuleRow = createReactClass({
     let editLink = recreateRoute(`${data.id}/`, this.props);
 
     return (
-      <div className="box">
-        <div className="box-header">
-          <div className="pull-right">
+      <Panel>
+        <PanelHeader
+          css={{paddingTop: 5, paddingBottom: 5}}
+          isFlex
+          align="center"
+          justify="space-between"
+        >
+          <TextColorLink to={editLink}>{data.name}</TextColorLink>
+
+          <div>
             <Button style={{marginRight: 5}} size="small" to={editLink}>
               {t('Edit Rule')}
             </Button>
@@ -77,15 +107,13 @@ const RuleRow = createReactClass({
               </Button>
             </Confirm>
           </div>
-          <h3>
-            <Link to={editLink}>{data.name}</Link>
-          </h3>
-        </div>
-        <div className="box-content with-padding">
-          <div className="row">
-            <div className="col-md-6">
+        </PanelHeader>
+
+        <PanelBody>
+          <RuleDescriptionRow>
+            <RuleDescriptionColumn>
               {data.conditions.length !== 0 && (
-                <div>
+                <Condition>
                   <h6>
                     When <strong>{data.actionMatch}</strong> of these conditions are met:
                   </h6>
@@ -100,12 +128,12 @@ const RuleRow = createReactClass({
                       })}
                     </tbody>
                   </table>
-                </div>
+                </Condition>
               )}
-            </div>
-            <div className="col-md-6">
+            </RuleDescriptionColumn>
+            <RuleDescriptionColumn>
               {data.actions.length !== 0 && (
-                <div>
+                <Condition>
                   <h6>
                     Take these actions at most{' '}
                     <strong>
@@ -124,12 +152,12 @@ const RuleRow = createReactClass({
                       })}
                     </tbody>
                   </table>
-                </div>
+                </Condition>
               )}
-            </div>
-          </div>
-        </div>
-      </div>
+            </RuleDescriptionColumn>
+          </RuleDescriptionRow>
+        </PanelBody>
+      </Panel>
     );
   },
 });
