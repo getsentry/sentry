@@ -12,9 +12,9 @@ import SettingsPageHeader from '../settings/components/settingsPageHeader';
 class ProjectPluginsContainer extends React.Component {
   static propTypes = {
     plugins: SentryTypes.PluginsStore,
-    organization: {
+    organization: PropTypes.shape({
       features: PropTypes.arrayOf(PropTypes.string),
-    },
+    }),
   };
 
   componentDidMount() {

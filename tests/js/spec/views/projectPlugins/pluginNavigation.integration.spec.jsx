@@ -17,6 +17,11 @@ describe('PluginNavigation Integration', function() {
     plugins = TestStubs.Plugins();
 
     MockApiClient.addMockResponse({
+      url: `/organizations/${org.slug}/config/integrations/`,
+      method: 'GET',
+      body: {providers: [TestStubs.GitHubIntegrationProvider()]},
+    });
+    MockApiClient.addMockResponse({
       url: `/projects/${org.slug}/${project.slug}/plugins/`,
       method: 'GET',
       body: plugins,
@@ -39,10 +44,14 @@ describe('PluginNavigation Integration', function() {
   describe('with PluginNavigation', function() {
     beforeEach(async function() {
       let params = {orgId: org.slug, projectId: project.slug};
+      let organization = {
+        id: org.slug,
+        features: ['integrations-v3'],
+      };
 
       wrapper = mount(
         <div>
-          <ProjectPlugins params={params} />
+          <ProjectPlugins params={params} organization={organization} />
           <PluginNavigation urlRoot="/" />
         </div>,
         {

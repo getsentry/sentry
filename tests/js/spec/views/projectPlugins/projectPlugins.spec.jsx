@@ -7,16 +7,32 @@ describe('ProjectPlugins', function() {
   let plugins = TestStubs.Plugins();
   let org = TestStubs.Organization();
   let project = TestStubs.Project();
-  let params = {orgId: org.slug, projectId: project.slug};
+  let params = {
+    orgId: org.slug,
+    projectId: project.slug,
+  };
 
   it('renders', function() {
-    wrapper = shallow(<ProjectPlugins params={params} plugins={plugins} />);
+    wrapper = shallow(
+      <ProjectPlugins
+        params={params}
+        plugins={plugins}
+        organization={{features: ['integrations-v3']}}
+      />
+    );
 
     expect(wrapper).toMatchSnapshot();
   });
 
   it('has loading state', function() {
-    wrapper = shallow(<ProjectPlugins params={params} loading plugins={[]} />);
+    wrapper = shallow(
+      <ProjectPlugins
+        params={params}
+        loading
+        plugins={[]}
+        organization={{features: ['integrations-v3']}}
+      />
+    );
 
     expect(wrapper.find('LoadingIndicator')).toHaveLength(1);
   });
@@ -27,6 +43,7 @@ describe('ProjectPlugins', function() {
         params={params}
         plugins={null}
         loading
+        organization={{features: ['integrations-v3']}}
         error={new Error('An error')}
       />
     );
@@ -40,6 +57,7 @@ describe('ProjectPlugins', function() {
         params={params}
         plugins={[]}
         loading
+        organization={{features: ['integrations-v3']}}
         error={new Error('An error')}
       />
     );

@@ -149,6 +149,8 @@ export default class OrganizationIntegrationConfig extends AsyncView {
       return;
     }
 
+    // Merge the new integration into the list. If an integration was updated
+    // integration
     let itemList = [...this.state.itemList, data];
     itemList = sortArray(itemList, i => i.name);
     itemList = _.uniqBy(itemList, i => i.id);
