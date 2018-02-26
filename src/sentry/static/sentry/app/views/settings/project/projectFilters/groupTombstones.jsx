@@ -66,9 +66,6 @@ class GroupTombstones extends AsyncComponent {
   static propTypes = {
     orgId: PropTypes.string.isRequired,
     projectId: PropTypes.string.isRequired,
-    tombstones: PropTypes.array.isRequired,
-    tombstoneError: PropTypes.bool.isRequired,
-    fetchData: PropTypes.func.isRequired,
   };
 
   getEndpoints() {
