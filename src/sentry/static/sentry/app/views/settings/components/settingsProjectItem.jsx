@@ -56,6 +56,8 @@ const ProjectItem = createReactClass({
         },
       })
     );
+    //needed to dismiss tooltip
+    document.activeElement.blur();
   },
 
   render() {
