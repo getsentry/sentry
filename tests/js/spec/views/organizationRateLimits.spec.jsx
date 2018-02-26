@@ -4,8 +4,6 @@ import OrganizationStats from 'app/views/organizationStats';
 
 describe('OrganizationStats', function() {
   beforeEach(function() {
-    jest.useFakeTimers();
-
     MockApiClient.clearMockResponses();
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/projects/',

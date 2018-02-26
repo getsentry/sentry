@@ -348,6 +348,10 @@ class GroupUpdateTest(APITestCase):
 
         assert response.status_code == 200, response.content
 
+        assert Activity.objects.filter(
+            group=group,
+        ).count() == 2
+
         assert not GroupAssignee.objects.filter(group=group, team=team).exists()
 
     def test_assign_unavailable_team(self):
