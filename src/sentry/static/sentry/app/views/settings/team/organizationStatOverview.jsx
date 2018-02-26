@@ -41,7 +41,7 @@ const OrganizationStatOverview = createReactClass({
     let statsEndpoint = this.getOrganizationStatsEndpoint();
     this.api.request(statsEndpoint, {
       query: {
-        since: new Date().getTime() / 1000 - 3600 * 24,
+        since: Date.now() / 1000 - 3600 * 24,
         stat: 'rejected',
       },
       success: data => {
@@ -54,7 +54,7 @@ const OrganizationStatOverview = createReactClass({
     });
     this.api.request(statsEndpoint, {
       query: {
-        since: new Date().getTime() / 1000 - 3600 * 3,
+        since: Date.now() / 1000 - 3600 * 3,
         resolution: '1h',
         stat: 'received',
       },

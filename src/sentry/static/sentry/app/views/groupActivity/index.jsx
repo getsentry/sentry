@@ -18,6 +18,7 @@ import NoteInput from '../../components/activity/noteInput';
 
 import ConfigStore from '../../stores/configStore';
 import GroupStore from '../../stores/groupStore';
+import TeamStore from '../../stores/teamStore';
 import IndicatorStore from '../../stores/indicatorStore';
 import MemberListStore from '../../stores/memberListStore';
 
@@ -165,6 +166,12 @@ const GroupActivity = createReactClass({
       case 'first_seen':
         return t('%s first saw this issue', author);
       case 'assigned':
+        if (data.assigneeType == 'team') {
+          return t('%(author)s assigned this event to the %(assignee)s Team', {
+            author,
+            assignee: TeamStore.getById(data.assignee).name,
+          });
+        }
         let assignee;
         if (item.user && data.assignee === item.user.id) {
           assignee = 'themselves';

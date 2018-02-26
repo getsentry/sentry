@@ -14,8 +14,9 @@ from rest_framework.response import Response
 from sentry import features, search
 from sentry.api.base import DocSection, EnvironmentMixin
 from sentry.api.bases.project import ProjectEndpoint, ProjectEventPermission
-from sentry.api.fields import UserField
+from sentry.api.fields import ActorField, Actor
 from sentry.api.serializers import serialize
+from sentry.api.serializers.models.actor import ActorSerializer
 from sentry.api.serializers.models.group import (
     SUBSCRIPTION_REASON_MAP, StreamGroupSerializer)
 from sentry.constants import DEFAULT_SORT_OPTION
@@ -23,7 +24,7 @@ from sentry.db.models.query import create_or_update
 from sentry.models import (
     Activity, Environment, Group, GroupAssignee, GroupBookmark, GroupHash, GroupResolution,
     GroupSeen, GroupShare, GroupSnooze, GroupStatus, GroupSubscription, GroupSubscriptionReason,
-    GroupTombstone, Release, TOMBSTONE_FIELDS_FROM_GROUP, UserOption
+    GroupTombstone, Release, TOMBSTONE_FIELDS_FROM_GROUP, UserOption, User, Team
 )
 from sentry.models.event import Event
 from sentry.models.group import looks_like_short_id
@@ -159,16 +160,23 @@ class GroupValidator(serializers.Serializer):
     ignoreUserCount = serializers.IntegerField()
     # in minutes, max of one week
     ignoreUserWindow = serializers.IntegerField(max_value=7 * 24 * 60)
-    assignedTo = UserField()
+    assignedTo = ActorField()
 
     # TODO(dcramer): remove in 9.0
     snoozeDuration = serializers.IntegerField()
 
     def validate_assignedTo(self, attrs, source):
         value = attrs[source]
-        if value and not self.context['project'].member_set.filter(user=value).exists():
+        if value and value.type is User and not self.context['project'].member_set.filter(
+                user_id=value.id).exists():
             raise serializers.ValidationError(
                 'Cannot assign to non-team member')
+
+        if value and value.type is Team and not self.context['project'].teams.filter(
+                id=value.id).exists():
+            raise serializers.ValidationError(
+                'Cannot assign to a team without access to the project')
+
         return attrs
 
     def validate(self, attrs):
@@ -225,7 +233,7 @@ class ProjectGroupIndexEndpoint(ProjectEndpoint, EnvironmentMixin):
                 user=acting_user, key='self_assign_issue', default='0'
             )
             if self_assign_issue == '1' and not group.assignee_set.exists():
-                result['assignedTo'] = extract_lazy_object(acting_user)
+                result['assignedTo'] = Actor(type=User, id=extract_lazy_object(acting_user).id)
 
     # statsPeriod=24h
     @attach_scenarios([list_project_issues_scenario])
@@ -394,7 +402,7 @@ class ProjectGroupIndexEndpoint(ProjectEndpoint, EnvironmentMixin):
         :param int ignoreDuration: the number of minutes to ignore this issue.
         :param boolean isPublic: sets the issue to public or private.
         :param boolean merge: allows to merge or unmerge different issues.
-        :param string assignedTo: the username of the user that should be
+        :param string assignedTo: the actor id (or username) of the user or team that should be
                                   assigned to this issue.
         :param boolean hasSeen: in case this API call is invoked with a user
                                 context this allows changing of the flag
@@ -703,18 +711,14 @@ class ProjectGroupIndexEndpoint(ProjectEndpoint, EnvironmentMixin):
                         activity.send_notification()
 
         if 'assignedTo' in result:
-            if result['assignedTo']:
+            assigned_actor = result['assignedTo']
+            if assigned_actor:
                 for group in group_list:
-                    GroupAssignee.objects.assign(
-                        group, result['assignedTo'], acting_user)
+                    resolved_actor = assigned_actor.resolve()
 
-                    if 'isSubscribed' not in result or result['assignedTo'] != request.user:
-                        GroupSubscription.objects.subscribe(
-                            group=group,
-                            user=result['assignedTo'],
-                            reason=GroupSubscriptionReason.assigned,
-                        )
-                result['assignedTo'] = serialize(result['assignedTo'])
+                    GroupAssignee.objects.assign(group, resolved_actor, acting_user)
+                result['assignedTo'] = serialize(
+                    assigned_actor.resolve(), acting_user, ActorSerializer())
             else:
                 for group in group_list:
                     GroupAssignee.objects.deassign(group, acting_user)

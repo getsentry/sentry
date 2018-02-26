@@ -1,6 +1,5 @@
 import React from 'react';
 import {mount} from 'enzyme';
-
 import OrganizationStats from 'app/views/organizationStats';
 
 describe('OrganizationStats', function() {
@@ -24,10 +23,10 @@ describe('OrganizationStats', function() {
       TestStubs.routerContext()
     );
 
-    setTimeout(() => {
+    window.setImmediate(() => {
       wrapper.update();
       expect(wrapper).toMatchSnapshot();
       done();
-    }, 1);
+    });
   });
 });

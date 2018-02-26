@@ -6,7 +6,6 @@ sentry.models.groupassignee
 :license: BSD, see LICENSE for more details.
 """
 from __future__ import absolute_import
-
 import six
 
 from django.conf import settings
@@ -21,7 +20,13 @@ from sentry.signals import issue_assigned
 
 class GroupAssigneeManager(BaseManager):
     def assign(self, group, assigned_to, acting_user=None):
-        from sentry.models import User, Team
+        from sentry.models import User, Team, GroupSubscription, GroupSubscriptionReason
+
+        GroupSubscription.objects.subscribe_actor(
+            group=group,
+            actor=assigned_to,
+            reason=GroupSubscriptionReason.assigned,
+        )
 
         if isinstance(assigned_to, User):
             assignee_type = 'user'
@@ -118,3 +123,17 @@ class GroupAssignee(Model):
             not (self.user_id is None and self.team_id is None)
         ), 'Must have Team or User, not both'
         super(GroupAssignee, self).save(*args, **kwargs)
+
+    def assigned_actor_id(self):
+        if self.user:
+            return u"user:{}".format(self.user_id)
+
+        if self.team:
+            return u"team:{}".format(self.team_id)
+
+        raise NotImplementedError("Unkown Assignee")
+
+    def assigned_actor(self):
+        from sentry.api.fields.actor import Actor
+
+        return Actor.from_actor_id(self.assigned_actor_id())

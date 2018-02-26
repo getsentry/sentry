@@ -5,7 +5,6 @@ from rest_framework import serializers
 from sentry.testutils import TestCase
 
 from sentry.api.serializers.rest_framework import ListField, ActorField
-from sentry.api.fields.actor import Actor
 from sentry.models import User, Team
 
 
@@ -72,9 +71,9 @@ class TestActorField(TestCase):
 
         serializer = DummySerializer(data=data)
         assert serializer.is_valid()
-        assert serializer.object == {
-            'actor_field': Actor(id=1, type=User)
-        }
+
+        assert serializer.object['actor_field'].type == User
+        assert serializer.object['actor_field'].id == 1
 
     def test_legacy_user_fallback(self):
         data = {
@@ -83,9 +82,9 @@ class TestActorField(TestCase):
 
         serializer = DummySerializer(data=data)
         assert serializer.is_valid()
-        assert serializer.object == {
-            'actor_field': Actor(id=1, type=User)
-        }
+
+        assert serializer.object['actor_field'].type == User
+        assert serializer.object['actor_field'].id == 1
 
     def test_team(self):
         data = {
@@ -94,9 +93,8 @@ class TestActorField(TestCase):
 
         serializer = DummySerializer(data=data)
         assert serializer.is_valid()
-        assert serializer.object == {
-            'actor_field': Actor(id=1, type=Team)
-        }
+        assert serializer.object['actor_field'].type == Team
+        assert serializer.object['actor_field'].id == 1
 
     def test_validates(self):
         data = {

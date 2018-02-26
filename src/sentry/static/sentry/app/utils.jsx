@@ -280,6 +280,11 @@ function projectDisplayCompare(a, b) {
 export function sortProjects(projects) {
   return projects.sort(projectDisplayCompare);
 }
+
+//build actorIds
+export const buildUserId = id => `user:${id}`;
+export const buildTeamId = id => `team:${id}`;
+
 // re-export under utils
 export {parseLinkHeader, deviceNameMapper, Collection, PendingChangeQueue, CursorPoller};
 
@@ -304,6 +309,8 @@ export default {
   modelsEqual,
   valueIsEqual,
   parseLinkHeader,
+  buildUserId,
+  buildTeamId,
 
   // external imports
   deviceNameMapper,
