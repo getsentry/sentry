@@ -259,11 +259,9 @@ class ProjectFiltersSettings extends AsyncComponent {
                 <FieldFromConfig key={field.name} field={field} />
               ));
 
-              return features.has('custom-inbound-filters') ? (
-                <React.Fragment>{customFilters}</React.Fragment>
-              ) : (
-                this.renderDisabledFeature(customFilters)
-              );
+              return features.has('custom-inbound-filters')
+                ? customFilters
+                : this.renderDisabledFeature(customFilters);
             }}
           />
         </Form>
