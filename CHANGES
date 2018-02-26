@@ -2,6 +2,7 @@ Version 8.23 (Unreleased)
 -------------------------
 - Experimental implementation of Slack actions via a new Integrations and Identity API.
 - Display the organization setting that was updated, along with the old/new value, in the Audit Log.
+- Group and ProjectGroupIndex endpoints now return AssignedTo as an object with the keys `id`, `type`, and `name`, instead of a full UserDetails object.
 
 Schema Changes
 ~~~~~~~~~~~~~~

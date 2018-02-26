@@ -314,6 +314,29 @@ class MailPluginTest(TestCase):
             user=self.create_user('foo@example.com'),
             data={
                 'assignee': six.text_type(self.user.id),
+                'assigneeType': 'user',
+            },
+        )
+
+        with self.tasks():
+            self.plugin.notify_about_activity(activity)
+
+        assert len(mail.outbox) == 1
+
+        msg = mail.outbox[0]
+
+        assert msg.subject == 'Re: [Sentry] BAR-1 - \xe3\x81\x93\xe3\x82\x93\xe3\x81\xab\xe3\x81\xa1\xe3\x81\xaf'
+        assert msg.to == [self.user.email]
+
+    def test_assignment_team(self):
+        activity = Activity.objects.create(
+            project=self.project,
+            group=self.group,
+            type=Activity.ASSIGNED,
+            user=self.create_user('foo@example.com'),
+            data={
+                'assignee': six.text_type(self.project.teams.first().id),
+                'assigneeType': 'team',
             },
         )
 
