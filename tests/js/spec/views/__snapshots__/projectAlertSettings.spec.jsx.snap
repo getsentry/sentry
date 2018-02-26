@@ -158,6 +158,7 @@ exports[`ProjectAlertSettings render() renders 1`] = `
           "dataScrubberDefaults": false,
           "digestsMaxDelay": 60,
           "digestsMinDelay": 5,
+          "features": Array [],
           "id": "2",
           "name": "Project Name",
           "resolveAge": 48,
