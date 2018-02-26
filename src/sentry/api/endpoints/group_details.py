@@ -201,6 +201,8 @@ class GroupDetailsEndpoint(GroupEndpoint, EnvironmentMixin):
         if last_release:
             last_release = self._get_release_info(request, group, last_release)
 
+        environment_id = None
+
         try:
             environment_id = self._get_environment_id_from_request(
                 request, group.project.organization_id)
@@ -248,7 +250,7 @@ class GroupDetailsEndpoint(GroupEndpoint, EnvironmentMixin):
                 'pluginActions': action_list,
                 'pluginIssues': self._get_available_issue_plugins(request, group),
                 'pluginContexts': self._get_context_plugins(request, group),
-                'userReportCount': UserReport.objects.filter(group=group).count(),
+                'userReportCount': UserReport.objects.filter(group=group, environment_id=environment_id).count(),
                 'tags': sorted(serialize(tags, request.user), key=lambda x: x['name']),
                 'stats': {
                     '24h': hourly_stats,
