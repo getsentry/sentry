@@ -2,13 +2,12 @@ import PropTypes from 'prop-types';
 import React from 'react';
 import createReactClass from 'create-react-class';
 import {Link} from 'react-router';
-import Reflux from 'reflux';
 
-import LatestContextStore from '../stores/latestContextStore';
 import EventList from './projectDashboard/eventList';
 import ProjectState from '../mixins/projectState';
 import ProjectChart from './projectDashboard/chart';
 import {t} from '../locale';
+import withEnvironment from '../utils/withEnvironment';
 
 const PERIOD_HOUR = '1h';
 const PERIOD_DAY = '1d';
@@ -21,9 +20,10 @@ const ProjectDashboard = createReactClass({
   propTypes: {
     defaultStatsPeriod: PropTypes.string,
     setProjectNavSection: PropTypes.func,
+    environment: PropTypes.object,
   },
 
-  mixins: [ProjectState, Reflux.listenTo(LatestContextStore, 'onLatestContextChange')],
+  mixins: [ProjectState],
 
   getDefaultProps() {
     return {
@@ -34,19 +34,12 @@ const ProjectDashboard = createReactClass({
   getInitialState() {
     return {
       statsPeriod: this.props.defaultStatsPeriod,
-      activeEnvironment: null,
-      hasEnvironmentsFeature: new Set(this.context.organization.features).has(
-        'environments'
-      ),
       ...this.getQueryStringState(),
     };
   },
 
   componentWillMount() {
     this.props.setProjectNavSection('dashboard');
-
-    // Manually fire onLatestContextChange
-    this.onLatestContextChange(LatestContextStore.getInitialState());
   },
 
   componentWillReceiveProps(nextProps) {
@@ -89,14 +82,6 @@ const ProjectDashboard = createReactClass({
       case PERIOD_DAY:
       default:
         return '1h';
-    }
-  },
-
-  onLatestContextChange(context) {
-    if (this.state.hasEnvironmentsFeature) {
-      this.setState({
-        activeEnvironment: context.environment,
-      });
     }
   },
 
@@ -157,7 +142,7 @@ const ProjectDashboard = createReactClass({
           <div className="col-md-6">
             <EventList
               type="priority"
-              environment={this.state.activeEnvironment}
+              environment={this.props.environment}
               dateSince={dateSince}
               params={this.props.params}
             />
@@ -165,7 +150,7 @@ const ProjectDashboard = createReactClass({
           <div className="col-md-6">
             <EventList
               type="new"
-              environment={this.state.activeEnvironment}
+              environment={this.props.environment}
               dateSince={dateSince}
               params={this.props.params}
             />
@@ -176,4 +161,4 @@ const ProjectDashboard = createReactClass({
   },
 });
 
-export default ProjectDashboard;
+export default withEnvironment(ProjectDashboard);
