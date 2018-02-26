@@ -23,22 +23,19 @@ const Action = styled.div`
   margin: ${p => p.theme.grid * 2.5}px auto 0;
 `;
 
-class EmptyMessage extends React.Component {
-  render() {
-    let {icon, children, action} = this.props;
-    return (
-      <Wrapper>
-        {icon && (
-          <Icon>
-            <InlineSvg src={icon} size="48px" />
-          </Icon>
-        )}
-        <div className="ref-message">{children}</div>
-        {action && <Action>{action}</Action>}
-      </Wrapper>
-    );
-  }
-}
+const EmptyMessage = ({icon, children, action}) => {
+  return (
+    <Wrapper>
+      {icon && (
+        <Icon>
+          <InlineSvg src={icon} size="48px" />
+        </Icon>
+      )}
+      <div className="ref-message">{children}</div>
+      {action && <Action>{action}</Action>}
+    </Wrapper>
+  );
+};
 
 EmptyMessage.propTypes = {
   icon: PropTypes.string,
