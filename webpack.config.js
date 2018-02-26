@@ -3,7 +3,7 @@
 var path = require('path'),
   fs = require('fs'),
   webpack = require('webpack'),
-  ExtractTextPlugin = require('extract-text-webpack-plugin'),
+  ExtractTextPlugin = require('mini-css-extract-plugin'),
   LodashModuleReplacementPlugin = require('lodash-webpack-plugin');
 
 var staticPrefix = 'src/sentry/static/sentry',
@@ -45,34 +45,34 @@ if (process.env.SENTRY_EXTRACT_TRANSLATIONS === '1') {
 
 var appEntry = {
   app: ['app'],
-  vendor: [
-    'babel-polyfill',
-    // Yes this is included in prod builds, but has no effect on render and build size in prod
-    'react-hot-loader/patch',
-    'bootstrap/js/dropdown',
-    'bootstrap/js/tab',
-    'bootstrap/js/tooltip',
-    'bootstrap/js/alert',
-    'create-react-class',
-    'jed',
-    'jquery',
-    'marked',
-    'moment',
-    'moment-timezone',
-    'raven-js',
-    'react',
-    'react-dom',
-    'react-dom/server',
-    'react-document-title',
-    'react-router',
-    'react-bootstrap/lib/Modal',
-    'reflux',
-    'vendor/simple-slider/simple-slider',
-    'emotion',
-    'react-emotion',
-    'grid-emotion',
-    'emotion-theming',
-  ],
+  // vendor: [
+    // 'babel-polyfill',
+    // // Yes this is included in prod builds, but has no effect on render and build size in prod
+    // 'react-hot-loader/patch',
+    // 'bootstrap/js/dropdown',
+    // 'bootstrap/js/tab',
+    // 'bootstrap/js/tooltip',
+    // 'bootstrap/js/alert',
+    // 'create-react-class',
+    // 'jed',
+    // 'jquery',
+    // 'marked',
+    // 'moment',
+    // 'moment-timezone',
+    // 'raven-js',
+    // 'react',
+    // 'react-dom',
+    // 'react-dom/server',
+    // 'react-document-title',
+    // 'react-router',
+    // 'react-bootstrap/lib/Modal',
+    // 'reflux',
+    // 'vendor/simple-slider/simple-slider',
+    // 'emotion',
+    // 'react-emotion',
+    // 'grid-emotion',
+    // 'emotion-theming',
+  // ],
 };
 
 // dynamically iterate over locale files and add to `entry` appConfig
@@ -91,7 +91,7 @@ localeCatalog.supported_locales.forEach(function(locale) {
   ];
   localeEntries.push('locale/' + normalizedLocale);
 });
-
+process.traceDeprecation = true;
 /**
  * Main Webpack config for Sentry React SPA.
  */
@@ -114,10 +114,6 @@ var appConfig = {
           referenceExtensions: ['.js', '.jsx'],
           domain: 'sentry',
         },
-      },
-      {
-        test: /\.json$/,
-        loader: 'json-loader',
       },
       {
         test: /app\/icons\/.*\.svg$/,
@@ -176,6 +172,7 @@ var appConfig = {
     ],
   },
   plugins: [
+<<<<<<< HEAD
     new LodashModuleReplacementPlugin({
       collections: true,
       currying: true, // these are enabled to support lodash/fp/ features
@@ -185,13 +182,32 @@ var appConfig = {
     new webpack.optimize.CommonsChunkPlugin({
       names: localeEntries.concat(['vendor']), // 'vendor' must be last entry
     }),
+||||||| parent of 8c142a0658... wip: webpack4
+    new LodashModuleReplacementPlugin({
+      collections: true,
+      currying: true, // these are enabled to support lodash/fp/ features
+      flattening: true, // used by a dependency of react-mentions
+    }),
+    new webpack.optimize.CommonsChunkPlugin({
+      names: localeEntries.concat(['vendor']), // 'vendor' must be last entry
+    }),
+=======
+    // new LodashModuleReplacementPlugin({
+    // collections: true,
+    // currying: true, // these are enabled to support lodash/fp/ features
+    // flattening: true, // used by a dependency of react-mentions
+    // }),
+>>>>>>> 8c142a0658... wip: webpack4
     new webpack.ProvidePlugin({
       $: 'jquery',
       jQuery: 'jquery',
       'window.jQuery': 'jquery',
       'root.jQuery': 'jquery',
     }),
-    new ExtractTextPlugin('[name].css'),
+    new ExtractTextPlugin({
+      filename: '[name].css',
+      chunkFilename: '[id].css',
+    }),
     new webpack.IgnorePlugin(/^\.\/locale$/, /moment$/), // ignore moment.js locale files
     new webpack.DefinePlugin({
       'process.env': {
@@ -227,6 +243,11 @@ var appConfig = {
     libraryTarget: 'var',
     library: 'exports',
     sourceMapFilename: '[name].js.map',
+  },
+  optimization: {
+    splitChunks: {
+      chunks: 'all',
+    },
   },
   devtool: IS_PRODUCTION ? '#source-map' : '#cheap-module-eval-source-map',
 };
@@ -271,9 +292,14 @@ var legacyCssConfig = {
   context: path.join(__dirname, staticPrefix),
   output: {
     path: distPath,
-    filename: '[name].css',
+    // filename: '[name].css',
   },
-  plugins: [new ExtractTextPlugin('[name].css')],
+  plugins: [
+    new ExtractTextPlugin({
+      filename: '[name].css',
+      chunkFilename: '[id].css',
+    }),
+  ],
   resolve: {
     extensions: ['.less', '.js'],
     modules: [path.join(__dirname, staticPrefix), 'node_modules'],
@@ -283,24 +309,28 @@ var legacyCssConfig = {
       {
         test: /\.less$/,
         include: path.join(__dirname, staticPrefix),
-        use: ExtractTextPlugin.extract({
-          fallback: 'style-loader?sourceMap=false',
-          use: [
-            {
-              loader: 'css-loader',
-              options: {
-                sourceMap: WITH_CSS_SOURCEMAPS,
-                minimize: IS_PRODUCTION,
-              },
-            },
-            {
-              loader: 'less-loader',
-              options: {
-                sourceMap: WITH_CSS_SOURCEMAPS,
-              },
-            },
-          ],
-        }),
+        use: [
+          ExtractTextPlugin.loader,
+          // fallback: 'style-loader?sourceMap=false',
+          'css-loader',
+          'less-loader',
+        ],
+        // use: [
+        // {
+        // loader: 'css-loader',
+        // options: {
+        // sourceMap: WITH_CSS_SOURCEMAPS,
+        // minimize: IS_PRODUCTION,
+        // },
+        // },
+        // {
+        // loader: 'less-loader',
+        // options: {
+        // sourceMap: WITH_CSS_SOURCEMAPS,
+        // },
+        // },
+        // ],
+        // }),
       },
       {
         test: /\.(woff|woff2|ttf|eot|svg|png|gif|ico|jpg)($|\?)/,
@@ -314,7 +344,7 @@ var legacyCssConfig = {
 // Dev only! Hot module reloading
 if (USE_HOT_MODULE_RELOAD) {
   // Otherwise with hot reloads we get module ID number
-  appConfig.plugins.push(new webpack.NamedModulesPlugin());
+  // appConfig.plugins.push(new webpack.NamedModulesPlugin()); // default in webpack4 dev mode
 
   // HMR
   appConfig.plugins.push(new webpack.HotModuleReplacementPlugin());
@@ -347,19 +377,18 @@ var minificationPlugins = [
     },
     regExp: /\.(js|map|css|svg|html|txt|ico|eot|ttf)$/,
   }),
-
   // Disable annoying UglifyJS warnings that pollute Travis log output
   // NOTE: This breaks -p in webpack 2. Must call webpack w/ NODE_ENV=production for minification.
-  new webpack.optimize.UglifyJsPlugin({
-    compress: {
-      warnings: false,
-    },
-    // https://github.com/webpack/webpack/blob/951a7603d279c93c936e4b8b801a355dc3e26292/bin/convert-argv.js#L442
-    sourceMap:
-      appConfig.devtool &&
-      (appConfig.devtool.indexOf('sourcemap') >= 0 ||
-        appConfig.devtool.indexOf('source-map') >= 0),
-  }),
+  // new webpack.optimize.UglifyJsPlugin({
+  // compress: {
+  // warnings: false,
+  // },
+  // // https://github.com/webpack/webpack/blob/951a7603d279c93c936e4b8b801a355dc3e26292/bin/convert-argv.js#L442
+  // sourceMap:
+  // appConfig.devtool &&
+  // (appConfig.devtool.indexOf('sourcemap') >= 0 ||
+  // appConfig.devtool.indexOf('source-map') >= 0),
+  // }),
 ];
 
 if (IS_PRODUCTION) {

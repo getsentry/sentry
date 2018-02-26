@@ -24,8 +24,8 @@ export function setLocaleDebug(value) {
 
 let i18n = null;
 
-export function setLocale(locale) {
-  let translations = getTranslations(locale);
+export async function setLocale(locale) {
+  let translations = await getTranslations(locale);
   i18n = new Jed({
     domain: 'sentry',
     missing_key_callback: function(key) {},
