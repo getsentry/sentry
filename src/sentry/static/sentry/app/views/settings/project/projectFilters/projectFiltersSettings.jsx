@@ -104,12 +104,12 @@ class LegacyBrowserFilterRow extends React.Component {
     return (
       <div>
         <BulkFilter>
-          <BulkFilterLabel>Filter:</BulkFilterLabel>
+          <BulkFilterLabel>{t('Filter')}:</BulkFilterLabel>
           <BulkFilterItem onClick={this.handleToggleSubfilters.bind(this, true)}>
-            All
+            {t('All')}
           </BulkFilterItem>
           <BulkFilterItem onClick={this.handleToggleSubfilters.bind(this, false)}>
-            None
+            {t('None')}
           </BulkFilterItem>
         </BulkFilter>
 
