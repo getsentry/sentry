@@ -18,7 +18,9 @@ export function assignToUser(params) {
     // Sending an empty value to assignedTo is the same as "clear",
     // so if no member exists, that implies that we want to clear the
     // current assignee.
-    data: {assignedTo: (params.member && buildUserId(params.member.id)) || ''},
+    data: {
+      assignedTo: params.member ? buildUserId(params.member.id) : '',
+    },
   });
 
   request
@@ -26,7 +28,7 @@ export function assignToUser(params) {
       GroupActions.assignToSuccess(id, params.id, data);
     })
     .catch(data => {
-      GroupActions.assignTodata(id, params.id, data);
+      GroupActions.assignToError(id, params.id, data);
     });
 
   return request;
@@ -37,7 +39,7 @@ export function assignToActor({id, actor}) {
 
   let endpoint = `/issues/${id}/`;
 
-  let unique_id = api.uniqueId();
+  let uniqueId = api.uniqueId();
   let actorId;
   switch (actor.type) {
     case 'user':
@@ -49,28 +51,23 @@ export function assignToActor({id, actor}) {
       break;
 
     default:
-      Raven.captureException('Unknown type');
+      Raven.captureException('Unknown assignee type', {
+        extra: {actor},
+      });
   }
-  //TODO maxbittker deal with ramifications of sending teams here
-  // GroupActions.assignTo(id, params.id, {
-  //   email: (params.member && params.member.email) || '',
-  // });
 
-  let request = api.requestPromise(endpoint, {
-    method: 'PUT',
-    // Sending an empty value to assignedTo is the same as "clear",
-    // so if no member exists, that implies that we want to clear the
-    // current assignee.
-    data: {assignedTo: actorId || ''},
-  });
-
-  request
+  return api
+    .requestPromise(endpoint, {
+      method: 'PUT',
+      // Sending an empty value to assignedTo is the same as "clear",
+      // so if no member exists, that implies that we want to clear the
+      // current assignee.
+      data: {assignedTo: actorId || ''},
+    })
     .then(data => {
-      GroupActions.assignToSuccess(unique_id, id, data);
+      GroupActions.assignToSuccess(uniqueId, id, data);
     })
     .catch(data => {
-      GroupActions.assignTodata(unique_id, id, data);
+      GroupActions.assignToError(uniqueId, id, data);
     });
-
-  return request;
 }

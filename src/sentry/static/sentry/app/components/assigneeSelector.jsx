@@ -109,7 +109,7 @@ const AssigneeSelector = createReactClass({
   assignableTeams() {
     let group = GroupStore.get(this.props.id);
     return _.uniqBy(TeamStore.getAll(), ({id}) => id)
-      .filter(({projects}) => !!projects.find(p => p.slug === group.project.slug))
+      .filter(({projects}) => projects.some(p => p.slug === group.project.slug))
       .map(team => ({
         id: buildTeamId(team.id),
         name: team.slug,
@@ -129,8 +129,8 @@ const AssigneeSelector = createReactClass({
     });
   },
 
-  assignTo(member) {
-    assignToUser({id: this.props.id, member});
+  assignToUser(user) {
+    assignToUser({id: this.props.id, user});
     this.setState({filter: '', loading: true});
   },
 
@@ -140,6 +140,7 @@ const AssigneeSelector = createReactClass({
   },
 
   clearAssignTo() {
+    //clears assignment
     assignToUser({id: this.props.id});
     this.setState({filter: '', loading: true});
   },
@@ -161,7 +162,7 @@ const AssigneeSelector = createReactClass({
         this.state.filter
       );
       if (members.length > 0) {
-        this.assignTo(members[0]);
+        this.assignToUser(members[0]);
       }
     }
   },
@@ -225,7 +226,7 @@ const AssigneeSelector = createReactClass({
             <MenuItem
               key={buildUserId(item.id)}
               disabled={loading}
-              onSelect={this.assignTo.bind(this, item)}
+              onSelect={this.assignToUser.bind(this, item)}
             >
               <Avatar user={item} className="avatar" size={48} />
               {this.highlight(item.name || item.email, filter)}

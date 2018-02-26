@@ -13,7 +13,7 @@ import stubReactComponents from '../../helpers/stubReactComponent';
 describe('AssigneeSelector', function() {
   let sandbox;
   let assigneeSelector;
-  let assignTo;
+  let assignToUser;
 
   const USER_1 = {
     id: 1,
@@ -159,7 +159,7 @@ describe('AssigneeSelector', function() {
       // open menu
       assigneeSelector.find('a').simulate('click');
 
-      assignTo = sandbox.stub(assigneeSelector.instance(), 'assignTo');
+      assignToUser = sandbox.stub(assigneeSelector.instance(), 'assignToUser');
     });
 
     afterEach(function() {
@@ -172,8 +172,8 @@ describe('AssigneeSelector', function() {
       let filter = assigneeSelector.find('input');
       filter.simulate('keyDown', {key: 'Enter', keyCode: 13, which: 13});
 
-      expect(assignTo.calledOnce).toBeTruthy();
-      expect(assignTo.lastCall.args[0]).toHaveProperty('name', 'Jane Doe');
+      expect(assignToUser.calledOnce).toBeTruthy();
+      expect(assignToUser.lastCall.args[0]).toHaveProperty('name', 'Jane Doe');
     });
 
     it('should do nothing when the Enter key is pressed, but filter is the empty string', function() {
@@ -182,7 +182,7 @@ describe('AssigneeSelector', function() {
       let filter = assigneeSelector.find('input');
       filter.simulate('keyDown', {key: 'Enter', keyCode: 13, which: 13});
 
-      expect(assignTo.notCalled).toBeTruthy();
+      expect(assignToUser.notCalled).toBeTruthy();
     });
 
     it('should do nothing if a non-Enter key is pressed', function() {
@@ -190,7 +190,7 @@ describe('AssigneeSelector', function() {
 
       let filter = assigneeSelector.find('input');
       filter.simulate('keyDown', {key: 'h', keyCode: 72, which: 72});
-      expect(assignTo.notCalled).toBeTruthy();
+      expect(assignToUser.notCalled).toBeTruthy();
     });
   });
 

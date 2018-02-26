@@ -8,7 +8,7 @@ import TeamStore from '../stores/teamStore';
 
 class ActorAvatar extends React.Component {
   static propTypes = {
-    actor: Actor,
+    actor: Actor.isRequired,
     size: PropTypes.number,
     default: PropTypes.string,
     title: PropTypes.string,
@@ -25,8 +25,10 @@ class ActorAvatar extends React.Component {
       let team = TeamStore.getById(actor.id);
       return <TeamAvatar team={team} {...props} />;
     }
-    Raven.captureException('Unknown type');
-    return <div>Unknown Type</div>;
+    Raven.captureException('Unknown avatar type', {
+      extra: {actor},
+    });
+    return null;
   }
 }
 
