@@ -33,9 +33,9 @@ class GroupTombstoneRow extends React.Component {
         </div>
         <div className="col-md-1 event-actor">
           {actor && (
-            <span className="tip" title={t('Discarded by %s', actor.name || actor.email)}>
+            <Tooltip title={t('Discarded by %s', actor.name || actor.email)}>
               <Avatar user={data.actor} />
-            </span>
+            </Tooltip>
           )}
         </div>
         <div className="col-md-1 event-undiscard">
