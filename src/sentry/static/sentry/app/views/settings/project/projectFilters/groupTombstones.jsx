@@ -43,7 +43,7 @@ class GroupTombstoneRow extends React.Component {
             <LinkWithConfirmation
               className="group-remove btn btn-default btn-sm"
               message={t(
-                'Undiscarding this group means that ' +
+                'Undiscarding this issue means that ' +
                   'incoming events that match this will no longer be discarded. ' +
                   'New incoming events will count toward your event quota ' +
                   'and will display on your issues dashboard. ' +
@@ -85,7 +85,7 @@ class GroupTombstones extends AsyncComponent {
         addSuccessMessage(t('Events similar to these will no longer be filtered'));
       },
       error: () => {
-        addErrorMessage(t('We were unable to undiscard this group'));
+        addErrorMessage(t('We were unable to undiscard this issue'));
       },
     });
     this.fetchData();
