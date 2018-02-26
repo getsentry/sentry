@@ -63,6 +63,8 @@ class ContextPickerModal extends React.Component {
     super(props);
 
     this.state = {
+      // Initialize loading to true if there is only 1 organization because component will immediately
+      // attempt to fetch org details for that org. Otherwise we'd have to change state in `DidMount`
       loading: props.organizations.length === 1,
     };
   }
@@ -123,36 +125,39 @@ class ContextPickerModal extends React.Component {
   ) => {
     let {needProject, onFinish, nextPath} = this.props;
 
+    // If no project is needed and theres only 1 org OR
+    // if we need a project and there's only 1 project
+    // then return because we can't navigate anywhere yet
+    if (
+      (!needProject && organizations.length !== 1) ||
+      (needProject && projects.length !== 1)
+    ) {
+      this.setState({loading: false});
+      return;
+    }
+
     // If there is only one org and we dont need a project slug, then call finish callback
     if (!needProject) {
-      if (organizations.length !== 1) {
-        this.setState({loading: false});
-        return;
-      }
-
       onFinish(
         replaceRouterParams(nextPath, {
           orgId: organizations[0].slug,
         })
       );
-    } else {
-      if (projects.length !== 1) {
-        this.setState({loading: false});
-        return;
-      }
-
-      let org = latestOrg;
-      if (!org && organizations.length === 1) {
-        org = organizations[0];
-      }
-
-      onFinish(
-        replaceRouterParams(nextPath, {
-          orgId: org.slug,
-          projectId: projects[0].slug,
-        })
-      );
+      return;
     }
+
+    // Use latest org or if only 1 org, use that
+    let org = latestOrg;
+    if (!org && organizations.length === 1) {
+      org = organizations[0];
+    }
+
+    onFinish(
+      replaceRouterParams(nextPath, {
+        orgId: org.slug,
+        projectId: projects[0].slug,
+      })
+    );
   };
 
   handleSelectOrganization = value => {
