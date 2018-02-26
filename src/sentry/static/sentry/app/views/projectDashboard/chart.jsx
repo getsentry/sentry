@@ -15,6 +15,7 @@ const ProjectChart = createReactClass({
   propTypes: {
     dateSince: PropTypes.number.isRequired,
     resolution: PropTypes.string.isRequired,
+    environment: PropTypes.object,
   },
 
   mixins: [ApiMixin, ProjectState],
@@ -55,12 +56,21 @@ const ProjectChart = createReactClass({
   },
 
   fetchData() {
+    const statsQuery = {
+      since: this.props.dateSince,
+      resolution: this.props.resolution,
+      stat: 'generated',
+    };
+
+    const releasesQuery = {};
+
+    if (this.props.environment) {
+      statsQuery.environment = this.props.environment.name;
+      releasesQuery.environment = this.props.environment.name;
+    }
+
     this.api.request(this.getStatsEndpoint(), {
-      query: {
-        since: this.props.dateSince,
-        resolution: this.props.resolution,
-        stat: 'generated',
-      },
+      query: statsQuery,
       success: data => {
         this.setState({
           stats: data,
@@ -77,6 +87,7 @@ const ProjectChart = createReactClass({
     });
 
     this.api.request(this.getProjectReleasesEndpoint(), {
+      query: releasesQuery,
       success: (data, _, jqXHR) => {
         this.setState({
           releaseList: data,
