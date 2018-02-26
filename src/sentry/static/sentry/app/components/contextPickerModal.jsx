@@ -79,7 +79,7 @@ class ContextPickerModal extends React.Component {
     // attempt to see if we need more info from user and redirect otherwise
     if (latestContext.organization) {
       // This will handle if we can intelligently move the user forward
-      this.checkShouldFinish(
+      this.navigateIfFinish(
         [latestContext.organization],
         latestContext.organization.projects
       );
@@ -105,7 +105,7 @@ class ContextPickerModal extends React.Component {
         latestContext.organization.slug !== nextProps.latestContext.organization.slug)
     ) {
       // Check if we can push the user forward w/o needing them to select anything
-      this.checkShouldFinish(
+      this.navigateIfFinish(
         this.props.organizations,
         nextProps.latestContext.organization.projects,
         nextProps.latestContext.organization
@@ -116,7 +116,7 @@ class ContextPickerModal extends React.Component {
   // Performs checks to see if we need to prompt user
   // i.e. When there is only 1 org and no project is needed or
   // there is only 1 org and only 1 project (which should be rare)
-  checkShouldFinish = (
+  navigateIfFinish = (
     organizations,
     projects,
     latestOrg = this.props.latestContext && this.props.latestContext.organization
@@ -157,7 +157,7 @@ class ContextPickerModal extends React.Component {
 
   handleSelectOrganization = value => {
     if (!this.props.needProject) {
-      this.checkShouldFinish([{slug: value}], []);
+      this.navigateIfFinish([{slug: value}], []);
     }
     this.setState(
       {
@@ -172,7 +172,7 @@ class ContextPickerModal extends React.Component {
 
     if (!projectId || !latestContext.organization) return;
 
-    this.checkShouldFinish([latestContext.organization], [{slug: projectId}]);
+    this.navigateIfFinish([latestContext.organization], [{slug: projectId}]);
   };
 
   render() {
