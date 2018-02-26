@@ -13,7 +13,6 @@ class ReleaseProjectEnvironment(Model):
 
     release = FlexibleForeignKey('sentry.Release')
     project = FlexibleForeignKey('sentry.Project')
-    group = FlexibleForeignKey('sentry.Group')
     environment = FlexibleForeignKey('sentry.Environment')
     new_issues_count = BoundedPositiveIntegerField(default=0)
     first_seen = models.DateTimeField(default=timezone.now)
@@ -22,7 +21,7 @@ class ReleaseProjectEnvironment(Model):
     class Meta:
         app_label = 'sentry'
         db_table = 'sentry_releaseprojectenvironment'
-        unique_together = (('project', 'release', 'group', 'environment'), )
+        unique_together = (('project', 'release', 'environment'), )
 
     __repr__ = sane_repr('project', 'release', 'environment')
 
@@ -35,7 +34,7 @@ class ReleaseProjectEnvironment(Model):
         )
 
     @classmethod
-    def get_or_create(cls, release, project, group, environment, datetime, **kwargs):
+    def get_or_create(cls, release, project, environment, datetime, **kwargs):
         cache_key = cls.get_cache_key(project.id, release.id, environment.id)
 
         instance = cache.get(cache_key)
@@ -43,7 +42,6 @@ class ReleaseProjectEnvironment(Model):
             instance, created = cls.objects.get_or_create(
                 release=release,
                 project=project,
-                group=group,
                 environment=environment,
                 defaults={
                     'first_seen': datetime,
