@@ -151,6 +151,7 @@ exports[`ProjectPluginDetails renders 1`] = `
       "id": "3",
       "name": "Organization Name",
       "onboardingTasks": Array [],
+      "projects": Array [],
       "slug": "org-slug",
       "status": Object {
         "id": "active",
@@ -201,6 +202,7 @@ exports[`ProjectPluginDetails renders 1`] = `
         "id": "3",
         "name": "Organization Name",
         "onboardingTasks": Array [],
+        "projects": Array [],
         "slug": "org-slug",
         "status": Object {
           "id": "active",
@@ -404,6 +406,7 @@ exports[`ProjectPluginDetails renders 1`] = `
                     "id": "3",
                     "name": "Organization Name",
                     "onboardingTasks": Array [],
+                    "projects": Array [],
                     "slug": "org-slug",
                     "status": Object {
                       "id": "active",
@@ -572,6 +575,7 @@ exports[`ProjectPluginDetails renders 1`] = `
                                   "id": "3",
                                   "name": "Organization Name",
                                   "onboardingTasks": Array [],
+                                  "projects": Array [],
                                   "slug": "org-slug",
                                   "status": Object {
                                     "id": "active",

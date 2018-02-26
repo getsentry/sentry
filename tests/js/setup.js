@@ -494,6 +494,7 @@ window.TestStubs = {
       features: [],
       onboardingTasks: [],
       teams: [],
+      projects: [],
       ...params,
     };
   },

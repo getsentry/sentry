@@ -101,11 +101,7 @@ const OrganizationContext = createReactClass({
         setActiveOrganization(data);
 
         TeamStore.loadInitialData(data.teams);
-        ProjectsStore.loadInitialData(
-          data.teams.reduce((out, team) => {
-            return out.concat(team.projects);
-          }, [])
-        );
+        ProjectsStore.loadInitialData(data.projects);
       },
 
       error: (_, textStatus, errorThrown) => {

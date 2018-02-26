@@ -312,6 +312,7 @@ exports[`OrganizationProjectsView render() Should render the projects in the sto
                                       "id": "3",
                                       "name": "Organization Name",
                                       "onboardingTasks": Array [],
+                                      "projects": Array [],
                                       "slug": "org-slug",
                                       "status": Object {
                                         "id": "active",
@@ -387,6 +388,7 @@ exports[`OrganizationProjectsView render() Should render the projects in the sto
                                                 "id": "3",
                                                 "name": "Organization Name",
                                                 "onboardingTasks": Array [],
+                                                "projects": Array [],
                                                 "slug": "org-slug",
                                                 "status": Object {
                                                   "id": "active",
