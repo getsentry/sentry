@@ -13,6 +13,7 @@ class ReleaseProjectEnvironment(Model):
 
     release = FlexibleForeignKey('sentry.Release')
     project = FlexibleForeignKey('sentry.Project')
+    group = FlexibleForeignKey('sentry.Group')
     environment = FlexibleForeignKey('sentry.Environment')
     new_issues_count = BoundedPositiveIntegerField(default=0)
     first_seen = models.DateTimeField(default=timezone.now)
@@ -21,7 +22,7 @@ class ReleaseProjectEnvironment(Model):
     class Meta:
         app_label = 'sentry'
         db_table = 'sentry_releaseprojectenvironment'
-        unique_together = (('project', 'release', 'environment'), )
+        unique_together = (('project', 'release', 'group', 'environment'), )
 
     __repr__ = sane_repr('project', 'release', 'environment')
 
