@@ -259,7 +259,7 @@ class SlackActionEndpoint(Endpoint):
                 analytics.record(
                     'integrations.slack.action',
                     action_type=action_type,
-                    actor_id=identity.user.id
+                    actor_id=identity.user_id
                 )
 
                 if action_type == 'status':
