@@ -35,7 +35,7 @@ class ReleaseProjectEnvironment(Model):
         )
 
     @classmethod
-    def get_or_create(cls, release, project, environment, datetime, **kwargs):
+    def get_or_create(cls, release, project, group, environment, datetime, **kwargs):
         cache_key = cls.get_cache_key(project.id, release.id, environment.id)
 
         instance = cache.get(cache_key)
@@ -43,6 +43,7 @@ class ReleaseProjectEnvironment(Model):
             instance, created = cls.objects.get_or_create(
                 release=release,
                 project=project,
+                group=group,
                 environment=environment,
                 defaults={
                     'first_seen': datetime,
