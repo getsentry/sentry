@@ -61,7 +61,17 @@ exports[`ProjectEnvironments render active renders empty message 1`] = `
 }
 
 .glamor-17 {
-  text-align: center;
+  display: -webkit-box;
+  display: -webkit-flex;
+  display: -ms-flexbox;
+  display: flex;
+  -webkit-align-items: center;
+  -webkit-box-align: center;
+  -ms-flex-align: center;
+  align-items: center;
+  -webkit-flex-direction: column;
+  -ms-flex-direction: column;
+  flex-direction: column;
   padding: NaNpx;
   font-size: 1.5em;
   font-weight: bold;
@@ -747,7 +757,17 @@ exports[`ProjectEnvironments render hidden renders empty message 1`] = `
 }
 
 .glamor-17 {
-  text-align: center;
+  display: -webkit-box;
+  display: -webkit-flex;
+  display: -ms-flexbox;
+  display: flex;
+  -webkit-align-items: center;
+  -webkit-box-align: center;
+  -ms-flex-align: center;
+  align-items: center;
+  -webkit-flex-direction: column;
+  -ms-flex-direction: column;
+  flex-direction: column;
   padding: NaNpx;
   font-size: 1.5em;
   font-weight: bold;
