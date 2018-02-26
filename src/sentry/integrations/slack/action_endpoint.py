@@ -256,7 +256,7 @@ class SlackActionEndpoint(Endpoint):
             for action in action_list:
                 action_type = action['name']
 
-                analytics.backend.record(
+                analytics.record(
                     'integrations.slack.action',
                     action_type=action_type,
                     actor_id=identity.user.id
