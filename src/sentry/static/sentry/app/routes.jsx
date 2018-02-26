@@ -327,13 +327,18 @@ const projectSettingsRoutes = (
         import(/*webpackChunkName: "ProjectProcessingIssues"*/ './views/settings/project/projectProcessingIssues')}
       component={errorHandler(LazyLoad)}
     />
+
     <Route
       path="filters/"
       name="Inbound Filters"
       componentPromise={() =>
         import(/* webpackChunkName: "ProjectFilters" */ './views/settings/project/projectFilters')}
       component={errorHandler(LazyLoad)}
-    />
+    >
+      <IndexRedirect to="data-filters/" />
+      <Route path=":filterType/" />
+    </Route>
+
     <Route path="keys/" name="Client Keys" component={errorHandler(ProjectKeys)} />
     <Route
       path="keys/:keyId/"

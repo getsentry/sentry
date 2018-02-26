@@ -1,3 +1,4 @@
+import {Link} from 'react-router';
 import React from 'react';
 
 import {t} from '../../../../locale';
@@ -7,6 +8,7 @@ import ProjectFiltersSettings from './projectFiltersSettings';
 import SentryTypes from '../../../../proptypes';
 import SettingsPageHeader from '../../components/settingsPageHeader';
 import TextBlock from '../../components/text/textBlock';
+import recreateRoute from '../../../../utils/recreateRoute';
 
 class ProjectFilters extends React.Component {
   static contextTypes = {
@@ -14,23 +16,9 @@ class ProjectFilters extends React.Component {
     project: SentryTypes.Project,
   };
 
-  constructor(...args) {
-    super(...args);
-    this.state = {
-      activeSection: 'data-filters',
-    };
-  }
-
-  setProjectNavSection = section => {
-    this.setState({
-      activeSection: section,
-    });
-  };
-
   render() {
     let {organization, project} = this.context;
-    let {orgId, projectId} = this.props.params;
-    let {activeSection} = this.state;
+    let {orgId, projectId, filterType} = this.props.params;
     if (!project) return null;
 
     let features = new Set(project.features);
@@ -52,33 +40,29 @@ class ProjectFilters extends React.Component {
               className="nav nav-tabs"
               style={{borderBottom: '1px solid #ddd', paddingTop: '30px'}}
             >
-              <li className={activeSection === 'data-filters' ? 'active' : ''}>
-                <a onClick={() => this.setProjectNavSection('data-filters')}>
+              <li className={filterType === 'data-filters' ? 'active' : ''}>
+                <Link to={recreateRoute('data-filters/', {...this.props, stepBack: -1})}>
                   {t('Data Filters')}
-                </a>
+                </Link>
               </li>
-              <li className={activeSection === 'discarded-groups' ? 'active' : ''}>
-                <a onClick={() => this.setProjectNavSection('discarded-groups')}>
+              <li className={filterType === 'discarded-groups' ? 'active' : ''}>
+                <Link
+                  to={recreateRoute('discarded-groups/', {...this.props, stepBack: -1})}
+                >
                   {t('Discarded Issues')}
-                </a>
+                </Link>
               </li>
             </ul>
           )}
 
-          {activeSection == 'data-filters' ? (
+          {filterType == 'discarded-groups' ? (
+            <GroupTombstones orgId={orgId} projectId={projectId} />
+          ) : (
             <ProjectFiltersSettings
               project={project}
               organization={organization}
               params={this.props.params}
               features={features}
-            />
-          ) : (
-            <GroupTombstones
-              orgId={orgId}
-              projectId={projectId}
-              tombstones={this.state.tombstones}
-              tombstoneError={this.state.tombstoneError}
-              fetchData={this.fetchData}
             />
           )}
         </div>
