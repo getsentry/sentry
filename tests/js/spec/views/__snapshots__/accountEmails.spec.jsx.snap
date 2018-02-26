@@ -80,7 +80,7 @@ exports[`AccountEmails renders with emails 1`] = `
       icon="icon-stack"
       to="/settings/account/notifications"
     >
-      Wanna change how many emails you get? Use the notifications panel.
+      Want to change how many emails you get? Use the notifications panel.
     </AlertLink>
   </div>
 </SideEffect(DocumentTitle)>

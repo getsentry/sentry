@@ -67,7 +67,7 @@ export default class AccountNotifications extends AsyncView {
               }}
             />
             <AlertLink to="/settings/account/emails" icon="icon-mail">
-              {t('Looking to add or remove an email? Use the emails panel.')}
+              {t('Looking to add or remove an email address? Use the emails panel.')}
             </AlertLink>
           </Box>
         </Form>

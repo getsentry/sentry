@@ -154,7 +154,7 @@ class AccountEmails extends AsyncView {
         </Form>
 
         <AlertLink to="/settings/account/notifications" icon="icon-stack">
-          {t('Wanna change how many emails you get? Use the notifications panel.')}
+          {t('Want to change how many emails you get? Use the notifications panel.')}
         </AlertLink>
       </div>
     );
