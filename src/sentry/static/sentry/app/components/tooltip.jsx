@@ -17,53 +17,56 @@ class Tooltip extends React.Component {
   componentWillReceiveProps(newProps) {
     let {disabled} = this.props;
     if (newProps.disabled && !disabled) {
-      this.removeTooltips(this.$ref);
+      this.removeTooltips(this.ref);
+    } else if (!newProps.disabled && disabled) {
+      this.attachTooltips(this.ref);
     }
   }
 
   componentDidUpdate = prevProps => {
     if (prevProps.title != this.props.title) {
-      this.removeTooltips(this.$ref);
+      this.removeTooltips(this.ref);
+      this.attachTooltips(this.ref);
     }
   };
 
   handleMount = ref => {
     if (ref && !this.ref) {
       // eslint-disable-next-line react/no-find-dom-node
-      this.$ref = $(ReactDOM.findDOMNode(ref));
-      this.attachTooltips(this.$ref);
+      this.attachTooltips(ref);
     } else if (!ref && this.ref) {
-      this.removeTooltips(this.$ref);
-      this.$ref = null;
+      this.removeTooltips(ref);
     }
 
     this.ref = ref;
   };
 
-  attachTooltips = $el => {
+  attachTooltips = ref => {
+    this.$ref = $(ReactDOM.findDOMNode(ref));
+
     let {title, tooltipOptions} = this.props;
     let options =
       typeof tooltipOptions === 'function'
         ? tooltipOptions.call(this)
         : tooltipOptions || {};
 
-    $el &&
-      $el.tooltip({
-        title,
-        ...options,
-      });
+    this.$ref.tooltip({
+      title,
+      ...options,
+    });
   };
 
-  removeTooltips = $el => {
+  removeTooltips = ref => {
+    this.$ref = $(ReactDOM.findDOMNode(ref));
+
     let {tooltipOptions} = this.props;
-    let tooltipEl = $el;
-    if (!tooltipEl) {
-      return;
-    }
-    tooltipEl
+
+    this.$ref
       .tooltip('destroy') // destroy tooltips on parent ...
       .find(tooltipOptions && tooltipOptions.selector)
       .tooltip('destroy'); // ... and descendents
+
+    this.$ref = null;
   };
 
   render() {
