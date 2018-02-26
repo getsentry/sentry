@@ -107,7 +107,8 @@ describe('ContextPickerModal', function() {
       .instance()
       .onChange({target: {value: org.slug}});
     expect(onFinish).toHaveBeenCalledWith('/test/org-slug/path/');
-    expect(mock).toHaveBeenCalled();
+    // Is not called because we don't need to fetch org details
+    expect(mock).not.toHaveBeenCalled();
   });
 
   it('renders with project selector and org selector selected when org is in latest context', function() {

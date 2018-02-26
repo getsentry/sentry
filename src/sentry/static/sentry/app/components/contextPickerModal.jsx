@@ -161,9 +161,13 @@ class ContextPickerModal extends React.Component {
   };
 
   handleSelectOrganization = value => {
+    // If we do not need to select a project, we can early return after selecting an org
+    // No need to fetch org details
     if (!this.props.needProject) {
       this.navigateIfFinish([{slug: value}], []);
+      return;
     }
+
     this.setState(
       {
         loading: true,
@@ -190,6 +194,10 @@ class ContextPickerModal extends React.Component {
 
     if (!shouldShowPicker) return null;
 
+    // Org select should be empty except if we need a project and there's an org in context
+    // (otherwise they need to select an org before we can fetch projects)
+    let shouldHaveEmptyOrgSelector = !needProject || !latestContext.organization;
+
     // We're inserting a blank el for `select2` so that we can have the placeholder :(
     let orgChoices = organizations
       .filter(({status}) => status.id !== 'pending_deletion')
@@ -211,7 +219,7 @@ class ContextPickerModal extends React.Component {
                   name="organization"
                   choices={[['', ''], ...orgChoices]}
                   value={
-                    latestContext.organization ? latestContext.organization.slug : ''
+                    shouldHaveEmptyOrgSelector ? '' : latestContext.organization.slug
                   }
                   onChange={this.handleSelectOrganization}
                 />
