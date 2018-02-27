@@ -10,10 +10,14 @@ class OrganizationConfigIntegrationsEndpoint(OrganizationEndpoint):
     def get(self, request, organization):
         providers = []
         for provider in integrations.all():
+            metadata = provider.metadata
+            metadata = metadata and metadata._asdict() or None
+
             providers.append(
                 {
                     'key': provider.key,
                     'name': provider.name,
+                    'metadata': metadata,
                     'config': provider.get_config(),
                     'setupDialog': dict(
                         url='/organizations/{}/integrations/{}/setup/'.format(
