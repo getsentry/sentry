@@ -3,13 +3,23 @@ from __future__ import absolute_import, print_function
 from sentry import analytics
 
 
-class SlackIntegrationAction(analytics.Event):
-    type = 'integrations.slack.action'
+class SlackIntegrationAssign(analytics.Event):
+    type = 'integrations.slack.assign'
 
     attributes = (
-        analytics.Attribute('action_type'),
         analytics.Attribute('actor_id', required=False),
     )
 
 
-analytics.register(SlackIntegrationAction)
+class SlackIntegrationStatus(analytics.Event):
+    type = 'integrations.slack.ignore'
+
+    attributes = (
+        analytics.Attribute('status'),
+        analytics.Attribute('resolve_type', required=False),
+        analytics.Attribute('actor_id', required=False),
+    )
+
+
+analytics.register(SlackIntegrationAssign)
+analytics.register(SlackIntegrationStatus)

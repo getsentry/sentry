@@ -48,6 +48,7 @@ class SlackActionEndpoint(Endpoint):
             assignee = None
 
         self.update_group(group, identity, {'assignedTo': assignee})
+        analytics.record('integrations.slack.assign', actor_id=identity.user_id)
 
     def on_status(self, request, identity, group, action, data, integration):
         status = action['value']
@@ -63,6 +64,13 @@ class SlackActionEndpoint(Endpoint):
             status.update({'statusDetails': {'inRelease': 'latest'}})
 
         self.update_group(group, identity, status)
+
+        analytics.record(
+            'integrations.slack.status',
+            status=status['status'],
+            resolve_type=resolve_type,
+            actor_id=identity.user_id
+        )
 
     def update_group(self, group, identity, data):
         event_write_key = ApiKey(
@@ -255,12 +263,6 @@ class SlackActionEndpoint(Endpoint):
         try:
             for action in action_list:
                 action_type = action['name']
-
-                analytics.record(
-                    'integrations.slack.action',
-                    action_type=action_type,
-                    actor_id=identity.user_id
-                )
 
                 if action_type == 'status':
                     self.on_status(request, identity, group, action, data, integration)
