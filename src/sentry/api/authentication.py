@@ -13,21 +13,21 @@ class QuietBasicAuthentication(BasicAuthentication):
         return 'xBasic realm="%s"' % self.www_authenticate_realm
 
 
-class AgentAuthentication(QuietBasicAuthentication):
+class RelayAuthentication(QuietBasicAuthentication):
     def authenticate(self, request):
-        agent_signature = request.META.get('HTTP_X_SENTRY_AGENT_SIGNATURE', b'')
+        relay_signature = request.META.get('HTTP_X_SENTRY_RELAY_SIGNATURE', b'')
 
-        # TODO(hazat): read signature und check agent id
-        if not agent_signature:
-            raise AuthenticationFailed('Invalid agent signature')
+        # TODO(hazat): read signature und check relay id
+        if not relay_signature:
+            raise AuthenticationFailed('Invalid relay signature')
 
-        return self.authenticate_credentials(agent_signature, None)
+        return self.authenticate_credentials(relay_signature, None)
 
     def authenticate_credentials(self, userid, password):
         if password:
             return None
 
-        # TODO(hazat): read signature und check agent id
+        # TODO(hazat): read signature und check relay id
         # try:
         #     key = ApiKey.objects.get_from_cache(key=userid)
         # except ApiKey.DoesNotExist:
@@ -40,7 +40,7 @@ class AgentAuthentication(QuietBasicAuthentication):
         #     'api_key': key.id,
         # })
 
-        # TODO(hazat): return agent id
+        # TODO(hazat): return relay id
         return (AnonymousUser(), userid)
 
 

@@ -20,8 +20,8 @@ def parse(body):
         query_results = {}
         for query_id, query in six.iteritems(body.get('queries', {})):
             # TODO(hazat): check security not all imports allowed
-            agent_query = import_module('sentry.agent.queries.%s' % query.get('type', None))
-            execute = getattr(agent_query, 'execute')
+            relay_query = import_module('sentry.relay.queries.%s' % query.get('type', None))
+            execute = getattr(relay_query, 'execute')
             query_results[query_id] = execute(query.get('data', None))
         return query_results
 

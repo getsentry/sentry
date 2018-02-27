@@ -3,15 +3,15 @@ from __future__ import absolute_import
 import six
 
 from sentry.api.serializers import Serializer, register
-from sentry.models import Agent
+from sentry.models import Relay
 
 
-@register(Agent)
-class AgentSerializer(Serializer):
+@register(Relay)
+class RelaySerializer(Serializer):
     def serialize(self, obj, attrs, user):
         return {
             'id': six.text_type(obj.id),
-            'agentId': six.text_type(obj.agent_id),
+            'relayId': six.text_type(obj.relay_id),
             'publicKey': obj.public_key,
             'firstSeen': obj.first_seen,
             'lastSeen': obj.last_seen,
