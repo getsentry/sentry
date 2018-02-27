@@ -283,30 +283,29 @@ class Project(Model):
         return is_enabled
 
     def transfer_to(self, team):
+        # NOTE: this will only work properly if the new team is in a different
+        # org than the existing one, which is currently the only use case in
+        # production
         # TODO(jess): refactor this to make it an org transfer only
         from sentry.models import ProjectTeam, ReleaseProject, EnvironmentProject
 
         organization = team.organization
-        from_team_id = self.team_id
 
         old_org_id = self.organization_id
         org_changed = old_org_id != organization.id
 
         self.organization = organization
-        self.team = team
 
         try:
             with transaction.atomic():
                 self.update(
                     organization=organization,
-                    team=team,
                 )
         except IntegrityError:
             slugify_instance(self, self.name, organization=organization)
             self.update(
                 slug=self.slug,
                 organization=organization,
-                team=team,
             )
 
         # Both environments and releases are bound at an organization level.
@@ -323,12 +322,10 @@ class Project(Model):
                 model.objects.filter(
                     project_id=self.id,
                 ).delete()
-
-        ProjectTeam.objects.filter(project=self, team_id=from_team_id).update(team=team)
-        # this is getting really gross, but make sure there aren't lingering associations
-        # with old orgs or teams
-        if org_changed:
+            # this is getting really gross, but make sure there aren't lingering associations
+            # with old orgs or teams
             ProjectTeam.objects.filter(project=self, team__organization_id=old_org_id).delete()
+
         # ensure this actually exists in case from team was null
         self.add_team(team)
 

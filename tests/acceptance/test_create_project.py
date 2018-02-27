@@ -36,7 +36,7 @@ class CreateProjectTest(AcceptanceTestCase):
         project = Project.objects.get(organization=self.org)
         assert project.name == 'Java'
         assert project.platform == 'java'
-        assert project.team_id == self.team.id
+        assert project.teams.first() == self.team
         self.browser.snapshot(name='docs redirect')
 
     def test_no_teams(self):

@@ -20,7 +20,7 @@ class CreateAuditEntryTest(TestCase):
         self.req = FakeHttpRequest(self.user)
         self.org = self.create_organization(owner=self.user)
         self.team = self.create_team(organization=self.org)
-        self.project = self.create_project(team=self.team, platform='java')
+        self.project = self.create_project(teams=[self.team], platform='java')
 
     def assert_no_delete_log_created(self):
         assert not DeletedOrganization.objects.filter(slug=self.org.slug).exists()

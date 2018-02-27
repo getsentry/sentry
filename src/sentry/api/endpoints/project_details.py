@@ -243,6 +243,7 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
             changed = True
 
         old_team_id = None
+        new_team = None
         if result.get('team'):
             team_list = [
                 t for t in Team.objects.get_for_user(
@@ -264,7 +265,7 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
             except IndexError:
                 pass
 
-            project.team = team_list[0]
+            new_team = team_list[0]
             changed = True
 
         if result.get('platform'):
@@ -277,7 +278,7 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
                 ProjectTeam.objects.filter(
                     project=project,
                     team_id=old_team_id,
-                ).update(team=project.team)
+                ).update(team=new_team)
 
         if result.get('isBookmarked'):
             try:

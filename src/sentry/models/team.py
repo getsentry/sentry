@@ -217,7 +217,6 @@ class Team(Model):
         Project.objects.filter(
             id__in=project_ids,
         ).update(
-            team=new_team,
             organization=organization,
         )
 

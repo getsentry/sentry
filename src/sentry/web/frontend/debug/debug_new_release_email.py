@@ -6,7 +6,7 @@ import pytz
 from django.views.generic import View
 
 from sentry.models import (
-    Commit, CommitAuthor, Deploy, GroupSubscriptionReason, Organization, Project, Release, Team,
+    Commit, CommitAuthor, Deploy, GroupSubscriptionReason, Organization, Project, Release,
     User
 )
 from sentry.utils.http import absolute_uri
@@ -21,31 +21,22 @@ class DebugNewReleaseEmailView(View):
             slug='organization',
             name='My Company',
         )
-        team = Team(
-            id=1,
-            slug='team',
-            name='My Team',
-            organization=org,
-        )
         projects = [
             Project(
                 id=1,
                 organization=org,
-                team=team,
                 slug='project',
                 name='My Project',
             ),
             Project(
                 id=2,
                 organization=org,
-                team=team,
                 slug='another-project',
                 name='Another Project',
             ),
             Project(
                 id=3,
                 organization=org,
-                team=team,
                 slug='yet-another-project',
                 name='Yet Another Project',
             ),

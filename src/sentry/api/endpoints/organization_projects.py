@@ -77,7 +77,7 @@ class OrganizationProjectsEndpoint(OrganizationEndpoint):
             team_list = list(request.access.teams)
             queryset = Project.objects.filter(
                 teams__in=team_list,
-            ).prefetch_related('team')
+            ).prefetch_related('teams')
 
         return self.paginate(
             request=request,
