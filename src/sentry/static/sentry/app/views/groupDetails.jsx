@@ -12,6 +12,7 @@ import LoadingError from '../components/loadingError';
 import LoadingIndicator from '../components/loadingIndicator';
 import SentryTypes from '../proptypes';
 import {t} from '../locale';
+import withEnvironment from '../utils/withEnvironment';
 
 let ERROR_TYPES = {
   GROUP_NOT_FOUND: 'GROUP_NOT_FOUND',
@@ -23,6 +24,7 @@ const GroupDetails = createReactClass({
   propTypes: {
     setProjectNavSection: PropTypes.func,
     memberList: PropTypes.array,
+    environment: PropTypes.object,
   },
 
   childContextTypes: {
@@ -66,7 +68,10 @@ const GroupDetails = createReactClass({
   },
 
   componentDidUpdate(prevProps, prevState) {
-    if (prevProps.params.groupId !== this.props.params.groupId) {
+    if (
+      prevProps.params.groupId !== this.props.params.groupId ||
+      prevProps.environment !== this.props.environment
+    ) {
       this.fetchData();
     }
   },
@@ -76,7 +81,14 @@ const GroupDetails = createReactClass({
   },
 
   fetchData() {
+    const query = {};
+
+    if (this.props.environment) {
+      query.environment = this.props.environment.name;
+    }
+
     this.api.request(this.getGroupDetailsEndpoint(), {
+      query,
       success: data => {
         // TODO: Ideally, this would rebuild the route before parameter
         // interpolation, replace the `groupId` field of `this.routeParams`,
@@ -198,4 +210,4 @@ const GroupDetails = createReactClass({
   },
 });
 
-export default GroupDetails;
+export default withEnvironment(GroupDetails);
