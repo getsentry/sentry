@@ -14,7 +14,7 @@ class ProjectMemberIndexEndpoint(ProjectEndpoint):
             Q(user__is_active=True) | Q(user__isnull=True),
             organization=project.organization,
             teams=project.teams.all(),
-        ).select_related('user')
+        ).select_related('user').distinct()
 
         member_list = sorted(
             queryset, key=lambda x: x.user.get_display_name() if x.user_id else x.email

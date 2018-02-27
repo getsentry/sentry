@@ -231,9 +231,9 @@ const AssigneeSelector = createReactClass({
         </li>
       );
 
-    let tooltipTitle = assignedTo ? userDisplayName(assignedTo) : null;
-
-    // Outter div is needed to make tooltip work
+    let assignedUser = assignedTo && MemberListStore.getById(assignedTo.id);
+    let tooltipTitle = assignedUser ? userDisplayName(assignedUser) : null;
+    // Outer div is needed to make tooltip work
     return (
       <div>
         <div className={classNames(className, 'tip')} title={tooltipTitle}>
@@ -248,7 +248,7 @@ const AssigneeSelector = createReactClass({
               alwaysRenderMenu={false}
               title={
                 assignedTo ? (
-                  <Avatar user={assignedTo} className="avatar" size={48} />
+                  <Avatar user={assignedUser} className="avatar" size={48} />
                 ) : (
                   <span className="icon-user" />
                 )
