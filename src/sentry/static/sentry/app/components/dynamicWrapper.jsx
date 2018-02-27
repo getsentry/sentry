@@ -1,12 +1,14 @@
 /* global process */
 // eslint-disable-next-line no-unused-vars
 import PropTypes from 'prop-types';
-
 import React from 'react';
 
+import getDynamicText from '../utils/getDynamicText';
+
+// XXX: Most likely you can just use getDynamicText instead
 const DynamicWrapper = ({fixed, value, ...otherProps}) => {
   // Wrap with span b/c react
-  return <span {...otherProps}>{process.env.IS_PERCY ? fixed : value}</span>;
+  return <span {...otherProps}>{getDynamicText({value, fixed})}</span>;
 };
 
 DynamicWrapper.propTypes = {
