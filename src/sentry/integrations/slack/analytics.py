@@ -12,7 +12,7 @@ class SlackIntegrationAssign(analytics.Event):
 
 
 class SlackIntegrationStatus(analytics.Event):
-    type = 'integrations.slack.ignore'
+    type = 'integrations.slack.status'
 
     attributes = (
         analytics.Attribute('status'),
