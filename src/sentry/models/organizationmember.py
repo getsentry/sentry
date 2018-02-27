@@ -261,7 +261,7 @@ class OrganizationMember(Model):
             id__in=OrganizationMemberTeam.objects.filter(
                 organizationmember=self,
                 is_active=True,
-            ).values_list('team')
+            ).values('team')
         )
 
     def get_scopes(self):

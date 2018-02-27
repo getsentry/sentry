@@ -19,7 +19,7 @@ class Migration(SchemaMigration):
                     self.gf('sentry.db.models.fields.bounded.BoundedPositiveIntegerField')()
                 ), ('name', self.gf('django.db.models.fields.CharField')(max_length=64)), (
                     'date_added',
-                    self.gf('django.db.models.fields.DateTimeField')()
+                    self.gf('django.db.models.fields.DateTimeField')(default=datetime.datetime.now)
                 ),
             )
         )
@@ -52,10 +52,10 @@ class Migration(SchemaMigration):
                     )
                 ), (
                     'first_seen',
-                    self.gf('django.db.models.fields.DateTimeField')()
+                    self.gf('django.db.models.fields.DateTimeField')(default=datetime.datetime.now)
                 ), (
                     'last_seen', self.gf('django.db.models.fields.DateTimeField')(
-                        db_index=True
+                        default=datetime.datetime.now, db_index=True
                     )
                 ),
             )

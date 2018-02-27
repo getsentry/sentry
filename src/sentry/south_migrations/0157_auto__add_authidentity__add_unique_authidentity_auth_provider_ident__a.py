@@ -26,7 +26,7 @@ class Migration(SchemaMigration):
                 ), ('ident', self.gf('django.db.models.fields.CharField')(max_length=128)),
                 ('data', self.gf('sentry.db.models.fields.gzippeddict.GzippedDictField')()), (
                     'date_added',
-                    self.gf('django.db.models.fields.DateTimeField')()
+                    self.gf('django.db.models.fields.DateTimeField')(default=datetime.datetime.now)
                 ),
             )
         )
@@ -50,7 +50,7 @@ class Migration(SchemaMigration):
                 ), ('provider', self.gf('django.db.models.fields.CharField')(max_length=128)),
                 ('config', self.gf('sentry.db.models.fields.gzippeddict.GzippedDictField')()), (
                     'date_added',
-                    self.gf('django.db.models.fields.DateTimeField')()
+                    self.gf('django.db.models.fields.DateTimeField')(default=datetime.datetime.now)
                 ), (
                     'sync_time',
                     self.gf('sentry.db.models.fields.bounded.BoundedPositiveIntegerField')(

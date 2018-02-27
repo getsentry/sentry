@@ -57,7 +57,7 @@ class BroadcastIndexEndpoint(Endpoint):
                 unseen_queryset = queryset.exclude(
                     id__in=queryset.filter(
                         broadcastseen__user=request.user,
-                    ).values_list('id')
+                    ).values('id')
                 )
 
             for broadcast in unseen_queryset:

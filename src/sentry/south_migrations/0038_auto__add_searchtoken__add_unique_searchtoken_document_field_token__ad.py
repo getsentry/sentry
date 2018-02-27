@@ -49,10 +49,10 @@ class Migration(SchemaMigration):
                     self.gf('django.db.models.fields.PositiveIntegerField')(default=1)
                 ), (
                     'date_added',
-                    self.gf('django.db.models.fields.DateTimeField')()
+                    self.gf('django.db.models.fields.DateTimeField')(default=datetime.datetime.now)
                 ), (
                     'date_changed',
-                    self.gf('django.db.models.fields.DateTimeField')()
+                    self.gf('django.db.models.fields.DateTimeField')(default=datetime.datetime.now)
                 ),
             )
         )

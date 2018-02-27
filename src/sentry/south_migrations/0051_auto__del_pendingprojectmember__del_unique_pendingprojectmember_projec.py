@@ -28,7 +28,7 @@ class Migration(SchemaMigration):
                 ), ('email', self.gf('django.db.models.fields.EmailField')(max_length=75)),
                 ('type', self.gf('django.db.models.fields.IntegerField')(default=0)), (
                     'date_added',
-                    self.gf('django.db.models.fields.DateTimeField')()
+                    self.gf('django.db.models.fields.DateTimeField')(default=datetime.datetime.now)
                 ),
             )
         )
@@ -55,7 +55,7 @@ class Migration(SchemaMigration):
                     )
                 ), (
                     'date_added',
-                    self.gf('django.db.models.fields.DateTimeField')()
+                    self.gf('django.db.models.fields.DateTimeField')(default=datetime.datetime.now)
                 ), ('type', self.gf('django.db.models.fields.IntegerField')(default=0)),
                 ('email', self.gf('django.db.models.fields.EmailField')(max_length=75)),
             )

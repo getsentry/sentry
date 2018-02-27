@@ -11,7 +11,7 @@ class Migration(SchemaMigration):
         db.add_column(
             'sentry_authidentity',
             'last_verified',
-            self.gf('django.db.models.fields.DateTimeField')(),
+            self.gf('django.db.models.fields.DateTimeField')(default=datetime.datetime.now),
             keep_default=False
         )
 

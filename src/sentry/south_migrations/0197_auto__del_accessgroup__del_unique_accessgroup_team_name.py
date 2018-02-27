@@ -33,7 +33,7 @@ class Migration(SchemaMigration):
                     )
                 ), (
                     'date_added',
-                    self.gf('django.db.models.fields.DateTimeField')()
+                    self.gf('django.db.models.fields.DateTimeField')(default=datetime.datetime.now)
                 ), (
                     'data', self.gf('sentry.db.models.fields.gzippeddict.GzippedDictField')(
                         null=True, blank=True

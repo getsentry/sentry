@@ -100,7 +100,7 @@ class OrganizationReleaseFilesEndpoint(OrganizationReleasesBaseEndpoint):
         fileobj = request.FILES['file']
 
         full_name = request.DATA.get('name', fileobj.name)
-        if not full_name or full_name == 'file':
+        if not full_name:
             return Response({'detail': 'File name must be specified'}, status=400)
 
         name = full_name.rsplit('/', 1)[-1]

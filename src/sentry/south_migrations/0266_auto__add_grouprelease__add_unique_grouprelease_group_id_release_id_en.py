@@ -32,10 +32,10 @@ class Migration(SchemaMigration):
                     self.gf('django.db.models.fields.CharField')(default='', max_length=64)
                 ), (
                     'first_seen',
-                    self.gf('django.db.models.fields.DateTimeField')()
+                    self.gf('django.db.models.fields.DateTimeField')(default=datetime.datetime.now)
                 ), (
                     'last_seen', self.gf('django.db.models.fields.DateTimeField')(
-                        db_index=True
+                        default=datetime.datetime.now, db_index=True
                     )
                 ),
             )

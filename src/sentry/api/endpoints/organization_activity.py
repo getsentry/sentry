@@ -14,7 +14,7 @@ class OrganizationActivityEndpoint(OrganizationMemberEndpoint, EnvironmentMixin)
                 organization=organization,
                 teams__in=OrganizationMemberTeam.objects.filter(
                     organizationmember=member,
-                ).values_list('team')
+                ).values('team')
             )
         ).exclude(
             # There is an activity record created for both sides of the unmerge

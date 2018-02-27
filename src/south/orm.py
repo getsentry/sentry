@@ -333,16 +333,16 @@ class _FakeORM(object):
                 fields[fname] = field
 
         # Find the app in the Django core, and get its module
-        more_kwds = {
-            'Meta': meta,
-        }
+        more_kwds = {}
         try:
             app_module = models.get_app(app)
             more_kwds['__module__'] = app_module.__name__
         except ImproperlyConfigured:
-            # the app this belonged to has vanished, but thankfully we can still
+            # The app this belonged to has vanished, but thankfully we can still
             # make a mock model, so ignore the error.
             more_kwds['__module__'] = '_south_mock'
+
+        more_kwds['Meta'] = meta
 
         # Make our model
         fields.update(more_kwds)
