@@ -173,9 +173,6 @@ const RuleEditor = createReactClass({
   },
 
   render() {
-    const hasEnvironmentsFeature = new Set(this.props.organization.features).has(
-      'environments'
-    );
     const activeEnvs = EnvironmentStore.getActive() || [];
     const environmentChoices = [
       ['all', t('All Environments')],
@@ -246,22 +243,18 @@ const RuleEditor = createReactClass({
 
             <hr />
 
-            {hasEnvironmentsFeature && (
-              <React.Fragment>
-                <h6>{t('In this environment')}:</h6>
-                <Select2Field
-                  className={this.hasError('environment') ? ' error' : ''}
-                  style={{marginBottom: 0, marginLeft: 5, marginRight: 5}}
-                  name="environment"
-                  value={environment}
-                  required={true}
-                  choices={environmentChoices}
-                  onChange={val => this.handleEnvironmentChange(val)}
-                />
+            <h6>{t('In this environment')}:</h6>
+            <Select2Field
+              className={this.hasError('environment') ? ' error' : ''}
+              style={{marginBottom: 0, marginLeft: 5, marginRight: 5}}
+              name="environment"
+              value={environment}
+              required={true}
+              choices={environmentChoices}
+              onChange={val => this.handleEnvironmentChange(val)}
+            />
 
-                <hr />
-              </React.Fragment>
-            )}
+            <hr />
 
             <h6>{t('Take these actions:')}</h6>
 
