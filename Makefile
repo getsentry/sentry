@@ -207,8 +207,6 @@ travis-noop:
 
 .PHONY: travis-upgrade-pip travis-setup-cassandra travis-install-python travis-noop
 
-travis-install-danger:
-	bundle install
 travis-install-sqlite: travis-install-python
 travis-install-postgres: travis-install-python dev-postgres
 	psql -c 'create database sentry;' -U postgres
@@ -233,10 +231,9 @@ travis-install-dist:
 travis-install-django-18: travis-install-postgres
 	pip install "Django>=1.8,<1.9"
 
-.PHONY: travis-install-danger travis-install-sqlite travis-install-postgres travis-install-js travis-install-cli travis-install-dist
+.PHONY: travis-install-sqlite travis-install-postgres travis-install-js travis-install-cli travis-install-dist
 
 # Lint steps
-travis-lint-danger: travis-noop
 travis-lint-sqlite: lint-python
 travis-lint-postgres: lint-python
 travis-lint-mysql: lint-python
@@ -247,11 +244,9 @@ travis-lint-cli: travis-noop
 travis-lint-dist: travis-noop
 travis-lint-django-18: travis-lint-postgres
 
-.PHONY: travis-lint-danger travis-lint-sqlite travis-lint-postgres travis-lint-mysql travis-lint-js travis-lint-cli travis-lint-dist
+.PHONY: travis-lint-sqlite travis-lint-postgres travis-lint-mysql travis-lint-js travis-lint-cli travis-lint-dist
 
 # Test steps
-travis-test-danger:
-	bundle exec danger
 travis-test-sqlite: test-python
 travis-test-postgres: test-python
 travis-test-mysql: test-python
@@ -266,11 +261,10 @@ travis-test-dist:
 	@ls -lh dist/
 travis-test-django-18: travis-test-postgres
 
-.PHONY: travis-test-danger travis-test-sqlite travis-test-postgres travis-test-mysql travis-test-js travis-test-cli travis-test-dist
+.PHONY: travis-test-sqlite travis-test-postgres travis-test-mysql travis-test-js travis-test-cli travis-test-dist
 
 
 # Scan steps
-travis-scan-danger: travis-noop
 travis-scan-sqlite: scan-python
 travis-scan-postgres: scan-python
 travis-scan-mysql: scan-python
@@ -281,4 +275,4 @@ travis-scan-cli: travis-noop
 travis-scan-dist: travis-noop
 travis-scan-django-18: travis-noop
 
-.PHONY: travis-scan-danger travis-scan-sqlite travis-scan-postgres travis-scan-mysql travis-scan-acceptance travis-scan-network travis-scan-js travis-scan-cli travis-scan-dist travis-scan-django-18
+.PHONY: travis-scan-sqlite travis-scan-postgres travis-scan-mysql travis-scan-acceptance travis-scan-network travis-scan-js travis-scan-cli travis-scan-dist travis-scan-django-18
