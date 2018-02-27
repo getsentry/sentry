@@ -1,0 +1,17 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`Avatar render() should show a gravatar when actor type is a team 1`] = `
+<TeamAvatar
+  className="avatar"
+  team={null}
+/>
+`;
+
+exports[`Avatar render() should show a gravatar when actor type is a user 1`] = `
+<Avatar
+  className="avatar"
+  gravatar={true}
+  size={64}
+  user={null}
+/>
+`;
