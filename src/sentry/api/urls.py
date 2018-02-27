@@ -3,8 +3,8 @@ from __future__ import absolute_import, print_function
 from django.conf.urls import include, patterns, url
 
 from .endpoints.accept_project_transfer import AcceptProjectTransferEndpoint
-from .endpoints.agent_aorta import AgentAortaEndpoint, AgentHeartbeatEndpoint
-from .endpoints.agent_index import AgentIndexEndpoint
+from .endpoints.relay_aorta import RelayAortaEndpoint, RelayHeartbeatEndpoint
+from .endpoints.relay_index import RelayIndexEndpoint
 from .endpoints.api_applications import ApiApplicationsEndpoint
 from .endpoints.api_application_details import ApiApplicationDetailsEndpoint
 from .endpoints.api_authorizations import ApiAuthorizationsEndpoint
@@ -171,23 +171,23 @@ from .endpoints.setup_wizard import SetupWizard
 urlpatterns = patterns(
     '',
 
-    # Agent
+    # Relay
     url(
-        r'^agents/$',
-        AgentIndexEndpoint.as_view(),
-        name='sentry-api-0-agents-index'
+        r'^relays/$',
+        RelayIndexEndpoint.as_view(),
+        name='sentry-api-0-relays-index'
     ),
 
     url(
-        r'^agent/aorta$',
-        AgentAortaEndpoint.as_view(),
-        name='sentry-api-0-agent-aorta'
+        r'^relay/aorta/$',
+        RelayAortaEndpoint.as_view(),
+        name='sentry-api-0-relay-aorta'
     ),
 
     url(
-        r'^agent/heartbeat$',
-        AgentHeartbeatEndpoint.as_view(),
-        name='sentry-api-0-agent-heartbeat'
+        r'^relay/heartbeat/$',
+        RelayHeartbeatEndpoint.as_view(),
+        name='sentry-api-0-relay-heartbeat'
     ),
 
     # Api Data
