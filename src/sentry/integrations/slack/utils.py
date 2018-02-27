@@ -195,11 +195,10 @@ def build_attachment(group, event=None, identity=None, actions=None, rules=None)
     footer = u'{}'.format(group.qualified_short_id)
 
     if rules:
-        rule = rules.pop(0)
-        footer += u' via {}'.format(rule.label)
+        footer += u' via {}'.format(rules[0].label)
 
-    if rules:
-        footer += u' (+{} other)'.format(len(rules))
+        if len(rules) > 1:
+            footer += u' (+{} other)'.format(len(rules) - 1)
 
     return {
         'fallback': u'[{}] {}'.format(group.project.slug, group.title),
