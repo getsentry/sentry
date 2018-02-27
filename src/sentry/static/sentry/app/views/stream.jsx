@@ -25,7 +25,7 @@ import StreamFilters from './stream/filters';
 import StreamSidebar from './stream/sidebar';
 import TimeSince from '../components/timeSince';
 import utils from '../utils';
-import streamUtils from './stream/utils';
+import queryString from '../utils/queryString';
 import {logAjaxError} from '../utils/logging';
 import parseLinkHeader from '../utils/parseLinkHeader';
 import {t, tn, tct} from '../locale';
@@ -370,7 +370,7 @@ const Stream = createReactClass({
     let url = this.getGroupListEndpoint();
 
     // Remove leading and trailing whitespace
-    let query = streamUtils.formatQueryString(this.state.query);
+    let query = queryString.formatQueryString(this.state.query);
 
     let activeEnvironment = this.state.activeEnvironment;
     let activeEnvName = activeEnvironment ? activeEnvironment.name : null;
@@ -385,7 +385,7 @@ const Stream = createReactClass({
 
     // Always keep the global active environment in sync with the queried environment
     // The global environment wins unless there one is specified by the saved search
-    const queryEnvironment = streamUtils.getQueryEnvironment(query);
+    const queryEnvironment = queryString.getQueryEnvironment(query);
 
     if (queryEnvironment !== null) {
       // Set the global environment to the one specified by the saved search
@@ -396,7 +396,7 @@ const Stream = createReactClass({
       requestParams.environment = queryEnvironment;
     } else if (activeEnvironment) {
       // Set the environment of the query to match the global settings
-      query = streamUtils.getQueryStringWithEnvironment(query, activeEnvironment.name);
+      query = queryString.getQueryStringWithEnvironment(query, activeEnvironment.name);
       requestParams.query = query;
       requestParams.environment = activeEnvironment.name;
     }
@@ -536,7 +536,7 @@ const Stream = createReactClass({
       // the environment parameter is part of the saved search
       let environment = context.environment;
 
-      let query = streamUtils.getQueryStringWithEnvironment(
+      let query = queryString.getQueryStringWithEnvironment(
         this.state.query,
         environment === null ? null : environment.name
       );

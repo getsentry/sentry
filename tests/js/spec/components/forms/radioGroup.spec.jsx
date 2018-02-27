@@ -1,7 +1,7 @@
 import React from 'react';
 import {mount, shallow} from 'enzyme';
 
-import RadioGroup from 'app/views/settings/components/forms/radioGroup';
+import RadioGroup from 'app/views/settings/components/forms/controls/radioGroup';
 
 describe('RadioGroup', function() {
   describe('render()', function() {

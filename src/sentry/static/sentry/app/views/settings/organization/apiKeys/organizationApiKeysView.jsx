@@ -5,7 +5,6 @@ import {Client} from '../../../../api';
 import LazyLoad from '../../../../components/lazyLoad';
 import OrganizationSettingsView from '../../../organizationSettingsView';
 import SentryTypes from '../../../../proptypes';
-import getSettingsComponent from '../../../../utils/getSettingsComponent';
 import recreateRoute from '../../../../utils/recreateRoute';
 
 class OrganizationApiKeysView extends OrganizationSettingsView {
@@ -65,12 +64,8 @@ class OrganizationApiKeysView extends OrganizationSettingsView {
     return (
       <LazyLoad
         component={() =>
-          getSettingsComponent(
-            () =>
-              import(/*webpackChunkName: "organizationApiKeysList"*/ './organizationApiKeysList'),
-            () =>
-              import(/*webpackChunkName: "organizationApiKeysList.old"*/ './organizationApiKeysList.old'),
-            this.props.routes
+          import(/*webpackChunkName: "organizationApiKeysList"*/ './organizationApiKeysList').then(
+            mod => mod.default
           )}
         busy={this.state.busy}
         keys={this.state.keys}

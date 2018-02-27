@@ -1,4 +1,4 @@
-import {Link, browserHistory} from 'react-router';
+import {Link, withRouter} from 'react-router';
 import {css} from 'emotion';
 import PropTypes from 'prop-types';
 import React from 'react';
@@ -6,9 +6,11 @@ import Reflux from 'reflux';
 import createReactClass from 'create-react-class';
 import styled from 'react-emotion';
 
+import {openModal} from '../../../actionCreators/modal';
 import {loadSearchMap} from '../../../actionCreators/formSearch';
 import {t} from '../../../locale';
 import AutoComplete from '../../../components/autoComplete';
+import ContextPickerModal from '../../../components/contextPickerModal';
 import FormSearchStore from '../../../stores/formSearchStore';
 import InlineSvg from '../../../components/inlineSvg';
 import replaceRouterParams from '../../../utils/replaceRouterParams';
@@ -63,7 +65,7 @@ const SettingsSearchWrapper = styled.div`
   position: relative;
 `;
 
-const SearchItem = styled(Link)`
+const SearchItem = styled(({highlighted, ...props}) => <Link {...props} />)`
   display: block;
   color: ${p => p.theme.gray5};
   padding: 16px 16px 14px;
@@ -94,6 +96,7 @@ const SearchDetail = styled.div`
 class SettingsSearch extends React.Component {
   static propTypes = {
     searchMap: PropTypes.object,
+    router: PropTypes.object,
   };
 
   static defaultProps = {
@@ -110,7 +113,29 @@ class SettingsSearch extends React.Component {
     let {to} = item;
     if (!to) return;
 
-    browserHistory.push(item.to);
+    let {params, router} = this.props;
+    let nextPath = replaceRouterParams(to, params);
+    // Check for placeholder params
+    let needOrg = nextPath.indexOf(':orgId') > -1;
+    let needProject = nextPath.indexOf(':projectId') > -1;
+
+    if (needOrg || needProject) {
+      openModal(({closeModal, Header, Body}) => (
+        <ContextPickerModal
+          Header={Header}
+          Body={Body}
+          nextPath={nextPath}
+          needOrg={needOrg}
+          onFinish={path => {
+            closeModal();
+            router.push(path);
+          }}
+          needProject={needProject}
+        />
+      ));
+    } else {
+      router.push(to);
+    }
   };
 
   render() {
@@ -183,7 +208,6 @@ class SettingsSearch extends React.Component {
                             },
                           })}
                           highlighted={index === highlightedIndex}
-                          to={to}
                           key={field.name}
                         >
                           <div>
@@ -207,12 +231,14 @@ class SettingsSearch extends React.Component {
   }
 }
 
-const SettingsSearchContainer = createReactClass({
-  displayName: 'SettingsSearchContainer',
-  mixins: [Reflux.connect(FormSearchStore, 'searchMap')],
-  render() {
-    return <SettingsSearch searchMap={this.state.searchMap} {...this.props} />;
-  },
-});
+const SettingsSearchContainer = withRouter(
+  createReactClass({
+    displayName: 'SettingsSearchContainer',
+    mixins: [Reflux.connect(FormSearchStore, 'searchMap')],
+    render() {
+      return <SettingsSearch searchMap={this.state.searchMap} {...this.props} />;
+    },
+  })
+);
 
 export default SettingsSearchContainer;

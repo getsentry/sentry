@@ -20,7 +20,7 @@ class Migration(SchemaMigration):
                     self.gf('sentry.db.models.fields.FlexibleForeignKey')(to=orm['sentry.User'])
                 ), ('public', self.gf('django.db.models.fields.BooleanField')(default=False)), (
                     'date_added',
-                    self.gf('django.db.models.fields.DateTimeField')(default=datetime.datetime.now)
+                    self.gf('django.db.models.fields.DateTimeField')()
                 ),
             )
         )
@@ -41,7 +41,7 @@ class Migration(SchemaMigration):
                     self.gf('sentry.db.models.fields.FlexibleForeignKey')(to=orm['sentry.User'])
                 ), ('permissions', self.gf('django.db.models.fields.BigIntegerField')()), (
                     'date_added',
-                    self.gf('django.db.models.fields.DateTimeField')(default=datetime.datetime.now)
+                    self.gf('django.db.models.fields.DateTimeField')()
                 ),
             )
         )

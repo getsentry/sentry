@@ -13,7 +13,7 @@ import LoadingIndicator from '../../../components/loadingIndicator';
 import Panel from '../components/panel';
 import PanelBody from '../components/panelBody';
 import PanelHeader from '../components/panelHeader';
-import RadioGroup from '../components/forms/radioGroup';
+import RadioGroup from '../components/forms/controls/radioGroup';
 import SentryTypes from '../../../proptypes';
 
 const AccountAvatar = createReactClass({
@@ -44,7 +44,9 @@ const AccountAvatar = createReactClass({
 
   componentWillReceiveProps(nextProps) {
     // Update local state if defined in props
-    this.setState({user: nextProps.user});
+    if (typeof nextProps.user !== 'undefined') {
+      this.setState({user: nextProps.user});
+    }
   },
 
   getEndpoint() {

@@ -2,6 +2,7 @@ from __future__ import absolute_import
 
 from django.core.urlresolvers import reverse
 
+from sentry import analytics
 from sentry import http, options
 from sentry.api import client
 from sentry.api.base import Endpoint
@@ -47,6 +48,7 @@ class SlackActionEndpoint(Endpoint):
             assignee = None
 
         self.update_group(group, identity, {'assignedTo': assignee})
+        analytics.record('integrations.slack.assign', actor_id=identity.user_id)
 
     def on_status(self, request, identity, group, action, data, integration):
         status = action['value']
@@ -62,6 +64,13 @@ class SlackActionEndpoint(Endpoint):
             status.update({'statusDetails': {'inRelease': 'latest'}})
 
         self.update_group(group, identity, status)
+
+        analytics.record(
+            'integrations.slack.status',
+            status=status['status'],
+            resolve_type=resolve_type,
+            actor_id=identity.user_id
+        )
 
     def update_group(self, group, identity, data):
         event_write_key = ApiKey(
@@ -253,11 +262,13 @@ class SlackActionEndpoint(Endpoint):
         # Handle interaction actions
         try:
             for action in action_list:
-                if action['name'] == 'status':
+                action_type = action['name']
+
+                if action_type == 'status':
                     self.on_status(request, identity, group, action, data, integration)
-                elif action['name'] == 'assign':
+                elif action_type == 'assign':
                     self.on_assign(request, identity, group, action)
-                elif action['name'] == 'resolve_dialog':
+                elif action_type == 'resolve_dialog':
                     self.open_resolve_dialog(data, group, integration)
                     defer_attachment_update = True
         except client.ApiError as e:

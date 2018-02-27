@@ -1,88 +1,82 @@
+import {t, tct} from '../../locale';
+
 // Export route to make these forms searchable by label/help
 export const route = '/settings/account/notifications/';
 
 const formGroups = [
   {
-    title: 'Alerts',
+    title: t('Alerts'),
     fields: [
       {
         name: 'subscribeByDefault',
         type: 'boolean',
-        label: 'Send Me Project Alerts',
-        help: 'Alerts are defined in [Project] » Project Settings » Alerts » Rules.',
+        label: t('Send Me Project Alerts'),
+        // TODO(billy): Make this a real link
+        help: tct('Alerts are defined in [locationPath]', {
+          locationPath: '[Project] » Project Settings » Alerts » Rules.',
+        }),
       },
     ],
-    fineTuning: {
-      text: 'Fine tune alerts by project',
-      path: 'project-alerts/',
-    },
   },
 
   {
-    title: 'Workflow Notifications',
+    title: t('Workflow Notifications'),
     fields: [
       {
         name: 'workflowNotifications',
         type: 'radio',
-        label: 'Send Me Workflow Notifications',
+        label: t('Send Me Workflow Notifications'),
         choices: [[0, 'Always'], [1, 'Only On Issues I Subscribe To'], [2, 'Never']],
-        help: 'E.g. changes in issue assignment, resolution status, and comments.',
+        help: t('E.g. changes in issue assignment, resolution status, and comments.'),
       },
     ],
-    fineTuning: {
-      text: 'Fine tune workflow notifications by project',
-      path: 'workflow-notifications/',
-    },
   },
 
   {
-    title: 'Weekly Reports',
+    title: t('Email Routing'),
+    fields: [],
+  },
+
+  {
+    title: t('Weekly Reports'),
     fields: [
       {
         name: 'weeklyReports',
         type: 'boolean',
-        label: 'Send Me Weekly Reports',
-        help: "Reports contain a summary of what's happened within your organization.",
+        label: t('Send Me Weekly Reports'),
+        help: t("Reports contain a summary of what's happened within your organization."),
         disabled: true,
       },
     ],
-    fineTuning: {
-      text: 'Fine tune weekly reports by organization',
-      path: 'weekly-reports/',
-    },
   },
 
   {
-    title: 'Deploy Notifications',
+    title: t('Deploy Notifications'),
     fields: [
       {
         name: 'deployNotifications',
         type: 'radio',
-        label: 'Send Me Deploy Notifications',
+        label: t('Send Me Deploy Notifications'),
         choices: [[2, 'Always'], [3, 'Only On Deploys With My Commits'], [4, 'Never']],
-        help: 'Deploy emails include release, environment and commit overviews.',
+        help: t('Deploy emails include release, environment and commit overviews.'),
       },
     ],
-    fineTuning: {
-      text: 'Fine tune deploy notifications by organization',
-      path: 'deploy-notifications/',
-    },
   },
 
   {
-    title: 'My Activity',
+    title: t('My Activity'),
     fields: [
       {
         name: 'personalActivityNotifications',
         type: 'boolean',
-        label: 'Notify Me About My Own Activity',
-        help: 'Enable this to recieve notifications about your own actions on Sentry.',
+        label: t('Notify Me About My Own Activity'),
+        help: t('Enable this to recieve notifications about your own actions on Sentry.'),
       },
       {
         name: 'selfAssignOnResolve',
         type: 'boolean',
-        label: "Claim Unassigned Issues I've Resolved",
-        help: "You'll recieve notifications about any changes that happen afterwards.",
+        label: t("Claim Unassigned Issues I've Resolved"),
+        help: t("You'll recieve notifications about any changes that happen afterwards."),
       },
     ],
   },

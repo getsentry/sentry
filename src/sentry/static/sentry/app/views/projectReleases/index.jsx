@@ -1,4 +1,3 @@
-import jQuery from 'jquery';
 import PropTypes from 'prop-types';
 import React from 'react';
 import createReactClass from 'create-react-class';
@@ -13,21 +12,19 @@ import {t} from '../../locale';
 
 import ReleaseList from './releaseList';
 
+import withEnvironment from '../../utils/withEnvironment';
+
+const DEFAULT_QUERY = '';
+
 const ProjectReleases = createReactClass({
   displayName: 'ProjectReleases',
 
   propTypes: {
-    defaultQuery: PropTypes.string,
     setProjectNavSection: PropTypes.func,
+    environment: PropTypes.object,
   },
 
   mixins: [ApiMixin],
-
-  getDefaultProps() {
-    return {
-      defaultQuery: '',
-    };
-  },
 
   getInitialState() {
     let queryParams = this.props.location.query;
@@ -36,8 +33,9 @@ const ProjectReleases = createReactClass({
       releaseList: [],
       loading: true,
       error: false,
-      query: queryParams.query || this.props.defaultQuery,
+      query: queryParams.query || DEFAULT_QUERY,
       pageLinks: '',
+      environment: this.props.environment,
     };
   },
 
@@ -55,6 +53,10 @@ const ProjectReleases = createReactClass({
         },
         this.fetchData
       );
+    }
+
+    if (nextProps.environment !== this.props.environment) {
+      this.setState({environment: nextProps.environment}, this.fetchData);
     }
   },
 
@@ -75,7 +77,22 @@ const ProjectReleases = createReactClass({
       error: false,
     });
 
-    this.api.request(this.getProjectReleasesEndpoint(), {
+    const {orgId, projectId} = this.props.params;
+
+    const url = `/projects/${orgId}/${projectId}/releases/`;
+
+    const query = {
+      ...this.props.location.query,
+      per_page: 20,
+      query: this.state.query,
+    };
+
+    if (this.state.environment) {
+      query.environment = this.state.environment.name;
+    }
+
+    this.api.request(url, {
+      query,
       success: (data, _, jqXHR) => {
         this.setState({
           error: false,
@@ -91,24 +108,6 @@ const ProjectReleases = createReactClass({
         });
       },
     });
-  },
-
-  getProjectReleasesEndpoint() {
-    let params = this.props.params;
-    let queryParams = {
-      ...this.props.location.query,
-      per_page: 20,
-      query: this.state.query,
-    };
-
-    return (
-      '/projects/' +
-      params.orgId +
-      '/' +
-      params.projectId +
-      '/releases/?' +
-      jQuery.param(queryParams)
-    );
   },
 
   getReleaseTrackingUrl() {
@@ -132,7 +131,7 @@ const ProjectReleases = createReactClass({
           releaseList={this.state.releaseList}
         />
       );
-    else if (this.state.query && this.state.query !== this.props.defaultQuery)
+    else if (this.state.query && this.state.query !== DEFAULT_QUERY)
       body = this.renderNoQueryResults();
     else body = this.renderEmpty();
 
@@ -198,4 +197,5 @@ const ProjectReleases = createReactClass({
   },
 });
 
-export default ProjectReleases;
+export {ProjectReleases}; // For tests
+export default withEnvironment(ProjectReleases);

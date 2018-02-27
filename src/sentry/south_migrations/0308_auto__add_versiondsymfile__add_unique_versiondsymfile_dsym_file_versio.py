@@ -25,7 +25,7 @@ class Migration(SchemaMigration):
                 ), ('version', self.gf('django.db.models.fields.CharField')(max_length=32)),
                 ('build', self.gf('django.db.models.fields.CharField')(max_length=32, null=True)), (
                     'date_added',
-                    self.gf('django.db.models.fields.DateTimeField')(default=datetime.datetime.now)
+                    self.gf('django.db.models.fields.DateTimeField')()
                 ),
             )
         )
@@ -54,10 +54,10 @@ class Migration(SchemaMigration):
                     )
                 ), (
                     'last_synced',
-                    self.gf('django.db.models.fields.DateTimeField')(default=datetime.datetime.now)
+                    self.gf('django.db.models.fields.DateTimeField')()
                 ), (
                     'date_added',
-                    self.gf('django.db.models.fields.DateTimeField')(default=datetime.datetime.now)
+                    self.gf('django.db.models.fields.DateTimeField')()
                 ),
             )
         )

@@ -6,7 +6,7 @@ from django.views.generic import TemplateView
 import sentry.web.frontend.debug.mail
 
 from sentry.web.frontend.debug.debug_assigned_email import (
-    DebugAssignedEmailView, DebugSelfAssignedEmailView
+    DebugAssignedEmailView, DebugSelfAssignedEmailView, DebugSelfAssignedTeamEmailView
 )
 from sentry.web.frontend.debug.debug_trigger_error import (DebugTriggerErrorView)
 from sentry.web.frontend.debug.debug_error_embed import (DebugErrorPageEmbedView)
@@ -51,6 +51,7 @@ urlpatterns = patterns(
     url(r'^debug/mail/new-user-feedback/$', DebugNewUserFeedbackEmailView.as_view()),
     url(r'^debug/mail/assigned/$', DebugAssignedEmailView.as_view()),
     url(r'^debug/mail/assigned/self/$', DebugSelfAssignedEmailView.as_view()),
+    url(r'^debug/mail/assigned/team/$', DebugSelfAssignedTeamEmailView.as_view()),
     url(r'^debug/mail/digest/$', sentry.web.frontend.debug.mail.digest),
     url(r'^debug/mail/report/$', sentry.web.frontend.debug.mail.report),
     url(r'^debug/mail/regression/$', DebugRegressionEmailView.as_view()),

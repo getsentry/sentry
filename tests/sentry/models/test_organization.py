@@ -99,7 +99,7 @@ class OrganizationTest(TestCase):
         from_project_two = Project.objects.get(id=from_project_two.id)
         assert from_project_two.slug != 'bizzy'
         assert from_project_two.organization == to_org
-        assert from_project_two.team == from_team_two
+        assert from_project_two.teams.first() == from_team_two
 
         to_team_two = Team.objects.get(id=to_team_two.id)
         assert to_team_two.slug == 'bizzy'
@@ -108,7 +108,7 @@ class OrganizationTest(TestCase):
         to_project_two = Project.objects.get(id=to_project_two.id)
         assert to_project_two.slug == 'bizzy'
         assert to_project_two.organization == to_org
-        assert to_project_two.team == to_team_two
+        assert to_project_two.teams.first() == to_team_two
 
         assert not Release.objects.filter(id=from_release.id).exists()
         assert ReleaseFile.objects.get(id=from_release_file.id).organization == to_org

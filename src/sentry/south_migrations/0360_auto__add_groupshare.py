@@ -23,7 +23,7 @@ class Migration(SchemaMigration):
              (default='2acbdbb7a1ee4a06b73a04317a3ca91d', unique=True, max_length=32)),
             ('user', self.gf('sentry.db.models.fields.foreignkey.FlexibleForeignKey')(
                 to=orm['sentry.User'], null=True)),
-            ('date_added', self.gf('django.db.models.fields.DateTimeField')(default=datetime.datetime.now)),
+            ('date_added', self.gf('django.db.models.fields.DateTimeField')()),
         ))
         db.send_create_signal('sentry', ['GroupShare'])
 

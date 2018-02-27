@@ -1,40 +1,16 @@
-import {Box, Flex} from 'grid-emotion';
 import {Observer} from 'mobx-react';
 import PropTypes from 'prop-types';
 import React from 'react';
-import ReactDOM from 'react-dom';
 import styled from 'react-emotion';
 
 import {defined} from '../../../../../utils';
-import {pulse, fadeOut} from '../styled/animations';
-import FormFieldControl from './formFieldControl';
-import FormFieldControlState from './formFieldControlState';
-import FormFieldDescription from './formFieldDescription';
-import FormFieldHelp from './formFieldHelp';
-import FormFieldLabel from './formFieldLabel';
-import FormFieldRequiredBadge from './formFieldRequiredBadge';
-import FormFieldWrapper from './formFieldWrapper';
+import {pulse, fadeOut} from '../../../../../styles/animations';
+import Field from '../field';
+import FieldControl from '../field/fieldControl';
 import FormState from '../../../../../components/forms/state';
 import InlineSvg from '../../../../../components/inlineSvg';
-import Spinner from '../styled/spinner';
+import Spinner from '../spinner';
 import returnButton from '../returnButton';
-
-// This wraps Control + ControlError message
-// * can NOT be a flex box have because of position: absolute on "control error message"
-// * can NOT have overflow hidden because "control error message" overflows
-const FormFieldControlErrorWrapper = styled(({inline, ...props}) => <Box {...props} />)`
-  ${p => (p.inline ? 'width: 50%; padding-left: 10px;' : '')};
-`;
-
-const FormFieldControlStyled = styled(({alignRight, ...props}) => (
-  <FormFieldControl {...props} />
-))`
-  display: flex;
-  flex-direction: column;
-  ${p => (p.alignRight ? 'align-items: flex-end;' : '')};
-`;
-
-const FormFieldControlWrapper = styled(Flex)``;
 
 const FormFieldErrorReason = styled.div`
   color: ${p => p.theme.redDark};
@@ -91,35 +67,73 @@ const getValueFromEvent = (valueOrEvent, e) => {
   };
 };
 
+/**
+ * ControlState (i.e. loading/error icons) for connected form components
+ */
+class ControlState extends React.Component {
+  static propTypes = {
+    model: PropTypes.object,
+    name: PropTypes.string,
+  };
+
+  render() {
+    let {model, name} = this.props;
+
+    return (
+      <React.Fragment>
+        <Observer>
+          {() => {
+            let isSaving = model.getFieldState(name, FormState.SAVING);
+            let isSaved = model.getFieldState(name, FormState.READY);
+
+            if (isSaving) {
+              return <FormSpinner />;
+            } else if (isSaved) {
+              return (
+                <FormFieldIsSaved>
+                  <InlineSvg src="icon-checkmark-sm" size="18px" />
+                </FormFieldIsSaved>
+              );
+            }
+
+            return null;
+          }}
+        </Observer>
+
+        <Observer>
+          {() => {
+            let error = model.getError(name);
+
+            if (!error) return null;
+
+            return (
+              <FormFieldError>
+                <InlineSvg src="icon-warning-sm" size="18px" />
+              </FormFieldError>
+            );
+          }}
+        </Observer>
+      </React.Fragment>
+    );
+  }
+}
+
 class FormField extends React.Component {
   static propTypes = {
     name: PropTypes.string.isRequired,
+
     /** Inline style */
     style: PropTypes.object,
 
-    label: PropTypes.string,
-    defaultValue: PropTypes.any,
-    disabledReason: PropTypes.string,
+    /**
+     * Should show a "return key" icon in input?
+     */
     showReturnButton: PropTypes.bool,
-    help: PropTypes.oneOfType([PropTypes.string, PropTypes.element]),
-    required: PropTypes.bool,
+
+    /**
+     * Should hide error message?
+     */
     hideErrorMessage: PropTypes.bool,
-    highlighted: PropTypes.bool,
-    alignRight: PropTypes.bool,
-
-    /**
-     * Should field be disabled?
-     */
-    disabled: PropTypes.oneOfType([PropTypes.bool, PropTypes.func]),
-    /**
-     * Should field be visible
-     */
-    visible: PropTypes.oneOfType([PropTypes.bool, PropTypes.func]),
-
-    /**
-     * Should control be inline with field label
-     */
-    inline: PropTypes.bool,
 
     // the following should only be used without form context
     onChange: PropTypes.func,
@@ -127,16 +141,10 @@ class FormField extends React.Component {
     onKeyDown: PropTypes.func,
     onMouseOver: PropTypes.func,
     onMouseOut: PropTypes.func,
-    error: PropTypes.string,
-    value: PropTypes.any,
   };
 
   static defaultProps = {
     hideErrorMessage: false,
-    inline: true,
-    disabled: false,
-    required: false,
-    visible: true,
   };
 
   static contextTypes = {
@@ -150,22 +158,8 @@ class FormField extends React.Component {
   }
 
   componentDidMount() {
-    // this.attachTooltips();
     // Tell model about this field's props
     this.getModel().setFieldDescriptor(this.props.name, this.props);
-  }
-
-  componentWillUnmount() {
-    //this.removeTooltips();
-    jQuery(ReactDOM.findDOMNode(this)).unbind();
-  }
-
-  attachTooltips() {
-    jQuery('.tip', ReactDOM.findDOMNode(this)).tooltip();
-  }
-
-  removeTooltips() {
-    jQuery('.tip', ReactDOM.findDOMNode(this)).tooltip('destroy');
   }
 
   getError(props, context) {
@@ -181,11 +175,13 @@ class FormField extends React.Component {
   }
 
   // Only works for styled inputs
+  // Attempts to autofocus input field if field's name is in url hash
   handleInputMount = ref => {
     if (ref && !this.input) {
       let hash = this.context.location && this.context.location.hash;
 
       if (!hash) return;
+
       if (hash !== `#${this.props.name}`) return;
 
       ref.focus();
@@ -245,124 +241,60 @@ class FormField extends React.Component {
   };
 
   render() {
-    let {
-      highlighted,
-      required,
-      label,
-      inline,
-      disabled,
-      disabledReason,
-      showReturnButton,
-      hideErrorMessage,
-      help,
-      alignRight,
-      visible,
-    } = this.props;
+    let {name, showReturnButton, hideErrorMessage, ...props} = this.props;
     let id = this.getId();
     let model = this.getModel();
-    let isDisabled = typeof disabled === 'function' ? disabled(this.props) : disabled;
-    let isVisible = typeof visible === 'function' ? visible(this.props) : visible;
-
-    if (!isVisible) {
-      return null;
-    }
 
     return (
-      <FormFieldWrapper inline={inline} highlighted={highlighted}>
-        <FormFieldDescription inline={inline} htmlFor={id}>
-          {label && (
-            <FormFieldLabel>
-              {label} {required && <FormFieldRequiredBadge />}
-            </FormFieldLabel>
-          )}
-          {help && <FormFieldHelp>{help}</FormFieldHelp>}
-        </FormFieldDescription>
-
-        <FormFieldControlErrorWrapper inline={inline}>
-          <FormFieldControlWrapper shrink="0">
-            <FormFieldControlStyled flex="1" alignRight={alignRight}>
+      <Field id={id} {...props}>
+        {({alignRight, inline, disabled, disabledReason}) => (
+          <FieldControl
+            disabled={disabled}
+            disabledReason={disabledReason}
+            inline={inline}
+            alignRight={alignRight}
+            controlState={<ControlState model={model} name={name} />}
+            errorState={
               <Observer>
                 {() => {
                   let error = this.getError();
-                  let value = model.getValue(this.props.name);
-
-                  return (
-                    <this.props.children
-                      innerRef={this.handleInputMount}
-                      {...{
-                        ...this.props,
-                        id,
-                        onKeyDown: this.handleKeyDown,
-                        onChange: this.handleChange,
-                        onBlur: this.handleBlur,
-                        // Fixes react warnings about input switching from controlled to uncontrolled
-                        // So force to empty string for null values
-                        value: value === null ? '' : value,
-                        error,
-                        disabled: isDisabled,
-                      }}
-                      initialData={model.initialData}
-                    />
-                  );
+                  let shouldShowErrorMessage = error && !hideErrorMessage;
+                  if (!shouldShowErrorMessage) return null;
+                  return <FormFieldErrorReason>{error}</FormFieldErrorReason>;
                 }}
               </Observer>
+            }
+          >
+            <Observer>
+              {() => {
+                let error = this.getError();
+                let value = model.getValue(this.props.name);
 
-              {isDisabled &&
-                disabledReason && (
-                  <span className="disabled-indicator tip" title={disabledReason}>
-                    <span className="icon-question" />
-                  </span>
-                )}
+                return (
+                  <this.props.children
+                    innerRef={this.handleInputMount}
+                    {...{
+                      ...this.props,
+                      id,
+                      onKeyDown: this.handleKeyDown,
+                      onChange: this.handleChange,
+                      onBlur: this.handleBlur,
+                      // Fixes react warnings about input switching from controlled to uncontrolled
+                      // So force to empty string for null values
+                      value: value === null ? '' : value,
+                      error,
+                      disabled,
+                    }}
+                    initialData={model.initialData}
+                  />
+                );
+              }}
+            </Observer>
 
-              {showReturnButton && this.state.showReturnButton && <ReturnButtonStyled />}
-            </FormFieldControlStyled>
-
-            <FormFieldControlState justify="center" align="center">
-              <Observer>
-                {() => {
-                  let isSaving = model.getFieldState(this.props.name, FormState.SAVING);
-                  let isSaved = model.getFieldState(this.props.name, FormState.READY);
-
-                  if (isSaving) {
-                    return <FormSpinner />;
-                  } else if (isSaved) {
-                    return (
-                      <FormFieldIsSaved>
-                        <InlineSvg src="icon-checkmark-sm" size="18px" />
-                      </FormFieldIsSaved>
-                    );
-                  }
-
-                  return null;
-                }}
-              </Observer>
-
-              <Observer>
-                {() => {
-                  let error = this.getError();
-
-                  if (!error) return null;
-
-                  return (
-                    <FormFieldError>
-                      <InlineSvg src="icon-warning-sm" size="18px" />
-                    </FormFieldError>
-                  );
-                }}
-              </Observer>
-            </FormFieldControlState>
-          </FormFieldControlWrapper>
-
-          <Observer>
-            {() => {
-              let error = this.getError();
-              let shouldShowErrorMessage = error && !hideErrorMessage;
-              if (!shouldShowErrorMessage) return null;
-              return <FormFieldErrorReason>{error}</FormFieldErrorReason>;
-            }}
-          </Observer>
-        </FormFieldControlErrorWrapper>
-      </FormFieldWrapper>
+            {showReturnButton && this.state.showReturnButton && <ReturnButtonStyled />}
+          </FieldControl>
+        )}
+      </Field>
     );
   }
 }

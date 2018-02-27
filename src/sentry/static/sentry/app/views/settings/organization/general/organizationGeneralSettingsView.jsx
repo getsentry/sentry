@@ -1,8 +1,8 @@
 import {browserHistory} from 'react-router';
 import PropTypes from 'prop-types';
 import React from 'react';
-import createReactClass from 'create-react-class';
 import Reflux from 'reflux';
+import createReactClass from 'create-react-class';
 
 import {
   changeOrganizationSlug,
@@ -11,11 +11,7 @@ import {
 } from '../../../../actionCreators/organizations';
 import {t, tct} from '../../../../locale';
 import ApiMixin from '../../../../mixins/apiMixin';
-import FormFieldWrapper from '../../components/forms/formField/formFieldWrapper';
-import FormFieldDescription from '../../components/forms/formField/formFieldDescription';
-import FormFieldControl from '../../components/forms/formField/formFieldControl';
-import FormFieldHelp from '../../components/forms/formField/formFieldHelp';
-import FormFieldLabel from '../../components/forms/formField/formFieldLabel';
+import Field from '../../components/forms/field';
 import LinkWithConfirmation from '../../../../components/linkWithConfirmation';
 import LoadingIndicator from '../../../../components/loadingIndicator';
 import OrganizationsStore from '../../../../stores/organizationsStore';
@@ -147,55 +143,49 @@ const OrganizationGeneralSettingsView = createReactClass({
                 hasMultipleOrgs && (
                   <Panel>
                     <PanelHeader>{t('Remove Organization')}</PanelHeader>
-                    <FormFieldWrapper inline>
-                      <FormFieldDescription inline>
-                        <FormFieldLabel>{t('Remove Organization')}</FormFieldLabel>
-                        <FormFieldHelp>
-                          {t(
-                            'Removing this organization will delete all data including projects and their associated events.'
-                          )}
-                        </FormFieldHelp>
-                      </FormFieldDescription>
-
-                      <FormFieldControl>
-                        <LinkWithConfirmation
-                          className="btn btn-danger"
-                          priority="danger"
-                          size="small"
-                          title={tct('Remove [name] organization', {
-                            name: data && data.name,
-                          })}
-                          message={
-                            <div>
-                              <p>
-                                {tct(
-                                  'Removing the [name] organization is permanent and cannot be undone!',
-                                  {name: data && data.name}
-                                )}
-                              </p>
-
-                              {hasTeams && (
-                                <div>
-                                  <p>
-                                    {t(
-                                      'This will also remove the following teams and all associated projects:'
-                                    )}
-                                  </p>
-                                  <ul>
-                                    {data.teams.map(team => (
-                                      <li key={team.slug}>{team.name}</li>
-                                    ))}
-                                  </ul>
-                                </div>
+                    <Field
+                      label={t('Remove Organization')}
+                      help={t(
+                        'Removing this organization will delete all data including projects and their associated events.'
+                      )}
+                    >
+                      <LinkWithConfirmation
+                        className="btn btn-danger"
+                        priority="danger"
+                        size="small"
+                        title={tct('Remove [name] organization', {
+                          name: data && data.name,
+                        })}
+                        message={
+                          <div>
+                            <p>
+                              {tct(
+                                'Removing the [name] organization is permanent and cannot be undone!',
+                                {name: data && data.name}
                               )}
-                            </div>
-                          }
-                          onConfirm={this.handleRemoveOrganization}
-                        >
-                          {t('Remove Organization')}
-                        </LinkWithConfirmation>
-                      </FormFieldControl>
-                    </FormFieldWrapper>
+                            </p>
+
+                            {hasTeams && (
+                              <div>
+                                <p>
+                                  {t(
+                                    'This will also remove the following teams and all associated projects:'
+                                  )}
+                                </p>
+                                <ul>
+                                  {data.teams.map(team => (
+                                    <li key={team.slug}>{team.name}</li>
+                                  ))}
+                                </ul>
+                              </div>
+                            )}
+                          </div>
+                        }
+                        onConfirm={this.handleRemoveOrganization}
+                      >
+                        {t('Remove Organization')}
+                      </LinkWithConfirmation>
+                    </Field>
                   </Panel>
                 )}
             </div>

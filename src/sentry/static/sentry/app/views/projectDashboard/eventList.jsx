@@ -1,6 +1,7 @@
 import PropTypes from 'prop-types';
 import React from 'react';
 import createReactClass from 'create-react-class';
+import jQuery from 'jquery';
 import ApiMixin from '../../mixins/apiMixin';
 import LoadingError from '../../components/loadingError';
 import LoadingIndicator from '../../components/loadingIndicator';
@@ -12,8 +13,9 @@ const EventList = createReactClass({
   displayName: 'EventList',
 
   propTypes: {
-    title: PropTypes.string.isRequired,
-    endpoint: PropTypes.string.isRequired,
+    type: PropTypes.oneOf(['new', 'priority']).isRequired,
+    environment: PropTypes.object,
+    dateSince: PropTypes.number,
   },
 
   mixins: [ApiMixin],
@@ -32,7 +34,7 @@ const EventList = createReactClass({
   },
 
   componentWillReceiveProps(nextProps) {
-    if (nextProps.endpoint !== this.props.endpoint) {
+    if (nextProps.environment !== this.props.environment) {
       this.setState(
         {
           loading: true,
@@ -43,22 +45,40 @@ const EventList = createReactClass({
     }
   },
 
-  fetchData() {
-    let minutes;
-    switch (this.state.statsPeriod) {
-      case '15m':
-        minutes = '15';
-        break;
-      case '60m':
-        minutes = '60';
-        break;
-      case '24h':
-      default:
-        minutes = '1440';
-        break;
+  getEndpoint() {
+    const {params, type, environment} = this.props;
+
+    let qs = {
+      sort: type,
+      query: 'is:unresolved',
+      since: this.props.dateSince,
+    };
+
+    if (environment) {
+      qs.environment = environment.name;
+      qs.query = `${qs.query} environment:${environment.name}`;
     }
 
-    this.api.request(this.props.endpoint, {
+    return `/projects/${params.orgId}/${params.projectId}/issues/?${jQuery.param(qs)}`;
+  },
+
+  getMinutes() {
+    switch (this.state.statsPeriod) {
+      case '15m':
+        return '15';
+      case '60m':
+        return '60';
+      case '24h':
+      default:
+        return '1440';
+    }
+  },
+
+  fetchData() {
+    const endpoint = this.getEndpoint();
+    const minutes = this.getMinutes();
+
+    this.api.request(endpoint, {
       query: {
         limit: 5,
         minutes,
@@ -95,7 +115,9 @@ const EventList = createReactClass({
         <div className="box-header clearfix">
           <div className="row">
             <div className="col-xs-8">
-              <h3>{this.props.title}</h3>
+              <h3>
+                {this.props.type === 'new' ? t('New issues') : t('Trending issues')}
+              </h3>
             </div>
             <div className="col-xs-2 align-right">{t('Events')}</div>
             <div className="col-xs-2 align-right">{t('Users')}</div>

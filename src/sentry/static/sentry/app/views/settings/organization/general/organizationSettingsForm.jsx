@@ -4,10 +4,7 @@ import React from 'react';
 
 import createReactClass from 'create-react-class';
 
-import {
-  addErrorMessage,
-  saveOnBlurUndoMessage,
-} from '../../../../actionCreators/indicator';
+import {addErrorMessage} from '../../../../actionCreators/indicator';
 import ApiMixin from '../../../../mixins/apiMixin';
 import Form from '../../components/forms/form';
 import JsonForm from '../../components/forms/jsonForm';
@@ -53,8 +50,7 @@ const NewOrganizationSettingsForm = createReactClass({
         saveOnBlur
         allowUndo
         initialData={initialData}
-        onSubmitSuccess={(change, model, fieldName) => {
-          saveOnBlurUndoMessage(change, model, fieldName);
+        onSubmitSuccess={(resp, model, fieldName, change) => {
           // Special case for slug, need to forward to new slug
           if (typeof onSave === 'function') {
             onSave(initialData, model.initialData);

@@ -258,7 +258,7 @@ INSTALLED_APPS = (
 )
 
 import django
-if django.VERSION < (1, 7):
+if django.VERSION < (1, 9):
     INSTALLED_APPS += ('south', )
 
 STATIC_ROOT = os.path.realpath(os.path.join(PROJECT_ROOT, 'static'))
@@ -437,6 +437,7 @@ CELERY_IMPORTS = (
     'sentry.tagstore.tasks', 'sentry.tasks.assemble'
 )
 CELERY_QUEUES = [
+    Queue('activity.notify', routing_key='activity.notify'),
     Queue('alerts', routing_key='alerts'),
     Queue('auth', routing_key='auth'),
     Queue('assemble', routing_key='assemble'),

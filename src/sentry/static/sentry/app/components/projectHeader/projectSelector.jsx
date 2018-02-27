@@ -225,12 +225,8 @@ const ProjectSelector = createReactClass({
     let features = new Set(this.props.organization.features);
 
     if (features.has('internal-catchall')) {
-      label = (
-        <span>
-          {project.name} ({project.slug})
-        </span>
-      );
-      text = `${project.name} (${project.slug})`;
+      label = <span>{project.slug}</span>;
+      text = project.slug;
     } else if (!hasSingleTeam && project.name.indexOf(team.name) === -1) {
       label = (
         <span>

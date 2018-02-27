@@ -41,6 +41,11 @@ class Client {
       return url === response.url && (options.method || 'GET') === response.method;
     });
   }
+
+  uniqueId() {
+    return '123';
+  }
+
   // In the real client, this clears in-flight responses. It's NOT clearMockResponses. You probably don't want to call this from a test.
   clear() {}
 

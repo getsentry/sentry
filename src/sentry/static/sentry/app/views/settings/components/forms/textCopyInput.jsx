@@ -4,7 +4,7 @@ import React from 'react';
 import ReactDOM from 'react-dom';
 import styled from 'react-emotion';
 
-import {inputStyles} from './styled/styles';
+import {inputStyles} from '../../../../styles/input';
 import {selectText} from '../../../../utils/selectText';
 import Button from '../../../../components/buttons/button';
 import Clipboard from '../../../../components/clipboard';
@@ -98,7 +98,7 @@ class TextCopyInput extends React.Component {
           />
         </OverflowContainer>
         <Clipboard hideUnsupported onClick={this.handleCopyClick} value={children}>
-          <StyledCopyButton size="xsmall" onClick={this.handleCopyClick}>
+          <StyledCopyButton type="button" size="xsmall" onClick={this.handleCopyClick}>
             <InlineSvg src="icon-clipboard" size="1.25em" />
           </StyledCopyButton>
         </Clipboard>

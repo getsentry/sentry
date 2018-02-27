@@ -1,10 +1,11 @@
 import PropTypes from 'prop-types';
 import React from 'react';
 import styled from 'react-emotion';
-import {Flex} from 'grid-emotion';
+import {Flex, Box} from 'grid-emotion';
 
 class SettingsPageHeading extends React.Component {
   static propTypes = {
+    icon: PropTypes.node,
     title: PropTypes.node,
     action: PropTypes.node,
     tabs: PropTypes.node,
@@ -14,6 +15,7 @@ class SettingsPageHeading extends React.Component {
     return (
       <Wrapper tabs={this.props.tabs}>
         <Flex align="center">
+          {this.props.icon && <Box pr={1}>{this.props.icon}</Box>}
           {this.props.title && <Title>{this.props.title}</Title>}
           {this.props.action && <div>{this.props.action}</div>}
         </Flex>

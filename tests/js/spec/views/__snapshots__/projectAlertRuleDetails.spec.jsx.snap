@@ -62,6 +62,7 @@ exports[`ProjectAlertRuleDetails Edit alert rule renders 1`] = `
             "id": "3",
             "name": "Organization Name",
             "onboardingTasks": Array [],
+            "projects": Array [],
             "slug": "org-slug",
             "status": Object {
               "id": "active",
@@ -284,6 +285,72 @@ exports[`ProjectAlertRuleDetails Edit alert rule renders 1`] = `
                   </fieldset>
                 </div>
               </RuleNodeList>
+              <hr />
+              <h6>
+                In this environment
+                :
+              </h6>
+              <Select2Field
+                allowClear={false}
+                allowEmpty={false}
+                choices={
+                  Array [
+                    Array [
+                      "all",
+                      "All Environments",
+                    ],
+                  ]
+                }
+                className=""
+                disabled={false}
+                escapeMarkup={true}
+                hideErrorMessage={false}
+                multiple={false}
+                name="environment"
+                onChange={[Function]}
+                placeholder="--"
+                required={true}
+                style={
+                  Object {
+                    "marginBottom": 0,
+                    "marginLeft": 5,
+                    "marginRight": 5,
+                  }
+                }
+              >
+                <div
+                  className="control-group required"
+                  style={
+                    Object {
+                      "marginBottom": 0,
+                      "marginLeft": 5,
+                      "marginRight": 5,
+                    }
+                  }
+                >
+                  <div
+                    className="controls"
+                  >
+                    <select
+                      className="form-control"
+                      disabled={false}
+                      id="id-environment"
+                      multiple={false}
+                      onChange={[Function]}
+                      placeholder="--"
+                      required={true}
+                      value=""
+                    >
+                      <option
+                        key="all"
+                        value="all"
+                      >
+                        All Environments
+                      </option>
+                    </select>
+                  </div>
+                </div>
+              </Select2Field>
               <hr />
               <h6>
                 Take these actions:
@@ -596,6 +663,7 @@ exports[`ProjectAlertRuleDetails New alert rule renders 1`] = `
             "id": "3",
             "name": "Organization Name",
             "onboardingTasks": Array [],
+            "projects": Array [],
             "slug": "org-slug",
             "status": Object {
               "id": "active",
@@ -818,6 +886,72 @@ exports[`ProjectAlertRuleDetails New alert rule renders 1`] = `
                   </fieldset>
                 </div>
               </RuleNodeList>
+              <hr />
+              <h6>
+                In this environment
+                :
+              </h6>
+              <Select2Field
+                allowClear={false}
+                allowEmpty={false}
+                choices={
+                  Array [
+                    Array [
+                      "all",
+                      "All Environments",
+                    ],
+                  ]
+                }
+                className=""
+                disabled={false}
+                escapeMarkup={true}
+                hideErrorMessage={false}
+                multiple={false}
+                name="environment"
+                onChange={[Function]}
+                placeholder="--"
+                required={true}
+                style={
+                  Object {
+                    "marginBottom": 0,
+                    "marginLeft": 5,
+                    "marginRight": 5,
+                  }
+                }
+              >
+                <div
+                  className="control-group required"
+                  style={
+                    Object {
+                      "marginBottom": 0,
+                      "marginLeft": 5,
+                      "marginRight": 5,
+                    }
+                  }
+                >
+                  <div
+                    className="controls"
+                  >
+                    <select
+                      className="form-control"
+                      disabled={false}
+                      id="id-environment"
+                      multiple={false}
+                      onChange={[Function]}
+                      placeholder="--"
+                      required={true}
+                      value=""
+                    >
+                      <option
+                        key="all"
+                        value="all"
+                      >
+                        All Environments
+                      </option>
+                    </select>
+                  </div>
+                </div>
+              </Select2Field>
               <hr />
               <h6>
                 Take these actions:

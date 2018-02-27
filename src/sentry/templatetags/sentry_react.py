@@ -100,6 +100,8 @@ def get_react_config(context):
         enabled_features.append('organizations:create')
     if auth.has_user_registration():
         enabled_features.append('auth:register')
+    if features.has('user:assistant', actor=user):
+        enabled_features.append('assistant')
 
     version_info = _get_version_info()
 

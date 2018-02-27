@@ -71,13 +71,13 @@ class Migration(SchemaMigration):
             ('_key', self.gf('sentry.db.models.fields.foreignkey.FlexibleForeignKey')(
                 to=orm['tagstore.TagKey'], db_column='key')),
             ('first_seen', self.gf('django.db.models.fields.DateTimeField')(
-                default=datetime.datetime.now, null=True, db_index=True)),
+                null=True, db_index=True)),
             ('project_id', self.gf('sentry.db.models.fields.bounded.BoundedPositiveIntegerField')(db_index=True)),
             ('data', self.gf('sentry.db.models.fields.gzippeddict.GzippedDictField')(null=True, blank=True)),
             ('id', self.gf('sentry.db.models.fields.bounded.BoundedBigAutoField')(primary_key=True)),
             ('value', self.gf('django.db.models.fields.CharField')(max_length=200)),
             ('last_seen', self.gf('django.db.models.fields.DateTimeField')(
-                default=datetime.datetime.now, null=True, db_index=True)),
+                null=True, db_index=True)),
         ))
         db.send_create_signal('tagstore', ['TagValue'])
 
@@ -111,7 +111,7 @@ class Migration(SchemaMigration):
                 to=orm['tagstore.TagKey'], db_column='key')),
             ('event_id', self.gf('sentry.db.models.fields.bounded.BoundedPositiveIntegerField')()),
             ('date_added', self.gf('django.db.models.fields.DateTimeField')(
-                default=datetime.datetime.now, db_index=True)),
+                db_index=True)),
             ('group_id', self.gf('sentry.db.models.fields.bounded.BoundedPositiveIntegerField')()),
             ('id', self.gf('sentry.db.models.fields.bounded.BoundedBigAutoField')(primary_key=True)),
             ('value', self.gf('sentry.db.models.fields.foreignkey.FlexibleForeignKey')(
@@ -132,11 +132,11 @@ class Migration(SchemaMigration):
             ('_key', self.gf('sentry.db.models.fields.foreignkey.FlexibleForeignKey')(
                 to=orm['tagstore.TagKey'], db_column='key')),
             ('first_seen', self.gf('django.db.models.fields.DateTimeField')(
-                default=datetime.datetime.now, null=True, db_index=True)),
+                null=True, db_index=True)),
             ('group_id', self.gf('sentry.db.models.fields.bounded.BoundedPositiveIntegerField')(db_index=True)),
             ('id', self.gf('sentry.db.models.fields.bounded.BoundedBigAutoField')(primary_key=True)),
             ('last_seen', self.gf('django.db.models.fields.DateTimeField')(
-                default=datetime.datetime.now, null=True, db_index=True)),
+                null=True, db_index=True)),
         ))
         db.send_create_signal('tagstore', ['GroupTagValue'])
 

@@ -147,13 +147,14 @@ class AccountEmails extends AsyncView {
           apiMethod="POST"
           apiEndpoint={ENDPOINT}
           saveOnBlur
+          allowUndo={false}
           onSubmitSuccess={this.handleSubmitSuccess}
         >
           <JsonForm location={this.props.location} forms={accountEmailsFields} />
         </Form>
 
         <AlertLink to="/settings/account/notifications" icon="icon-stack">
-          {t('Wanna change how many emails you get? Use the notifications panel.')}
+          {t('Want to change how many emails you get? Use the notifications panel.')}
         </AlertLink>
       </div>
     );

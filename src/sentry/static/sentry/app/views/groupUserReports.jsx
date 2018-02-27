@@ -1,5 +1,5 @@
-import $ from 'jquery';
 import React from 'react';
+import PropTypes from 'prop-types';
 import createReactClass from 'create-react-class';
 import {Link} from 'react-router';
 import ApiMixin from '../mixins/apiMixin';
@@ -8,9 +8,15 @@ import EventUserReport from '../components/events/userReport';
 import LoadingError from '../components/loadingError';
 import LoadingIndicator from '../components/loadingIndicator';
 import {t} from '../locale';
+import withEnvironment from '../utils/withEnvironment';
 
 const GroupUserReports = createReactClass({
   displayName: 'GroupUserReports',
+
+  propTypes: {
+    environment: PropTypes.object,
+  },
+
   mixins: [ApiMixin, GroupState],
 
   getInitialState() {
@@ -27,21 +33,28 @@ const GroupUserReports = createReactClass({
   },
 
   componentDidUpdate(prevProps) {
-    if (prevProps.location.search !== this.props.location.search) {
+    if (
+      prevProps.location.search !== this.props.location.search ||
+      prevProps.environment !== this.props.environment
+    ) {
       this.fetchData();
     }
   },
 
   fetchData() {
-    let queryParams = this.props.params;
-    let querystring = $.param(queryParams);
+    const queryParams = {...this.props.params};
+
+    if (this.props.environment) {
+      queryParams.environment = this.props.environment.name;
+    }
 
     this.setState({
       loading: true,
       error: false,
     });
 
-    this.api.request('/issues/' + this.getGroup().id + '/user-reports/?' + querystring, {
+    this.api.request(`/issues/${this.getGroup().id}/user-reports/`, {
+      query: queryParams,
       success: (data, _, jqXHR) => {
         this.setState({
           error: false,
@@ -97,7 +110,7 @@ const GroupUserReports = createReactClass({
     return (
       <div className="box empty-stream">
         <span className="icon icon-exclamation" />
-        <p>{t('No user reports have been collected for this event.')}</p>
+        <p>{t('No user reports have been collected.')}</p>
         <p>
           <Link to={this.getUserReportsUrl()}>
             {t('Learn how to integrate User Feedback')}
@@ -108,4 +121,4 @@ const GroupUserReports = createReactClass({
   },
 });
 
-export default GroupUserReports;
+export default withEnvironment(GroupUserReports);

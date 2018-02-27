@@ -455,7 +455,7 @@ class AuthHelper(object):
 
     def _find_existing_user(self, email):
         return User.objects.filter(
-            id__in=UserEmail.objects.filter(email__iexact=email).values('user'),
+            id__in=UserEmail.objects.filter(email__iexact=email).values_list('user'),
             is_active=True,
         ).first()
 

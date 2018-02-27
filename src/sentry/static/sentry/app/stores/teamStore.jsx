@@ -13,6 +13,7 @@ const TeamStore = Reflux.createStore({
 
   reset() {
     this.items = [];
+    // TODO(jess): this is not going to make sense/be accurate in sentry 9
     this.projectMap = {}; // map of project ids => team ids
   },
 
@@ -35,6 +36,18 @@ const TeamStore = Reflux.createStore({
     if (!item) {
       this.items.push(response);
     } else {
+      // Slug was changed
+      // Note: This is the proper way to handle slug changes but unfortunately not all of our
+      // components use stores correctly. To be safe reload browser :((
+      if (response.slug !== itemId) {
+        // Remove old team
+        this.items = this.items.filter(({slug}) => slug !== itemId);
+        // Add team w/ updated slug
+        this.items.push(response);
+        this.trigger(new Set([response.slug]));
+        return;
+      }
+
       $.extend(true /*deep*/, item, response);
     }
 
@@ -43,6 +56,7 @@ const TeamStore = Reflux.createStore({
 
   onProject(projectIds) {
     let teamsChanged = new Set();
+
     projectIds.forEach((set, projectId) => {
       let teamId = this.projectMap[projectId];
       if (teamId === undefined) return;
@@ -50,7 +64,13 @@ const TeamStore = Reflux.createStore({
       // TODO: make copy of project? right now just assigning reference
       // to project form project store
       let project = ProjectsStore.getById(projectId);
-      team.project = project;
+      // so gross don't look, update projects in
+      // the team.projects list. this should be behavior
+      // we can completely deprecate after sentry 9
+      team.projects = team.projects.filter(p => {
+        return p.slug !== project.slug;
+      });
+      team.projects.push(project);
       teamsChanged.add(team.id);
     });
     this.trigger(teamsChanged);

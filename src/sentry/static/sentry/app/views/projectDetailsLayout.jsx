@@ -1,33 +1,27 @@
 import React from 'react';
+import PropTypes from 'prop-types';
 import Reflux from 'reflux';
 import createReactClass from 'create-react-class';
 
 import EnvironmentStore from '../stores/environmentStore';
-import LatestContextStore from '../stores/latestContextStore';
-
 import ProjectHeader from '../components/projectHeader';
 import ProjectState from '../mixins/projectState';
+import withEnvironment from '../utils/withEnvironment';
 
 const ProjectDetailsLayout = createReactClass({
   displayName: 'ProjectDetailsLayout',
-  mixins: [
-    ProjectState,
-    Reflux.connect(EnvironmentStore, 'environments'),
-    Reflux.listenTo(LatestContextStore, 'onLatestContextChange'),
-  ],
+
+  propTypes: {
+    environment: PropTypes.object,
+  },
+
+  mixins: [ProjectState, Reflux.connect(EnvironmentStore, 'environments')],
 
   getInitialState() {
     return {
       environments: [],
       projectNavSection: null,
-      activeEnvironment: null,
     };
-  },
-
-  onLatestContextChange(context) {
-    this.setState({
-      activeEnvironment: context.environment,
-    });
   },
 
   /**
@@ -51,7 +45,7 @@ const ProjectDetailsLayout = createReactClass({
           project={this.context.project}
           organization={this.getOrganization()}
           environments={this.state.environments}
-          activeEnvironment={this.state.activeEnvironment}
+          activeEnvironment={this.props.environment}
         />
         <div className="container">
           <div className="content">
@@ -66,4 +60,4 @@ const ProjectDetailsLayout = createReactClass({
   },
 });
 
-export default ProjectDetailsLayout;
+export default withEnvironment(ProjectDetailsLayout);
