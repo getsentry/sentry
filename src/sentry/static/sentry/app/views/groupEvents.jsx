@@ -45,10 +45,11 @@ const GroupEvents = createReactClass({
     if (queryEnvironment) {
       setActiveEnvironment(queryEnvironment);
     } else if (this.props.environment) {
-      initialState.query = getQueryStringWithEnvironment(
+      const newQuery = getQueryStringWithEnvironment(
         initialState.query,
         this.props.environment.name
       );
+      this.handleSearch(newQuery);
     }
 
     return initialState;
@@ -85,12 +86,7 @@ const GroupEvents = createReactClass({
         nextProps.location.query.query || '',
         nextProps.environment ? nextProps.environment.name : null
       );
-      this.setState(
-        {
-          query: newQueryString,
-        },
-        this.handleSearch(newQueryString)
-      );
+      this.handleSearch(newQueryString);
     }
   },
 
