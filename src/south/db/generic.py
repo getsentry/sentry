@@ -31,6 +31,7 @@ except ImportError:
             res = instance.__dict__[self.func.__name__] = self.func(instance)
             return res
 
+from south.constants import DJANGO_17
 from south.logger import get_logger
 from south.utils.py3 import string_types, text_type
 
@@ -1015,9 +1016,10 @@ class DatabaseOperations(object):
         """
         if self.dry_run:
             self.pending_transactions += 1
-        # transaction.commit_unless_managed(using=self.db_alias)
-        # transaction.enter_transaction_management(using=self.db_alias)
-        # transaction.managed(True, using=self.db_alias)
+        if not DJANGO_17:
+            transaction.commit_unless_managed(using=self.db_alias)
+            transaction.enter_transaction_management(using=self.db_alias)
+            transaction.managed(True, using=self.db_alias)
 
     def commit_transaction(self):
         """
@@ -1027,7 +1029,8 @@ class DatabaseOperations(object):
         if self.dry_run:
             return
         transaction.commit(using=self.db_alias)
-        # transaction.leave_transaction_management(using=self.db_alias)
+        if not DJANGO_17:
+            transaction.leave_transaction_management(using=self.db_alias)
 
     def rollback_transaction(self):
         """
@@ -1037,7 +1040,8 @@ class DatabaseOperations(object):
         if self.dry_run:
             self.pending_transactions -= 1
         transaction.rollback(using=self.db_alias)
-        # transaction.leave_transaction_management(using=self.db_alias)
+        if not DJANGO_17:
+            transaction.leave_transaction_management(using=self.db_alias)
 
     def rollback_transactions_dry_run(self):
         """
@@ -1047,10 +1051,10 @@ class DatabaseOperations(object):
             return
         while self.pending_transactions > 0:
             self.rollback_transaction()
-        # if transaction.is_dirty(using=self.db_alias):
-        #     # Force an exception, if we're still in a dirty transaction.
-        #     # This means we are missing a COMMIT/ROLLBACK.
-        #     transaction.leave_transaction_management(using=self.db_alias)
+        if not DJANGO_17 and transaction.is_dirty(using=self.db_alias):
+            # Force an exception, if we're still in a dirty transaction.
+            # This means we are missing a COMMIT/ROLLBACK.
+            transaction.leave_transaction_management(using=self.db_alias)
 
     def send_create_signal(self, app_label, model_names):
         self.pending_create_signals.append((app_label, model_names))
