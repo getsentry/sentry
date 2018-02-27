@@ -87,7 +87,7 @@ const theme = {
   grid: 8,
 
   settings: {
-    containerWidth: '1040px',
+    containerWidth: '1140px',
     headerHeight: '115px',
     sidebarWidth: '210px',
   },

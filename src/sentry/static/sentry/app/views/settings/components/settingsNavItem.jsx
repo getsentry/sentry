@@ -24,7 +24,7 @@ const StyledNavItem = withTheme(
       position: absolute;
       content: '';
       display: block;
-      top: 8px;
+      top: 7px;
       left: -22px;
       height: 14px;
       width: 2px;
