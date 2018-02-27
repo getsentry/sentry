@@ -193,7 +193,7 @@ class ReleaseSerializer(Serializer):
             # assume it should be a sum across release
             # if no particular project specified
             issue_counts_by_release = dict(
-                ReleaseProjectEnvironment.filter(release__in=item_list)
+                ReleaseProjectEnvironment.objects.filter(release__in=item_list)
                 .values('release_id').annotate(new_issues_count=Sum('new_issues_count'))
                 .values_list('release_id', 'new_issues_count')
             )
