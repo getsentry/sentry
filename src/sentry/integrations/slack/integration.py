@@ -1,14 +1,32 @@
 from __future__ import absolute_import
 
-from sentry.integrations import Integration
+from sentry.integrations import Integration, IntegrationMetadata
 from sentry.utils.pipeline import NestedPipelineView
 from sentry.identity.pipeline import IdentityProviderPipeline
 from sentry.utils.http import absolute_uri
+
+DESCRIPTION = """
+Define a relationship between Sentry and your Slack workspace(s).
+
+ * Unfurls Sentry URLs in slack, providing context and actionability on issues
+   directly within your Slack workspace.
+ * Resolve, ignore, and assign issues with minimal context switching.
+ * Configure rule based Slack notifications to automatically be posted into the
+   specified channel.
+"""
+
+metadata = IntegrationMetadata(
+    description=DESCRIPTION.strip(),
+    author='The Sentry Team',
+    issue_url='https://github.com/getsentry/sentry/issues/new?title=Slack%20Integration:%20&labels=Component%3A%20Integrations',
+    source_url='https://github.com/getsentry/sentry/tree/master/src/sentry/integrations/slack'
+)
 
 
 class SlackIntegration(Integration):
     key = 'slack'
     name = 'Slack'
+    metadata = metadata
 
     identity_oauth_scopes = frozenset([
         'bot',

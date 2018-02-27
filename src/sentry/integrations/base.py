@@ -1,10 +1,19 @@
 from __future__ import absolute_import
 
-__all__ = ['Integration']
+__all__ = ['Integration', 'IntegrationMetadata']
 
 import logging
+from collections import namedtuple
 
 from sentry.utils.pipeline import PipelineProvider
+
+
+IntegrationMetadata = namedtuple('IntegrationMetadata', [
+    'description',  # A markdown description of the integration
+    'author',       # The integration author's name
+    'issue_url',    # URL where issues should be opened
+    'source_url',   # URL to view the source
+])
 
 
 class Integration(PipelineProvider):
@@ -26,6 +35,10 @@ class Integration(PipelineProvider):
 
     # a human readable name (e.g. 'Slack')
     name = None
+
+    # an IntegrationMetadata object, used to provider extra details in the
+    # configuration interface of the integration.
+    metadata = None
 
     # configuration for the setup dialog
     setup_dialog_config = {
