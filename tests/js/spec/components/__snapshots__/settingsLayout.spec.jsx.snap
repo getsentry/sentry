@@ -11,7 +11,7 @@ exports[`SettingsLayout renders 1`] = `
         routes={Array []}
       />
     </Box>
-    <SettingsSearchContainer />
+    <withRouter(SettingsSearchContainer) />
   </SettingsHeader>
   <Flex>
     <Content>
