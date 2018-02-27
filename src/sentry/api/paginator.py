@@ -8,6 +8,7 @@ sentry.api.paginator
 from __future__ import absolute_import
 
 import math
+import operator
 
 from datetime import datetime
 from django.db import connections
@@ -219,4 +220,89 @@ class OffsetPaginator(BasePaginator):
             results=results[:limit],
             next=next_cursor,
             prev=prev_cursor,
+        )
+
+
+def search(haystack, needle, reverse=False):
+    # TODO: Replace this with binary search!
+    position = 0
+    predicate = operator.ge if not reverse else operator.le
+    while position < len(haystack):
+        value, _ = haystack[position]
+        if predicate(value, needle):
+            break
+        else:
+            position = position + 1
+    return position
+
+
+class SequencePaginator(object):
+    def __init__(self, data, reverse=False):
+        self.data = sorted(data, reverse=reverse)
+        self.reverse = reverse
+
+    def get_result(self, limit, cursor=None):
+        if cursor is None:
+            cursor_score = None
+            cursor_offset = 0
+            cursor_is_prev = False
+        else:
+            cursor_score = cursor.value
+            cursor_offset = cursor.offset
+            cursor_is_prev = cursor.is_prev
+
+        assert cursor_offset > -1
+
+        if cursor_score is None:
+            position = 0 if not cursor_is_prev else len(self.data)
+        else:
+            position = search(self.data, cursor_score, self.reverse)
+
+        position = position + cursor_offset
+
+        if not cursor_is_prev:
+            lo = max(position, 0)
+            hi = min(lo + limit, len(self.data))
+        else:
+            # TODO: It might make sense to ensure that this hi value is at
+            # least the length of the page + 1 if we want to ensure we return a
+            # full page of results when paginating backwards while data is
+            # being mutated.
+            hi = min(position, len(self.data))
+            lo = max(hi - limit, 0)
+
+        results = map(
+            lambda (score, item): item,
+            self.data[lo:hi],
+        )
+
+        prev_cursor = None
+        if lo > 0:
+            prev_score = self.data[lo][0]
+            prev_offset = 0
+            # TODO: This point could be identified with binary search.
+            while lo - prev_offset - 1 > -1 and prev_score == self.data[lo - prev_offset - 1][0]:
+                prev_offset = prev_offset + 1
+            prev_cursor = Cursor(prev_score, prev_offset, True, True)
+
+        next_cursor = None
+        if hi < len(self.data):
+            next_score = self.data[hi][0]
+            # TODO: This point could be identified with binary search.
+            next_offset = 0
+            while hi - next_offset - 1 > -1 and next_score == self.data[hi - next_offset - 1][0]:
+                next_offset = next_offset + 1
+            next_cursor = Cursor(next_score, next_offset, False, True)
+
+        max_hits = 1000
+
+        return CursorResult(
+            results,
+            prev=prev_cursor,
+            next=next_cursor,
+            hits=min(
+                len(self.data),
+                max_hits,
+            ),
+            max_hits=max_hits,
         )
