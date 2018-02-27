@@ -20,6 +20,10 @@ const StyledDivider = styled.span`
       : ''};
 `;
 
+const StyledInlineSvg = styled(InlineSvg)`
+  display: block;
+`;
+
 class SettingsBreadcrumbDivider extends React.Component {
   static propTypes = {
     isHover: PropTypes.bool,
@@ -31,7 +35,7 @@ class SettingsBreadcrumbDivider extends React.Component {
 
     return (
       <StyledDivider isHover={isHover}>
-        <InlineSvg src="icon-chevron-right" size="15px" />
+        <StyledInlineSvg src="icon-chevron-right" size="14px" />
       </StyledDivider>
     );
   }
