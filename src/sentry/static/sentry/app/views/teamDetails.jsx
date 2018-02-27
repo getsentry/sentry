@@ -111,11 +111,11 @@ const TeamDetails = createReactClass({
           )}
 
         <ul className="nav nav-tabs border-bottom">
-          <ListLink to={`${routePrefix}settings/`}>{t('Settings')}</ListLink>
           <ListLink to={`${routePrefix}members/`}>{t('Members')}</ListLink>
           {onNewSettings ? (
             <ListLink to={`${routePrefix}projects/`}>{t('Projects')}</ListLink>
           ) : null}
+          <ListLink to={`${routePrefix}settings/`}>{t('Settings')}</ListLink>
         </ul>
 
         {children &&

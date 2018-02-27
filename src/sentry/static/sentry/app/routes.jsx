@@ -463,17 +463,17 @@ function routes() {
         />
 
         <Route name="Team" path=":teamId/" component={errorHandler(TeamDetails)}>
-          <IndexRedirect to="settings/" />
-          <Route
-            path="settings/"
-            name="Settings"
-            component={errorHandler(TeamSettings)}
-          />
+          <IndexRedirect to="members/" />
           <Route path="members/" name="Members" component={errorHandler(TeamMembers)} />
           <Route
             path="projects/"
             name="Projects"
             component={errorHandler(TeamProjects)}
+          />
+          <Route
+            path="settings/"
+            name="settings"
+            component={errorHandler(TeamSettings)}
           />
         </Route>
       </Route>
