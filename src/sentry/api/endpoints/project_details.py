@@ -98,7 +98,9 @@ class ProjectAdminSerializer(ProjectMemberSerializer):
     platform = serializers.CharField(required=False)
 
     def validate_digestsMaxDelay(self, attrs, source):
-        if attrs[source] < attrs['digestsMinDelay']:
+        min_delay = attrs['digestsMinDelay'] if 'digestsMinDelay' in attrs else self.context['project'].get_option(
+            'digests:mail:minimum_delay')
+        if attrs[source] < min_delay:
             raise serializers.ValidationError(
                 'The maximum delay on digests must be higher than the minimum.'
             )

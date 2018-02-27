@@ -416,6 +416,77 @@ class ProjectUpdateTest(APITestCase):
         assert self.project.get_option('sentry:scrub_defaults') is False
         assert resp.data['dataScrubberDefaults'] is False
 
+    def test_digests_delay(self):
+        resp = self.client.put(self.path, data={
+            'digestsMinDelay': 1000
+        })
+        assert resp.status_code == 200, resp.content
+        assert self.project.get_option('digests:mail:minimum_delay') == 1000
+
+        resp = self.client.put(self.path, data={
+            'digestsMaxDelay': 1200
+        })
+        assert resp.status_code == 200, resp.content
+        assert self.project.get_option('digests:mail:maximum_delay') == 1200
+
+        resp = self.client.put(self.path, data={
+            'digestsMinDelay': 300,
+            'digestsMaxDelay': 600,
+        })
+        assert resp.status_code == 200, resp.content
+        assert self.project.get_option('digests:mail:minimum_delay') == 300
+        assert self.project.get_option('digests:mail:maximum_delay') == 600
+
+    def test_invalid_digests_min_delay(self):
+        min_delay = 120
+
+        self.project.update_option('digests:mail:minimum_delay', min_delay)
+
+        resp = self.client.put(self.path, data={
+            'digestsMinDelay': 59
+        })
+        assert resp.status_code == 400
+
+        resp = self.client.put(self.path, data={
+            'digestsMinDelay': 3601
+        })
+        assert resp.status_code == 400
+        assert self.project.get_option('digests:mail:minimum_delay') == min_delay
+
+    def test_invalid_digests_max_delay(self):
+        min_delay = 120
+        max_delay = 360
+
+        self.project.update_option('digests:mail:minimum_delay', min_delay)
+        self.project.update_option('digests:mail:maximum_delay', max_delay)
+
+        resp = self.client.put(self.path, data={
+            'digestsMaxDelay': 59
+        })
+        assert resp.status_code == 400
+
+        resp = self.client.put(self.path, data={
+            'digestsMaxDelay': 3601
+        })
+        assert resp.status_code == 400
+        assert self.project.get_option('digests:mail:maximum_delay') == max_delay
+
+        # test sending only max
+        resp = self.client.put(self.path, data={
+            'digestsMaxDelay': 100
+        })
+        assert resp.status_code == 400
+        assert self.project.get_option('digests:mail:maximum_delay') == max_delay
+
+        # test sending min + invalid max
+        resp = self.client.put(self.path, data={
+            'digestsMinDelay': 120,
+            'digestsMaxDelay': 100,
+        })
+        assert resp.status_code == 400
+        assert self.project.get_option('digests:mail:minimum_delay') == min_delay
+        assert self.project.get_option('digests:mail:maximum_delay') == max_delay
+
 
 class ProjectDeleteTest(APITestCase):
     @mock.patch('sentry.api.endpoints.project_details.uuid4')
