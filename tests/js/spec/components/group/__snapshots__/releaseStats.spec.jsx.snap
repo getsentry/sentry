@@ -27,6 +27,7 @@ exports[`GroupReleaseStats renders 1`] = `
           ],
         ],
       },
+      "tags": Array [],
     }
   }
   location={
@@ -156,6 +157,7 @@ exports[`GroupReleaseStats renders 1`] = `
                   ],
                 ],
               },
+              "tags": Array [],
             }
           }
           release={null}
@@ -393,6 +395,7 @@ exports[`GroupReleaseStats renders 1`] = `
                   ],
                 ],
               },
+              "tags": Array [],
             }
           }
           release={null}

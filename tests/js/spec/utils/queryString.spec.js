@@ -1,4 +1,4 @@
-import utils from 'app/views/stream/utils';
+import utils from 'app/utils/queryString';
 
 describe('getQueryEnvironment()', function() {
   it('returns environment name', function() {
