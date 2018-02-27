@@ -186,6 +186,12 @@ def build_attachment(group, event=None, identity=None, actions=None):
         color = ACTIONED_ISSUE_COLOR
         payload_actions = []
 
+    ts = int(time.mktime(group.last_seen.timetuple()))
+
+    if event:
+        event_ts = int(time.mktime(event.datetime.timetuple()))
+        ts = max(ts, event_ts)
+
     return {
         'fallback': u'[{}] {}'.format(group.project.slug, group.title),
         'title': build_attachment_title(group, event),
@@ -198,7 +204,7 @@ def build_attachment(group, event=None, identity=None, actions=None):
             group.organization.slug,
             group.project.slug,
         ),
-        'ts': int(time.mktime(group.last_seen.timetuple())),
+        'ts': ts,
         'color': color,
         'actions': payload_actions,
     }
