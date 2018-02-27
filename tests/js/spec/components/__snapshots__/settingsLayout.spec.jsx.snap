@@ -3,20 +3,34 @@
 exports[`SettingsLayout renders 1`] = `
 <div>
   <SettingsHeader>
-    <Box
-      flex="1"
-    >
-      <SettingsBreadcrumb
-        route={Object {}}
-        routes={Array []}
-      />
-    </Box>
-    <withRouter(SettingsSearchContainer) />
+    <SettingsSubheader>
+      <Container>
+        <withOrganizations>
+          Back to Project
+        </withOrganizations>
+      </Container>
+    </SettingsSubheader>
+    <Container>
+      <Flex
+        align="center"
+        width={1}
+      >
+        <Box
+          flex="1"
+        >
+          <SettingsBreadcrumb
+            route={Object {}}
+            routes={Array []}
+          />
+        </Box>
+        <withRouter(SettingsSearchContainer) />
+      </Flex>
+    </Container>
   </SettingsHeader>
-  <Flex>
+  <Container>
     <Content>
       <NewSettingsWarning />
     </Content>
-  </Flex>
+  </Container>
 </div>
 `;
