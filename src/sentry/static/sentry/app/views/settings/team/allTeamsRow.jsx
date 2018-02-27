@@ -97,14 +97,16 @@ const AllTeamsRow = createReactClass({
   },
 
   render() {
-    let {access, team, urlPrefix, openMembership} = this.props;
+    let {access, team, urlPrefix, openMembership, organization} = this.props;
+    let features = new Set(organization.features);
+    let display = features.has('internal-catchall') ? team.slug : team.name;
     return (
       <PanelItem p={0} align="center">
         <Box flex="1" p={2}>
           {access.has('team:write') ? (
-            <Link to={`${urlPrefix}teams/${team.slug}/settings/`}>{team.name}</Link>
+            <Link to={`${urlPrefix}teams/${team.slug}/settings/`}>{display}</Link>
           ) : (
-            team.name
+            display
           )}
         </Box>
         <Box p={2}>
