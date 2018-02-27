@@ -13,6 +13,8 @@ import replaceRouterParams from '../../../utils/replaceRouterParams';
 import withLatestContext from '../../../utils/withLatestContext';
 import withProjects from '../../../utils/withProjects';
 
+import InlineSvg from '../../../components/inlineSvg';
+
 const Breadcrumbs = styled.div`
   display: flex;
   align-items: center;
@@ -49,6 +51,33 @@ const StyledLink = styled(Link)`
 
 const ProjectName = styled.div`
   display: flex;
+`;
+
+const StyledInlineSvg = styled(InlineSvg)`
+  display: block;
+`;
+
+const LogoLink = styled.a`
+  padding-right: 12px;
+  margin-right: 12px;
+  color: ${p => p.theme.gray4};
+  z-index: 1;
+  position: relative;
+
+  &:after {
+    display: block;
+    content: '';
+    position: absolute;
+    right: 0;
+    top: 2px;
+    bottom: 2px;
+    width: 1px;
+    background: ${p => p.theme.borderDark};
+  }
+
+  &:hover {
+    color: ${p => p.theme.gray5};
+  }
 `;
 
 // `organizationDetails` to differeniate from the organization that comes from `OrganizationsStore` which only has
@@ -178,6 +207,9 @@ class SettingsBreadcrumb extends React.Component {
     let lastRouteIndex = routesWithNames.length - 1;
     return (
       <Breadcrumbs>
+        <LogoLink href="/">
+          <StyledInlineSvg src="icon-sentry" size="20px" />
+        </LogoLink>
         {routesWithNames.map((route, i) => {
           let isLast = i === lastRouteIndex;
           let createMenu = MENUS[route.name];
