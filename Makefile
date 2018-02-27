@@ -34,7 +34,6 @@ install-python-base:
 	$(PIP) install "setuptools>=0.9.8" "pip>=8.0.0"
 	# order matters here, base package must install first
 	$(PIP) install -e .
-	$(PIP) install ujson
 	$(PIP) install "file://`pwd`#egg=sentry[dev]"
 
 install-python-develop:

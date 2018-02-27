@@ -38,15 +38,6 @@ from sentry.utils.data_filters import is_valid_ip, \
     is_valid_release, is_valid_error_message, FilterStatKeys
 from sentry.utils.strings import decompress
 
-try:
-    # Attempt to load ujson if it's installed.
-    # It's advantageous to leverage here because this is
-    # our primary data ingestion endpoint, and it's a
-    # simple win. ujson differs from simplejson a bunch
-    # so it's not worth utilizing it anywhere else.
-    import ujson as json  # noqa
-except ImportError:
-    from sentry.utils import json
 
 _dist_re = re.compile(r'^[a-zA-Z0-9_.-]+$')
 
