@@ -65,13 +65,15 @@ exports[`ProjectEnvironments render active renders empty message 1`] = `
   display: -webkit-flex;
   display: -ms-flexbox;
   display: flex;
-  -webkit-box-pack: center;
-  -webkit-justify-content: center;
-  -ms-flex-pack: center;
-  justify-content: center;
-  padding: 18px;
+  -webkit-align-items: center;
+  -webkit-box-align: center;
+  -ms-flex-align: center;
+  align-items: center;
+  -webkit-flex-direction: column;
+  -ms-flex-direction: column;
+  flex-direction: column;
+  padding: NaNpx;
   font-size: 1.5em;
-  opacity: 0.4;
   font-weight: bold;
 }
 
@@ -273,11 +275,17 @@ exports[`ProjectEnvironments render active renders empty message 1`] = `
             className=""
           >
             <EmptyMessage>
-              <div
-                className="glamor-17 glamor-18"
-              >
-                You don't have any environments yet.
-              </div>
+              <Wrapper>
+                <div
+                  className="glamor-17 glamor-18"
+                >
+                  <div
+                    className="ref-message"
+                  >
+                    You don't have any environments yet.
+                  </div>
+                </div>
+              </Wrapper>
             </EmptyMessage>
           </div>
         </PanelBody>
@@ -755,13 +763,15 @@ exports[`ProjectEnvironments render hidden renders empty message 1`] = `
   display: -webkit-flex;
   display: -ms-flexbox;
   display: flex;
-  -webkit-box-pack: center;
-  -webkit-justify-content: center;
-  -ms-flex-pack: center;
-  justify-content: center;
-  padding: 18px;
+  -webkit-align-items: center;
+  -webkit-box-align: center;
+  -ms-flex-align: center;
+  align-items: center;
+  -webkit-flex-direction: column;
+  -ms-flex-direction: column;
+  flex-direction: column;
+  padding: NaNpx;
   font-size: 1.5em;
-  opacity: 0.4;
   font-weight: bold;
 }
 
@@ -963,11 +973,17 @@ exports[`ProjectEnvironments render hidden renders empty message 1`] = `
             className=""
           >
             <EmptyMessage>
-              <div
-                className="glamor-17 glamor-18"
-              >
-                You don't have any hidden environments.
-              </div>
+              <Wrapper>
+                <div
+                  className="glamor-17 glamor-18"
+                >
+                  <div
+                    className="ref-message"
+                  >
+                    You don't have any hidden environments.
+                  </div>
+                </div>
+              </Wrapper>
             </EmptyMessage>
           </div>
         </PanelBody>
