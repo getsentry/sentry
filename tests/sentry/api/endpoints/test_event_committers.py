@@ -7,6 +7,7 @@ from sentry.models import Event
 from sentry.testutils import APITestCase
 
 
+# TODO(dcramer): These tests rely too much on implicit fixtures
 class EventCommittersTest(APITestCase):
     def test_simple(self):
         self.login_as(user=self.user)

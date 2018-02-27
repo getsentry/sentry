@@ -117,6 +117,8 @@ class DetailedOrganizationSerializer(OrganizationSerializer):
             feature_list.append('repos')
         if features.has('organizations:internal-catchall', obj, actor=user):
             feature_list.append('internal-catchall')
+        if features.has('organizations:suggested-commits', obj, actor=user):
+            feature_list.append('suggested-commits')
 
         if getattr(obj.flags, 'allow_joinleave'):
             feature_list.append('open-membership')

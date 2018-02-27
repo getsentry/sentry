@@ -54,20 +54,20 @@ class EventFileCommittersEndpoint(ProjectEndpoint):
 
     def _get_commit_file_changes(self, commits, path_name_set):
         # build a single query to get all of the commit file that might match the first n frames
-
         path_query = reduce(
             operator.or_,
             (Q(filename__endswith=next(tokenize_path(path))) for path in path_name_set)
         )
 
-        query = Q(commit__in=commits) & path_query
-
-        commit_file_change_matches = CommitFileChange.objects.filter(query)
+        commit_file_change_matches = CommitFileChange.objects.filter(
+            path_query,
+            commit__in=commits,
+        )
 
         return list(commit_file_change_matches)
 
     def _match_commits_path(self, commit_file_changes, path):
-        #  find commits that match the run time path the best.
+        # find commits that match the run time path the best.
         matching_commits = {}
         best_score = 1
         for file_change in commit_file_changes:
@@ -125,7 +125,7 @@ class EventFileCommittersEndpoint(ProjectEndpoint):
 
         return user_dicts
 
-    def get(self, _, project, event_id):
+    def get(self, request, project, event_id):
         """
         Retrieve Committer information for an event
         ```````````````````````````````````````````
@@ -167,11 +167,13 @@ class EventFileCommittersEndpoint(ProjectEndpoint):
             return Response({'detail': 'No Commits found for Release'}, status=404)
 
         frames = self._get_frame_paths(event)
-        frame_limit = 25
+        frame_limit = int(request.GET.get('frameLimit', 25))
         app_frames = [frame for frame in frames if frame['in_app']][-frame_limit:]
+        if not app_frames:
+            app_frames = [frame for frame in frames][-frame_limit:]
 
         # TODO(maxbittker) return this set instead of annotated frames
-        path_set = {frame['abs_path'] for frame in app_frames}
+        path_set = {frame.get('filename') or frame['abs_path'] for frame in app_frames}
 
         file_changes = []
         if path_set:
@@ -184,7 +186,7 @@ class EventFileCommittersEndpoint(ProjectEndpoint):
         annotated_frames = [
             {
                 'frame': frame,
-                'commits': commit_path_matches[frame['abs_path']]
+                'commits': commit_path_matches[frame.get('filename') or frame['abs_path']]
             } for frame in app_frames
         ]
 

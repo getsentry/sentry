@@ -81,7 +81,10 @@ def create_sample_event(*args, **kwargs):
 def generate_commits(user):
     commits = []
     for i in range(random.randint(0, 20)):
-        filename = random.choice(loremipsum.words)
+        if i == 1:
+            filename = 'raven/base.py'
+        else:
+            filename = random.choice(loremipsum.words) + '.js'
         if random.randint(0, 5) == 1:
             author = (user.name, user.email)
         else:
@@ -97,7 +100,7 @@ def generate_commits(user):
 
         commits.append({
             'key': sha1(uuid4().hex).hexdigest(),
-            'message': 'modified {}.js}',
+            'message': 'feat: Do something to {}\n{}'.format(filename, make_sentence()),
             'author': author,
             'files': [
                 (filename, 'M'),
