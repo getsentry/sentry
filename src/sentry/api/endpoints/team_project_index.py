@@ -107,7 +107,6 @@ class TeamProjectIndexEndpoint(TeamEndpoint):
                         name=result['name'],
                         slug=result.get('slug'),
                         organization=team.organization,
-                        team=team,
                         platform=result.get('platform')
                     )
             except IntegrityError:

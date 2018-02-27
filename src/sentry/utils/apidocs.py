@@ -287,7 +287,7 @@ class MockUtils(object):
     def create_project(self, name, teams, org):
         from sentry.models import Project
         project = Project.objects.get_or_create(
-            team=teams[0], name=name, defaults={
+            name=name, defaults={
                 'organization': org,
             }
         )[0]

@@ -46,7 +46,6 @@ class ProjectTest(TestCase):
 
         project = Project.objects.get(id=project.id)
 
-        assert project.team_id == to_team.id
         assert project.teams.count() == 1
         assert project.teams.first() == to_team
         assert project.organization_id == to_org.id
@@ -66,7 +65,6 @@ class ProjectTest(TestCase):
 
         project = Project.objects.get(id=project.id)
 
-        assert project.team_id == to_team.id
         assert project.teams.count() == 1
         assert project.teams.first() == to_team
         assert project.organization_id == to_org.id
