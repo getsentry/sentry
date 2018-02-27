@@ -7,11 +7,11 @@ export default function getConfiguration({project}) {
 
   return [
     {
-      name: t('Configuration'),
+      name: t('Project'),
       items: [
         {
           path: `${pathPrefix}/settings/`,
-          title: t('General'),
+          title: t('General Settings'),
         },
         {
           path: `${pathPrefix}/teams/`,
