@@ -3,6 +3,7 @@ import PropTypes from 'prop-types';
 import React from 'react';
 
 import {t, tct} from '../../../../locale';
+import Field from '../../components/forms/field';
 import Form from '../../components/forms/form';
 import Panel from '../../components/panel';
 import PanelAlert from '../../components/panelAlert';
@@ -94,15 +95,22 @@ class RateLimitView extends React.Component {
                   }}
                 />
               ) : (
-                <TextBlock>
-                  {tct(
-                    'Your account is limited to a maximum of [maxRate] events per [maxRateInterval] seconds.',
-                    {
-                      maxRate,
-                      maxRateInterval,
-                    }
+                <Field
+                  label={t('Account Limit')}
+                  help={t(
+                    'The maximum number of events to accept across this entire organization.'
                   )}
-                </TextBlock>
+                >
+                  <TextBlock css={{marginBottom: 0}}>
+                    {tct(
+                      'Your account is limited to a maximum of [maxRate] events per [maxRateInterval] seconds.',
+                      {
+                        maxRate,
+                        maxRateInterval,
+                      }
+                    )}
+                  </TextBlock>
+                </Field>
               )}
               <RangeField
                 name="projectRateLimit"
