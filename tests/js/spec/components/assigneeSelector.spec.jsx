@@ -3,10 +3,12 @@ import {mount} from 'enzyme';
 import AssigneeSelector from 'app/components/assigneeSelector';
 
 import LoadingIndicator from 'app/components/loadingIndicator';
+import {Client} from 'app/api';
 
 import GroupStore from 'app/stores/groupStore';
 import MemberListStore from 'app/stores/memberListStore';
 import ConfigStore from 'app/stores/configStore';
+import TeamStore from 'app/stores/teamStore';
 
 import stubReactComponents from '../../helpers/stubReactComponent';
 
@@ -31,13 +33,27 @@ describe('AssigneeSelector', function() {
     email: 'jj@example.com',
   };
 
+  const TEAM_1 = {
+    id: 3,
+    name: 'COOL TEAM',
+    projects: [
+      {
+        slug: 2,
+      },
+    ],
+  };
+
   beforeEach(function() {
     sandbox = sinon.sandbox.create();
     stubReactComponents(sandbox, [LoadingIndicator]);
 
     sandbox.stub(MemberListStore, 'getAll').returns([USER_1, USER_2]);
+    sandbox.stub(TeamStore, 'getAll').returns([TEAM_1]);
     sandbox.stub(GroupStore, 'get').returns({
       id: 1337,
+      project: {
+        slug: 2,
+      },
       assignedTo: null,
     });
   });
@@ -109,13 +125,30 @@ describe('AssigneeSelector', function() {
       // Reset sandbox because we don't want <LoadingIndicator /> stubbed
       sandbox.restore();
       sandbox = sinon.sandbox.create();
+      sandbox
+        .stub(ConfigStore, 'get')
+        .withArgs('features')
+        .returns(new Set(['internal-catchall']));
+      sandbox.stub(TeamStore, 'getAll').returns([TEAM_1]);
       sandbox.stub(GroupStore, 'get').returns({
         id: 1337,
+        project: {
+          slug: 2,
+        },
         assignedTo: null,
       });
+
+      Client.addMockResponse({
+        url: '/issues/target/events/latest/',
+        body: {
+          entries: '',
+        },
+      });
+
       MemberListStore.items = [];
       MemberListStore.loaded = false;
-      assigneeSelector = mount(<AssigneeSelector id="1337" />);
+
+      assigneeSelector = mount(<AssigneeSelector id="1337" />, TestStubs.routerContext());
       openMenu = () => assigneeSelector.find('a').simulate('click');
     });
 
@@ -128,8 +161,10 @@ describe('AssigneeSelector', function() {
       openMenu();
       MemberListStore.loadInitialData([USER_1, USER_2]);
       assigneeSelector.update();
+      expect(assigneeSelector.instance().assignableTeams().length).toBe(1);
 
       expect(assigneeSelector.find('Avatar').length).toBe(2);
+      expect(assigneeSelector.find('TeamAvatar').length).toBe(1);
       expect(assigneeSelector.find('LoadingIndicator').exists()).toBe(false);
     });
 
@@ -147,6 +182,20 @@ describe('AssigneeSelector', function() {
       expect(assigneeSelector.find('Avatar').length).toBe(2);
       expect(assigneeSelector.find('LoadingIndicator').exists()).toBe(false);
     });
+
+    it('successfully assigns users', function() {
+      openMenu();
+      MemberListStore.loadInitialData([USER_1, USER_2]);
+      assigneeSelector.update();
+      assigneeSelector.first('Avatar').simulate('click');
+      assigneeSelector.update();
+      // console.log(assigneeSelector.debug());
+
+      // expect(assigneeSelector.find('Avatar').length).toBe(1);
+
+      // expect(assigneeSelector.find('TeamAvatar').length).toBe(1);
+      // expect(assigneeSelector.find('LoadingIndicator').exists()).toBe(false);
+    });
   });
 
   describe('onFilterKeyDown()', function() {
@@ -155,7 +204,7 @@ describe('AssigneeSelector', function() {
       if (assigneeSelector) {
         assigneeSelector.unmount();
       }
-      assigneeSelector = mount(<AssigneeSelector id="1337" />);
+      assigneeSelector = mount(<AssigneeSelector id="1337" />, TestStubs.routerContext());
       // open menu
       assigneeSelector.find('a').simulate('click');
 
@@ -201,7 +250,7 @@ describe('AssigneeSelector', function() {
         assigneeSelector.unmount();
       }
 
-      assigneeSelector = mount(<AssigneeSelector id="1337" />);
+      assigneeSelector = mount(<AssigneeSelector id="1337" />, TestStubs.routerContext());
 
       // open menu
       assigneeSelector.find('a').simulate('click');

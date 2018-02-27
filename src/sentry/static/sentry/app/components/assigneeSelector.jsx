@@ -108,6 +108,7 @@ const AssigneeSelector = createReactClass({
 
   assignableTeams() {
     let group = GroupStore.get(this.props.id);
+
     return _.uniqBy(TeamStore.getAll(), ({id}) => id)
       .filter(({projects}) => projects.some(p => p.slug === group.project.slug))
       .map(team => ({
@@ -239,29 +240,30 @@ const AssigneeSelector = createReactClass({
         </li>
       );
 
-    // Outer div is needed to make tooltip work
-    let teamNodes = AssigneeSelector.filterMembers(
-      this.assignableTeams(),
-      filter
-    ).map(({id, display, team}) => {
-      return (
-        <MenuItem
-          key={id}
-          disabled={loading}
-          onSelect={this.assignToTeam.bind(this, team)}
-        >
-          <TeamAvatar team={team} className="avatar" size={48} />
-          {this.highlight(display, filter)}
-        </MenuItem>
-      );
-    });
-    if (teamNodes.length > 0) {
-      teamNodes = [...teamNodes, <hr key="divider" style={{margin: 0}} />];
+    let teamNodes = [];
+    let features = ConfigStore.get('features');
+    if (features.has('internal-catchall')) {
+      teamNodes = AssigneeSelector.filterMembers(
+        this.assignableTeams(),
+        filter
+      ).map(({id, display, team}) => {
+        return (
+          <MenuItem
+            key={id}
+            disabled={loading}
+            onSelect={this.assignToTeam.bind(this, team)}
+          >
+            <TeamAvatar team={team} className="avatar" size={48} />
+            {this.highlight(display, filter)}
+          </MenuItem>
+        );
+      });
+      if (teamNodes.length > 0) {
+        teamNodes = [...teamNodes, <hr key="divider" style={{margin: 0}} />];
+      }
     }
-
     let assignedUser = assignedTo && MemberListStore.getById(assignedTo.id);
     let tooltipTitle = assignedUser ? userDisplayName(assignedUser) : null;
-
     return (
       <div>
         <Tooltip title={tooltipTitle} disabled={!tooltipTitle}>

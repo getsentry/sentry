@@ -79,9 +79,9 @@ const SuggestedOwners = createReactClass({
     );
   },
 
-  assignTo(member) {
-    if (member.id !== undefined) {
-      assignToUser({id: this.props.event.groupID, member});
+  assignTo(user) {
+    if (user.id !== undefined) {
+      assignToUser({id: this.props.event.groupID, user});
     }
   },
 

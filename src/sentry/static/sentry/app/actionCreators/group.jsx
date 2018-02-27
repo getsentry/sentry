@@ -8,7 +8,6 @@ export function assignToUser(params) {
   let endpoint = `/issues/${params.id}/`;
 
   let id = api.uniqueId();
-
   GroupActions.assignTo(id, params.id, {
     email: (params.member && params.member.email) || '',
   });
@@ -19,7 +18,7 @@ export function assignToUser(params) {
     // so if no member exists, that implies that we want to clear the
     // current assignee.
     data: {
-      assignedTo: params.member ? buildUserId(params.member.id) : '',
+      assignedTo: params.user ? buildUserId(params.user.id) : '',
     },
   });
 
