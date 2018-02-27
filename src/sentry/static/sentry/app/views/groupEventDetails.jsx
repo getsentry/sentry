@@ -2,6 +2,7 @@ import React from 'react';
 import createReactClass from 'create-react-class';
 import ApiMixin from '../mixins/apiMixin';
 import EventEntries from '../components/events/eventEntries';
+import EventCause from '../components/events/eventCause';
 import GroupEventToolbar from './groupDetails/eventToolbar';
 import GroupSidebar from '../components/group/sidebar';
 import GroupState from '../mixins/groupState';
@@ -75,6 +76,7 @@ const GroupEventDetails = createReactClass({
     let group = this.getGroup();
     let evt = this.state.event;
     let params = this.props.params;
+    let features = new Set(this.getOrganization().features);
 
     return (
       <div>
@@ -97,6 +99,14 @@ const GroupEventDetails = createReactClass({
                   <ResolutionBox statusDetails={group.statusDetails} params={params} />
                 )}
               </div>
+            )}
+            {features.has('suggested-commits') && (
+              <EventCause
+                group={group}
+                event={evt}
+                orgId={params.orgId}
+                project={this.getProject()}
+              />
             )}
             {this.state.loading ? (
               <LoadingIndicator />

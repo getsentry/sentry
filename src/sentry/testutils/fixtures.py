@@ -56,7 +56,7 @@ DEFAULT_EVENT_DATA = {
                 'context_line':
                 '                        string_max_length=self.string_max_length)',
                 'filename':
-                'raven/base.py',
+                'sentry/models/foo.py',
                 'function':
                 'build_msg',
                 'in_app':
