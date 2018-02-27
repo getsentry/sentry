@@ -71,7 +71,8 @@ class SlackNotifyServiceAction(EventAction):
         )
 
         def send_notification(event, futures):
-            attachment = build_attachment(event.group, event=event)
+            rules = [f.rule for f in futures]
+            attachment = build_attachment(event.group, event=event, rules=rules)
 
             payload = {
                 'token': integration.metadata['access_token'],
