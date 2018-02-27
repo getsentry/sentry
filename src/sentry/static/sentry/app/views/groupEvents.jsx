@@ -198,4 +198,5 @@ const GroupEvents = createReactClass({
   },
 });
 
+export {GroupEvents}; // For tests
 export default withEnvironment(GroupEvents);
