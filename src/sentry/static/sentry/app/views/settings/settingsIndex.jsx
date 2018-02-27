@@ -1,4 +1,5 @@
 import {Flex, Box} from 'grid-emotion';
+import DocumentTitle from 'react-document-title';
 import React from 'react';
 import styled from 'react-emotion';
 
@@ -104,203 +105,205 @@ class SettingsIndex extends React.Component {
     let SupportLinkComponent = isOnPremise ? ExternalHomeLink : HomeLink;
 
     return (
-      <SettingsLayout {...this.props}>
-        <Flex mx={-2} wrap>
-          <Box w={1 / 3} px={2}>
-            <Panel>
-              <HomePanelHeader>
-                <HomeLink to="/settings/account/">
-                  <HomeIcon color="blue">
-                    <InlineSvg src="icon-user" size="44px" />
-                  </HomeIcon>
-                  {t('My Account')}
-                </HomeLink>
-              </HomePanelHeader>
-
-              <HomePanelBody>
-                <h3>{t('Quick links')}:</h3>
-                <ul>
-                  <li>
-                    <HomeLink href="/settings/account/security/">
-                      {t('Change my password')}
-                    </HomeLink>
-                  </li>
-                  <li>
-                    <HomeLink to="/settings/account/notifications/">
-                      {t('Notification Preferences')}
-                    </HomeLink>
-                  </li>
-                  <li>
-                    <HomeLink to="/settings/account/avatar/">
-                      {t('Change my avatar')}
-                    </HomeLink>
-                  </li>
-                </ul>
-              </HomePanelBody>
-            </Panel>
-          </Box>
-
-          <Box w={1 / 3} px={2}>
-            {/* if admin */}
-            <Panel>
-              {!organization && <LoadingIndicator overlay />}
-              <HomePanelHeader>
-                <HomeLink to={organizationSettingsUrl}>
-                  <HomeIcon color="green">
-                    <InlineSvg src="icon-stack" size="44px" />
-                  </HomeIcon>
-                  <TextOverflow css={{lineHeight: '1.1em'}}>
-                    {organization ? organization.slug : t('Organization')}
-                  </TextOverflow>
-                </HomeLink>
-              </HomePanelHeader>
-              <HomePanelBody>
-                <h3>{t('Quick links')}:</h3>
-                <ul>
-                  <li>
-                    <HomeLink to={`${organizationSettingsUrl}teams/`}>
-                      {t('Projects & Teams')}
-                    </HomeLink>
-                  </li>
-                  <li>
-                    <HomeLink to={`${organizationSettingsUrl}members/`}>
-                      {t('Members')}
-                    </HomeLink>
-                  </li>
-                  <li>
-                    <HomeLink to={`${organizationSettingsUrl}stats/`}>
-                      {t('Stats')}
-                    </HomeLink>
-                  </li>
-                </ul>
-              </HomePanelBody>
-            </Panel>
-          </Box>
-
-          <Box w={1 / 3} px={2}>
-            <Panel>
-              <HomePanelHeader>
-                <ExternalHomeLink href={LINKS.DOCUMENTATION}>
-                  <HomeIcon color="orange">
-                    <InlineSvg src="icon-docs" size="48px" />
-                  </HomeIcon>
-                </ExternalHomeLink>
-                <ExternalHomeLink href={LINKS.DOCUMENTATION}>
-                  {t('Documentation')}
-                </ExternalHomeLink>
-              </HomePanelHeader>
-
-              <HomePanelBody>
-                <h3>{t('Quick links')}:</h3>
-                <ul>
-                  <li>
-                    <ExternalHomeLink href={LINKS.DOCUMENATATION_QUICKSTART}>
-                      {t('Quickstart Guide')}
-                    </ExternalHomeLink>
-                  </li>
-                  <li>
-                    <ExternalHomeLink href={LINKS.DOCUMENTATION_PLATFORMS}>
-                      {t('Platforms & Frameworks')}
-                    </ExternalHomeLink>
-                  </li>
-                  <li>
-                    <ExternalHomeLink href={LINKS.DOCUMENTATION_CLI}>
-                      {t('Sentry CLI')}
-                    </ExternalHomeLink>
-                  </li>
-                </ul>
-              </HomePanelBody>
-            </Panel>
-          </Box>
-
-          <Box w={1 / 3} px={2}>
-            <Panel>
-              <HomePanelHeader>
-                <SupportLinkComponent {...supportLinkProps}>
-                  <HomeIcon color="purple">
-                    <InlineSvg src="icon-support" size="48px" />
-                  </HomeIcon>
-                  {t('Support')}
-                </SupportLinkComponent>
-              </HomePanelHeader>
-
-              <HomePanelBody>
-                <h3>{t('Quick links')}:</h3>
-                <ul>
-                  <li>
-                    <SupportLinkComponent {...supportLinkProps}>
-                      {supportText}
-                    </SupportLinkComponent>
-                  </li>
-                  <li>
-                    <ExternalHomeLink href={LINKS.GITHUB_ISSUES}>
-                      {t('Sentry on GitHub')}
-                    </ExternalHomeLink>
-                  </li>
-                  <li>
-                    <ExternalHomeLink href={LINKS.SERVICE_STATUS}>
-                      {t('Service Status')}
-                    </ExternalHomeLink>
-                  </li>
-                </ul>
-              </HomePanelBody>
-            </Panel>
-          </Box>
-
-          <Box w={1 / 3} px={2}>
-            <Panel>
-              <HomePanelHeader>
-                <HomeLink to={LINKS.API}>
-                  <HomeIcon>
-                    <InlineSvg src="icon-lock" size="48px" />
-                  </HomeIcon>
-                  {t('API Keys')}
-                </HomeLink>
-              </HomePanelHeader>
-
-              <HomePanelBody>
-                <h3>{t('Quick links')}:</h3>
-                <ul>
-                  <li>
-                    <HomeLink to={LINKS.API}>{t('Auth Tokens')}</HomeLink>
-                  </li>
-                  <li>
-                    <HomeLink to={LINKS.API_APPLICATION}>{t('Applications')}</HomeLink>
-                  </li>
-                  <li>
-                    <ExternalHomeLink href={LINKS.DOCUMENTATION_API}>
-                      {t('Documentation')}
-                    </ExternalHomeLink>
-                  </li>
-                </ul>
-              </HomePanelBody>
-            </Panel>
-          </Box>
-
-          {isSuperuser && (
+      <DocumentTitle title={organization ? `${organization.slug} Settings` : 'Settings'}>
+        <SettingsLayout {...this.props}>
+          <Flex mx={-2} wrap>
             <Box w={1 / 3} px={2}>
               <Panel>
                 <HomePanelHeader>
-                  <HomeLink href={LINKS.MANAGE}>
-                    <HomeIcon color="red">
-                      <InlineSvg src="icon-laptop" size="48px" />
+                  <HomeLink to="/settings/account/">
+                    <HomeIcon color="blue">
+                      <InlineSvg src="icon-user" size="44px" />
                     </HomeIcon>
-                    {t('Server Admin')}
+                    {t('My Account')}
+                  </HomeLink>
+                </HomePanelHeader>
+
+                <HomePanelBody>
+                  <h3>{t('Quick links')}:</h3>
+                  <ul>
+                    <li>
+                      <HomeLink href="/settings/account/security/">
+                        {t('Change my password')}
+                      </HomeLink>
+                    </li>
+                    <li>
+                      <HomeLink to="/settings/account/notifications/">
+                        {t('Notification Preferences')}
+                      </HomeLink>
+                    </li>
+                    <li>
+                      <HomeLink to="/settings/account/avatar/">
+                        {t('Change my avatar')}
+                      </HomeLink>
+                    </li>
+                  </ul>
+                </HomePanelBody>
+              </Panel>
+            </Box>
+
+            <Box w={1 / 3} px={2}>
+              {/* if admin */}
+              <Panel>
+                {!organization && <LoadingIndicator overlay />}
+                <HomePanelHeader>
+                  <HomeLink to={organizationSettingsUrl}>
+                    <HomeIcon color="green">
+                      <InlineSvg src="icon-stack" size="44px" />
+                    </HomeIcon>
+                    <TextOverflow css={{lineHeight: '1.1em'}}>
+                      {organization ? organization.slug : t('Organization')}
+                    </TextOverflow>
                   </HomeLink>
                 </HomePanelHeader>
                 <HomePanelBody>
                   <h3>{t('Quick links')}:</h3>
                   <ul>
-                    <li />
-                    <li />
-                    <li />
+                    <li>
+                      <HomeLink to={`${organizationSettingsUrl}teams/`}>
+                        {t('Projects & Teams')}
+                      </HomeLink>
+                    </li>
+                    <li>
+                      <HomeLink to={`${organizationSettingsUrl}members/`}>
+                        {t('Members')}
+                      </HomeLink>
+                    </li>
+                    <li>
+                      <HomeLink to={`${organizationSettingsUrl}stats/`}>
+                        {t('Stats')}
+                      </HomeLink>
+                    </li>
                   </ul>
                 </HomePanelBody>
               </Panel>
             </Box>
-          )}
-        </Flex>
-      </SettingsLayout>
+
+            <Box w={1 / 3} px={2}>
+              <Panel>
+                <HomePanelHeader>
+                  <ExternalHomeLink href={LINKS.DOCUMENTATION}>
+                    <HomeIcon color="orange">
+                      <InlineSvg src="icon-docs" size="48px" />
+                    </HomeIcon>
+                  </ExternalHomeLink>
+                  <ExternalHomeLink href={LINKS.DOCUMENTATION}>
+                    {t('Documentation')}
+                  </ExternalHomeLink>
+                </HomePanelHeader>
+
+                <HomePanelBody>
+                  <h3>{t('Quick links')}:</h3>
+                  <ul>
+                    <li>
+                      <ExternalHomeLink href={LINKS.DOCUMENATATION_QUICKSTART}>
+                        {t('Quickstart Guide')}
+                      </ExternalHomeLink>
+                    </li>
+                    <li>
+                      <ExternalHomeLink href={LINKS.DOCUMENTATION_PLATFORMS}>
+                        {t('Platforms & Frameworks')}
+                      </ExternalHomeLink>
+                    </li>
+                    <li>
+                      <ExternalHomeLink href={LINKS.DOCUMENTATION_CLI}>
+                        {t('Sentry CLI')}
+                      </ExternalHomeLink>
+                    </li>
+                  </ul>
+                </HomePanelBody>
+              </Panel>
+            </Box>
+
+            <Box w={1 / 3} px={2}>
+              <Panel>
+                <HomePanelHeader>
+                  <SupportLinkComponent {...supportLinkProps}>
+                    <HomeIcon color="purple">
+                      <InlineSvg src="icon-support" size="48px" />
+                    </HomeIcon>
+                    {t('Support')}
+                  </SupportLinkComponent>
+                </HomePanelHeader>
+
+                <HomePanelBody>
+                  <h3>{t('Quick links')}:</h3>
+                  <ul>
+                    <li>
+                      <SupportLinkComponent {...supportLinkProps}>
+                        {supportText}
+                      </SupportLinkComponent>
+                    </li>
+                    <li>
+                      <ExternalHomeLink href={LINKS.GITHUB_ISSUES}>
+                        {t('Sentry on GitHub')}
+                      </ExternalHomeLink>
+                    </li>
+                    <li>
+                      <ExternalHomeLink href={LINKS.SERVICE_STATUS}>
+                        {t('Service Status')}
+                      </ExternalHomeLink>
+                    </li>
+                  </ul>
+                </HomePanelBody>
+              </Panel>
+            </Box>
+
+            <Box w={1 / 3} px={2}>
+              <Panel>
+                <HomePanelHeader>
+                  <HomeLink to={LINKS.API}>
+                    <HomeIcon>
+                      <InlineSvg src="icon-lock" size="48px" />
+                    </HomeIcon>
+                    {t('API Keys')}
+                  </HomeLink>
+                </HomePanelHeader>
+
+                <HomePanelBody>
+                  <h3>{t('Quick links')}:</h3>
+                  <ul>
+                    <li>
+                      <HomeLink to={LINKS.API}>{t('Auth Tokens')}</HomeLink>
+                    </li>
+                    <li>
+                      <HomeLink to={LINKS.API_APPLICATION}>{t('Applications')}</HomeLink>
+                    </li>
+                    <li>
+                      <ExternalHomeLink href={LINKS.DOCUMENTATION_API}>
+                        {t('Documentation')}
+                      </ExternalHomeLink>
+                    </li>
+                  </ul>
+                </HomePanelBody>
+              </Panel>
+            </Box>
+
+            {isSuperuser && (
+              <Box w={1 / 3} px={2}>
+                <Panel>
+                  <HomePanelHeader>
+                    <HomeLink href={LINKS.MANAGE}>
+                      <HomeIcon color="red">
+                        <InlineSvg src="icon-laptop" size="48px" />
+                      </HomeIcon>
+                      {t('Server Admin')}
+                    </HomeLink>
+                  </HomePanelHeader>
+                  <HomePanelBody>
+                    <h3>{t('Quick links')}:</h3>
+                    <ul>
+                      <li />
+                      <li />
+                      <li />
+                    </ul>
+                  </HomePanelBody>
+                </Panel>
+              </Box>
+            )}
+          </Flex>
+        </SettingsLayout>
+      </DocumentTitle>
     );
   }
 }
