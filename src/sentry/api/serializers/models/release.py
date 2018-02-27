@@ -194,7 +194,7 @@ class ReleaseSerializer(Serializer):
             # if no particular project specified
             group_counts_by_release = dict(
                 ReleaseProject.objects.filter(release__in=item_list, new_groups__isnull=False)
-                .values_list('release_id').annotate(new_groups=Sum('new_groups'))
+                .values('release_id').annotate(new_groups=Sum('new_groups'))
                 .values_list('release_id', 'new_groups')
             )
 
@@ -202,16 +202,14 @@ class ReleaseSerializer(Serializer):
         deploy_metadata_attrs = self._get_deploy_metadata(item_list, user)
 
         release_projects = defaultdict(list)
-        project_releases = ReleaseProject.objects.filter(
-            release__in=item_list,
-        ).values_list(
+        project_releases = ReleaseProject.objects.filter(release__in=item_list).values(
             'release_id', 'project__slug', 'project__name'
         )
-        for release_id, project_slug, project_name in project_releases:
-            release_projects[release_id].append(
+        for pr in project_releases:
+            release_projects[pr['release_id']].append(
                 {
-                    'slug': project_slug,
-                    'name': project_name,
+                    'slug': pr['project__slug'],
+                    'name': pr['project__name'],
                 }
             )
 

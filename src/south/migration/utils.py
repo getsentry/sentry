@@ -1,12 +1,10 @@
-import six
 import sys
-
 from collections import deque
+
 from django.utils.datastructures import SortedDict
 from django.db import models
 
 from south import exceptions
-from south.constants import DJANGO_17
 
 
 class SortedSet(SortedDict):
@@ -26,25 +24,12 @@ class SortedSet(SortedDict):
         [self.add(k) for k in iterable]
 
 
-def get_app_label(models_module):
+def get_app_label(app):
     """
-    Works out the app label from either the app label, the app name, or the module
-
-    For example, this will convert:
-
-    >>> <module 'sentry_plugins.hipchat_ac.models'>
-
-    into:
-
-    >>> 'sentry_plugins.hipchat_ac'
+    Returns the _internal_ app label for the given app module.
+    i.e. for <module django.contrib.auth.models> will return 'auth'
     """
-    if isinstance(models_module, six.string_types):
-        if DJANGO_17:
-            return models_module.rsplit('.')[0]
-        return models_module.rsplit('.', 1)[0]
-    if DJANGO_17:
-        return models_module.__name__.rsplit('.', 1)[0]
-    return models_module.__name__.rsplit('.', 1)[0]
+    return app.__name__.split('.')[-2]
 
 
 def app_label_to_app_module(app_label):
@@ -54,11 +39,11 @@ def app_label_to_app_module(app_label):
     """
     # Get the models module
     app = models.get_app(app_label)
-    module_name = app.__name__.rsplit('.', 1)[0]
+    module_name = ".".join(app.__name__.split(".")[:-1])
     try:
         module = sys.modules[module_name]
     except KeyError:
-        __import__(module_name, {}, {}, [])
+        __import__(module_name, {}, {}, [''])
         module = sys.modules[module_name]
     return module
 

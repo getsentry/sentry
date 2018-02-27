@@ -45,7 +45,6 @@ try:
         module = __import__(module_name, {}, {}, [''])
         dbs[alias] = module.DatabaseOperations(alias)
 except ImportError:
-    raise
     # This error should only be triggered on 1.1 and below.
     sys.stderr.write(
         (

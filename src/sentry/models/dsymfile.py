@@ -199,10 +199,10 @@ class ProjectDSymFileManager(BaseManager):
 
         found = ProjectDSymFile.objects.filter(
             file__checksum__in=checksums, project=project
-        ).values_list('file__checksum', flat=True)
+        ).values('file__checksum')
 
-        for value in found:
-            missing.discard(value)
+        for values in found:
+            missing.discard(values.values()[0])
 
         return sorted(missing)
 

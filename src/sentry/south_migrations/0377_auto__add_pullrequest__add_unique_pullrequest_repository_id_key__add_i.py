@@ -19,7 +19,7 @@ class Migration(SchemaMigration):
                 'sentry.db.models.fields.bounded.BoundedPositiveIntegerField')(db_index=True)),
             ('repository_id', self.gf('sentry.db.models.fields.bounded.BoundedPositiveIntegerField')()),
             ('key', self.gf('django.db.models.fields.CharField')(max_length=64)),
-            ('date_added', self.gf('django.db.models.fields.DateTimeField')()),
+            ('date_added', self.gf('django.db.models.fields.DateTimeField')(default=datetime.datetime.now)),
             ('title', self.gf('django.db.models.fields.TextField')(null=True)),
             ('message', self.gf('django.db.models.fields.TextField')(null=True)),
             ('author', self.gf('sentry.db.models.fields.foreignkey.FlexibleForeignKey')(

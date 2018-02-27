@@ -30,7 +30,7 @@ class Migration(SchemaMigration):
                     )
                 ), (
                     'date_finished',
-                    self.gf('django.db.models.fields.DateTimeField')()
+                    self.gf('django.db.models.fields.DateTimeField')(default=datetime.datetime.now)
                 ), (
                     'date_started',
                     self.gf('django.db.models.fields.DateTimeField')(null=True, blank=True)

@@ -17,9 +17,11 @@ class ProcessingIssueSerializer(Serializer):
                 missing_counts.append(pk)
 
         if missing_counts:
-            counts.update(dict(ProcessingIssue.objects.with_num_events().filter(
+            extra_counts = ProcessingIssue.objects.with_num_events().filter(
                 pk__in=list(missing_counts)
-            ).values_list('id', 'num_events')))
+            ).values('id', 'num_events')
+            for d in extra_counts:
+                counts[d['id']] = d['num_events']
 
         result = {}
         for item in item_list:

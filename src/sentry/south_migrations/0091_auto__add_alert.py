@@ -23,7 +23,7 @@ class Migration(SchemaMigration):
                     )
                 ), (
                     'datetime',
-                    self.gf('django.db.models.fields.DateTimeField')()
+                    self.gf('django.db.models.fields.DateTimeField')(default=datetime.datetime.now)
                 ), ('message', self.gf('django.db.models.fields.TextField')()),
                 ('data', self.gf('django.db.models.fields.TextField')(null=True)),
             )

@@ -22,7 +22,7 @@ class Migration(SchemaMigration):
                     self.gf('sentry.db.models.fields.bounded.BoundedPositiveIntegerField')()
                 ), (
                     'datetime', self.gf('django.db.models.fields.DateTimeField')(
-                        db_index=True
+                        default=datetime.datetime.now, db_index=True
                     )
                 ),
             )

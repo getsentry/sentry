@@ -12,7 +12,7 @@ class Migration(SchemaMigration):
             'sentry_groupbookmark',
             'date_added',
             self.gf('django.db.models.fields.DateTimeField')(
-                null=True
+                default=datetime.datetime.now, null=True
             ),
             keep_default=False
         )

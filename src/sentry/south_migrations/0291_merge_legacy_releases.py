@@ -105,18 +105,21 @@ class Migration(DataMigration):
     def forwards(self, orm):
         db.commit_transaction()
 
-        dupe_releases = orm.Release.objects.values_list('version', 'organization_id')\
+        dupe_releases = orm.Release.objects.values('version', 'organization_id')\
                                            .annotate(vcount=models.Count('id'))\
                                            .filter(vcount__gt=1)
 
-        for version, org_id in dupe_releases:
+        for r in dupe_releases:
+            org_id = r['organization_id']
+            version = r['version']
+
             releases = list(
                 orm.Release.objects.filter(organization_id=org_id, version=version)
                 .order_by('date_added')
             )
 
             releases_with_files = list(
-                orm.ReleaseFile.objects.filter(release__in=releases).values_list('release_id', flat=True).distinct()
+                orm.ReleaseFile.objects.filter(release__in=releases).values('release_id').distinct()
             )
 
             # if multiple releases have files, just rename them
@@ -129,7 +132,7 @@ class Migration(DataMigration):
             if len(releases_with_files) == 1:
                 from_releases = []
                 for release in releases:
-                    if release.id == releases_with_files[0]:
+                    if release.id == releases_with_files[0]['release_id']:
                         to_release = release
                     else:
                         from_releases.append(release)

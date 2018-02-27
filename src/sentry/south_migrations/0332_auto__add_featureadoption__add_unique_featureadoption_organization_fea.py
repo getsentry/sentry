@@ -21,7 +21,7 @@ class Migration(SchemaMigration):
                     )
                 ), ('feature_id', self.gf('django.db.models.fields.PositiveIntegerField')()), (
                     'date_completed',
-                    self.gf('django.db.models.fields.DateTimeField')()
+                    self.gf('django.db.models.fields.DateTimeField')(default=datetime.datetime.now)
                 ), ('complete', self.gf('django.db.models.fields.BooleanField')(default=False)),
                 ('applicable', self.gf('django.db.models.fields.BooleanField')(default=True)),
                 ('data', self.gf('jsonfield.fields.JSONField')(default={})),
