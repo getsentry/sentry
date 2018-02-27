@@ -69,6 +69,7 @@ class RateLimitView extends React.Component {
             <Form
               className="ref-rate-limit-editor"
               saveOnBlur
+              allowUndo
               apiMethod="PUT"
               apiEndpoint={`/organizations/${organization.slug}/`}
               initialData={initialData}
@@ -116,7 +117,9 @@ class RateLimitView extends React.Component {
                   return value !== 100 ? (
                     `${value}%`
                   ) : (
-                    <span dangerouslySetInnerHTML={{__html: 'No Limit &mdash; 100%'}} />
+                    <span
+                      dangerouslySetInnerHTML={{__html: `${t('No Limit')} &mdash; 100%`}}
+                    />
                   );
                 }}
               />
