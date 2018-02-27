@@ -390,8 +390,10 @@ const Stream = createReactClass({
     if (queryEnvironment !== null) {
       // Set the global environment to the one specified by the saved search
       if (queryEnvironment !== activeEnvName) {
-        let env = EnvironmentStore.getByName(queryEnvironment);
-        setActiveEnvironment(env);
+        if (this.state.hasEnvironmentsFeature) {
+          let env = EnvironmentStore.getByName(queryEnvironment);
+          setActiveEnvironment(env);
+        }
       }
       requestParams.environment = queryEnvironment;
     } else if (activeEnvironment) {
