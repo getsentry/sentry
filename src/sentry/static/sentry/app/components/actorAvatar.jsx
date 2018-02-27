@@ -25,6 +25,7 @@ class ActorAvatar extends React.Component {
       let team = TeamStore.getById(actor.id);
       return <TeamAvatar team={team} {...props} />;
     }
+
     Raven.captureException('Unknown avatar type', {
       extra: {actor},
     });

@@ -3,7 +3,17 @@
 exports[`Avatar render() should show a gravatar when actor type is a team 1`] = `
 <TeamAvatar
   className="avatar"
-  team={null}
+  team={
+    Object {
+      "id": "3",
+      "name": "COOL TEAM",
+      "projects": Array [
+        Object {
+          "slug": 2,
+        },
+      ],
+    }
+  }
 />
 `;
 
@@ -12,6 +22,12 @@ exports[`Avatar render() should show a gravatar when actor type is a user 1`] = 
   className="avatar"
   gravatar={true}
   size={64}
-  user={null}
+  user={
+    Object {
+      "email": "janedoe@example.com",
+      "id": "1",
+      "name": "Jane Doe",
+    }
+  }
 />
 `;

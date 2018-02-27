@@ -1,5 +1,5 @@
 import React from 'react';
-import {shallow} from 'enzyme';
+import {shallow, mount} from 'enzyme';
 import ActorAvatar from 'app/components/actorAvatar';
 import MemberListStore from 'app/stores/memberListStore';
 import TeamStore from 'app/stores/teamStore';
@@ -8,12 +8,12 @@ describe('Avatar', function() {
   let sandbox;
 
   const USER = {
-    id: 1,
+    id: '1',
     name: 'Jane Doe',
     email: 'janedoe@example.com',
   };
   const TEAM_1 = {
-    id: 3,
+    id: '3',
     name: 'COOL TEAM',
     projects: [
       {
@@ -56,6 +56,24 @@ describe('Avatar', function() {
         />
       );
       expect(avatar).toMatchSnapshot();
+    });
+
+    it('should return null when actor type is a unknown', function() {
+      window.console.error = jest.genMockFunction();
+
+      let avatar = mount(
+        <ActorAvatar
+          actor={{
+            id: '3',
+            name: 'COOL TEAM',
+            type: 'teapot',
+          }}
+        />
+      );
+
+      expect(avatar.html()).toBe(null);
+      //proptype warning
+      expect(window.console.error.mock.calls.length).toBeGreaterThan(0);
     });
   });
 });
