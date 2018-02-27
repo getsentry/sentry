@@ -35,7 +35,9 @@ describe('ProjectEnvironments', function() {
     it('renders empty message', function() {
       EnvironmentStore.loadInitialData([]);
       const wrapper = mountComponent(false);
-      expect(wrapper.text()).toContain("You don't have any environments yet");
+      let errorMessage = wrapper.find('div').first();
+
+      expect(errorMessage.text()).toContain("You don't have any environments yet");
       expect(wrapper).toMatchSnapshot();
     });
 
@@ -51,8 +53,9 @@ describe('ProjectEnvironments', function() {
       EnvironmentStore.loadHiddenData([]);
 
       const wrapper = mountComponent(true);
+      let errorMessage = wrapper.find('div').first();
 
-      expect(wrapper.text()).toContain("You don't have any hidden environments");
+      expect(errorMessage.text()).toContain("You don't have any hidden environments");
 
       expect(wrapper).toMatchSnapshot();
     });
