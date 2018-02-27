@@ -85,7 +85,7 @@ class AcceptTransferProjectTest(TestCase):
 
         p = Project.objects.get(id=self.project.id)
         assert p.organization_id == self.to_organization.id
-        assert p.team_id == self.to_team.id
+        assert p.teams.first() == self.to_team
 
     def test_non_owner_cannot_transfer_project(self):
         rando_user = self.create_user(email='blipp@bloop.com', is_superuser=False)

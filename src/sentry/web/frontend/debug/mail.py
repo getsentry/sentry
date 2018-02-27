@@ -172,16 +172,9 @@ class ActivityMailDebugView(View):
             slug='organization',
             name='My Company',
         )
-        team = Team(
-            id=1,
-            slug='team',
-            name='My Team',
-            organization=org,
-        )
         project = Project(
             id=1,
             organization=org,
-            team=team,
             slug='project',
             name='My Project',
         )
@@ -222,17 +215,10 @@ def alert(request):
         slug='example',
         name='Example',
     )
-    team = Team(
-        id=1,
-        slug='example',
-        name='Example',
-        organization=org,
-    )
     project = Project(
         id=1,
         slug='example',
         name='Example',
-        team=team,
         organization=org,
     )
 
@@ -302,18 +288,10 @@ def digest(request):
         name='Example Organization',
     )
 
-    team = Team(
-        id=1,
-        slug='example',
-        name='Example Team',
-        organization=org,
-    )
-
     project = Project(
         id=1,
         slug='example',
         name='Example Project',
-        team=team,
         organization=org,
     )
 
@@ -419,13 +397,6 @@ def report(request):
         name='Example',
     )
 
-    team = Team(
-        id=1,
-        slug='example',
-        name='Example',
-        organization=organization,
-    )
-
     projects = []
     for i in xrange(0, random.randint(1, 8)):
         name = ' '.join(random.sample(loremipsum.words, random.randint(1, 4)))
@@ -433,7 +404,6 @@ def report(request):
             Project(
                 id=i,
                 organization=organization,
-                team=team,
                 slug=slugify(name),
                 name=name,
                 date_added=start - timedelta(days=random.randint(0, 120)),

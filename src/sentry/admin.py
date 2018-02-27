@@ -56,9 +56,9 @@ class ProjectAdmin(admin.ModelAdmin):
     list_display = ('name', 'slug', 'organization', 'status', 'date_added')
     list_filter = ('status', 'public')
     search_fields = (
-        'name', 'organization__slug', 'organization__name', 'team__slug', 'team__name', 'slug'
+        'name', 'organization__slug', 'organization__name', 'slug'
     )
-    raw_id_fields = ('team', 'organization')
+    raw_id_fields = ('organization',)
     readonly_fields = ('first_event', 'date_added')
 
 
@@ -76,7 +76,7 @@ class OrganizationProjectInline(admin.TabularInline):
     model = Project
     extra = 1
     fields = ('name', 'slug', 'status', 'date_added')
-    raw_id_fields = ('organization', 'team')
+    raw_id_fields = ('organization',)
 
 
 class OrganizationTeamInline(admin.TabularInline):
@@ -138,7 +138,7 @@ class TeamProjectInline(admin.TabularInline):
     model = Project
     extra = 1
     fields = ('name', 'slug')
-    raw_id_fields = ('organization', 'team')
+    raw_id_fields = ('organization',)
 
 
 class TeamAdmin(admin.ModelAdmin):

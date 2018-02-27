@@ -129,7 +129,6 @@ class TransferTest(TestCase):
         team.transfer_to(org2)
 
         project = Project.objects.get(id=project.id)
-        assert project.team == team2
         assert ProjectTeam.objects.filter(project=project, team=team2).exists()
 
         assert not Team.objects.filter(id=team.id).exists()
