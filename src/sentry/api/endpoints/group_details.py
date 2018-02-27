@@ -214,7 +214,6 @@ class GroupDetailsEndpoint(GroupEndpoint, EnvironmentMixin):
             get_range = functools.partial(tsdb.get_range, environment_id=environment_id)
             tags = tagstore.get_group_tag_keys(
                 group.project_id, group.id, environment_id, limit=100)
-
             if environment_id is None:
                 user_reports = UserReport.objects.filter(group=group)
             else:
