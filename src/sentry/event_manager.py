@@ -1,7 +1,6 @@
 """
 sentry.event_manager
 ~~~~~~~~~~~~~~~~~~~~
-
 :copyright: (c) 2010-2014 by the Sentry Team, see AUTHORS for more details.
 :license: BSD, see LICENSE for more details.
 """
@@ -32,7 +31,7 @@ from sentry.interfaces.schemas import validate_and_default_interface
 from sentry.models import (
     Activity, Environment, Event, EventError, EventMapping, EventUser, Group,
     GroupEnvironment, GroupHash, GroupRelease, GroupResolution, GroupStatus,
-    Project, Release, ReleaseEnvironment, ReleaseProject, UserReport
+    Project, Release, ReleaseEnvironment, ReleaseProject, ReleaseProjectEnvironment, UserReport
 )
 from sentry.plugins import plugins
 from sentry.signals import event_discarded, event_saved, first_event_received, regression_signal
@@ -759,6 +758,13 @@ class EventManager(object):
                 datetime=date,
             )
 
+            ReleaseProjectEnvironment.get_or_create(
+                project=project,
+                release=release,
+                environment=environment,
+                datetime=date,
+            )
+
             grouprelease = GroupRelease.get_or_create(
                 group=group,
                 release=release,
@@ -849,14 +855,22 @@ class EventManager(object):
                 timestamp=event.datetime,
                 environment_id=environment.id,
             )
-
-        if is_new and release:
-            buffer.incr(
-                ReleaseProject, {'new_groups': 1}, {
-                    'release_id': release.id,
-                    'project_id': project.id,
-                }
-            )
+        if release:
+            if is_new:
+                buffer.incr(
+                    ReleaseProject, {'new_groups': 1}, {
+                        'release_id': release.id,
+                        'project_id': project.id,
+                    }
+                )
+            if is_new_group_environment:
+                buffer.incr(
+                    ReleaseProjectEnvironment, columns={'new_issues_count': 1}, filters={
+                        'project': project,
+                        'release': release,
+                        'environment': environment,
+                    }
+                )
 
         safe_execute(Group.objects.add_tags, group, environment, tags, _with_transaction=False)
 

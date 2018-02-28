@@ -21,7 +21,7 @@ from sentry.event_manager import (
 )
 from sentry.models import (
     Activity, Environment, Event, Group, GroupEnvironment, GroupHash, GroupRelease, GroupResolution,
-    GroupStatus, GroupTombstone, EventMapping, Release, UserReport
+    GroupStatus, GroupTombstone, EventMapping, Release, ReleaseProjectEnvironment, UserReport
 )
 from sentry.signals import event_discarded, event_saved
 from sentry.testutils import assert_mock_called_once_with_partial, TestCase, TransactionTestCase
@@ -1384,3 +1384,150 @@ class GenerateCulpritTest(TestCase):
     def test_md5_from_hash(self):
         result = md5_from_hash(['foo', 'bar', u'foô'])
         assert result == '6d81588029ed4190110b2779ba952a00'
+
+
+class ReleaseIssueTest(TransactionTestCase):
+    def setUp(self):
+        self.project = self.create_project()
+        self.release = Release.get_or_create(self.project, '1.0')
+        self.environment1 = Environment.get_or_create(self.project, 'prod')
+        self.environment2 = Environment.get_or_create(self.project, 'staging')
+        self.timestamp = 1403007314
+
+    def make_event(self, **kwargs):
+        result = {
+            'event_id': 'a' * 32,
+            'message': 'foo',
+            'timestamp': 1403007314.570599,
+            'level': logging.ERROR,
+            'logger': 'default',
+            'tags': [],
+        }
+        result.update(kwargs)
+        return result
+
+    def make_release_event(self, release_version='1.0',
+                           environment_name='prod', project_id=1, **kwargs):
+        event = self.make_event(
+            release=release_version,
+            environment=environment_name,
+            event_id=uuid.uuid1().hex,
+        )
+        event.update(kwargs)
+        manager = EventManager(event)
+        with self.tasks():
+            event = manager.save(project_id)
+        return event
+
+    def convert_timestamp(self, timestamp):
+        date = datetime.fromtimestamp(timestamp)
+        date = date.replace(tzinfo=timezone.utc)
+        return date
+
+    def assert_release_project_environment(self, event, new_issues_count, first_seen, last_seen):
+        release = Release.objects.get(
+            organization=event.project.organization.id,
+            version=event.get_tag('sentry:release'),
+        )
+        release_project_envs = ReleaseProjectEnvironment.objects.filter(
+            release=release,
+            project=event.project,
+            environment=event.get_environment(),
+        )
+        assert len(release_project_envs) == 1
+
+        release_project_env = release_project_envs[0]
+        assert release_project_env.new_issues_count == new_issues_count
+        assert release_project_env.first_seen == self.convert_timestamp(first_seen)
+        assert release_project_env.last_seen == self.convert_timestamp(last_seen)
+
+    def test_different_groups(self):
+        event1 = self.make_release_event(
+            release_version=self.release.version,
+            environment_name=self.environment1.name,
+            project_id=self.project.id,
+            checksum='a' * 32,
+            timestamp=self.timestamp,
+        )
+        self.assert_release_project_environment(
+            event=event1,
+            new_issues_count=1,
+            last_seen=self.timestamp,
+            first_seen=self.timestamp,
+        )
+
+        event2 = self.make_release_event(
+            release_version=self.release.version,
+            environment_name=self.environment1.name,
+            project_id=self.project.id,
+            checksum='b' * 32,
+            timestamp=self.timestamp + 100,
+        )
+        self.assert_release_project_environment(
+            event=event2,
+            new_issues_count=2,
+            last_seen=self.timestamp + 100,
+            first_seen=self.timestamp,
+        )
+
+    def test_same_group(self):
+        event1 = self.make_release_event(
+            release_version=self.release.version,
+            environment_name=self.environment1.name,
+            project_id=self.project.id,
+            checksum='a' * 32,
+            timestamp=self.timestamp,
+        )
+        self.assert_release_project_environment(
+            event=event1,
+            new_issues_count=1,
+            last_seen=self.timestamp,
+            first_seen=self.timestamp,
+        )
+        event2 = self.make_release_event(
+            release_version=self.release.version,
+            environment_name=self.environment1.name,
+            project_id=self.project.id,
+            checksum='a' * 32,
+            timestamp=self.timestamp + 100,
+        )
+        self.assert_release_project_environment(
+            event=event2,
+            new_issues_count=1,
+            last_seen=self.timestamp + 100,
+            first_seen=self.timestamp,
+        )
+
+    def test_same_group_different_environment(self):
+        event1 = self.make_release_event(
+            release_version=self.release.version,
+            environment_name=self.environment1.name,
+            project_id=self.project.id,
+            checksum='a' * 32,
+            timestamp=self.timestamp,
+        )
+        self.assert_release_project_environment(
+            event=event1,
+            new_issues_count=1,
+            last_seen=self.timestamp,
+            first_seen=self.timestamp,
+        )
+        event2 = self.make_release_event(
+            release_version=self.release.version,
+            environment_name=self.environment2.name,
+            project_id=self.project.id,
+            checksum='a' * 32,
+            timestamp=self.timestamp + 100,
+        )
+        self.assert_release_project_environment(
+            event=event1,
+            new_issues_count=1,
+            last_seen=self.timestamp,
+            first_seen=self.timestamp,
+        )
+        self.assert_release_project_environment(
+            event=event2,
+            new_issues_count=1,
+            last_seen=self.timestamp + 100,
+            first_seen=self.timestamp + 100,
+        )
