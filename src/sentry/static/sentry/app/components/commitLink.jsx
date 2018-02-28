@@ -1,7 +1,7 @@
 import PropTypes from 'prop-types';
 import React from 'react';
 
-import InlineSvg from '../../components/inlineSvg';
+import InlineSvg from './inlineSvg';
 
 class CommitLink extends React.Component {
   static propTypes = {

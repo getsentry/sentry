@@ -11,7 +11,7 @@ import DropdownLink from '../../components/dropdownLink';
 import MenuItem from '../../components/menuItem';
 import ApiMixin from '../../mixins/apiMixin';
 
-import CommitLink from './commitLink';
+import CommitLink from '../../components/commitLink';
 
 import {t} from '../../locale';
 

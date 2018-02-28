@@ -4,6 +4,7 @@ import React from 'react';
 import createReactClass from 'create-react-class';
 
 import {logException} from '../../utils/logging';
+import EventCause from './eventCause';
 import EventContexts from './contexts';
 import EventContextSummary from './contextSummary';
 import EventDataSection from './eventDataSection';
@@ -15,6 +16,7 @@ import EventSdk from './sdk';
 import EventDevice from './device';
 import EventUserReport from './userReport';
 import SentryTypes from '../../proptypes';
+import GroupState from '../../mixins/groupState';
 import utils from '../../utils';
 import {t} from '../../locale';
 
@@ -53,6 +55,8 @@ const EventEntries = createReactClass({
     isShare: PropTypes.bool,
   },
 
+  mixins: [GroupState],
+
   getDefaultProps() {
     return {
       isShare: false,
@@ -67,7 +71,8 @@ const EventEntries = createReactClass({
 
   render() {
     let {group, isShare, project, event, orgId} = this.props;
-
+    let organization = this.getOrganization();
+    let features = organization ? new Set(organization.features) : new Set();
     let entries = event.entries.map((entry, entryIdx) => {
       try {
         let Component = this.interfaces[entry.type];
@@ -115,6 +120,13 @@ const EventEntries = createReactClass({
 
     return (
       <div className="entries">
+        {!utils.objectIsEmpty(event.errors) && (
+          <EventErrors group={group} event={event} />
+        )}{' '}
+        {!isShare &&
+          features.has('suggested-commits') && (
+            <EventCause event={event} orgId={orgId} projectId={project.slug} />
+          )}
         {event.userReport && (
           <EventUserReport
             report={event.userReport}
@@ -122,9 +134,6 @@ const EventEntries = createReactClass({
             projectId={project.slug}
             issueId={group.id}
           />
-        )}
-        {!utils.objectIsEmpty(event.errors) && (
-          <EventErrors group={group} event={event} />
         )}
         {!utils.objectIsEmpty(event.sdk) &&
           event.sdk.upstream.isNewer && (

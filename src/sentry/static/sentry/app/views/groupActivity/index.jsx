@@ -6,9 +6,9 @@ import createReactClass from 'create-react-class';
 import ApiMixin from '../../mixins/apiMixin';
 import GroupState from '../../mixins/groupState';
 
-import CommitLink from '../../views/releases/commitLink';
 import PullRequestLink from '../../views/releases/pullRequestLink';
 
+import CommitLink from '../../components/commitLink';
 import Duration from '../../components/duration';
 import Avatar from '../../components/avatar';
 import TimeSince from '../../components/timeSince';

@@ -89,10 +89,6 @@ class EventFileCommittersEndpoint(ProjectEndpoint):
         committer_commit_list = [
             serialize(commit) for commit in commits if commit.author.id == author_id
         ]
-
-        # filter out the author data
-        for c in committer_commit_list:
-            del c['author']
         return committer_commit_list
 
     def _get_committers(self, annotated_frames, commits):
