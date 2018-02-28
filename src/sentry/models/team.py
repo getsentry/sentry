@@ -214,7 +214,7 @@ class Team(Model):
             project_id__in=project_ids,
         ).delete()
         ReleaseProjectEnvironment.objects.filter(
-            project__id__in=project_ids,
+            project_id__in=project_ids,
         ).delete()
 
         Project.objects.filter(
