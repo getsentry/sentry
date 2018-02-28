@@ -44,7 +44,19 @@ class SlackIntegrationTest(IntegrationTestCase):
                     'bot_user_id': 'UXXXXXXX2',
                 },
                 'scope': ','.join(authorize_params['scope'].split(' ')),
-            })
+            }
+        )
+
+        responses.add(
+            responses.GET, 'https://slack.com/api/team.info',
+            json={
+                'ok': True,
+                'team': {
+                    'domain': 'test-slack-workspace',
+                    'icon': {'image_132': 'http://example.com/ws_icon.jpg'},
+                },
+            }
+        )
 
         resp = self.client.get('{}?{}'.format(
             self.path,
@@ -54,7 +66,7 @@ class SlackIntegrationTest(IntegrationTestCase):
             })
         ))
 
-        mock_request = responses.calls[-1].request
+        mock_request = responses.calls[0].request
         req_params = parse_qs(mock_request.body)
         assert req_params['grant_type'] == ['authorization_code']
         assert req_params['code'] == ['oauth-code']
@@ -73,6 +85,8 @@ class SlackIntegrationTest(IntegrationTestCase):
             'bot_access_token': 'xoxb-xxxxxxxxx-xxxxxxxxxx-xxxxxxxxxxxx',
             'bot_user_id': 'UXXXXXXX2',
             'scopes': sorted(self.provider.identity_oauth_scopes),
+            'icon': 'http://example.com/ws_icon.jpg',
+            'domain_name': 'test-slack-workspace.slack.com',
         }
         oi = OrganizationIntegration.objects.get(
             integration=integration,

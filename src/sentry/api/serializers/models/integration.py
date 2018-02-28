@@ -13,6 +13,8 @@ class IntegrationSerializer(Serializer):
         return {
             'id': six.text_type(obj.id),
             'name': obj.name,
+            'icon': obj.metadata.get('icon'),
+            'domain_name': obj.metadata.get('domain_name'),
             'provider': {
                 'key': provider.key,
                 'name': provider.name,
