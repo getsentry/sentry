@@ -33,14 +33,14 @@ import {t, tn, tct} from '../locale';
 import {setActiveEnvironment} from '../actionCreators/environments';
 
 const MAX_TAGS = 500;
+const MAX_ITEMS = 25;
+const DEFAULT_SORT = 'date';
+const DEFAULT_STATS_PERIOD = '24h';
 
 const Stream = createReactClass({
   displayName: 'Stream',
 
   propTypes: {
-    defaultSort: PropTypes.string,
-    defaultStatsPeriod: PropTypes.string,
-    maxItems: PropTypes.number,
     setProjectNavSection: PropTypes.func,
   },
 
@@ -51,14 +51,6 @@ const Stream = createReactClass({
     ApiMixin,
     ProjectState,
   ],
-
-  getDefaultProps() {
-    return {
-      defaultSort: 'date',
-      defaultStatsPeriod: '24h',
-      maxItems: 25,
-    };
-  },
 
   getInitialState() {
     let searchId = this.props.params.searchId || null;
@@ -84,14 +76,14 @@ const Stream = createReactClass({
       selectAllActive: false,
       multiSelected: false,
       anySelected: false,
-      statsPeriod: this.props.defaultStatsPeriod,
+      statsPeriod: DEFAULT_STATS_PERIOD,
       realtimeActive,
       pageLinks: '',
       queryCount: null,
       dataLoading: true,
       error: false,
       query: '',
-      sort: this.props.defaultSort,
+      sort: DEFAULT_SORT,
       tags: StreamTagStore.getAllTags(),
       tagsLoading: true,
       isSidebarVisible: false,
@@ -305,15 +297,13 @@ const Stream = createReactClass({
 
     let searchId = hasQuery ? null : props.params.searchId || state.searchId || null;
 
-    let sort = 'sort' in currentQuery ? currentQuery.sort : this.props.defaultSort;
+    let sort = 'sort' in currentQuery ? currentQuery.sort : DEFAULT_SORT;
 
     let statsPeriod =
-      'statsPeriod' in currentQuery
-        ? currentQuery.statsPeriod
-        : this.props.defaultStatsPeriod;
+      'statsPeriod' in currentQuery ? currentQuery.statsPeriod : DEFAULT_STATS_PERIOD;
 
     if (statsPeriod !== '14d' && statsPeriod !== '24h') {
-      statsPeriod = this.props.defaultStatsPeriod;
+      statsPeriod = DEFAULT_STATS_PERIOD;
     }
 
     let newState = {
@@ -377,7 +367,7 @@ const Stream = createReactClass({
 
     let requestParams = {
       query,
-      limit: this.props.maxItems,
+      limit: MAX_ITEMS,
       sort: this.state.sort,
       statsPeriod: this.state.statsPeriod,
       shortIdLookup: '1',
@@ -600,11 +590,11 @@ const Stream = createReactClass({
       queryParams.query = this.state.query;
     }
 
-    if (this.state.sort !== this.props.defaultSort) {
+    if (this.state.sort !== DEFAULT_SORT) {
       queryParams.sort = this.state.sort;
     }
 
-    if (this.state.statsPeriod !== this.props.defaultStatsPeriod) {
+    if (this.state.statsPeriod !== DEFAULT_STATS_PERIOD) {
       queryParams.statsPeriod = this.state.statsPeriod;
     }
 
