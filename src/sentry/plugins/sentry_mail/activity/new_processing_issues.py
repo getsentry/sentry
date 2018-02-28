@@ -1,5 +1,6 @@
 from __future__ import absolute_import
 
+from sentry import features
 from sentry.models import GroupSubscriptionReason, EventError
 from sentry.utils.http import absolute_uri
 
@@ -54,8 +55,12 @@ class NewProcessingIssuesActivityEmail(ActivityEmail):
         }
 
     def get_subject(self):
+        is_internal = features.has(
+            'organizations:internal-catchall',
+            self.organization,
+        )
         return u'Processing Issues on {}'.format(
-            self.project.name,
+            self.project.slug if is_internal else self.project.name,
         )
 
     def get_template(self):

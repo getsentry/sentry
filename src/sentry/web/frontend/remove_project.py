@@ -6,6 +6,7 @@ from django.core.urlresolvers import reverse
 from django.http import HttpResponseRedirect
 from django.utils.translation import ugettext_lazy as _
 
+from sentry import features
 from sentry.api import client
 from sentry.web.frontend.base import ProjectView
 
@@ -33,9 +34,15 @@ class RemoveProjectView(ProjectView):
                 is_sudo=True
             )
 
+            is_internal = features.has(
+                'organizations:internal-catchall',
+                organization,
+                actor=request.user,
+            )
+            project_name = (project.slug if is_internal else project.name).encode('utf-8')
             messages.add_message(
                 request, messages.SUCCESS,
-                _(u'The project %r was scheduled for deletion.') % (project.name.encode('utf-8'), )
+                _(u'The project %r was scheduled for deletion.') % (project_name, )
             )
 
             return HttpResponseRedirect(

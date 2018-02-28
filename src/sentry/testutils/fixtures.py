@@ -341,7 +341,7 @@ class Fixtures(object):
     def create_repo(self, project):
         repo = Repository.objects.create(
             organization_id=project.organization_id,
-            name='organization-{}'.format(project.name),
+            name='organization-{}'.format(project.slug),
         )
         return repo
 
