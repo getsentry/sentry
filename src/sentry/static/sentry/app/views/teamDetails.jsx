@@ -7,9 +7,11 @@ import Reflux from 'reflux';
 import {fetchTeamDetails} from '../actionCreators/teams';
 import {t} from '../locale';
 import ApiMixin from '../mixins/apiMixin';
+import DropdownLink from '../components/dropdownLink';
 import ListLink from '../components/listLink';
 import LoadingError from '../components/loadingError';
 import LoadingIndicator from '../components/loadingIndicator';
+import MenuItem from '../components/menuItem';
 import OrganizationState from '../mixins/organizationState';
 import TeamStore from '../stores/teamStore';
 import recreateRoute from '../utils/recreateRoute';
@@ -87,20 +89,33 @@ const TeamDetails = createReactClass({
     else if (!team || this.state.error) return <LoadingError onRetry={this.fetchData} />;
 
     let routePrefix = recreateRoute('', {routes, params, stepBack: -1}); //`/organizations/${orgId}/teams/${teamId}`;
+    let access = this.getAccess();
 
     //TODO(maxbittker) remove hack to not show this page on old settings
     let onNewSettings = routePrefix.startsWith('/settings/');
 
+    const features = new Set(this.context.organization.features);
     return (
       <div>
         <h3>{team.name}</h3>
 
+        {!features.has('new-settings') &&
+          access.has('team:admin') && (
+            <DropdownLink anchorRight title={t('More')}>
+              <MenuItem
+                href={`/organizations/${params.orgId}/teams/${params.teamId}/remove/`}
+              >
+                {t('Remove Team')}
+              </MenuItem>
+            </DropdownLink>
+          )}
+
         <ul className="nav nav-tabs border-bottom">
+          <ListLink to={`${routePrefix}settings/`}>{t('Settings')}</ListLink>
           <ListLink to={`${routePrefix}members/`}>{t('Members')}</ListLink>
           {onNewSettings ? (
             <ListLink to={`${routePrefix}projects/`}>{t('Projects')}</ListLink>
           ) : null}
-          <ListLink to={`${routePrefix}settings/`}>{t('Settings')}</ListLink>
         </ul>
 
         {children &&
