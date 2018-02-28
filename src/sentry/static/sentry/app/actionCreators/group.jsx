@@ -8,6 +8,7 @@ export function assignToUser(params) {
   let endpoint = `/issues/${params.id}/`;
 
   let id = api.uniqueId();
+
   GroupActions.assignTo(id, params.id, {
     email: (params.member && params.member.email) || '',
   });

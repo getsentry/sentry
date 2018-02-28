@@ -136,7 +136,7 @@ const AssigneeSelector = createReactClass({
   },
 
   assignToTeam(team) {
-    assignToActor({type: 'team', actor: {id: team.id, type: 'team'}, id: this.props.id});
+    assignToActor({actor: {id: team.id, type: 'team'}, id: this.props.id});
     this.setState({filter: '', loading: true});
   },
 

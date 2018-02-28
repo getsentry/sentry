@@ -18,27 +18,28 @@ describe('AssigneeSelector', function() {
   let assignToUser;
 
   const USER_1 = {
-    id: 1,
+    id: '1',
     name: 'Jane Doe',
     email: 'janedoe@example.com',
   };
   const USER_2 = {
-    id: 2,
+    id: '2',
     name: 'John Smith',
     email: 'johnsmith@example.com',
   };
   const USER_3 = {
-    id: 3,
+    id: '3',
     name: 'J J',
     email: 'jj@example.com',
   };
 
   const TEAM_1 = {
-    id: 3,
+    id: '3',
     name: 'COOL TEAM',
+    slug: 'cool-team',
     projects: [
       {
-        slug: 2,
+        slug: '2',
       },
     ],
   };
@@ -50,9 +51,9 @@ describe('AssigneeSelector', function() {
     sandbox.stub(MemberListStore, 'getAll').returns([USER_1, USER_2]);
     sandbox.stub(TeamStore, 'getAll').returns([TEAM_1]);
     sandbox.stub(GroupStore, 'get').returns({
-      id: 1337,
+      id: '1337',
       project: {
-        slug: 2,
+        slug: '2',
       },
       assignedTo: null,
     });
@@ -96,7 +97,7 @@ describe('AssigneeSelector', function() {
           .stub(ConfigStore, 'get')
           .withArgs('user')
           .returns({
-            id: 2,
+            id: '2',
             name: 'John Smith',
             email: 'johnsmith@example.com',
           });
@@ -108,7 +109,7 @@ describe('AssigneeSelector', function() {
           .stub(ConfigStore, 'get')
           .withArgs('user')
           .returns({
-            id: 555,
+            id: '555',
             name: 'Here Comes a New Challenger',
             email: 'guile@mail.us.af.mil',
           });
@@ -130,18 +131,27 @@ describe('AssigneeSelector', function() {
         .withArgs('features')
         .returns(new Set(['internal-catchall']));
       sandbox.stub(TeamStore, 'getAll').returns([TEAM_1]);
-      sandbox.stub(GroupStore, 'get').returns({
-        id: 1337,
-        project: {
-          slug: 2,
+
+      GroupStore.loadInitialData([
+        {
+          id: '1337',
+          project: {
+            slug: '2',
+          },
+          assignedTo: null,
         },
-        assignedTo: null,
-      });
+      ]);
 
       Client.addMockResponse({
-        url: '/issues/target/events/latest/',
+        method: 'PUT',
+        url: '/issues/1337/',
         body: {
-          entries: '',
+          id: '1337',
+          assignedTo: {
+            id: '1',
+            type: 'user',
+            name: 'Jane Doe',
+          },
         },
       });
 
@@ -150,6 +160,10 @@ describe('AssigneeSelector', function() {
 
       assigneeSelector = mount(<AssigneeSelector id="1337" />, TestStubs.routerContext());
       openMenu = () => assigneeSelector.find('a').simulate('click');
+    });
+
+    afterEach(function() {
+      Client.clearMockResponses();
     });
 
     it('should initially have loading state', function() {
@@ -183,18 +197,42 @@ describe('AssigneeSelector', function() {
       expect(assigneeSelector.find('LoadingIndicator').exists()).toBe(false);
     });
 
-    it('successfully assigns users', function() {
+    it('successfully assigns users', function(done) {
       openMenu();
       MemberListStore.loadInitialData([USER_1, USER_2]);
       assigneeSelector.update();
-      assigneeSelector.first('Avatar').simulate('click');
+      assigneeSelector
+        .find('Avatar')
+        .first()
+        .simulate('click');
       assigneeSelector.update();
-      // console.log(assigneeSelector.debug());
+      expect(assigneeSelector.find('LoadingIndicator').exists()).toBe(true);
 
-      // expect(assigneeSelector.find('Avatar').length).toBe(1);
+      setTimeout(() => {
+        assigneeSelector.update();
+        expect(assigneeSelector.find('LoadingIndicator').exists()).toBe(false);
+        expect(assigneeSelector.find('ActorAvatar').length).toBe(1);
+        done();
+      }, 200); //hack
+    });
 
-      // expect(assigneeSelector.find('TeamAvatar').length).toBe(1);
-      // expect(assigneeSelector.find('LoadingIndicator').exists()).toBe(false);
+    it('successfully assigns teams', function(done) {
+      openMenu();
+      MemberListStore.loadInitialData([USER_1, USER_2]);
+      assigneeSelector.update();
+      assigneeSelector
+        .find('TeamAvatar')
+        .first()
+        .simulate('click');
+      assigneeSelector.update();
+      expect(assigneeSelector.find('LoadingIndicator').exists()).toBe(true);
+
+      setTimeout(() => {
+        assigneeSelector.update();
+        expect(assigneeSelector.find('LoadingIndicator').exists()).toBe(false);
+        expect(assigneeSelector.find('ActorAvatar').length).toBe(1);
+        done();
+      }, 200); //hack
     });
   });
 
