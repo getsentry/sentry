@@ -11,6 +11,7 @@ class Relay(Model):
 
     relay_id = models.CharField(max_length=64, unique=True)
 
+    # XXX: this does not need to be encrypted
     public_key = EncryptedTextField()
     first_seen = models.DateTimeField(default=timezone.now)
     last_seen = models.DateTimeField(default=timezone.now)
