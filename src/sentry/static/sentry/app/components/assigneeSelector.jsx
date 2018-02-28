@@ -15,7 +15,7 @@ import ConfigStore from '../stores/configStore';
 import DropdownLink from './dropdownLink';
 import FlowLayout from './flowLayout';
 import GroupStore from '../stores/groupStore';
-import {assignToUser, assignToActor} from '../actionCreators/group';
+import {assignToUser, assignToActor, clearAssignment} from '../actionCreators/group';
 import TeamStore from '../stores/teamStore';
 import LoadingIndicator from '../components/loadingIndicator';
 import MemberListStore from '../stores/memberListStore';
@@ -144,7 +144,7 @@ const AssigneeSelector = createReactClass({
 
   clearAssignTo() {
     //clears assignment
-    assignToUser({id: this.props.id});
+    clearAssignment(this.props.id);
     this.setState({filter: '', loading: true});
   },
 
@@ -215,7 +215,7 @@ const AssigneeSelector = createReactClass({
     let {loading, assignedTo, filter, memberList} = this.state;
     let memberListLoading = this.state.memberList === null;
 
-    let className = classNames('assignee-selector anchor-right', {
+    let className = classNames('assignee-selector anchor-right ', {
       unassigned: !assignedTo,
     });
 
@@ -272,7 +272,7 @@ const AssigneeSelector = createReactClass({
         <Tooltip title={tooltipTitle} disabled={!tooltipTitle}>
           <div className={className}>
             {loading ? (
-              <LoadingIndicator mini />
+              <LoadingIndicator mini style={{float: 'left'}} />
             ) : (
               <DropdownLink
                 className="assignee-selector-toggle"
@@ -305,6 +305,7 @@ const AssigneeSelector = createReactClass({
                     />
                   </MenuItem>
                 )}
+
                 {!memberListLoading &&
                   assignedTo && (
                     <MenuItem

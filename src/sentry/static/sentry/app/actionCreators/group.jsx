@@ -34,6 +34,36 @@ export function assignToUser(params) {
   return request;
 }
 
+export function clearAssignment(groupId) {
+  const api = new Client();
+
+  let endpoint = `/issues/${groupId}/`;
+
+  let id = api.uniqueId();
+
+  GroupActions.assignTo(id, groupId, {
+    email: '',
+  });
+
+  let request = api.requestPromise(endpoint, {
+    method: 'PUT',
+    // Sending an empty value to assignedTo is the same as "clear"
+    data: {
+      assignedTo: '',
+    },
+  });
+
+  request
+    .then(data => {
+      GroupActions.assignToSuccess(id, groupId, data);
+    })
+    .catch(data => {
+      GroupActions.assignToError(id, groupId, data);
+    });
+
+  return request;
+}
+
 export function assignToActor({id, actor}) {
   const api = new Client();
 
@@ -59,10 +89,7 @@ export function assignToActor({id, actor}) {
   return api
     .requestPromise(endpoint, {
       method: 'PUT',
-      // Sending an empty value to assignedTo is the same as "clear",
-      // so if no member exists, that implies that we want to clear the
-      // current assignee.
-      data: {assignedTo: actorId || ''},
+      data: {assignedTo: actorId},
     })
     .then(data => {
       GroupActions.assignToSuccess(uniqueId, id, data);
