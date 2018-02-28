@@ -1,4 +1,3 @@
-import PropTypes from 'prop-types';
 import React from 'react';
 import Avatar from './avatar';
 import {Actor} from '../proptypes';
@@ -6,13 +5,13 @@ import TeamAvatar from './teamAvatar';
 import MemberListStore from '../stores/memberListStore';
 import TeamStore from '../stores/teamStore';
 
+let AvatarPropTypes = Avatar.propTypes;
+delete AvatarPropTypes.user;
+
 class ActorAvatar extends React.Component {
   static propTypes = {
     actor: Actor.isRequired,
-    size: PropTypes.number,
-    default: PropTypes.string,
-    title: PropTypes.string,
-    gravatar: PropTypes.bool,
+    ...AvatarPropTypes,
   };
 
   render() {
