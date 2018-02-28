@@ -21,6 +21,7 @@ import TeamStore from '../stores/teamStore';
 import LoadingIndicator from '../components/loadingIndicator';
 import MemberListStore from '../stores/memberListStore';
 import MenuItem from './menuItem';
+import SentryTypes from '../proptypes';
 
 const AssigneeSelector = createReactClass({
   displayName: 'AssigneeSelector',
@@ -28,7 +29,9 @@ const AssigneeSelector = createReactClass({
   propTypes: {
     id: PropTypes.string.isRequired,
   },
-
+  contextTypes: {
+    organization: SentryTypes.Organization,
+  },
   mixins: [
     Reflux.listenTo(GroupStore, 'onGroupChange'),
     Reflux.connect(MemberListStore, 'memberList'),
@@ -241,7 +244,8 @@ const AssigneeSelector = createReactClass({
       );
 
     let teamNodes = [];
-    let features = ConfigStore.get('features');
+    let org = this.context.organization;
+    let features = new Set(org.features);
     if (features.has('internal-catchall')) {
       teamNodes = AssigneeSelector.filterMembers(
         this.assignableTeams(),
@@ -290,7 +294,11 @@ const AssigneeSelector = createReactClass({
                     <input
                       type="text"
                       className="form-control input-sm"
-                      placeholder={t('Filter teams and people')}
+                      placeholder={
+                        features.has('internal-catchall')
+                          ? t('Filter teams and people')
+                          : t('Filter members')
+                      }
                       ref={ref => this.onFilterMount(ref)}
                       onClick={this.onFilterClick}
                       onKeyDown={this.onFilterKeyDown}

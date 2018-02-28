@@ -126,10 +126,6 @@ describe('AssigneeSelector', function() {
       // Reset sandbox because we don't want <LoadingIndicator /> stubbed
       sandbox.restore();
       sandbox = sinon.sandbox.create();
-      sandbox
-        .stub(ConfigStore, 'get')
-        .withArgs('features')
-        .returns(new Set(['internal-catchall']));
       sandbox.stub(TeamStore, 'getAll').returns([TEAM_1]);
 
       GroupStore.loadInitialData([
@@ -159,6 +155,10 @@ describe('AssigneeSelector', function() {
       MemberListStore.loaded = false;
 
       assigneeSelector = mount(<AssigneeSelector id="1337" />, TestStubs.routerContext());
+      assigneeSelector.setContext({
+        organization: {id: '1', features: new Set(['internal-catchall'])},
+      });
+
       openMenu = () => assigneeSelector.find('a').simulate('click');
     });
 
