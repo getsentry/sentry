@@ -91,6 +91,7 @@ from .endpoints.project_keys import ProjectKeysEndpoint
 from .endpoints.project_key_details import ProjectKeyDetailsEndpoint
 from .endpoints.project_key_stats import ProjectKeyStatsEndpoint
 from .endpoints.project_member_index import ProjectMemberIndexEndpoint
+from .endpoints.project_ownership import ProjectOwnershipEndpoint
 from .endpoints.project_plugins import ProjectPluginsEndpoint
 from .endpoints.project_plugin_details import ProjectPluginDetailsEndpoint
 from .endpoints.project_release_details import ProjectReleaseDetailsEndpoint
@@ -768,6 +769,11 @@ urlpatterns = patterns(
         r'^projects/(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/processingissues/discard$',
         ProjectProcessingIssuesDiscardEndpoint.as_view(),
         name='sentry-api-0-project-discard-processing-issues'
+    ),
+    url(
+        r'^projects/(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/ownership/$',
+        ProjectOwnershipEndpoint.as_view(),
+        name='sentry-api-0-project-ownership'
     ),
 
     # Load plugin project urls
