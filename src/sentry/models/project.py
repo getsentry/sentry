@@ -9,6 +9,7 @@ from __future__ import absolute_import, print_function
 
 import logging
 import warnings
+from collections import defaultdict
 
 import six
 from bitfield import BitField
@@ -287,7 +288,13 @@ class Project(Model):
         # org than the existing one, which is currently the only use case in
         # production
         # TODO(jess): refactor this to make it an org transfer only
-        from sentry.models import ProjectTeam, ReleaseProject, EnvironmentProject
+        from sentry.models import (
+            Environment,
+            EnvironmentProject,
+            ProjectTeam,
+            ReleaseProject,
+            Rule,
+        )
 
         organization = team.organization
 
@@ -313,10 +320,12 @@ class Project(Model):
         # handle this behavior somehow. We really only have two options here:
         # * Copy over all releases/environments into the new org and handle de-duping
         # * Delete the bindings and let them reform with new data.
-        # We're choosing to just delete the bindings since new data flowing in will
-        # recreate links correctly. The tradeoff is that historical data is
-        # lost, but this is a compromise we're willing to take and a side effect
-        # of allowing this feature.
+        # We're generally choosing to just delete the bindings since new data
+        # flowing in will recreate links correctly. The tradeoff is that
+        # historical data is lost, but this is a compromise we're willing to
+        # take and a side effect of allowing this feature. There are exceptions
+        # to this however, such as rules, which should maintain their
+        # configuration when moved across organizations.
         if org_changed:
             for model in ReleaseProject, EnvironmentProject:
                 model.objects.filter(
@@ -325,6 +334,26 @@ class Project(Model):
             # this is getting really gross, but make sure there aren't lingering associations
             # with old orgs or teams
             ProjectTeam.objects.filter(project=self, team__organization_id=old_org_id).delete()
+
+        rules_by_environment_id = defaultdict(set)
+        for rule_id, environment_id in Rule.objects.filter(
+                project_id=self.id,
+                environment_id__isnull=False).values_list('id', 'environment_id'):
+            rules_by_environment_id[environment_id].add(rule_id)
+
+        environment_names = dict(
+            Environment.objects.filter(
+                id__in=rules_by_environment_id,
+            ).values_list('id', 'name')
+        )
+
+        for environment_id, rule_ids in rules_by_environment_id.items():
+            Rule.objects.filter(id__in=rule_ids).update(
+                environment_id=Environment.get_or_create(
+                    self,
+                    environment_names[environment_id],
+                ).id,
+            )
 
         # ensure this actually exists in case from team was null
         self.add_team(team)
