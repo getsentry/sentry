@@ -48,7 +48,7 @@ class SlackIntegrationTest(IntegrationTestCase):
         )
 
         responses.add(
-            responses.POST, 'https://slack.com/api/team.info',
+            responses.GET, 'https://slack.com/api/team.info',
             json={
                 'ok': True,
                 'team': {
