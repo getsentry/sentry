@@ -86,8 +86,10 @@ class SlackNotifyServiceAction(EventAction):
             if not resp.get('ok'):
                 self.logger.info('rule.fail.slack_post', extra={'error': resp.get('error')})
 
+        key = u'slack:{}:{}'.format(integration_id, channel)
+
         metrics.incr('notifications.sent', instance='slack.notification')
-        yield self.future(send_notification)
+        yield self.future(send_notification, key=key)
 
     def render_label(self):
         try:

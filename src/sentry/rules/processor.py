@@ -1,8 +1,9 @@
 from __future__ import absolute_import
 
 import logging
+import six
 
-from collections import defaultdict, namedtuple
+from collections import namedtuple
 from datetime import timedelta
 from django.utils import timezone
 
@@ -45,7 +46,7 @@ class RuleProcessor(object):
         self.is_regression = is_regression
         self.is_new_group_environment = is_new_group_environment
 
-        self.futures_by_cb = defaultdict(list)
+        self.grouped_futures = {}
 
     def get_rules(self):
         return Rule.get_for_project(self.project.id)
@@ -138,11 +139,16 @@ class RuleProcessor(object):
                 continue
 
             for future in results:
-                self.futures_by_cb[future.callback
-                                   ].append(RuleFuture(rule=rule, kwargs=future.kwargs))
+                key = future.key is not None or future.callback
+                rule_future = RuleFuture(rule=rule, kwargs=future.kwargs)
+
+                if key not in self.grouped_futures:
+                    self.grouped_futures[key] = (future.callback, [rule_future])
+                else:
+                    self.grouped_futures[key][1].append(rule_future)
 
     def apply(self):
-        self.futures_by_cb = defaultdict(list)
+        self.grouped_futures.clear()
         for rule in self.get_rules():
             self.apply_rule(rule)
-        return list(self.futures_by_cb.items())
+        return six.itervalues(self.grouped_futures)
