@@ -3,7 +3,6 @@ import React from 'react';
 import createReactClass from 'create-react-class';
 import Reflux from 'reflux';
 import classNames from 'classnames';
-import _ from 'lodash';
 
 import {t} from '../locale';
 import {valueIsEqual, buildUserId, buildTeamId} from '../utils';
@@ -112,7 +111,7 @@ const AssigneeSelector = createReactClass({
   assignableTeams() {
     let group = GroupStore.get(this.props.id);
 
-    return _.uniqBy(TeamStore.getAll(), ({id}) => id)
+    return TeamStore.getAll()
       .filter(({projects}) => projects.some(p => p.slug === group.project.slug))
       .map(team => ({
         id: buildTeamId(team.id),
@@ -225,7 +224,7 @@ const AssigneeSelector = createReactClass({
 
     let memberNodes =
       members && members.length ? (
-        _.uniqBy(memberList, ({id}) => id).map(item => {
+        memberList.map(item => {
           return (
             <MenuItem
               key={buildUserId(item.id)}
