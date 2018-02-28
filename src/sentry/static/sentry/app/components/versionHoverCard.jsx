@@ -153,7 +153,7 @@ const VersionHoverCard = createReactClass({
           <div className="row row-flex">
             <div className="col-xs-4">
               <h6>New Issues</h6>
-              <div className="count">{release.newGroups}</div>
+              <div className="count">{release.newIssues}</div>
             </div>
             <div className="col-xs-8">
               <h6>

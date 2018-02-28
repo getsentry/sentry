@@ -10,7 +10,7 @@ from sentry import tagstore
 from sentry.api.serializers import Serializer, register, serialize
 from sentry.db.models.query import in_iexact
 from sentry.models import (
-    Commit, CommitAuthor, Deploy, Release, ReleaseProject, User, UserEmail
+    Commit, CommitAuthor, Deploy, Release, ReleaseProject, ReleaseProjectEnvironment, User, UserEmail
 )
 
 
@@ -20,7 +20,6 @@ def get_users_for_authors(organization_id, authors, user=None):
     user object exists for that email. If there is no matching
     Sentry user, a {user, email} dict representation of that
     author is returned.
-
     e.g.
     {
         1: serialized(<User id=1>),
@@ -72,7 +71,6 @@ class ReleaseSerializer(Serializer):
         Returns a dictionary of release_id => commit metadata,
         where each commit metadata dict contains commit_count
         and an array of authors.
-
         e.g.
         {
             1: {
@@ -135,7 +133,6 @@ class ReleaseSerializer(Serializer):
         Returns a dictionary of release_id => commit metadata,
         where each commit metadata dict contains commit_count
         and an array of authors.
-
         e.g.
         {
             1: {
@@ -185,17 +182,17 @@ class ReleaseSerializer(Serializer):
         }
 
         if project:
-            group_counts_by_release = dict(
-                ReleaseProject.objects.filter(project=project, release__in=item_list)
-                .values_list('release_id', 'new_groups')
+            issue_counts_by_release = dict(
+                ReleaseProjectEnvironment.objects.filter(project=project, release__in=item_list)
+                .values_list('release_id', 'new_issues_count')
             )
         else:
             # assume it should be a sum across release
             # if no particular project specified
-            group_counts_by_release = dict(
-                ReleaseProject.objects.filter(release__in=item_list, new_groups__isnull=False)
-                .values('release_id').annotate(new_groups=Sum('new_groups'))
-                .values_list('release_id', 'new_groups')
+            issue_counts_by_release = dict(
+                ReleaseProjectEnvironment.objects.filter(release__in=item_list)
+                .values('release_id').annotate(new_issues_count=Sum('new_issues_count'))
+                .values_list('release_id', 'new_issues_count')
             )
 
         release_metadata_attrs = self._get_commit_metadata(item_list, user)
@@ -218,7 +215,7 @@ class ReleaseSerializer(Serializer):
             result[item] = {
                 'tag': tags.get(item.version),
                 'owner': owners[six.text_type(item.owner_id)] if item.owner_id else None,
-                'new_groups': group_counts_by_release.get(item.id) or 0,
+                'new_issues': issue_counts_by_release.get(item.id) or 0,
                 'projects': release_projects.get(item.id, [])
             }
             result[item].update(release_metadata_attrs[item])
@@ -234,7 +231,7 @@ class ReleaseSerializer(Serializer):
             'dateReleased': obj.date_released,
             'dateCreated': obj.date_added,
             'data': obj.data,
-            'newGroups': attrs['new_groups'],
+            'newIssues': attrs['new_issues'],
             'owner': attrs['owner'],
             'commitCount': obj.commit_count,
             'lastCommit': attrs.get('last_commit'),
