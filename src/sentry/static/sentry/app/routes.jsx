@@ -335,18 +335,18 @@ const projectSettingsRoutes = (
       <IndexRedirect to="data-filters/" />
       <Route path=":filterType/" />
     </Route>
-    <Route
-      path="keys/"
-      name="Client Keys"
-      componentPromise={() =>
-        import(/*webpackChunkName: "ProjectKeys"*/ './views/settings/project/projectKeys')}
-      component={errorHandler(LazyLoad)}
-    >
+    <Route path="keys/" name="Client Keys">
+      <IndexRoute
+        componentPromise={() =>
+          import(/*webpackChunkName: "ProjectKeys"*/ './views/settings/project/projectKeys')}
+        component={errorHandler(LazyLoad)}
+      />
+
       <Route
         path=":keyId/"
         name="Details"
         componentPromise={() =>
-          import(/*webpackChunkName: "ProjectKeys"*/ './views/settings/project/projectKeys/projectKeyDetails')}
+          import(/*webpackChunkName: "ProjectKeyDetails"*/ './views/settings/project/projectKeys/projectKeyDetails')}
         component={errorHandler(LazyLoad)}
       />
     </Route>
