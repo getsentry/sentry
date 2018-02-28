@@ -7,8 +7,9 @@ sentry.api.paginator
 """
 from __future__ import absolute_import
 
+import bisect
+import functools
 import math
-import operator
 
 from datetime import datetime
 from django.db import connections
@@ -223,20 +224,31 @@ class OffsetPaginator(BasePaginator):
         )
 
 
-def search(haystack, needle, lo=0, hi=None, reverse=False):
-    # TODO: Replace this with binary search!
-    if hi is None:
-        hi = len(haystack)
+def reverse_bisect_left(a, x, lo=0, hi=None):
+    """\
+    Similar to ``bisect.bisect_left``, but expects the data in the array ``a``
+    to be provided in descending order, rather than the ascending order assumed
+    by ``bisect_left``.
 
-    position = lo
-    predicate = operator.ge if not reverse else operator.le
-    while position < hi:
-        value = haystack[position]
-        if predicate(value, needle):
-            break
+    The returned index ``i`` partitions the array ``a`` into two halves so that:
+
+    - left side: ``all(val > x for val in a[lo:i])``
+    - right side: ``all(val <= x for val in a[i:hi])``
+    """
+    if lo < 0:
+        raise ValueError('lo must be non-negative')
+
+    if hi is None:
+        hi = len(a)
+
+    while lo < hi:
+        mid = (lo + hi) // 2
+        if a[mid] > x:
+            lo = mid + 1
         else:
-            position = position + 1
-    return position
+            hi = mid
+
+    return lo
 
 
 class SequencePaginator(object):
@@ -246,6 +258,10 @@ class SequencePaginator(object):
             zip(*sorted(data, reverse=reverse)),
         ) if data else ([], [])
         self.reverse = reverse
+        self.search = functools.partial(
+            bisect.bisect_left if not reverse else reverse_bisect_left,
+            self.scores,
+        )
 
     def get_result(self, limit, cursor=None):
         if cursor is None:
@@ -262,7 +278,7 @@ class SequencePaginator(object):
         if cursor_score is None:
             position = 0 if not cursor_is_prev else len(self.scores)
         else:
-            position = search(self.scores, cursor_score, reverse=self.reverse)
+            position = self.search(cursor_score)
 
         position = position + cursor_offset
 
@@ -282,13 +298,13 @@ class SequencePaginator(object):
         prev_cursor = None
         if lo > 0:
             prev_score = self.scores[lo]
-            prev_offset = lo - search(self.scores, prev_score, hi=lo, reverse=self.reverse)
+            prev_offset = lo - self.search(prev_score, hi=lo)
             prev_cursor = Cursor(prev_score, prev_offset, True, True)
 
         next_cursor = None
         if hi < len(self.scores):
             next_score = self.scores[hi]
-            next_offset = hi - search(self.scores, next_score, hi=hi, reverse=self.reverse)
+            next_offset = hi - self.search(next_score, hi=hi + 1)
             next_cursor = Cursor(next_score, next_offset, False, True)
 
         max_hits = 1000
