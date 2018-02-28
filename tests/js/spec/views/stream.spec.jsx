@@ -186,6 +186,7 @@ describe('Stream', function() {
         loading: false,
         dataLoading: false,
       });
+      expect(wrapper).toMatchSnapshot();
       expect(wrapper.find('.group-list').length).toBeTruthy();
     });
 
