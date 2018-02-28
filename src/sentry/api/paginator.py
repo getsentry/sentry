@@ -223,11 +223,14 @@ class OffsetPaginator(BasePaginator):
         )
 
 
-def search(haystack, needle, reverse=False):
+def search(haystack, needle, reverse=False, lo=0, hi=None):
     # TODO: Replace this with binary search!
-    position = 0
+    if hi is None:
+        hi = len(haystack)
+
+    position = lo
     predicate = operator.ge if not reverse else operator.le
-    while position < len(haystack):
+    while position < hi:
         value, _ = haystack[position]
         if predicate(value, needle):
             break
@@ -279,13 +282,13 @@ class SequencePaginator(object):
         prev_cursor = None
         if lo > 0:
             prev_score = self.data[lo][0]
-            prev_offset = lo - search(self.data, prev_score, self.reverse)
+            prev_offset = lo - search(self.data, prev_score, self.reverse, hi=lo)
             prev_cursor = Cursor(prev_score, prev_offset, True, True)
 
         next_cursor = None
         if hi < len(self.data):
             next_score = self.data[hi][0]
-            next_offset = hi - search(self.data, next_score, self.reverse)
+            next_offset = hi - search(self.data, next_score, self.reverse, hi=hi)
             next_cursor = Cursor(next_score, next_offset, False, True)
 
         max_hits = 1000
