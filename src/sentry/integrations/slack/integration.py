@@ -1,5 +1,6 @@
 from __future__ import absolute_import
 
+from sentry import http
 from sentry.integrations import Integration, IntegrationMetadata
 from sentry.utils.pipeline import NestedPipelineView
 from sentry.identity.pipeline import IdentityProviderPipeline
@@ -53,11 +54,24 @@ class SlackIntegration(Integration):
 
         return [identity_pipeline_view]
 
+    def get_team_info(self, access_token):
+        payload = {
+            'token': access_token,
+        }
+
+        session = http.build_session()
+        resp = session.get('https://slack.com/api/team.info', data=payload)
+        resp.raise_for_status()
+        resp = resp.json()
+
+        return resp['team']
+
     def build_integration(self, state):
         data = state['identity']['data']
         assert data['ok']
 
         scopes = sorted(data['scope'].split(','))
+        team_data = self.get_team_info(data['access_token'])
 
         return {
             'name': data['team_name'],
@@ -67,6 +81,8 @@ class SlackIntegration(Integration):
                 'bot_access_token': data['bot']['bot_access_token'],
                 'bot_user_id': data['bot']['bot_user_id'],
                 'scopes': scopes,
+                'icon': team_data['icon']['image_132'],
+                'domain_name': team_data['domain'] + '.slack.com',
             },
             'user_identity': {
                 'type': 'slack',
