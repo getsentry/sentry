@@ -4,21 +4,26 @@ import PropTypes from 'prop-types';
 import React from 'react';
 import createReactClass from 'create-react-class';
 
-import {t, tct} from '../locale';
-import ApiMixin from '../mixins/apiMixin';
-import AutoSelectText from '../components/autoSelectText';
-import Button from '../components/buttons/button';
-import ClippedBox from '../components/clippedBox';
-import Confirm from '../components/confirm';
-import DynamicWrapper from '../components/dynamicWrapper';
-import IndicatorStore from '../stores/indicatorStore';
-import LoadingError from '../components/loadingError';
-import LoadingIndicator from '../components/loadingIndicator';
-import OrganizationState from '../mixins/organizationState';
-import Pagination from '../components/pagination';
-import ProjectState from '../mixins/projectState';
-import SettingsPageHeader from './settings/components/settingsPageHeader';
-import TextBlock from './settings/components/text/textBlock';
+import {addErrorMessage, addSuccessMessage} from '../../../../actionCreators/indicator';
+import {getOrganizationState} from '../../../../mixins/organizationState';
+import {t, tct} from '../../../../locale';
+import ApiMixin from '../../../../mixins/apiMixin';
+import AsyncView from '../../../asyncView';
+import Button from '../../../../components/buttons/button';
+import ClippedBox from '../../../../components/clippedBox';
+import Confirm from '../../../../components/confirm';
+import EmptyMessage from '../../components/emptyMessage';
+import IndicatorStore from '../../../../stores/indicatorStore';
+import Pagination from '../../../../components/pagination';
+import Panel from '../../components/panel';
+import PanelBody from '../../components/panelBody';
+import PanelHeader from '../../components/panelHeader';
+import ProjectKeyCredentials from './projectKeyCredentials';
+import ProjectState from '../../../../mixins/projectState';
+import SentryTypes from '../../../../proptypes';
+import SettingsPageHeader from '../../components/settingsPageHeader';
+import TextBlock from '../../components/text/textBlock';
+import recreateRoute from '../../../../utils/recreateRoute';
 
 const KeyRow = createReactClass({
   displayName: 'KeyRow',
