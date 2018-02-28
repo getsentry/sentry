@@ -261,7 +261,7 @@ def alert(request):
             'link': 'http://example.com/link',
             'interfaces': interface_list,
             'tags': event.get_tags(),
-            'project_label': project.name,
+            'project_label': project.slug,
             'tags': [
                 ('logger', 'javascript'), ('environment', 'prod'), ('level', 'error'),
                 ('device', 'Other')
