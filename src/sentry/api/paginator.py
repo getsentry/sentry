@@ -223,7 +223,7 @@ class OffsetPaginator(BasePaginator):
         )
 
 
-def search(haystack, needle, reverse=False, lo=0, hi=None):
+def search(haystack, needle, lo=0, hi=None, reverse=False):
     # TODO: Replace this with binary search!
     if hi is None:
         hi = len(haystack)
@@ -231,7 +231,7 @@ def search(haystack, needle, reverse=False, lo=0, hi=None):
     position = lo
     predicate = operator.ge if not reverse else operator.le
     while position < hi:
-        value, _ = haystack[position]
+        value = haystack[position]
         if predicate(value, needle):
             break
         else:
@@ -241,7 +241,10 @@ def search(haystack, needle, reverse=False, lo=0, hi=None):
 
 class SequencePaginator(object):
     def __init__(self, data, reverse=False):
-        self.data = sorted(data, reverse=reverse)
+        self.scores, self.values = map(
+            list,
+            zip(*sorted(data, reverse=reverse)),
+        ) if data else ([], [])
         self.reverse = reverse
 
     def get_result(self, limit, cursor=None):
@@ -257,38 +260,35 @@ class SequencePaginator(object):
         assert cursor_offset > -1
 
         if cursor_score is None:
-            position = 0 if not cursor_is_prev else len(self.data)
+            position = 0 if not cursor_is_prev else len(self.scores)
         else:
-            position = search(self.data, cursor_score, self.reverse)
+            position = search(self.scores, cursor_score, reverse=self.reverse)
 
         position = position + cursor_offset
 
         if not cursor_is_prev:
             lo = max(position, 0)
-            hi = min(lo + limit, len(self.data))
+            hi = min(lo + limit, len(self.scores))
         else:
             # TODO: It might make sense to ensure that this hi value is at
             # least the length of the page + 1 if we want to ensure we return a
             # full page of results when paginating backwards while data is
             # being mutated.
-            hi = min(position, len(self.data))
+            hi = min(position, len(self.scores))
             lo = max(hi - limit, 0)
 
-        results = map(
-            lambda (score, item): item,
-            self.data[lo:hi],
-        )
+        results = self.values[lo:hi]
 
         prev_cursor = None
         if lo > 0:
-            prev_score = self.data[lo][0]
-            prev_offset = lo - search(self.data, prev_score, self.reverse, hi=lo)
+            prev_score = self.scores[lo]
+            prev_offset = lo - search(self.scores, prev_score, hi=lo, reverse=self.reverse)
             prev_cursor = Cursor(prev_score, prev_offset, True, True)
 
         next_cursor = None
-        if hi < len(self.data):
-            next_score = self.data[hi][0]
-            next_offset = hi - search(self.data, next_score, self.reverse, hi=hi)
+        if hi < len(self.scores):
+            next_score = self.scores[hi]
+            next_offset = hi - search(self.scores, next_score, hi=hi, reverse=self.reverse)
             next_cursor = Cursor(next_score, next_offset, False, True)
 
         max_hits = 1000
@@ -298,7 +298,7 @@ class SequencePaginator(object):
             prev=prev_cursor,
             next=next_cursor,
             hits=min(
-                len(self.data),
+                len(self.scores),
                 max_hits,
             ),
             max_hits=max_hits,
