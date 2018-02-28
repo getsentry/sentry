@@ -2,7 +2,7 @@
 
 from __future__ import absolute_import
 
-from sentry.models import OrganizationMember, OrganizationMemberTeam, Project
+from sentry.models import Environment, OrganizationMember, OrganizationMemberTeam, Project, Rule
 from sentry.testutils import TestCase
 
 
@@ -38,9 +38,17 @@ class ProjectTest(TestCase):
     def test_transfer_to(self):
         from_org = self.create_organization()
         from_team = self.create_team(organization=from_org)
-        project = self.create_project(teams=[from_team])
         to_org = self.create_organization()
         to_team = self.create_team(organization=to_org)
+
+        project = self.create_project(teams=[from_team])
+
+        rule = Rule.objects.create(
+            project=project,
+            environment_id=Environment.get_or_create(project, 'production').id,
+            label='Golden Rule',
+            data={},
+        )
 
         project.transfer_to(to_team)
 
@@ -49,6 +57,11 @@ class ProjectTest(TestCase):
         assert project.teams.count() == 1
         assert project.teams.first() == to_team
         assert project.organization_id == to_org.id
+
+        updated_rule = project.rule_set.get(label='Golden Rule')
+        assert updated_rule.id == rule.id
+        assert updated_rule.environment_id != rule.environment_id
+        assert updated_rule.environment_id == Environment.get_or_create(project, 'production').id
 
     def test_transfer_to_slug_collision(self):
         from_org = self.create_organization()
