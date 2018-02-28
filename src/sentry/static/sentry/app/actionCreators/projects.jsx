@@ -41,7 +41,7 @@ export function removeProject(api, orgId, project) {
   let endpoint = `/projects/${orgId}/${project.slug}/`;
 
   ProjectActions.removeProject(project);
-  let req = api
+  return api
     .requestPromise(endpoint, {
       method: 'DELETE',
     })
@@ -52,19 +52,18 @@ export function removeProject(api, orgId, project) {
           tct('[project] was successfully removed', {project: project.slug})
         );
       },
-      () => {
+      err => {
         ProjectActions.removeProjectError(project);
         addErrorMessage(tct('Error removing [project]', {project: project.slug}));
+        throw err;
       }
     );
-
-  return req;
 }
 
 export function transferProject(api, orgId, project, email) {
   let endpoint = `/projects/${orgId}/${project.slug}/transfer/`;
 
-  let req = api
+  return api
     .requestPromise(endpoint, {
       method: 'POST',
       data: {
@@ -79,10 +78,9 @@ export function transferProject(api, orgId, project, email) {
           })
         );
       },
-      () => {
+      err => {
         addErrorMessage(tct('Error transferring [project]', {project: project.slug}));
+        throw err;
       }
     );
-
-  return req;
 }
