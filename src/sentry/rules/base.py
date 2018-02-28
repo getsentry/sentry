@@ -46,7 +46,10 @@ from django.utils.safestring import mark_safe
 
 from sentry.utils.html import escape
 
-CallbackFuture = namedtuple('CallbackFuture', ['callback', 'kwargs'])
+# Encapsulates a reference to the callback, including arguments. The `key`
+# attribute may be specifically used to key the callbacks when they are
+# collated during rule processing.
+CallbackFuture = namedtuple('CallbackFuture', ['callback', 'kwargs', 'key'])
 
 
 class RuleDescriptor(type):
@@ -105,9 +108,10 @@ class RuleBase(object):
 
         return form.is_valid()
 
-    def future(self, callback, **kwargs):
+    def future(self, callback, key=None, **kwargs):
         return CallbackFuture(
             callback=callback,
+            key=key,
             kwargs=kwargs,
         )
 
