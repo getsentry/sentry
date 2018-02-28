@@ -19,7 +19,7 @@ const UserBadge = ({user, orgId}) => {
 
 UserBadge.propTypes = {
   user: PropTypes.object,
-  orgId: PropTypes.number,
+  orgId: PropTypes.string,
 };
 
 export default UserBadge;
