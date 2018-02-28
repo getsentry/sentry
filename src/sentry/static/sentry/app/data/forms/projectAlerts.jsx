@@ -1,11 +1,11 @@
-import {t} from '../../locale';
+import {t, tn} from '../../locale';
 
 // Export route to make these forms searchable by label/help
 export const route = '/settings/organization/:orgId/project/:projectId/alerts/';
 
 const formatMinutes = value => {
   value = value / 60;
-  return `${value} minute${value != 1 ? 's' : ''}`;
+  return tn('%d minute', '%d minutes', value);
 };
 
 const formGroups = [
