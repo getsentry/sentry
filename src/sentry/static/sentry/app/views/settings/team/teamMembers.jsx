@@ -1,9 +1,9 @@
 import React from 'react';
 import createReactClass from 'create-react-class';
-import {Link} from 'react-router';
+import styled from 'react-emotion';
 
 import ApiMixin from '../../../mixins/apiMixin';
-import Avatar from '../../../components/avatar';
+import UserBadge from '../../../components/userBadge';
 import Button from '../../../components/buttons/button';
 import IndicatorStore from '../../../stores/indicatorStore';
 import {leaveTeam} from '../../../actionCreators/teams';
@@ -11,7 +11,15 @@ import LoadingError from '../../../components/loadingError';
 import LoadingIndicator from '../../../components/loadingIndicator';
 import OrganizationState from '../../../mixins/organizationState';
 import Tooltip from '../../../components/tooltip';
+import Panel from '../components/panel';
+import PanelHeader from '../components/panelHeader';
 import {t} from '../../../locale';
+
+const PanelHeaderContentContainer = styled('div')`
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+`;
 
 const TeamMembers = createReactClass({
   displayName: 'TeamMembers',
@@ -96,6 +104,26 @@ const TeamMembers = createReactClass({
     });
   },
 
+  addMemberButton(access, orgId) {
+    return access.has('org:write') ? (
+      <Button
+        priority="primary"
+        size="small"
+        className="pull-right"
+        to={`/settings/organization/${orgId}/members/new/`}
+      >
+        <span className="icon-plus" /> {t('Invite Member')}
+      </Button>
+    ) : (
+      <a
+        className="btn btn-primary btn-sm btn-disabled tip pull-right"
+        title={t('You do not have enough permission to add new members')}
+      >
+        <span className="icon-plus" /> {t('Invite Member')}
+      </a>
+    );
+  },
+
   render() {
     if (this.state.loading) return <LoadingIndicator />;
     else if (this.state.error) return <LoadingError onRetry={this.fetchData} />;
@@ -106,73 +134,47 @@ const TeamMembers = createReactClass({
 
     return (
       <div>
-        <div style={{marginBottom: 20}} className="clearfix">
-          {access.has('org:write') ? (
-            <Button
-              priority="primary"
-              size="small"
-              className="pull-right"
-              to={`/settings/organization/${params.orgId}/members/new/`}
-            >
-              <span className="icon-plus" /> {t('Invite Member')}
-            </Button>
-          ) : (
-            <a
-              className="btn btn-primary btn-sm btn-disabled tip pull-right"
-              title={t('You do not have enough permission to add new members')}
-            >
-              <span className="icon-plus" /> {t('Invite Member')}
-            </a>
-          )}
-        </div>
-
-        <table className="table member-list">
-          <colgroup>
-            <col />
-            <col width="150" />
-          </colgroup>
-          <thead>
-            <tr>
-              <th>{t('Member')}</th>
-            </tr>
-          </thead>
-          <tbody>
-            {this.state.memberList.map((member, i) => {
-              return (
-                <tr key={i}>
-                  <td className="table-user-info">
-                    <Avatar user={member} size={80} />
-                    <h5>
-                      <Link
-                        to={`/settings/organization/${params.orgId}/members/${member.id}`}
-                      >
-                        {member.email}
-                      </Link>
-                    </h5>
-                    {member.email}
-                  </td>
-                  <td>
-                    {access.has('org:write') ? (
-                      <Button size="small" onClick={this.removeMember.bind(this, member)}>
-                        {t('Remove')}
-                      </Button>
-                    ) : (
-                      <Tooltip
-                        title={t("You don't have have permission to remove members")}
-                      >
-                        <span>
-                          <Button size="small" disabled={true}>
-                            {t('Remove')}
-                          </Button>
-                        </span>
-                      </Tooltip>
-                    )}
-                  </td>
-                </tr>
-              );
-            })}
-          </tbody>
-        </table>
+        <Panel>
+          <PanelHeader>
+            <PanelHeaderContentContainer>
+              <div>{t('Members')}</div>
+              {this.addMemberButton(access, params.orgId)}
+            </PanelHeaderContentContainer>
+          </PanelHeader>
+          <table className="table member-list">
+            <tbody>
+              {this.state.memberList.map((member, i) => {
+                return (
+                  <tr key={i}>
+                    <td className="table-user-info">
+                      <UserBadge user={member} orgId={params.orgId} />
+                    </td>
+                    <td>
+                      {access.has('org:write') ? (
+                        <Button
+                          size="small"
+                          onClick={this.removeMember.bind(this, member)}
+                        >
+                          {t('Remove')}
+                        </Button>
+                      ) : (
+                        <Tooltip
+                          title={t("You don't have have permission to remove members")}
+                        >
+                          <span>
+                            <Button size="small" disabled={true}>
+                              {t('Remove')}
+                            </Button>
+                          </span>
+                        </Tooltip>
+                      )}
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </Panel>
       </div>
     );
   },
