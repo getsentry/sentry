@@ -186,6 +186,7 @@ describe('Stream', function() {
         loading: false,
         dataLoading: false,
       });
+      expect(wrapper).toMatchSnapshot();
       expect(wrapper.find('.group-list').length).toBeTruthy();
     });
 
@@ -209,6 +210,7 @@ describe('Stream', function() {
         dataLoading: false,
       });
 
+      expect(wrapper).toMatchSnapshot();
       expect(wrapper.find('.awaiting-events').length).toEqual(1);
 
       context.project.firstEvent = true; // Reset for other tests
