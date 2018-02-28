@@ -1,17 +1,18 @@
 import React from 'react';
 import createReactClass from 'create-react-class';
 
-import {FormState} from '../components/forms';
-import {t, tn} from '../locale';
-import ApiMixin from '../mixins/apiMixin';
-import IndicatorStore from '../stores/indicatorStore';
-import LoadingError from '../components/loadingError';
-import LoadingIndicator from '../components/loadingIndicator';
-import OrganizationState from '../mixins/organizationState';
-import SettingsPageHeader from './settings/components/settingsPageHeader';
-import Switch from '../components/switch';
-import TextBlock from './settings/components/text/textBlock';
-import TimeSince from '../components/timeSince';
+import {addLoadingMessage, removeIndicator} from '../../../actionCreators/indicator';
+import {t, tn} from '../../../locale';
+import formGroups from '../../../data/forms/processingIssues';
+import ApiMixin from '../../../mixins/apiMixin';
+import Form from '../components/forms/form';
+import JsonForm from '../components/forms/jsonForm';
+import LoadingError from '../../../components/loadingError';
+import LoadingIndicator from '../../../components/loadingIndicator';
+import OrganizationState from '../../../mixins/organizationState';
+import SettingsPageHeader from '../components/settingsPageHeader';
+import TextBlock from '../components/text/textBlock';
+import TimeSince from '../../../components/timeSince';
 
 const MESSAGES = {
   native_no_crashed_thread: t('No crashed thread found in crash report'),
@@ -51,15 +52,6 @@ const ProjectProcessingIssues = createReactClass({
 
   componentDidMount() {
     this.fetchData();
-  },
-
-  onFieldChange(name) {
-    let formData = this.state.formData;
-    formData[name] = !this.state.formData['sentry:reprocessing_active'];
-    this.setState({
-      formData,
-    });
-    this.switchReporcessing();
   },
 
   fetchData() {
@@ -112,7 +104,7 @@ const ProjectProcessingIssues = createReactClass({
     this.setState({
       reprocessing: true,
     });
-    let loadingIndicator = IndicatorStore.add(t('Started reprocessing..'));
+    let loadingIndicator = addLoadingMessage(t('Started reprocessing..'));
     let {orgId, projectId} = this.props.params;
     this.api.request(`/projects/${orgId}/${projectId}/reprocessing/`, {
       method: 'POST',
@@ -128,7 +120,7 @@ const ProjectProcessingIssues = createReactClass({
         });
       },
       complete: () => {
-        IndicatorStore.remove(loadingIndicator);
+        removeIndicator(loadingIndicator);
       },
     });
   },
@@ -138,6 +130,7 @@ const ProjectProcessingIssues = createReactClass({
     this.setState({
       expected: this.state.expected + 1,
     });
+    // Note: inconsistency with missing trailing slash, but matches route in backend
     this.api.request(`/projects/${orgId}/${projectId}/processingissues/discard`, {
       method: 'DELETE',
       success: (data, _, jqXHR) => {
@@ -147,6 +140,7 @@ const ProjectProcessingIssues = createReactClass({
           error: false,
           loading: expected > 0,
         });
+        // TODO (billyvg): Need to fix this
         // we reload to get rid of the badge in the sidebar
         window.location.reload();
       },
@@ -175,6 +169,7 @@ const ProjectProcessingIssues = createReactClass({
           error: false,
           loading: expected > 0,
         });
+        // TODO (billyvg): Need to fix this
         // we reload to get rid of the badge in the sidebar
         window.location.reload();
       },
@@ -371,87 +366,19 @@ const ProjectProcessingIssues = createReactClass({
     if (this.state.loading) {
       return this.renderLoading();
     }
-    let isSaving = this.state.formState === FormState.SAVING;
-    return (
-      <div className="box">
-        <div className="box-header">
-          <h3>{t('Settings')}</h3>
-        </div>
-        <div className="box-content with-padding">
-          <div className="row">
-            {this.state.state === FormState.ERROR && (
-              <div className="alert alert-error alert-block">
-                {t(
-                  'Unable to save your changes. Please ensure all fields are valid and try again.'
-                )}
-              </div>
-            )}
-            <div className="col-md-9" style={{marginBottom: 20}}>
-              <h5 style={{marginBottom: 10}}>Reprocessing active</h5>
-              {t(
-                `If reprocessing is enabled, Events with fixable issues will be
-                held back until you resolve them. Processing issues will then
-                show up in the list above with hints how to fix them.
-                If reprocessing is disabled Events with unresolved issues will also
-                show up in the stream.
-                `
-              )}
-            </div>
-            <div className="col-md-3 align-right" style={{paddingRight: '25px'}}>
-              <Switch
-                size="lg"
-                isDisabled={!access.has('project:write')}
-                isActive={this.state.formData['sentry:reprocessing_active']}
-                isLoading={isSaving}
-                toggle={this.onFieldChange.bind(this, 'sentry:reprocessing_active')}
-              />
-            </div>
-          </div>
-          {!access.has('project:write') && (
-            <div className="row">
-              <div className="col-md-12" style={{marginBottom: 20}}>
-                <strong>{t('Note: ')}</strong>
-                {t('An admin can turn processing on or off')}
-              </div>
-            </div>
-          )}
-        </div>
-      </div>
-    );
-  },
 
-  switchReporcessing() {
-    if (this.state.formState === FormState.SAVING) {
-      return;
-    }
-    this.setState(
-      {
-        state: FormState.SAVING,
-      },
-      () => {
-        let loadingIndicator = IndicatorStore.add(t('Saving changes..'));
-        let {orgId, projectId} = this.props.params;
-        this.api.request(`/projects/${orgId}/${projectId}/`, {
-          method: 'PUT',
-          data: {options: this.state.formData},
-          success: data => {
-            this.setState({
-              state: FormState.READY,
-              errors: {},
-            });
-            this.deleteProcessingIssues();
-          },
-          error: error => {
-            this.setState({
-              state: FormState.ERROR,
-              errors: error.responseJSON,
-            });
-          },
-          complete: () => {
-            IndicatorStore.remove(loadingIndicator);
-          },
-        });
-      }
+    let {formData} = this.state;
+    let {orgId, projectId} = this.props.params;
+    return (
+      <Form
+        saveOnBlur
+        onSubmitSuccess={this.deleteProcessingIssues}
+        apiEndpoint={`/projects/${orgId}/${projectId}/`}
+        apiMethod="PUT"
+        initialData={formData}
+      >
+        <JsonForm access={access} forms={formGroups} />
+      </Form>
     );
   },
 
