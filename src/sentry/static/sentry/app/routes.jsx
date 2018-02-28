@@ -73,8 +73,6 @@ import ProjectGeneralSettings from './views/projectGeneralSettings';
 import ProjectGettingStarted from './views/projectInstall/gettingStarted';
 import ProjectInstallOverview from './views/projectInstall/overview';
 import ProjectInstallPlatform from './views/projectInstall/platform';
-import ProjectKeyDetails from './views/projectKeyDetails';
-import ProjectKeys from './views/projectKeys';
 import ProjectPicker from './views/settings/components/projectPicker';
 import ProjectIssueTracking from './views/projectIssueTracking';
 import ProjectReleases from './views/projectReleases';
@@ -327,7 +325,6 @@ const projectSettingsRoutes = (
         import(/*webpackChunkName: "ProjectProcessingIssues"*/ './views/settings/project/projectProcessingIssues')}
       component={errorHandler(LazyLoad)}
     />
-
     <Route
       path="filters/"
       name="Inbound Filters"
@@ -338,13 +335,21 @@ const projectSettingsRoutes = (
       <IndexRedirect to="data-filters/" />
       <Route path=":filterType/" />
     </Route>
-
-    <Route path="keys/" name="Client Keys" component={errorHandler(ProjectKeys)} />
     <Route
-      path="keys/:keyId/"
-      name="Client Key Details"
-      component={errorHandler(ProjectKeyDetails)}
-    />
+      path="keys/"
+      name="Client Keys"
+      componentPromise={() =>
+        import(/*webpackChunkName: "ProjectKeys"*/ './views/settings/project/projectKeys')}
+      component={errorHandler(LazyLoad)}
+    >
+      <Route
+        path=":keyId/"
+        name="Details"
+        componentPromise={() =>
+          import(/*webpackChunkName: "ProjectKeys"*/ './views/settings/project/projectKeys/projectKeyDetails')}
+        component={errorHandler(LazyLoad)}
+      />
+    </Route>
     <Route
       path="user-feedback/"
       name="User Feedback"
