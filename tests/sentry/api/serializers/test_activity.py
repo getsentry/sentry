@@ -40,7 +40,7 @@ class GroupActivityTestCase(TestCase):
 
         result = serialize([activity], user)[0]['data']
         pull_request = result['pullRequest']
-        assert pull_request['repository']['name'] == 'organization-Bar'
+        assert pull_request['repository']['name'] == 'organization-bar'
         assert pull_request['message'] == 'kartoffel'
 
     def test_commit_activity(self):
@@ -72,5 +72,5 @@ class GroupActivityTestCase(TestCase):
 
         result = serialize([activity], user)[0]['data']
         commit = result['commit']
-        assert commit['repository']['name'] == 'organization-Bar'
+        assert commit['repository']['name'] == 'organization-bar'
         assert commit['message'] == 'gemuse'
