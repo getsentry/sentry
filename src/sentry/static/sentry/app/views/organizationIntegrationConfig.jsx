@@ -115,7 +115,7 @@ export default class OrganizationIntegrationConfig extends AsyncView {
     ];
   }
 
-  launchAddIntegration = provider => {
+  handleAddIntegration = provider => {
     const name = 'sentryAddIntegration';
 
     const {url, width, height} = provider.setupDialog;
@@ -159,7 +159,7 @@ export default class OrganizationIntegrationConfig extends AsyncView {
     this.setState({itemList});
   };
 
-  deleteIntegration = integration => {
+  handleDeleteIntegration = integration => {
     const {orgId} = this.props.params;
     const saveIndicator = IndicatorStore.add(t('Removing Integration'));
 
@@ -218,7 +218,7 @@ export default class OrganizationIntegrationConfig extends AsyncView {
             {t('Workspaces')}
           </Box>
           <Box mr={1}>
-            <Button size="xsmall" onClick={() => this.launchAddIntegration(provider)}>
+            <Button size="xsmall" onClick={() => this.handleAddIntegration(provider)}>
               <span className="icon icon-add" /> {t('Add Workspace')}
             </Button>
           </Box>
@@ -241,7 +241,7 @@ export default class OrganizationIntegrationConfig extends AsyncView {
               message={t(
                 'Removing this inegration will disable the integration for all projects. Are you sure you want to remove this integration?'
               )}
-              onConfirm={() => this.deleteIntegration(integration)}
+              onConfirm={() => this.handleDeleteIntegration(integration)}
             >
               <Button size="small">
                 <span className="icon icon-trash" style={{margin: 0}} />
