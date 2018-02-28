@@ -279,19 +279,13 @@ class SequencePaginator(object):
         prev_cursor = None
         if lo > 0:
             prev_score = self.data[lo][0]
-            prev_offset = 0
-            # TODO: This point could be identified with binary search.
-            while lo - prev_offset - 1 > -1 and prev_score == self.data[lo - prev_offset - 1][0]:
-                prev_offset = prev_offset + 1
+            prev_offset = lo - search(self.data, prev_score, self.reverse)
             prev_cursor = Cursor(prev_score, prev_offset, True, True)
 
         next_cursor = None
         if hi < len(self.data):
             next_score = self.data[hi][0]
-            # TODO: This point could be identified with binary search.
-            next_offset = 0
-            while hi - next_offset - 1 > -1 and next_score == self.data[hi - next_offset - 1][0]:
-                next_offset = next_offset + 1
+            next_offset = hi - search(self.data, next_score, self.reverse)
             next_cursor = Cursor(next_score, next_offset, False, True)
 
         max_hits = 1000
