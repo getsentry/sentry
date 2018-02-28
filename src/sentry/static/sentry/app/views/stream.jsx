@@ -6,11 +6,9 @@ import {Link, browserHistory} from 'react-router';
 import Cookies from 'js-cookie';
 import {StickyContainer, Sticky} from 'react-sticky';
 import classNames from 'classnames';
-import _ from 'lodash';
 
 import ApiMixin from '../mixins/apiMixin';
 import GroupStore from '../stores/groupStore';
-import LatestContextStore from '../stores/latestContextStore';
 import StreamTagStore from '../stores/streamTagStore';
 import EnvironmentStore from '../stores/environmentStore';
 import LoadingError from '../components/loadingError';
@@ -29,8 +27,8 @@ import queryString from '../utils/queryString';
 import {logAjaxError} from '../utils/logging';
 import parseLinkHeader from '../utils/parseLinkHeader';
 import {t, tn, tct} from '../locale';
-
 import {setActiveEnvironment} from '../actionCreators/environments';
+import withEnvironment from '../utils/withEnvironment';
 
 const MAX_TAGS = 500;
 const MAX_ITEMS = 25;
@@ -41,13 +39,13 @@ const Stream = createReactClass({
   displayName: 'Stream',
 
   propTypes: {
+    environment: PropTypes.object,
     setProjectNavSection: PropTypes.func,
   },
 
   mixins: [
     Reflux.listenTo(GroupStore, 'onGroupChange'),
     Reflux.listenTo(StreamTagStore, 'onStreamTagChange'),
-    Reflux.listenTo(LatestContextStore, 'onLatestContextChange'),
     ApiMixin,
     ProjectState,
   ],
@@ -88,10 +86,7 @@ const Stream = createReactClass({
       tagsLoading: true,
       isSidebarVisible: false,
       processingIssues: null,
-      activeEnvironment: hasEnvironmentsFeature
-        ? LatestContextStore.getInitialState().environment
-        : null,
-      // TODO(lyn): remove when feature is rolled out
+      activeEnvironment: this.props.environment,
       hasEnvironmentsFeature,
       ...this.getQueryState(),
     };
@@ -108,9 +103,6 @@ const Stream = createReactClass({
     this.fetchSavedSearches();
     this.fetchProcessingIssues();
     this.fetchTags();
-
-    // Make sure it gets called on mount
-    this.onLatestContextChange(LatestContextStore.getInitialState());
   },
 
   componentWillReceiveProps(nextProps) {
@@ -118,9 +110,18 @@ const Stream = createReactClass({
       return;
     }
 
-    // Do not make new API request if props haven't actually changed
-    // Unless no request has been performed yet
-    if (!_.isEqual(this.props, nextProps) || !this.lastRequest) {
+    if (nextProps.environment !== this.props.environment) {
+      const environment = nextProps.environment;
+      const query = queryString.getQueryStringWithEnvironment(
+        this.state.query,
+        environment === null ? null : environment.name
+      );
+      this.setState({
+        activeEnvironment: environment,
+        query,
+      });
+    } else {
+      // something else has changed, just refetch
       this.fetchData();
     }
 
@@ -136,10 +137,6 @@ const Stream = createReactClass({
       // TODO(dcramer): handle 404 from popState on searchId
       this.setState(this.getQueryState(nextProps), this.fetchData);
     }
-  },
-
-  shouldComponentUpdate(nextProps, nextState) {
-    return !_.isEqual(this.state, nextState);
   },
 
   componentDidUpdate(prevProps, prevState) {
@@ -519,30 +516,6 @@ const Stream = createReactClass({
     });
   },
 
-  onLatestContextChange(context) {
-    // Don't do anything unless environment is changing
-    if (context.environment === this.state.activeEnvironment) return;
-
-    if (this.state.hasEnvironmentsFeature) {
-      // Always query the currently active environment selection unless
-      // the environment parameter is part of the saved search
-      let environment = context.environment;
-
-      let query = queryString.getQueryStringWithEnvironment(
-        this.state.query,
-        environment === null ? null : environment.name
-      );
-
-      this.setState(
-        {
-          activeEnvironment: environment,
-          query,
-        },
-        this.fetchData
-      );
-    }
-  },
-
   onSearch(query) {
     if (query === this.state.query) {
       // if query is the same, just re-fetch data
@@ -860,4 +833,5 @@ const Stream = createReactClass({
     );
   },
 });
-export default Stream;
+export {Stream}; // For tests
+export default withEnvironment(Stream);
