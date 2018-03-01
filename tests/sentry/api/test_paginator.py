@@ -4,7 +4,11 @@ import pytest
 from datetime import timedelta
 from django.utils import timezone
 
-from sentry.api.paginator import (Paginator, DateTimePaginator, OffsetPaginator)
+from sentry.api.paginator import (
+    Paginator,
+    DateTimePaginator,
+    OffsetPaginator,
+    reverse_bisect_left)
 from sentry.models import User
 from sentry.testutils import TestCase
 from sentry.utils.db import is_mysql
@@ -240,3 +244,45 @@ class DateTimePaginatorTest(TestCase):
 
         result5 = paginator.get_result(limit=10, cursor=result4.prev)
         assert len(result5) == 0, list(result5)
+
+
+def test_reverse_bisect_left():
+    assert reverse_bisect_left([], 0) == 0
+
+    assert reverse_bisect_left([1], -1) == 1
+    assert reverse_bisect_left([1], 0) == 1
+    assert reverse_bisect_left([1], 1) == 0
+    assert reverse_bisect_left([1], 2) == 0
+
+    assert reverse_bisect_left([2, 1], -1) == 2
+    assert reverse_bisect_left([2, 1], 0) == 2
+    assert reverse_bisect_left([2, 1], 1) == 1
+    assert reverse_bisect_left([2, 1], 2) == 0
+    assert reverse_bisect_left([2, 1], 3) == 0
+
+    assert reverse_bisect_left([3, 2, 1], -1) == 3
+    assert reverse_bisect_left([3, 2, 1], 0) == 3
+    assert reverse_bisect_left([3, 2, 1], 1) == 2
+    assert reverse_bisect_left([3, 2, 1], 2) == 1
+    assert reverse_bisect_left([3, 2, 1], 3) == 0
+    assert reverse_bisect_left([3, 2, 1], 4) == 0
+
+    assert reverse_bisect_left([4, 3, 2, 1], -1) == 4
+    assert reverse_bisect_left([4, 3, 2, 1], 0) == 4
+    assert reverse_bisect_left([4, 3, 2, 1], 1) == 3
+    assert reverse_bisect_left([4, 3, 2, 1], 2) == 2
+    assert reverse_bisect_left([4, 3, 2, 1], 3) == 1
+    assert reverse_bisect_left([4, 3, 2, 1], 4) == 0
+    assert reverse_bisect_left([4, 3, 2, 1], 5) == 0
+
+    assert reverse_bisect_left([1, 1], 0) == 2
+    assert reverse_bisect_left([1, 1], 1) == 0
+    assert reverse_bisect_left([1, 1], 2) == 0
+
+    assert reverse_bisect_left([2, 1, 1], 0) == 3
+    assert reverse_bisect_left([2, 1, 1], 1) == 1
+    assert reverse_bisect_left([2, 1, 1], 2) == 0
+
+    assert reverse_bisect_left([2, 2, 1], 0) == 3
+    assert reverse_bisect_left([2, 2, 1], 1) == 2
+    assert reverse_bisect_left([2, 2, 1], 2) == 0
