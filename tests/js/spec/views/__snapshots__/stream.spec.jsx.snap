@@ -19,7 +19,15 @@ exports[`Stream render() displays the group list 1`] = `
         projectId="456"
         query="is:unresolved"
         queryCount={null}
-        savedSearchList={Array []}
+        savedSearchList={
+          Array [
+            Object {
+              "id": "789",
+              "name": "test",
+              "query": "is:unresolved",
+            },
+          ]
+        }
         searchId={null}
         sort="date"
         tags={
@@ -119,7 +127,7 @@ exports[`Stream render() displays the group list 1`] = `
       />
     </div>
     <StreamSidebar
-      loading={true}
+      loading={false}
       onQueryChange={[Function]}
       orgId="123"
       projectId="456"
@@ -219,7 +227,15 @@ exports[`Stream toggles environment select all environments 1`] = `
         projectId="456"
         query="is:unresolved"
         queryCount={null}
-        savedSearchList={Array []}
+        savedSearchList={
+          Array [
+            Object {
+              "id": "789",
+              "name": "test",
+              "query": "is:unresolved",
+            },
+          ]
+        }
         searchId={null}
         sort="date"
         tags={
@@ -319,7 +335,7 @@ exports[`Stream toggles environment select all environments 1`] = `
       />
     </div>
     <StreamSidebar
-      loading={true}
+      loading={false}
       onQueryChange={[Function]}
       orgId="123"
       projectId="456"

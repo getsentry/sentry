@@ -9,8 +9,8 @@ import LoadingError from 'app/components/loadingError';
 import Stream from 'app/views/stream';
 import EnvironmentStore from 'app/stores/environmentStore';
 import {setActiveEnvironment} from 'app/actionCreators/environments';
+import {browserHistory} from 'react-router';
 
-jest.unmock('app/api');
 jest.mock('app/stores/groupStore');
 
 const DEFAULT_LINKS_HEADER =
@@ -19,23 +19,32 @@ const DEFAULT_LINKS_HEADER =
 
 describe('Stream', function() {
   let sandbox;
-  let stubbedApiRequest;
   let context;
   let wrapper;
+  let props;
 
   beforeEach(function() {
     sandbox = sinon.sandbox.create();
-
-    stubbedApiRequest = sandbox.stub(Client.prototype, 'request', (url, options) => {
-      if (
-        url === 'http://127.0.0.1/api/0/projects/sentry/ludic-science/searches/' &&
-        options.method === 'GET'
-      ) {
-        options.success &&
-          options.success([{id: '789', query: 'is:unresolved', name: 'test'}]);
-      }
-      options.complete && options.complete();
+    MockApiClient.addMockResponse({
+      url: '/projects/123/456/issues/',
+      body: [TestStubs.Group()],
+      headers: {
+        Link: DEFAULT_LINKS_HEADER,
+      },
     });
+    MockApiClient.addMockResponse({
+      url: '/projects/123/456/searches/',
+      body: [{id: '789', query: 'is:unresolved', name: 'test'}],
+    });
+    MockApiClient.addMockResponse({
+      url: '/projects/123/456/tags/',
+      body: TestStubs.Tags(),
+    });
+    MockApiClient.addMockResponse({
+      url: '/projects/123/456/processingissues/',
+      method: 'GET',
+    });
+    sandbox.stub(browserHistory, 'push');
 
     context = {
       project: {
@@ -51,7 +60,7 @@ describe('Stream', function() {
       team: {id: '2448'},
     };
 
-    let props = {
+    props = {
       setProjectNavSection: function() {},
       location: {query: {query: 'is:unresolved'}, search: 'query=is:unresolved'},
       params: {orgId: '123', projectId: '456'},
@@ -64,6 +73,7 @@ describe('Stream', function() {
 
   afterEach(function() {
     sandbox.restore();
+    MockApiClient.clearMockResponses();
   });
 
   describe('fetchData()', function() {
@@ -76,6 +86,7 @@ describe('Stream', function() {
         let stream = wrapper.instance();
         stream.state.pageLinks = DEFAULT_LINKS_HEADER;
         stream.state.realtimeActive = true;
+
         stream.fetchData();
 
         expect(
@@ -95,12 +106,29 @@ describe('Stream', function() {
       });
 
       it("should not enable the poller if the 'previous' link has results", function() {
-        let stream = wrapper.instance();
-        stream.state.pageLinks =
+        const pageLinks =
           '<http://127.0.0.1:8000/api/0/projects/sentry/ludic-science/issues/?cursor=1443575731:0:1>; rel="previous"; results="true"; cursor="1443575731:0:1", ' +
           '<http://127.0.0.1:8000/api/0/projects/sentry/ludic-science/issues/?cursor=1443575731:0:0>; rel="next"; results="true"; cursor="1443575731:0:0';
 
-        stream.state.realtimeActive = true;
+        MockApiClient.addMockResponse({
+          url: '/projects/123/456/issues/',
+          body: [TestStubs.Group()],
+          headers: {
+            Link: pageLinks,
+          },
+        });
+
+        wrapper = shallow(<Stream {...props} />, {
+          context,
+        });
+
+        let stream = wrapper.instance();
+
+        stream.setState({
+          pageLinks,
+          realtimeActive: true,
+        });
+
         stream.fetchData();
 
         expect(CursorPoller.prototype.setEndpoint.notCalled).toBeTruthy();
@@ -108,8 +136,6 @@ describe('Stream', function() {
     }); // complete handler
 
     it('should cancel any previous, unfinished fetches', function() {
-      stubbedApiRequest.restore();
-
       let requestCancel = sandbox.stub();
       let requestOptions;
       sandbox.stub(Client.prototype, 'request', function(url, options) {
@@ -138,8 +164,6 @@ describe('Stream', function() {
     });
 
     it('sends environment attribute', function() {
-      stubbedApiRequest.restore();
-
       let requestCancel = sandbox.stub();
       let requestOptions;
       sandbox.stub(Client.prototype, 'request', function(url, options) {
@@ -345,7 +369,7 @@ describe('Stream', function() {
     });
 
     it('handles no searchId or query', function() {
-      let props = {
+      let streamProps = {
         setProjectNavSection: function() {},
         location: {query: {sort: 'freq'}, search: 'sort=freq'},
         params: {orgId: '123', projectId: '456'},
@@ -367,7 +391,7 @@ describe('Stream', function() {
         searchId: null,
       };
 
-      let stream = shallow(<Stream {...props} />, {
+      let stream = shallow(<Stream {...streamProps} />, {
         context,
       }).instance();
 
@@ -376,7 +400,7 @@ describe('Stream', function() {
     });
 
     it('handles valid searchId in routing params', function() {
-      let props = {
+      let streamProps = {
         setProjectNavSection: function() {},
         location: {query: {sort: 'freq'}, search: 'sort=freq'},
         params: {orgId: '123', projectId: '456', searchId: '789'},
@@ -398,7 +422,7 @@ describe('Stream', function() {
         searchId: '789',
       };
 
-      wrapper = shallow(<Stream {...props} />, {
+      wrapper = shallow(<Stream {...streamProps} />, {
         context,
       });
 
@@ -411,7 +435,7 @@ describe('Stream', function() {
     });
 
     it('handles invalid searchId in routing params', function() {
-      let props = {
+      let streamProps = {
         setProjectNavSection: function() {},
         location: {query: {sort: 'freq'}, search: 'sort=freq'},
         params: {orgId: '123', projectId: '456', searchId: '799'},
@@ -433,7 +457,7 @@ describe('Stream', function() {
         searchId: null,
       };
 
-      let stream = shallow(<Stream {...props} />, {
+      let stream = shallow(<Stream {...streamProps} />, {
         context,
       }).instance();
 
