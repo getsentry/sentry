@@ -411,3 +411,8 @@ class SequencePaginatorTestCase(SimpleTestCase):
         assert cursor.value == 1
         assert cursor.offset == 10
         assert cursor.is_prev is True
+
+    def test_hits(self):
+        n = 10
+        paginator = SequencePaginator([(i, i) for i in range(n)])
+        assert paginator.get_result(5).hits == n
