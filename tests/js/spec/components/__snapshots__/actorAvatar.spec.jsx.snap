@@ -3,6 +3,7 @@
 exports[`Avatar render() should show a gravatar when actor type is a team 1`] = `
 <TeamAvatar
   className="avatar"
+  hasTooltip={true}
   team={
     Object {
       "id": "3",
@@ -21,6 +22,7 @@ exports[`Avatar render() should show a gravatar when actor type is a user 1`] = 
 <Avatar
   className="avatar"
   gravatar={true}
+  hasTooltip={true}
   size={64}
   user={
     Object {
