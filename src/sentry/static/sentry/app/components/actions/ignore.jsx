@@ -101,7 +101,7 @@ export default class IgnoreActions extends React.Component {
           show={this.state.modal === 'count'}
           onSelected={details => this.onCustomIgnore(details)}
           onCanceled={() => this.setState({modal: null})}
-          label={t('Ignore this issue until it occurs again .. ')}
+          label={t('Ignore this issue until it occurs again\u2026')}
           countLabel={t('Number of times')}
           countName="ignoreCount"
           windowName="ignoreWindow"
@@ -111,7 +111,7 @@ export default class IgnoreActions extends React.Component {
           show={this.state.modal === 'users'}
           onSelected={details => this.onCustomIgnore(details)}
           onCanceled={() => this.setState({modal: null})}
-          label={t('Ignore this issue until it affects an additional .. ')}
+          label={t('Ignore this issue until it affects an additional\u2026')}
           countLabel={t('Numbers of users')}
           countName="ignoreUserCount"
           windowName="ignoreUserWindow"
@@ -137,7 +137,7 @@ export default class IgnoreActions extends React.Component {
             <MenuItem header={true}>Ignore</MenuItem>
             <li className="dropdown-submenu">
               <DropdownLink
-                title="For .."
+                title={'For\u2026'}
                 caret={false}
                 isNestedDropdown={true}
                 alwaysRenderMenu
@@ -162,7 +162,7 @@ export default class IgnoreActions extends React.Component {
             </li>
             <li className="dropdown-submenu">
               <DropdownLink
-                title="Until this occurs again .."
+                title={'Until this occurs again\u2026'}
                 caret={false}
                 isNestedDropdown={true}
                 alwaysRenderMenu
@@ -212,7 +212,7 @@ export default class IgnoreActions extends React.Component {
             </li>
             <li className="dropdown-submenu">
               <DropdownLink
-                title="Until this affects an additional .."
+                title={'Until this affects an additional\u2026'}
                 caret={false}
                 isNestedDropdown={true}
                 alwaysRenderMenu

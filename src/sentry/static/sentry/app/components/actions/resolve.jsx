@@ -191,7 +191,7 @@ export default class ResolveActions extends React.Component {
                   onAction={() => hasRelease && this.setState({modal: true})}
                   shouldConfirm={false}
                 >
-                  {t('Another version ...')}
+                  {t('Another version\u2026')}
                 </ActionLink>
               </Tooltip>
             </MenuItem>
