@@ -121,6 +121,7 @@ def post_process_group(event, is_new, is_regression, is_sample, is_new_group_env
         project=event.project,
         group=event.group,
         event=event,
+        environment_id=kwargs.get('environment_id'),
     )
 
 
