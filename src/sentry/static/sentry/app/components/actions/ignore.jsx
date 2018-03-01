@@ -137,7 +137,7 @@ export default class IgnoreActions extends React.Component {
             <MenuItem header={true}>Ignore</MenuItem>
             <li className="dropdown-submenu">
               <DropdownLink
-                title="For..."
+                title="For .."
                 caret={false}
                 isNestedDropdown={true}
                 alwaysRenderMenu
