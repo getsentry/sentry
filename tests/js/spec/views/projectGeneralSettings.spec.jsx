@@ -1,9 +1,11 @@
 import React from 'react';
-import {shallow} from 'enzyme';
+import {ThemeProvider} from 'emotion-theming';
+import {mount, shallow} from 'enzyme';
 
 import {Client} from 'app/api';
 
 import ProjectGeneralSettings from 'app/views/projectGeneralSettings';
+import theme from 'app/utils/theme';
 
 describe('projectGeneralSettings', function() {
   let org = TestStubs.Organization();
@@ -30,29 +32,23 @@ describe('projectGeneralSettings', function() {
   });
 
   it('disables field with an org override', function() {
-    let component = shallow(
-      <ProjectGeneralSettings params={{orgId: org.slug, projectId: project.slug}} />,
-      {
-        context: {
-          organization: {
-            ...org,
-            dataScrubber: true,
-          },
-        },
-      }
+    let routerContext = TestStubs.routerContext();
+    routerContext.context.organization.dataScrubber = true;
+    let component = mount(
+      <ThemeProvider theme={theme}>
+        <ProjectGeneralSettings params={{orgId: org.slug, projectId: project.slug}} />
+      </ThemeProvider>,
+      routerContext
     );
-
-    expect(component.find('[name="dataScrubber"]').prop('disabled')).toBe(true);
+    expect(component.find('Switch[name="dataScrubber"]').prop('isDisabled')).toBe(true);
   });
 
   it('project admins can transfer or remove project', function() {
-    let component = shallow(
-      <ProjectGeneralSettings params={{orgId: org.slug, projectId: project.slug}} />,
-      {
-        context: {
-          organization: org,
-        },
-      }
+    let component = mount(
+      <ThemeProvider theme={theme}>
+        <ProjectGeneralSettings params={{orgId: org.slug, projectId: project.slug}} />
+      </ThemeProvider>,
+      TestStubs.routerContext()
     );
 
     let removeBtn = component.find('a.btn.btn-danger').first();
@@ -63,16 +59,13 @@ describe('projectGeneralSettings', function() {
   });
 
   it('displays transfer/remove message for non-admins', function() {
-    let component = shallow(
-      <ProjectGeneralSettings params={{orgId: org.slug, projectId: project.slug}} />,
-      {
-        context: {
-          organization: {
-            ...org,
-            access: ['org: read'],
-          },
-        },
-      }
+    let routerContext = TestStubs.routerContext();
+    routerContext.context.organization.access = ['org:read'];
+    let component = mount(
+      <ThemeProvider theme={theme}>
+        <ProjectGeneralSettings params={{orgId: org.slug, projectId: project.slug}} />
+      </ThemeProvider>,
+      routerContext
     );
 
     expect(component.html()).toContain(
