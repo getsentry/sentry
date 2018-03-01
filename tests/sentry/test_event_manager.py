@@ -802,13 +802,14 @@ class EventManagerTest(TransactionTestCase):
 
         event = save_event()
 
+        environment = Environment.objects.get(
+            organization_id=self.project.organization_id,
+            name=event.get_tag('environment'),
+        )
         # Ensure the `GroupEnvironment` record was created.
         instance = GroupEnvironment.objects.get(
             group_id=event.group_id,
-            environment_id=Environment.objects.get(
-                organization_id=self.project.organization_id,
-                name=event.get_tag('environment'),
-            ).id,
+            environment_id=environment.id,
         )
 
         assert Release.objects.get(id=instance.first_release_id).version == release_version
@@ -822,6 +823,7 @@ class EventManagerTest(TransactionTestCase):
             is_sample=False,
             is_regression=False,
             is_new_group_environment=True,
+            environment_id=environment.id,
         )
 
         event = save_event()
@@ -835,6 +837,7 @@ class EventManagerTest(TransactionTestCase):
             is_sample=False,
             is_regression=None,  # XXX: wut
             is_new_group_environment=False,
+            environment_id=environment.id,
         )
 
     def test_default_fingerprint(self):
