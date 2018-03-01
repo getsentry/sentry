@@ -77,7 +77,7 @@ exports[`IgnoreActions with confirmation step renders 1`] = `
     <CustomIgnoreCountModal
       countLabel="Number of times"
       countName="ignoreCount"
-      label="Ignore this issue until it occurs again .. "
+      label="Ignore this issue until it occurs again…"
       onCanceled={[Function]}
       onSelected={[Function]}
       show={false}
@@ -155,7 +155,7 @@ exports[`IgnoreActions with confirmation step renders 1`] = `
     <CustomIgnoreCountModal
       countLabel="Numbers of users"
       countName="ignoreUserCount"
-      label="Ignore this issue until it affects an additional .. "
+      label="Ignore this issue until it affects an additional…"
       onCanceled={[Function]}
       onSelected={[Function]}
       show={false}
@@ -374,7 +374,7 @@ exports[`IgnoreActions with confirmation step renders 1`] = `
                   caret={false}
                   disabled={false}
                   isNestedDropdown={true}
-                  title="For..."
+                  title="For…"
                 >
                   <DropdownMenu
                     isNestedDropdown={true}
@@ -393,7 +393,7 @@ exports[`IgnoreActions with confirmation step renders 1`] = `
                           className="dropdown-actor-title"
                         >
                           <span>
-                            For...
+                            For…
                           </span>
                         </div>
                       </a>
@@ -912,7 +912,7 @@ exports[`IgnoreActions with confirmation step renders 1`] = `
                   caret={false}
                   disabled={false}
                   isNestedDropdown={true}
-                  title="Until this occurs again .."
+                  title="Until this occurs again…"
                 >
                   <DropdownMenu
                     isNestedDropdown={true}
@@ -931,7 +931,7 @@ exports[`IgnoreActions with confirmation step renders 1`] = `
                           className="dropdown-actor-title"
                         >
                           <span>
-                            Until this occurs again ..
+                            Until this occurs again…
                           </span>
                         </div>
                       </a>
@@ -2950,7 +2950,7 @@ exports[`IgnoreActions with confirmation step renders 1`] = `
                   caret={false}
                   disabled={false}
                   isNestedDropdown={true}
-                  title="Until this affects an additional .."
+                  title="Until this affects an additional…"
                 >
                   <DropdownMenu
                     isNestedDropdown={true}
@@ -2969,7 +2969,7 @@ exports[`IgnoreActions with confirmation step renders 1`] = `
                           className="dropdown-actor-title"
                         >
                           <span>
-                            Until this affects an additional ..
+                            Until this affects an additional…
                           </span>
                         </div>
                       </a>
@@ -5063,7 +5063,7 @@ exports[`IgnoreActions without confirmation renders 1`] = `
     <CustomIgnoreCountModal
       countLabel="Number of times"
       countName="ignoreCount"
-      label="Ignore this issue until it occurs again .. "
+      label="Ignore this issue until it occurs again…"
       onCanceled={[Function]}
       onSelected={[Function]}
       show={false}
@@ -5141,7 +5141,7 @@ exports[`IgnoreActions without confirmation renders 1`] = `
     <CustomIgnoreCountModal
       countLabel="Numbers of users"
       countName="ignoreUserCount"
-      label="Ignore this issue until it affects an additional .. "
+      label="Ignore this issue until it affects an additional…"
       onCanceled={[Function]}
       onSelected={[Function]}
       show={false}
@@ -5298,7 +5298,7 @@ exports[`IgnoreActions without confirmation renders 1`] = `
                   caret={false}
                   disabled={false}
                   isNestedDropdown={true}
-                  title="For..."
+                  title="For…"
                 >
                   <DropdownMenu
                     isNestedDropdown={true}
@@ -5317,7 +5317,7 @@ exports[`IgnoreActions without confirmation renders 1`] = `
                           className="dropdown-actor-title"
                         >
                           <span>
-                            For...
+                            For…
                           </span>
                         </div>
                       </a>
@@ -5531,7 +5531,7 @@ exports[`IgnoreActions without confirmation renders 1`] = `
                   caret={false}
                   disabled={false}
                   isNestedDropdown={true}
-                  title="Until this occurs again .."
+                  title="Until this occurs again…"
                 >
                   <DropdownMenu
                     isNestedDropdown={true}
@@ -5550,7 +5550,7 @@ exports[`IgnoreActions without confirmation renders 1`] = `
                           className="dropdown-actor-title"
                         >
                           <span>
-                            Until this occurs again ..
+                            Until this occurs again…
                           </span>
                         </div>
                       </a>
@@ -6349,7 +6349,7 @@ exports[`IgnoreActions without confirmation renders 1`] = `
                   caret={false}
                   disabled={false}
                   isNestedDropdown={true}
-                  title="Until this affects an additional .."
+                  title="Until this affects an additional…"
                 >
                   <DropdownMenu
                     isNestedDropdown={true}
@@ -6368,7 +6368,7 @@ exports[`IgnoreActions without confirmation renders 1`] = `
                           className="dropdown-actor-title"
                         >
                           <span>
-                            Until this affects an additional ..
+                            Until this affects an additional…
                           </span>
                         </div>
                       </a>

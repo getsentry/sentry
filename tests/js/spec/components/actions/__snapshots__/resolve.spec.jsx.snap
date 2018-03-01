@@ -405,7 +405,7 @@ exports[`ResolveActions with confirmation step renders 1`] = `
                         disabled={false}
                         onClick={[Function]}
                       >
-                        Another version ...
+                        Another version\u2026
                       </a>
                     </ActionLink>
                   </Tooltip>
@@ -636,7 +636,7 @@ exports[`ResolveActions without confirmation renders 1`] = `
                         disabled={false}
                         onClick={[Function]}
                       >
-                        Another version ...
+                        Another version\u2026
                       </a>
                     </ActionLink>
                   </Tooltip>
