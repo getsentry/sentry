@@ -1,52 +1,11 @@
-import idx from 'idx';
 import PropTypes from 'prop-types';
 import React from 'react';
 import createReactClass from 'create-react-class';
-import moment from 'moment';
 
-import Avatar from '../avatar';
 import ApiMixin from '../../mixins/apiMixin';
 import GroupState from '../../mixins/groupState';
-import TimeSince from '../timeSince';
-import CommitLink from '../commitLink';
+import CommitRow from '../commitRow';
 import {t} from '../../locale';
-
-class Commit extends React.Component {
-  static propTypes = {
-    commit: PropTypes.object,
-  };
-
-  renderMessage = message => {
-    if (!message) {
-      return t('No message provided');
-    }
-
-    let firstLine = message.split(/\n/)[0];
-
-    return firstLine;
-  };
-
-  render() {
-    let {id, dateCreated, message, author, repository} = this.props.commit;
-    return (
-      <li className="list-group-item" key={id}>
-        <div className="row row-center-vertically">
-          <div className="col-xs-10 list-group-avatar">
-            <Avatar user={author} />
-            <h5 className="truncate">{this.renderMessage(message)}</h5>
-            <p>
-              <strong>{idx(author, _ => _.name) || t('Unknown author')}</strong> committed{' '}
-              <TimeSince date={dateCreated} />
-            </p>
-          </div>
-          <div className="col-xs-2 align-right">
-            <CommitLink commitId={id} repository={repository} />
-          </div>
-        </div>
-      </li>
-    );
-  }
-}
 
 export default createReactClass({
   displayName: 'EventCause',
@@ -103,31 +62,27 @@ export default createReactClass({
       return null;
     }
 
-    let commitsWithAge = [];
+    let commits = [];
     this.state.committers.forEach(committer => {
       committer.commits.forEach(commit => {
-        commitsWithAge.push([moment(commit.dateCreated), commit]);
+        commits.push(
+          {
+            ...commit,
+            author: committer.author,
+          },
+        );
       });
     });
-    let firstSeen = moment(this.getGroup().firstSeen);
-    commitsWithAge
-      .filter(([age, commit]) => {
-        return age < 604800;
-      })
-      .sort((a, b) => {
-        return firstSeen - a[0] - (firstSeen - b[0]);
-      });
-    if (!commitsWithAge.length) return null;
     return (
       <div className="box">
         <div className="box-header">
           <h3>
-            {t('Suspect Commits')} ({commitsWithAge.length})
+            {t('Suspect Commits')} ({commits.length})
           </h3>
         </div>
         <ul className="list-group list-group-lg commit-list">
-          {commitsWithAge.map(([age, commit]) => {
-            return <Commit key={commit.id} commit={commit} />;
+          {commits.map((commit) => {
+            return <CommitRow key={commit.id} commit={commit} />;
           })}
         </ul>
       </div>

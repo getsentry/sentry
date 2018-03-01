@@ -1,63 +1,14 @@
-import PropTypes from 'prop-types';
 import React from 'react';
 
 import createReactClass from 'create-react-class';
 
 import LoadingIndicator from '../../components/loadingIndicator';
 import LoadingError from '../../components/loadingError';
-import Avatar from '../../components/avatar';
-import TimeSince from '../../components/timeSince';
 import DropdownLink from '../../components/dropdownLink';
 import MenuItem from '../../components/menuItem';
 import ApiMixin from '../../mixins/apiMixin';
 
-import CommitLink from '../../components/commitLink';
-
-import {t} from '../../locale';
-
-class ReleaseCommit extends React.Component {
-  static propTypes = {
-    commitId: PropTypes.string,
-    commitMessage: PropTypes.string,
-    commitDateCreated: PropTypes.string,
-    author: PropTypes.object,
-    repository: PropTypes.object,
-  };
-
-  renderMessage = message => {
-    if (!message) {
-      return t('No message provided');
-    }
-
-    let firstLine = message.split(/\n/)[0];
-
-    return firstLine;
-  };
-
-  render() {
-    let {commitMessage} = this.props;
-    return (
-      <li className="list-group-item" key={this.props.commitId}>
-        <div className="row row-center-vertically">
-          <div className="col-xs-10 list-group-avatar">
-            <Avatar user={this.props.author} />
-            <h5 className="truncate">{this.renderMessage(commitMessage)}</h5>
-            <p>
-              <strong>{this.props.author.name || t('Unknown author')}</strong> committed{' '}
-              <TimeSince date={this.props.commitDateCreated} />
-            </p>
-          </div>
-          <div className="col-xs-2 align-right">
-            <CommitLink
-              commitId={this.props.commitId}
-              repository={this.props.repository}
-            />
-          </div>
-        </div>
-      </li>
-    );
-  }
-}
+import CommitRow from '../../components/commitRow';
 
 const ReleaseCommits = createReactClass({
   displayName: 'ReleaseCommits',
@@ -140,16 +91,7 @@ const ReleaseCommits = createReactClass({
         </div>
         <ul className="list-group list-group-lg commit-list">
           {activeCommits.map(commit => {
-            return (
-              <ReleaseCommit
-                key={commit.id}
-                commitId={commit.id}
-                author={commit.author}
-                commitMessage={commit.message}
-                commitDateCreated={commit.dateCreated}
-                repository={commit.repository}
-              />
-            );
+            return <CommitRow key={commit.id} commit={commit} />;
           })}
         </ul>
       </div>
@@ -215,4 +157,3 @@ const ReleaseCommits = createReactClass({
 });
 
 export default ReleaseCommits;
-export {ReleaseCommit};
