@@ -213,7 +213,7 @@ describe('AssigneeSelector', function() {
         expect(assigneeSelector.find('LoadingIndicator').exists()).toBe(false);
         expect(assigneeSelector.find('ActorAvatar').length).toBe(1);
         done();
-      }, 200); //hack
+      }, 100); //hack
     });
 
     it('successfully assigns teams', function(done) {
@@ -232,7 +232,39 @@ describe('AssigneeSelector', function() {
         expect(assigneeSelector.find('LoadingIndicator').exists()).toBe(false);
         expect(assigneeSelector.find('ActorAvatar').length).toBe(1);
         done();
-      }, 200); //hack
+      }, 100); //hack
+    });
+
+    it('successfully clears assignment', function() {
+      openMenu();
+      MemberListStore.loadInitialData([USER_1, USER_2]);
+      assigneeSelector.update();
+      assigneeSelector
+        .find('Avatar')
+        .first()
+        .simulate('click');
+      assigneeSelector.update();
+      expect(assigneeSelector.find('LoadingIndicator').exists()).toBe(true);
+
+      expect(
+        Client.findMockResponse('/issues/1337/', {
+          method: 'PUT',
+        })[0].callCount
+      ).toBe(1);
+
+      assigneeSelector.instance().clearAssignTo();
+
+      expect(
+        Client.findMockResponse('/issues/1337/', {
+          method: 'PUT',
+        })[0].callCount
+      ).toBe(2);
+      //api was called with empty string, clearing assignment
+      expect(
+        Client.findMockResponse('/issues/1337/', {
+          method: 'PUT',
+        })[1].mock.calls[1][1].data.assignedTo
+      ).toBe('');
     });
   });
 
