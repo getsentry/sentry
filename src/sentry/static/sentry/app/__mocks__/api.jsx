@@ -29,6 +29,7 @@ class Client {
         method: 'GET',
         callCount: 0,
         ...response,
+        headers: response.headers || {},
       },
       mock,
     ]);
@@ -116,7 +117,9 @@ class Client {
           options.success,
           response.body,
           {},
-          {getResponseHeader: () => {}}
+          {
+            getResponseHeader: key => response.headers[key],
+          }
         );
       }
     }
