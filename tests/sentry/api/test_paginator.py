@@ -3,14 +3,17 @@ from __future__ import absolute_import
 import pytest
 from datetime import timedelta
 from django.utils import timezone
+from unittest import TestCase as SimpleTestCase
 
 from sentry.api.paginator import (
     Paginator,
     DateTimePaginator,
     OffsetPaginator,
+    SequencePaginator,
     reverse_bisect_left)
 from sentry.models import User
 from sentry.testutils import TestCase
+from sentry.utils.cursors import Cursor
 from sentry.utils.db import is_mysql
 
 
@@ -286,3 +289,65 @@ def test_reverse_bisect_left():
     assert reverse_bisect_left([2, 2, 1], 0) == 3
     assert reverse_bisect_left([2, 2, 1], 1) == 2
     assert reverse_bisect_left([2, 2, 1], 2) == 0
+
+
+class SequencePaginatorTestCase(SimpleTestCase):
+    def test_ascending_simple(self):
+        paginator = SequencePaginator([(i, i) for i in range(10)], reverse=False)
+
+        result = paginator.get_result(5)
+        assert list(result) == [0, 1, 2, 3, 4]
+        assert result.prev is None
+
+        cursor = result.next
+        assert cursor.value == 5
+        assert cursor.offset == 0
+        assert cursor.is_prev is False
+
+        result = paginator.get_result(5, cursor)
+        assert list(result) == [5, 6, 7, 8, 9]
+        assert result.next is None
+
+        cursor = result.prev
+        assert cursor.value == 5
+        assert cursor.offset == 0
+        assert cursor.is_prev is True
+
+        result = paginator.get_result(5, Cursor(100, 0, False))
+        assert list(result) == []
+        assert result.next is None
+
+        cursor = result.prev
+        assert cursor.value == 9
+        assert cursor.offset == 1
+        assert cursor.is_prev is True
+
+    def test_descending_simple(self):
+        paginator = SequencePaginator([(i, i) for i in range(10)], reverse=True)
+
+        result = paginator.get_result(5)
+        assert list(result) == [9, 8, 7, 6, 5]
+        assert result.prev is None
+
+        cursor = result.next
+        assert cursor.value == 4
+        assert cursor.offset == 0
+        assert cursor.is_prev is False
+
+        result = paginator.get_result(5, cursor)
+        assert list(result) == [4, 3, 2, 1, 0]
+        assert result.next is None
+
+        cursor = result.prev
+        assert cursor.value == 4
+        assert cursor.offset == 0
+        assert cursor.is_prev is True
+
+        result = paginator.get_result(5, Cursor(-10, 0, False))
+        assert list(result) == []
+        assert result.next is None
+
+        cursor = result.prev
+        assert cursor.value == 0
+        assert cursor.offset == 1
+        assert cursor.is_prev is True

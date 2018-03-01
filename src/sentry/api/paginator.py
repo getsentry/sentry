@@ -295,7 +295,7 @@ class SequencePaginator(object):
 
         prev_cursor = None
         if lo > 0:
-            prev_score = self.scores[lo]
+            prev_score = self.scores[min(lo, len(self.scores) - 1)]
             prev_offset = lo - self.search(prev_score, hi=lo)
             prev_cursor = Cursor(prev_score, prev_offset, True, True)
 
