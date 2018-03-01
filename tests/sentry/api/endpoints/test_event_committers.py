@@ -42,10 +42,10 @@ class EventCommittersTest(APITestCase):
         assert response.data['committers'][0]['commits'][0]['message'
                                                             ] == 'placeholder commit message'
 
-        assert len(response.data['annotatedFrames']) == 1
-        assert len(response.data['annotatedFrames'][0]['commits']) == 1
-        assert response.data['annotatedFrames'][0]['commits'][0]['author']['username'
-                                                                           ] == 'admin@localhost'
+        # assert len(response.data['annotatedFrames']) == 1
+        # assert len(response.data['annotatedFrames'][0]['commits']) == 1
+        # assert response.data['annotatedFrames'][0]['commits'][0]['author']['username'
+        #                                                                    ] == 'admin@localhost'
         # TODO(maxbittker) test more edge cases here
 
     def test_no_release(self):
