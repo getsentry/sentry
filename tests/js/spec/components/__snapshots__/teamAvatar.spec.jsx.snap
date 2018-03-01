@@ -5,6 +5,7 @@ exports[`TeamAvatar render() renders 1`] = `
   className="avatar"
 >
   <Tooltip
+    disabled={true}
     title="Team Name"
   >
     <LetterAvatar

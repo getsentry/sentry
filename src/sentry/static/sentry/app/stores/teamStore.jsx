@@ -77,7 +77,7 @@ const TeamStore = Reflux.createStore({
   },
 
   getById(id) {
-    return this.items.find(item => item.id === '' + id) || null;
+    return this.items.find(item => item.id.toString() === id.toString()) || null;
   },
 
   getBySlug(slug) {

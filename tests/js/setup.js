@@ -22,7 +22,10 @@ Enzyme.configure({disableLifecycleMethods: true});
 
 window.$ = window.jQuery = jQuery;
 window.sinon = sinon;
-
+window.Raven = {
+  captureMessage: sinon.spy(),
+  captureException: sinon.spy(),
+};
 window.TestStubs = {
   // react-router's 'router' context
   router: () => ({

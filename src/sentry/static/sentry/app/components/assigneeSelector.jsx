@@ -5,18 +5,20 @@ import Reflux from 'reflux';
 import classNames from 'classnames';
 
 import {t} from '../locale';
-import {userDisplayName} from '../utils/formatters';
-import {valueIsEqual} from '../utils';
+import {valueIsEqual, buildUserId, buildTeamId} from '../utils';
+import SentryTypes from '../proptypes';
 import Avatar from '../components/avatar';
-import ConfigStore from '../stores/configStore';
+import TeamAvatar from '../components/teamAvatar';
+import ActorAvatar from '../components/actorAvatar';
 import DropdownLink from './dropdownLink';
 import FlowLayout from './flowLayout';
+import MenuItem from './menuItem';
+import {assignToUser, assignToActor, clearAssignment} from '../actionCreators/group';
 import GroupStore from '../stores/groupStore';
-import {assignTo} from '../actionCreators/group';
+import TeamStore from '../stores/teamStore';
 import LoadingIndicator from '../components/loadingIndicator';
 import MemberListStore from '../stores/memberListStore';
-import MenuItem from './menuItem';
-import TooltipMixin from '../mixins/tooltip';
+import ConfigStore from '../stores/configStore';
 
 const AssigneeSelector = createReactClass({
   displayName: 'AssigneeSelector',
@@ -24,13 +26,12 @@ const AssigneeSelector = createReactClass({
   propTypes: {
     id: PropTypes.string.isRequired,
   },
-
+  contextTypes: {
+    organization: SentryTypes.Organization,
+  },
   mixins: [
     Reflux.listenTo(GroupStore, 'onGroupChange'),
     Reflux.connect(MemberListStore, 'memberList'),
-    TooltipMixin({
-      selector: '.tip',
-    }),
   ],
 
   statics: {
@@ -105,15 +106,17 @@ const AssigneeSelector = createReactClass({
     return !valueIsEqual(nextState.assignedTo, this.state.assignedTo, true);
   },
 
-  componentDidUpdate(prevProps, prevState) {
-    let oldAssignee = prevState.assignedTo && prevState.assignedTo.id;
-    let newAssignee = this.state.assignedTo && this.state.assignedTo.id;
-    if (oldAssignee !== newAssignee) {
-      this.removeTooltips();
-      if (newAssignee) {
-        this.attachTooltips();
-      }
-    }
+  assignableTeams() {
+    let group = GroupStore.get(this.props.id);
+
+    return TeamStore.getAll()
+      .filter(({projects}) => projects.some(p => p.slug === group.project.slug))
+      .map(team => ({
+        id: buildTeamId(team.id),
+        name: team.slug,
+        display: team.slug,
+        team,
+      }));
   },
 
   onGroupChange(itemIds) {
@@ -127,13 +130,19 @@ const AssigneeSelector = createReactClass({
     });
   },
 
-  assignTo(member) {
-    assignTo({id: this.props.id, member});
+  assignToUser(user) {
+    assignToUser({id: this.props.id, user});
+    this.setState({filter: '', loading: true});
+  },
+
+  assignToTeam(team) {
+    assignToActor({actor: {id: team.id, type: 'team'}, id: this.props.id});
     this.setState({filter: '', loading: true});
   },
 
   clearAssignTo() {
-    assignTo({id: this.props.id});
+    //clears assignment
+    clearAssignment(this.props.id);
     this.setState({filter: '', loading: true});
   },
 
@@ -154,7 +163,7 @@ const AssigneeSelector = createReactClass({
         this.state.filter
       );
       if (members.length > 0) {
-        this.assignTo(members[0]);
+        this.assignToUser(members[0]);
       }
     }
   },
@@ -204,7 +213,7 @@ const AssigneeSelector = createReactClass({
     let {loading, assignedTo, filter, memberList} = this.state;
     let memberListLoading = this.state.memberList === null;
 
-    let className = classNames('assignee-selector anchor-right', {
+    let className = classNames('assignee-selector anchor-right ', {
       unassigned: !assignedTo,
     });
 
@@ -213,12 +222,12 @@ const AssigneeSelector = createReactClass({
 
     let memberNodes =
       members && members.length ? (
-        members.map(item => {
+        memberList.map(item => {
           return (
             <MenuItem
-              key={item.id}
+              key={buildUserId(item.id)}
               disabled={loading}
-              onSelect={this.assignTo.bind(this, item)}
+              onSelect={this.assignToUser.bind(this, item)}
             >
               <Avatar user={item} className="avatar" size={48} />
               {this.highlight(item.name || item.email, filter)}
@@ -231,14 +240,35 @@ const AssigneeSelector = createReactClass({
         </li>
       );
 
-    let assignedUser = assignedTo && MemberListStore.getById(assignedTo.id);
-    let tooltipTitle = assignedUser ? userDisplayName(assignedUser) : null;
-    // Outer div is needed to make tooltip work
+    let teamNodes = [];
+    let org = this.context.organization;
+    let features = new Set(org.features);
+    if (features.has('internal-catchall')) {
+      teamNodes = AssigneeSelector.filterMembers(
+        this.assignableTeams(),
+        filter
+      ).map(({id, display, team}) => {
+        return (
+          <MenuItem
+            key={id}
+            disabled={loading}
+            onSelect={this.assignToTeam.bind(this, team)}
+          >
+            <TeamAvatar team={team} className="avatar" size={48} />
+            {this.highlight(display, filter)}
+          </MenuItem>
+        );
+      });
+      if (teamNodes.length > 0) {
+        teamNodes = [...teamNodes, <hr key="divider" style={{margin: 0}} />];
+      }
+    }
+
     return (
       <div>
-        <div className={classNames(className, 'tip')} title={tooltipTitle}>
+        <div className={className}>
           {loading ? (
-            <LoadingIndicator mini />
+            <LoadingIndicator mini style={{float: 'left'}} />
           ) : (
             <DropdownLink
               className="assignee-selector-toggle"
@@ -248,7 +278,7 @@ const AssigneeSelector = createReactClass({
               alwaysRenderMenu={false}
               title={
                 assignedTo ? (
-                  <Avatar user={assignedUser} className="avatar" size={48} />
+                  <ActorAvatar actor={assignedTo} className="avatar" size={48} />
                 ) : (
                   <span className="icon-user" />
                 )
@@ -259,7 +289,11 @@ const AssigneeSelector = createReactClass({
                   <input
                     type="text"
                     className="form-control input-sm"
-                    placeholder={t('Filter people')}
+                    placeholder={
+                      features.has('internal-catchall')
+                        ? t('Filter teams and people')
+                        : t('Filter members')
+                    }
                     ref={ref => this.onFilterMount(ref)}
                     onClick={this.onFilterClick}
                     onKeyDown={this.onFilterKeyDown}
@@ -267,6 +301,7 @@ const AssigneeSelector = createReactClass({
                   />
                 </MenuItem>
               )}
+
               {!memberListLoading &&
                 assignedTo && (
                   <MenuItem
@@ -279,7 +314,7 @@ const AssigneeSelector = createReactClass({
                 )}
               {!memberListLoading && (
                 <li>
-                  <ul>{memberNodes}</ul>
+                  <ul>{[...teamNodes, ...memberNodes]}</ul>
                 </li>
               )}
 

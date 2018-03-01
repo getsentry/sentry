@@ -109,7 +109,6 @@ export const Actor = PropTypes.shape({
   type: PropTypes.oneOf(['user', 'team']),
   id: PropTypes.string.isRequired,
   name: PropTypes.string.isRequired,
-  avatar: PropTypes.string.isRequired,
 });
 
 export const Project = PropTypes.shape({

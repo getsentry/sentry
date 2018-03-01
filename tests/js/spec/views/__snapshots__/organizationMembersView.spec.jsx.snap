@@ -480,6 +480,7 @@ exports[`OrganizationMembersView No Require Link does not have 2fa warning if us
                                 <Avatar
                                   className="avatar"
                                   gravatar={true}
+                                  hasTooltip={false}
                                   size={64}
                                   style={
                                     Object {
@@ -497,21 +498,26 @@ exports[`OrganizationMembersView No Require Link does not have 2fa warning if us
                                     }
                                   }
                                 >
-                                  <span
-                                    className="avatar"
-                                    style={
-                                      Object {
-                                        "height": 32,
-                                        "width": 32,
-                                      }
-                                    }
+                                  <Tooltip
+                                    disabled={true}
+                                    title="Sentry 1 Name (sentry1@test.com)"
                                   >
-                                    <img
-                                      onError={[Function]}
-                                      onLoad={[Function]}
-                                      src="undefined/avatar/c68ca8af553301ae11c5607b8bb672b4?s=64&d=blank"
-                                    />
-                                  </span>
+                                    <span
+                                      className="avatar"
+                                      style={
+                                        Object {
+                                          "height": 32,
+                                          "width": 32,
+                                        }
+                                      }
+                                    >
+                                      <img
+                                        onError={[Function]}
+                                        onLoad={[Function]}
+                                        src="undefined/avatar/c68ca8af553301ae11c5607b8bb672b4?s=64&d=blank"
+                                      />
+                                    </span>
+                                  </Tooltip>
                                 </Avatar>
                               </div>
                             </Base>
@@ -747,6 +753,7 @@ exports[`OrganizationMembersView No Require Link does not have 2fa warning if us
                                 <Avatar
                                   className="avatar"
                                   gravatar={true}
+                                  hasTooltip={false}
                                   size={64}
                                   style={
                                     Object {
@@ -764,21 +771,26 @@ exports[`OrganizationMembersView No Require Link does not have 2fa warning if us
                                     }
                                   }
                                 >
-                                  <span
-                                    className="avatar"
-                                    style={
-                                      Object {
-                                        "height": 32,
-                                        "width": 32,
-                                      }
-                                    }
+                                  <Tooltip
+                                    disabled={true}
+                                    title="Sentry 2 Name (sentry2@test.com)"
                                   >
-                                    <img
-                                      onError={[Function]}
-                                      onLoad={[Function]}
-                                      src="undefined/avatar/4eca4e68b0a900e542fdf17e57d04dcd?s=64&d=blank"
-                                    />
-                                  </span>
+                                    <span
+                                      className="avatar"
+                                      style={
+                                        Object {
+                                          "height": 32,
+                                          "width": 32,
+                                        }
+                                      }
+                                    >
+                                      <img
+                                        onError={[Function]}
+                                        onLoad={[Function]}
+                                        src="undefined/avatar/4eca4e68b0a900e542fdf17e57d04dcd?s=64&d=blank"
+                                      />
+                                    </span>
+                                  </Tooltip>
                                 </Avatar>
                               </div>
                             </Base>
@@ -1009,6 +1021,7 @@ exports[`OrganizationMembersView No Require Link does not have 2fa warning if us
                                 <Avatar
                                   className="avatar"
                                   gravatar={true}
+                                  hasTooltip={false}
                                   size={64}
                                   style={
                                     Object {
@@ -1026,21 +1039,26 @@ exports[`OrganizationMembersView No Require Link does not have 2fa warning if us
                                     }
                                   }
                                 >
-                                  <span
-                                    className="avatar"
-                                    style={
-                                      Object {
-                                        "height": 32,
-                                        "width": 32,
-                                      }
-                                    }
+                                  <Tooltip
+                                    disabled={true}
+                                    title="Sentry 3 Name (sentry3@test.com)"
                                   >
-                                    <img
-                                      onError={[Function]}
-                                      onLoad={[Function]}
-                                      src="undefined/avatar/40d78e2a4587a53a171944ffe71ee3d4?s=64&d=blank"
-                                    />
-                                  </span>
+                                    <span
+                                      className="avatar"
+                                      style={
+                                        Object {
+                                          "height": 32,
+                                          "width": 32,
+                                        }
+                                      }
+                                    >
+                                      <img
+                                        onError={[Function]}
+                                        onLoad={[Function]}
+                                        src="undefined/avatar/40d78e2a4587a53a171944ffe71ee3d4?s=64&d=blank"
+                                      />
+                                    </span>
+                                  </Tooltip>
                                 </Avatar>
                               </div>
                             </Base>
@@ -1674,6 +1692,7 @@ exports[`OrganizationMembersView Require Link does not have 2fa warning if user 
                                 <Avatar
                                   className="avatar"
                                   gravatar={true}
+                                  hasTooltip={false}
                                   size={64}
                                   style={
                                     Object {
@@ -1691,21 +1710,26 @@ exports[`OrganizationMembersView Require Link does not have 2fa warning if user 
                                     }
                                   }
                                 >
-                                  <span
-                                    className="avatar"
-                                    style={
-                                      Object {
-                                        "height": 32,
-                                        "width": 32,
-                                      }
-                                    }
+                                  <Tooltip
+                                    disabled={true}
+                                    title="Sentry 1 Name (sentry1@test.com)"
                                   >
-                                    <img
-                                      onError={[Function]}
-                                      onLoad={[Function]}
-                                      src="undefined/avatar/c68ca8af553301ae11c5607b8bb672b4?s=64&d=blank"
-                                    />
-                                  </span>
+                                    <span
+                                      className="avatar"
+                                      style={
+                                        Object {
+                                          "height": 32,
+                                          "width": 32,
+                                        }
+                                      }
+                                    >
+                                      <img
+                                        onError={[Function]}
+                                        onLoad={[Function]}
+                                        src="undefined/avatar/c68ca8af553301ae11c5607b8bb672b4?s=64&d=blank"
+                                      />
+                                    </span>
+                                  </Tooltip>
                                 </Avatar>
                               </div>
                             </Base>
@@ -1972,6 +1996,7 @@ exports[`OrganizationMembersView Require Link does not have 2fa warning if user 
                                 <Avatar
                                   className="avatar"
                                   gravatar={true}
+                                  hasTooltip={false}
                                   size={64}
                                   style={
                                     Object {
@@ -1989,21 +2014,26 @@ exports[`OrganizationMembersView Require Link does not have 2fa warning if user 
                                     }
                                   }
                                 >
-                                  <span
-                                    className="avatar"
-                                    style={
-                                      Object {
-                                        "height": 32,
-                                        "width": 32,
-                                      }
-                                    }
+                                  <Tooltip
+                                    disabled={true}
+                                    title="Sentry 2 Name (sentry2@test.com)"
                                   >
-                                    <img
-                                      onError={[Function]}
-                                      onLoad={[Function]}
-                                      src="undefined/avatar/4eca4e68b0a900e542fdf17e57d04dcd?s=64&d=blank"
-                                    />
-                                  </span>
+                                    <span
+                                      className="avatar"
+                                      style={
+                                        Object {
+                                          "height": 32,
+                                          "width": 32,
+                                        }
+                                      }
+                                    >
+                                      <img
+                                        onError={[Function]}
+                                        onLoad={[Function]}
+                                        src="undefined/avatar/4eca4e68b0a900e542fdf17e57d04dcd?s=64&d=blank"
+                                      />
+                                    </span>
+                                  </Tooltip>
                                 </Avatar>
                               </div>
                             </Base>
@@ -2270,6 +2300,7 @@ exports[`OrganizationMembersView Require Link does not have 2fa warning if user 
                                 <Avatar
                                   className="avatar"
                                   gravatar={true}
+                                  hasTooltip={false}
                                   size={64}
                                   style={
                                     Object {
@@ -2287,21 +2318,26 @@ exports[`OrganizationMembersView Require Link does not have 2fa warning if user 
                                     }
                                   }
                                 >
-                                  <span
-                                    className="avatar"
-                                    style={
-                                      Object {
-                                        "height": 32,
-                                        "width": 32,
-                                      }
-                                    }
+                                  <Tooltip
+                                    disabled={true}
+                                    title="Sentry 3 Name (sentry3@test.com)"
                                   >
-                                    <img
-                                      onError={[Function]}
-                                      onLoad={[Function]}
-                                      src="undefined/avatar/40d78e2a4587a53a171944ffe71ee3d4?s=64&d=blank"
-                                    />
-                                  </span>
+                                    <span
+                                      className="avatar"
+                                      style={
+                                        Object {
+                                          "height": 32,
+                                          "width": 32,
+                                        }
+                                      }
+                                    >
+                                      <img
+                                        onError={[Function]}
+                                        onLoad={[Function]}
+                                        src="undefined/avatar/40d78e2a4587a53a171944ffe71ee3d4?s=64&d=blank"
+                                      />
+                                    </span>
+                                  </Tooltip>
                                 </Avatar>
                               </div>
                             </Base>
