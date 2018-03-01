@@ -10,7 +10,6 @@ import {leaveTeam} from '../../../actionCreators/teams';
 import LoadingError from '../../../components/loadingError';
 import LoadingIndicator from '../../../components/loadingIndicator';
 import OrganizationState from '../../../mixins/organizationState';
-import Tooltip from '../../../components/tooltip';
 import Panel from '../components/panel';
 import PanelHeader from '../components/panelHeader';
 import {t} from '../../../locale';
@@ -124,19 +123,11 @@ const TeamMembers = createReactClass({
     );
   },
 
-  removeButton(access, member) {
-    return access.has('org:write') ? (
+  removeButton(member) {
+    return (
       <Button size="small" onClick={this.removeMember.bind(this, member)}>
         {t('Remove')}
       </Button>
-    ) : (
-      <Tooltip title={t('You do not have have permission to remove members')}>
-        <span>
-          <Button size="small" disabled={true}>
-            {t('Remove')}
-          </Button>
-        </span>
-      </Tooltip>
     );
   },
 
@@ -159,7 +150,7 @@ const TeamMembers = createReactClass({
         {this.state.memberList.map((member, i) => (
           <div key={i} style={{display: 'flex', justifyContent: 'space-between'}}>
             <UserBadge user={member} orgId={params.orgId} />
-            {this.removeButton(access, member)}
+            {access.has('org:write') && this.removeButton(member)}
           </div>
         ))}
       </Panel>
