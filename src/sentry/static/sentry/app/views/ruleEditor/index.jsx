@@ -176,7 +176,7 @@ const RuleEditor = createReactClass({
     const activeEnvs = EnvironmentStore.getActive() || [];
     const environmentChoices = [
       ['all', t('All Environments')],
-      ...activeEnvs.map(env => [env.urlRoutingName, env.displayName]),
+      ...activeEnvs.map(env => [env.name, env.displayName]),
     ];
 
     if (!this.state.rule) return <LoadingIndicator />;
