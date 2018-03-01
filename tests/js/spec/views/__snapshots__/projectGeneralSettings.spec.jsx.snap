@@ -8,14 +8,13 @@ exports[`projectGeneralSettings renders 1`] = `
     <SettingsPageHeading
       title="Project Settings"
     />
-    <ApiForm
+    <Form
+      allowUndo={true}
       apiEndpoint="/projects/org-slug/project-slug/"
       apiMethod="PUT"
       cancelLabel="Cancel"
       className="form-stacked"
-      errorMessage="Unable to save your changes. Please ensure all fields are valid and try again."
       footerClass="form-actions align-right"
-      hideErrors={false}
       initialData={
         Object {
           "allowedDomains": undefined,
@@ -37,369 +36,274 @@ exports[`projectGeneralSettings renders 1`] = `
           "verifySSL": undefined,
         }
       }
+      onSubmitError={[Function]}
       onSubmitSuccess={[Function]}
       requireChanges={false}
-      resetOnError={false}
+      saveOnBlur={true}
       submitDisabled={false}
       submitLabel="Save Changes"
     >
-      <div
-        className="box"
+      <JsonForm
+        access={
+          Set {
+            "org:read",
+            "org:write",
+            "org:admin",
+            "project:read",
+            "project:write",
+            "project:admin",
+            "team:read",
+            "team:write",
+            "team:admin",
+          }
+        }
+        additionalFieldProps={
+          Object {
+            "organization": Object {
+              "access": Array [
+                "org:read",
+                "org:write",
+                "org:admin",
+                "project:read",
+                "project:write",
+                "project:admin",
+                "team:read",
+                "team:write",
+                "team:admin",
+              ],
+              "features": Array [],
+              "id": "3",
+              "name": "Organization Name",
+              "onboardingTasks": Array [],
+              "slug": "org-slug",
+              "status": Object {
+                "id": "active",
+                "name": "active",
+              },
+              "teams": Array [],
+            },
+          }
+        }
+        forms={
+          Array [
+            Object {
+              "fields": Array [
+                Object {
+                  "help": "The name of your project",
+                  "label": "Project Name",
+                  "name": "name",
+                  "placeholder": "My Service Name",
+                  "required": true,
+                  "type": "string",
+                },
+                Object {
+                  "help": "A unique ID used to identify this project",
+                  "label": "Short Name",
+                  "name": "slug",
+                  "placeholder": "my-service-name",
+                  "required": true,
+                  "type": "string",
+                },
+                Object {
+                  "choices": [Function],
+                  "help": "Opt-in to new features before they're released to the public.",
+                  "label": "Team",
+                  "name": "team",
+                  "type": "array",
+                  "visible": [Function],
+                },
+              ],
+              "title": "Project Details",
+            },
+            Object {
+              "fields": Array [
+                Object {
+                  "help": "Choose a custom prefix for emails from this project",
+                  "label": "Subject Prefix",
+                  "name": "subjectPrefix",
+                  "type": "string",
+                },
+              ],
+              "title": "Email",
+            },
+            Object {
+              "fields": Array [
+                Object {
+                  "help": "The default selected environment when viewing issues",
+                  "label": "Default Environment",
+                  "name": "defaultEnvironment",
+                  "placeholder": "production",
+                  "type": "string",
+                },
+                Object {
+                  "allowedValues": Array [
+                    0,
+                    1,
+                    2,
+                    3,
+                    4,
+                    5,
+                    6,
+                    7,
+                    8,
+                    9,
+                    10,
+                    11,
+                    12,
+                    15,
+                    18,
+                    21,
+                    24,
+                    30,
+                    36,
+                    48,
+                    72,
+                    96,
+                    120,
+                    144,
+                    168,
+                    192,
+                    216,
+                    240,
+                    264,
+                    288,
+                    312,
+                    336,
+                    360,
+                    384,
+                    408,
+                    432,
+                    456,
+                    480,
+                    504,
+                    528,
+                    552,
+                    576,
+                    600,
+                    624,
+                    648,
+                    672,
+                    696,
+                    720,
+                  ],
+                  "formatLabel": [Function],
+                  "help": "Automatically resolve an issue if it hasn't been seen for this amount of time",
+                  "label": "Auto Resolve",
+                  "name": "resolveAge",
+                  "type": "range",
+                },
+              ],
+              "title": "Event Settings",
+            },
+            Object {
+              "fields": Array [
+                Object {
+                  "disabled": [Function],
+                  "disabledReason": "This option is enforced by your organization's settings and cannot be customized per-project.",
+                  "help": "Enable server-side data scrubbing",
+                  "label": "Data Scrubber",
+                  "name": "dataScrubber",
+                  "type": "boolean",
+                },
+                Object {
+                  "disabled": [Function],
+                  "disabledReason": "This option is enforced by your organization's settings and cannot be customized per-project.",
+                  "help": "Apply default scrubbers to prevent things like passwords and credit cards from being stored",
+                  "label": "Use Default Scrubbers",
+                  "name": "dataScrubberDefaults",
+                  "type": "boolean",
+                },
+                Object {
+                  "getValue": [Function],
+                  "help": "Additional field names to match against when scrubbing data. Separate multiple entries with a newline",
+                  "label": "Additional Sensitive Fields",
+                  "multiline": true,
+                  "name": "sensitiveFields",
+                  "placeholder": "email",
+                  "setValue": [Function],
+                  "type": "string",
+                },
+                Object {
+                  "getValue": [Function],
+                  "help": "Field names which data scrubbers should ignore. Separate multiple entries with a newline",
+                  "label": "Safe Fields",
+                  "multiline": true,
+                  "name": "safeFields",
+                  "placeholder": "business-email",
+                  "setValue": [Function],
+                  "type": "string",
+                },
+                Object {
+                  "disabled": [Function],
+                  "disabledReason": "This option is enforced by your organization's settings and cannot be customized per-project.",
+                  "help": "Preventing IP addresses from being stored for new events",
+                  "label": "Don't Store IP Addresses",
+                  "name": "scrubIPAddresses",
+                  "type": "boolean",
+                },
+              ],
+              "title": "Data Privacy",
+            },
+            Object {
+              "fields": Array [
+                Object {
+                  "getValue": [Function],
+                  "help": "Separate multiple entries with a newline",
+                  "label": "Allowed Domains",
+                  "multiline": true,
+                  "name": "allowedDomains",
+                  "placeholder": "https://example.com or example.com",
+                  "setValue": [Function],
+                  "type": "string",
+                },
+                Object {
+                  "help": "Allow Sentry to scrape missing JavaScript source context when possible",
+                  "label": "Enable JavaScript source fetching",
+                  "name": "scrapeJavaScript",
+                  "type": "boolean",
+                },
+                Object {
+                  "help": "Outbound requests matching Allowed Domains will have the header \\"{token_header}: {token}\\" appended",
+                  "label": "Security Token",
+                  "name": "securityToken",
+                  "type": "string",
+                },
+                Object {
+                  "help": "Outbound requests matching Allowed Domains will have the header \\"{token_header}: {token}\\" appended.",
+                  "label": "Security Token Header",
+                  "name": "securityTokenHeader",
+                  "placeholder": "X-Sentry-Token",
+                  "type": "string",
+                },
+                Object {
+                  "help": "Outbound requests will verify TLS (sometimes known as SSL) connections.",
+                  "label": "Verify TLS/SSL",
+                  "name": "verifySSL",
+                  "type": "boolean",
+                },
+              ],
+              "title": "Client Security",
+            },
+          ]
+        }
+        renderBodyStart={[Function]}
+        renderFooter={[Function]}
+      />
+    </Form>
+    <Panel>
+      <PanelHeader>
+        Project Administration
+      </PanelHeader>
+      <FieldWrapper
+        inline={true}
       >
-        <div
-          className="box-header"
+        <FieldDescription
+          inline={true}
         >
-          <h3>
-            Project Details
-          </h3>
-        </div>
-        <div
-          className="box-content with-padding"
-        >
-          <TextField
-            disabled={false}
-            hideErrorMessage={false}
-            label="Project Name"
-            name="name"
-            placeholder="e.g. My Service Name"
-            required={true}
-          />
-          <TextField
-            disabled={false}
-            help="A unique ID used to identify this project."
-            hideErrorMessage={false}
-            label="Short name"
-            name="slug"
-            required={true}
-          />
-        </div>
-      </div>
-      <div
-        className="box"
-      >
-        <div
-          className="box-header"
-        >
-          <h3>
-            Email
-          </h3>
-        </div>
-        <div
-          className="box-content with-padding"
-        >
-          <TextField
-            disabled={false}
-            help="Choose a custom prefix for emails from this project."
-            hideErrorMessage={false}
-            label="Subject prefix"
-            name="subjectPrefix"
-            required={false}
-          />
-        </div>
-      </div>
-      <div
-        className="box"
-      >
-        <div
-          className="box-header"
-        >
-          <h3>
-            Event Settings
-          </h3>
-        </div>
-        <div
-          className="box-content with-padding"
-        >
-          <TextField
-            disabled={false}
-            help="The default selected environment when viewing issues."
-            hideErrorMessage={false}
-            label="Default environment"
-            name="defaultEnvironment"
-            placeholder="e.g. production"
-            required={false}
-          />
-          <RangeField
-            allowedValues={
-              Array [
-                0,
-                1,
-                2,
-                3,
-                4,
-                5,
-                6,
-                7,
-                8,
-                9,
-                10,
-                11,
-                12,
-                15,
-                18,
-                21,
-                24,
-                30,
-                36,
-                48,
-                72,
-                96,
-                120,
-                144,
-                168,
-                192,
-                216,
-                240,
-                264,
-                288,
-                312,
-                336,
-                360,
-                384,
-                408,
-                432,
-                456,
-                480,
-                504,
-                528,
-                552,
-                576,
-                600,
-                624,
-                648,
-                672,
-                696,
-                720,
-              ]
-            }
-            disabled={false}
-            formatLabel={[Function]}
-            help="Automatically resolve an issue if it hasn't been seen for this amount of time."
-            hideErrorMessage={false}
-            label="Auto resolve"
-            max={720}
-            min={0}
-            name="resolveAge"
-            required={false}
-            snap={true}
-            step={1}
-          />
-          <p>
-            <small>
-              <strong>
-                Note: Enabling auto resolve will immediately resolve anything that has not been seen within this period of time. There is no undo!
-              </strong>
-            </small>
-          </p>
-        </div>
-      </div>
-      <div
-        className="box"
-      >
-        <div
-          className="box-header"
-        >
-          <h3>
-            Data Privacy
-          </h3>
-        </div>
-        <div
-          className="box-content with-padding"
-        >
-          <BooleanField
-            disabled={false}
-            disabledReason="This option is enforced by your organization's settings and cannot be customized per-project."
-            help="Enable server-side data scrubbing."
-            hideErrorMessage={false}
-            label="Data scrubber"
-            name="dataScrubber"
-            required={false}
-            value={null}
-          />
-          <BooleanField
-            disabled={false}
-            disabledReason="This option is enforced by your organization's settings and cannot be customized per-project."
-            help="Apply default scrubbers to prevent things like passwords and credit cards from being stored."
-            hideErrorMessage={false}
-            label="Use default scrubbers"
-            name="dataScrubberDefaults"
-            required={false}
-            value={null}
-          />
-          <ListAsTextareaField
-            disabled={false}
-            help="Additional field names to match against when scrubbing data. Separate multiple entries with a newline."
-            hideErrorMessage={false}
-            label="Additional sensitive fields"
-            name="sensitiveFields"
-            placeholder="e.g. email"
-            required={false}
-          />
-          <ListAsTextareaField
-            disabled={false}
-            help="Field names which data scrubbers should ignore. Separate multiple entries with a newline."
-            hideErrorMessage={false}
-            label="Safe fields"
-            name="safeFields"
-            placeholder="e.g. email"
-            required={false}
-          />
-          <BooleanField
-            disabled={false}
-            disabledReason="This option is enforced by your organization's settings and cannot be customized per-project."
-            help="Prevent IP addresses from being stored for new events."
-            hideErrorMessage={false}
-            label="Don't store IP Addresses"
-            name="scrubIPAddresses"
-            required={false}
-            value={null}
-          />
-        </div>
-      </div>
-      <div
-        className="box"
-      >
-        <div
-          className="box-header"
-        >
-          <h3>
-            Client Security
-          </h3>
-        </div>
-        <div
-          className="box-content with-padding"
-        >
-          <p>
-            <span
-              key="4"
-            >
-              <span
-                key="0"
-              >
-                Configure origin URLs which Sentry should accept events from. This is used for communication with clients like 
-              </span>
-              <a
-                href="https://github.com/getsentry/raven-js"
-                key="1"
-              >
-                raven-js
-              </a>
-              <span
-                key="2"
-              >
-                .
-              </span>
-            </span>
-             
-            <span
-              key="6"
-            >
-              <span
-                key="0"
-              >
-                This will restrict requests based on the 
-              </span>
-              <code
-                key="1"
-              >
-                Origin
-              </code>
-              <span
-                key="2"
-              >
-                 and 
-              </span>
-              <code
-                key="3"
-              >
-                Referer
-              </code>
-              <span
-                key="4"
-              >
-                 headers.
-              </span>
-            </span>
-          </p>
-          <ListAsTextareaField
-            disabled={false}
-            help="Separate multiple entries with a newline. Cannot be empty."
-            hideErrorMessage={false}
-            label="Allowed domains"
-            name="allowedDomains"
-            placeholder="e.g. https://example.com or example.com"
-            required={false}
-          />
-          <BooleanField
-            disabled={false}
-            help="Allow Sentry to scrape missing JavaScript source context when possible."
-            hideErrorMessage={false}
-            label="Enable JavaScript source fetching"
-            name="scrapeJavaScript"
-            required={false}
-          />
-          <DynamicWrapper
-            fixed={
-              <TextField
-                disabled={false}
-                help="Outbound requests matching Allowed Domains will have the header \\"{token_header}: {token}\\" appended."
-                hideErrorMessage={false}
-                label="Security token"
-                name="percy-mock-securityToken"
-                required={false}
-                value="<<SECURITY_TOKEN>>"
-              />
-            }
-            value={
-              <TextField
-                disabled={false}
-                help="Outbound requests matching Allowed Domains will have the header \\"{token_header}: {token}\\" appended."
-                hideErrorMessage={false}
-                label="Security token"
-                name="securityToken"
-                required={false}
-              />
-            }
-          />
-          <TextField
-            disabled={false}
-            help="Outbound requests matching Allowed Domains will have the header \\"{token_header}: {token}\\" appended."
-            hideErrorMessage={false}
-            label="Security token header"
-            name="securityTokenHeader"
-            placeholder="e.g. X-Sentry-Token"
-            required={false}
-          />
-          <BooleanField
-            disabled={false}
-            help="Outbound requests will verify TLS (sometimes known as SSL) connections."
-            hideErrorMessage={false}
-            label="Verify TLS/SSL"
-            name="verifySSL"
-            required={false}
-          />
-        </div>
-      </div>
-      <div
-        className="box"
-      >
-        <div
-          className="box-header"
-        >
-          <h3>
+          <FieldLabel>
             Remove Project
-          </h3>
-        </div>
-        <div
-          className="box-content with-padding"
-        >
-          <p>
-            <a
-              className="btn btn-danger pull-right"
-              href="/org-slug/project-slug/settings/remove/"
-            >
-              Remove Project
-            </a>
+          </FieldLabel>
+          <FieldHelp>
             Remove the 
             <strong>
               project-slug
@@ -407,29 +311,29 @@ exports[`projectGeneralSettings renders 1`] = `
              project and all related data.
             <br />
             Careful, this action cannot be undone.
-          </p>
-        </div>
-      </div>
-      <div
-        className="box"
+          </FieldHelp>
+        </FieldDescription>
+        <FieldControl
+          hideControlState={false}
+        >
+          <a
+            className="btn btn-danger"
+            href="/org-slug/project-slug/settings/remove/"
+          >
+            Remove Project
+          </a>
+        </FieldControl>
+      </FieldWrapper>
+      <FieldWrapper
+        inline={true}
       >
-        <div
-          className="box-header"
+        <FieldDescription
+          inline={true}
         >
-          <h3>
+          <FieldLabel>
             Transfer Project
-          </h3>
-        </div>
-        <div
-          className="box-content with-padding"
-        >
-          <p>
-            <a
-              className="btn btn-danger pull-right"
-              href="/org-slug/project-slug/settings/transfer/"
-            >
-              Transfer Project
-            </a>
+          </FieldLabel>
+          <FieldHelp>
             Transfer the 
             <strong>
               project-slug
@@ -437,10 +341,20 @@ exports[`projectGeneralSettings renders 1`] = `
              project and all related data.
             <br />
             Careful, this action cannot be undone.
-          </p>
-        </div>
-      </div>
-    </ApiForm>
+          </FieldHelp>
+        </FieldDescription>
+        <FieldControl
+          hideControlState={false}
+        >
+          <a
+            className="btn btn-danger"
+            href="/org-slug/project-slug/settings/transfer/"
+          >
+            Transfer Project
+          </a>
+        </FieldControl>
+      </FieldWrapper>
+    </Panel>
   </div>
 </SideEffect(DocumentTitle)>
 `;

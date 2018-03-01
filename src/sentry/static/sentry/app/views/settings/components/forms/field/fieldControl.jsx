@@ -4,6 +4,7 @@ import React from 'react';
 import styled from 'react-emotion';
 
 import FieldControlState from './fieldControlState';
+import InlineSvg from '../../../../../components/inlineSvg';
 import Tooltip from '../../../../../components/tooltip';
 
 // This wraps Control + ControlError message
@@ -24,6 +25,18 @@ const FieldControlStyled = styled(({alignRight, ...props}) => <Box {...props} />
 
 const FieldControlWrapper = styled(({hasControlState, ...props}) => <Flex {...props} />)`
   flex-shrink: 0;
+`;
+
+const StyledInlineSvg = styled(InlineSvg)`
+  display: block;
+  color: ${p => p.theme.gray1};
+  margin: 0 auto;
+  cursor: pointer;
+  transition: 0.15s color;
+
+  &:hover {
+    color: ${p => p.theme.gray3};
+  }
 `;
 
 class FieldControl extends React.Component {
@@ -61,8 +74,8 @@ class FieldControl extends React.Component {
           {disabled &&
             disabledReason && (
               <Tooltip title={disabledReason}>
-                <span className="disabled-indicator">
-                  <span className="icon-question" />
+                <span className="disabled-indicator m-a-0">
+                  <StyledInlineSvg src="icon-circle-question" size="18px" />
                 </span>
               </Tooltip>
             )}
