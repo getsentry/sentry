@@ -3,7 +3,7 @@ from __future__ import absolute_import
 from datetime import datetime
 from django.core.urlresolvers import reverse
 
-from sentry.models import Environment, Release, ReleaseCommit, ReleaseEnvironment, ReleaseProject
+from sentry.models import Environment, Release, ReleaseCommit, ReleaseEnvironment, ReleaseProject, ReleaseProjectEnvironment
 from sentry.testutils import APITestCase
 
 
@@ -21,8 +21,20 @@ class ProjectReleaseListTest(APITestCase):
             date_added=datetime(2013, 8, 13, 3, 8, 24, 880386),
         )
         release1.add_project(project1)
-        ReleaseProject.objects.filter(project=project1, release=release1).update(new_groups=5)
 
+        environment = Environment.objects.create(
+            organization_id=project1.organization_id,
+            name='prod',
+        )
+        environment.add_project(project1)
+        environment.add_project(project2)
+
+        ReleaseProjectEnvironment.objects.create(
+            project_id=project1.id,
+            release_id=release1.id,
+            environment_id=environment.id,
+            new_issues_count=5,
+        )
         release2 = Release.objects.create(
             organization_id=project1.organization_id,
             version='2',
@@ -58,7 +70,7 @@ class ProjectReleaseListTest(APITestCase):
         assert response.data[0]['version'] == release3.version
         assert response.data[1]['version'] == release2.version
         assert response.data[2]['version'] == release1.version
-        assert response.data[2]['newGroups'] == 5
+        assert response.data[2]['newIssues'] == 5
 
     def test_query_filter(self):
         self.login_as(user=self.user)

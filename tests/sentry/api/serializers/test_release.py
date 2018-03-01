@@ -18,7 +18,7 @@ from sentry.models import (
     Environment,
     Release,
     ReleaseCommit,
-    ReleaseProject,
+    ReleaseProjectEnvironment,
     User,
     UserEmail,
 )
@@ -35,8 +35,26 @@ class ReleaseSerializerTest(TestCase):
         )
         release.add_project(project)
         release.add_project(project2)
-        ReleaseProject.objects.filter(release=release, project=project).update(new_groups=1)
-        ReleaseProject.objects.filter(release=release, project=project2).update(new_groups=1)
+
+        environment = Environment.objects.create(
+            organization_id=project.organization_id,
+            name='prod',
+        )
+        environment.add_project(project)
+        environment.add_project(project2)
+
+        ReleaseProjectEnvironment.objects.create(
+            project_id=project.id,
+            release_id=release.id,
+            environment_id=environment.id,
+            new_issues_count=1,
+        )
+        ReleaseProjectEnvironment.objects.create(
+            project_id=project2.id,
+            release_id=release.id,
+            environment_id=environment.id,
+            new_issues_count=1,
+        )
         key = 'sentry:release'
         value = release.version
         tagstore.create_tag_value(
@@ -86,7 +104,7 @@ class ReleaseSerializerTest(TestCase):
         assert result['version'] == release.version
         assert result['shortVersion'] == release.version
         # should be sum of all projects
-        assert result['newGroups'] == 2
+        assert result['newIssues'] == 2
         # should be tags from all projects
         tagvalue1 = tagstore.get_tag_value(project.id, None, key, value)
         tagvalue2 = tagstore.get_tag_value(project2.id, None, key, value)
@@ -97,7 +115,7 @@ class ReleaseSerializerTest(TestCase):
 
         result = serialize(release, user, project=project)
         # should be groups from one project
-        assert result['newGroups'] == 1
+        assert result['newIssues'] == 1
         # should be tags from one project
         assert result['firstEvent'] == tagvalue1.first_seen
         assert result['lastEvent'] == tagvalue1.last_seen
@@ -385,12 +403,18 @@ class ReleaseSerializerTest(TestCase):
             organization_id=project.organization_id, version=uuid4().hex
         )
         release.add_project(project)
-        ReleaseProject.objects.filter(release=release, project=project).update(new_groups=1)
+
         env = Environment.objects.create(
             organization_id=project.organization_id,
             name='production',
         )
         env.add_project(project)
+        ReleaseProjectEnvironment.objects.create(
+            project_id=project.id,
+            release_id=release.id,
+            environment_id=env.id,
+            new_issues_count=1,
+        )
         deploy = Deploy.objects.create(
             organization_id=project.organization_id,
             release=release,

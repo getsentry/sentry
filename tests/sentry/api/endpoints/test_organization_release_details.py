@@ -5,7 +5,7 @@ from datetime import datetime
 from django.core.urlresolvers import reverse
 
 from sentry.models import (
-    Activity, File, Release, ReleaseCommit, ReleaseFile, ReleaseProject, Repository
+    Activity, Environment, File, Release, ReleaseCommit, ReleaseFile, ReleaseProjectEnvironment, Repository
 )
 from sentry.testutils import APITestCase
 
@@ -34,11 +34,23 @@ class ReleaseDetailsTest(APITestCase):
         release.add_project(project)
         release2.add_project(project2)
 
+        environment = Environment.objects.create(
+            organization_id=org.id,
+            name='prod',
+        )
+        environment.add_project(project)
+        environment.add_project(project2)
+
         self.create_member(teams=[team1], user=user, organization=org)
 
         self.login_as(user=user)
 
-        ReleaseProject.objects.filter(project=project, release=release).update(new_groups=5)
+        ReleaseProjectEnvironment.objects.create(
+            project_id=project.id,
+            release_id=release.id,
+            environment_id=environment.id,
+            new_issues_count=5,
+        )
 
         url = reverse(
             'sentry-api-0-organization-release-details',
@@ -51,7 +63,7 @@ class ReleaseDetailsTest(APITestCase):
 
         assert response.status_code == 200, response.content
         assert response.data['version'] == release.version
-        assert response.data['newGroups'] == 5
+        assert response.data['newIssues'] == 5
 
         # no access
         url = reverse(
