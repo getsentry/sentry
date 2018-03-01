@@ -21,6 +21,9 @@ from sentry.utils.cursors import build_cursor, Cursor, CursorResult
 quote_name = connections['default'].ops.quote_name
 
 
+MAX_HITS_LIMIT = 1000
+
+
 class BasePaginator(object):
     def __init__(self, queryset, order_by=None, max_limit=100):
         if order_by:
@@ -115,8 +118,7 @@ class BasePaginator(object):
         # TODO(dcramer): this does not yet work correctly for ``is_prev`` when
         # the key is not unique
         if count_hits:
-            max_hits = 1000
-            hits = self.count_hits(max_hits)
+            hits = self.count_hits(MAX_HITS_LIMIT)
         else:
             hits = None
             max_hits = None
@@ -313,15 +315,10 @@ class SequencePaginator(object):
                 True,
             )
 
-        max_hits = 1000
-
         return CursorResult(
             self.values[lo:hi],
             prev=prev_cursor,
             next=next_cursor,
-            hits=min(
-                len(self.scores),
-                max_hits,
-            ),
-            max_hits=max_hits,
+            hits=min(len(self.scores), MAX_HITS_LIMIT),
+            max_hits=MAX_HITS_LIMIT,
         )
