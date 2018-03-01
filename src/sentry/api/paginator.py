@@ -121,7 +121,6 @@ class BasePaginator(object):
             hits = self.count_hits(MAX_HITS_LIMIT)
         else:
             hits = None
-            max_hits = None
 
         offset = cursor.offset
         # this effectively gets us the before row, and the current (after) row
@@ -141,7 +140,7 @@ class BasePaginator(object):
             results=results,
             limit=limit,
             hits=hits,
-            max_hits=max_hits,
+            max_hits=MAX_HITS_LIMIT if count_hits else None,
             cursor=cursor,
             is_desc=self.desc,
             key=self.get_item_key,
