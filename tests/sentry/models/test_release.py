@@ -5,7 +5,7 @@ import six
 
 from sentry.models import (
     Commit, CommitAuthor, Group, GroupRelease, GroupResolution, GroupLink, GroupStatus,
-    Release, ReleaseCommit, ReleaseEnvironment, ReleaseProject, Repository
+    Release, ReleaseCommit, ReleaseEnvironment, ReleaseProject, ReleaseProjectEnvironment, Repository
 )
 
 from sentry.testutils import TestCase
@@ -27,6 +27,9 @@ class MergeReleasesTest(TestCase):
         release_environment = ReleaseEnvironment.objects.create(
             organization_id=org.id, project_id=project.id, release_id=release.id, environment_id=2
         )
+        release_project_environment = ReleaseProjectEnvironment.objects.create(
+            release_id=release.id, project_id=project.id, environment_id=2
+        )
         group_release = GroupRelease.objects.create(
             project_id=project.id, release_id=release.id, group_id=1
         )
@@ -46,6 +49,9 @@ class MergeReleasesTest(TestCase):
             release_id=release2.id,
             environment_id=3,
         )
+        release_project_environment2 = ReleaseProjectEnvironment.objects.create(
+            release_id=release2.id, project_id=project2.id, environment_id=3
+        )
         group_release2 = GroupRelease.objects.create(
             project_id=project2.id, release_id=release2.id, group_id=2
         )
@@ -64,6 +70,9 @@ class MergeReleasesTest(TestCase):
             project_id=project3.id,
             release_id=release3.id,
             environment_id=4,
+        )
+        release_project_environment3 = ReleaseProjectEnvironment.objects.create(
+            release_id=release3.id, project_id=project3.id, environment_id=4
         )
         group_release3 = GroupRelease.objects.create(
             project_id=project3.id, release_id=release3.id, group_id=3
@@ -89,6 +98,14 @@ class MergeReleasesTest(TestCase):
         assert ReleaseProject.objects.filter(release=release, project=project).exists()
         assert ReleaseProject.objects.filter(release=release, project=project2).exists()
         assert ReleaseProject.objects.filter(release=release, project=project3).exists()
+
+        # ReleaseProjectEnvironment.release
+        assert ReleaseProjectEnvironment.objects.get(
+            id=release_project_environment.id).release_id == release.id
+        assert ReleaseProjectEnvironment.objects.get(
+            id=release_project_environment2.id).release_id == release.id
+        assert ReleaseProjectEnvironment.objects.get(
+            id=release_project_environment3.id).release_id == release.id
 
         # GroupRelease.release_id
         assert GroupRelease.objects.get(id=group_release.id).release_id == release.id
