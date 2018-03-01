@@ -59,7 +59,10 @@ class DropdownAutoComplete extends React.Component {
 
   filterItems = (items, inputValue) =>
     items.filter(item => {
-      return item.value.toLowerCase().indexOf(inputValue.toLowerCase()) > -1;
+      return (
+        item.value.toLowerCase().indexOf(inputValue.toLowerCase()) > -1 ||
+        item.label.toLowerCase().indexOf(inputValue.toLowerCase()) > -1
+      );
     });
 
   filterGroupedItems = (groups, inputValue) =>
