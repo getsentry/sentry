@@ -305,6 +305,11 @@ class SequencePaginatorTestCase(SimpleTestCase):
         assert result.prev == Cursor(5, 0, True, True)
         assert result.next == Cursor(9, 1, False, False)
 
+        result = paginator.get_result(5, result.prev)
+        assert list(result) == [0, 1, 2, 3, 4]
+        assert result.prev == Cursor(0, 0, True, False)
+        assert result.next == Cursor(5, 0, False, True)
+
         result = paginator.get_result(5, Cursor(100, 0, False))
         assert list(result) == []
         assert result.prev == Cursor(9, 1, True, True)
@@ -322,6 +327,11 @@ class SequencePaginatorTestCase(SimpleTestCase):
         assert list(result) == [4, 3, 2, 1, 0]
         assert result.prev == Cursor(4, 0, True, True)
         assert result.next == Cursor(0, 1, False, False)
+
+        result = paginator.get_result(5, result.prev)
+        assert list(result) == [9, 8, 7, 6, 5]
+        assert result.prev == Cursor(9, 0, True, False)
+        assert result.next == Cursor(4, 0, False, True)
 
         result = paginator.get_result(5, Cursor(-10, 0, False))
         assert list(result) == []
@@ -341,6 +351,11 @@ class SequencePaginatorTestCase(SimpleTestCase):
         assert result.prev == Cursor(1, 5, True, True)
         assert result.next == Cursor(1, 10, False, False)
 
+        result = paginator.get_result(5, result.prev)
+        assert list(result) == [0, 1, 2, 3, 4]
+        assert result.prev == Cursor(1, 0, True, False)
+        assert result.next == Cursor(1, 5, False, True)
+
         result = paginator.get_result(5, Cursor(100, 0, False))
         assert list(result) == []
         assert result.prev == Cursor(1, 10, True, True)
@@ -358,6 +373,11 @@ class SequencePaginatorTestCase(SimpleTestCase):
         assert list(result) == [4, 3, 2, 1, 0]
         assert result.prev == Cursor(1, 5, True, True)
         assert result.next == Cursor(1, 10, False, False)
+
+        result = paginator.get_result(5, result.prev)
+        assert list(result) == [9, 8, 7, 6, 5]
+        assert result.prev == Cursor(1, 0, True, False)
+        assert result.next == Cursor(1, 5, False, True)
 
         result = paginator.get_result(5, Cursor(-10, 0, False))
         assert list(result) == []
