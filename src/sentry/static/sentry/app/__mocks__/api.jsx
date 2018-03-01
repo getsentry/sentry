@@ -22,7 +22,7 @@ class Client {
   // Returns a jest mock that represents Client.request calls
   static addMockResponse(response) {
     let mock = jest.fn();
-    Client.mockResponses.push([
+    Client.mockResponses.unshift([
       {
         statusCode: 200,
         body: '',

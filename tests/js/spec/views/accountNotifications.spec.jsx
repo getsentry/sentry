@@ -7,7 +7,6 @@ describe('AccountNotifications', function() {
   let url = '/users/me/notifications/';
 
   beforeEach(function() {
-    MockApiClient.clearMockResponses();
     MockApiClient.addMockResponse({
       url,
       method: 'GET',
@@ -20,15 +19,10 @@ describe('AccountNotifications', function() {
         subscribeByDefault: true,
       },
     });
+  });
 
-    MockApiClient.addMockResponse({
-      url,
-      method: 'GET',
-      body: {
-        webhookUrl: 'webhook-url',
-        token: 'token token token',
-      },
-    });
+  afterEach(function() {
+    MockApiClient.clearMockResponses();
   });
 
   it('renders with values from API', function() {
