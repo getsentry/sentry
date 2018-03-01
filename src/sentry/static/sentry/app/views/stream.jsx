@@ -116,10 +116,13 @@ const Stream = createReactClass({
         this.state.query,
         environment === null ? null : environment.name
       );
-      this.setState({
-        activeEnvironment: environment,
-        query,
-      });
+      this.setState(
+        {
+          activeEnvironment: environment,
+          query,
+        },
+        this.fetchData
+      );
     } else {
       // something else has changed, just refetch
       this.fetchData();
