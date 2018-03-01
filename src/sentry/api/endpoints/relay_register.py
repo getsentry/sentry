@@ -41,7 +41,7 @@ class RelayRegisterChallengeEndpoint(Endpoint):
         except Relay.DoesNotExist:
             pass
         else:
-            if relay.public_key != challenge['public_key']:
+            if relay.public_key != six.text_type(challenge['public_key']):
                 return Response({
                     'detail': 'Attempted to register agent with a different public key',
                 }, status=400)
