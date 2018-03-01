@@ -296,14 +296,22 @@ class SequencePaginator(object):
         prev_cursor = None
         if lo > 0:
             prev_score = self.scores[min(lo, len(self.scores) - 1)]
-            prev_offset = lo - self.search(prev_score, hi=lo)
-            prev_cursor = Cursor(prev_score, prev_offset, True, True)
+            prev_cursor = Cursor(
+                prev_score,
+                lo - self.search(prev_score, hi=lo),
+                True,
+                True,
+            )
 
         next_cursor = None
         if hi < len(self.scores):
             next_score = self.scores[hi]
-            next_offset = hi - self.search(next_score, hi=hi + 1)
-            next_cursor = Cursor(next_score, next_offset, False, True)
+            next_cursor = Cursor(
+                next_score,
+                hi - self.search(next_score, hi=hi + 1),
+                False,
+                True,
+            )
 
         max_hits = 1000
 
