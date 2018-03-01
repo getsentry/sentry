@@ -297,7 +297,12 @@ class SequencePaginatorTestCase(SimpleTestCase):
 
         result = paginator.get_result(5)
         assert list(result) == [0, 1, 2, 3, 4]
-        assert result.prev is None
+
+        prev_cursor = result.prev
+        assert prev_cursor.value == 0
+        assert prev_cursor.offset == 0
+        assert prev_cursor.is_prev is True
+        assert prev_cursor.has_results is False
 
         next_cursor = result.next
         assert next_cursor.value == 5
@@ -340,7 +345,12 @@ class SequencePaginatorTestCase(SimpleTestCase):
 
         result = paginator.get_result(5)
         assert list(result) == [9, 8, 7, 6, 5]
-        assert result.prev is None
+
+        prev_cursor = result.prev
+        assert prev_cursor.value == 9
+        assert prev_cursor.offset == 0
+        assert prev_cursor.is_prev is True
+        assert prev_cursor.has_results is False
 
         next_cursor = result.next
         assert next_cursor.value == 4
@@ -361,6 +371,7 @@ class SequencePaginatorTestCase(SimpleTestCase):
         assert prev_cursor.value == 4
         assert prev_cursor.offset == 0
         assert prev_cursor.is_prev is True
+        assert prev_cursor.has_results is True
 
         result = paginator.get_result(5, Cursor(-10, 0, False))
         assert list(result) == []
@@ -375,13 +386,19 @@ class SequencePaginatorTestCase(SimpleTestCase):
         assert prev_cursor.value == 0
         assert prev_cursor.offset == 1
         assert prev_cursor.is_prev is True
+        assert prev_cursor.has_results is True
 
     def test_ascending_repeated_scores(self):
         paginator = SequencePaginator([(1, i) for i in range(10)], reverse=False)
 
         result = paginator.get_result(5)
         assert list(result) == [0, 1, 2, 3, 4]
-        assert result.prev is None
+
+        prev_cursor = result.prev
+        assert prev_cursor.value == 1
+        assert prev_cursor.offset == 0
+        assert prev_cursor.is_prev is True
+        assert prev_cursor.has_results is False
 
         next_cursor = result.next
         assert next_cursor.value == 1
@@ -424,7 +441,12 @@ class SequencePaginatorTestCase(SimpleTestCase):
 
         result = paginator.get_result(5)
         assert list(result) == [9, 8, 7, 6, 5]
-        assert result.prev is None
+
+        prev_cursor = result.prev
+        assert prev_cursor.value == 1
+        assert prev_cursor.offset == 0
+        assert prev_cursor.is_prev is True
+        assert prev_cursor.has_results is False
 
         next_cursor = result.next
         assert next_cursor.value == 1
