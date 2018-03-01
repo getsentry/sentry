@@ -10,7 +10,7 @@ const UserBadge = ({user, orgId}) => {
       <StyledAvatar user={user} size={80} className="avatar" />
       <div>
         <StyledLink to={`/settings/organization/${orgId}/members/${user.id}`}>
-          {user.email}
+          {user.name || user.email}
         </StyledLink>
         <StyledEmail>{user.email}</StyledEmail>
       </div>
