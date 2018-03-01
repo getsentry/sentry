@@ -4,6 +4,8 @@ import $ from 'jquery';
 import MD5 from 'crypto-js/md5';
 import ConfigStore from '../stores/configStore';
 import UserLetterAvatar from '../components/userLetterAvatar';
+import {userDisplayName} from '../utils/formatters';
+import Tooltip from './tooltip';
 
 class Avatar extends React.Component {
   static propTypes = {
@@ -12,12 +14,14 @@ class Avatar extends React.Component {
     default: PropTypes.string,
     title: PropTypes.string,
     gravatar: PropTypes.bool,
+    hasTooltip: PropTypes.bool,
   };
 
   static defaultProps = {
     className: 'avatar',
     size: 64,
     gravatar: true,
+    hasTooltip: false,
   };
 
   constructor(...args) {
@@ -88,16 +92,18 @@ class Avatar extends React.Component {
   };
 
   render() {
-    let user = this.props.user;
+    let {user, hasTooltip} = this.props;
     if (!user) {
       return null;
     }
 
     return (
-      <span className={this.props.className} style={this.props.style}>
-        {this.state.showBackupAvatar && <UserLetterAvatar user={user} />}
-        {this.renderImg()}
-      </span>
+      <Tooltip title={userDisplayName(user)} disabled={!hasTooltip}>
+        <span className={this.props.className} style={this.props.style}>
+          {this.state.showBackupAvatar && <UserLetterAvatar user={user} />}
+          {this.renderImg()}
+        </span>
+      </Tooltip>
     );
   }
 }

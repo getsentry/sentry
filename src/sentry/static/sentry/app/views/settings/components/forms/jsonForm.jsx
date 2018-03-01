@@ -24,6 +24,10 @@ class JsonForm extends React.Component {
     access: PropTypes.object,
     additionalFieldProps: PropTypes.object,
     renderFooter: PropTypes.func,
+    /**
+     * Renders inside of PanelBody
+     */
+    renderBodyStart: PropTypes.func,
   };
 
   static defaultProps = {
@@ -72,11 +76,13 @@ class JsonForm extends React.Component {
       access,
       additionalFieldProps,
       renderFooter,
+      renderBodyStart,
       // eslint-disable-next-line no-unused-vars
       location,
       ...otherProps
     } = this.props;
     let shouldRenderFooter = typeof renderFooter === 'function';
+    let shouldRenderBodyStart = typeof renderBodyStart === 'function';
 
     return (
       <Box {...otherProps}>
@@ -85,6 +91,8 @@ class JsonForm extends React.Component {
             <Panel key={title} id={title}>
               <PanelHeader>{title}</PanelHeader>
               <PanelBody>
+                {shouldRenderBodyStart && renderBodyStart({title, fields})}
+
                 {fields.map(field => {
                   if (typeof field === 'function') {
                     return field();

@@ -7,5 +7,12 @@ import ProjectLabel from 'sentry-ui/projectLabel';
 
 storiesOf('ProjectLabel', module).add(
   'default',
-  withInfo('')(() => <ProjectLabel project={{name: 'Project Name'}} />)
+  withInfo('')(() => {
+    return (
+      <ProjectLabel
+        project={{name: 'Project Name'}}
+        organization={{slug: 'test-org', features: []}}
+      />
+    );
+  })
 );

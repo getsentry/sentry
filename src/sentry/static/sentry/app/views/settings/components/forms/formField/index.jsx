@@ -246,7 +246,7 @@ class FormField extends React.Component {
     let model = this.getModel();
 
     return (
-      <Field id={id} {...props}>
+      <Field id={id} name={name} {...props}>
         {({alignRight, inline, disabled, disabledReason}) => (
           <FieldControl
             disabled={disabled}

@@ -1,8 +1,38 @@
 import {extractMultilineFields} from '../../utils';
-import {t} from '../../locale';
+import {t, tn} from '../../locale';
 
 // Export route to make these forms searchable by label/help
 export const route = '/settings/organization/:orgId/project/:projectId/settings/';
+
+const getResolveAgeAllowedValues = () => {
+  let i = 0;
+  let values = [];
+  while (i <= 720) {
+    values.push(i);
+    if (i < 12) {
+      i += 1;
+    } else if (i < 24) {
+      i += 3;
+    } else if (i < 36) {
+      i += 6;
+    } else if (i < 48) {
+      i += 12;
+    } else {
+      i += 24;
+    }
+  }
+  return values;
+};
+
+const RESOLVE_AGE_ALLOWED_VALUES = getResolveAgeAllowedValues();
+
+const ORG_DISABLED_REASON = t(
+  "This option is enforced by your organization's settings and cannot be customized per-project."
+);
+
+// Check if a field has been set at the organization level.
+const hasOrgOverride = ({organization, name}) =>
+  typeof organization[name] !== 'undefined';
 
 const formGroups = [
   {
@@ -31,6 +61,7 @@ const formGroups = [
         name: 'team',
         type: 'array',
         label: t('Team'),
+        visible: ({organization}) => organization.teams.length > 1,
         choices: ({organization}) =>
           organization.teams.filter(o => o.isMember).map(o => [o.id, o.slug]),
         help: t("Opt-in to new features before they're released to the public."),
@@ -62,15 +93,23 @@ const formGroups = [
       },
       {
         name: 'resolveAge',
-        type: 'number',
-
-        min: 0,
-        max: 168,
-        step: 1,
+        type: 'range',
+        allowedValues: RESOLVE_AGE_ALLOWED_VALUES,
         label: t('Auto Resolve'),
         help: t(
           "Automatically resolve an issue if it hasn't been seen for this amount of time"
         ),
+        formatLabel: val => {
+          val = parseInt(val, 10);
+          if (val === 0) {
+            return t('Disabled');
+          } else if (val > 23 && val % 24 === 0) {
+            // Based on allowed values, val % 24 should always be true
+            val = val / 24;
+            return tn('%d day', '%d days', val);
+          }
+          return tn('%d hour', '%d hours', val);
+        },
       },
     ],
   },
@@ -82,12 +121,15 @@ const formGroups = [
         name: 'dataScrubber',
         type: 'boolean',
         label: t('Data Scrubber'),
+        disabled: hasOrgOverride,
+        disabledReason: ORG_DISABLED_REASON,
         help: t('Enable server-side data scrubbing'),
       },
       {
         name: 'dataScrubberDefaults',
         type: 'boolean',
-
+        disabled: hasOrgOverride,
+        disabledReason: ORG_DISABLED_REASON,
         label: t('Use Default Scrubbers'),
         help: t(
           'Apply default scrubbers to prevent things like passwords and credit cards from being stored'
@@ -120,6 +162,8 @@ const formGroups = [
       {
         name: 'scrubIPAddresses',
         type: 'boolean',
+        disabled: hasOrgOverride,
+        disabledReason: ORG_DISABLED_REASON,
         label: t("Don't Store IP Addresses"),
         help: t('Preventing IP addresses from being stored for new events'),
       },
