@@ -3,32 +3,45 @@ import {mount} from 'enzyme';
 import AssigneeSelector from 'app/components/assigneeSelector';
 
 import LoadingIndicator from 'app/components/loadingIndicator';
+import {Client} from 'app/api';
 
 import GroupStore from 'app/stores/groupStore';
 import MemberListStore from 'app/stores/memberListStore';
 import ConfigStore from 'app/stores/configStore';
+import TeamStore from 'app/stores/teamStore';
 
 import stubReactComponents from '../../helpers/stubReactComponent';
 
 describe('AssigneeSelector', function() {
   let sandbox;
   let assigneeSelector;
-  let assignTo;
+  let assignToUser;
 
   const USER_1 = {
-    id: 1,
+    id: '1',
     name: 'Jane Doe',
     email: 'janedoe@example.com',
   };
   const USER_2 = {
-    id: 2,
+    id: '2',
     name: 'John Smith',
     email: 'johnsmith@example.com',
   };
   const USER_3 = {
-    id: 3,
+    id: '3',
     name: 'J J',
     email: 'jj@example.com',
+  };
+
+  const TEAM_1 = {
+    id: '3',
+    name: 'COOL TEAM',
+    slug: 'cool-team',
+    projects: [
+      {
+        slug: '2',
+      },
+    ],
   };
 
   beforeEach(function() {
@@ -36,8 +49,12 @@ describe('AssigneeSelector', function() {
     stubReactComponents(sandbox, [LoadingIndicator]);
 
     sandbox.stub(MemberListStore, 'getAll').returns([USER_1, USER_2]);
+    sandbox.stub(TeamStore, 'getAll').returns([TEAM_1]);
     sandbox.stub(GroupStore, 'get').returns({
-      id: 1337,
+      id: '1337',
+      project: {
+        slug: '2',
+      },
       assignedTo: null,
     });
   });
@@ -80,7 +97,7 @@ describe('AssigneeSelector', function() {
           .stub(ConfigStore, 'get')
           .withArgs('user')
           .returns({
-            id: 2,
+            id: '2',
             name: 'John Smith',
             email: 'johnsmith@example.com',
           });
@@ -92,7 +109,7 @@ describe('AssigneeSelector', function() {
           .stub(ConfigStore, 'get')
           .withArgs('user')
           .returns({
-            id: 555,
+            id: '555',
             name: 'Here Comes a New Challenger',
             email: 'guile@mail.us.af.mil',
           });
@@ -109,14 +126,44 @@ describe('AssigneeSelector', function() {
       // Reset sandbox because we don't want <LoadingIndicator /> stubbed
       sandbox.restore();
       sandbox = sinon.sandbox.create();
-      sandbox.stub(GroupStore, 'get').returns({
-        id: 1337,
-        assignedTo: null,
+      sandbox.stub(TeamStore, 'getAll').returns([TEAM_1]);
+
+      GroupStore.loadInitialData([
+        {
+          id: '1337',
+          project: {
+            slug: '2',
+          },
+          assignedTo: null,
+        },
+      ]);
+
+      Client.addMockResponse({
+        method: 'PUT',
+        url: '/issues/1337/',
+        body: {
+          id: '1337',
+          assignedTo: {
+            id: '1',
+            type: 'user',
+            name: 'Jane Doe',
+          },
+        },
       });
+
       MemberListStore.items = [];
       MemberListStore.loaded = false;
-      assigneeSelector = mount(<AssigneeSelector id="1337" />);
+
+      assigneeSelector = mount(<AssigneeSelector id="1337" />, TestStubs.routerContext());
+      assigneeSelector.setContext({
+        organization: {id: '1', features: new Set(['internal-catchall'])},
+      });
+
       openMenu = () => assigneeSelector.find('a').simulate('click');
+    });
+
+    afterEach(function() {
+      Client.clearMockResponses();
     });
 
     it('should initially have loading state', function() {
@@ -128,8 +175,10 @@ describe('AssigneeSelector', function() {
       openMenu();
       MemberListStore.loadInitialData([USER_1, USER_2]);
       assigneeSelector.update();
+      expect(assigneeSelector.instance().assignableTeams().length).toBe(1);
 
       expect(assigneeSelector.find('Avatar').length).toBe(2);
+      expect(assigneeSelector.find('TeamAvatar').length).toBe(1);
       expect(assigneeSelector.find('LoadingIndicator').exists()).toBe(false);
     });
 
@@ -147,6 +196,76 @@ describe('AssigneeSelector', function() {
       expect(assigneeSelector.find('Avatar').length).toBe(2);
       expect(assigneeSelector.find('LoadingIndicator').exists()).toBe(false);
     });
+
+    it('successfully assigns users', function(done) {
+      openMenu();
+      MemberListStore.loadInitialData([USER_1, USER_2]);
+      assigneeSelector.update();
+      assigneeSelector
+        .find('Avatar')
+        .first()
+        .simulate('click');
+      assigneeSelector.update();
+      expect(assigneeSelector.find('LoadingIndicator').exists()).toBe(true);
+
+      setTimeout(() => {
+        assigneeSelector.update();
+        expect(assigneeSelector.find('LoadingIndicator').exists()).toBe(false);
+        expect(assigneeSelector.find('ActorAvatar').length).toBe(1);
+        done();
+      }, 100); //hack
+    });
+
+    it('successfully assigns teams', function(done) {
+      openMenu();
+      MemberListStore.loadInitialData([USER_1, USER_2]);
+      assigneeSelector.update();
+      assigneeSelector
+        .find('TeamAvatar')
+        .first()
+        .simulate('click');
+      assigneeSelector.update();
+      expect(assigneeSelector.find('LoadingIndicator').exists()).toBe(true);
+
+      setTimeout(() => {
+        assigneeSelector.update();
+        expect(assigneeSelector.find('LoadingIndicator').exists()).toBe(false);
+        expect(assigneeSelector.find('ActorAvatar').length).toBe(1);
+        done();
+      }, 100); //hack
+    });
+
+    it('successfully clears assignment', function() {
+      openMenu();
+      MemberListStore.loadInitialData([USER_1, USER_2]);
+      assigneeSelector.update();
+      assigneeSelector
+        .find('Avatar')
+        .first()
+        .simulate('click');
+      assigneeSelector.update();
+      expect(assigneeSelector.find('LoadingIndicator').exists()).toBe(true);
+
+      expect(
+        Client.findMockResponse('/issues/1337/', {
+          method: 'PUT',
+        })[0].callCount
+      ).toBe(1);
+
+      assigneeSelector.instance().clearAssignTo();
+
+      expect(
+        Client.findMockResponse('/issues/1337/', {
+          method: 'PUT',
+        })[0].callCount
+      ).toBe(2);
+      //api was called with empty string, clearing assignment
+      expect(
+        Client.findMockResponse('/issues/1337/', {
+          method: 'PUT',
+        })[1].mock.calls[1][1].data.assignedTo
+      ).toBe('');
+    });
   });
 
   describe('onFilterKeyDown()', function() {
@@ -155,11 +274,11 @@ describe('AssigneeSelector', function() {
       if (assigneeSelector) {
         assigneeSelector.unmount();
       }
-      assigneeSelector = mount(<AssigneeSelector id="1337" />);
+      assigneeSelector = mount(<AssigneeSelector id="1337" />, TestStubs.routerContext());
       // open menu
       assigneeSelector.find('a').simulate('click');
 
-      assignTo = sandbox.stub(assigneeSelector.instance(), 'assignTo');
+      assignToUser = sandbox.stub(assigneeSelector.instance(), 'assignToUser');
     });
 
     afterEach(function() {
@@ -172,8 +291,8 @@ describe('AssigneeSelector', function() {
       let filter = assigneeSelector.find('input');
       filter.simulate('keyDown', {key: 'Enter', keyCode: 13, which: 13});
 
-      expect(assignTo.calledOnce).toBeTruthy();
-      expect(assignTo.lastCall.args[0]).toHaveProperty('name', 'Jane Doe');
+      expect(assignToUser.calledOnce).toBeTruthy();
+      expect(assignToUser.lastCall.args[0]).toHaveProperty('name', 'Jane Doe');
     });
 
     it('should do nothing when the Enter key is pressed, but filter is the empty string', function() {
@@ -182,7 +301,7 @@ describe('AssigneeSelector', function() {
       let filter = assigneeSelector.find('input');
       filter.simulate('keyDown', {key: 'Enter', keyCode: 13, which: 13});
 
-      expect(assignTo.notCalled).toBeTruthy();
+      expect(assignToUser.notCalled).toBeTruthy();
     });
 
     it('should do nothing if a non-Enter key is pressed', function() {
@@ -190,7 +309,7 @@ describe('AssigneeSelector', function() {
 
       let filter = assigneeSelector.find('input');
       filter.simulate('keyDown', {key: 'h', keyCode: 72, which: 72});
-      expect(assignTo.notCalled).toBeTruthy();
+      expect(assignToUser.notCalled).toBeTruthy();
     });
   });
 
@@ -201,7 +320,7 @@ describe('AssigneeSelector', function() {
         assigneeSelector.unmount();
       }
 
-      assigneeSelector = mount(<AssigneeSelector id="1337" />);
+      assigneeSelector = mount(<AssigneeSelector id="1337" />, TestStubs.routerContext());
 
       // open menu
       assigneeSelector.find('a').simulate('click');
@@ -222,23 +341,6 @@ describe('AssigneeSelector', function() {
       let filter = assigneeSelector.find('input');
       filter.simulate('keyUp', {target: {value: 'foo'}});
       expect(assigneeSelector.state('filter')).toEqual('foo');
-    });
-  });
-
-  describe('componentDidUpdate()', function() {
-    beforeEach(function() {
-      assigneeSelector = mount(<AssigneeSelector id="1337" />);
-    });
-
-    it('should destroy old assignee tooltip and create a new assignee tooltip', function() {
-      let instance = assigneeSelector.instance();
-      sandbox.spy(instance, 'attachTooltips');
-      sandbox.spy(instance, 'removeTooltips');
-
-      assigneeSelector.setState({assignedTo: USER_1});
-
-      expect(instance.attachTooltips.calledOnce).toBeTruthy();
-      expect(instance.removeTooltips.calledOnce).toBeTruthy();
     });
   });
 });
