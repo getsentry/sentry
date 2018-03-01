@@ -14,10 +14,18 @@ import Panel from '../components/panel';
 import PanelHeader from '../components/panelHeader';
 import {t} from '../../../locale';
 
-const PanelHeaderContentContainer = styled('div')`
+const StyledHeaderContainer = styled('div')`
   display: flex;
   align-items: center;
   justify-content: space-between;
+  padding-left: 1em;
+  padding-right: 1em;
+`;
+
+const StyledMemberContainer = styled('div')`
+  display: flex;
+  justify-content: space-between;
+  padding: 1em;
 `;
 
 const TeamMembers = createReactClass({
@@ -141,17 +149,17 @@ const TeamMembers = createReactClass({
 
     return (
       <Panel>
-        <PanelHeader>
-          <PanelHeaderContentContainer>
+        <PanelHeader hasButtons disablePadding>
+          <StyledHeaderContainer>
             <div>{t('Members')}</div>
             {this.addMemberButton(access, params.orgId)}
-          </PanelHeaderContentContainer>
+          </StyledHeaderContainer>
         </PanelHeader>
         {this.state.memberList.map((member, i) => (
-          <div key={i} style={{display: 'flex', justifyContent: 'space-between'}}>
+          <StyledMemberContainer key={i}>
             <UserBadge user={member} orgId={params.orgId} />
             {access.has('org:write') && this.removeButton(member)}
-          </div>
+          </StyledMemberContainer>
         ))}
       </Panel>
     );

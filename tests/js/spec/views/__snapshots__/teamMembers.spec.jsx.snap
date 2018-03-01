@@ -2,8 +2,11 @@
 
 exports[`TeamMembers render() renders 1`] = `
 <Panel>
-  <PanelHeader>
-    <PanelHeaderContentContainer>
+  <PanelHeader
+    disablePadding={true}
+    hasButtons={true}
+  >
+    <StyledHeaderContainer>
       <div>
         Members
       </div>
@@ -20,16 +23,10 @@ exports[`TeamMembers render() renders 1`] = `
          
         Invite Member
       </Button>
-    </PanelHeaderContentContainer>
+    </StyledHeaderContainer>
   </PanelHeader>
-  <div
+  <StyledMemberContainer
     key="0"
-    style={
-      Object {
-        "display": "flex",
-        "justifyContent": "space-between",
-      }
-    }
   >
     <UserBadge
       orgId="org-slug"
@@ -60,15 +57,9 @@ exports[`TeamMembers render() renders 1`] = `
     >
       Remove
     </Button>
-  </div>
-  <div
+  </StyledMemberContainer>
+  <StyledMemberContainer
     key="1"
-    style={
-      Object {
-        "display": "flex",
-        "justifyContent": "space-between",
-      }
-    }
   >
     <UserBadge
       orgId="org-slug"
@@ -99,15 +90,9 @@ exports[`TeamMembers render() renders 1`] = `
     >
       Remove
     </Button>
-  </div>
-  <div
+  </StyledMemberContainer>
+  <StyledMemberContainer
     key="2"
-    style={
-      Object {
-        "display": "flex",
-        "justifyContent": "space-between",
-      }
-    }
   >
     <UserBadge
       orgId="org-slug"
@@ -138,6 +123,6 @@ exports[`TeamMembers render() renders 1`] = `
     >
       Remove
     </Button>
-  </div>
+  </StyledMemberContainer>
 </Panel>
 `;
