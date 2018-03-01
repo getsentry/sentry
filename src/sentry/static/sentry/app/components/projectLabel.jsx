@@ -8,10 +8,14 @@ export default class ProjectLabel extends React.PureComponent {
   };
 
   render() {
-    let project = this.props.project;
+    let {project, organization} = this.props;
+    let features = new Set(organization.features);
+
     return (
       <span className="project-label">
-        <span className="project-name">{project.name}</span>
+        <span className="project-name">
+          {features.has('internal-catchall') ? project.slug : project.name}
+        </span>
       </span>
     );
   }
