@@ -78,7 +78,7 @@ class DropdownAutoComplete extends React.Component {
   autoCompleteFilter = (items, inputValue) => {
     let itemCount = 0;
 
-    if (items[0].items) {
+    if (items[0] && items[0].items) {
       //if the first item has children, we assume it is a group
       return _.flatMap(this.filterGroupedItems(items, inputValue), item => {
         return [
