@@ -1,151 +1,143 @@
 // Jest Snapshot v1, https://goo.gl/fbAQLP
 
 exports[`TeamMembers render() renders 1`] = `
-<div>
-  <Panel>
-    <PanelHeader>
-      <PanelHeaderContentContainer>
-        <div>
-          Members
-        </div>
-        <Button
-          className="pull-right"
-          disabled={false}
-          priority="primary"
-          size="small"
-          to="/settings/organization/org-slug/members/new/"
-        >
-          <span
-            className="icon-plus"
-          />
-           
-          Invite Member
-        </Button>
-      </PanelHeaderContentContainer>
-    </PanelHeader>
-    <table
-      className="table member-list"
+<Panel>
+  <PanelHeader>
+    <PanelHeaderContentContainer>
+      <div>
+        Members
+      </div>
+      <Button
+        className="pull-right"
+        disabled={false}
+        priority="primary"
+        size="small"
+        to="/settings/organization/org-slug/members/new/"
+      >
+        <span
+          className="icon-plus"
+        />
+         
+        Invite Member
+      </Button>
+    </PanelHeaderContentContainer>
+  </PanelHeader>
+  <div
+    key="0"
+    style={
+      Object {
+        "display": "flex",
+        "justifyContent": "space-between",
+      }
+    }
+  >
+    <UserBadge
+      orgId="org-slug"
+      user={
+        Object {
+          "email": "",
+          "flags": Object {
+            "sso:linked": false,
+          },
+          "id": "1",
+          "name": "",
+          "pending": false,
+          "roleName": "",
+          "user": Object {
+            "email": "sentry1@test.com",
+            "has2fa": false,
+            "id": "1",
+            "name": "Sentry 1 Name",
+            "username": "Sentry 1 Username",
+          },
+        }
+      }
+    />
+    <Button
+      disabled={false}
+      onClick={[Function]}
+      size="small"
     >
-      <tbody>
-        <tr
-          key="0"
-        >
-          <td
-            className="table-user-info"
-          >
-            <UserBadge
-              orgId="org-slug"
-              user={
-                Object {
-                  "email": "",
-                  "flags": Object {
-                    "sso:linked": false,
-                  },
-                  "id": "1",
-                  "name": "",
-                  "pending": false,
-                  "roleName": "",
-                  "user": Object {
-                    "email": "sentry1@test.com",
-                    "has2fa": false,
-                    "id": "1",
-                    "name": "Sentry 1 Name",
-                    "username": "Sentry 1 Username",
-                  },
-                }
-              }
-            />
-          </td>
-          <td>
-            <Button
-              disabled={false}
-              onClick={[Function]}
-              size="small"
-            >
-              Remove
-            </Button>
-          </td>
-        </tr>
-        <tr
-          key="1"
-        >
-          <td
-            className="table-user-info"
-          >
-            <UserBadge
-              orgId="org-slug"
-              user={
-                Object {
-                  "email": "",
-                  "flags": Object {
-                    "sso:linked": false,
-                  },
-                  "id": "2",
-                  "name": "",
-                  "pending": false,
-                  "roleName": "",
-                  "user": Object {
-                    "email": "sentry2@test.com",
-                    "has2fa": true,
-                    "id": "2",
-                    "name": "Sentry 2 Name",
-                    "username": "Sentry 2 Username",
-                  },
-                }
-              }
-            />
-          </td>
-          <td>
-            <Button
-              disabled={false}
-              onClick={[Function]}
-              size="small"
-            >
-              Remove
-            </Button>
-          </td>
-        </tr>
-        <tr
-          key="2"
-        >
-          <td
-            className="table-user-info"
-          >
-            <UserBadge
-              orgId="org-slug"
-              user={
-                Object {
-                  "email": "",
-                  "flags": Object {
-                    "sso:linked": true,
-                  },
-                  "id": "3",
-                  "name": "",
-                  "pending": false,
-                  "roleName": "",
-                  "user": Object {
-                    "email": "sentry3@test.com",
-                    "has2fa": true,
-                    "id": "3",
-                    "name": "Sentry 3 Name",
-                    "username": "Sentry 3 Username",
-                  },
-                }
-              }
-            />
-          </td>
-          <td>
-            <Button
-              disabled={false}
-              onClick={[Function]}
-              size="small"
-            >
-              Remove
-            </Button>
-          </td>
-        </tr>
-      </tbody>
-    </table>
-  </Panel>
-</div>
+      Remove
+    </Button>
+  </div>
+  <div
+    key="1"
+    style={
+      Object {
+        "display": "flex",
+        "justifyContent": "space-between",
+      }
+    }
+  >
+    <UserBadge
+      orgId="org-slug"
+      user={
+        Object {
+          "email": "",
+          "flags": Object {
+            "sso:linked": false,
+          },
+          "id": "2",
+          "name": "",
+          "pending": false,
+          "roleName": "",
+          "user": Object {
+            "email": "sentry2@test.com",
+            "has2fa": true,
+            "id": "2",
+            "name": "Sentry 2 Name",
+            "username": "Sentry 2 Username",
+          },
+        }
+      }
+    />
+    <Button
+      disabled={false}
+      onClick={[Function]}
+      size="small"
+    >
+      Remove
+    </Button>
+  </div>
+  <div
+    key="2"
+    style={
+      Object {
+        "display": "flex",
+        "justifyContent": "space-between",
+      }
+    }
+  >
+    <UserBadge
+      orgId="org-slug"
+      user={
+        Object {
+          "email": "",
+          "flags": Object {
+            "sso:linked": true,
+          },
+          "id": "3",
+          "name": "",
+          "pending": false,
+          "roleName": "",
+          "user": Object {
+            "email": "sentry3@test.com",
+            "has2fa": true,
+            "id": "3",
+            "name": "Sentry 3 Name",
+            "username": "Sentry 3 Username",
+          },
+        }
+      }
+    />
+    <Button
+      disabled={false}
+      onClick={[Function]}
+      size="small"
+    >
+      Remove
+    </Button>
+  </div>
+</Panel>
 `;

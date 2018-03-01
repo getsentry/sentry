@@ -124,6 +124,22 @@ const TeamMembers = createReactClass({
     );
   },
 
+  removeButton(access, member) {
+    return access.has('org:write') ? (
+      <Button size="small" onClick={this.removeMember.bind(this, member)}>
+        {t('Remove')}
+      </Button>
+    ) : (
+      <Tooltip title={t('You do not have have permission to remove members')}>
+        <span>
+          <Button size="small" disabled={true}>
+            {t('Remove')}
+          </Button>
+        </span>
+      </Tooltip>
+    );
+  },
+
   render() {
     if (this.state.loading) return <LoadingIndicator />;
     else if (this.state.error) return <LoadingError onRetry={this.fetchData} />;
@@ -133,49 +149,20 @@ const TeamMembers = createReactClass({
     let access = this.getAccess();
 
     return (
-      <div>
-        <Panel>
-          <PanelHeader>
-            <PanelHeaderContentContainer>
-              <div>{t('Members')}</div>
-              {this.addMemberButton(access, params.orgId)}
-            </PanelHeaderContentContainer>
-          </PanelHeader>
-          <table className="table member-list">
-            <tbody>
-              {this.state.memberList.map((member, i) => {
-                return (
-                  <tr key={i}>
-                    <td className="table-user-info">
-                      <UserBadge user={member} orgId={params.orgId} />
-                    </td>
-                    <td>
-                      {access.has('org:write') ? (
-                        <Button
-                          size="small"
-                          onClick={this.removeMember.bind(this, member)}
-                        >
-                          {t('Remove')}
-                        </Button>
-                      ) : (
-                        <Tooltip
-                          title={t("You don't have have permission to remove members")}
-                        >
-                          <span>
-                            <Button size="small" disabled={true}>
-                              {t('Remove')}
-                            </Button>
-                          </span>
-                        </Tooltip>
-                      )}
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        </Panel>
-      </div>
+      <Panel>
+        <PanelHeader>
+          <PanelHeaderContentContainer>
+            <div>{t('Members')}</div>
+            {this.addMemberButton(access, params.orgId)}
+          </PanelHeaderContentContainer>
+        </PanelHeader>
+        {this.state.memberList.map((member, i) => (
+          <div key={i} style={{display: 'flex', justifyContent: 'space-between'}}>
+            <UserBadge user={member} orgId={params.orgId} />
+            {this.removeButton(access, member)}
+          </div>
+        ))}
+      </Panel>
     );
   },
 });
