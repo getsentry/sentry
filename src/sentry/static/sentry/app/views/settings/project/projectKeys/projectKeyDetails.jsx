@@ -1,38 +1,58 @@
+import {Box, Flex} from 'grid-emotion';
 import {browserHistory} from 'react-router';
-import {isEqual} from 'lodash';
-import DocumentTitle from 'react-document-title';
 import PropTypes from 'prop-types';
 import React from 'react';
 import createReactClass from 'create-react-class';
-import idx from 'idx';
+import styled from 'react-emotion';
 
 import {
-  BooleanField,
-  FormState,
-  NumberField,
-  Select2Field,
-  TextField,
-} from '../components/forms';
-import {t, tct} from '../locale';
-import ApiMixin from '../mixins/apiMixin';
-import AutoSelectText from '../components/autoSelectText';
-import DateTime from '../components/dateTime';
-import DynamicWrapper from '../components/dynamicWrapper';
-import FlowLayout from '../components/flowLayout';
-import HookStore from '../stores/hookStore';
-import IndicatorStore from '../stores/indicatorStore';
-import LoadingError from '../components/loadingError';
-import LoadingIndicator from '../components/loadingIndicator';
-import ProjectState from '../mixins/projectState';
-import StackedBarChart from '../components/stackedBarChart';
+  addErrorMessage,
+  addLoadingMessage,
+  addSuccessMessage,
+  removeIndicator,
+} from '../../../../actionCreators/indicator';
+import {getOrganizationState} from '../../../../mixins/organizationState';
+import {t} from '../../../../locale';
+import ApiMixin from '../../../../mixins/apiMixin';
+import AsyncView from '../../../asyncView';
+import BooleanField from '../../components/forms/booleanField';
+import Button from '../../../../components/buttons/button';
+import Confirm from '../../../../components/confirm';
+import DateTime from '../../../../components/dateTime';
+import EmptyMessage from '../../components/emptyMessage';
+import Field from '../../components/forms/field';
+import Form from '../../components/forms/form';
+import FormField from '../../components/forms/formField';
+import HookStore from '../../../../stores/hookStore';
+import InputControl from '../../components/forms/controls/input';
+import LoadingError from '../../../../components/loadingError';
+import LoadingIndicator from '../../../../components/loadingIndicator';
+import Panel from '../../components/panel';
+import PanelAlert from '../../components/panelAlert';
+import PanelBody from '../../components/panelBody';
+import PanelHeader from '../../components/panelHeader';
+import ProjectKeyCredentials from './projectKeyCredentials';
+import RangeSlider from '../../components/forms/controls/rangeSlider';
+import SentryTypes from '../../../../proptypes';
+import SettingsPageHeader from '../../components/settingsPageHeader';
+import StackedBarChart from '../../../../components/stackedBarChart';
+import TextBlock from '../../components/text/textBlock';
+import TextField from '../../components/forms/textField';
 
-// Exporting this only so we can quickly and simply unit test it
-// Not moving this to utils because this is tightly coupled to the UI
-export const getRateLimitError = (obj, key) => {
-  if (!obj || !obj.rateLimit || !Array.isArray(obj.rateLimit)) return null;
+const RATE_LIMIT_FORMAT_MAP = new Map([
+  [0, 'None'],
+  [60, '1 minute'],
+  [300, '5 minutes'],
+  [900, '15 minutes'],
+  [3600, '1 hour'],
+  [7200, '2 hours'],
+  [14400, '4 hours'],
+  [21600, '6 hours'],
+  [43200, '12 hours'],
+  [86400, '24 hours'],
+]);
 
-  return !!obj.rateLimit.find(errorObj => errorObj[key] && errorObj[key].length);
-};
+const formatRateLimitWindow = val => RATE_LIMIT_FORMAT_MAP.get(val);
 
 const KeyStats = createReactClass({
   displayName: 'KeyStats',
@@ -116,33 +136,153 @@ const KeyStats = createReactClass({
     else if (this.state.error) return <LoadingError onRetry={this.fetchData} />;
 
     return (
-      <div className="box">
-        <div className="box-header">
-          <h5>{t('Key usage in the last 30 days (by day)')}</h5>
-        </div>
-        {!this.state.emptyStats ? (
-          <StackedBarChart
-            points={this.state.stats}
-            height={150}
-            label="events"
-            barClasses={['accepted', 'rate-limited']}
-            className="standard-barchart"
-            tooltip={this.renderTooltip}
-          />
-        ) : (
-          <div className="box-content">
-            <div className="blankslate p-y-2">
-              <h5>{t('Nothing recorded in the last 30 days.')}</h5>
-              <p className="m-b-0">
+      <Panel>
+        <PanelHeader>{t('Key usage in the last 30 days (by day)')}</PanelHeader>
+        <PanelBody>
+          {!this.state.emptyStats ? (
+            <StackedBarChart
+              points={this.state.stats}
+              height={150}
+              label="events"
+              barClasses={['accepted', 'rate-limited']}
+              className="standard-barchart"
+              style={{border: 'none'}}
+              tooltip={this.renderTooltip}
+            />
+          ) : (
+            <EmptyMessage css={{flexDirection: 'column', alignItems: 'center'}}>
+              <EmptyHeader>{t('Nothing recorded in the last 30 days.')}</EmptyHeader>
+              <TextBlock css={{marginBottom: 0}}>
                 {t('Total events captured using these credentials.')}
-              </p>
-            </div>
-          </div>
-        )}
-      </div>
+              </TextBlock>
+            </EmptyMessage>
+          )}
+        </PanelBody>
+      </Panel>
     );
   },
 });
+
+class KeyRateLimitsForm extends React.Component {
+  static propTypes = {
+    organization: PropTypes.object.isRequired,
+    project: PropTypes.object.isRequired,
+    data: PropTypes.object.isRequired,
+    enabled: PropTypes.bool,
+    hooksDisabled: PropTypes.arrayOf(PropTypes.func),
+  };
+
+  handleChangeWindow = (onChange, onBlur, currentValueObj, value, e) => {
+    let valueObj = {
+      ...currentValueObj,
+      window: value,
+    };
+    onChange(valueObj, e);
+    onBlur(valueObj, e);
+  };
+
+  handleChangeCount = (cb, value, e) => {
+    let valueObj = {
+      ...value,
+      count: e.target.value,
+    };
+
+    cb(valueObj, e);
+  };
+
+  render() {
+    let {enabled, data, project, organization, hooksDisabled} = this.props;
+    let {keyId, orgId, projectId} = this.props.params;
+    let apiEndpoint = `/projects/${orgId}/${projectId}/keys/${keyId}/`;
+    let showPanel = enabled || !!hooksDisabled.length;
+
+    if (!showPanel) return null;
+
+    return (
+      <Form saveOnBlur apiEndpoint={apiEndpoint} apiMethod="PUT" initialData={data}>
+        <Panel>
+          <PanelHeader>{t('Rate Limits')}</PanelHeader>
+          {!enabled ? (
+            <PanelBody disablePadding={false}>
+              {hooksDisabled
+                .map(hook => {
+                  return hook(organization, project, data);
+                })
+                .shift()}
+            </PanelBody>
+          ) : (
+            <PanelBody>
+              <PanelAlert type="info" icon="icon-circle-exclamation" m={0} mb={0}>
+                {t(
+                  'Rate limits provide a flexible way to manage your event volume. If you have a noisy project or environment you can configure a rate limit for this key to reduce the number of events processed.'
+                )}
+              </PanelAlert>
+
+              <FormField
+                className="rate-limit-group"
+                name="rateLimit"
+                label={t('Rate Limit')}
+                validate={({id, form, model}) => {
+                  let isValid =
+                    form &&
+                    form.rateLimit &&
+                    typeof form.rateLimit.count !== 'undefined' &&
+                    typeof form.rateLimit.window !== 'undefined';
+
+                  if (isValid) {
+                    return [];
+                  }
+
+                  return [['rateLimit', t('Fill in both fields first')]];
+                }}
+                help={t(
+                  'Apply a rate limit to this credential to cap the amount of events accepted during a time window.'
+                )}
+                inline={false}
+              >
+                {({onChange, onBlur, value}) => {
+                  return (
+                    <Flex>
+                      <Box flex="2">
+                        <InputControl
+                          type="number"
+                          name="rateLimit.count"
+                          min={0}
+                          value={value && value.count}
+                          placeholder={t('Count')}
+                          onChange={this.handleChangeCount.bind(this, onChange, value)}
+                          onBlur={this.handleChangeCount.bind(this, onBlur, value)}
+                        />
+                      </Box>
+                      <Flex justify="center" align="center" mx={10} flex="1">
+                        <small css={{whiteSpace: 'nowrap'}}>event(s) in</small>
+                      </Flex>
+                      <Box flex="2">
+                        <RangeSlider
+                          name="rateLimit.window"
+                          allowedValues={Array.from(RATE_LIMIT_FORMAT_MAP.keys())}
+                          value={value && value.window}
+                          placeholder={t('Window')}
+                          formatLabel={formatRateLimitWindow}
+                          onChange={this.handleChangeWindow.bind(
+                            this,
+                            onChange,
+                            onBlur,
+                            value
+                          )}
+                        />
+                      </Box>
+                    </Flex>
+                  );
+                }}
+              </FormField>
+            </PanelBody>
+          )}
+        </Panel>
+      </Form>
+    );
+  }
+}
 
 const KeySettings = createReactClass({
   displayName: 'KeySettings',
@@ -151,465 +291,189 @@ const KeySettings = createReactClass({
     organization: PropTypes.object.isRequired,
     project: PropTypes.object.isRequired,
     access: PropTypes.object.isRequired,
+    features: PropTypes.object.isRequired,
     data: PropTypes.object.isRequired,
-    initialData: PropTypes.object,
     onRemove: PropTypes.func.isRequired,
-    onSave: PropTypes.func.isRequired,
     rateLimitsEnabled: PropTypes.bool,
   },
 
-  mixins: [ApiMixin, ProjectState],
+  mixins: [ApiMixin],
 
   getInitialState() {
     return {
-      formData: Object.assign({}, this.props.initialData),
-      errors: {},
       hooksDisabled: HookStore.get('project:rate-limits:disabled'),
     };
   },
 
-  onFieldChange(name, value) {
-    this.setState(state => {
-      return {
-        formData: {
-          ...state.formData,
-          [name]: value,
-        },
-      };
-    });
-  },
-
-  onRateLimitChange(name, value) {
-    this.setState(state => {
-      return {
-        formData: {
-          ...state.formData,
-          rateLimit: {
-            ...(state.formData.rateLimit || {}),
-            [name]: value,
-          },
-        },
-      };
-    });
-  },
-
-  onSubmit(e) {
-    e.preventDefault();
-
-    if (this.state.state == FormState.SAVING) {
-      return;
-    }
-    this.setState(
-      {
-        state: FormState.SAVING,
-      },
-      () => {
-        let loadingIndicator = IndicatorStore.add(t('Saving changes..'));
-        let {keyId, orgId, projectId} = this.props.params;
-        this.api.request(`/projects/${orgId}/${projectId}/keys/${keyId}/`, {
-          method: 'PUT',
-          data: this.state.formData,
-          success: data => {
-            this.props.onSave(data);
-            this.setState({
-              state: FormState.READY,
-              errors: {},
-            });
-          },
-          error: error => {
-            this.setState({
-              state: FormState.ERROR,
-              errors: error.responseJSON,
-            });
-          },
-          complete: () => {
-            IndicatorStore.remove(loadingIndicator);
-          },
-        });
-      }
-    );
-  },
-
-  onRemove(e) {
-    e.preventDefault();
+  handleRemove(e) {
     if (this.state.loading) return;
 
-    let loadingIndicator = IndicatorStore.add(t('Saving changes..'));
+    let loadingIndicator = addLoadingMessage(t('Saving changes..'));
     let {keyId, orgId, projectId} = this.props.params;
     this.api.request(`/projects/${orgId}/${projectId}/keys/${keyId}/`, {
       method: 'DELETE',
       success: (d, _, jqXHR) => {
         this.props.onRemove();
-        IndicatorStore.remove(loadingIndicator);
+        removeIndicator(loadingIndicator);
+        addSuccessMessage(t('Revoked key'));
       },
       error: () => {
         this.setState({
           error: true,
           loading: false,
         });
-        IndicatorStore.remove(loadingIndicator);
+        removeIndicator(loadingIndicator);
+        addErrorMessage(t('Unable to revoke key'));
       },
     });
   },
 
-  getRateLimitWindows() {
-    return [
-      ['', ''],
-      [60, '1 minute'],
-      [300, '5 minutes'],
-      [900, '15 minutes'],
-      [3600, '1 hour'],
-      [7200, '2 hours'],
-      [14400, '4 hours'],
-      [21600, '6 hours'],
-      [43200, '12 hours'],
-      [86400, '24 hours'],
-    ];
-  },
-
   render() {
-    let features = this.getProjectFeatures();
-    let isSaving = this.state.state === FormState.SAVING;
-    let {errors, formData} = this.state;
-    let hasChanges = !isEqual(this.props.initialData, formData);
-    let {access, data, rateLimitsEnabled, organization, project} = this.props;
-    let rateLimitWindowError = getRateLimitError(errors, 'window');
-    let rateLimitCountError = getRateLimitError(errors, 'count');
+    let {keyId, orgId, projectId} = this.props.params;
+    let {access, features, data, rateLimitsEnabled, organization, project} = this.props;
+    let apiEndpoint = `/projects/${orgId}/${projectId}/keys/${keyId}/`;
 
     return (
-      <form onSubmit={this.onSubmit} className="form-stacked">
-        {this.state.state === FormState.ERROR && (
-          <div className="alert alert-error alert-block">
-            {t(
-              'Unable to save your changes. Please ensure all fields are valid and try again.'
-            )}
-          </div>
-        )}
-        <div className="box">
-          <div className="box-header">
-            <h3>{t('Details')}</h3>
-          </div>
-          <div className="box-content with-padding">
-            <TextField
-              key="name"
-              name="name"
-              label={t('Name')}
-              value={formData.name}
-              required={false}
-              error={errors.name}
-              onChange={this.onFieldChange.bind(this, 'name')}
-            />
+      <React.Fragment>
+        <Form
+          saveOnBlur
+          allowUndo
+          apiEndpoint={apiEndpoint}
+          apiMethod="PUT"
+          initialData={data}
+        >
+          <Panel>
+            <PanelHeader>{t('Details')}</PanelHeader>
 
-            <BooleanField
-              key="isActive"
-              name="isActive"
-              label={t('Enabled')}
-              value={formData.isActive}
-              required={false}
-              error={errors.isActive}
-              help={
-                'Accept events from this key? This may be used to temporarily suspend a key.'
-              }
-              onChange={this.onFieldChange.bind(this, 'isActive')}
-            />
+            <PanelBody>
+              <TextField name="name" label={t('Name')} required={false} />
 
-            <div className="form-group">
-              <label>{t('Created')}</label>
-              <div className="controls">
-                <DateTime date={data.dateCreated} />
-              </div>
-            </div>
-
-            <fieldset className="form-actions">
-              <button
-                type="submit"
-                className="btn btn-primary"
-                disabled={isSaving || !hasChanges}
-              >
-                {t('Save Changes')}
-              </button>
-            </fieldset>
-          </div>
-        </div>
-
-        {!rateLimitsEnabled ? (
-          this.state.hooksDisabled
-            .map(hook => {
-              return hook(organization, project, data);
-            })
-            .shift()
-        ) : (
-          <div className="box">
-            <div className="box-header">
-              <h3>{t('Rate Limits')}</h3>
-            </div>
-            <div className="box-content with-padding">
-              <p>
-                {
-                  'Rate limits provide a flexible way to manage your event volume. If you have a noisy project or environment you can configure a rate limit for this key to reduce the number of events processed.'
+              <BooleanField
+                name="isActive"
+                label={t('Enabled')}
+                required={false}
+                help={
+                  'Accept events from this key? This may be used to temporarily suspend a key.'
                 }
-              </p>
-              <div className="form-group rate-limit-group">
-                <label>{t('Rate Limit')}</label>
-                <FlowLayout truncate={false}>
-                  <div style={{width: 80}}>
-                    <NumberField
-                      hideErrorMessage
-                      key="rateLimit.count"
-                      name="rateLimit.count"
-                      min={0}
-                      value={idx(formData, _ => _.rateLimit.count)}
-                      required={false}
-                      error={rateLimitCountError}
-                      placeholder={t('count')}
-                      onChange={this.onRateLimitChange.bind(this, 'count')}
-                      className=""
-                    />
-                  </div>
-                  <div style={{margin: '0 10px'}}>
-                    <small>event(s) in</small>
-                  </div>
-                  <div style={{width: 150}}>
-                    <Select2Field
-                      width="100%"
-                      hideErrorMessage
-                      key="rateLimit.window"
-                      name="rateLimit.window"
-                      choices={this.getRateLimitWindows()}
-                      value={idx(formData, _ => _.rateLimit.window)}
-                      required={false}
-                      error={rateLimitWindowError}
-                      placeholder={t('window')}
-                      allowClear={true}
-                      onChange={this.onRateLimitChange.bind(this, 'window')}
-                      className=""
-                    />
-                  </div>
-                </FlowLayout>
-
-                <div className="help-block">
-                  {t(
-                    'Apply a rate limit to this credential to cap the amount of events accepted during a time window.'
-                  )}
+              />
+              <Field label={t('Created')}>
+                <div className="controls">
+                  <DateTime date={data.dateCreated} />
                 </div>
-              </div>
-              <fieldset className="form-actions">
-                <button
-                  type="submit"
-                  className="btn btn-primary"
-                  disabled={isSaving || !hasChanges}
-                >
-                  {t('Save Changes')}
-                </button>
-              </fieldset>
-            </div>
-          </div>
-        )}
-        <div className="box dsn-credentials">
-          <div className="box-header">
-            <h3>{t('Credentials')}</h3>
-          </div>
-          <div className="box-content with-padding">
-            <p>
+              </Field>
+            </PanelBody>
+          </Panel>
+        </Form>
+
+        <KeyRateLimitsForm
+          params={this.props.params}
+          data={data}
+          organization={organization}
+          project={project}
+          enabled={rateLimitsEnabled}
+          hooksDisabled={this.state.hooksDisabled}
+        />
+
+        <Panel>
+          <PanelHeader>{t('Credentials')}</PanelHeader>
+          <PanelBody>
+            <PanelAlert type="info" icon="icon-circle-exclamation" m={0} mb={0}>
               {t(
                 'Your credentials are coupled to a public and secret key. Different clients will require different credentials, so make sure you check the documentation before plugging things in.'
               )}
-            </p>
-            <div className="form-group">
-              <label>{t('DSN')}</label>
-              <AutoSelectText className="form-control disabled">
-                <DynamicWrapper
-                  value={data.dsn.secret}
-                  fixed={data.dsn.secret.replace(data.projectId, '<<projectId>>')}
-                />
-              </AutoSelectText>
-            </div>
+            </PanelAlert>
 
-            <div className="form-group">
-              <label>{t('DSN (Public)')}</label>
-              <AutoSelectText className="form-control disabled">
-                <DynamicWrapper
-                  value={data.dsn.public}
-                  fixed={data.dsn.public.replace(data.projectId, '<<projectId>>')}
-                />
-              </AutoSelectText>
-              <div className="help-block">
-                {tct('Use your public DSN with browser-based SDKs such as [raven-js].', {
-                  'raven-js': (
-                    <a href="https://github.com/getsentry/raven-js">raven-js</a>
-                  ),
-                })}
-              </div>
-            </div>
-            <div className="form-group">
-              <label>{t('CSP Endpoint')}</label>
-              <AutoSelectText className="form-control disabled">
-                <DynamicWrapper
-                  value={data.dsn.csp}
-                  fixed={data.dsn.csp.replace(data.projectId, '<<projectId>>')}
-                />
-              </AutoSelectText>
-              <div className="help-block">
-                {tct(
-                  'Use your CSP endpoint in the [directive] directive in your [header] header.',
-                  {
-                    directive: <code>report-uri</code>,
-                    header: <code>Content-Security-Policy</code>,
-                  }
-                )}
-              </div>
-            </div>
-            {features.has('minidump') && (
-              <div className="form-group">
-                <label>{t('Minidump Endpoint')}</label>
-                <AutoSelectText className="form-control disabled">
-                  {data.dsn.minidump}
-                </AutoSelectText>
-                <div className="help-block">
-                  {tct(
-                    'Use this endpoint to upload minidump crash reports, for example with Electron, Crashpad or Breakpad.',
-                    {
-                      /* TODO: add a link to minidump docs */
-                    }
-                  )}
-                </div>
-              </div>
-            )}
-            <div className="form-group">
-              <label>{t('Public Key')}</label>
-              <div className="controls">
-                <AutoSelectText className="form-control disabled">
-                  {data.public}
-                </AutoSelectText>
-              </div>
-            </div>
-            <div className="form-group">
-              <label>{t('Secret Key')}</label>
-              <div className="controls">
-                <AutoSelectText className="form-control disabled">
-                  {data.secret}
-                </AutoSelectText>
-              </div>
-            </div>
-            <div className="form-group">
-              <label>{t('Project ID')}</label>
-              <div className="controls">
-                <AutoSelectText className="form-control disabled">
-                  <DynamicWrapper value={data.projectId} fixed="<<projectId>>" />
-                </AutoSelectText>
-              </div>
-            </div>
-          </div>
-        </div>
+            <ProjectKeyCredentials
+              projectId={`${data.projectId}`}
+              dsn={data.dsn}
+              features={features}
+              showPublicKey
+              showSecretKey
+              showProjectId
+            />
+          </PanelBody>
+        </Panel>
 
         {access.has('project:admin') && (
-          <div className="box">
-            <div className="box-header">
-              <h3>{t('Revoke Key')}</h3>
-            </div>
-            <div className="box-content with-padding">
-              <p>
-                {t(
+          <Panel>
+            <PanelHeader>{t('Revoke Key')}</PanelHeader>
+            <PanelBody>
+              <Field
+                label={t('Revoke Key')}
+                help={t(
                   'Revoking this key will immediately remove and suspend the credentials. This action is irreversible.'
                 )}
-              </p>
-
-              <fieldset className="form-actions">
-                <a onClick={this.onRemove} className="btn btn-danger">
-                  {t('Revoke Key')}
-                </a>
-              </fieldset>
-            </div>
-          </div>
+              >
+                <div>
+                  <Confirm
+                    priority="danger"
+                    message={t(
+                      'Are you sure you want to revoke this key? This will immediately remove and suspend the credentials.'
+                    )}
+                    onConfirm={this.handleRemove}
+                    confirmText={t('Revoke Key')}
+                  >
+                    <Button priority="danger">{t('Revoke Key')}</Button>
+                  </Confirm>
+                </div>
+              </Field>
+            </PanelBody>
+          </Panel>
         )}
-      </form>
+      </React.Fragment>
     );
   },
 });
 
-export default createReactClass({
-  displayName: 'projectKeyDetails',
-  mixins: [ApiMixin, ProjectState],
+export default class ProjectKeyDetails extends AsyncView {
+  static contextTypes = {
+    organization: SentryTypes.Organization,
+    project: SentryTypes.Project,
+  };
 
-  getInitialState() {
-    return {
-      loading: true,
-      error: false,
-      data: null,
-    };
-  },
+  getTitle() {
+    return t('Key Details');
+  }
 
-  componentDidMount() {
-    this.fetchData();
-  },
-
-  fetchData() {
+  getEndpoints() {
     let {keyId, orgId, projectId} = this.props.params;
-    this.api.request(`/projects/${orgId}/${projectId}/keys/${keyId}/`, {
-      success: (data, _, jqXHR) => {
-        this.setState({
-          error: false,
-          loading: false,
-          data,
-        });
-      },
-      error: () => {
-        this.setState({
-          error: true,
-          loading: false,
-        });
-      },
-    });
-  },
+    return [['data', `/projects/${orgId}/${projectId}/keys/${keyId}/`]];
+  }
 
-  handleRemove(data) {
+  handleRemove = data => {
     let {orgId, projectId} = this.props.params;
     browserHistory.push(`/${orgId}/${projectId}/settings/keys/`);
-  },
+  };
 
-  handleSave(data) {
-    this.setState({data: {...this.state.data, ...data}});
-  },
-
-  renderLoading() {
-    return (
-      <div className="box">
-        <LoadingIndicator />
-      </div>
-    );
-  },
-
-  render() {
-    if (this.state.loading) return this.renderLoading();
-    else if (this.state.error) return <LoadingError onRetry={this.fetchData} />;
-
+  renderBody() {
     let {data} = this.state;
     let {params} = this.props;
+    let {organization, project} = this.context;
+    let access = getOrganizationState(organization).getAccess();
+    let features = new Set(project.features);
+    let hasRateLimitsEnabled = true || features.has('rate-limits') > -1;
 
     return (
-      <DocumentTitle title={t('Key Details')}>
-        <div className="ref-key-details">
-          <h2>{t('Key Details')}</h2>
+      <div className="ref-key-details">
+        <SettingsPageHeader title={t('Key Details')} />
 
-          <KeyStats params={params} />
+        <KeyStats params={params} />
 
-          <KeySettings
-            organization={this.getOrganization()}
-            project={this.getProject()}
-            access={this.getAccess()}
-            params={params}
-            initialData={{
-              isActive: data.isActive,
-              name: data.name,
-              rateLimit: data.rateLimit,
-            }}
-            rateLimitsEnabled={this.getProjectFeatures().has('rate-limits')}
-            data={data}
-            onSave={this.handleSave}
-            onRemove={this.handleRemove}
-          />
-        </div>
-      </DocumentTitle>
+        <KeySettings
+          organization={organization}
+          project={project}
+          access={access}
+          features={features}
+          params={params}
+          rateLimitsEnabled={hasRateLimitsEnabled}
+          data={data}
+          onRemove={this.handleRemove}
+        />
+      </div>
     );
-  },
-});
+  }
+}
+
+const EmptyHeader = styled.div`
+  font-size: 1.3em;
+`;

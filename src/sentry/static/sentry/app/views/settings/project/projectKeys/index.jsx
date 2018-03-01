@@ -1,10 +1,17 @@
+import {Box} from 'grid-emotion';
 import {Link} from 'react-router';
 import DocumentTitle from 'react-document-title';
 import PropTypes from 'prop-types';
 import React from 'react';
 import createReactClass from 'create-react-class';
+import styled from 'react-emotion';
 
-import {addErrorMessage, addSuccessMessage} from '../../../../actionCreators/indicator';
+import {
+  addErrorMessage,
+  addLoadingMessage,
+  addSuccessMessage,
+  removeIndicator,
+} from '../../../../actionCreators/indicator';
 import {getOrganizationState} from '../../../../mixins/organizationState';
 import {t, tct} from '../../../../locale';
 import ApiMixin from '../../../../mixins/apiMixin';
@@ -13,13 +20,11 @@ import Button from '../../../../components/buttons/button';
 import ClippedBox from '../../../../components/clippedBox';
 import Confirm from '../../../../components/confirm';
 import EmptyMessage from '../../components/emptyMessage';
-import IndicatorStore from '../../../../stores/indicatorStore';
 import Pagination from '../../../../components/pagination';
 import Panel from '../../components/panel';
 import PanelBody from '../../components/panelBody';
 import PanelHeader from '../../components/panelHeader';
 import ProjectKeyCredentials from './projectKeyCredentials';
-import ProjectState from '../../../../mixins/projectState';
 import SentryTypes from '../../../../proptypes';
 import SettingsPageHeader from '../../components/settingsPageHeader';
 import TextBlock from '../../components/text/textBlock';
@@ -33,11 +38,12 @@ const KeyRow = createReactClass({
     projectId: PropTypes.string.isRequired,
     data: PropTypes.object.isRequired,
     access: PropTypes.object.isRequired,
+    features: PropTypes.object.isRequired,
     onToggle: PropTypes.func.isRequired,
     onRemove: PropTypes.func.isRequired,
   },
 
-  mixins: [ApiMixin, ProjectState],
+  mixins: [ApiMixin],
 
   getInitialState() {
     return {
@@ -49,33 +55,35 @@ const KeyRow = createReactClass({
   handleRemove() {
     if (this.state.loading) return;
 
-    let loadingIndicator = IndicatorStore.add(t('Saving changes..'));
+    let loadingIndicator = addLoadingMessage(t('Saving changes..'));
     let {orgId, projectId, data} = this.props;
     this.api.request(`/projects/${orgId}/${projectId}/keys/${data.id}/`, {
       method: 'DELETE',
       success: (d, _, jqXHR) => {
         this.props.onRemove();
-        IndicatorStore.remove(loadingIndicator);
+        removeIndicator(loadingIndicator);
+        addSuccessMessage(t('Revoked key'));
       },
       error: () => {
         this.setState({
           error: true,
           loading: false,
         });
-        IndicatorStore.remove(loadingIndicator);
+        removeIndicator(loadingIndicator);
+        addErrorMessage(t('Unable to revoke key'));
       },
     });
   },
 
   handleUpdate(params, cb) {
     if (this.state.loading) return;
-    let loadingIndicator = IndicatorStore.add(t('Saving changes..'));
+    let loadingIndicator = addLoadingMessage(t('Saving changes..'));
     let {orgId, projectId, data} = this.props;
     this.api.request(`/projects/${orgId}/${projectId}/keys/${data.id}/`, {
       method: 'PUT',
       data: params,
       success: (d, _, jqXHR) => {
-        IndicatorStore.remove(loadingIndicator);
+        removeIndicator(loadingIndicator);
         cb(d);
       },
       error: () => {
@@ -83,7 +91,7 @@ const KeyRow = createReactClass({
           error: true,
           loading: false,
         });
-        IndicatorStore.remove(loadingIndicator);
+        removeIndicator(loadingIndicator);
       },
     });
   },
@@ -107,24 +115,24 @@ const KeyRow = createReactClass({
   },
 
   render() {
-    let features = this.getProjectFeatures();
-    let {access, data, orgId, projectId} = this.props;
-    let editUrl = `/${orgId}/${projectId}/settings/keys/${data.id}/`;
+    let {access, features, data} = this.props;
+    let editUrl = recreateRoute(`${data.id}/`, this.props);
     let controls = [
-      <Link key="edit" to={editUrl} className="btn btn-default btn-sm">
+      <Button key="edit" to={editUrl} size="small">
         {t('Details')}
-      </Link>,
+      </Button>,
     ];
+
     if (access.has('project:write')) {
       controls.push(
-        <a
+        <Button
           key="toggle"
-          className="btn btn-default btn-sm"
+          size="small"
           onClick={data.isActive ? this.handleDisable : this.handleEnable}
           disabled={this.state.loading}
         >
           {data.isActive ? t('Disable') : t('Enable')}
-        </a>
+        </Button>
       );
       controls.push(
         <Confirm
@@ -137,27 +145,27 @@ const KeyRow = createReactClass({
             'Are you sure you want to remove this key? This action is irreversible.'
           )}
         >
-          <a className="btn btn-sm btn-default" disabled={this.state.loading}>
+          <Button size="small" disabled={this.state.loading}>
             <span className="icon icon-trash" />
-          </a>
+          </Button>
         </Confirm>
       );
     }
 
     return (
-      <div className={`client-key-item ${!data.isActive ? 'disabled' : ''}`}>
-        <div className="pull-right" style={{marginTop: -10}}>
-          {controls.map((c, n) => <span key={n}> {c}</span>)}
-        </div>
-        <h5>
-          <Link to={editUrl}>{data.label}</Link>
-          {!data.isActive && (
-            <small>
-              {' '}
-              <i className="icon icon-ban" /> {t('Disabled')}
-            </small>
-          )}
-        </h5>
+      <ClientKeyItemPanel disabled={!data.isActive}>
+        <PanelHeader isFlex hasButtons align="center">
+          <Box flex="1">
+            <PanelHeaderLink to={editUrl}>{data.label}</PanelHeaderLink>
+            {!data.isActive && (
+              <small>
+                {' '}
+                <i className="icon icon-ban" /> {t('Disabled')}
+              </small>
+            )}
+          </Box>
+          <div>{controls.map((c, n) => <span key={n}> {c}</span>)}</div>
+        </PanelHeader>
 
         <ClippedBox
           clipHeight={150}
@@ -165,110 +173,40 @@ const KeyRow = createReactClass({
           btnClassName="btn btn-default btn-sm"
           btnText={t('Expand')}
         >
-          <div className="form-group">
-            <label>{t('DSN')}</label>
-            <AutoSelectText className="form-control disabled">
-              <DynamicWrapper
-                value={data.dsn.secret}
-                fixed={data.dsn.secret.replace(
-                  new RegExp(`\/${data.projectId}$`),
-                  '/<<projectId>>'
-                )}
-              />
-            </AutoSelectText>
-          </div>
-
-          <div className="form-group">
-            <label>{t('DSN (Public)')}</label>
-            <AutoSelectText className="form-control disabled">
-              <DynamicWrapper
-                value={data.dsn.public}
-                fixed={data.dsn.public.replace(
-                  new RegExp(`\/${data.projectId}$`),
-                  '/<<projectId>>'
-                )}
-              />
-            </AutoSelectText>
-            <div className="help-block">
-              {tct('Use your public DSN with browser-based SDKs such as [raven-js].', {
-                'raven-js': <a href="https://github.com/getsentry/raven-js">raven-js</a>,
-              })}
-            </div>
-          </div>
-          <div className="form-group">
-            <label>{t('CSP Endpoint')}</label>
-            <AutoSelectText className="form-control disabled">
-              {data.dsn.csp}
-            </AutoSelectText>
-            <div className="help-block">
-              {tct(
-                'Use your CSP endpoint in the [directive] directive in your [header] header.',
-                {
-                  directive: <code>report-uri</code>,
-                  header: <code>Content-Security-Policy</code>,
-                }
-              )}
-            </div>
-          </div>
-          {features.has('minidump') && (
-            <div className="form-group">
-              <label>{t('Minidump Endpoint')}</label>
-              <AutoSelectText className="form-control disabled">
-                {data.dsn.minidump}
-              </AutoSelectText>
-              <div className="help-block">
-                {tct(
-                  'Use this endpoint to upload minidump crash reports, for example with Electron, Crashpad or Breakpad.',
-                  {
-                    /* TODO: add a link to minidump docs */
-                  }
-                )}
-              </div>
-            </div>
-          )}
+          <PanelBody>
+            <ProjectKeyCredentials
+              projectId={`${data.projectId}`}
+              dsn={data.dsn}
+              features={features}
+            />
+          </PanelBody>
         </ClippedBox>
-      </div>
+      </ClientKeyItemPanel>
     );
   },
 });
 
-export default createReactClass({
-  displayName: 'projectKeys',
-  mixins: [ApiMixin, OrganizationState],
+export default class ProjectKeys extends AsyncView {
+  static propTypes = {
+    routes: PropTypes.array.isRequired,
+    params: PropTypes.object.isRequired,
+  };
 
-  getInitialState() {
-    return {
-      loading: true,
-      error: false,
-      keyList: [],
-    };
-  },
+  static contextTypes = {
+    organization: SentryTypes.Organization,
+    project: SentryTypes.Project,
+  };
 
-  componentDidMount() {
-    this.fetchData();
-  },
+  getTitle() {
+    return t('Client Keys');
+  }
 
-  fetchData() {
+  getEndpoints() {
     let {orgId, projectId} = this.props.params;
-    this.api.request(`/projects/${orgId}/${projectId}/keys/`, {
-      success: (data, _, jqXHR) => {
-        this.setState({
-          error: false,
-          loading: false,
-          keyList: data,
-          pageLinks: jqXHR.getResponseHeader('Link'),
-        });
-      },
-      error: () => {
-        this.setState({
-          error: true,
-          loading: false,
-        });
-      },
-    });
-  },
+    return [['keyList', `/projects/${orgId}/${projectId}/keys/`]];
+  }
 
-  handleRemoveKey(data) {
+  handleRemoveKey = data => {
     this.setState(state => {
       return {
         keyList: state.keyList.filter(key => {
@@ -276,9 +214,9 @@ export default createReactClass({
         }),
       };
     });
-  },
+  };
 
-  handleToggleKey(data, newData) {
+  handleToggleKey = (data, newData) => {
     this.setState(state => {
       let keyList = state.keyList;
       keyList.forEach(key => {
@@ -288,11 +226,10 @@ export default createReactClass({
       });
       return {keyList};
     });
-  },
+  };
 
-  onCreateKey() {
+  handleCreateKey = () => {
     let {orgId, projectId} = this.props.params;
-    let loadingIndicator = IndicatorStore.add(t('Saving changes..'));
     this.api.request(`/projects/${orgId}/${projectId}/keys/`, {
       method: 'POST',
       success: (data, _, jqXHR) => {
@@ -301,54 +238,45 @@ export default createReactClass({
             keyList: [...state.keyList, data],
           };
         });
-        IndicatorStore.remove(loadingIndicator);
+        addSuccessMessage(t('Created a new key.'));
       },
       error: () => {
-        IndicatorStore.remove(loadingIndicator);
-        IndicatorStore.add(t('Unable to create new key. Please try again.'), 'error');
+        addErrorMessage(t('Unable to create new key. Please try again.'));
       },
     });
-  },
-
-  renderBody() {
-    let body;
-    if (this.state.loading) body = this.renderLoading();
-    else if (this.state.error) body = <LoadingError onRetry={this.fetchData} />;
-    else if (this.state.keyList.length > 0) body = this.renderResults();
-    else body = this.renderEmpty();
-    return body;
-  },
-
-  renderLoading() {
-    return (
-      <div className="box">
-        <LoadingIndicator />
-      </div>
-    );
-  },
+  };
 
   renderEmpty() {
     return (
-      <div className="box empty-stream">
-        <span className="icon icon-exclamation" />
-        <p>{t('There are no keys active for this project.')}</p>
-      </div>
+      <Panel>
+        <EmptyMessage>
+          <span className="icon icon-exclamation" />
+          <p>{t('There are no keys active for this project.')}</p>
+        </EmptyMessage>
+      </Panel>
     );
-  },
+  }
 
   renderResults() {
-    let {orgId, projectId} = this.props.params;
-    let access = this.getAccess();
+    let {routes, params} = this.props;
+    let {orgId, projectId} = params;
+    let access = getOrganizationState(this.context.organization).getAccess();
+    let features = new Set(this.context.project.features);
+
     return (
       <div>
-        <div className="client-key-list">
+        <div>
           {this.state.keyList.map(key => {
             return (
               <KeyRow
+                features={features}
+                api={this.api}
+                routes={routes}
+                params={params}
                 access={access}
                 key={key.id}
                 orgId={orgId}
-                projectId={projectId}
+                projectId={`${projectId}`}
                 data={key}
                 onToggle={this.handleToggleKey.bind(this, key)}
                 onRemove={this.handleRemoveKey.bind(this, key)}
@@ -356,13 +284,15 @@ export default createReactClass({
             );
           })}
         </div>
-        <Pagination pageLinks={this.state.pageLinks} />
+        <Pagination pageLinks={this.state.keyListPageLinks} />
       </div>
     );
-  },
+  }
 
-  render() {
-    let access = this.getAccess();
+  renderBody() {
+    let access = getOrganizationState(this.context.organization).getAccess();
+    let isEmpty = !this.state.keyList.length;
+
     return (
       <DocumentTitle title={t('Client Keys')}>
         <div className="ref-keys">
@@ -371,7 +301,7 @@ export default createReactClass({
             action={
               access.has('project:write') ? (
                 <Button
-                  onClick={this.onCreateKey}
+                  onClick={this.handleCreateKey}
                   size="small"
                   priority="primary"
                   icon="icon-circle-add"
@@ -393,9 +323,27 @@ export default createReactClass({
               }
             )}
           </TextBlock>
-          {this.renderBody()}
+
+          {isEmpty ? this.renderEmpty() : this.renderResults()}
         </div>
       </DocumentTitle>
     );
-  },
-});
+  }
+}
+
+const ClientKeyItemPanel = styled(({disabled, ...props}) => <Panel {...props} />)`
+  ${p => (p.disabled ? 'opacity: 0.5;' : '')};
+
+  .box-clippable {
+    padding: 0;
+    margin: 0;
+
+    .clip-fade {
+      padding-bottom: 20px;
+    }
+  }
+`;
+
+const PanelHeaderLink = styled(Link)`
+  color: ${p => p.theme.gray3};
+`;
