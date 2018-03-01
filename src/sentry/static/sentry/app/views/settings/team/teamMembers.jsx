@@ -25,7 +25,7 @@ const StyledHeaderContainer = styled('div')`
 const StyledMemberContainer = styled('div')`
   display: flex;
   justify-content: space-between;
-  padding: 1.33em 0;
+  padding: 1.25em 0;
   margin: 0 1em;
   border-bottom: 1px solid ${p => p.theme.borderLight};
 `;
