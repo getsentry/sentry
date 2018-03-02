@@ -222,7 +222,7 @@ const AssigneeSelector = createReactClass({
 
     let memberNodes =
       members && members.length ? (
-        memberList.map(item => {
+        members.map(item => {
           return (
             <MenuItem
               key={buildUserId(item.id)}
