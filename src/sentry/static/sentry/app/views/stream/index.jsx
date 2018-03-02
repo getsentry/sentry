@@ -111,6 +111,10 @@ const Stream = createReactClass({
     this.fetchTags();
   },
 
+  componentDidMount() {
+    this.fetchData();
+  },
+
   componentWillReceiveProps(nextProps) {
     if (nextProps.environment !== this.props.environment) {
       const environment = nextProps.environment;
@@ -125,9 +129,6 @@ const Stream = createReactClass({
         },
         this.fetchData
       );
-    } else {
-      // something else has changed, just refetch
-      this.fetchData();
     }
 
     // you cannot apply both a query and a saved search (our routes do not
