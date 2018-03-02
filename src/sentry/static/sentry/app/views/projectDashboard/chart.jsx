@@ -26,6 +26,7 @@ const ProjectChart = createReactClass({
       error: false,
       stats: [],
       releaseList: [],
+      environment: this.props.environment,
     };
   },
 
@@ -33,14 +34,21 @@ const ProjectChart = createReactClass({
     this.fetchData();
   },
 
-  componentWillReceiveProps() {
-    this.setState(
-      {
-        loading: true,
-        error: false,
-      },
-      this.fetchData
-    );
+  componentWillReceiveProps(nextProps) {
+    // We only need to refetch data if environment or resolution timeframe is changing
+    if (
+      nextProps.environment !== this.props.environment ||
+      nextProps.resolution !== this.props.resolution
+    ) {
+      this.setState(
+        {
+          environment: nextProps.environment,
+          loading: true,
+          error: false,
+        },
+        this.fetchData
+      );
+    }
   },
 
   getStatsEndpoint() {
@@ -64,11 +72,10 @@ const ProjectChart = createReactClass({
 
     const releasesQuery = {};
 
-    if (this.props.environment) {
-      statsQuery.environment = this.props.environment.name;
-      releasesQuery.environment = this.props.environment.name;
+    if (this.state.environment) {
+      statsQuery.environment = this.state.environment.name;
+      releasesQuery.environment = this.state.environment.name;
     }
-
     this.api.request(this.getStatsEndpoint(), {
       query: statsQuery,
       success: data => {
