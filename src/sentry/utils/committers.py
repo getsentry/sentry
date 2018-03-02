@@ -144,7 +144,7 @@ def get_event_file_committers(project, event, frame_limit=25):
     commits = _get_commits(releases)
 
     if not commits:
-        return Commit.DoesNotExist
+        raise Commit.DoesNotExist
 
     frames = _get_frame_paths(event)
     app_frames = [frame for frame in frames if frame['in_app']][-frame_limit:]
