@@ -11,8 +11,6 @@ import JsonForm from '../../components/forms/jsonForm';
 import organizationSettingsFields from '../../../../data/forms/organizationGeneralSettings';
 import OrganizationState from '../../../../mixins/organizationState';
 
-const TOAST_DURATION = 10000;
-
 const NewOrganizationSettingsForm = createReactClass({
   displayName: 'NewOrganizationSettingsForm',
 
@@ -58,12 +56,12 @@ const NewOrganizationSettingsForm = createReactClass({
           }
         }}
         onSubmitError={error => {
-          if (error.responseJSON && 'require2FA' in error.responseJSON)
+          if (error.responseJSON && 'require2FA' in error.responseJSON) {
             return addErrorMessage(
-              'Unable to save change. Enable two-factor authentication on your account first.',
-              TOAST_DURATION
+              'Unable to save change. Enable two-factor authentication on your account first.'
             );
-          return addErrorMessage('Unable to save change', TOAST_DURATION);
+          }
+          return addErrorMessage('Unable to save change');
         }}
       >
         <Box>
