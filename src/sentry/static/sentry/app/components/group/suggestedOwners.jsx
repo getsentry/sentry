@@ -113,7 +113,9 @@ const SuggestedOwners = createReactClass({
               {commits.slice(0, 6).map(c => {
                 return (
                   <li key={c.id} className="tooltip-owners-commit">
-                    {c.message}
+                    <div style={{whiteSpace: 'pre-line'}}>
+                      {c.message.replace(/\n\s*\n/g, '\n') /*repress repeated newlines*/}
+                    </div>
                     <span className="tooltip-owners-date">
                       {' '}
                       - {moment(c.dateCreated).fromNow()}
