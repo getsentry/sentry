@@ -107,7 +107,7 @@ exports[`projectGeneralSettings renders 1`] = `
                 },
                 Object {
                   "choices": [Function],
-                  "help": "Opt-in to new features before they're released to the public.",
+                  "help": "Update the team that owns this project",
                   "label": "Team",
                   "name": "team",
                   "type": "array",
