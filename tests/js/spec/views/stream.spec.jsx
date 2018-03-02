@@ -6,7 +6,7 @@ import _ from 'lodash';
 import {Client} from 'app/api';
 import CursorPoller from 'app/utils/cursorPoller';
 import LoadingError from 'app/components/loadingError';
-import Stream from 'app/views/stream';
+import {Stream} from 'app/views/stream';
 import EnvironmentStore from 'app/stores/environmentStore';
 import {setActiveEnvironment} from 'app/actionCreators/environments';
 import {browserHistory} from 'react-router';
