@@ -72,7 +72,7 @@ const formGroups = [
     title: t('Email'),
     fields: [
       {
-        name: 'subjectPrefix',
+        name: 'subjectTemplate',
         type: 'string',
         label: t('Subject Prefix'),
         help: t('Choose a custom prefix for emails from this project'),
