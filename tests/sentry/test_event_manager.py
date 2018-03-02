@@ -822,6 +822,7 @@ class EventManagerTest(TransactionTestCase):
             is_sample=False,
             is_regression=False,
             is_new_group_environment=True,
+            primary_hash='acbd18db4cc2f85cedef654fccc4a4d8',
         )
 
         event = save_event()
@@ -835,6 +836,7 @@ class EventManagerTest(TransactionTestCase):
             is_sample=False,
             is_regression=None,  # XXX: wut
             is_new_group_environment=False,
+            primary_hash='acbd18db4cc2f85cedef654fccc4a4d8',
         )
 
     def test_default_fingerprint(self):
