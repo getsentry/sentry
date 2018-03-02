@@ -25,6 +25,7 @@ describe('Stream', function() {
 
   beforeEach(function() {
     sandbox = sinon.sandbox.create();
+
     MockApiClient.addMockResponse({
       url: '/projects/123/456/issues/',
       body: [TestStubs.Group()],
@@ -382,9 +383,8 @@ describe('Stream', function() {
         anySelected: false,
         statsPeriod: '24h',
         realtimeActive: false,
-        pageLinks: '',
         loading: false,
-        dataLoading: true,
+        dataLoading: false,
         error: false,
         query: '',
         sort: 'freq',
@@ -395,7 +395,7 @@ describe('Stream', function() {
         context,
       }).instance();
 
-      let actual = stream.getInitialState();
+      let actual = stream.state;
       expect(_.pick(actual, _.keys(expected))).toEqual(expected);
     });
 
@@ -413,9 +413,8 @@ describe('Stream', function() {
         anySelected: false,
         statsPeriod: '24h',
         realtimeActive: false,
-        pageLinks: '',
         loading: false,
-        dataLoading: true,
+        dataLoading: false,
         error: false,
         query: 'is:unresolved',
         sort: 'freq',
@@ -430,7 +429,7 @@ describe('Stream', function() {
         savedSearchList: [{id: '789', query: 'is:unresolved', name: 'test'}],
       });
 
-      let actual = wrapper.instance().getInitialState();
+      let actual = wrapper.instance().state;
       expect(_.pick(actual, _.keys(expected))).toEqual(expected);
     });
 
@@ -448,8 +447,7 @@ describe('Stream', function() {
         anySelected: false,
         statsPeriod: '24h',
         realtimeActive: false,
-        pageLinks: '',
-        loading: false,
+        loading: true,
         dataLoading: true,
         error: false,
         query: '',
@@ -461,7 +459,7 @@ describe('Stream', function() {
         context,
       }).instance();
 
-      let actual = stream.getInitialState();
+      let actual = stream.state;
       expect(_.pick(actual, _.keys(expected))).toEqual(expected);
     });
   });

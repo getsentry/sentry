@@ -62,11 +62,18 @@ const Stream = createReactClass({
     let hasEnvironmentsFeature = new Set(this.getOrganization().features).has(
       'environments'
     );
+    let currentQuery = this.props.location.query || {};
+    let sort = 'sort' in currentQuery ? currentQuery.sort : DEFAULT_SORT;
+
+    let hasQuery = 'query' in currentQuery;
+    let validStatsPeriods = new Set(['14d', '24h']);
+    let statsPeriod =
+      validStatsPeriods.has(currentQuery.statsPeriod) || DEFAULT_STATS_PERIOD;
 
     return {
       groupIds: [],
-      isDefaultSearch: null,
-      searchId,
+      isDefaultSearch: false,
+      searchId: hasQuery ? null : searchId,
       // if we have no query then we can go ahead and fetch data
       loading: searchId || !this.hasQuery() ? true : false,
       savedSearchLoading: true,
@@ -74,21 +81,20 @@ const Stream = createReactClass({
       selectAllActive: false,
       multiSelected: false,
       anySelected: false,
-      statsPeriod: DEFAULT_STATS_PERIOD,
+      statsPeriod,
       realtimeActive,
       pageLinks: '',
       queryCount: null,
       dataLoading: true,
       error: false,
-      query: '',
-      sort: DEFAULT_SORT,
+      query: hasQuery ? currentQuery.query : '',
+      sort,
       tags: StreamTagStore.getAllTags(),
       tagsLoading: true,
       isSidebarVisible: false,
       processingIssues: null,
       activeEnvironment: this.props.environment,
       hasEnvironmentsFeature,
-      ...this.getQueryState(),
     };
   },
 
@@ -106,10 +112,6 @@ const Stream = createReactClass({
   },
 
   componentWillReceiveProps(nextProps) {
-    if (this.state.loading) {
-      return;
-    }
-
     if (nextProps.environment !== this.props.environment) {
       const environment = nextProps.environment;
       const query = queryString.getQueryStringWithEnvironment(
@@ -290,8 +292,7 @@ const Stream = createReactClass({
   getQueryState(props) {
     props = props || this.props;
     let currentQuery = props.location.query || {};
-    // state may not yet be defined at this point
-    let state = this.state || {};
+    let state = this.state;
 
     let hasQuery = 'query' in currentQuery;
 
@@ -313,9 +314,6 @@ const Stream = createReactClass({
       searchId,
       isDefaultSearch: false,
     };
-
-    // state is not yet defined
-    if (this.state === null) return newState;
 
     if (searchId) {
       let searchResult = this.state.savedSearchList.filter(search => {
