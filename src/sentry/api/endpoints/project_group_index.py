@@ -222,6 +222,24 @@ class ProjectGroupIndexEndpoint(ProjectEndpoint, EnvironmentMixin):
 
         return query_kwargs
 
+    def _search(self, request, project, extra_query_kwargs=None):
+        query_kwargs = self._build_query_params_from_request(request, project)
+
+        try:
+            query_kwargs['environment'] = self._get_environment_from_request(
+                request,
+                project.organization_id,
+            )
+        except Environment.DoesNotExist:
+            # XXX: The 1000 magic number for `max_hits` is an abstraction leak
+            # from `sentry.api.paginator.BasePaginator.get_result`.
+            return CursorResult([], None, None, hits=0, max_hits=1000)
+
+        if extra_query_kwargs is not None:
+            query_kwargs.update(extra_query_kwargs)
+
+        return search.query(**query_kwargs), query_kwargs
+
     def _subscribe_and_assign_issue(self, acting_user, group, result):
         if acting_user:
             GroupSubscription.objects.subscribe(
@@ -327,23 +345,9 @@ class ProjectGroupIndexEndpoint(ProjectEndpoint, EnvironmentMixin):
                 return response
 
         try:
-            query_kwargs = self._build_query_params_from_request(
-                request, project)
+            cursor_result, query_kwargs = self._search(request, project, {'count_hits': True})
         except ValidationError as exc:
             return Response({'detail': six.text_type(exc)}, status=400)
-
-        try:
-            environment_id = self._get_environment_id_from_request(
-                request, project.organization_id)
-        except Environment.DoesNotExist:
-            # XXX: The 1000 magic number for `max_hits` is an abstraction leak
-            # from `sentry.api.paginator.BasePaginator.get_result`.
-            cursor_result = CursorResult([], None, None, hits=0, max_hits=1000)
-        else:
-            cursor_result = search.query(
-                count_hits=True,
-                environment_id=environment_id,
-                **query_kwargs)
 
         results = list(cursor_result)
 
@@ -437,20 +441,15 @@ class ProjectGroupIndexEndpoint(ProjectEndpoint, EnvironmentMixin):
 
         if not group_ids:
             try:
-                query_kwargs = self._build_query_params_from_request(
-                    request, project)
+                # bulk mutations are limited to 1000 items
+                # TODO(dcramer): it'd be nice to support more than this, but its
+                # a bit too complicated right now
+                cursor_result, _ = self._search(request, project, {
+                    'limit': 1000,
+                    'paginator_options': {'max_limit': 1000},
+                })
             except ValidationError as exc:
                 return Response({'detail': six.text_type(exc)}, status=400)
-
-            # bulk mutations are limited to 1000 items
-            # TODO(dcramer): it'd be nice to support more than this, but its
-            # a bit too complicated right now
-            limit = 1000
-            query_kwargs['limit'] = limit
-
-            # the paginator has a default max_limit of 100, which must be overwritten.
-            cursor_result = search.query(
-                paginator_options={'max_limit': limit}, **query_kwargs)
 
             group_list = list(cursor_result)
             group_ids = [g.id for g in group_list]

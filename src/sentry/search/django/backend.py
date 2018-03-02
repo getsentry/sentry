@@ -57,9 +57,12 @@ class DjangoSearchBackend(SearchBackend):
         times_seen_upper_inclusive=True,
         cursor=None,
         limit=None,
-        environment_id=None,
+        environment=None,
     ):
         from sentry.models import Event, Group, GroupSubscription, GroupStatus
+
+        if tags is None:
+            tags = {}
 
         engine = get_db_engine('default')
 
@@ -115,8 +118,20 @@ class DjangoSearchBackend(SearchBackend):
                 first_release__version=first_release,
             )
 
+        if environment is not None:
+            # XXX: This overwrites the ``environment`` tag, if present, to
+            # ensure that the result set is limited to groups that have been
+            # seen in this environment (there is no way to search for groups
+            # that match multiple values of a single tag without changes to the
+            # tagstore API.)
+            tags['environment'] = environment.name
+
         if tags:
-            matches = tagstore.get_group_ids_for_search_filter(project.id, environment_id, tags)
+            matches = tagstore.get_group_ids_for_search_filter(
+                project.id,
+                environment.id if environment is not None else None,
+                tags,
+            )
             if not matches:
                 return queryset.none()
             queryset = queryset.filter(
