@@ -186,12 +186,12 @@ class Release(Model):
         # ReleaseFile.release
 
         from sentry.models import (
-            ReleaseCommit, ReleaseEnvironment, ReleaseFile, ReleaseProject, Group, GroupRelease,
+            ReleaseCommit, ReleaseEnvironment, ReleaseFile, ReleaseProject, ReleaseProjectEnvironment, Group, GroupRelease,
             GroupResolution
         )
 
         model_list = (
-            ReleaseCommit, ReleaseEnvironment, ReleaseFile, ReleaseProject, GroupRelease,
+            ReleaseCommit, ReleaseEnvironment, ReleaseFile, ReleaseProject, ReleaseProjectEnvironment, GroupRelease,
             GroupResolution
         )
         for release in from_releases:
