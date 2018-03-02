@@ -35,6 +35,17 @@ class StreamManager {
     return this;
   }
 
+  replace(items = []) {
+    items = [].concat(items);
+    items = items.filter((item) => item.hasOwnProperty('id'));
+
+    this.idList = items.map((item) => item.id);
+
+    this.store.reset();
+    this.store.add(items);
+    return this;
+  }
+
   getAllItems() {
     return this.store
       .getAllItems()
