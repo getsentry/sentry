@@ -96,7 +96,6 @@ class TeamDeleteTest(APITestCase):
                 'object_id': team.id,
                 'transaction_id': 'abc123',
             },
-            countdown=3600,
         )
 
     def test_cannot_remove_as_member(self):
