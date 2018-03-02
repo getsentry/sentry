@@ -13,11 +13,13 @@ import {t, tct} from '../../../../locale';
 import ApiMixin from '../../../../mixins/apiMixin';
 import Field from '../../components/forms/field';
 import LinkWithConfirmation from '../../../../components/linkWithConfirmation';
+import LoadingError from '../../../../components/loadingError';
 import LoadingIndicator from '../../../../components/loadingIndicator';
 import OrganizationsStore from '../../../../stores/organizationsStore';
 import Panel from '../../components/panel';
 import PanelHeader from '../../components/panelHeader';
 import SettingsPageHeader from '../../components/settingsPageHeader';
+import TextBlock from '../../components/text/textBlock';
 import recreateRoute from '../../../../utils/recreateRoute';
 
 const OrganizationGeneralSettingsView = createReactClass({
@@ -110,22 +112,24 @@ const OrganizationGeneralSettingsView = createReactClass({
   },
 
   render() {
-    let {data, organizations} = this.state;
+    let {data, loading, error, Form, organizations} = this.state;
     let orgId = this.props.params.orgId;
     let access = data && new Set(data.access);
 
-    let hasTeams = data && data.teams && !!data.teams.length;
+    let hasProjects = data && data.projects && !!data.projects.length;
     let hasMultipleOrgs = data && organizations.length > 1;
 
     return (
       <div>
-        {this.state.loading && <LoadingIndicator />}
+        {loading && <LoadingIndicator />}
+        {error && <LoadingError />}
 
-        {!this.state.loading &&
-          this.state.Form && (
+        {!loading &&
+          !error &&
+          Form && (
             <div>
               <SettingsPageHeader title={t('Organization Settings')} />
-              <this.state.Form
+              <Form
                 {...this.props}
                 initialData={data}
                 orgId={orgId}
@@ -144,40 +148,44 @@ const OrganizationGeneralSettingsView = createReactClass({
                         'Removing this organization will delete all data including projects and their associated events.'
                       )}
                     >
-                      <LinkWithConfirmation
-                        className="btn btn-danger"
-                        priority="danger"
-                        size="small"
-                        title={t('Remove %s organization', data && data.name)}
-                        message={
-                          <div>
-                            <p>
-                              {tct(
-                                'Removing the [name] organization is permanent and cannot be undone!',
-                                {name: data && data.name}
-                              )}
-                            </p>
+                      <div>
+                        <LinkWithConfirmation
+                          className="btn btn-danger"
+                          priority="danger"
+                          size="small"
+                          title={t('Remove %s organization', data && data.name)}
+                          message={
+                            <div>
+                              <TextBlock>
+                                {tct(
+                                  'Removing the organization, [name] is permanent and cannot be undone! Are you sure you want to continue?',
+                                  {
+                                    name: data && <strong>{data.name}</strong>,
+                                  }
+                                )}
+                              </TextBlock>
 
-                            {hasTeams && (
-                              <div>
-                                <p>
-                                  {t(
-                                    'This will also remove the following teams and all associated projects:'
-                                  )}
-                                </p>
-                                <ul>
-                                  {data.teams.map(team => (
-                                    <li key={team.slug}>{team.name}</li>
-                                  ))}
-                                </ul>
-                              </div>
-                            )}
-                          </div>
-                        }
-                        onConfirm={this.handleRemoveOrganization}
-                      >
-                        {t('Remove Organization')}
-                      </LinkWithConfirmation>
+                              {hasProjects && (
+                                <div>
+                                  <TextBlock noMargin>
+                                    {t(
+                                      'This will also remove the following associated projects:'
+                                    )}
+                                  </TextBlock>
+                                  <ul className="ref-projects">
+                                    {data.projects.map(project => (
+                                      <li key={project.slug}>{project.slug}</li>
+                                    ))}
+                                  </ul>
+                                </div>
+                              )}
+                            </div>
+                          }
+                          onConfirm={this.handleRemoveOrganization}
+                        >
+                          {t('Remove Organization')}
+                        </LinkWithConfirmation>
+                      </div>
                     </Field>
                   </Panel>
                 )}
