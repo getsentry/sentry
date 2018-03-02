@@ -33,7 +33,7 @@ const frontend = [
   'javascript-vue',
 ];
 
-const mobile = ['objc', 'swift', 'java-android', 'cocoa'];
+const mobile = ['objc', 'swift', 'java-android', 'cocoa', 'cordova'];
 
 const backend = [
   'go',

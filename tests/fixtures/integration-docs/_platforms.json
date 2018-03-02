@@ -15,6 +15,18 @@
     {
       "integrations": [
         {
+          "link": "https://docs.getsentry.com/hosted/clients/cordova/", 
+          "type": "language", 
+          "id": "cordova", 
+          "name": "Cordova"
+        }
+      ], 
+      "id": "cordova", 
+      "name": "Cordova"
+    }, 
+    {
+      "integrations": [
+        {
           "link": "https://docs.getsentry.com/hosted/clients/elixir/",
           "type": "language",
           "id": "elixir",

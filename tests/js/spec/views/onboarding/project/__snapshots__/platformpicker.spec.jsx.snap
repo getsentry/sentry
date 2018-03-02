@@ -87,6 +87,12 @@ exports[`PlatformPicker render() should only render Mobile platforms under Mobil
   >
     <PlatformCard
       className=""
+      key="cordova"
+      onClick={[Function]}
+      platform="cordova"
+    />
+    <PlatformCard
+      className=""
       key="java-android"
       onClick={[Function]}
       platform="java-android"
@@ -547,6 +553,37 @@ exports[`PlatformPicker render() should update State.tab onClick when particular
           <h5>
              
             C#
+             
+          </h5>
+        </span>
+      </PlatformCard>
+      <PlatformCard
+        className=""
+        key="cordova"
+        onClick={[Function]}
+        platform="cordova"
+      >
+        <span
+          className="platform-card"
+          onClick={[Function]}
+        >
+          <PlatformiconTile
+            className=""
+            onClick={[Function]}
+            platform="cordova"
+          >
+            <li
+              className="platform-tile list-unstyled cordova cordova "
+              onClick={[Function]}
+            >
+              <span
+                className="platformicon platformicon-cordova"
+              />
+            </li>
+          </PlatformiconTile>
+          <h5>
+             
+            Cordova
              
           </h5>
         </span>
