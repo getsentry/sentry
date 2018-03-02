@@ -10,7 +10,9 @@ const getPadding = ({disablePadding, hasButtons}) => css`
 
 const getFlex = ({isFlex}) => (isFlex ? 'display: flex' : '');
 
-const StyledPanelHeader = styled(({disablePadding, ...props}) => <div {...props} />)`
+const StyledPanelHeader = styled(({disablePadding, hasButtons, ...props}) => (
+  <div {...props} />
+))`
   border-bottom: 1px solid ${p => p.theme.borderDark};
   border-radius: ${p => p.theme.borderRadius} ${p => p.theme.borderRadius} 0 0;
   background: ${p => p.theme.offWhite};
@@ -47,6 +49,7 @@ class PanelHeader extends React.Component {
 PanelHeader.propTypes = {
   isFlex: PropTypes.bool,
   disablePadding: PropTypes.bool,
+  hasButtons: PropTypes.bool,
   lightText: PropTypes.bool,
 };
 

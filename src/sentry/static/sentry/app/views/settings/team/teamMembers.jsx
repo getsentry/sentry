@@ -10,16 +10,11 @@ import {leaveTeam} from '../../../actionCreators/teams';
 import LoadingError from '../../../components/loadingError';
 import LoadingIndicator from '../../../components/loadingIndicator';
 import OrganizationState from '../../../mixins/organizationState';
-import Tooltip from '../../../components/tooltip';
 import Panel from '../components/panel';
 import PanelHeader from '../components/panelHeader';
+import InlineSvg from '../../../components/inlineSvg';
+import EmptyMessage from '../components/emptyMessage';
 import {t} from '../../../locale';
-
-const PanelHeaderContentContainer = styled('div')`
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-`;
 
 const TeamMembers = createReactClass({
   displayName: 'TeamMembers',
@@ -124,6 +119,19 @@ const TeamMembers = createReactClass({
     );
   },
 
+  removeButton(member) {
+    return (
+      <Button size="small" onClick={this.removeMember.bind(this, member)}>
+        <InlineSvg
+          src="icon-circle-subtract"
+          size="1.25em"
+          style={{marginRight: '0.5em'}}
+        />
+        {t('Remove')}
+      </Button>
+    );
+  },
+
   render() {
     if (this.state.loading) return <LoadingIndicator />;
     else if (this.state.error) return <LoadingError onRetry={this.fetchData} />;
@@ -133,51 +141,41 @@ const TeamMembers = createReactClass({
     let access = this.getAccess();
 
     return (
-      <div>
-        <Panel>
-          <PanelHeader>
-            <PanelHeaderContentContainer>
-              <div>{t('Members')}</div>
-              {this.addMemberButton(access, params.orgId)}
-            </PanelHeaderContentContainer>
-          </PanelHeader>
-          <table className="table member-list">
-            <tbody>
-              {this.state.memberList.map((member, i) => {
-                return (
-                  <tr key={i}>
-                    <td className="table-user-info">
-                      <UserBadge user={member} orgId={params.orgId} />
-                    </td>
-                    <td>
-                      {access.has('org:write') ? (
-                        <Button
-                          size="small"
-                          onClick={this.removeMember.bind(this, member)}
-                        >
-                          {t('Remove')}
-                        </Button>
-                      ) : (
-                        <Tooltip
-                          title={t("You don't have have permission to remove members")}
-                        >
-                          <span>
-                            <Button size="small" disabled={true}>
-                              {t('Remove')}
-                            </Button>
-                          </span>
-                        </Tooltip>
-                      )}
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        </Panel>
-      </div>
+      <Panel>
+        <PanelHeader hasButtons disablePadding>
+          <StyledHeaderContainer>
+            <div>{t('Members')}</div>
+            {this.addMemberButton(access, params.orgId)}
+          </StyledHeaderContainer>
+        </PanelHeader>
+        {this.state.memberList.length ? (
+          this.state.memberList.map((member, i) => (
+            <StyledMemberContainer key={i}>
+              <UserBadge user={member} orgId={params.orgId} />
+              {access.has('org:write') && this.removeButton(member)}
+            </StyledMemberContainer>
+          ))
+        ) : (
+          <EmptyMessage icon="icon-user">Your Team is Empty</EmptyMessage>
+        )}
+      </Panel>
     );
   },
 });
+
+const StyledHeaderContainer = styled('div')`
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-left: 1em;
+  padding-right: 1em;
+`;
+
+const StyledMemberContainer = styled('div')`
+  display: flex;
+  justify-content: space-between;
+  padding: 1.25em 1em;
+  border-bottom: 1px solid ${p => p.theme.borderLight};
+`;
 
 export default TeamMembers;
