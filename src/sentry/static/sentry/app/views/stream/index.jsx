@@ -93,7 +93,6 @@ const Stream = createReactClass({
       tagsLoading: true,
       isSidebarVisible: false,
       processingIssues: null,
-      activeEnvironment: this.props.environment,
       hasEnvironmentsFeature,
     };
   },
@@ -120,7 +119,6 @@ const Stream = createReactClass({
       );
       this.setState(
         {
-          activeEnvironment: environment,
           query,
         },
         this.fetchData
@@ -360,8 +358,8 @@ const Stream = createReactClass({
     // Remove leading and trailing whitespace
     let query = queryString.formatQueryString(this.state.query);
 
-    let activeEnvironment = this.state.activeEnvironment;
-    let activeEnvName = activeEnvironment ? activeEnvironment.name : null;
+    let {environment} = this.props;
+    let activeEnvName = environment ? environment.name : null;
 
     let requestParams = {
       query,
@@ -384,11 +382,11 @@ const Stream = createReactClass({
         }
       }
       requestParams.environment = queryEnvironment;
-    } else if (activeEnvironment) {
+    } else if (environment) {
       // Set the environment of the query to match the global settings
-      query = queryString.getQueryStringWithEnvironment(query, activeEnvironment.name);
+      query = queryString.getQueryStringWithEnvironment(query, environment.name);
       requestParams.query = query;
-      requestParams.environment = activeEnvironment.name;
+      requestParams.environment = environment.name;
     }
 
     let currentQuery = this.props.location.query || {};
