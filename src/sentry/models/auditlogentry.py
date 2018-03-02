@@ -71,6 +71,10 @@ class AuditLogEntryEvent(object):
     SERVICEHOOK_ENABLE = 103
     SERVICEHOOK_DISABLE = 104
 
+    INTEGRATION_ADD = 105
+    INTEGRATION_EDIT = 106
+    INTEGRATION_REMOVE = 107
+
 
 class AuditLogEntry(Model):
     __core__ = False
@@ -132,6 +136,9 @@ class AuditLogEntry(Model):
             (AuditLogEntryEvent.SERVICEHOOK_REMOVE, 'serivcehook.remove'),
             (AuditLogEntryEvent.SERVICEHOOK_ENABLE, 'serivcehook.enable'),
             (AuditLogEntryEvent.SERVICEHOOK_DISABLE, 'serivcehook.disable'),
+            (AuditLogEntryEvent.INTEGRATION_ADD, 'integration.add'),
+            (AuditLogEntryEvent.INTEGRATION_EDIT, 'integration.edit'),
+            (AuditLogEntryEvent.INTEGRATION_REMOVE, 'integration.remove')
         )
     )
     ip_address = models.GenericIPAddressField(null=True, unpack_ipv4=True)
@@ -272,5 +279,15 @@ class AuditLogEntry(Model):
             return 'enabled theservice hook for "%s"' % (truncatechars(self.data['url'], 64), )
         elif self.event == AuditLogEntryEvent.SERVICEHOOK_DISABLE:
             return 'disabled the service hook for "%s"' % (truncatechars(self.data['url'], 64), )
+
+        elif self.event == AuditLogEntryEvent.INTEGRATION_ADD:
+            return 'enabled integration %s for project %s' % (
+                self.data['integration'], self.data['project'])
+        elif self.event == AuditLogEntryEvent.INTEGRATION_EDIT:
+            return 'edited integration %s for project %s' % (
+                self.data['integration'], self.data['project'])
+        elif self.event == AuditLogEntryEvent.INTEGRATION_REMOVE:
+            return 'disabled integration %s from project %s' % (
+                self.data['integration'], self.data['project'])
 
         return ''
