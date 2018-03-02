@@ -36,47 +36,71 @@ class GroupEventsEndpoint(GroupEndpoint, EnvironmentMixin):
         :auth: required
         """
 
-        events = Event.objects.filter(
-            group_id=group.id,
-        )
+        def respond(queryset):
+            return self.paginate(
+                request=request,
+                queryset=queryset,
+                order_by='-datetime',
+                on_results=lambda x: serialize(x, request.user),
+                paginator_cls=DateTimePaginator,
+            )
 
-        query = request.GET.get('query')
+        events = Event.objects.filter(group_id=group.id)
 
-        if query:
+        try:
+            environment = self._get_environment_from_request(
+                request,
+                group.project.organization_id,
+            )
+        except Environment.DoesNotExist:
+            return respond(events.none())
+
+        raw_query = request.GET.get('query')
+
+        if raw_query:
             try:
-                query_kwargs = parse_query(group.project, query, request.user)
+                query_kwargs = parse_query(group.project, raw_query, request.user)
             except InvalidQuery as exc:
                 return Response({'detail': six.text_type(exc)}, status=400)
+            else:
+                query = query_kwargs.pop('query', None)
+                tags = query_kwargs.pop('tags', {})
+                assert not query_kwargs, 'unexpected query parameters arguments: {!r}'.format(
+                    query_kwargs.keys())
+        else:
+            query = None
+            tags = {}
 
-            if query_kwargs['query']:
-                q = Q(message__icontains=query_kwargs['query'])
+        if environment is not None:
+            if 'environment' in tags and tags['environment'] != environment.name:
+                # An event can only be associated with a single
+                # environment, so if the environment associated with
+                # the request is different than the environment
+                # provided as a tag lookup, the query cannot contain
+                # any valid results.
+                return respond(events.none())
+            else:
+                tags['environment'] = environment.name
 
-                if len(query) == 32:
-                    q |= Q(event_id__exact=query_kwargs['query'])
+        if query:
+            q = Q(message__icontains=query)
 
-                events = events.filter(q)
+            if len(query) == 32:
+                q |= Q(event_id__exact=query)
 
-            if query_kwargs['tags']:
-                try:
-                    environment_id = self._get_environment_id_from_request(
-                        request, group.project.organization_id)
-                except Environment.DoesNotExist:
-                    event_ids = []
-                else:
-                    event_ids = tagstore.get_group_event_ids(
-                        group.project_id, group.id, environment_id, query_kwargs['tags'])
+            events = events.filter(q)
 
-                if event_ids:
-                    events = events.filter(
-                        id__in=event_ids,
-                    )
-                else:
-                    events = events.none()
+        if tags:
+            event_ids = tagstore.get_group_event_ids(
+                group.project_id,
+                group.id,
+                environment.id if environment is not None else None,
+                tags,
+            )
 
-        return self.paginate(
-            request=request,
-            queryset=events,
-            order_by='-datetime',
-            on_results=lambda x: serialize(x, request.user),
-            paginator_cls=DateTimePaginator,
-        )
+            if not event_ids:
+                return respond(events.none())
+
+            events = events.filter(id__in=event_ids)
+
+        return respond(events)
