@@ -13,6 +13,7 @@ import OrganizationState from '../../../mixins/organizationState';
 import Panel from '../components/panel';
 import PanelHeader from '../components/panelHeader';
 import InlineSvg from '../../../components/inlineSvg';
+import EmptyMessage from '../components/emptyMessage';
 import {t} from '../../../locale';
 
 const StyledHeaderContainer = styled('div')`
@@ -163,12 +164,16 @@ const TeamMembers = createReactClass({
             {this.addMemberButton(access, params.orgId)}
           </StyledHeaderContainer>
         </PanelHeader>
-        {this.state.memberList.map((member, i) => (
-          <StyledMemberContainer key={i}>
-            <UserBadge user={member} orgId={params.orgId} />
-            {access.has('org:write') && this.removeButton(member)}
-          </StyledMemberContainer>
-        ))}
+        {this.state.memberList.length ? (
+          this.state.memberList.map((member, i) => (
+            <StyledMemberContainer key={i}>
+              <UserBadge user={member} orgId={params.orgId} />
+              {access.has('org:write') && this.removeButton(member)}
+            </StyledMemberContainer>
+          ))
+        ) : (
+          <EmptyMessage icon="icon-user">Your Team is Empty</EmptyMessage>
+        )}
       </Panel>
     );
   },
