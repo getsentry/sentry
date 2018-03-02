@@ -5,7 +5,9 @@ from rest_framework.authentication import (BasicAuthentication, get_authorizatio
 from rest_framework.exceptions import AuthenticationFailed
 
 from sentry.app import raven
-from sentry.models import ApiKey, ApiToken
+from sentry.models import ApiKey, ApiToken, Relay
+
+import smith
 
 
 class QuietBasicAuthentication(BasicAuthentication):
@@ -15,33 +17,34 @@ class QuietBasicAuthentication(BasicAuthentication):
 
 class RelayAuthentication(QuietBasicAuthentication):
     def authenticate(self, request):
-        relay_signature = request.META.get('HTTP_X_SENTRY_RELAY_SIGNATURE', b'')
+        relay_id = request.META.get('HTTP_X_SENTRY_RELAY_ID', '')
+        relay_sig = request.META.get('HTTP_X_SENTRY_RELAY_SIGNATURE', '')
+        if not relay_id:
+            raise AuthenticationFailed('Invalid relay ID')
+        if not relay_sig:
+            raise AuthenticationFailed('Missing relay signature')
+        return self.authenticate_credentials(relay_id, relay_sig, request)
 
-        # TODO(hazat): read signature und check relay id
-        if not relay_signature:
+    def authenticate_credentials(self, relay_id, relay_sig, request):
+        raven.tags_context({
+            'relay_id': relay_id,
+        })
+
+        try:
+            relay = Relay.objects.get(relay_id=relay_id)
+        except Relay.DoesNotExist:
+            raise AuthenticationFailed('Unknown relay')
+
+        try:
+            data = relay.public_key_object.verify(request.body, relay_sig)
+            request.relay = relay
+            request.relay_request_data = data
+        except smith.UnpackError:
             raise AuthenticationFailed('Invalid relay signature')
 
-        return self.authenticate_credentials(relay_signature, None)
-
-    def authenticate_credentials(self, userid, password):
-        if password:
-            return None
-
-        # TODO(hazat): read signature und check relay id
-        # try:
-        #     key = ApiKey.objects.get_from_cache(key=userid)
-        # except ApiKey.DoesNotExist:
-        #     raise AuthenticationFailed('API key is not valid')
-
-        # if not key.is_active:
-        #     raise AuthenticationFailed('Key is disabled')
-
-        # raven.tags_context({
-        #     'api_key': key.id,
-        # })
-
-        # TODO(hazat): return relay id
-        return (AnonymousUser(), userid)
+        # TODO(mitsuhiko): can we return the relay here?  would be nice if we
+        # could find some common interface for it
+        return (AnonymousUser(), None)
 
 
 class ApiKeyAuthentication(QuietBasicAuthentication):

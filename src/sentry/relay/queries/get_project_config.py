@@ -7,7 +7,7 @@ from pytz import utc
 from sentry.models import Project, ProjectKey
 
 
-def execute(query):
+def execute(relay, query):
     project_id = query.get('projectId', None)
     public_key = query.get('publicKey', None)
     if not project_id:
@@ -30,16 +30,13 @@ def execute(query):
     # TODO(hazat): not use now
     now = datetime.utcnow().replace(tzinfo=utc)
     return {
-        'status': 'ok',
-        'result': {
-            'disabled': project.status > 0,
-            'slug': project.slug,
-            'lastFetch': now,
-            'lastChange': now,
-            'rev': uuid.uuid4().hex,
-            'publicKeys': public_keys,
-            'config': {
-                'allowedDomains': project.get_option('sentry:origins', [])
-            }
+        'disabled': project.status > 0,
+        'slug': project.slug,
+        'lastFetch': now,
+        'lastChange': now,
+        'rev': uuid.uuid4().hex,
+        'publicKeys': public_keys,
+        'config': {
+            'allowedDomains': project.get_option('sentry:origins', [])
         }
     }

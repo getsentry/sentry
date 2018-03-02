@@ -13,17 +13,26 @@ class InvalidQuery(Exception):
     status_code = status.HTTP_400_BAD_REQUEST
 
 
-def parse(body):
-    try:
-        from django.utils.importlib import import_module
+def execute_queries(relay, queries):
+    from django.utils.importlib import import_module
 
-        query_results = {}
-        for query_id, query in six.iteritems(body.get('queries', {})):
-            # TODO(hazat): check security not all imports allowed
+    query_results = {}
+    for query_id, query in six.iteritems(queries):
+        # TODO(hazat): check security not all imports allowed
+        try:
             relay_query = import_module('sentry.relay.queries.%s' % query.get('type', None))
+        except ImportError:
+            result = {
+                'status': 'error',
+                'error': 'unknown query'
+            }
+        else:
             execute = getattr(relay_query, 'execute')
-            query_results[query_id] = execute(query.get('data', None))
-        return query_results
+            # TODO(mitsuhiko): support for pending or failing queries
+            result = {
+                'status': 'ok',
+                'result': execute(relay, query.get('data', None)),
+            }
+        query_results[query_id] = result
 
-    except ImportError:
-        raise InvalidQuery
+    return query_results
