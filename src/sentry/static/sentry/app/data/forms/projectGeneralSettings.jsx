@@ -63,8 +63,8 @@ const formGroups = [
         label: t('Team'),
         visible: ({organization}) => organization.teams.length > 1,
         choices: ({organization}) =>
-          organization.teams.filter(o => o.isMember).map(o => [o.id, o.slug]),
-        help: t("Opt-in to new features before they're released to the public."),
+          organization.teams.filter(o => o.isMember).map(o => [o.slug, o.slug]),
+        help: t('Update the team that owns this project'),
       },
     ],
   },
