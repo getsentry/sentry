@@ -266,24 +266,18 @@ class SequencePaginator(object):
 
     def get_result(self, limit, cursor=None):
         if cursor is None:
-            cursor_score = None
-            cursor_offset = 0
-            cursor_is_prev = False
+            cursor = Cursor(0, 0, False)
+
+        assert cursor.offset > -1
+
+        if cursor.value == 0:
+            position = 0 if not cursor.is_prev else len(self.scores)
         else:
-            cursor_score = cursor.value
-            cursor_offset = cursor.offset
-            cursor_is_prev = cursor.is_prev
+            position = self.search(cursor.value)
 
-        assert cursor_offset > -1
+        position = position + cursor.offset
 
-        if cursor_score is None:
-            position = 0 if not cursor_is_prev else len(self.scores)
-        else:
-            position = self.search(cursor_score)
-
-        position = position + cursor_offset
-
-        if not cursor_is_prev:
+        if not cursor.is_prev:
             lo = max(position, 0)
             hi = min(lo + limit, len(self.scores))
         else:
@@ -294,21 +288,25 @@ class SequencePaginator(object):
             hi = min(position, len(self.scores))
             lo = max(hi - limit, 0)
 
-        prev_score = self.scores[min(lo, len(self.scores) - 1)]
-        prev_cursor = Cursor(
-            prev_score,
-            lo - self.search(prev_score, hi=lo),
-            True,
-            True if lo > 0 else False,
-        )
+        if self.scores:
+            prev_score = self.scores[min(lo, len(self.scores) - 1)]
+            prev_cursor = Cursor(
+                prev_score,
+                lo - self.search(prev_score, hi=lo),
+                True,
+                True if lo > 0 else False,
+            )
 
-        next_score = self.scores[min(hi, len(self.scores) - 1)]
-        next_cursor = Cursor(
-            next_score,
-            hi - self.search(next_score, hi=hi),
-            False,
-            True if hi < len(self.scores) else False,
-        )
+            next_score = self.scores[min(hi, len(self.scores) - 1)]
+            next_cursor = Cursor(
+                next_score,
+                hi - self.search(next_score, hi=hi),
+                False,
+                True if hi < len(self.scores) else False,
+            )
+        else:
+            prev_cursor = Cursor(cursor.value, cursor.offset, True, False)
+            next_cursor = Cursor(cursor.value, cursor.offset, False, False)
 
         return CursorResult(
             self.values[lo:hi],
