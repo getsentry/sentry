@@ -33,14 +33,14 @@ exports[`OrganizationStats renders 1`] = `
   margin-bottom: 30px;
 }
 
-.glamor-19 {
+.glamor-21 {
   background: #fff;
   border: 1px solid;
   margin-bottom: NaNpx;
   position: relative;
 }
 
-.glamor-15 {
+.glamor-17 {
   border-bottom: 1px solid;
   border-radius: 0 0;
   text-transform: uppercase;
@@ -49,13 +49,13 @@ exports[`OrganizationStats renders 1`] = `
   padding: 15px 20px;
 }
 
-.glamor-11 {
+.glamor-13 {
   font-size: inherit;
   text-transform: inherit;
   margin: 0;
 }
 
-.glamor-9 {
+.glamor-11 {
   font-size: 12px;
   font-weight: 600;
   text-transform: uppercase;
@@ -288,16 +288,20 @@ exports[`OrganizationStats renders 1`] = `
             className="col-md-9"
           >
             <TextBlock>
-              <div
+              <Component
                 className="glamor-6 glamor-7"
               >
-                The chart below reflects events the system has received
+                <div
+                  className="glamor-6 glamor-7"
+                >
+                  The chart below reflects events the system has received
             across your entire organization. Events are broken down into
             three categories: Accepted, Rate Limited, and Filtered. Rate
             Limited events are entries that the system threw away due to quotas
             being hit, and Filtered events are events that were blocked
             due to your inbound data filter rules.
-              </div>
+                </div>
+              </Component>
             </TextBlock>
           </div>
         </div>
@@ -317,25 +321,25 @@ exports[`OrganizationStats renders 1`] = `
         </div>
         <Panel>
           <div
-            className="glamor-19 glamor-20"
+            className="glamor-21 glamor-22"
           >
             <PanelHeader>
               <StyledPanelHeader>
                 <Component
-                  className="glamor-15 glamor-16"
+                  className="glamor-17 glamor-18"
                 >
                   <div
-                    className="glamor-15 glamor-16"
+                    className="glamor-17 glamor-18"
                   >
                     <StyledPanelHeading>
                       <Component
-                        className="glamor-11 glamor-8"
+                        className="glamor-13 glamor-10"
                       >
                         <PanelHeading
-                          className="glamor-11 glamor-8"
+                          className="glamor-13 glamor-10"
                         >
                           <div
-                            className="glamor-8 glamor-9 glamor-10"
+                            className="glamor-10 glamor-11 glamor-12"
                           >
                             Events by Project
                           </div>
