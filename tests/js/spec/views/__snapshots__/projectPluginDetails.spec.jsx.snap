@@ -444,7 +444,6 @@ exports[`ProjectPluginDetails renders 1`] = `
                         >
                           <div
                             className="glamor-21 glamor-22"
-                            hasButtons={true}
                           >
                             <StyledPanelHeading>
                               <Component
