@@ -7,11 +7,7 @@ import Link from './link';
 const UserBadge = ({user, orgId}) => {
   return (
     <StyledUserBadge>
-      <Avatar
-        user={user}
-        size={80}
-        style={{width: '2em', height: '2em', marginRight: '0.5em'}}
-      />
+      <StyledAvatar user={user} size={80} className="avatar" />
       <div>
         <StyledLink to={`/settings/organization/${orgId}/members/${user.id}`}>
           {user.email}
@@ -40,6 +36,12 @@ const StyledLink = styled(Link)`
   font-weight: bold;
   display: block;
   margin-bottom: 0.2em;
+`;
+
+const StyledAvatar = styled(props => <Avatar {...props} />)`
+  width: 2em;
+  height: 2em;
+  margin-right: 0.5em;
 `;
 
 export default UserBadge;
