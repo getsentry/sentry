@@ -12,6 +12,7 @@ import LoadingIndicator from '../../../components/loadingIndicator';
 import OrganizationState from '../../../mixins/organizationState';
 import Panel from '../components/panel';
 import PanelHeader from '../components/panelHeader';
+import InlineSvg from '../../../components/inlineSvg';
 import {t} from '../../../locale';
 
 const StyledHeaderContainer = styled('div')`
@@ -136,6 +137,11 @@ const TeamMembers = createReactClass({
   removeButton(member) {
     return (
       <Button size="small" onClick={this.removeMember.bind(this, member)}>
+        <InlineSvg
+          src="icon-circle-subtract"
+          size="1.25em"
+          style={{marginRight: '0.5em'}}
+        />
         {t('Remove')}
       </Button>
     );

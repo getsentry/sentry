@@ -55,6 +55,15 @@ exports[`TeamMembers render() renders 1`] = `
       onClick={[Function]}
       size="small"
     >
+      <InlineSvg
+        size="1.25em"
+        src="icon-circle-subtract"
+        style={
+          Object {
+            "marginRight": "0.5em",
+          }
+        }
+      />
       Remove
     </Button>
   </StyledMemberContainer>
@@ -88,6 +97,15 @@ exports[`TeamMembers render() renders 1`] = `
       onClick={[Function]}
       size="small"
     >
+      <InlineSvg
+        size="1.25em"
+        src="icon-circle-subtract"
+        style={
+          Object {
+            "marginRight": "0.5em",
+          }
+        }
+      />
       Remove
     </Button>
   </StyledMemberContainer>
@@ -121,6 +139,15 @@ exports[`TeamMembers render() renders 1`] = `
       onClick={[Function]}
       size="small"
     >
+      <InlineSvg
+        size="1.25em"
+        src="icon-circle-subtract"
+        style={
+          Object {
+            "marginRight": "0.5em",
+          }
+        }
+      />
       Remove
     </Button>
   </StyledMemberContainer>
