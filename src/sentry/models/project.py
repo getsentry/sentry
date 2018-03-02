@@ -293,6 +293,7 @@ class Project(Model):
             EnvironmentProject,
             ProjectTeam,
             ReleaseProject,
+            ReleaseProjectEnvironment,
             Rule,
         )
 
@@ -327,7 +328,7 @@ class Project(Model):
         # to this however, such as rules, which should maintain their
         # configuration when moved across organizations.
         if org_changed:
-            for model in ReleaseProject, EnvironmentProject:
+            for model in ReleaseProject, ReleaseProjectEnvironment, EnvironmentProject:
                 model.objects.filter(
                     project_id=self.id,
                 ).delete()

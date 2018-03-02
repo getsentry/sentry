@@ -185,7 +185,7 @@ class Team(Model):
         """
         from sentry.models import (
             OrganizationAccessRequest, OrganizationMember, OrganizationMemberTeam, Project,
-            ProjectTeam, ReleaseProject
+            ProjectTeam, ReleaseProject, ReleaseProjectEnvironment
         )
 
         try:
@@ -211,6 +211,9 @@ class Team(Model):
 
         # remove associations with releases from other org
         ReleaseProject.objects.filter(
+            project_id__in=project_ids,
+        ).delete()
+        ReleaseProjectEnvironment.objects.filter(
             project_id__in=project_ids,
         ).delete()
 
