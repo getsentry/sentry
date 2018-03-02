@@ -31,16 +31,24 @@ describe('projectGeneralSettings', function() {
     expect(component).toMatchSnapshot();
   });
 
-  it('disables field with an org override', function() {
+  it('disables field when equivalent org setting is true', function() {
     let routerContext = TestStubs.routerContext();
     routerContext.context.organization.dataScrubber = true;
+    routerContext.context.organization.scrubIPAddresses = false;
     let component = mount(
       <ThemeProvider theme={theme}>
         <ProjectGeneralSettings params={{orgId: org.slug, projectId: project.slug}} />
       </ThemeProvider>,
       routerContext
     );
+    expect(component.find('Switch[name="scrubIPAddresses"]').prop('isDisabled')).toBe(
+      false
+    );
+    expect(
+      component.find('Switch[name="scrubIPAddresses"]').prop('isActive')
+    ).toBeFalsy();
     expect(component.find('Switch[name="dataScrubber"]').prop('isDisabled')).toBe(true);
+    expect(component.find('Switch[name="dataScrubber"]').prop('isActive')).toBe(true);
   });
 
   it('project admins can transfer or remove project', function() {
