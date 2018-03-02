@@ -16,22 +16,6 @@ import InlineSvg from '../../../components/inlineSvg';
 import EmptyMessage from '../components/emptyMessage';
 import {t} from '../../../locale';
 
-const StyledHeaderContainer = styled('div')`
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding-left: 1em;
-  padding-right: 1em;
-`;
-
-const StyledMemberContainer = styled('div')`
-  display: flex;
-  justify-content: space-between;
-  padding: 1.25em 0;
-  margin: 0 1em;
-  border-bottom: 1px solid ${p => p.theme.borderLight};
-`;
-
 const TeamMembers = createReactClass({
   displayName: 'TeamMembers',
   mixins: [ApiMixin, OrganizationState],
@@ -178,5 +162,20 @@ const TeamMembers = createReactClass({
     );
   },
 });
+
+const StyledHeaderContainer = styled('div')`
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-left: 1em;
+  padding-right: 1em;
+`;
+
+const StyledMemberContainer = styled('div')`
+  display: flex;
+  justify-content: space-between;
+  padding: 1.25em 1em;
+  border-bottom: 1px solid ${p => p.theme.borderLight};
+`;
 
 export default TeamMembers;
