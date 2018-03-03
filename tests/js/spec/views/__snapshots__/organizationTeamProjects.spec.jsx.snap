@@ -1,14 +1,14 @@
 // Jest Snapshot v1, https://goo.gl/fbAQLP
 
 exports[`OrganizationTeamProjects Should render 1`] = `
-.glamor-11 {
+.glamor-41 {
   background: #fff;
   border: 1px solid;
   margin-bottom: NaNpx;
   position: relative;
 }
 
-.glamor-7 {
+.glamor-24 {
   border-bottom: 1px solid;
   border-radius: 0 0;
   text-transform: uppercase;
@@ -17,13 +17,13 @@ exports[`OrganizationTeamProjects Should render 1`] = `
   padding: 15px 20px;
 }
 
-.glamor-3 {
+.glamor-20 {
   font-size: inherit;
   text-transform: inherit;
   margin: 0;
 }
 
-.glamor-1 {
+.glamor-18 {
   font-size: 12px;
   font-weight: 600;
   text-transform: uppercase;
@@ -33,7 +33,37 @@ exports[`OrganizationTeamProjects Should render 1`] = `
   margin: 0;
 }
 
-.glamor-33 {
+.glamor-15 {
+  display: -webkit-box;
+  display: -webkit-flex;
+  display: -ms-flexbox;
+  display: flex;
+  -webkit-align-items: center;
+  -webkit-box-align: center;
+  -ms-flex-align: center;
+  align-items: center;
+  -webkit-box-pack: justify;
+  -webkit-justify-content: space-between;
+  -ms-flex-pack: justify;
+  justify-content: space-between;
+}
+
+.glamor-9 {
+  position: relative;
+  z-index: 1;
+  box-shadow: none;
+}
+
+.glamor-3 {
+  margin-right: 0.5em;
+}
+
+.glamor-1 {
+  vertical-align: middle;
+  margin-right: 0.5em;
+}
+
+.glamor-37 {
   box-sizing: border-box;
   padding: 0px;
   display: -webkit-box;
@@ -47,11 +77,11 @@ exports[`OrganizationTeamProjects Should render 1`] = `
   border-bottom: 1px solid;
 }
 
-.glamor-33:last-child {
+.glamor-37:last-child {
   border: 0;
 }
 
-.glamor-29 {
+.glamor-33 {
   box-sizing: border-box;
   padding: 16px;
   -webkit-flex: 1;
@@ -59,17 +89,17 @@ exports[`OrganizationTeamProjects Should render 1`] = `
   flex: 1;
 }
 
-.glamor-26 {
+.glamor-30 {
   color: #645574;
 }
 
-.glamor-24 {
+.glamor-28 {
   border: none;
   background-color: inherit;
   padding: 0;
 }
 
-.glamor-31 {
+.glamor-35 {
   box-sizing: border-box;
   padding: 16px;
 }
@@ -85,69 +115,141 @@ exports[`OrganizationTeamProjects Should render 1`] = `
   <div>
     <Panel>
       <div
-        className="glamor-11 glamor-12"
+        className="glamor-41 glamor-42"
       >
         <PanelHeader>
           <StyledPanelHeader>
             <Component
-              className="glamor-7 glamor-8"
+              className="glamor-24 glamor-25"
             >
               <div
-                className="glamor-7 glamor-8"
+                className="glamor-24 glamor-25"
               >
                 <StyledPanelHeading>
                   <Component
-                    className="glamor-3 glamor-0"
+                    className="glamor-20 glamor-17"
                   >
                     <PanelHeading
-                      className="glamor-3 glamor-0"
+                      className="glamor-20 glamor-17"
                     >
                       <div
-                        className="glamor-0 glamor-1 glamor-2"
+                        className="glamor-17 glamor-18 glamor-19"
                       >
-                        Associated Projects
-                      </div>
-                    </PanelHeading>
-                  </Component>
-                </StyledPanelHeading>
-              </div>
-            </Component>
-          </StyledPanelHeader>
-        </PanelHeader>
-        <PanelBody
-          direction="column"
-          disablePadding={true}
-          flex={false}
-        >
-          <div
-            className=""
-          />
-        </PanelBody>
-      </div>
-    </Panel>
-    <Panel>
-      <div
-        className="glamor-11 glamor-12"
-      >
-        <PanelHeader>
-          <StyledPanelHeader>
-            <Component
-              className="glamor-7 glamor-8"
-            >
-              <div
-                className="glamor-7 glamor-8"
-              >
-                <StyledPanelHeading>
-                  <Component
-                    className="glamor-3 glamor-0"
-                  >
-                    <PanelHeading
-                      className="glamor-3 glamor-0"
-                    >
-                      <div
-                        className="glamor-0 glamor-1 glamor-2"
-                      >
-                        Other Projects
+                        <PanelHeaderContentContainer>
+                          <div
+                            className="glamor-15 glamor-16"
+                          >
+                            Projects
+                            <div
+                              style={
+                                Object {
+                                  "textTransform": "none",
+                                }
+                              }
+                            >
+                              <DropdownAutoComplete
+                                isOpen={false}
+                                items={
+                                  Array [
+                                    Object {
+                                      "label": "project-slug-2",
+                                      "value": "3",
+                                    },
+                                  ]
+                                }
+                                onSelect={[Function]}
+                              >
+                                <div
+                                  style={
+                                    Object {
+                                      "display": "inline-block",
+                                      "position": "relative",
+                                    }
+                                  }
+                                >
+                                  <div
+                                    onClick={[Function]}
+                                  >
+                                    <DropdownButton
+                                      isOpen={false}
+                                    >
+                                      <StyledButton
+                                        isOpen={false}
+                                      >
+                                        <Component
+                                          className="glamor-9 glamor-10"
+                                          isOpen={false}
+                                        >
+                                          <Button
+                                            className="glamor-9 glamor-10"
+                                            disabled={false}
+                                            isOpen={false}
+                                          >
+                                            <button
+                                              className="glamor-9 glamor-10 button button-default"
+                                              disabled={false}
+                                              isOpen={false}
+                                              onClick={[Function]}
+                                              role="button"
+                                            >
+                                              <FlowLayout
+                                                truncate={false}
+                                              >
+                                                <div
+                                                  className="flow-layout"
+                                                >
+                                                  <span
+                                                    className="button-label"
+                                                  >
+                                                    <StyledChevronDown>
+                                                      <Component
+                                                        className="glamor-3 glamor-0"
+                                                      >
+                                                        <InlineSvg
+                                                          className="glamor-3 glamor-0"
+                                                          src="icon-chevron-down"
+                                                        >
+                                                          <StyledSvg
+                                                            className="glamor-3 glamor-0"
+                                                            height="1em"
+                                                            style={Object {}}
+                                                            viewBox={Object {}}
+                                                            width="1em"
+                                                          >
+                                                            <svg
+                                                              className="glamor-0 glamor-1 glamor-2"
+                                                              height="1em"
+                                                              style={Object {}}
+                                                              viewBox={Object {}}
+                                                              width="1em"
+                                                            >
+                                                              <use
+                                                                href="#test"
+                                                                xlinkHref="#test"
+                                                              />
+                                                            </svg>
+                                                          </StyledSvg>
+                                                        </InlineSvg>
+                                                      </Component>
+                                                    </StyledChevronDown>
+                                                    <span
+                                                      className="icon-plus"
+                                                    />
+                                                    Add Project
+                                                  </span>
+                                                </div>
+                                              </FlowLayout>
+                                            </button>
+                                          </Button>
+                                        </Component>
+                                      </StyledButton>
+                                    </DropdownButton>
+                                  </div>
+                                </div>
+                              </DropdownAutoComplete>
+                            </div>
+                          </div>
+                        </PanelHeaderContentContainer>
                       </div>
                     </PanelHeading>
                   </Component>
@@ -175,11 +277,11 @@ exports[`OrganizationTeamProjects Should render 1`] = `
               >
                 <Base
                   align="center"
-                  className="glamor-33 glamor-34"
+                  className="glamor-37 glamor-38"
                   p={0}
                 >
                   <div
-                    className="glamor-33 glamor-34"
+                    className="glamor-37 glamor-38"
                     is={null}
                   >
                     <Box
@@ -187,12 +289,12 @@ exports[`OrganizationTeamProjects Should render 1`] = `
                       p={2}
                     >
                       <Base
-                        className="glamor-29"
+                        className="glamor-33"
                         flex="1"
                         p={2}
                       >
                         <div
-                          className="glamor-29"
+                          className="glamor-33"
                           is={null}
                         >
                           <ProjectItem
@@ -266,7 +368,7 @@ exports[`OrganizationTeamProjects Should render 1`] = `
                                   title="Add to bookmarks"
                                 >
                                   <button
-                                    className="tip glamor-24 glamor-25"
+                                    className="tip glamor-28 glamor-29"
                                     onClick={[Function]}
                                     title="Add to bookmarks"
                                   >
@@ -277,17 +379,17 @@ exports[`OrganizationTeamProjects Should render 1`] = `
                                 </InlineButton>
                               </Tooltip>
                               <Link
-                                className="glamor-26"
+                                className="glamor-30"
                                 to="/settings/organization/org-slug/project/project-slug/"
                               >
                                 <Link
-                                  className="glamor-26"
+                                  className="glamor-30"
                                   onlyActiveOnIndex={false}
                                   style={Object {}}
                                   to="/settings/organization/org-slug/project/project-slug/"
                                 >
                                   <a
-                                    className="glamor-26"
+                                    className="glamor-30"
                                     onClick={[Function]}
                                     style={Object {}}
                                   >
@@ -371,11 +473,11 @@ exports[`OrganizationTeamProjects Should render 1`] = `
                       p={2}
                     >
                       <Base
-                        className="glamor-31"
+                        className="glamor-35"
                         p={2}
                       >
                         <div
-                          className="glamor-31"
+                          className="glamor-35"
                           is={null}
                         >
                           <Button
@@ -398,7 +500,7 @@ exports[`OrganizationTeamProjects Should render 1`] = `
                                   <span
                                     className="button-label"
                                   >
-                                    Add
+                                    Remove
                                   </span>
                                 </div>
                               </FlowLayout>
