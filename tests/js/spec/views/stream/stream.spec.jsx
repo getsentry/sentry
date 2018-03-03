@@ -10,6 +10,7 @@ import Stream from 'app/views/stream/stream';
 import EnvironmentStore from 'app/stores/environmentStore';
 import {setActiveEnvironment} from 'app/actionCreators/environments';
 import {browserHistory} from 'react-router';
+import StreamTagStore from 'app/stores/streamTagStore';
 
 jest.mock('app/stores/groupStore');
 
@@ -38,10 +39,6 @@ describe('Stream', function() {
       body: [{id: '789', query: 'is:unresolved', name: 'test'}],
     });
     MockApiClient.addMockResponse({
-      url: '/projects/123/456/tags/',
-      body: TestStubs.Tags(),
-    });
-    MockApiClient.addMockResponse({
       url: '/projects/123/456/processingissues/',
       method: 'GET',
     });
@@ -61,10 +58,14 @@ describe('Stream', function() {
       team: {id: '2448'},
     };
 
+    StreamTagStore.init();
+
     props = {
       setProjectNavSection: function() {},
       location: {query: {query: 'is:unresolved'}, search: 'query=is:unresolved'},
       params: {orgId: '123', projectId: '456'},
+      tags: StreamTagStore.getAllTags(),
+      tagsLoading: false,
     };
   });
 
@@ -440,9 +441,8 @@ describe('Stream', function() {
 
     it('handles no searchId or query', function() {
       let streamProps = {
-        setProjectNavSection: function() {},
+        ...props,
         location: {query: {sort: 'freq'}, search: 'sort=freq'},
-        params: {orgId: '123', projectId: '456'},
       };
 
       let expected = {
@@ -470,7 +470,7 @@ describe('Stream', function() {
 
     it('handles valid searchId in routing params', function() {
       let streamProps = {
-        setProjectNavSection: function() {},
+        ...props,
         location: {query: {sort: 'freq'}, search: 'sort=freq'},
         params: {orgId: '123', projectId: '456', searchId: '789'},
       };
@@ -504,7 +504,7 @@ describe('Stream', function() {
 
     it('handles invalid searchId in routing params', function() {
       let streamProps = {
-        setProjectNavSection: function() {},
+        ...props,
         location: {query: {sort: 'freq'}, search: 'sort=freq'},
         params: {orgId: '123', projectId: '456', searchId: '799'},
       };
