@@ -26,7 +26,6 @@ const StyledCloseButton = styled.button`
   position: absolute;
   right: ${p => p.theme.grid}px;
   top: 7px;
-
   ${StyledInlineSvg} {
     color: ${p => p.theme.gray4};
   }
