@@ -13,11 +13,16 @@ describe('OrganizationTeamProjects', function() {
   let postMock;
   let deleteMock;
   beforeEach(function() {
-    team = TestStubs.Team();
-    TeamStore.loadInitialData([team]);
-
     let project = TestStubs.Project();
-    ProjectsStore.loadInitialData([project]);
+    let project2 = TestStubs.Project({
+      id: '3',
+      slug: 'project-slug-2',
+      name: 'Project Name 2',
+    });
+    team = TestStubs.Team({projects: [project]});
+
+    TeamStore.loadInitialData([team]);
+    ProjectsStore.loadInitialData([project, project2]);
 
     putMock = Client.addMockResponse({
       method: 'PUT',
@@ -27,12 +32,12 @@ describe('OrganizationTeamProjects', function() {
 
     postMock = Client.addMockResponse({
       method: 'POST',
-      url: `/projects/org-slug/project-slug/teams/${team.slug}/`,
+      url: `/projects/org-slug/project-slug-2/teams/${team.slug}/`,
     });
 
     deleteMock = Client.addMockResponse({
       method: 'DELETE',
-      url: `/projects/org-slug/project-slug/teams/${team.slug}/`,
+      url: `/projects/org-slug/project-slug-2/teams/${team.slug}/`,
     });
   });
 
@@ -68,16 +73,22 @@ describe('OrganizationTeamProjects', function() {
     expect(putMock).toHaveBeenCalledTimes(1);
   });
 
-  it('Adding and removing projects works', function(done) {
+  it('Should allow adding and removing projects', function(done) {
     let wrapper = mount(
       <OrganizationTeamProjects params={{orgId: 'org-slug', teamId: team.slug}} />,
       TestStubs.routerOrganizationContext()
     );
 
-    let add = wrapper.find('.button-label');
-    expect(add.length).toBe(1);
-    expect(add.text()).toBe('Add');
+    let add = wrapper.find('.button-label').first();
+    expect(add.text()).toBe('Add Project');
     add.simulate('click');
+
+    // is there a better way to do this???
+    let el = wrapper
+      .find('.autocomplete-items')
+      .childAt(0)
+      .childAt(0);
+    el.simulate('click');
 
     wrapper.update();
 
@@ -85,8 +96,7 @@ describe('OrganizationTeamProjects', function() {
 
     setTimeout(() => {
       wrapper.update();
-      let remove = wrapper.find('.flow-layout .button-label');
-      expect(remove.length).toBe(1);
+      let remove = wrapper.find('.flow-layout .button-label').at(1);
 
       expect(remove.text()).toBe('Remove');
       remove.simulate('click');
