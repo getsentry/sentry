@@ -164,25 +164,25 @@ const Stream = createReactClass({
       savedSearchLoading: true,
     });
 
-    let {orgId, projectId} = this.props.params;
+    const {orgId, projectId} = this.props.params;
+    const {searchId} = this.state;
+
     this.api.request(`/projects/${orgId}/${projectId}/searches/`, {
       success: data => {
-        let newState = {
+        const newState = {
           isDefaultSearch: false,
           savedSearchLoading: false,
           savedSearchList: data,
           loading: false,
         };
-        let searchId = this.state.searchId;
         let needsData = this.state.loading;
         if (searchId) {
-          let match = data.filter(search => {
-            return search.id === searchId;
-          });
-          if (match.length) {
-            newState.query = match[0].query;
+          const match = data.find(search => search.id === searchId);
+
+          if (match) {
+            newState.query = match.query;
           } else {
-            return void this.setState(
+            this.setState(
               {
                 savedSearchLoading: false,
                 savedSearchList: data,
@@ -193,24 +193,18 @@ const Stream = createReactClass({
             );
           }
         } else if (!this.hasQuery()) {
-          let defaultResults = data.filter(search => {
-            return search.isUserDefault;
-          });
+          const defaultResult =
+            data.find(search => search.isUserDefault) ||
+            data.find(search => search.isDefault);
 
-          if (!defaultResults.length) {
-            defaultResults = data.filter(search => {
-              return search.isDefault;
-            });
-          }
-
-          if (defaultResults.length) {
-            newState.searchId = defaultResults[0].id;
-            newState.query = defaultResults[0].query;
+          if (defaultResult) {
+            newState.searchId = defaultResult.id;
+            newState.query = defaultResult.query;
             newState.isDefaultSearch = true;
           }
         }
 
-        return void this.setState(newState, needsData ? this.fetchData : null);
+        this.setState(newState, needsData ? this.fetchData : null);
       },
       error: error => {
         // XXX(dcramer): fail gracefully by still loading the stream
@@ -315,22 +309,20 @@ const Stream = createReactClass({
     };
 
     if (searchId) {
-      let searchResult = this.state.savedSearchList.filter(search => {
-        return search.id === searchId;
-      });
-      if (searchResult.length) {
-        newState.query = searchResult[0].query;
+      let searchResult = this.state.savedSearchList.find(
+        search => search.id === searchId
+      );
+      if (searchResult) {
+        newState.query = searchResult.query;
       } else {
         newState.searchId = null;
       }
     } else if (!hasQuery) {
-      let defaultResult = this.state.savedSearchList.filter(search => {
-        return search.isDefault;
-      });
-      if (defaultResult.length) {
+      let defaultResult = this.state.savedSearchList.find(search => search.isDefault);
+      if (defaultResult) {
         newState.isDefaultSearch = true;
-        newState.searchId = defaultResult[0].id;
-        newState.query = defaultResult[0].query;
+        newState.searchId = defaultResult.id;
+        newState.query = defaultResult.query;
       } else {
         newState.searchId = null;
       }
