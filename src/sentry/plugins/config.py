@@ -125,7 +125,7 @@ class PluginConfigMixin(ProviderMixin):
                 continue
 
             if value is None:
-                if config.get('required'):
+                if config.get('required') and not config.get('readonly'):
                     raise PluginError('Field is required')
                 if config.get('type') == 'secret':
                     value = self.get_option(name, project)
