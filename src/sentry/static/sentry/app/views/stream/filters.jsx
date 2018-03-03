@@ -11,7 +11,6 @@ class StreamFilters extends React.Component {
     orgId: PropTypes.string.isRequired,
     projectId: PropTypes.string.isRequired,
     access: PropTypes.object.isRequired,
-    tags: PropTypes.object.isRequired,
 
     searchId: PropTypes.string,
     savedSearchList: PropTypes.array.isRequired,
@@ -50,7 +49,6 @@ class StreamFilters extends React.Component {
       queryMaxCount,
       query,
       savedSearchList,
-      tags,
       isSearchDisabled,
       sort,
 
@@ -85,8 +83,6 @@ class StreamFilters extends React.Component {
               <SearchBar
                 orgId={orgId}
                 projectId={projectId}
-                ref="searchBar"
-                tags={tags}
                 placeholder={t('Search for events, users, tags, and everything else.')}
                 query={query || ''}
                 onSearch={onSearch}
