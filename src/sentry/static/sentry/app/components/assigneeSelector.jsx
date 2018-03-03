@@ -312,10 +312,22 @@ const AssigneeSelector = createReactClass({
                     <span className="icon-circle-cross" /> {t('Clear Assignee')}
                   </MenuItem>
                 )}
+
               {!memberListLoading && (
                 <li>
                   <ul>{[...teamNodes, ...memberNodes]}</ul>
                 </li>
+              )}
+
+              {ConfigStore.getConfig().invitesEnabled && (
+                <MenuItem
+                  className="invite-member"
+                  disabled={!loading}
+                  to={`/settings/organization/${this.context.organization
+                    .slug}/members/new/`}
+                >
+                  <span className="icon-plus" /> {t('Invite Member')}
+                </MenuItem>
               )}
 
               {memberListLoading && (
