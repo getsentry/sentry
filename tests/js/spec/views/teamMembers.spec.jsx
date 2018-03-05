@@ -58,7 +58,7 @@ describe('TeamMembers', function() {
 
       wrapper
         .find('.button-default')
-        .first()
+        .at(1)
         .simulate('click');
 
       expect(mock).toHaveBeenCalledWith(
