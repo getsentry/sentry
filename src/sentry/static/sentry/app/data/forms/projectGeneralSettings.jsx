@@ -30,9 +30,8 @@ const ORG_DISABLED_REASON = t(
   "This option is enforced by your organization's settings and cannot be customized per-project."
 );
 
-// Check if a field has been set at the organization level.
-const hasOrgOverride = ({organization, name}) =>
-  typeof organization[name] !== 'undefined';
+// Check if a field has been set AND IS TRUTHY at the organization level.
+const hasOrgOverride = ({organization, name}) => organization[name];
 
 const formGroups = [
   {
@@ -73,7 +72,7 @@ const formGroups = [
     title: t('Email'),
     fields: [
       {
-        name: 'subjectPrefix',
+        name: 'subjectTemplate',
         type: 'string',
         label: t('Subject Prefix'),
         help: t('Choose a custom prefix for emails from this project'),
@@ -124,6 +123,9 @@ const formGroups = [
         disabled: hasOrgOverride,
         disabledReason: ORG_DISABLED_REASON,
         help: t('Enable server-side data scrubbing'),
+        // `props` are the props given to FormField
+        setValue: (val, props) =>
+          (props.organization && props.organization[props.name]) || val,
       },
       {
         name: 'dataScrubberDefaults',
@@ -134,6 +136,20 @@ const formGroups = [
         help: t(
           'Apply default scrubbers to prevent things like passwords and credit cards from being stored'
         ),
+        // `props` are the props given to FormField
+        setValue: (val, props) =>
+          (props.organization && props.organization[props.name]) || val,
+      },
+      {
+        name: 'scrubIPAddresses',
+        type: 'boolean',
+        disabled: hasOrgOverride,
+        disabledReason: ORG_DISABLED_REASON,
+        // `props` are the props given to FormField
+        setValue: (val, props) =>
+          (props.organization && props.organization[props.name]) || val,
+        label: t('Prevent Storing of IP Addresses'),
+        help: t('Preventing IP addresses from being stored for new events'),
       },
       {
         name: 'sensitiveFields',
@@ -158,14 +174,6 @@ const formGroups = [
         ),
         getValue: val => extractMultilineFields(val),
         setValue: val => (val && typeof val.join === 'function' && val.join('\n')) || '',
-      },
-      {
-        name: 'scrubIPAddresses',
-        type: 'boolean',
-        disabled: hasOrgOverride,
-        disabledReason: ORG_DISABLED_REASON,
-        label: t("Don't Store IP Addresses"),
-        help: t('Preventing IP addresses from being stored for new events'),
       },
     ],
   },
