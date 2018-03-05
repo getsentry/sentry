@@ -1,5 +1,6 @@
 import {extractMultilineFields} from '../../utils';
 import {t, tn} from '../../locale';
+import getDynamicText from '../../utils/getDynamicText';
 
 // Export route to make these forms searchable by label/help
 export const route = '/settings/organization/:orgId/project/:projectId/settings/';
@@ -204,6 +205,7 @@ const formGroups = [
         help: t(
           'Outbound requests matching Allowed Domains will have the header "{token_header}: {token}" appended'
         ),
+        setValue: value => getDynamicText({value, fixed: '__SECURITY_TOKEN__'}),
       },
       {
         name: 'securityTokenHeader',
