@@ -63,7 +63,7 @@ const SupportDrawer = createReactClass({
     });
 
     HookStore.get('analytics:event').forEach(cb =>
-      cb('support.search', {query: this.state.inputVal})
+      cb('assistant.search', {query: this.state.inputVal})
     );
   }, 300),
 
