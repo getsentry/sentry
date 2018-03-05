@@ -69,7 +69,7 @@ class ProjectUserReportSettings extends AsyncView {
 
     return (
       '<!-- Sentry JS SDK 2.1.+ required -->\n' +
-      '<script src="https://cdn.ravenjs.com/2.1.0/raven.min.js"></script>\n\n' +
+      '<script src="https://cdn.ravenjs.com/3.23.1/raven.min.js"></script>\n\n' +
       '{% if request.sentry.id %}\n' +
       '  <script>\n' +
       '  Raven.showReportDialog({\n' +
@@ -131,19 +131,20 @@ class ProjectUserReportSettings extends AsyncView {
         <SettingsPageHeader title={t('User Feedback')} />
 
         <div className="alert alert-block alert-info">
-          {t(`Psst! This feature is still a work-in-progress. Thanks for being an early
-          adopter!`)}
+          {t(
+            'Psst! This feature is still a work-in-progress. Thanks for being an early adopter!'
+          )}
         </div>
 
         <TextBlock>
-          {t(`Enabling User Feedback allows you to interact with your users on an
-          unprecedented level. Collect additional details about issues affecting them, and
-          more importantly reach out to them with resolutions.`)}
+          {t(
+            'Enabling User Feedback allows you to interact with your users on an unprecedented level. Collect additional details about issues affecting them, and more importantly reach out to them with resolutions.'
+          )}
         </TextBlock>
         <TextBlock>
-          {t(`When configured, your users will be presented with a dialog prompting them for
-          additional information. That information will get attached to the issue in
-          Sentry`)}
+          {t(
+            'When configured, your users will be presented with a dialog prompting them for additional information. That information will get attached to the issue in Sentry'
+          )}
         </TextBlock>
 
         <TextBlock>
@@ -157,14 +158,16 @@ class ProjectUserReportSettings extends AsyncView {
 
           <PanelBody disablePadding={false}>
             <TextBlockNoMargin>
-              {t(`The following example uses our Django integration. Check the documentation
-              for the SDK you're using for more details.`)}
+              {t(
+                "The following example uses our Django integration. Check the documentation for the SDK you're using for more details."
+              )}
             </TextBlockNoMargin>
             <CodeBlock>{this.getInstructions()}</CodeBlock>
 
             <TextBlockNoMargin css={{marginTop: 30}}>
-              {t(`If you're capturing an error with our Browser JS SDK, things get even
-              simpler`)}
+              {t(
+                "If you're capturing an error with our Browser JS SDK, things get even simpler"
+              )}
             </TextBlockNoMargin>
             <CodeBlock>{this.getBrowserJSInstructions()}</CodeBlock>
           </PanelBody>
