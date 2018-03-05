@@ -5,12 +5,12 @@ import Reflux from 'reflux';
 import styled from 'react-emotion';
 
 import ApiMixin from '../../../mixins/apiMixin';
+import {addErrorMessage, addSuccessMessage} from '../../../actionCreators/indicator';
 import Button from '../../../components/buttons/button';
 import DropdownAutoComplete from '../../../components/dropdownAutoComplete';
 import DropdownButton from '../../../components/dropdownButton';
 import ProjectsStore from '../../../stores/projectsStore';
 import TeamStore from '../../../stores/teamStore';
-import IndicatorStore from '../../../stores/indicatorStore';
 import TeamActions from '../../../actions/teamActions';
 import LoadingError from '../../../components/loadingError';
 import OrganizationState from '../../../mixins/organizationState';
@@ -81,12 +81,14 @@ const TeamProjects = createReactClass({
           team.projects = team.projects.filter(({id}) => id != project.id);
         }
         TeamActions.updateSuccess(0, teamId, team);
-        IndicatorStore.add(t('Successfully added project to team.'), 'success', {
-          duration: 2000,
-        });
+        addSuccessMessage(
+          value === 'Add'
+            ? t('Successfully added project to team.')
+            : t('Successfully removed project from team')
+        );
       },
       error: e => {
-        IndicatorStore.addError("Wasn't able to change project association.");
+        addErrorMessage(t("Wasn't able to change project association."));
       },
     });
   },
