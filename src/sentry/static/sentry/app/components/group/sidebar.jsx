@@ -1,5 +1,6 @@
 import PropTypes from 'prop-types';
 import React from 'react';
+import _ from 'lodash';
 
 import createReactClass from 'create-react-class';
 
@@ -118,7 +119,9 @@ const GroupSidebar = createReactClass({
           <dl key={plugin.slug}>
             <dt>{`${plugin.shortName || plugin.name || plugin.title}: `}</dt>
             <dd>
-              <a href={issue.url}>{issue.label}</a>
+              <a href={issue.url}>
+                {_.isObject(issue.label) ? issue.label.id : issue.label}
+              </a>
             </dd>
           </dl>
         );
