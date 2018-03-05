@@ -11,6 +11,7 @@ import Button from '../components/buttons/button';
 import Confirm from '../components/confirm';
 import EmptyMessage from './settings/components/emptyMessage';
 import IndicatorStore from '../stores/indicatorStore';
+import LoadingError from '../components/loadingError';
 import Panel from './settings/components/panel';
 import PanelBody from './settings/components/panelBody';
 import PanelHeader from './settings/components/panelHeader';
@@ -205,12 +206,13 @@ export default class OrganizationIntegrationConfig extends AsyncView {
     const integrations = this.state.itemList.filter(i => i.provider.key === providerKey);
     const provider = this.state.config.providers.find(p => p.key == providerKey);
 
-    // TODO: some kind of 404ish thing here
-
-    // TODO: Workspaces needs to get genericised into the integration
+    if (provider === null) {
+      return <LoadingError message={t('Invalid integration provider')} />;
+    }
 
     const titleIcon = <PluginIcon size={28} pluginId={provider.key} />;
 
+    // TODO(epurkhiser): Workspaces needs to get genericised into the integration
     const header = (
       <PanelHeader disablePadding hasButtons>
         <Flex align="center">
