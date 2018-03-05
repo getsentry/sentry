@@ -865,10 +865,10 @@ class EventManager(object):
                 )
             if is_new_group_environment:
                 buffer.incr(
-                    ReleaseProjectEnvironment, columns={'new_issues_count': 1}, filters={
-                        'project': project,
-                        'release': release,
-                        'environment': environment,
+                    ReleaseProjectEnvironment, {'new_issues_count': 1}, {
+                        'project_id': project.id,
+                        'release_id': release.id,
+                        'environment_id': environment.id,
                     }
                 )
 
