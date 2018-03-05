@@ -13,6 +13,7 @@ import ApiMixin from '../../mixins/apiMixin';
 import {t} from '../../locale';
 
 import SearchDropdown from './searchDropdown';
+import OrganizationState from '../../mixins/organizationState';
 
 const SearchBar = createReactClass({
   displayName: 'SearchBar',
@@ -20,18 +21,20 @@ const SearchBar = createReactClass({
   propTypes: {
     orgId: PropTypes.string.isRequired,
     projectId: PropTypes.string.isRequired,
-
     defaultQuery: PropTypes.string,
     query: PropTypes.string,
     defaultSearchItems: PropTypes.array.isRequired,
     disabled: PropTypes.bool,
     placeholder: PropTypes.string,
-
-    onQueryChange: PropTypes.func,
     onSearch: PropTypes.func,
+    excludeEnvironment: PropTypes.bool,
   },
 
-  mixins: [ApiMixin, Reflux.listenTo(MemberListStore, 'onMemberListStoreChange')],
+  mixins: [
+    ApiMixin,
+    OrganizationState,
+    Reflux.listenTo(MemberListStore, 'onMemberListStoreChange'),
+  ],
 
   statics: {
     /**
@@ -59,8 +62,7 @@ const SearchBar = createReactClass({
       defaultQuery: '',
       query: null,
       onSearch: function() {},
-      onQueryChange: function() {},
-
+      excludeEnvironment: false,
       defaultSearchItems: [
         {
           title: t('Tag'),
@@ -107,6 +109,8 @@ const SearchBar = createReactClass({
   },
 
   getInitialState() {
+    const hasEnvironmentsFeature = this.getFeatures().has('environments');
+
     return {
       query: this.props.query !== null ? this.props.query : this.props.defaultQuery,
 
@@ -119,6 +123,7 @@ const SearchBar = createReactClass({
 
       dropdownVisible: false,
       loading: false,
+      hasEnvironmentsFeature,
     };
   },
 
@@ -183,9 +188,17 @@ const SearchBar = createReactClass({
    * e.g. ['is:', 'assigned:', 'url:', 'release:']
    */
   getTagKeys: function(query) {
-    return TagStore.getTagKeys()
+    const allKeys = TagStore.getTagKeys()
       .map(key => key + ':')
       .filter(key => key.indexOf(query) > -1);
+
+    // If the environment feature is active and excludeEnvironment = true
+    // then remove the environment key
+    if (this.state.hasEnvironmentsFeature && this.props.excludeEnvironment) {
+      return allKeys.filter(key => key !== 'environment:');
+    } else {
+      return allKeys;
+    }
   },
 
   /**
@@ -201,6 +214,7 @@ const SearchBar = createReactClass({
     });
 
     let {orgId, projectId} = this.props;
+
     this.api.request(`/projects/${orgId}/${projectId}/tags/${tag.key}/values/`, {
       data: {
         query,
@@ -307,7 +321,17 @@ const SearchBar = createReactClass({
       });
 
       let tag = TagStore.getTag(tagName);
+
       if (!tag) return undefined;
+
+      // Ignore the environment tag if the feature is active and excludeEnvironment = true
+      if (
+        this.state.hasEnvironmentsFeature &&
+        this.props.excludeEnvironment &&
+        tagName === 'environment'
+      ) {
+        return undefined;
+      }
 
       return void (tag.predefined ? this.getPredefinedTagValues : this.getTagValues)(
         tag,
