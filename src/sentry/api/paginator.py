@@ -260,7 +260,7 @@ class SequencePaginator(object):
         ) if data else ([], [])
         self.reverse = reverse
         self.search = functools.partial(
-            bisect.bisect_left if not reverse else reverse_bisect_left,
+            reverse_bisect_left if reverse else bisect.bisect_left,
             self.scores,
         )
 
@@ -271,22 +271,22 @@ class SequencePaginator(object):
         assert cursor.offset > -1
 
         if cursor.value == 0:
-            position = 0 if not cursor.is_prev else len(self.scores)
+            position = len(self.scores) if cursor.is_prev else 0
         else:
             position = self.search(cursor.value)
 
         position = position + cursor.offset
 
-        if not cursor.is_prev:
-            lo = max(position, 0)
-            hi = min(lo + limit, len(self.scores))
-        else:
+        if cursor.is_prev:
             # TODO: It might make sense to ensure that this hi value is at
             # least the length of the page + 1 if we want to ensure we return a
             # full page of results when paginating backwards while data is
             # being mutated.
             hi = min(position, len(self.scores))
             lo = max(hi - limit, 0)
+        else:
+            lo = max(position, 0)
+            hi = min(lo + limit, len(self.scores))
 
         if self.scores:
             prev_score = self.scores[min(lo, len(self.scores) - 1)]
