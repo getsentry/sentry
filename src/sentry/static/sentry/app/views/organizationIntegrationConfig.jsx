@@ -159,11 +159,13 @@ export default class OrganizationIntegrationConfig extends AsyncView {
       return;
     }
 
-    // Merge the new integration into the list. If an integration was updated
-    // integration
-    let itemList = [...this.state.itemList, data];
-    itemList = sortArray(itemList, i => i.name);
-    itemList = _.uniqBy(itemList, i => i.id);
+    // Merge the new integration into the list. If we're updating an
+    // integration ovewrrite the old integration.
+    const keyedItems = _.keyBy(this.state.itemList, 'id');
+    const itemList = sortArray(
+      Object.values({...keyedItems, [data.id]: data}),
+      i => i.name
+    );
 
     IndicatorStore.addSuccess(t('Integration Added'));
     this.setState({itemList});
