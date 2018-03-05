@@ -168,7 +168,7 @@ def get_event_file_committers(project, event, frame_limit=25):
     annotated_frames = [
         {
             'frame': frame,
-            'commits': commit_path_matches.get(frame.get('filename') or frame.get('abs_path'))
+            'commits': commit_path_matches.get(frame.get('filename') or frame.get('abs_path')) or []
         } for frame in app_frames
     ]
 

@@ -13,6 +13,15 @@ Details
 -------
 
 {{ link }}
+
+{% if commits %}
+Suspect Commits
+---------------
+{% for commit in commits %}
+* {{ commit.subject }}
+  {{ commit.shortId }} - {% if commit.author %}{{ commit.author.name }}{% else %}Unknown Author{% endif %}
+{% endfor %}{% endif %}
+
 Tags
 ----
 {% for tag_key, tag_value in tags %}
