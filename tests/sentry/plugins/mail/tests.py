@@ -368,32 +368,28 @@ class MailPluginTest(TestCase):
         with self.tasks():
             self.plugin.notify_about_activity(activity)
 
-        assert len(mail.outbox) == 1
+        assert len(mail.outbox) >= 1
 
-        msg = mail.outbox[0]
+        msg = mail.outbox[-1]
 
         assert msg.subject == 'Re: [Sentry] BAR-1 - \xe3\x81\x93\xe3\x82\x93\xe3\x81\xab\xe3\x81\xa1\xe3\x81\xaf'
         assert msg.to == [self.user.email]
 
-    @mock.patch('sentry.plugins.sentry_mail.models.MailPlugin._send_mail')
-    def test_notify_does_not_error_with_suggested_commits(self, _send_mail):
-        group = Group(
-            id=2,
-            first_seen=timezone.now(),
-            last_seen=timezone.now(),
-            project=self.project,
-        )
-
-        event = Event()
-        event.group = group
-        event.project = self.project
-        event.message = 'hello world'
-        event.interfaces = {}
+    def test_notify_with_suspect_commits(self):
+        release = self.create_release(project=self.project, user=self.user)
+        group = self.create_group(project=self.project, first_release=release)
+        event = self.create_event(group=group, tags={'sentry:release': release.version})
 
         notification = Notification(event=event)
 
-        with self.options({'system.url-prefix': 'http://example.com'}), self.feature('organizations:suggested-commits'):
+        with self.tasks(), self.options({'system.url-prefix': 'http://example.com'}), self.feature('organizations:suggested-commits'):
             self.plugin.notify(notification)
+
+        assert len(mail.outbox) >= 1
+
+        msg = mail.outbox[-1]
+
+        assert 'Suspect Commits' in msg.body
 
 
 class MailPluginSignalsTest(TestCase):
