@@ -3,13 +3,13 @@ import {shallow, mount} from 'enzyme';
 
 import {Client} from 'app/api';
 import SearchBar from 'app/views/stream/searchBar';
-import StreamTagStore from 'app/stores/streamTagStore';
+import TagStore from 'app/stores/tagStore';
 
 describe('SearchBar', function() {
   let sandbox;
 
   beforeEach(function() {
-    StreamTagStore.reset();
+    TagStore.reset();
 
     sandbox = sinon.sandbox.create();
 

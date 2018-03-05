@@ -1,11 +1,11 @@
-import StreamTagStore from 'app/stores/streamTagStore';
+import TagStore from 'app/stores/tagStore';
 import MemberListStore from 'app/stores/memberListStore';
 
-describe('StreamTagStore', function() {
+describe('TagStore', function() {
   let sandbox;
 
   beforeEach(() => {
-    StreamTagStore.reset();
+    TagStore.reset();
     sandbox = sinon.sandbox.create();
   });
 
@@ -21,8 +21,8 @@ describe('StreamTagStore', function() {
           email: 'janesmith@example.org',
         },
       ]);
-      StreamTagStore.onMemberListStoreChange();
-      expect(StreamTagStore.tags.assigned.values).toEqual(['me', 'janesmith']);
+      TagStore.onMemberListStoreChange();
+      expect(TagStore.tags.assigned.values).toEqual(['me', 'janesmith']);
     });
 
     it("should fall back to email when username isn't available", () => {
@@ -31,44 +31,41 @@ describe('StreamTagStore', function() {
           email: 'janesmith@example.org',
         },
       ]);
-      StreamTagStore.onMemberListStoreChange();
-      expect(StreamTagStore.tags.assigned.values).toEqual([
-        'me',
-        'janesmith@example.org',
-      ]);
+      TagStore.onMemberListStoreChange();
+      expect(TagStore.tags.assigned.values).toEqual(['me', 'janesmith@example.org']);
     });
   });
 
   describe('onLoadTagsSuccess()', () => {
     it('should add a new tag with empty values and trigger the new addition', () => {
-      sandbox.stub(StreamTagStore, 'trigger');
+      sandbox.stub(TagStore, 'trigger');
 
-      StreamTagStore.onLoadTagsSuccess([
+      TagStore.onLoadTagsSuccess([
         {
           key: 'mytag',
           name: 'My Custom Tag',
         },
       ]);
 
-      expect(StreamTagStore.tags.mytag).toEqual({
+      expect(TagStore.tags.mytag).toEqual({
         key: 'mytag',
         name: 'My Custom Tag',
         values: [],
       });
 
-      expect(StreamTagStore.trigger.calledOnce).toBeTruthy();
+      expect(TagStore.trigger.calledOnce).toBeTruthy();
     });
 
     it('should not overwrite predefined filters', () => {
-      let isTag = StreamTagStore.tags.is;
-      StreamTagStore.onLoadTagsSuccess([
+      let isTag = TagStore.tags.is;
+      TagStore.onLoadTagsSuccess([
         {
           key: 'is',
           name: 'Custom Assigned To',
         },
       ]);
 
-      expect(StreamTagStore.tags.is).toEqual(isTag);
+      expect(TagStore.tags.is).toEqual(isTag);
     });
   });
 });

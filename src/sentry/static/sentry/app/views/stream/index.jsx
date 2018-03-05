@@ -5,10 +5,10 @@ import createReactClass from 'create-react-class';
 import {omit} from 'lodash';
 
 import ProjectState from '../../mixins/projectState';
-import StreamTagStore from '../../stores/streamTagStore';
+import TagStore from '../../stores/tagStore';
 import withEnvironment from '../../utils/withEnvironment';
 import Stream from './stream';
-import {fetchStreamTags} from '../../actionCreators/streamTag';
+import {fetchTags} from '../../actionCreators/tags';
 
 const StreamContainer = createReactClass({
   displayName: 'StreamContainer',
@@ -17,7 +17,7 @@ const StreamContainer = createReactClass({
     setProjectNavSection: PropTypes.func,
   },
 
-  mixins: [ProjectState, Reflux.listenTo(StreamTagStore, 'onStreamTagChange')],
+  mixins: [ProjectState, Reflux.listenTo(TagStore, 'onTagsChange')],
 
   getInitialState() {
     const hasEnvironmentsFeature = new Set(this.getOrganization().features).has(
@@ -25,7 +25,7 @@ const StreamContainer = createReactClass({
     );
 
     return {
-      tags: StreamTagStore.getAllTags(),
+      tags: TagStore.getAllTags(),
       tagsLoading: true,
       hasEnvironmentsFeature,
     };
@@ -34,10 +34,10 @@ const StreamContainer = createReactClass({
   componentWillMount() {
     const {orgId, projectId} = this.props.params;
     this.props.setProjectNavSection('stream');
-    fetchStreamTags(orgId, projectId);
+    fetchTags(orgId, projectId);
   },
 
-  onStreamTagChange(tags) {
+  onTagsChange(tags) {
     this.setState({
       tags,
       tagsLoading: false,
