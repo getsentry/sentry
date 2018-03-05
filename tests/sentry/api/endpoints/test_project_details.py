@@ -437,6 +437,20 @@ class ProjectUpdateTest(APITestCase):
         assert self.project.get_option('digests:mail:minimum_delay') == 300
         assert self.project.get_option('digests:mail:maximum_delay') == 600
 
+    def test_digests_min_without_max(self):
+        resp = self.client.put(self.path, data={
+            'digestsMinDelay': 1200
+        })
+        assert resp.status_code == 200, resp.content
+        assert self.project.get_option('digests:mail:minimum_delay') == 1200
+
+    def test_digests_max_without_min(self):
+        resp = self.client.put(self.path, data={
+            'digestsMaxDelay': 1200
+        })
+        assert resp.status_code == 200, resp.content
+        assert self.project.get_option('digests:mail:maximum_delay') == 1200
+
     def test_invalid_digests_min_delay(self):
         min_delay = 120
 
