@@ -39,6 +39,11 @@ class SlackIntegration(Integration):
         'team:read',
     ])
 
+    setup_dialog_config = {
+        'width': 600,
+        'height': 800,
+    }
+
     def get_pipeline_views(self):
         identity_pipeline_config = {
             'oauth_scopes': self.identity_oauth_scopes,
