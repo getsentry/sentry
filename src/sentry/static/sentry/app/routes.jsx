@@ -84,7 +84,6 @@ import ProjectUserReportSettings from './views/projectUserReportSettings';
 import ProjectUserReports from './views/projectUserReports';
 import ProjectPlugins from './views/projectPlugins';
 import ProjectPluginDetails from './views/projectPluginDetails';
-import OrganizationIntegrationConfig from './views/organizationIntegrationConfig';
 import ReleaseAllEvents from './views/releaseAllEvents';
 import ReleaseArtifacts from './views/releaseArtifacts';
 import ReleaseCommits from './views/releases/releaseCommits';
