@@ -96,13 +96,22 @@ export default class OrganizationIntegrationConfig extends AsyncView {
     }
   }
 
-  getTitle() {
-    if (this.state.config === null) {
-      return 'Global Integrations';
+  getProvider() {
+    const {config} = this.state;
+
+    if (config !== null) {
+      return config.providers.find(p => p.key == this.props.params.providerKey) || null;
     }
 
-    const {providerKey} = this.props.params;
-    const provider = this.state.config.providers.find(p => p.key == providerKey);
+    return null;
+  }
+
+  getTitle() {
+    const provider = this.getProvider();
+
+    if (provider === null) {
+      return 'Global Integrations';
+    }
 
     return `${provider.name} Integration`;
   }
@@ -204,7 +213,7 @@ export default class OrganizationIntegrationConfig extends AsyncView {
     const {providerKey} = this.props.params;
 
     const integrations = this.state.itemList.filter(i => i.provider.key === providerKey);
-    const provider = this.state.config.providers.find(p => p.key == providerKey);
+    const provider = this.getProvider();
 
     if (provider === null) {
       return <LoadingError message={t('Invalid integration provider')} />;
