@@ -1,7 +1,7 @@
 import Reflux from 'reflux';
 import _ from 'lodash';
 
-import StreamTagActions from '../actions/streamTagActions';
+import TagActions from '../actions/tagActions';
 import MemberListStore from './memberListStore';
 
 const getUsername = ({isManaged, username, email}) => {
@@ -12,8 +12,8 @@ const getMemberListStoreUsernames = () => {
   return MemberListStore.getAll().map(getUsername);
 };
 
-const StreamTagStore = Reflux.createStore({
-  listenables: StreamTagActions,
+const TagStore = Reflux.createStore({
+  listenables: TagActions,
 
   init() {
     this.listenTo(MemberListStore, this.onMemberListStoreChange);
@@ -135,4 +135,4 @@ const StreamTagStore = Reflux.createStore({
   },
 });
 
-export default StreamTagStore;
+export default TagStore;

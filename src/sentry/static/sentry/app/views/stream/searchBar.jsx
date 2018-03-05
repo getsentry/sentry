@@ -6,7 +6,7 @@ import Reflux from 'reflux';
 import _ from 'lodash';
 import classNames from 'classnames';
 
-import StreamTagStore from '../../stores/streamTagStore';
+import TagStore from '../../stores/tagStore';
 import MemberListStore from '../../stores/memberListStore';
 
 import ApiMixin from '../../mixins/apiMixin';
@@ -31,10 +31,7 @@ const SearchBar = createReactClass({
     onSearch: PropTypes.func,
   },
 
-  mixins: [
-    ApiMixin,
-    Reflux.listenTo(MemberListStore, 'onMemberListStoreChange'),
-  ],
+  mixins: [ApiMixin, Reflux.listenTo(MemberListStore, 'onMemberListStoreChange')],
 
   statics: {
     /**
@@ -186,7 +183,7 @@ const SearchBar = createReactClass({
    * e.g. ['is:', 'assigned:', 'url:', 'release:']
    */
   getTagKeys: function(query) {
-    return StreamTagStore.getTagKeys()
+    return TagStore.getTagKeys()
       .map(key => key + ':')
       .filter(key => key.indexOf(query) > -1);
   },
@@ -309,7 +306,7 @@ const SearchBar = createReactClass({
         searchItems: filteredSearchItems,
       });
 
-      let tag = StreamTagStore.getTag(tagName);
+      let tag = TagStore.getTag(tagName);
       if (!tag) return undefined;
 
       return void (tag.predefined ? this.getPredefinedTagValues : this.getTagValues)(

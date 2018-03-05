@@ -10,7 +10,7 @@ import Stream from 'app/views/stream/stream';
 import EnvironmentStore from 'app/stores/environmentStore';
 import {setActiveEnvironment} from 'app/actionCreators/environments';
 import {browserHistory} from 'react-router';
-import StreamTagStore from 'app/stores/streamTagStore';
+import TagStore from 'app/stores/tagStore';
 
 jest.mock('app/stores/groupStore');
 
@@ -58,13 +58,13 @@ describe('Stream', function() {
       team: {id: '2448'},
     };
 
-    StreamTagStore.init();
+    TagStore.init();
 
     props = {
       setProjectNavSection: function() {},
       location: {query: {query: 'is:unresolved'}, search: 'query=is:unresolved'},
       params: {orgId: '123', projectId: '456'},
-      tags: StreamTagStore.getAllTags(),
+      tags: TagStore.getAllTags(),
       tagsLoading: false,
     };
   });

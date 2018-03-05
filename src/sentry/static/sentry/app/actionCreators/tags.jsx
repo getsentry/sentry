@@ -1,16 +1,16 @@
 import {Client} from '../api';
 import {t} from '../locale';
-import StreamTagStore from '../stores/streamTagStore';
-import StreamTagActions from '../actions/streamTagActions';
+import TagStore from '../stores/tagStore';
+import TagActions from '../actions/tagActions';
 import AlertActions from '../actions/alertActions';
 
 const api = new Client();
 
 const MAX_TAGS = 500;
 
-export function fetchStreamTags(orgId, projectId) {
-  StreamTagStore.reset();
-  StreamTagActions.loadTags();
+export function fetchTags(orgId, projectId) {
+  TagStore.reset();
+  TagActions.loadTags();
 
   api.request(`/projects/${orgId}/${projectId}/tags/`, {
     success: tags => {
@@ -22,8 +22,8 @@ export function fetchStreamTags(orgId, projectId) {
           type: 'warn',
         });
       }
-      StreamTagActions.loadTagsSuccess(trimmedTags);
+      TagActions.loadTagsSuccess(trimmedTags);
     },
-    error: StreamTagActions.loadTagsError,
+    error: TagActions.loadTagsError,
   });
 }
