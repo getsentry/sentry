@@ -280,7 +280,7 @@ class IssueTrackingPlugin2(Plugin):
                 GroupMeta.objects.unset_value(group, meta_name)
 
         issue_information = {
-            'title': request.DATA['title'],
+            'title': issue.get('title') or request.DATA.get('title') or self._get_issue_label_compat(group, issue),
             'provider': self.get_title(),
             'location': self._get_issue_url_compat(group, issue),
             'label': self._get_issue_label_compat(group, issue),
@@ -328,7 +328,7 @@ class IssueTrackingPlugin2(Plugin):
                 group=group,
                 form_data=request.DATA,
                 request=request,
-            )
+            ) or {}
         except Exception as e:
             return self.handle_api_error(e)
 
@@ -344,7 +344,7 @@ class IssueTrackingPlugin2(Plugin):
                 GroupMeta.objects.unset_value(group, meta_name)
 
         issue_information = {
-            'title': issue['title'],
+            'title': issue.get('title') or self._get_issue_label_compat(group, issue),
             'provider': self.get_title(),
             'location': self._get_issue_url_compat(group, issue),
             'label': self._get_issue_label_compat(group, issue),
