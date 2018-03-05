@@ -379,7 +379,7 @@ window.TestStubs = {
 
   GitHubRepositoryProvider: params => {
     return {
-      id: 'github',
+      key: 'github',
       name: 'GitHub',
       config: [
         {
@@ -400,8 +400,37 @@ window.TestStubs = {
       key: 'github',
       name: 'GitHub',
       config: [],
-      setupUri: '/github-integration-setup-uri/',
-      metadata: {},
+      setupDialog: {
+        url: '/github-integration-setup-uri/',
+        width: 100,
+        height: 100,
+      },
+      metadata: {
+        description: '*markdown* formatted _description_',
+        author: 'Morty',
+        issue_url: 'http://example.com/integration_issue_url',
+        source_url: 'http://example.com/integration_source_url',
+        aspects: {
+          alert_link: {
+            text: 'This is a *alert link* with markdown formatting',
+            link: '/url/with/params/{orgId}/',
+          },
+        },
+      },
+      ...params,
+    };
+  },
+
+  GitHubIntegration: params => {
+    return {
+      domain_name: 'gtithub.com/test-integration',
+      icon: 'http://example.com/integration_icon.png',
+      id: '1',
+      name: 'Test Integration',
+      provider: {
+        name: 'GitHub',
+        key: 'github',
+      },
       ...params,
     };
   },
@@ -414,18 +443,6 @@ window.TestStubs = {
         '30d': [[1514764800, 1], [1515024000, 122]],
       },
       tags: [],
-    };
-  },
-
-  Integration: params => {
-    return {
-      id: '4',
-      name: 'repo-name',
-      provider: {
-        key: 'github',
-        name: 'GitHub',
-      },
-      ...params,
     };
   },
 

@@ -1,0 +1,750 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`OrganizationIntegrationConfig render() with one integration renders 1`] = `
+.glamor-8 {
+  font-size: 14px;
+  box-shadow: inset 0 -1px 0;
+  margin: -20px 0 30px;
+}
+
+.glamor-6 {
+  box-sizing: border-box;
+  display: -webkit-box;
+  display: -webkit-flex;
+  display: -ms-flexbox;
+  display: flex;
+  -webkit-align-items: center;
+  -webkit-box-align: center;
+  -ms-flex-align: center;
+  align-items: center;
+}
+
+.glamor-2 {
+  box-sizing: border-box;
+  padding-right: 8px;
+}
+
+.glamor-0 {
+  position: relative;
+  height: 28px;
+  width: 28px;
+  border-radius: 2px;
+  border: 0;
+  background-color: #fff;
+  display: inline-block;
+  background-size: contain;
+  background-position: center center;
+  background-repeat: no-repeat;
+  background-image: url();
+}
+
+.glamor-4 {
+  font-size: 20px;
+  font-weight: bold;
+  margin: 20px 0;
+  -webkit-flex: 1;
+  -ms-flex: 1;
+  flex: 1;
+}
+
+.glamor-43 {
+  background: #fff;
+  border: 1px solid;
+  margin-bottom: NaNpx;
+  position: relative;
+}
+
+.glamor-23 {
+  border-bottom: 1px solid;
+  border-radius: 0 0;
+  text-transform: uppercase;
+  font-size: 13px;
+  line-height: 1;
+  padding: 8px 0;
+}
+
+.glamor-19 {
+  font-size: inherit;
+  text-transform: inherit;
+  margin: 0;
+}
+
+.glamor-17 {
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  margin-bottom: 20px;
+  font-size: inherit;
+  text-transform: inherit;
+  margin: 0;
+}
+
+.glamor-10 {
+  box-sizing: border-box;
+  padding-left: 16px;
+  padding-right: 16px;
+  -webkit-flex: 1;
+  -ms-flex: 1;
+  flex: 1;
+}
+
+.glamor-12 {
+  box-sizing: border-box;
+  margin-right: 8px;
+}
+
+.glamor-39 {
+  box-sizing: border-box;
+  padding: 0px;
+  padding-top: 16px;
+  padding-bottom: 16px;
+  display: -webkit-box;
+  display: -webkit-flex;
+  display: -ms-flexbox;
+  display: flex;
+  border-bottom: 1px solid;
+}
+
+.glamor-39:last-child {
+  border: 0;
+}
+
+.glamor-29 {
+  box-sizing: border-box;
+  padding-left: 16px;
+}
+
+.glamor-27 {
+  height: 32px;
+  width: 32px;
+  border-radius: 3px;
+  display: block;
+}
+
+.glamor-31 {
+  font-size: 16px;
+  margin-bottom: 3px;
+}
+
+.glamor-33 {
+  font-size: 14px;
+}
+
+.glamor-37 {
+  box-sizing: border-box;
+  margin-right: 8px;
+  padding-right: 16px;
+}
+
+.glamor-49 {
+  display: -webkit-box;
+  display: -webkit-flex;
+  display: -ms-flexbox;
+  display: flex;
+  -webkit-align-items: center;
+  -webkit-box-align: center;
+  -ms-flex-align: center;
+  align-items: center;
+  border: 1px dashed;
+  padding: NaNpx;
+  margin-bottom: NaNpx;
+  border-radius: 0.25em;
+  -webkit-transition: 0.2s border-color;
+  transition: 0.2s border-color;
+}
+
+.glamor-45 {
+  -webkit-box-flex: 1;
+  -webkit-flex-grow: 1;
+  -ms-flex-positive: 1;
+  flex-grow: 1;
+}
+
+.glamor-47 {
+  vertical-align: middle;
+}
+
+.glamor-69 {
+  box-sizing: border-box;
+  display: -webkit-box;
+  display: -webkit-flex;
+  display: -ms-flexbox;
+  display: flex;
+  font-size: 15px;
+  line-height: 2.1rem;
+}
+
+.glamor-61 {
+  box-sizing: border-box;
+  width: 62.5%;
+}
+
+.glamor-57 li {
+  margin-bottom: 6px;
+}
+
+.glamor-67 {
+  box-sizing: border-box;
+  margin-left: 60px;
+}
+
+.glamor-63 {
+  display: block;
+  margin-bottom: 6px;
+}
+
+<OrganizationIntegrationConfig
+  params={
+    Object {
+      "orgId": "org-slug",
+      "providerKey": "github",
+    }
+  }
+>
+  <SideEffect(DocumentTitle)
+    title="GitHub Integration - Sentry"
+  >
+    <DocumentTitle
+      title="GitHub Integration - Sentry"
+    >
+      <SettingsPageHeading
+        icon={
+          <PluginIcon
+            pluginId="github"
+            size={28}
+          />
+        }
+        title="GitHub"
+      >
+        <Wrapper>
+          <div
+            className="glamor-8 glamor-9"
+          >
+            <Flex
+              align="center"
+            >
+              <Base
+                align="center"
+                className="glamor-6"
+              >
+                <div
+                  className="glamor-6"
+                  is={null}
+                >
+                  <Box
+                    pr={1}
+                  >
+                    <Base
+                      className="glamor-2"
+                      pr={1}
+                    >
+                      <div
+                        className="glamor-2"
+                        is={null}
+                      >
+                        <PluginIcon
+                          pluginId="github"
+                          size={28}
+                        >
+                          <IntegrationIcon
+                            image={Object {}}
+                            size={28}
+                          >
+                            <div
+                              className="glamor-0 glamor-1"
+                              size={28}
+                            />
+                          </IntegrationIcon>
+                        </PluginIcon>
+                      </div>
+                    </Base>
+                  </Box>
+                  <Title>
+                    <div
+                      className="glamor-4 glamor-5"
+                    >
+                      GitHub
+                    </div>
+                  </Title>
+                </div>
+              </Base>
+            </Flex>
+          </div>
+        </Wrapper>
+      </SettingsPageHeading>
+      <Panel>
+        <div
+          className="glamor-43 glamor-44"
+        >
+          <PanelHeader
+            disablePadding={true}
+            hasButtons={true}
+          >
+            <StyledPanelHeader
+              disablePadding={true}
+              hasButtons={true}
+            >
+              <Component
+                className="glamor-23 glamor-24"
+                disablePadding={true}
+                hasButtons={true}
+              >
+                <div
+                  className="glamor-23 glamor-24"
+                  hasButtons={true}
+                >
+                  <StyledPanelHeading>
+                    <Component
+                      className="glamor-19 glamor-16"
+                    >
+                      <PanelHeading
+                        className="glamor-19 glamor-16"
+                      >
+                        <div
+                          className="glamor-16 glamor-17 glamor-18"
+                        >
+                          <Flex
+                            align="center"
+                          >
+                            <Base
+                              align="center"
+                              className="glamor-6"
+                            >
+                              <div
+                                className="glamor-6"
+                                is={null}
+                              >
+                                <Box
+                                  flex="1"
+                                  px={2}
+                                >
+                                  <Base
+                                    className="glamor-10"
+                                    flex="1"
+                                    px={2}
+                                  >
+                                    <div
+                                      className="glamor-10"
+                                      is={null}
+                                    >
+                                      Workspaces
+                                    </div>
+                                  </Base>
+                                </Box>
+                                <Box
+                                  mr={1}
+                                >
+                                  <Base
+                                    className="glamor-12"
+                                    mr={1}
+                                  >
+                                    <div
+                                      className="glamor-12"
+                                      is={null}
+                                    >
+                                      <Button
+                                        disabled={false}
+                                        onClick={[Function]}
+                                        size="xsmall"
+                                      >
+                                        <button
+                                          className="button button-default button-xs"
+                                          disabled={false}
+                                          onClick={[Function]}
+                                          role="button"
+                                        >
+                                          <FlowLayout
+                                            truncate={false}
+                                          >
+                                            <div
+                                              className="flow-layout"
+                                            >
+                                              <span
+                                                className="button-label"
+                                              >
+                                                <span
+                                                  className="icon icon-add"
+                                                />
+                                                 
+                                                Add Workspace
+                                              </span>
+                                            </div>
+                                          </FlowLayout>
+                                        </button>
+                                      </Button>
+                                    </div>
+                                  </Base>
+                                </Box>
+                              </div>
+                            </Base>
+                          </Flex>
+                        </div>
+                      </PanelHeading>
+                    </Component>
+                  </StyledPanelHeading>
+                </div>
+              </Component>
+            </StyledPanelHeader>
+          </PanelHeader>
+          <PanelBody
+            direction="column"
+            disablePadding={true}
+            flex={false}
+          >
+            <div
+              className=""
+            >
+              <PanelItem
+                key="1"
+                p={0}
+                py={2}
+              >
+                <StyledPanelItem
+                  p={0}
+                  py={2}
+                >
+                  <Base
+                    className="glamor-39 glamor-40"
+                    p={0}
+                    py={2}
+                  >
+                    <div
+                      className="glamor-39 glamor-40"
+                      is={null}
+                    >
+                      <Box
+                        pl={2}
+                      >
+                        <Base
+                          className="glamor-29"
+                          pl={2}
+                        >
+                          <div
+                            className="glamor-29"
+                            is={null}
+                          >
+                            <IntegrationIcon
+                              src="http://example.com/integration_icon.png"
+                            >
+                              <img
+                                className="glamor-27 glamor-28"
+                                src="http://example.com/integration_icon.png"
+                              />
+                            </IntegrationIcon>
+                          </div>
+                        </Base>
+                      </Box>
+                      <Box
+                        flex={1}
+                        px={2}
+                      >
+                        <Base
+                          className="glamor-10"
+                          flex={1}
+                          px={2}
+                        >
+                          <div
+                            className="glamor-10"
+                            is={null}
+                          >
+                            <IntegrationName>
+                              <div
+                                className="glamor-31 glamor-32"
+                              >
+                                Test Integration
+                              </div>
+                            </IntegrationName>
+                            <DomainName>
+                              <div
+                                className="glamor-33 glamor-34"
+                              >
+                                gtithub.com/test-integration
+                              </div>
+                            </DomainName>
+                          </div>
+                        </Base>
+                      </Box>
+                      <Box
+                        mr={1}
+                        pr={2}
+                      >
+                        <Base
+                          className="glamor-37"
+                          mr={1}
+                          pr={2}
+                        >
+                          <div
+                            className="glamor-37"
+                            is={null}
+                          >
+                            <Confirm
+                              cancelText="Cancel"
+                              confirmText="Confirm"
+                              message="Removing this inegration will disable the integration for all projects. Are you sure you want to remove this integration?"
+                              onConfirm={[Function]}
+                              priority="primary"
+                            >
+                              <Button
+                                disabled={false}
+                                onClick={[Function]}
+                                size="small"
+                              >
+                                <button
+                                  className="button button-default button-sm"
+                                  disabled={false}
+                                  onClick={[Function]}
+                                  role="button"
+                                >
+                                  <FlowLayout
+                                    truncate={false}
+                                  >
+                                    <div
+                                      className="flow-layout"
+                                    >
+                                      <span
+                                        className="button-label"
+                                      >
+                                        <span
+                                          className="icon icon-trash"
+                                          style={
+                                            Object {
+                                              "margin": 0,
+                                            }
+                                          }
+                                        />
+                                      </span>
+                                    </div>
+                                  </FlowLayout>
+                                </button>
+                              </Button>
+                              <Modal
+                                animation={false}
+                                autoFocus={true}
+                                backdrop={true}
+                                bsClass="modal"
+                                dialogComponentClass={[Function]}
+                                enforceFocus={true}
+                                keyboard={true}
+                                manager={
+                                  ModalManager {
+                                    "add": [Function],
+                                    "containers": Array [],
+                                    "data": Array [],
+                                    "handleContainerOverflow": true,
+                                    "hideSiblingNodes": true,
+                                    "isTopModal": [Function],
+                                    "modals": Array [],
+                                    "remove": [Function],
+                                  }
+                                }
+                                onHide={[Function]}
+                                renderBackdrop={[Function]}
+                                restoreFocus={true}
+                                show={false}
+                              >
+                                <Modal
+                                  autoFocus={true}
+                                  backdrop={true}
+                                  backdropClassName="modal-backdrop"
+                                  containerClassName="modal-open"
+                                  enforceFocus={true}
+                                  keyboard={true}
+                                  manager={
+                                    ModalManager {
+                                      "add": [Function],
+                                      "containers": Array [],
+                                      "data": Array [],
+                                      "handleContainerOverflow": true,
+                                      "hideSiblingNodes": true,
+                                      "isTopModal": [Function],
+                                      "modals": Array [],
+                                      "remove": [Function],
+                                    }
+                                  }
+                                  onEntering={[Function]}
+                                  onExited={[Function]}
+                                  onHide={[Function]}
+                                  renderBackdrop={[Function]}
+                                  restoreFocus={true}
+                                  show={false}
+                                />
+                              </Modal>
+                            </Confirm>
+                          </div>
+                        </Base>
+                      </Box>
+                    </div>
+                  </Base>
+                </StyledPanelItem>
+              </PanelItem>
+            </div>
+          </PanelBody>
+        </div>
+      </Panel>
+      <AlertLink
+        to="/url/with/params/org-slug/"
+      >
+        <Component
+          className="glamor-49 glamor-50"
+          to="/url/with/params/org-slug/"
+        >
+          <Link
+            className="glamor-49 glamor-50"
+            to="/url/with/params/org-slug/"
+          >
+            <Link
+              className="glamor-49 glamor-50"
+              onlyActiveOnIndex={false}
+              style={Object {}}
+              to="/url/with/params/org-slug/"
+            >
+              <a
+                className="glamor-49 glamor-50"
+                onClick={[Function]}
+                style={Object {}}
+              >
+                <AlertLinkText>
+                  <div
+                    className="glamor-45 glamor-46"
+                  >
+                    <span
+                      dangerouslySetInnerHTML={
+                        Object {
+                          "__html": "This is a <em>alert link</em> with markdown formatting",
+                        }
+                      }
+                    />
+                  </div>
+                </AlertLinkText>
+                <InlineSvg
+                  size="1em"
+                  src="icon-chevron-right"
+                >
+                  <StyledSvg
+                    className=""
+                    height="1em"
+                    style={Object {}}
+                    viewBox={Object {}}
+                    width="1em"
+                  >
+                    <svg
+                      className="glamor-47 glamor-48"
+                      height="1em"
+                      style={Object {}}
+                      viewBox={Object {}}
+                      width="1em"
+                    >
+                      <use
+                        href="#test"
+                        xlinkHref="#test"
+                      />
+                    </svg>
+                  </StyledSvg>
+                </InlineSvg>
+              </a>
+            </Link>
+          </Link>
+        </Component>
+      </AlertLink>
+      <hr />
+      <h5>
+        GitHub Integration
+      </h5>
+      <Details>
+        <Base
+          className="glamor-69 glamor-70"
+        >
+          <div
+            className="glamor-69 glamor-70"
+            is={null}
+          >
+            <Box
+              width={0.625}
+            >
+              <Base
+                className="glamor-61"
+                width={0.625}
+              >
+                <div
+                  className="glamor-61"
+                  is={null}
+                >
+                  <Description
+                    dangerouslySetInnerHTML={
+                      Object {
+                        "__html": "<p><em>markdown</em> formatted <em>description</em></p>
+",
+                      }
+                    }
+                  >
+                    <div
+                      className="glamor-57 glamor-58"
+                      dangerouslySetInnerHTML={
+                        Object {
+                          "__html": "<p><em>markdown</em> formatted <em>description</em></p>
+",
+                        }
+                      }
+                    />
+                  </Description>
+                  <AuthorName>
+                    <div
+                      className="glamor-59 glamor-60"
+                    >
+                      By Morty
+                    </div>
+                  </AuthorName>
+                </div>
+              </Base>
+            </Box>
+            <Box
+              ml={60}
+            >
+              <Base
+                className="glamor-67"
+                ml={60}
+              >
+                <div
+                  className="glamor-67"
+                  is={null}
+                >
+                  <MetadataLink
+                    href="http://example.com/integration_issue_url"
+                  >
+                    <a
+                      className="glamor-63 glamor-64"
+                      href="http://example.com/integration_issue_url"
+                    >
+                      Report an Issue
+                    </a>
+                  </MetadataLink>
+                  <MetadataLink
+                    href="http://example.com/integration_source_url"
+                  >
+                    <a
+                      className="glamor-63 glamor-64"
+                      href="http://example.com/integration_source_url"
+                    >
+                      View Source
+                    </a>
+                  </MetadataLink>
+                </div>
+              </Base>
+            </Box>
+          </div>
+        </Base>
+      </Details>
+    </DocumentTitle>
+  </SideEffect(DocumentTitle)>
+</OrganizationIntegrationConfig>
+`;
+
+exports[`OrganizationIntegrationConfig render() without any integrations Displays an error for an invalid provider key 1`] = `
+<SideEffect(DocumentTitle)
+  title="Global Integrations - Sentry"
+>
+  <LoadingError
+    message="Invalid integration provider"
+  />
+</SideEffect(DocumentTitle)>
+`;
