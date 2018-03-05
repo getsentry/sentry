@@ -10,19 +10,19 @@ exports[`TeamMembers render() renders 1`] = `
       <div>
         Members
       </div>
-      <Button
-        className="pull-right"
-        disabled={false}
-        priority="primary"
-        size="small"
-        to="/settings/organization/org-slug/members/new/"
+      <div
+        style={
+          Object {
+            "textTransform": "none",
+          }
+        }
       >
-        <span
-          className="icon-plus"
+        <DropdownAutoComplete
+          isOpen={false}
+          items={Array []}
+          onSelect={[Function]}
         />
-         
-        Invite Member
-      </Button>
+      </div>
     </StyledHeaderContainer>
   </PanelHeader>
   <StyledMemberContainer
