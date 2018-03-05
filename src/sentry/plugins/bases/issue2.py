@@ -145,6 +145,16 @@ class IssueTrackingPlugin2(Plugin):
     def get_link_existing_issue_fields(self, request, group, event, **kwargs):
         return []
 
+    def _get_issue_url_compat(self, group, issue, **kwargs):
+        if self.issue_fields is None:
+            return self.get_issue_url(group, issue['id'])
+        return self.get_issue_url(group, issue)
+
+    def _get_issue_label_compat(self, group, issue, **kwargs):
+        if self.issue_fields is None:
+            return self.get_issue_label(group, issue['id'])
+        return self.get_issue_label(group, issue)
+
     def get_issue_url(self, group, issue, **kwargs):
         """
         Given an issue context (issue_id string or issue dict) return an absolute URL to the issue's details
@@ -175,7 +185,7 @@ class IssueTrackingPlugin2(Plugin):
         Can be overridden for any actions needed when linking issues
         (like adding a comment to an existing issue).
 
-        Returns ``{'title': issue_title}``
+        Returns ``{'id': '1', 'title': issue_title}``
         """
         pass
 
@@ -272,8 +282,8 @@ class IssueTrackingPlugin2(Plugin):
         issue_information = {
             'title': request.DATA['title'],
             'provider': self.get_title(),
-            'location': self.get_issue_url(group, issue),
-            'label': self.get_issue_label(group, issue),
+            'location': self._get_issue_url_compat(group, issue),
+            'label': self._get_issue_label_compat(group, issue),
         }
         Activity.objects.create(
             project=group.project,
@@ -322,6 +332,10 @@ class IssueTrackingPlugin2(Plugin):
         except Exception as e:
             return self.handle_api_error(e)
 
+        # HACK(dcramer): maintain data for legacy issues
+        if 'id' not in issue and 'issue_id' in request.DATA:
+            issue['id'] = request.DATA['issue_id']
+
         issue_field_map = self.get_issue_field_map()
         for key, meta_name in six.iteritems(issue_field_map):
             if key in issue:
@@ -332,8 +346,8 @@ class IssueTrackingPlugin2(Plugin):
         issue_information = {
             'title': issue['title'],
             'provider': self.get_title(),
-            'location': self.get_issue_url(group, issue),
-            'label': self.get_issue_label(group, issue),
+            'location': self._get_issue_url_compat(group, issue),
+            'label': self._get_issue_label_compat(group, issue),
         }
         Activity.objects.create(
             project=group.project,
@@ -367,8 +381,8 @@ class IssueTrackingPlugin2(Plugin):
         if issue:
             item['issue'] = {
                 'issue_id': issue.get('id'),
-                'url': self.get_issue_url(group, issue),
-                'label': self.get_issue_label(group, issue),
+                'url': self._get_issue_url_compat(group, issue),
+                'label': self._get_issue_label_compat(group, issue),
             }
 
         item.update(PluginSerializer(group.project).serialize(self, None, request.user))
@@ -409,16 +423,15 @@ class IssueTrackingPlugin2(Plugin):
         if not self.is_configured(request=request, project=group.project):
             return tag_list
 
-        prefix = self.get_conf_key()
-        issue_id = GroupMeta.objects.get_value(group, '%s:tid' % prefix)
-        if not issue_id:
+        issue = self.build_issue(group)
+        if not issue:
             return tag_list
 
         tag_list.append(
             format_html(
                 '<a href="{}">{}</a>',
-                self.get_issue_url(group, issue_id),
-                self.get_issue_label(group, issue_id),
+                self._get_issue_url_compat(group, issue),
+                self._get_issue_label_compat(group, issue),
             )
         )
 
