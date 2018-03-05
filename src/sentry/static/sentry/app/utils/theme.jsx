@@ -16,10 +16,10 @@ const theme = {
   greenLight: '#71D8A6',
   greenDark: '#3EA573',
 
-  yellow: '#ECD744',
+  yellow: '#ecc844',
   yellowLightest: '#FFFDF7',
   yellowLight: '#FFF15E',
-  yellowDark: '#D3BE2B',
+  yellowDark: '#e6bc23',
 
   yellowOrange: '#f9a66d',
   yellowOrangeLight: '#FFC087',
