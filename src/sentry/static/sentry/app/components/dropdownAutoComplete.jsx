@@ -118,7 +118,7 @@ class DropdownAutoComplete extends React.Component {
                       />
                     </StyledInputContainer>
                     <div {...getMenuProps()}>
-                      <div className="autocomplete-items">
+                      <div className="ref-autocomplete-items">
                         {this.autoCompleteFilter(this.props.items, inputValue).map(
                           (item, index) =>
                             item.groupLabel ? (
