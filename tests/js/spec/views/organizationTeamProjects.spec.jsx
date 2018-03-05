@@ -79,13 +79,12 @@ describe('OrganizationTeamProjects', function() {
       TestStubs.routerOrganizationContext()
     );
 
-    let add = wrapper.find('.button-label').first();
-    expect(add.text()).toBe('Add Project');
+    let add = wrapper.find('DropdownButton').first();
     add.simulate('click');
 
     // is there a better way to do this???
     let el = wrapper
-      .find('.autocomplete-items')
+      .find('.ref-autocomplete-items')
       .childAt(0)
       .childAt(0);
     el.simulate('click');
@@ -96,9 +95,8 @@ describe('OrganizationTeamProjects', function() {
 
     setTimeout(() => {
       wrapper.update();
-      let remove = wrapper.find('.flow-layout .button-label').at(1);
-
-      expect(remove.text()).toBe('Remove');
+      // find first project's remove button
+      let remove = wrapper.find('Button').at(1);
       remove.simulate('click');
 
       expect(deleteMock).toHaveBeenCalledTimes(1);
