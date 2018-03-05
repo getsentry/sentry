@@ -181,7 +181,7 @@ export default class OrganizationIntegrationConfig extends AsyncView {
         });
         IndicatorStore.addSuccess(t('Integration removed'));
       },
-      error: () => IndicatorStore.addERror(t('Failed to remove Integration')),
+      error: () => IndicatorStore.addError(t('Failed to remove Integration')),
       complete: () => IndicatorStore.remove(saveIndicator),
     };
 
