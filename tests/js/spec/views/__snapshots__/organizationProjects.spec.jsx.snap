@@ -114,12 +114,32 @@ exports[`OrganizationProjectsView render() Should render the projects in the sto
     projects={
       Array [
         Object {
+          "allowedDomains": Array [
+            "example.com",
+            "https://example.com",
+          ],
+          "dataScrubber": false,
+          "dataScrubberDefaults": false,
           "digestsMaxDelay": 60,
           "digestsMinDelay": 5,
           "id": "2",
           "name": "Project Name",
+          "resolveAge": 48,
+          "safeFields": Array [
+            "business-email",
+            "company",
+          ],
+          "scrapeJavaScript": true,
+          "scrubIPAddresses": false,
+          "securityToken": "security-token",
+          "securityTokenHeader": "x-security-header",
+          "sensitiveFields": Array [
+            "creditcard",
+            "ssn",
+          ],
           "slug": "project-slug",
           "subjectTemplate": "[$project] \${tag:level}: $title",
+          "verifySSL": true,
         },
       ]
     }
@@ -323,12 +343,32 @@ exports[`OrganizationProjectsView render() Should render the projects in the sto
                                   }
                                   project={
                                     Object {
+                                      "allowedDomains": Array [
+                                        "example.com",
+                                        "https://example.com",
+                                      ],
+                                      "dataScrubber": false,
+                                      "dataScrubberDefaults": false,
                                       "digestsMaxDelay": 60,
                                       "digestsMinDelay": 5,
                                       "id": "2",
                                       "name": "Project Name",
+                                      "resolveAge": 48,
+                                      "safeFields": Array [
+                                        "business-email",
+                                        "company",
+                                      ],
+                                      "scrapeJavaScript": true,
+                                      "scrubIPAddresses": false,
+                                      "securityToken": "security-token",
+                                      "securityTokenHeader": "x-security-header",
+                                      "sensitiveFields": Array [
+                                        "creditcard",
+                                        "ssn",
+                                      ],
                                       "slug": "project-slug",
                                       "subjectTemplate": "[$project] \${tag:level}: $title",
+                                      "verifySSL": true,
                                     }
                                   }
                                 >
@@ -399,12 +439,32 @@ exports[`OrganizationProjectsView render() Should render the projects in the sto
                                             }
                                             project={
                                               Object {
+                                                "allowedDomains": Array [
+                                                  "example.com",
+                                                  "https://example.com",
+                                                ],
+                                                "dataScrubber": false,
+                                                "dataScrubberDefaults": false,
                                                 "digestsMaxDelay": 60,
                                                 "digestsMinDelay": 5,
                                                 "id": "2",
                                                 "name": "Project Name",
+                                                "resolveAge": 48,
+                                                "safeFields": Array [
+                                                  "business-email",
+                                                  "company",
+                                                ],
+                                                "scrapeJavaScript": true,
+                                                "scrubIPAddresses": false,
+                                                "securityToken": "security-token",
+                                                "securityTokenHeader": "x-security-header",
+                                                "sensitiveFields": Array [
+                                                  "creditcard",
+                                                  "ssn",
+                                                ],
                                                 "slug": "project-slug",
                                                 "subjectTemplate": "[$project] \${tag:level}: $title",
+                                                "verifySSL": true,
                                               }
                                             }
                                           >
@@ -443,12 +503,32 @@ exports[`OrganizationProjectsView render() Should render the projects in the sto
                                   key="2"
                                   project={
                                     Object {
+                                      "allowedDomains": Array [
+                                        "example.com",
+                                        "https://example.com",
+                                      ],
+                                      "dataScrubber": false,
+                                      "dataScrubberDefaults": false,
                                       "digestsMaxDelay": 60,
                                       "digestsMinDelay": 5,
                                       "id": "2",
                                       "name": "Project Name",
+                                      "resolveAge": 48,
+                                      "safeFields": Array [
+                                        "business-email",
+                                        "company",
+                                      ],
+                                      "scrapeJavaScript": true,
+                                      "scrubIPAddresses": false,
+                                      "securityToken": "security-token",
+                                      "securityTokenHeader": "x-security-header",
+                                      "sensitiveFields": Array [
+                                        "creditcard",
+                                        "ssn",
+                                      ],
                                       "slug": "project-slug",
                                       "subjectTemplate": "[$project] \${tag:level}: $title",
+                                      "verifySSL": true,
                                     }
                                   }
                                 >

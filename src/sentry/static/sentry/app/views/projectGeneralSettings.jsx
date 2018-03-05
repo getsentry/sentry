@@ -38,9 +38,9 @@ export default class ProjectGeneralSettings extends AsyncView {
     organization: PropTypes.object.isRequired,
   };
 
-  getEndpoint() {
+  getEndpoints() {
     let {orgId, projectId} = this.props.params;
-    return `/projects/${orgId}/${projectId}/`;
+    return [['data', `/projects/${orgId}/${projectId}/`]];
   }
 
   renderRemoveProject() {
@@ -155,26 +155,8 @@ export default class ProjectGeneralSettings extends AsyncView {
   renderBody() {
     let {organization} = this.context;
     let project = this.state.data;
-    let {projectId} = this.props.params;
-    let initialData = {
-      name: project.name,
-      slug: project.slug,
-      team: project.team && project.team.slug,
-      allowedDomains: project.allowedDomains,
-      resolveAge: project.resolveAge,
-      dataScrubber: project.dataScrubber,
-      dataScrubberDefaults: project.dataScrubberDefaults,
-      sensitiveFields: project.sensitiveFields,
-      safeFields: project.safeFields,
-      defaultEnvironment: project.defaultEnvironment,
-      subjectPrefix: project.subjectPrefix,
-      scrubIPAddresses: project.scrubIPAddresses,
-      securityToken: project.securityToken,
-      securityHeader: project.securityHeader,
-      securityTokenHeader: project.securityTokenHeader,
-      verifySSL: project.verifySSL,
-      scrapeJavaScript: project.scrapeJavaScript,
-    };
+    let {orgId, projectId} = this.props.params;
+    let endpoint = `/projects/${orgId}/${projectId}/`;
 
     return (
       <div>
@@ -183,9 +165,12 @@ export default class ProjectGeneralSettings extends AsyncView {
         <Form
           saveOnBlur
           allowUndo
-          initialData={initialData}
+          initialData={{
+            ...project,
+            team: project.team && project.team.slug,
+          }}
           apiMethod="PUT"
-          apiEndpoint={this.getEndpoint()}
+          apiEndpoint={endpoint}
           onSubmitSuccess={resp => {
             // Reload if slug has changed
             if (projectId !== resp.slug) {

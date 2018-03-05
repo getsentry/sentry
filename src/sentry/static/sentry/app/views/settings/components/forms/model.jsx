@@ -132,7 +132,7 @@ class FormModel {
   setFieldDescriptor(id, props) {
     this.fieldDescriptor.set(id, props);
     if (typeof props.setValue === 'function') {
-      this.initialData[id] = props.setValue(this.initialData[id]);
+      this.initialData[id] = props.setValue(this.initialData[id], props);
       this.setValue(id, this.initialData[id]);
     }
   }
