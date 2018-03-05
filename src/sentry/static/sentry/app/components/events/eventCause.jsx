@@ -63,14 +63,16 @@ export default createReactClass({
     }
 
     let commits = [];
+    let commitSet = new Set();
     this.state.committers.forEach(committer => {
       committer.commits.forEach(commit => {
-        commits.push(
-          {
+        if (!commitSet.has(commit.id)) {
+          commitSet.add(commit.id);
+          commits.push({
             ...commit,
             author: committer.author,
-          },
-        );
+          });
+        }
       });
     });
     return (
@@ -81,7 +83,7 @@ export default createReactClass({
           </h3>
         </div>
         <ul className="list-group list-group-lg commit-list">
-          {commits.map((commit) => {
+          {commits.map(commit => {
             return <CommitRow key={commit.id} commit={commit} />;
           })}
         </ul>

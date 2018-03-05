@@ -162,7 +162,7 @@ class MailPlugin(NotificationPlugin):
         enhanced_privacy = org.flags.enhanced_privacy
 
         # lets identify possibly suspect commits and owners
-        commits = []
+        commits = {}
         if features.has('organizations:suggested-commits', org):
             try:
                 committers = get_event_file_committers(project, event)
@@ -170,12 +170,13 @@ class MailPlugin(NotificationPlugin):
                 logging.exception(six.text_type(exc))
             else:
                 for committer in committers:
-                    for commit, score in committer['commits']:
-                        commit_data = commit.copy()
-                        commit_data['shortId'] = commit_data['id'][:7]
-                        commit_data['author'] = committer['author']
-                        commit_data['subject'] = commit_data['message'].split('\n', 1)[0]
-                        commits.append(commit_data)
+                    for commit in committer['commits']:
+                        if commit['id'] not in commits:
+                            commit_data = commit.copy()
+                            commit_data['shortId'] = commit_data['id'][:7]
+                            commit_data['author'] = committer['author']
+                            commit_data['subject'] = commit_data['message'].split('\n', 1)[0]
+                            commits[commit['id']] = commit_data
 
         context = {
             'project_label': project.get_full_name(),
@@ -184,7 +185,7 @@ class MailPlugin(NotificationPlugin):
             'link': link,
             'rules': rules,
             'enhanced_privacy': enhanced_privacy,
-            'commits': commits,
+            'commits': sorted(commits.values(), key=lambda x: x['score'], reverse=True),
         }
 
         # if the organization has enabled enhanced privacy controls we dont send

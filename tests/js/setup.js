@@ -370,10 +370,25 @@ window.TestStubs = {
     }
   },
 
+  Event: params => {
+    return {
+      id: '1',
+      message: 'ApiException',
+      groupID: '1',
+      eventID: '12345',
+      ...params,
+    };
+  },
+
   Events: () => {
     return [
-      {eventID: '12345', id: '1', message: 'ApiException', groupID: '1'},
-      {eventID: '12346', id: '2', message: 'TestException', groupID: '1'},
+      TestStubs.Event({eventID: '12345', id: '1', message: 'ApiException', groupID: '1'}),
+      TestStubs.Event({
+        eventID: '12346',
+        id: '2',
+        message: 'TestException',
+        groupID: '1',
+      }),
     ];
   },
 
