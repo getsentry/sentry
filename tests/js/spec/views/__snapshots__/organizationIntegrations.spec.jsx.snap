@@ -217,7 +217,7 @@ exports[`OrganizationIntegrations render() with a provider renders with a reposi
           >
             <tbody>
               <tr
-                key="4"
+                key="1"
               >
                 <td
                   style={
@@ -244,7 +244,7 @@ exports[`OrganizationIntegrations render() with a provider renders with a reposi
                 </td>
                 <td>
                   <strong>
-                    repo-name
+                    Test Integration
                   </strong>
                    —
                    

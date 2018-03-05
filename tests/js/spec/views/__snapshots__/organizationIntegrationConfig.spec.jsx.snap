@@ -291,7 +291,6 @@ exports[`OrganizationIntegrationConfig render() with one integration renders 1`]
               >
                 <div
                   className="glamor-23 glamor-24"
-                  hasButtons={true}
                 >
                   <StyledPanelHeading>
                     <Component
