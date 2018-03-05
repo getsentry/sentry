@@ -14,8 +14,8 @@ class Confirm extends React.PureComponent {
     message: PropTypes.node,
     /**
      * Renderer that passes:
-     * `doConfirm`: Allows renderer to perform confirm action
-     * `doClose`: Allows renderer to toggle confirm modal
+     * `confirm`: Allows renderer to perform confirm action
+     * `close`: Allows renderer to toggle confirm modal
      */
     renderMessage: PropTypes.func,
 
@@ -110,8 +110,8 @@ class Confirm extends React.PureComponent {
 
     if (typeof renderMessage === 'function') {
       confirmMessage = renderMessage({
-        doConfirm: this.handleConfirm,
-        doClose: this.handleToggle,
+        confirm: this.handleConfirm,
+        close: this.handleToggle,
       });
     } else {
       confirmMessage = React.isValidElement(message) ? (
