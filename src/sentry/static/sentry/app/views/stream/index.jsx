@@ -69,7 +69,6 @@ const Stream = createReactClass({
     let validStatsPeriods = new Set(['14d', '24h']);
     let statsPeriod =
       validStatsPeriods.has(currentQuery.statsPeriod) || DEFAULT_STATS_PERIOD;
-
     return {
       groupIds: [],
       isDefaultSearch: false,
@@ -178,7 +177,6 @@ const Stream = createReactClass({
         let needsData = this.state.loading;
         if (searchId) {
           const match = data.find(search => search.id === searchId);
-
           if (match) {
             newState.query = match.query;
           } else {
