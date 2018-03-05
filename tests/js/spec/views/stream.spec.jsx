@@ -66,10 +66,6 @@ describe('Stream', function() {
       location: {query: {query: 'is:unresolved'}, search: 'query=is:unresolved'},
       params: {orgId: '123', projectId: '456'},
     };
-
-    wrapper = shallow(<Stream {...props} />, {
-      context,
-    });
   });
 
   afterEach(function() {
@@ -78,6 +74,11 @@ describe('Stream', function() {
   });
 
   describe('fetchData()', function() {
+    beforeEach(function() {
+      wrapper = shallow(<Stream {...props} />, {
+        context,
+      });
+    });
     describe('complete handler', function() {
       beforeEach(function() {
         sandbox.stub(CursorPoller.prototype, 'setEndpoint');
@@ -184,7 +185,69 @@ describe('Stream', function() {
     });
   });
 
+  describe('fetchSavedSearches()', function() {
+    it('handles valid search id', function() {
+      const streamProps = {
+        setProjectNavSection: function() {},
+        params: {orgId: '123', projectId: '456', searchId: '789'},
+        location: {query: {}, search: ''},
+      };
+      wrapper = shallow(<Stream {...streamProps} />, {
+        context,
+      });
+
+      expect(wrapper.instance().state.searchId).toBe('789');
+      expect(wrapper.instance().state.query).toBe('is:unresolved');
+    });
+
+    it('handles invalid search id', function() {
+      const streamProps = {
+        setProjectNavSection: function() {},
+        params: {orgId: '123', projectId: '456', searchId: 'invalid'},
+        location: {query: {}, search: ''},
+      };
+      wrapper = shallow(<Stream {...streamProps} />, {
+        context,
+      });
+
+      expect(wrapper.instance().state.searchId).toBeNull();
+      expect(wrapper.instance().state.query).toBe('');
+    });
+
+    it('handles default saved search (no search id or query)', function() {
+      const streamProps = {
+        ...props,
+        location: {query: {}, search: ''},
+      };
+
+      MockApiClient.addMockResponse({
+        url: '/projects/123/456/searches/',
+        body: [
+          {id: '789', query: 'is:unresolved', name: 'test', isDefault: false},
+          {
+            id: 'default',
+            query: 'is:unresolved assigned:me',
+            name: 'default',
+            isDefault: true,
+          },
+        ],
+      });
+
+      wrapper = shallow(<Stream {...streamProps} />, {
+        context,
+      });
+
+      expect(wrapper.instance().state.searchId).toBe('default');
+      expect(wrapper.instance().state.query).toBe('is:unresolved assigned:me');
+    });
+  });
+
   describe('render()', function() {
+    beforeEach(function() {
+      wrapper = shallow(<Stream {...props} />, {
+        context,
+      });
+    });
     it('displays a loading indicator when component is loading', function() {
       wrapper.setState({loading: true});
       expect(wrapper.find('.loading')).toBeTruthy();
@@ -300,6 +363,12 @@ describe('Stream', function() {
   });
 
   describe('toggles environment', function() {
+    beforeEach(function() {
+      wrapper = shallow(<Stream {...props} />, {
+        context,
+      });
+    });
+
     it('select all environments', function() {
       EnvironmentStore.loadInitialData(TestStubs.Environments());
       setActiveEnvironment(null);
