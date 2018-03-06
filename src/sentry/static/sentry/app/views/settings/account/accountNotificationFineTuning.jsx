@@ -100,7 +100,7 @@ class AccountNotificationsByProject extends React.Component {
             // `name` key refers to field name
             // we use project.id because slugs are not unique across orgs
             name: project.id,
-            label: project.name,
+            label: project.slug,
           };
         }),
       };

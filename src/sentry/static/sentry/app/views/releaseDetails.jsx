@@ -53,7 +53,7 @@ const ReleaseDetails = createReactClass({
   getTitle() {
     let project = this.getProject();
     let params = this.props.params;
-    return 'Release ' + params.version + ' | ' + project.name;
+    return 'Release ' + params.version + ' | ' + project.slug;
   },
 
   fetchData() {

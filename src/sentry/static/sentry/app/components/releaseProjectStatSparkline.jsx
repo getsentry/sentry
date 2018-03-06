@@ -89,7 +89,7 @@ const ReleaseProjectStatSparkline = createReactClass({
           </Sparklines>
         </div>
         <Link to={`/${orgId}/${project.slug}/releases/${encodeURIComponent(version)}/`}>
-          <h6 className="m-b-0">{project.name}</h6>
+          <h6 className="m-b-0">{project.slug}</h6>
           <p className="m-b-0 text-muted">
             <small>
               {newIssueCount > 0
