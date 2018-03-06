@@ -108,7 +108,10 @@ class GroupAssignee(Model):
         settings.AUTH_USER_MODEL,
         related_name="sentry_assignee_set",
         null=True)
-    team = FlexibleForeignKey('sentry.Team', null=True)
+    team = FlexibleForeignKey(
+        'sentry.Team',
+        related_name="sentry_assignee_set",
+        null=True)
     date_added = models.DateTimeField(default=timezone.now)
 
     class Meta:
