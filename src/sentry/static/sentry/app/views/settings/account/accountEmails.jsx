@@ -55,13 +55,14 @@ class EmailRow extends React.Component {
           {!isVerified && <Tag priority="warning">{t('Unverified')}</Tag>}
           {isPrimary && <Tag priority="success">{t('Primary')}</Tag>}
         </Flex>
-
+        {!isPrimary && (
+          <Button size="small" onClick={this.handleSetPrimary}>
+            {t('Set as primary')}
+          </Button>
+        )}
         {!isPrimary &&
           !hideRemove && (
             <Flex>
-              <Button size="small" onClick={this.handleSetPrimary}>
-                {t('Set as primary')}
-              </Button>
               <Box ml={1}>
                 <RemoveButton
                   onClick={this.handleRemove}
