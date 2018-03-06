@@ -65,8 +65,6 @@ class GroupEventsEndpoint(GroupEndpoint, EnvironmentMixin):
             else:
                 query = query_kwargs.pop('query', None)
                 tags = query_kwargs.pop('tags', {})
-                assert not query_kwargs, 'unexpected query parameters arguments: {!r}'.format(
-                    query_kwargs.keys())
         else:
             query = None
             tags = {}
