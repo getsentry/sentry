@@ -27,6 +27,9 @@ const SearchBar = createReactClass({
     disabled: PropTypes.bool,
     placeholder: PropTypes.string,
     onSearch: PropTypes.func,
+    // If true, excludes the environment tag from the autocompletion list
+    // This is because we don't want to treat environment as a tag in some places
+    // such as the stream view where it is a top level concept
     excludeEnvironment: PropTypes.bool,
   },
 

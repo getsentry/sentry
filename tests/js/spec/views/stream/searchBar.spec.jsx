@@ -4,7 +4,7 @@ import {shallow, mount} from 'enzyme';
 import SearchBar from 'app/views/stream/searchBar';
 import TagStore from 'app/stores/tagStore';
 
-fdescribe('SearchBar', function() {
+describe('SearchBar', function() {
   let sandbox;
   let options;
   let urlTagValuesMock;
