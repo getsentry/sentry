@@ -87,6 +87,7 @@ class StreamFilters extends React.Component {
                 query={query || ''}
                 onSearch={onSearch}
                 disabled={isSearchDisabled}
+                excludeEnvironment={true}
               />
               <a
                 className="btn btn-default toggle-stream-sidebar"

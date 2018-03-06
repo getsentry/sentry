@@ -33,7 +33,7 @@ exports[`ProjectTags renders 1`] = `
   margin-bottom: 30px;
 }
 
-.glamor-53 {
+.glamor-63 {
   background: #fff;
   border: 1px solid;
   margin-bottom: NaNpx;
@@ -211,7 +211,7 @@ exports[`ProjectTags renders 1`] = `
         </TextBlock>
         <Panel>
           <div
-            className="glamor-53 glamor-54"
+            className="glamor-63 glamor-64"
           >
             <PanelHeader>
               <StyledPanelHeader>
@@ -463,6 +463,153 @@ exports[`ProjectTags renders 1`] = `
                                   className="glamor-23 glamor-24"
                                 >
                                   device
+                                </span>
+                              </Description>
+                            </div>
+                          </Base>
+                        </Box>
+                        <Flex
+                          align="center"
+                          p={2}
+                        >
+                          <Base
+                            align="center"
+                            className="glamor-27"
+                            p={2}
+                          >
+                            <div
+                              className="glamor-27"
+                              is={null}
+                            >
+                              <LinkWithConfirmation
+                                className="btn btn-sm btn-default"
+                                disabled={false}
+                                message="Are you sure you want to remove this tag?"
+                                onConfirm={[Function]}
+                                title="Remove tag?"
+                              >
+                                <Confirm
+                                  cancelText="Cancel"
+                                  confirmText="Confirm"
+                                  disabled={false}
+                                  message="Are you sure you want to remove this tag?"
+                                  onConfirm={[Function]}
+                                  priority="primary"
+                                >
+                                  <a
+                                    className="btn btn-sm btn-default"
+                                    disabled={false}
+                                    onClick={[Function]}
+                                    title="Remove tag?"
+                                  >
+                                    <span
+                                      className="icon icon-trash"
+                                    />
+                                  </a>
+                                  <Modal
+                                    animation={false}
+                                    autoFocus={true}
+                                    backdrop={true}
+                                    bsClass="modal"
+                                    dialogComponentClass={[Function]}
+                                    enforceFocus={true}
+                                    keyboard={true}
+                                    manager={
+                                      ModalManager {
+                                        "add": [Function],
+                                        "containers": Array [],
+                                        "data": Array [],
+                                        "handleContainerOverflow": true,
+                                        "hideSiblingNodes": true,
+                                        "isTopModal": [Function],
+                                        "modals": Array [],
+                                        "remove": [Function],
+                                      }
+                                    }
+                                    onHide={[Function]}
+                                    renderBackdrop={[Function]}
+                                    restoreFocus={true}
+                                    show={false}
+                                  >
+                                    <Modal
+                                      autoFocus={true}
+                                      backdrop={true}
+                                      backdropClassName="modal-backdrop"
+                                      containerClassName="modal-open"
+                                      enforceFocus={true}
+                                      keyboard={true}
+                                      manager={
+                                        ModalManager {
+                                          "add": [Function],
+                                          "containers": Array [],
+                                          "data": Array [],
+                                          "handleContainerOverflow": true,
+                                          "hideSiblingNodes": true,
+                                          "isTopModal": [Function],
+                                          "modals": Array [],
+                                          "remove": [Function],
+                                        }
+                                      }
+                                      onEntering={[Function]}
+                                      onExited={[Function]}
+                                      onHide={[Function]}
+                                      renderBackdrop={[Function]}
+                                      restoreFocus={true}
+                                      show={false}
+                                    />
+                                  </Modal>
+                                </Confirm>
+                              </LinkWithConfirmation>
+                            </div>
+                          </Base>
+                        </Flex>
+                      </div>
+                    </Base>
+                  </StyledPanelItem>
+                </PanelItem>
+                <PanelItem
+                  align="center"
+                  className="ref-tag-row"
+                  key="url"
+                  p={0}
+                >
+                  <StyledPanelItem
+                    align="center"
+                    className="ref-tag-row"
+                    p={0}
+                  >
+                    <Base
+                      align="center"
+                      className="ref-tag-row glamor-29 glamor-30"
+                      p={0}
+                    >
+                      <div
+                        className="ref-tag-row glamor-29 glamor-30"
+                        is={null}
+                      >
+                        <Box
+                          align="flex-end"
+                          flex="1"
+                          p={2}
+                        >
+                          <Base
+                            align="flex-end"
+                            className="glamor-25"
+                            flex="1"
+                            p={2}
+                          >
+                            <div
+                              className="glamor-25"
+                              is={null}
+                            >
+                              <span>
+                                URL
+                              </span>
+                              <Description>
+                                <span
+                                  className="glamor-23 glamor-24"
+                                >
+                                  url
                                 </span>
                               </Description>
                             </div>
