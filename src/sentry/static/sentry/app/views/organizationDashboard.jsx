@@ -146,7 +146,7 @@ ProjectSparkline.propTypes = {
 };
 
 const ProjectListOld = createReactClass({
-  displayName: 'ProjectList',
+  displayName: 'ProjectListOld',
 
   propTypes: {
     teams: PropTypes.array,
@@ -164,11 +164,17 @@ const ProjectListOld = createReactClass({
   render() {
     let org = this.getOrganization();
     let {maxProjects} = this.props;
+    // prevent duplicate projects. this is fixed correctly in the new
+    // version of ProjectList below
+    let includedProjects = new Set();
     let projects = [];
     this.props.teams.forEach(team => {
       if (team.isMember) {
         team.projects.forEach(project => {
-          projects.push({...project, teamName: team.name});
+          if (!includedProjects.has(project.id)) {
+            projects.push({...project, teamName: team.name});
+            includedProjects.add(project.id);
+          }
         });
       }
     });
