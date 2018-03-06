@@ -2,6 +2,7 @@ from __future__ import absolute_import
 
 from collections import namedtuple
 from parsimonious.grammar import Grammar, NodeVisitor
+from parsimonious.exceptions import ParseError  # noqa
 
 __all__ = ('parse_rules', 'dump_schema', 'load_schema')
 
