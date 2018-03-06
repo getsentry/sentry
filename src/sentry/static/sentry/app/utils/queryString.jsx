@@ -17,8 +17,13 @@ export function getQueryStringWithEnvironment(qs, env) {
   );
 }
 
+export function getQueryStringWithoutEnvironment(qs) {
+  return formatQueryString(qs.replace(/environment:[^\s]*/g, ''));
+}
+
 export default {
   formatQueryString,
   getQueryEnvironment,
   getQueryStringWithEnvironment,
+  getQueryStringWithoutEnvironment,
 };

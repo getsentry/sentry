@@ -52,3 +52,19 @@ describe('getQueryStringWithEnvironment', function() {
     );
   });
 });
+
+describe('getQueryStringWithoutEnvironment', function() {
+  it('removes environment from querystring', function() {
+    const qs = 'is:unresolved environment:development is:unassigned';
+    expect(utils.getQueryStringWithoutEnvironment(qs)).toBe(
+      'is:unresolved is:unassigned'
+    );
+  });
+
+  it('removes empty environment from querystring', function() {
+    const qs = 'is:unresolved environment: is:unassigned';
+    expect(utils.getQueryStringWithoutEnvironment(qs)).toBe(
+      'is:unresolved is:unassigned'
+    );
+  });
+});
