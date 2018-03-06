@@ -18,6 +18,15 @@ exports[`TeamMembers render() renders 1`] = `
         }
       >
         <DropdownAutoComplete
+          action={
+            <Button
+              disabled={false}
+              priority="primary"
+              to="/settings/organization/org-slug/members/new/"
+            >
+              Add New Organization Member
+            </Button>
+          }
           isOpen={false}
           items={Array []}
           onSelect={[Function]}
