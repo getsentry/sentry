@@ -20,6 +20,7 @@ import OrganizationsLoader from '../components/organizations/organizationsLoader
 import OrganizationsStore from '../stores/organizationsStore';
 import GlobalModal from '../components/globalModal';
 import theme from '../utils/theme';
+import ErrorBoundary from '../components/errorBoundary';
 
 if (window.globalStaticUrl) __webpack_public_path__ = window.globalStaticUrl; // defined in layout.html
 
@@ -120,11 +121,6 @@ const App = createReactClass({
     OrganizationsStore.load([]);
   },
 
-  componentDidCatch(error, errorInfo) {
-    this.setState({error});
-    Raven.captureException(error, {extra: errorInfo});
-  },
-
   onConfigured() {
     this.setState({needsUpgrade: false});
   },
@@ -132,10 +128,6 @@ const App = createReactClass({
   render() {
     let user = ConfigStore.get('user');
     let needsUpgrade = this.state.needsUpgrade;
-
-    if (this.state.error) {
-      return <div>Errorstate</div>;
-    }
 
     if (user && user.isSuperuser && needsUpgrade) {
       return (
@@ -160,7 +152,7 @@ const App = createReactClass({
           <GlobalModal />
           <Alerts className="messages-container" />
           <Indicators className="indicators-container" />
-          {this.props.children}
+          <ErrorBoundary>{this.props.children}</ErrorBoundary>
           {ConfigStore.get('features').has('assistant') && <AssistantHelper />}
         </OrganizationsLoader>
       </ThemeProvider>
