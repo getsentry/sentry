@@ -297,6 +297,19 @@ const StreamActions = createReactClass({
             />
             <div className="btn-group">
               <ActionLink
+                className={'btn btn-default btn-sm action-merge'}
+                disabled={!multiSelected}
+                onAction={this.onMerge}
+                shouldConfirm={this.shouldConfirm('merge')}
+                message={confirm('merge', false)}
+                confirmLabel={label('merge')}
+                title={t('Merge Selected Issues')}
+              >
+                {t('Merge')}
+              </ActionLink>
+            </div>
+            <div className="btn-group">
+              <ActionLink
                 className={'btn btn-default btn-sm action-bookmark'}
                 onAction={() => this.onUpdate({isBookmarked: true})}
                 shouldConfirm={this.shouldConfirm('bookmark')}
@@ -316,18 +329,6 @@ const StreamActions = createReactClass({
                 className="btn btn-sm btn-default hidden-xs action-more"
                 title={<span className="icon-ellipsis" />}
               >
-                <MenuItem noAnchor={true}>
-                  <ActionLink
-                    className="action-merge"
-                    disabled={!multiSelected}
-                    onAction={this.onMerge}
-                    shouldConfirm={this.shouldConfirm('merge')}
-                    message={confirm('merge', false)}
-                    confirmLabel={label('merge')}
-                  >
-                    {t('Merge Issues')}
-                  </ActionLink>
-                </MenuItem>
                 <MenuItem noAnchor={true}>
                   <ActionLink
                     className="action-remove-bookmark"
