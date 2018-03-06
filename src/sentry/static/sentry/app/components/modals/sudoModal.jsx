@@ -101,7 +101,7 @@ class SudoModal extends React.Component {
         </Header>
 
         <Body>
-          {this.state.busy && <LoadingIndicator overlay />}
+          {this.state.busy && <LoadingIndicator css={{zIndex: 1}} overlay />}
           <p>{t('Help us keep your account safe by confirming your identity.')}</p>
           {this.state.error && (
             <div className="alert alert-error alert-block">{t('Incorrect password')}</div>
