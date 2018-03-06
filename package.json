@@ -110,6 +110,7 @@
       "src/sentry/static/sentry/app/**/*.{js,jsx}"
     ],
     "coverageReporters": [
+      "html",
       "lcov",
       "cobertura"
     ],

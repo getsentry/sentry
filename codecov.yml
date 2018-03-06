@@ -11,7 +11,7 @@ coverage:
       javascript:
         paths:
         - "src/sentry/static/sentry/app"
-        target: 75%
+        target: 60%
   ignore:
   - src/sentry/lint/.*
   - src/sentry/runner/.*
