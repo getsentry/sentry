@@ -213,7 +213,7 @@ travis-install-mysql: travis-install-python
 	pip install mysqlclient
 	echo 'create database sentry;' | mysql -uroot
 travis-install-acceptance: install-yarn travis-install-postgres
-	wget -N http://chromedriver.storage.googleapis.com/2.33/chromedriver_linux64.zip -P ~/
+	wget -N http://chromedriver.storage.googleapis.com/$(shell curl https://chromedriver.storage.googleapis.com/LATEST_RELEASE)/chromedriver_linux64.zip -P ~/
 	unzip ~/chromedriver_linux64.zip -d ~/
 	rm ~/chromedriver_linux64.zip
 	chmod +x ~/chromedriver
