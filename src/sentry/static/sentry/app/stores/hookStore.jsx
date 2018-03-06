@@ -19,6 +19,7 @@ let validHookNames = new Set([
   'project:discard-groups:disabled',
   'issue:secondary-column',
   'analytics:onboarding-complete',
+  'analytics:event',
 ]);
 
 const HookStore = Reflux.createStore({
