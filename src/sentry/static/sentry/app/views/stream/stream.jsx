@@ -56,7 +56,9 @@ const Stream = createReactClass({
     let sort = 'sort' in currentQuery ? currentQuery.sort : DEFAULT_SORT;
 
     let hasQuery = 'query' in currentQuery;
-    let statsPeriod = STATS_PERIODS.has(currentQuery.statsPeriod) || DEFAULT_STATS_PERIOD;
+    let statsPeriod = STATS_PERIODS.has(currentQuery.statsPeriod)
+      ? currentQuery.statsPeriod
+      : DEFAULT_STATS_PERIOD;
 
     return {
       groupIds: [],
@@ -239,7 +241,9 @@ const Stream = createReactClass({
 
     let sort = 'sort' in currentQuery ? currentQuery.sort : DEFAULT_SORT;
 
-    let statsPeriod = STATS_PERIODS.has(currentQuery.statsPeriod) || DEFAULT_STATS_PERIOD;
+    let statsPeriod = STATS_PERIODS.has(currentQuery.statsPeriod)
+      ? currentQuery.statsPeriod
+      : DEFAULT_STATS_PERIOD;
 
     let newState = {
       sort,
