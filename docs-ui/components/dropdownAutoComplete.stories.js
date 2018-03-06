@@ -2,6 +2,7 @@ import React from 'react';
 import {storiesOf} from '@storybook/react';
 import {withInfo} from '@storybook/addon-info';
 
+import Button from 'sentry-ui/buttons/button';
 import DropdownAutoComplete from 'sentry-ui/dropdownAutoComplete';
 import DropdownButton from 'sentry-ui/dropdownButton';
 
@@ -91,6 +92,21 @@ storiesOf('DropdownAutoComplete', module)
     'with dropdownButton',
     withInfo('Use it with dropdownbutton for maximum fun')(() => (
       <DropdownAutoComplete items={groupedItems}>
+        {({isOpen, selectedItem}) => (
+          <DropdownButton isOpen={isOpen}>
+            {selectedItem ? selectedItem.label : 'Click me!'}
+          </DropdownButton>
+        )}
+      </DropdownAutoComplete>
+    ))
+  )
+  .add(
+    'with extra action',
+    withInfo('Add a call to action button')(() => (
+      <DropdownAutoComplete
+        items={items}
+        action={<Button priority="primary">Now click me!</Button>}
+      >
         {({isOpen, selectedItem}) => (
           <DropdownButton isOpen={isOpen}>
             {selectedItem ? selectedItem.label : 'Click me!'}
