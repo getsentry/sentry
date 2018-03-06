@@ -82,11 +82,7 @@ describe('OrganizationTeamProjects', function() {
     let add = wrapper.find('DropdownButton').first();
     add.simulate('click');
 
-    // is there a better way to do this???
-    let el = wrapper
-      .find('.ref-autocomplete-items')
-      .childAt(0)
-      .childAt(0);
+    let el = wrapper.find('.ref-autocomplete-items').childAt(0);
     el.simulate('click');
 
     wrapper.update();
