@@ -8,10 +8,7 @@ from sentry.auth.superuser import is_active_superuser
 
 class RelayPermission(permissions.BasePermission):
     def has_permission(self, request, view):
-        # TODO(hazat): request.auth == agent signature, should be agent itself
-        if request.auth:
-            return True
-        return False
+        return getattr(request, 'relay', None) is not None
 
 
 class NoPermission(permissions.BasePermission):

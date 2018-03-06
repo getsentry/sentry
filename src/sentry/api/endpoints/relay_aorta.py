@@ -8,6 +8,7 @@ from sentry.api.permissions import RelayPermission
 from sentry.relay import query
 
 
+# XXX: rename to heartbeat
 class RelayAortaEndpoint(Endpoint):
     authentication_classes = (RelayAuthentication, )
     permission_classes = (RelayPermission, )
@@ -17,6 +18,8 @@ class RelayAortaEndpoint(Endpoint):
         queries = request.relay_request_data.get('queries')
         if queries:
             query_response = query.execute_queries(request.relay, queries)
+        else:
+            query_response = {}
         return Response({
             'queryResults': query_response,
         }, status=200)

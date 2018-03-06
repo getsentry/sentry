@@ -36,7 +36,8 @@ class RelayAuthentication(QuietBasicAuthentication):
             raise AuthenticationFailed('Unknown relay')
 
         try:
-            data = relay.public_key_object.verify(request.body, relay_sig)
+            data = relay.public_key_object.unpack(request.body, relay_sig,
+                                                  max_age=60 * 5)
             request.relay = relay
             request.relay_request_data = data
         except smith.UnpackError:
