@@ -16,10 +16,10 @@ const theme = {
   greenLight: '#71D8A6',
   greenDark: '#3EA573',
 
-  yellow: '#ECD744',
+  yellow: '#ecc844',
   yellowLightest: '#FFFDF7',
   yellowLight: '#FFF15E',
-  yellowDark: '#D3BE2B',
+  yellowDark: '#e6bc23',
 
   yellowOrange: '#f9a66d',
   yellowOrangeLight: '#FFC087',
@@ -62,7 +62,6 @@ const theme = {
   alert: {
     info: {
       backgroundLight: '#F5FAFE',
-      background: '#2D5BB1',
       border: '#B5D6ED',
     },
     warning: {
@@ -77,7 +76,7 @@ const theme = {
       border: '#BBD6B3',
     },
     error: {
-      background: '#FDF6F5',
+      backgroundLight: '#FDF6F5',
       border: '#E7C0BC',
       textLight: '#92635f',
       textDark: '#5d3e3b',
@@ -111,9 +110,16 @@ theme.success = theme.green;
 theme.error = theme.red;
 
 theme.alert.info.iconColor = theme.blue;
+theme.alert.info.background = theme.blue;
+
 theme.alert.warning.iconColor = theme.yellowDark;
+theme.alert.warning.background = theme.yellow;
+
 theme.alert.success.iconColor = theme.greenDark;
+theme.alert.success.background = theme.green;
+
 theme.alert.error.iconColor = theme.redDark;
+theme.alert.error.background = theme.red;
 
 //alias warn to warning
 theme.alert.warn = theme.alert.warning;
