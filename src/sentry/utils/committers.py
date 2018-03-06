@@ -21,7 +21,8 @@ def tokenize_path(path):
     for sep in PATH_SEPERATORS:
         if sep in path:
             return reversed(path.split(sep))
-    return [path]
+    else:
+        return iter([path])
 
 
 def score_path_match_length(path_a, path_b):
