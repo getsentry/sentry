@@ -532,4 +532,43 @@ describe('Stream', function() {
       expect(_.pick(actual, _.keys(expected))).toEqual(expected);
     });
   });
+
+  describe('getQueryState', function() {
+    it('handles changed search id', function() {
+      const nextProps = {
+        ...props,
+        location: {
+          pathname: '/123/456/searches/789/',
+        },
+        params: {orgId: '123', projectId: '456', searchId: '789'},
+      };
+
+      const stream = shallow(<Stream {...props} />, {
+        context,
+      }).instance();
+      const nextState = stream.getQueryState(nextProps);
+      expect(nextState).toEqual(
+        expect.objectContaining({searchId: '789', query: 'is:unresolved'})
+      );
+    });
+
+    it('handles changed querystring', function() {
+      const nextProps = {
+        ...props,
+        location: {
+          query: {
+            query: 'is:unresolved assigned:me',
+          },
+        },
+      };
+
+      const stream = shallow(<Stream {...props} />, {
+        context,
+      }).instance();
+      const nextState = stream.getQueryState(nextProps);
+      expect(nextState).toEqual(
+        expect.objectContaining({searchId: null, query: 'is:unresolved assigned:me'})
+      );
+    });
+  });
 });
