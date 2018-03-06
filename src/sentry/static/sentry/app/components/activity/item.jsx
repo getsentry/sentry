@@ -328,7 +328,7 @@ class ActivityItem extends React.Component {
             />
             <div className="activity-meta">
               <Link className="project" to={`/${orgId}/${item.project.slug}/`}>
-                {item.project.name}
+                {item.project.slug}
               </Link>
               <span className="bullet" />
               <TimeSince date={item.dateCreated} />
@@ -352,7 +352,7 @@ class ActivityItem extends React.Component {
             </div>
             <div className="activity-meta">
               <Link className="project" to={`/${orgId}/${item.project.slug}/`}>
-                {item.project.name}
+                {item.project.slug}
               </Link>
               <span className="bullet" />
               <TimeSince date={item.dateCreated} />
@@ -373,7 +373,7 @@ class ActivityItem extends React.Component {
             )}
             <div className="activity-meta">
               <Link className="project" to={`/${orgId}/${item.project.slug}/`}>
-                {item.project.name}
+                {item.project.slug}
               </Link>
               <span className="bullet" />
               <TimeSince date={item.dateCreated} />
