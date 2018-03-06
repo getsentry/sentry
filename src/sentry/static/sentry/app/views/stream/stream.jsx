@@ -80,6 +80,7 @@ const Stream = createReactClass({
       sort,
       isSidebarVisible: false,
       processingIssues: null,
+      environment: this.props.environment,
     };
   },
 
@@ -99,14 +100,9 @@ const Stream = createReactClass({
 
   componentWillReceiveProps(nextProps) {
     if (nextProps.environment !== this.props.environment) {
-      const environment = nextProps.environment;
-      const query = queryString.getQueryStringWithEnvironment(
-        this.state.query,
-        environment === null ? null : environment.name
-      );
       this.setState(
         {
-          query,
+          environment: nextProps.environment,
         },
         this.fetchData
       );
@@ -305,8 +301,7 @@ const Stream = createReactClass({
     // Remove leading and trailing whitespace
     let query = queryString.formatQueryString(this.state.query);
 
-    let {environment} = this.props;
-    let activeEnvName = environment ? environment.name : null;
+    let {environment} = this.state;
 
     let requestParams = {
       query,
@@ -321,18 +316,8 @@ const Stream = createReactClass({
     const queryEnvironment = queryString.getQueryEnvironment(query);
 
     if (queryEnvironment !== null) {
-      // Set the global environment to the one specified by the saved search
-      if (queryEnvironment !== activeEnvName) {
-        if (this.props.hasEnvironmentsFeature) {
-          let env = EnvironmentStore.getByName(queryEnvironment);
-          setActiveEnvironment(env);
-        }
-      }
       requestParams.environment = queryEnvironment;
     } else if (environment) {
-      // Set the environment of the query to match the global settings
-      query = queryString.getQueryStringWithEnvironment(query, environment.name);
-      requestParams.query = query;
       requestParams.environment = environment.name;
     }
 
@@ -460,6 +445,17 @@ const Stream = createReactClass({
       // if query is the same, just re-fetch data
       this.fetchData();
     } else {
+      // We no longer want to support environments specified in the querystring
+      // To keep this aligned with old behavior though we'll update the global environment
+      // and remove it from the query if someone does provide it this way
+      if (this.props.hasEnvironmentsFeature) {
+        const queryEnvironment = queryString.getQueryEnvironment(query);
+        const env = EnvironmentStore.getByName(queryEnvironment);
+        setActiveEnvironment(env);
+
+        query = queryString.getQueryStringWithoutEnvironment(query);
+      }
+
       this.setState(
         {
           query,
@@ -515,7 +511,6 @@ const Stream = createReactClass({
     let path = this.state.searchId
       ? `/${params.orgId}/${params.projectId}/searches/${this.state.searchId}/`
       : `/${params.orgId}/${params.projectId}/`;
-
     browserHistory.push({
       pathname: path,
       query: queryParams,
