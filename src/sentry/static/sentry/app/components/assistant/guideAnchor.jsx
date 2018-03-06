@@ -13,7 +13,8 @@ import GuideStore from '../../stores/guideStore';
 const GuideAnchor = createReactClass({
   propTypes: {
     target: PropTypes.string.isRequired,
-    type: PropTypes.oneOf(['text', 'button']),
+    // The `invisible` anchor type can be used for guides not attached to specific elements.
+    type: PropTypes.oneOf(['text', 'button', 'invisible']),
   },
 
   mixins: [Reflux.listenTo(GuideStore, 'onGuideStateChange')],
@@ -29,7 +30,8 @@ const GuideAnchor = createReactClass({
   },
 
   componentDidUpdate(prevProps, prevState) {
-    if (!prevState.active && this.state.active) {
+    // Invisible pings should not be scrolled to since they are not attached to a specific element.
+    if (!prevState.active && this.state.active && this.props.type !== 'invisible') {
       $('html, body').animate(
         {
           scrollTop: $(this.anchorElement).offset().top,
@@ -47,7 +49,10 @@ const GuideAnchor = createReactClass({
     if (
       data.currentGuide &&
       data.currentStep > 0 &&
-      data.currentGuide.steps[data.currentStep - 1].target == this.props.target
+      data.currentGuide.steps[data.currentStep - 1].target == this.props.target &&
+      // TODO(adhiraj): It would be more correct to let invisible anchors become active,
+      // and use CSS to make them invisible.
+      this.props.type !== 'invisible'
     ) {
       this.setState({active: true});
     } else {

@@ -11,6 +11,7 @@ import IndicatorStore from '../../stores/indicatorStore';
 import ListLink from '../../components/listLink';
 import ShortId from '../../components/shortId';
 import EventOrGroupTitle from '../../components/eventOrGroupTitle';
+import GuideAnchor from '../../components/assistant/guideAnchor';
 import ProjectState from '../../mixins/projectState';
 import TooltipMixin from '../../mixins/tooltip';
 import {t} from '../../locale';
@@ -136,6 +137,7 @@ const GroupHeader = createReactClass({
             <div className="flex flex-justify-right">
               {group.shortId && (
                 <div className="short-id-box count align-right">
+                  <GuideAnchor target="issue_number" type="text" />
                   <h6 className="nav-header">
                     <a
                       className="help-link tip"
