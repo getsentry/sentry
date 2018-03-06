@@ -15,6 +15,9 @@ const formGroups = [
         placeholder: 'e.g. secondary@example.com',
         help:
           'Show "powered by Sentry within the feedback dialog. We appreciate you helping get the word out about Sentry! <3',
+        getData: data => ({
+          options: data,
+        }),
       },
     ],
   },
