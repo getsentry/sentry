@@ -5,11 +5,43 @@ import styled from 'react-emotion';
 import TextBlock from '../views/settings/components/text/textBlock';
 import InlineSvg from './inlineSvg';
 
-const getAlertColorStyles = ({backgroundLight, border, iconColor}) => `
+const StyledInlineSvg = styled(InlineSvg)`
+  margin-right: 12px;
+`;
+
+const getAlertColorStyles = ({backgroundLight, border, iconColor}, textColor) => `
   background: ${backgroundLight};
   border: 1px solid ${border};
+
   svg {
     color: ${iconColor};
+  }
+
+  a {
+    color: ${textColor};
+    border-bottom: 1px dotted ${textColor};
+  }
+`;
+
+const getSystemAlertColorStyles = ({background}) => `
+  background: ${background};
+  border: 0;
+  border-radius: 0;
+  color: #fff;
+  font-weight: bold;
+  text-shadow: 0 1px 1px rgba(0,0,0, .15);
+
+  ${StyledInlineSvg} {
+    color: #fff;
+  }
+
+  a {
+    color: #fff;
+    border-bottom: 1px dotted rgba(255,255,255, .8);
+
+    &:hover {
+      border-bottom: 1px dotted rgba(255,255,255, 1);
+    }
   }
 `;
 
@@ -23,7 +55,10 @@ const AlertWrapper = styled.div`
   background: ${p => p.theme.whiteDark};
   border: 1px solid ${p => p.theme.borderDark};
 
-  ${p => p.type && getAlertColorStyles(p.theme.alert[p.type])};
+  ${p =>
+    p.system
+      ? p.type && getSystemAlertColorStyles(p.theme.alert[p.type])
+      : p.type && getAlertColorStyles(p.theme.alert[p.type], p.theme.gray5)};
 `;
 
 const StyledTextBlock = styled(TextBlock)`
@@ -31,10 +66,6 @@ const StyledTextBlock = styled(TextBlock)`
   margin-bottom: 0;
   flex: 1;
   align-self: center;
-`;
-
-const StyledInlineSvg = styled(InlineSvg)`
-  margin-right: 12px;
 `;
 
 const Alert = ({type, icon, children, className, ...props}) => {

@@ -41,9 +41,10 @@ export default class AlertMessage extends React.PureComponent {
     alert: PropTypes.shape({
       id: PropTypes.string,
       message: PropTypes.string.isRequired,
-      type: PropTypes.oneOf(['success', 'error', 'warning']),
+      type: PropTypes.oneOf(['success', 'error', 'warning', 'info']),
       url: PropTypes.string,
     }),
+    system: PropTypes.bool,
   };
 
   closeAlert = () => {
@@ -51,16 +52,16 @@ export default class AlertMessage extends React.PureComponent {
   };
 
   render = () => {
-    let alert = this.props.alert;
+    let {alert, system} = this.props;
     let icon;
 
     if (alert.type == 'success') {
       icon = 'icon-circle-check';
-    } else if (alert.type == 'error' || alert.type == 'warning') {
+    } else {
       icon = 'icon-circle-exclamation';
     }
     return (
-      <StyledAlert type={this.props.alert.type} icon={icon}>
+      <StyledAlert type={this.props.alert.type} icon={icon} system={system}>
         <StyledCloseButton
           type="button"
           aria-label={t('Close')}
