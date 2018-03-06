@@ -60,3 +60,60 @@ def test_load_schema():
         Matcher('path', '*.js'),
         [Owner('team', 'frontend')]
     )]
+
+
+def test_matcher_test_url():
+    data = {
+        'sentry.interfaces.Http': {
+            'url': 'http://example.com/foo.js',
+        }
+    }
+
+    assert Matcher('url', '*.js').test(data)
+    assert Matcher('url', 'http://*.com/foo.js').test(data)
+    assert not Matcher('url', '*.py').test(data)
+    assert not Matcher('url', '*.jsx').test(data)
+    assert not Matcher('path', '*.js').test(data)
+    assert not Matcher('url', '*.js').test({})
+
+
+def test_matcher_test_exception():
+    data = {
+        'sentry.interfaces.Exception': {
+            'values': [{
+                'stacktrace': {
+                    'frames': [
+                        {'filename': 'foo/file.py'},
+                        {'abs_path': '/usr/local/src/other/app.py'},
+                    ],
+                },
+            }],
+        }
+    }
+
+    assert Matcher('path', '*.py').test(data)
+    assert Matcher('path', 'foo/*.py').test(data)
+    assert Matcher('path', '/usr/local/src/*/app.py').test(data)
+    assert not Matcher('path', '*.js').test(data)
+    assert not Matcher('path', '*.jsx').test(data)
+    assert not Matcher('url', '*.py').test(data)
+    assert not Matcher('path', '*.py').test({})
+
+
+def test_matcher_test_stacktrace():
+    data = {
+        'sentry.interfaces.Stacktrace': {
+            'frames': [
+                {'filename': 'foo/file.py'},
+                {'abs_path': '/usr/local/src/other/app.py'},
+            ],
+        }
+    }
+
+    assert Matcher('path', '*.py').test(data)
+    assert Matcher('path', 'foo/*.py').test(data)
+    assert Matcher('path', '/usr/local/src/*/app.py').test(data)
+    assert not Matcher('path', '*.js').test(data)
+    assert not Matcher('path', '*.jsx').test(data)
+    assert not Matcher('url', '*.py').test(data)
+    assert not Matcher('path', '*.py').test({})
