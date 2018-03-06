@@ -78,7 +78,10 @@ describe('ProjectTeamsSettings', function() {
       expect(mock).not.toHaveBeenCalled();
 
       // open modal
-      wrapper.find('.button-default').simulate('click');
+      wrapper
+        .find('Button')
+        .at(1)
+        .simulate('click');
 
       // click confirm
       wrapper
@@ -119,13 +122,14 @@ describe('ProjectTeamsSettings', function() {
       expect(mock).not.toHaveBeenCalled();
 
       // open dropdown
-      wrapper.find('DropdownLink').simulate('click');
+      wrapper.find('DropdownButton').simulate('click');
 
       // click a team
-      wrapper
-        .find('MenuItem')
-        .find('a')
-        .simulate('click');
+      let el = wrapper
+        .find('.ref-autocomplete-items')
+        .childAt(0)
+        .childAt(0);
+      el.simulate('click');
 
       expect(mock).toHaveBeenCalledWith(
         endpoint,

@@ -7,34 +7,8 @@ exports[`ProjectTeamsSettings render() renders 1`] = `
   <div>
     <SettingsPageHeading
       action={
-        <DropdownLink
-          alwaysRenderMenu={true}
-          anchorRight={true}
-          caret={true}
-          className="btn btn-primary btn-sm"
-          disabled={false}
-          title="Add Team"
-        >
-          <MenuItem
-            noAnchor={true}
-          >
-            <a
-              onClick={[Function]}
-            >
-              Team Name 2
-            </a>
-          </MenuItem>
-          <MenuItem
-            divider={true}
-          />
-          <div
-            style={
-              Object {
-                "padding": "5px 0px",
-                "textAlign": "center",
-              }
-            }
-          >
+        <DropdownAutoComplete
+          action={
             <Button
               disabled={false}
               priority="primary"
@@ -43,8 +17,20 @@ exports[`ProjectTeamsSettings render() renders 1`] = `
             >
               Create a new team
             </Button>
-          </div>
-        </DropdownLink>
+          }
+          isOpen={false}
+          items={
+            Array [
+              Object {
+                "label": "team-slug-2",
+                "value": "2",
+              },
+            ]
+          }
+          onSelect={[Function]}
+        >
+          [Function]
+        </DropdownAutoComplete>
       }
       title="Teams"
     />
