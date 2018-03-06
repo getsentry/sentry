@@ -154,6 +154,8 @@ const TeamMembers = createReactClass({
   },
 
   renderDropdown(access) {
+    let {params} = this.props;
+
     if (!access.has('org:write')) {
       return (
         <a
@@ -177,7 +179,18 @@ const TeamMembers = createReactClass({
       });
 
     return (
-      <DropdownAutoComplete items={items} onSelect={this.addTeamMember}>
+      <DropdownAutoComplete
+        items={items}
+        onSelect={this.addTeamMember}
+        action={
+          <Button
+            priority="primary"
+            to={`/settings/organization/${params.orgId}/members/new/`}
+          >
+            Add New Organization Member
+          </Button>
+        }
+      >
         {({isOpen, selectedItem}) => (
           <DropdownButton isOpen={isOpen}>
             <span className="icon-plus" /> {t('Add Member')}
