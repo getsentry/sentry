@@ -65,6 +65,16 @@ const formGroups = [
     title: t('Security & Privacy'),
     fields: [
       {
+        name: 'require2FA',
+        type: 'boolean',
+        label: t('Require Two-Factor Authentication'),
+        help: t('Require two-factor authentication for all members.'),
+        confirm: t(
+          'Enabling this feature will disable all accounts without two-factor authentication. It will also send an email to all users to enable two-factor authentication. Do you want to continue?'
+        ),
+        visible: ({features}) => features.has('require-2fa'),
+      },
+      {
         name: 'allowSharedIssues',
         type: 'boolean',
 
