@@ -1,6 +1,7 @@
 from __future__ import absolute_import
 
 from collections import namedtuple
+from fnmatch import fnmatch
 from parsimonious.grammar import Grammar, NodeVisitor
 from parsimonious.exceptions import ParseError  # noqa
 
@@ -58,6 +59,9 @@ class Rule(namedtuple('Rule', 'matcher owners')):
             [Owner.load(o) for o in data['owners']],
         )
 
+    def test(self, data):
+        return self.matcher.test(data)
+
 
 class Matcher(namedtuple('Matcher', 'type pattern')):
     """
@@ -86,6 +90,35 @@ class Matcher(namedtuple('Matcher', 'type pattern')):
             data['type'],
             data['pattern'],
         )
+
+    def test(self, data):
+        return getattr(self, 'test_%s' % self.type)(data)
+
+    def test_url(self, data):
+        try:
+            url = data['sentry.interfaces.Http']['url']
+        except KeyError:
+            return False
+        return fnmatch(url, self.pattern)
+
+    def test_path(self, data):
+        for frame in _iter_frames(data):
+            try:
+                filename = frame['filename']
+            except KeyError:
+                try:
+                    filename = frame['abs_path']
+                except KeyError:
+                    continue
+
+            # fnmatch keeps it's own internal cache, so
+            # there isn't any optimization we can do here
+            # by using fnmatch.translate before and compiling
+            # our own regex.
+            if fnmatch(filename, self.pattern):
+                return True
+
+        return False
 
 
 class Owner(namedtuple('Owner', 'type identifier')):
@@ -156,6 +189,26 @@ class OwnershipVisitor(NodeVisitor):
 
     def generic_visit(self, node, children):
         return children or node
+
+
+def _iter_frames(data):
+    try:
+        for frame in data['sentry.interfaces.Stacktrace']['frames']:
+            yield frame
+    except KeyError:
+        pass
+
+    try:
+        values = data['sentry.interfaces.Exception']['values']
+    except KeyError:
+        return
+
+    for value in values:
+        try:
+            for frame in value['stacktrace']['frames']:
+                yield frame
+        except KeyError:
+            continue
 
 
 def parse_rules(data):
