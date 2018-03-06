@@ -32,6 +32,7 @@ class DropdownAutoComplete extends React.Component {
     isOpen: PropTypes.bool,
     onSelect: PropTypes.func,
     children: PropTypes.func,
+    action: PropTypes.element,
   };
 
   static defaultProps = {
@@ -140,6 +141,9 @@ class DropdownAutoComplete extends React.Component {
                 );
               }}
             </AutoComplete>
+            {this.props.action && (
+              <StyledActionContainer>{this.props.action}</StyledActionContainer>
+            )}
           </StyledMenu>
         )}
         <div onClick={this.openMenu}>
@@ -152,6 +156,11 @@ class DropdownAutoComplete extends React.Component {
     );
   }
 }
+
+const StyledActionContainer = styled('div')`
+  text-align: center;
+  padding: 10px;
+`;
 
 const StyledInput = styled(Input)`
   height: 1.75em;
