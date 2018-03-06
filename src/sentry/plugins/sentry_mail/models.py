@@ -141,6 +141,8 @@ class MailPlugin(NotificationPlugin):
         )
 
     def notify(self, notification):
+        from sentry.models import Commit, Release
+
         event = notification.event
         group = event.group
         project = group.project
@@ -166,6 +168,8 @@ class MailPlugin(NotificationPlugin):
         if features.has('organizations:suggested-commits', org):
             try:
                 committers = get_event_file_committers(project, event)
+            except (Commit.DoesNotExist, Release.DoesNotExist):
+                pass
             except Exception as exc:
                 logging.exception(six.text_type(exc))
             else:
