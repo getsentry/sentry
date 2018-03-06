@@ -91,7 +91,7 @@ export default class TeamSettings extends AsyncView {
             >
               <div>
                 <Link
-                  to={`/organizations/${orgId}/teams/${teamId}/remove/`}
+                  href={`/organizations/${orgId}/teams/${teamId}/remove/`}
                   className="btn btn-danger"
                   priority="danger"
                   size="small"
