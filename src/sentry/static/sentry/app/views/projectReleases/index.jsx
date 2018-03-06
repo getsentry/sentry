@@ -8,7 +8,7 @@ import LoadingError from '../../components/loadingError';
 import LoadingIndicator from '../../components/loadingIndicator';
 import Pagination from '../../components/pagination';
 import SearchBar from '../../components/searchBar';
-import {t} from '../../locale';
+import {t, tct} from '../../locale';
 
 import ReleaseList from './releaseList';
 
@@ -152,10 +152,17 @@ const ProjectReleases = createReactClass({
   },
 
   renderEmpty() {
+    const {environment} = this.state;
+    const message = environment
+      ? tct("There don't seem to be any releases in your [env] environment yet", {
+          env: environment.displayName,
+        })
+      : t("There don't seem to be any releases yet.");
+
     return (
       <div className="empty-stream">
         <span className="icon icon-exclamation" />
-        <p>{t("There don't seem to be any releases yet.")}</p>
+        <p>{message}</p>
         <p>
           <a href={this.getReleaseTrackingUrl()}>
             {t('Learn how to integrate Release Tracking')}
