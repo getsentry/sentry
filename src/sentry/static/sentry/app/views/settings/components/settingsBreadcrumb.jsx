@@ -51,6 +51,12 @@ const StyledLink = styled(Link)`
 
 const ProjectName = styled.div`
   display: flex;
+
+  .loading {
+    width: 26px;
+    height: 24px;
+    margin: 0;
+  }
 `;
 
 const StyledInlineSvg = styled(InlineSvg)`
