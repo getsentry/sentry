@@ -8,275 +8,291 @@ sentry.search.django.backend
 
 from __future__ import absolute_import
 
-from django.db import router
+from collections import defaultdict
+
 from django.db.models import Q
 
 from sentry import tagstore
-from sentry.api.paginator import DateTimePaginator, Paginator
-from sentry.search.base import EMPTY, SearchBackend
+from sentry.api.paginator import DateTimePaginator, Paginator, SequencePaginator
+from sentry.search.base import SearchBackend
 from sentry.search.django.constants import (
     MSSQL_ENGINES, MSSQL_SORT_CLAUSES, MYSQL_SORT_CLAUSES, ORACLE_SORT_CLAUSES, SORT_CLAUSES,
     SQLITE_SORT_CLAUSES
 )
+from sentry.utils.dates import to_timestamp
 from sentry.utils.db import get_db_engine
 
 
+class Condition(object):
+    def __init__(self, callback, additional_fields=None):
+        self.callback = callback
+        self.additional_fields = additional_fields or []
+
+    def apply(self, name, queryset, parameters):
+        return self.callback(
+            queryset,
+            parameters.pop(name),
+            *map(parameters.pop, self.additional_fields)
+        )
+
+
+class ScalarCondition(Condition):
+    def __init__(self, parameter, field, operator):
+        super(ScalarCondition, self).__init__(
+            lambda queryset, value, inclusive: queryset.filter(**{
+                '{}__{}{}'.format(field, operator, 'e' if inclusive else ''): value,
+            }),
+            ['{}_inclusive'.format(parameter)],
+        )
+
+
+class QuerySetBuilder(object):
+    def __init__(self, conditions):
+        self.conditions = conditions
+
+    def build(self, queryset, parameters):
+        for name, condition in self.conditions.items():
+            if name in parameters:
+                queryset = condition.apply(name, queryset, parameters)
+        return queryset
+
+
+def get_sql_column(model, field):
+    return '"{}"."{}"'.format(*[
+        model._meta.db_table,
+        model._meta.get_field_by_name(field)[0].column,
+    ])
+
+
+sort_strategies = defaultdict(lambda: (Paginator, '-sort_value'), {
+    'priority': (Paginator, '-score'),
+    'date': (DateTimePaginator, '-last_seen'),
+    'new': (DateTimePaginator, '-first_seen'),
+    'freq': (Paginator, '-times_seen'),
+})
+
+environment_sort_strategies = {
+    'priority': ('log(times_seen) * 600 + last_seen::abstime::int', int),
+    'date': ('last_seen', lambda score: int(to_timestamp(score) * 1000)),
+    'new': ('first_seen', lambda score: int(to_timestamp(score) * 1000)),
+    'freq': ('times_seen', int),
+}
+
+
+def get_sort_clause(sort_by):
+    engine = get_db_engine('default')
+    if engine.startswith('sqlite'):
+        return SQLITE_SORT_CLAUSES[sort_by]
+    elif engine.startswith('mysql'):
+        return MYSQL_SORT_CLAUSES[sort_by]
+    elif engine.startswith('oracle'):
+        return ORACLE_SORT_CLAUSES[sort_by]
+    elif engine in MSSQL_ENGINES:
+        return MSSQL_SORT_CLAUSES[sort_by]
+    else:
+        return SORT_CLAUSES[sort_by]
+
+
 class DjangoSearchBackend(SearchBackend):
-    def _build_queryset(
-        self,
-        project,
-        query=None,
-        status=None,
-        tags=None,
-        bookmarked_by=None,
-        assigned_to=None,
-        first_release=None,
-        sort_by='date',
-        unassigned=None,
-        subscribed_by=None,
-        age_from=None,
-        age_from_inclusive=True,
-        age_to=None,
-        age_to_inclusive=True,
-        last_seen_from=None,
-        last_seen_from_inclusive=True,
-        last_seen_to=None,
-        last_seen_to_inclusive=True,
-        date_from=None,
-        date_from_inclusive=True,
-        date_to=None,
-        date_to_inclusive=True,
-        active_at_from=None,
-        active_at_from_inclusive=True,
-        active_at_to=None,
-        active_at_to_inclusive=True,
-        times_seen=None,
-        times_seen_lower=None,
-        times_seen_lower_inclusive=True,
-        times_seen_upper=None,
-        times_seen_upper_inclusive=True,
-        cursor=None,
-        limit=None,
-        environment=None,
-    ):
-        from sentry.models import Event, Group, GroupSubscription, GroupStatus
+    def query(self, project, tags=None, environment=None, sort_by='date', limit=100,
+              cursor=None, count_hits=False, paginator_options=None, **parameters):
+        from sentry.models import Environment, Group, GroupEnvironment, GroupStatus, GroupSubscription, Release
+
+        if paginator_options is None:
+            paginator_options = {}
 
         if tags is None:
             tags = {}
 
-        engine = get_db_engine('default')
-
-        queryset = Group.objects.filter(project=project)
-
-        if query:
-            # TODO(dcramer): if we want to continue to support search on SQL
-            # we should at least optimize this in Postgres so that it does
-            # the query filter **after** the index filters, and restricts the
-            # result set
-            queryset = queryset.filter(
-                Q(message__icontains=query) | Q(culprit__icontains=query))
-
-        if status is None:
-            status_in = (
-                GroupStatus.PENDING_DELETION, GroupStatus.DELETION_IN_PROGRESS,
+        group_queryset = QuerySetBuilder({
+            'query': Condition(
+                lambda queryset, query: queryset.filter(
+                    Q(message__icontains=query) | Q(culprit__icontains=query),
+                ) if query else queryset,
+            ),
+            'status': Condition(
+                lambda queryset, status: queryset.filter(status=status),
+            ),
+            'bookmarked_by': Condition(
+                lambda queryset, user: queryset.filter(
+                    bookmark_set__project=project,
+                    bookmark_set__user=user,
+                ),
+            ),
+            'assigned_to': Condition(
+                lambda queryset, user: queryset.filter(
+                    assignee_set__project=project,
+                    assignee_set__user=user,
+                ),
+            ),
+            'unassigned': Condition(
+                lambda queryset, unassigned: queryset.filter(
+                    assignee_set__isnull=unassigned,
+                ),
+            ),
+            'subscribed_by': Condition(
+                lambda queryset, user: queryset.filter(
+                    id__in=GroupSubscription.objects.filter(
+                        project=project,
+                        user=user,
+                        is_active=True,
+                    ).values_list('group'),
+                ),
+            ),
+            'active_at_from': ScalarCondition('active_at_from', 'active_at', 'gt'),
+            'active_at_to': ScalarCondition('active_at_to', 'active_at', 'lt'),
+        }).build(
+            Group.objects.filter(project=project).exclude(status__in=[
+                GroupStatus.PENDING_DELETION,
+                GroupStatus.DELETION_IN_PROGRESS,
                 GroupStatus.PENDING_MERGE,
-            )
-            queryset = queryset.exclude(status__in=status_in)
-        else:
-            queryset = queryset.filter(status=status)
-
-        if bookmarked_by:
-            queryset = queryset.filter(
-                bookmark_set__project=project,
-                bookmark_set__user=bookmarked_by,
-            )
-
-        if assigned_to:
-            queryset = queryset.filter(
-                assignee_set__project=project,
-                assignee_set__user=assigned_to,
-            )
-        elif unassigned in (True, False):
-            queryset = queryset.filter(
-                assignee_set__isnull=unassigned,
-            )
-
-        if subscribed_by is not None:
-            queryset = queryset.filter(
-                id__in=GroupSubscription.objects.filter(
-                    project=project,
-                    user=subscribed_by,
-                    is_active=True,
-                ).values_list('group'),
-            )
-
-        if first_release:
-            if first_release is EMPTY:
-                return queryset.none()
-            queryset = queryset.filter(
-                first_release__organization_id=project.organization_id,
-                first_release__version=first_release,
-            )
+            ]),
+            parameters,
+        )
 
         if environment is not None:
-            # XXX: This overwrites the ``environment`` tag, if present, to
-            # ensure that the result set is limited to groups that have been
-            # seen in this environment (there is no way to search for groups
-            # that match multiple values of a single tag without changes to the
-            # tagstore API.)
-            tags['environment'] = environment.name
+            if 'environment' in tags:
+                # TODO: This should probably just overwrite the existing tag,
+                # rather than asserting on it, but...?
+                assert Environment.objects.get(
+                    projects=project,
+                    name=tags.pop('environment'),
+                ).id == environment.id
 
-        if tags:
-            matches = tagstore.get_group_ids_for_search_filter(
-                project.id,
-                environment.id if environment is not None else None,
-                tags,
-            )
-            if not matches:
-                return queryset.none()
-            queryset = queryset.filter(
-                id__in=matches,
-            )
-
-        if age_from or age_to:
-            params = {}
-            if age_from:
-                if age_from_inclusive:
-                    params['first_seen__gte'] = age_from
-                else:
-                    params['first_seen__gt'] = age_from
-            if age_to:
-                if age_to_inclusive:
-                    params['first_seen__lte'] = age_to
-                else:
-                    params['first_seen__lt'] = age_to
-            queryset = queryset.filter(**params)
-
-        if last_seen_from or last_seen_to:
-            params = {}
-            if last_seen_from:
-                if last_seen_from_inclusive:
-                    params['last_seen__gte'] = last_seen_from
-                else:
-                    params['last_seen__gt'] = last_seen_from
-            if last_seen_to:
-                if last_seen_to_inclusive:
-                    params['last_seen__lte'] = last_seen_to
-                else:
-                    params['last_seen__lt'] = last_seen_to
-            queryset = queryset.filter(**params)
-
-        if active_at_from or active_at_to:
-            params = {}
-            if active_at_from:
-                if active_at_from_inclusive:
-                    params['active_at__gte'] = active_at_from
-                else:
-                    params['active_at__gt'] = active_at_from
-            if active_at_to:
-                if active_at_to_inclusive:
-                    params['active_at__lte'] = active_at_to
-                else:
-                    params['active_at__lt'] = active_at_to
-            queryset = queryset.filter(**params)
-
-        if times_seen is not None:
-            queryset = queryset.filter(times_seen=times_seen)
-
-        if times_seen_lower is not None or times_seen_upper is not None:
-            params = {}
-            if times_seen_lower is not None:
-                if times_seen_lower_inclusive:
-                    params['times_seen__gte'] = times_seen_lower
-                else:
-                    params['times_seen__gt'] = times_seen_lower
-            if times_seen_upper is not None:
-                if times_seen_upper_inclusive:
-                    params['times_seen__lte'] = times_seen_upper
-                else:
-                    params['times_seen__lt'] = times_seen_upper
-            queryset = queryset.filter(**params)
-
-        if date_from or date_to:
-            params = {
-                'project_id': project.id,
-            }
-            if date_from:
-                if date_from_inclusive:
-                    params['datetime__gte'] = date_from
-                else:
-                    params['datetime__gt'] = date_from
-            if date_to:
-                if date_to_inclusive:
-                    params['datetime__lte'] = date_to
-                else:
-                    params['datetime__lt'] = date_to
-
-            event_queryset = Event.objects.filter(**params)
-
-            if query:
-                event_queryset = event_queryset.filter(
-                    message__icontains=query)
-
-            # limit to the first 1000 results
-            group_ids = event_queryset.distinct().values_list(
-                'group_id', flat=True)[:1000]
-
-            # if Event is not on the primary database remove Django's
-            # implicit subquery by coercing to a list
-            base = router.db_for_read(Group)
-            using = router.db_for_read(Event)
-            # MySQL also cannot do a LIMIT inside of a subquery
-            if base != using or engine.startswith('mysql'):
-                group_ids = list(group_ids)
-
-            queryset = queryset.filter(
-                id__in=group_ids,
+            # TODO: Add additional conditions to the group query that can
+            # exclude records that do not meet the constraints we are also
+            # going to apply to the group tag value query below. For example,
+            # if we require the group to have occurred at least 10 times in
+            # environment X, the group itself must have occurred at least 10
+            # times.
+            group_matches = set(
+                QuerySetBuilder({
+                    'first_release': Condition(
+                        lambda queryset, version: queryset.extra(
+                            where=[
+                                '{} = {}'.format(
+                                    get_sql_column(GroupEnvironment, 'first_release_id'),
+                                    get_sql_column(Release, 'id'),
+                                ),
+                                '{} = %s'.format(
+                                    get_sql_column(Release, 'organization'),
+                                ),
+                                '{} = %s'.format(
+                                    get_sql_column(Release, 'version'),
+                                ),
+                            ],
+                            params=[project.organization_id, version],
+                            tables=[Release._meta.db_table],
+                        ),
+                    ),
+                }).build(
+                    group_queryset.extra(
+                        where=[
+                            '{} = {}'.format(
+                                get_sql_column(Group, 'id'),
+                                get_sql_column(GroupEnvironment, 'group_id'),
+                            ),
+                            '{} = %s'.format(
+                                get_sql_column(GroupEnvironment, 'environment_id'),
+                            ),
+                        ],
+                        params=[environment.id],
+                        tables=[GroupEnvironment._meta.db_table],
+                    ),
+                    parameters,
+                ).values_list('id', flat=True)  # TODO: Limit?
             )
 
-        if engine.startswith('sqlite'):
-            score_clause = SQLITE_SORT_CLAUSES[sort_by]
-        elif engine.startswith('mysql'):
-            score_clause = MYSQL_SORT_CLAUSES[sort_by]
-        elif engine.startswith('oracle'):
-            score_clause = ORACLE_SORT_CLAUSES[sort_by]
-        elif engine in MSSQL_ENGINES:
-            score_clause = MSSQL_SORT_CLAUSES[sort_by]
+            sort_expression, sort_value_to_cursor_value = environment_sort_strategies[sort_by]
+            candidates = dict(
+                QuerySetBuilder({
+                    'age_from': ScalarCondition('age_from', 'first_seen', 'gt'),
+                    'age_to': ScalarCondition('age_to', 'first_seen', 'lt'),
+                    'last_seen_from': ScalarCondition('last_seen_from', 'last_seen', 'gt'),
+                    'last_seen_to': ScalarCondition('last_seen_to', 'last_seen', 'lt'),
+                    'times_seen': Condition(
+                        lambda queryset, times_seen: queryset.filter(times_seen=times_seen),
+                    ),
+                    'times_seen_lower': ScalarCondition('times_seen_lower', 'times_seen', 'gt'),
+                    'times_seen_upper': ScalarCondition('times_seen_upper', 'times_seen', 'lt'),
+                }).build(
+                    tagstore.get_group_tag_value_qs(
+                        project.id,
+                        group_matches,
+                        environment.id,
+                        'environment'
+                    ).filter(value=environment.name),
+                    parameters,
+                ).extra(
+                    select={
+                        'sort_value': sort_expression,
+                    },
+                ).values_list('group_id', 'sort_value')
+            )
+
+            if tags:
+                matches = tagstore.get_group_ids_for_search_filter(
+                    project.id,
+                    environment.id,
+                    tags,
+                    candidates.keys(),
+                    limit=len(candidates),
+                )
+                for key in set(candidates) - set(matches):
+                    del candidates[key]
+
+            result = SequencePaginator(
+                map(
+                    lambda (id, score): (sort_value_to_cursor_value(score), id),
+                    candidates.items(),
+                ),
+                reverse=True,
+                **paginator_options
+            ).get_result(limit, cursor, count_hits=count_hits)
+
+            result.results = filter(
+                None,
+                map(
+                    Group.objects.in_bulk(result.results).get,
+                    result.results,
+                ),
+            )
+
+            return result
         else:
-            score_clause = SORT_CLAUSES[sort_by]
+            group_queryset = QuerySetBuilder({
+                'first_release': Condition(
+                    lambda queryset, version: queryset.filter(
+                        first_release__organization_id=project.organization_id,
+                        first_release__version=version,
+                    ),
+                ),
+                'age_from': ScalarCondition('age_from', 'first_seen', 'gt'),
+                'age_to': ScalarCondition('age_to', 'first_seen', 'lt'),
+                'last_seen_from': ScalarCondition('last_seen_from', 'last_seen', 'gt'),
+                'last_seen_to': ScalarCondition('last_seen_to', 'last_seen', 'lt'),
+                'times_seen': Condition(
+                    lambda queryset, times_seen: queryset.filter(times_seen=times_seen),
+                ),
+                'times_seen_lower': ScalarCondition('times_seen_lower', 'times_seen', 'gt'),
+                'times_seen_upper': ScalarCondition('times_seen_upper', 'times_seen', 'lt'),
+            }).build(
+                group_queryset,
+                parameters,
+            ).extra(
+                select={
+                    'sort_value': get_sort_clause(sort_by),
+                },
+            )
 
-        queryset = queryset.extra(
-            select={'sort_value': score_clause},
-        )
-        return queryset
+            if tags:
+                matches = tagstore.get_group_ids_for_search_filter(project.id, None, tags)
+                if matches:
+                    group_queryset = group_queryset.filter(id__in=matches)
+                else:
+                    group_queryset = group_queryset.none()
 
-    def query(self, project, count_hits=False, paginator_options=None, **kwargs):
-        if paginator_options is None:
-            paginator_options = {}
-
-        queryset = self._build_queryset(project=project, **kwargs)
-
-        sort_by = kwargs.get('sort_by', 'date')
-        limit = kwargs.get('limit', 100)
-        cursor = kwargs.get('cursor')
-
-        # HACK: don't sort by the same column twice
-        if sort_by == 'date':
-            paginator_cls = DateTimePaginator
-            sort_clause = '-last_seen'
-        elif sort_by == 'priority':
-            paginator_cls = Paginator
-            sort_clause = '-score'
-        elif sort_by == 'new':
-            paginator_cls = DateTimePaginator
-            sort_clause = '-first_seen'
-        elif sort_by == 'freq':
-            paginator_cls = Paginator
-            sort_clause = '-times_seen'
-        else:
-            paginator_cls = Paginator
-            sort_clause = '-sort_value'
-
-        queryset = queryset.order_by(sort_clause)
-        paginator = paginator_cls(queryset, sort_clause, **paginator_options)
-        return paginator.get_result(limit, cursor, count_hits=count_hits)
+            paginator_cls, sort_clause = sort_strategies[sort_by]
+            group_queryset = group_queryset.order_by(sort_clause)
+            paginator = paginator_cls(group_queryset, sort_clause, **paginator_options)
+            return paginator.get_result(limit, cursor, count_hits=count_hits)
