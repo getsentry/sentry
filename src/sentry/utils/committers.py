@@ -14,10 +14,14 @@ from itertools import izip
 from collections import defaultdict
 from six.moves import reduce
 
+PATH_SEPERATORS = frozenset(['/', '\\'])
+
 
 def tokenize_path(path):
-    # TODO(maxbittker) tokenize in a smarter crossplatform way.
-    return reversed(path.split('/'))
+    for sep in PATH_SEPERATORS:
+        if sep in path:
+            return reversed(path.split(sep))
+    return [path]
 
 
 def score_path_match_length(path_a, path_b):
