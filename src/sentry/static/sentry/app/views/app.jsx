@@ -120,6 +120,11 @@ const App = createReactClass({
     OrganizationsStore.load([]);
   },
 
+  componentDidCatch(error, errorInfo) {
+    this.setState({error});
+    Raven.captureException(error, {extra: errorInfo});
+  },
+
   onConfigured() {
     this.setState({needsUpgrade: false});
   },
@@ -127,6 +132,10 @@ const App = createReactClass({
   render() {
     let user = ConfigStore.get('user');
     let needsUpgrade = this.state.needsUpgrade;
+
+    if (this.state.error) {
+      return <div>Errorstate</div>;
+    }
 
     if (user && user.isSuperuser && needsUpgrade) {
       return (
