@@ -12,7 +12,7 @@
     </h2>
 
     <p class="muted">
-      Some events failed to process in your project "<a href="{{ project.get_absolute_url }}">{{ project.name }}</a>".
+      Some events failed to process in your project "<a href="{{ project.get_absolute_url }}">{{ project.slug }}</a>".
       {% if reprocessing_active %}
         Since reprocessing is enabled, these events will not show up in Sentry until the processing issues are resolved.
       {% endif %}
@@ -33,7 +33,7 @@
           <tr>
             <td>
               <h5 style="margin-bottom: 0">
-                <a href="{{ project.get_absolute_url }}">{{ project.name }}</a>
+                <a href="{{ project.get_absolute_url }}">{{ project.slug }}</a>
               </h5>
               <p class="muted" style="margin-bottom: 0">
                 {% if issues|length == 1 %}1 issue{% else %}{{ issues|length }} issues{% endif %}

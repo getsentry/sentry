@@ -28,6 +28,7 @@ class ProjectTable extends React.PureComponent {
     let projectTotals = this.props.projectTotals;
     let orgTotal = this.props.orgTotal;
     let org = this.props.organization;
+    let features = new Set(org.features);
 
     if (!projectTotals) {
       return <div />;
@@ -69,7 +70,9 @@ class ProjectTable extends React.PureComponent {
               <tr key={item.id}>
                 <td>
                   <Link to={`/${org.slug}/${project.slug}/`}>
-                    {project.team.name} / {project.name}
+                    {features.has('internal-catchall')
+                      ? project.slug
+                      : `${project.team.name} / ${project.name}`}
                   </Link>
                 </td>
                 <td className="align-right">

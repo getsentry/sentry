@@ -58,6 +58,6 @@ export SENTRY_PROJECT="{{ project.slug }}"
 echo
 echo $'\033[32mSuccessfully found all symbols!\033[0m'
 {% else %}
-echo 'There are currently no missing debug symbols for {{ project.name }} ({{ project.slug }})'
+echo 'There are currently no missing debug symbols for ``{{ project.slug }}``'
 {% endif %}
 {% endautoescape %}

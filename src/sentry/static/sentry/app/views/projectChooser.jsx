@@ -42,6 +42,7 @@ const ProjectChooser = createReactClass({
     let task = TodoList.TASKS.filter(
       task_inst => task_inst.task == this.props.location.query.task
     )[0];
+    let features = new Set(org.features);
 
     // Expect onboarding=1 and task=<task id> parameters and task.featureLocation == 'project'
     // TODO throw up report dialog if not true
@@ -56,7 +57,7 @@ const ProjectChooser = createReactClass({
             <td>
               <h4>
                 <a href={`/${org.slug}/${project.slug}/${task.location}`}>
-                  {project.name}
+                  {features.has('internal-catchall') ? project.slug : project.name}
                 </a>
               </h4>
             </td>
@@ -68,7 +69,7 @@ const ProjectChooser = createReactClass({
         <div className="box" key={i}>
           <div key={team.id}>
             <div className="box-header" key={team.id}>
-              <h2>{team.name}</h2>
+              <h2>{features.has('internal-catchall') ? team.slug : team.name}</h2>
             </div>
             <div className="box-content">
               <table className="table">

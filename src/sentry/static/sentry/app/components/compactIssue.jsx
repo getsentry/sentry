@@ -78,7 +78,7 @@ class CompactIssueHeader extends React.Component {
         </h3>
         <div className="event-extra">
           <span className="project-name">
-            <Link to={`/${orgId}/${projectId}/`}>{data.project.name}</Link>
+            <Link to={`/${orgId}/${projectId}/`}>{data.project.slug}</Link>
           </span>
           {data.numComments !== 0 && (
             <span>
