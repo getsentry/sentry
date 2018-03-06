@@ -29,6 +29,7 @@ import {setActiveEnvironment} from '../../actionCreators/environments';
 const MAX_ITEMS = 25;
 const DEFAULT_SORT = 'date';
 const DEFAULT_STATS_PERIOD = '24h';
+const STATS_PERIODS = new Set(['14d', '24h']);
 
 const Stream = createReactClass({
   displayName: 'Stream',
@@ -55,16 +56,14 @@ const Stream = createReactClass({
     let sort = 'sort' in currentQuery ? currentQuery.sort : DEFAULT_SORT;
 
     let hasQuery = 'query' in currentQuery;
-    let validStatsPeriods = new Set(['14d', '24h']);
-    let statsPeriod =
-      validStatsPeriods.has(currentQuery.statsPeriod) || DEFAULT_STATS_PERIOD;
+    let statsPeriod = STATS_PERIODS.has(currentQuery.statsPeriod) || DEFAULT_STATS_PERIOD;
 
     return {
       groupIds: [],
       isDefaultSearch: false,
       searchId: hasQuery ? null : searchId,
       // if we have no query then we can go ahead and fetch data
-      loading: searchId || !this.hasQuery() ? true : false,
+      loading: searchId || !hasQuery,
       savedSearchLoading: true,
       savedSearchList: [],
       selectAllActive: false,
@@ -117,7 +116,6 @@ const Stream = createReactClass({
       : nextSearchId !== this.state.searchId;
 
     if (searchIdChanged || nextProps.location.search !== this.props.location.search) {
-      // TODO(dcramer): handle 404 from popState on searchId
       this.setState(this.getQueryState(nextProps), this.fetchData);
     }
   },
@@ -233,22 +231,15 @@ const Stream = createReactClass({
   },
 
   getQueryState(props) {
-    props = props || this.props;
     let currentQuery = props.location.query || {};
-    let state = this.state;
 
     let hasQuery = 'query' in currentQuery;
 
-    let searchId = hasQuery ? null : props.params.searchId || state.searchId || null;
+    let searchId = hasQuery ? null : props.params.searchId || this.state.searchId || null;
 
     let sort = 'sort' in currentQuery ? currentQuery.sort : DEFAULT_SORT;
 
-    let statsPeriod =
-      'statsPeriod' in currentQuery ? currentQuery.statsPeriod : DEFAULT_STATS_PERIOD;
-
-    if (statsPeriod !== '14d' && statsPeriod !== '24h') {
-      statsPeriod = DEFAULT_STATS_PERIOD;
-    }
+    let statsPeriod = STATS_PERIODS.has(currentQuery.statsPeriod) || DEFAULT_STATS_PERIOD;
 
     let newState = {
       sort,
