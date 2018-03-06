@@ -8,11 +8,11 @@ import ApiMixin from '../../../mixins/apiMixin';
 import AsyncView from '../../asyncView';
 import Button from '../../../components/buttons/button';
 import Confirm from '../../../components/confirm';
-import DropdownLink from '../../../components/dropdownLink';
+import DropdownAutoComplete from '../../../components/dropdownAutoComplete';
+import DropdownButton from '../../../components/dropdownButton';
 import EmptyMessage from '../components/emptyMessage';
 import IndicatorStore from '../../../stores/indicatorStore';
 import Link from '../../../components/link';
-import MenuItem from '../../../components/menuItem';
 import Panel from '../components/panel';
 import PanelBody from '../components/panelBody';
 import PanelHeader from '../components/panelHeader';
@@ -121,8 +121,10 @@ class ProjectTeams extends AsyncView {
     });
   }
 
-  handleAdd(team) {
+  handleAdd = selection => {
     if (this.state.loading) return;
+
+    let team = this.state.allTeams.find(tm => tm.id === selection.value);
 
     let loadingIndicator = IndicatorStore.add(t('Saving changes..'));
     let {orgId, projectId} = this.props.params;
@@ -140,7 +142,7 @@ class ProjectTeams extends AsyncView {
         IndicatorStore.remove(loadingIndicator);
       },
     });
-  }
+  };
 
   renderEmpty() {
     return (
@@ -179,35 +181,21 @@ class ProjectTeams extends AsyncView {
     else body = this.renderEmpty();
 
     let projectTeams = new Set(this.state.projectTeams.map(team => team.slug));
-    let teamsToAdd = this.state.allTeams.filter(team => {
-      return team.hasAccess && !projectTeams.has(team.slug);
-    });
+    let teamsToAdd = this.state.allTeams
+      .filter(team => {
+        return team.hasAccess && !projectTeams.has(team.slug);
+      })
+      .map(team => ({value: team.id, label: team.slug}));
 
     return (
       <div>
         <SettingsPageHeader
           title={t('Teams')}
           action={
-            <DropdownLink
-              anchorRight
-              className="btn btn-primary btn-sm"
-              title={t('Add Team')}
-            >
-              {teamsToAdd.length ? (
-                teamsToAdd.map(team => {
-                  return (
-                    <MenuItem noAnchor={true} key={team.slug}>
-                      <a onClick={this.handleAdd.bind(this, team)}>{team.name}</a>
-                    </MenuItem>
-                  );
-                })
-              ) : (
-                <MenuItem noAnchor={true} key={'empty'}>
-                  <a>{t('No available teams')}</a>
-                </MenuItem>
-              )}
-              <MenuItem divider={true} />
-              <div style={{textAlign: 'center', padding: '5px 0px'}}>
+            <DropdownAutoComplete
+              items={teamsToAdd}
+              onSelect={this.handleAdd}
+              action={
                 <Button
                   to={`/organizations/${orgId}/teams/new/`}
                   priority="primary"
@@ -215,8 +203,14 @@ class ProjectTeams extends AsyncView {
                 >
                   {t('Create a new team')}
                 </Button>
-              </div>
-            </DropdownLink>
+              }
+            >
+              {({isOpen, selectedItem}) => (
+                <DropdownButton isOpen={isOpen}>
+                  <span className="icon-plus" /> {t('Add Team')}
+                </DropdownButton>
+              )}
+            </DropdownAutoComplete>
           }
         />
         <Panel>{body}</Panel>
