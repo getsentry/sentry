@@ -22,6 +22,13 @@ class Cursor(object):
     def __str__(self):
         return '%s:%s:%s' % (self.value, self.offset, int(self.is_prev))
 
+    def __eq__(self, other):
+        return all(
+            getattr(self, attr) == getattr(other, attr)
+            for attr in
+            ('value', 'offset', 'is_prev', 'has_results')
+        )
+
     def __repr__(self):
         return '<%s: value=%s offset=%s is_prev=%s>' % (
             type(self), self.value, self.offset, int(self.is_prev)
