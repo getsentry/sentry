@@ -198,6 +198,7 @@ const StyledMenu = styled('div')`
   left: 0;
   min-width: 250px;
   font-size: 0.9em;
+  z-index: 1;
 `;
 
 export default DropdownAutoComplete;
