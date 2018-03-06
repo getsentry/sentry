@@ -543,7 +543,8 @@ class LegacyTagStorage(TagStorage):
             key='sentry:user',
         ).order_by('-last_seen')[:limit])
 
-    def get_group_ids_for_search_filter(self, project_id, environment_id, tags, limit=1000):
+    def get_group_ids_for_search_filter(
+            self, project_id, environment_id, tags, candidates=None, limit=1000):
         from sentry.search.base import ANY, EMPTY
         # Django doesnt support union, so we limit results and try to find
         # reasonable matches
@@ -553,7 +554,7 @@ class LegacyTagStorage(TagStorage):
         tag_lookups = sorted(six.iteritems(tags), key=lambda (k, v): v == ANY)
 
         # get initial matches to start the filter
-        matches = None
+        matches = candidates
 
         # for each remaining tag, find matches contained in our
         # existing set, pruning it down each iteration
