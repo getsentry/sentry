@@ -11,7 +11,7 @@ from sentry.api.paginator import OffsetPaginator
 from sentry.api.fields.user import UserField
 from sentry.api.serializers import serialize
 from sentry.api.serializers.rest_framework import CommitSerializer, ListField
-from sentry.models import Activity, Environment, Release, ReleaseEnvironment
+from sentry.models import Activity, Environment, Release, ReleaseProjectEnvironment
 from sentry.plugins.interfaces.releasehook import ReleaseHook
 from sentry.constants import VERSION_LENGTH
 
@@ -63,8 +63,9 @@ class ProjectReleasesEndpoint(ProjectEndpoint, EnvironmentMixin):
                 projects=project, organization_id=project.organization_id
             ).select_related('owner')
             if environment is not None:
-                queryset = queryset.filter(id__in=ReleaseEnvironment.objects.filter(
+                queryset = queryset.filter(id__in=ReleaseProjectEnvironment.objects.filter(
                     organization_id=project.organization_id,
+                    project_id=project.id,
                     environment_id=environment.id,
                 ).values_list('release_id', flat=True))
 

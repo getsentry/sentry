@@ -6,7 +6,7 @@ from collections import defaultdict
 from django.db.models import Sum
 from itertools import izip
 
-from sentry import tagstore
+# from sentry import tagstore
 from sentry.api.serializers import Serializer, register, serialize
 from sentry.db.models.query import in_iexact
 from sentry.models import (
@@ -160,40 +160,46 @@ class ReleaseSerializer(Serializer):
 
     def get_attrs(self, item_list, user, *args, **kwargs):
         project = kwargs.get('project')
-        if project:
-            project_ids = [project.id]
-        else:
-            project_ids = list(ReleaseProject.objects.filter(release__in=item_list).values_list(
-                'project_id', flat=True
-            ).distinct())
+        # TODO(LB): This is kind of weird. Not sure why we're using tagstore as opposed to
+        # releaseenvironment
+        # if project:
+        #    project_ids = [project.id]
+        # else:
+        #    project_ids = list(ReleaseProject.objects.filter(release__in=item_list).values_list(
+        #        'project_id', flat=True
+        #    ).distinct())
 
-        tags = {}
-        tvs = tagstore.get_release_tags(project_ids,
-                                        environment_id=None,
-                                        versions=[o.version for o in item_list])
-        for tv in tvs:
-            val = tags.get(tv.value)
-            tags[tv.value] = {
-                'first_seen': min(tv.first_seen, val['first_seen']) if val else tv.first_seen,
-                'last_seen': max(tv.last_seen, val['last_seen']) if val else tv.last_seen
-            }
+        # tags = {}
+        # tvs = tagstore.get_release_tags(project_ids,
+        #                                environment_id=None,
+        #                                versions=[o.version for o in item_list])
+        # for tv in tvs:
+        #    val = tags.get(tv.value)
+        #    tags[tv.value] = {
+        #        'first_seen': min(tv.first_seen, val['first_seen']) if val else tv.first_seen,
+        #        'last_seen': max(tv.last_seen, val['last_seen']) if val else tv.last_seen
+        #    }
         owners = {
             d['id']: d for d in serialize(set(i.owner for i in item_list if i.owner_id), user)
         }
 
         if project:
-            issue_counts_by_release = dict(
-                ReleaseProjectEnvironment.objects.filter(project=project, release__in=item_list)
-                .values_list('release_id', 'new_issues_count')
-            )
+            release_project_envs = ReleaseProjectEnvironment.objects.filter(
+                project=project, release__in=item_list)
         else:
-            # assume it should be a sum across release
-            # if no particular project specified
-            issue_counts_by_release = dict(
-                ReleaseProjectEnvironment.objects.filter(release__in=item_list)
-                .values('release_id').annotate(new_issues_count=Sum('new_issues_count'))
-                .values_list('release_id', 'new_issues_count')
-            )
+            release_project_envs = ReleaseProjectEnvironment.objects.filter(release__in=item_list)
+
+        first_and_last_seen = {}
+        for release_project_env in release_project_envs:
+            first_and_last_seen[release_project_env.id] = {
+                'first_seen': release_project_env.first_seen,
+                'last_seen': release_project_env.last_seen,
+            }
+        issue_counts_by_release = dict(
+            release_project_envs.values('release_id').annotate(
+                new_issues_count=Sum('new_issues_count'))
+            .values_list('release_id', 'new_issues_count')
+        )
 
         release_metadata_attrs = self._get_commit_metadata(item_list, user)
         deploy_metadata_attrs = self._get_deploy_metadata(item_list, user)
@@ -213,9 +219,10 @@ class ReleaseSerializer(Serializer):
         result = {}
         for item in item_list:
             result[item] = {
-                'tag': tags.get(item.version),
+                #    'tag': tags.get(item.version),
                 'owner': owners[six.text_type(item.owner_id)] if item.owner_id else None,
                 'new_issues': issue_counts_by_release.get(item.id) or 0,
+                'first_and_last_seen': first_and_last_seen.get(item.version),
                 'projects': release_projects.get(item.id, [])
             }
             result[item].update(release_metadata_attrs[item])
@@ -240,7 +247,15 @@ class ReleaseSerializer(Serializer):
             'authors': attrs.get('authors', []),
             'projects': attrs.get('projects', [])
         }
-        if attrs['tag']:
+        first_and_last_seen = attrs.get('first_and_last_seen')
+        if first_and_last_seen:
+            d.update(
+                {
+                    'firstEvent': first_and_last_seen['first_seen'],
+                    'lastEvent': first_and_last_seen['last_seen'],
+                }
+            )
+        elif attrs['tag']:
             d.update(
                 {
                     'lastEvent': attrs['tag']['last_seen'],
