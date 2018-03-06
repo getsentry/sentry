@@ -13,7 +13,7 @@ from django.db import router, transaction, DataError
 
 from sentry.api.serializers import Serializer, register
 from sentry.db.models import (
-    Model, BoundedPositiveIntegerField, BaseManager, FlexibleForeignKey, sane_repr
+    Model, BoundedPositiveIntegerField, BoundedBigIntegerField, BaseManager, FlexibleForeignKey, sane_repr
 )
 
 
@@ -25,8 +25,8 @@ class GroupTagKey(Model):
     """
     __core__ = False
 
-    project_id = BoundedPositiveIntegerField(db_index=True)
-    group_id = BoundedPositiveIntegerField(db_index=True)
+    project_id = BoundedBigIntegerField(db_index=True)
+    group_id = BoundedBigIntegerField(db_index=True)
     _key = FlexibleForeignKey('tagstore.TagKey', db_column='key_id')
     values_seen = BoundedPositiveIntegerField(default=0)
 

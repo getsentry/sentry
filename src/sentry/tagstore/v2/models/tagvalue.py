@@ -15,7 +15,8 @@ from django.utils import timezone
 from sentry.api.serializers import Serializer, register
 from sentry.constants import MAX_TAG_VALUE_LENGTH
 from sentry.db.models import (
-    Model, BoundedPositiveIntegerField, GzippedDictField, BaseManager, FlexibleForeignKey, sane_repr
+    Model, BoundedPositiveIntegerField, BoundedBigIntegerField, GzippedDictField,
+    BaseManager, FlexibleForeignKey, sane_repr
 )
 
 
@@ -25,7 +26,7 @@ class TagValue(Model):
     """
     __core__ = False
 
-    project_id = BoundedPositiveIntegerField(db_index=True)
+    project_id = BoundedBigIntegerField(db_index=True)
     _key = FlexibleForeignKey('tagstore.TagKey', db_column='key_id')
     value = models.CharField(max_length=MAX_TAG_VALUE_LENGTH)
     data = GzippedDictField(blank=True, null=True)
