@@ -8,6 +8,7 @@ sentry.tagstore.v2.backend
 
 from __future__ import absolute_import
 
+import collections
 import six
 
 import logging
@@ -750,9 +751,14 @@ class V2TagStorage(TagStorage):
     def get_group_tag_value_qs(self, project_id, group_id, environment_id, key):
         qs = GroupTagValue.objects.filter(
             project_id=project_id,
-            group_id=group_id,
             _key__key=key,
         )
+
+        if isinstance(group_id, collections.Iterable):
+            qs = qs.filter(group_id__in=group_id)
+        else:
+            qs = qs.filter(group_id=group_id)
+
         qs = self._add_environment_filter(qs, environment_id)
         return qs
 

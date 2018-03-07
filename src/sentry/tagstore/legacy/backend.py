@@ -8,6 +8,7 @@ sentry.tagstore.legacy.backend
 
 from __future__ import absolute_import
 
+import collections
 import six
 
 from collections import defaultdict
@@ -615,10 +616,14 @@ class LegacyTagStorage(TagStorage):
         return queryset
 
     def get_group_tag_value_qs(self, project_id, group_id, environment_id, key):
-        return GroupTagValue.objects.filter(
-            group_id=group_id,
-            key=key,
-        )
+        queryset = GroupTagValue.objects.filter(key=key)
+
+        if isinstance(group_id, collections.Iterable):
+            queryset = queryset.filter(group_id__in=group_id)
+        else:
+            queryset = queryset.filter(group_id=group_id)
+
+        return queryset
 
     def update_group_for_events(self, project_id, event_ids, destination_id):
         return EventTag.objects.filter(
