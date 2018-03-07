@@ -1,6 +1,7 @@
 """
 sentry.rules.actions.notify_event_service
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Used for notifying a *specific* plugin
 
 :copyright: (c) 2010-2014 by the Sentry Team, see AUTHORS for more details.
 :license: BSD, see LICENSE for more details.
@@ -32,7 +33,7 @@ class NotifyEventServiceAction(EventAction):
     form_cls = NotifyEventServiceForm
     label = 'Send a notification via {service}'
 
-    def after(self, event, state):
+    def after(self, event, state, owners):
         service = self.get_option('service')
 
         extra = {'event_id': event.id}
@@ -54,7 +55,7 @@ class NotifyEventServiceAction(EventAction):
             return
 
         metrics.incr('notifications.sent', instance=plugin.slug)
-        yield self.future(plugin.rule_notify)
+        yield self.future(callback=plugin.rule_notify, key=None, owners=owners)
 
     def get_plugins(self):
         from sentry.plugins.bases.notify import NotificationPlugin

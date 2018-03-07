@@ -1,6 +1,7 @@
 """
 sentry.rules.actions.notify_event
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Used for notifying *all* enabled plugins
 
 :copyright: (c) 2010-2014 by the Sentry Team, see AUTHORS for more details.
 :license: BSD, see LICENSE for more details.
@@ -32,7 +33,7 @@ class NotifyEventAction(EventAction):
 
         return results
 
-    def after(self, event, state):
+    def after(self, event, state, owners):
         group = event.group
 
         for plugin in self.get_plugins():
@@ -42,4 +43,4 @@ class NotifyEventAction(EventAction):
                 continue
 
             metrics.incr('notifications.sent', instance=plugin.slug)
-            yield self.future(plugin.rule_notify)
+            yield self.future(plugin.rule_notify, None, owners=owners)

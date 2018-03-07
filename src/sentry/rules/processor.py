@@ -7,7 +7,7 @@ from collections import namedtuple
 from datetime import timedelta
 from django.utils import timezone
 
-from sentry.models import GroupRuleStatus, Rule
+from sentry.models import GroupRuleStatus, ProjectOwnership, Rule
 from sentry.rules import EventState, rules
 from sentry.utils.safe import safe_execute
 
@@ -131,8 +131,9 @@ class RuleProcessor(object):
                 continue
 
             action_inst = action_cls(self.project, data=action, rule=rule)
+            owners = self.get_owners()
             results = safe_execute(
-                action_inst.after, event=self.event, state=state, _with_transaction=False
+                action_inst.after, event=self.event, state=state, owners=owners, _with_transaction=False
             )
             if results is None:
                 self.logger.warn('Action %s did not return any futures', action['id'])
@@ -152,3 +153,13 @@ class RuleProcessor(object):
         for rule in self.get_rules():
             self.apply_rule(rule)
         return six.itervalues(self.grouped_futures)
+
+    def get_owners(self):
+        # TODO(LB): Ask where to put this. not really able to figure it out so far
+        try:
+            project_ownership = ProjectOwnership.objects.get(project_id=self.project.id)
+        except ProjectOwnership.DoesNotExist:
+            owners = []
+        else:
+            owners = project_ownership.get_owners(self.event)
+        return owners or []

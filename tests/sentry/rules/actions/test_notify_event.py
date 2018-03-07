@@ -21,3 +21,22 @@ class NotifyEventActionTest(RuleTestCase):
         assert len(results) is 1
         assert plugin.should_notify.call_count is 1
         assert results[0].callback is plugin.rule_notify
+
+    def test_single_owner(self):
+        event = self.get_event()
+
+        plugin = MagicMock()
+        rule = self.get_rule()
+        rule.get_plugins = lambda: (plugin, )
+
+        results = list(rule.after(event=event, state=self.get_state()))
+
+        assert len(results) is 1
+        assert plugin.should_notify.call_count is 1
+        assert results[0].callback is plugin.rule_notify
+
+    def test_team_owner(self):
+        pass
+
+    def test_multiple_owners(self):
+        pass

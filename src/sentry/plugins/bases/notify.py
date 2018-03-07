@@ -68,7 +68,7 @@ class NotificationPlugin(Plugin):
         event = notification.event
         return self.notify_users(event.group, event)
 
-    def rule_notify(self, event, futures):
+    def rule_notify(self, event, futures, owners=None):
         rules = []
         extra = {
             'event_id': event.id,
@@ -112,6 +112,7 @@ class NotificationPlugin(Plugin):
             notification = Notification(
                 event=event,
                 rules=rules,
+                owners=owners,
             )
             self.notify(notification)
 

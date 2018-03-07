@@ -16,11 +16,12 @@ from mock import Mock
 from sentry.api.serializers import (
     serialize, ProjectUserReportSerializer
 )
+from sentry.api.fields.actor import Actor
 from sentry.digests.notifications import build_digest, event_to_record
 from sentry.interfaces.stacktrace import Stacktrace
 from sentry.models import (
     Activity, Event, Group, GroupSubscription, OrganizationMember, OrganizationMemberTeam, Rule,
-    UserOption, UserReport
+    User, UserOption, UserReport
 )
 from sentry.plugins import Notification
 from sentry.plugins.sentry_mail.activity.base import ActivityEmail
@@ -228,6 +229,72 @@ class MailPluginTest(TestCase):
 
         assert user4.pk not in self.plugin.get_sendable_users(project)
 
+    def test_get_send_to_with_team_owners(self):
+        from sentry.models import Team
+
+        user = self.create_user(email='foo@example.com', is_active=True)
+        user2 = self.create_user(email='baz@example.com', is_active=True)
+
+        organization = self.create_organization(owner=user)
+        team = self.create_team(organization=organization)
+
+        project = self.create_project(name='Test', teams=[team])
+        OrganizationMemberTeam.objects.create(
+            organizationmember=OrganizationMember.objects.get(
+                user=user,
+                organization=organization,
+            ),
+            team=team,
+        )
+        self.create_member(user=user2, organization=organization, teams=[team])
+
+        # owners team
+        owners = [Actor(team.id, Team)]
+        assert (sorted(set([user.pk, user2.pk])) == sorted(
+            self.plugin.get_send_to(project, owners)))
+
+    def test_get_send_to_with_user_owners(self):
+        user = self.create_user(email='foo@example.com', is_active=True)
+        user2 = self.create_user(email='baz@example.com', is_active=True)
+
+        organization = self.create_organization(owner=user)
+        team = self.create_team(organization=organization)
+
+        project = self.create_project(name='Test', teams=[team])
+        OrganizationMemberTeam.objects.create(
+            organizationmember=OrganizationMember.objects.get(
+                user=user,
+                organization=organization,
+            ),
+            team=team,
+        )
+        self.create_member(user=user2, organization=organization, teams=[team])
+        # owners members
+        owners = [Actor(user.id, User), Actor(user2.id, User)]
+        assert (sorted(set([user.pk, user2.pk])) == sorted(
+            self.plugin.get_send_to(project, owners)))
+
+    def test_get_send_to_with_user_owner(self):
+        user = self.create_user(email='foo@example.com', is_active=True)
+        user2 = self.create_user(email='baz@example.com', is_active=True)
+
+        organization = self.create_organization(owner=user)
+        team = self.create_team(organization=organization)
+
+        project = self.create_project(name='Test', teams=[team])
+        OrganizationMemberTeam.objects.create(
+            organizationmember=OrganizationMember.objects.get(
+                user=user,
+                organization=organization,
+            ),
+            team=team,
+        )
+        self.create_member(user=user2, organization=organization, teams=[team])
+        # owners single member
+        owners = [Actor(user2.id, User)]
+        assert (sorted(set([user2.pk])) == sorted(
+            self.plugin.get_send_to(project, owners)))
+
     def test_notify_users_with_utf8_subject(self):
         group = self.create_group(message='Hello world')
         event = self.create_event(group=group, message=u'רונית מגן', tags={'level': 'error'})
@@ -390,6 +457,61 @@ class MailPluginTest(TestCase):
         msg = mail.outbox[-1]
 
         assert 'Suspect Commits' in msg.body
+
+    @mock.patch('sentry.plugins.sentry_mail.models.MailPlugin._send_mail')
+    def test_notify_users_with_owners(self, _send_mail):
+
+        user = self.create_user(email='foo@example.com', is_active=True)
+        user2 = self.create_user(email='baz@example.com', is_active=True)
+
+        organization = self.create_organization(owner=user)
+        team = self.create_team(organization=organization)
+
+        project = self.create_project(name='Test', teams=[team])
+        OrganizationMemberTeam.objects.create(
+            organizationmember=OrganizationMember.objects.get(
+                user=user,
+                organization=organization,
+            ),
+            team=team,
+        )
+        self.create_member(user=user2, organization=organization, teams=[team])
+
+        group = Group(
+            id=2,
+            first_seen=timezone.now(),
+            last_seen=timezone.now(),
+            project=project,
+            message='hello world',
+            logger='root',
+            short_id=2,
+        )
+
+        event = Event(
+            group=group,
+            message=group.message,
+            project=project,
+            datetime=group.last_seen,
+            data={'tags': [
+                ('level', 'error'),
+            ]},
+        )
+
+        owners = [Actor(user.id, User)]
+        notification = Notification(
+            event=event,
+            owners=owners,
+        )
+
+        with self.options({'system.url-prefix': 'http://example.com'}):
+            self.plugin.notify(notification)
+
+        assert _send_mail.call_count is 1
+        args, kwargs = _send_mail.call_args
+        self.assertEquals(kwargs.get('send_to'), [user.id])
+        self.assertEquals(kwargs.get('project'), project)
+        self.assertEquals(kwargs.get('reference'), group)
+        assert kwargs.get('subject') == u'TEST-2 - hello world'
 
 
 class MailPluginSignalsTest(TestCase):
