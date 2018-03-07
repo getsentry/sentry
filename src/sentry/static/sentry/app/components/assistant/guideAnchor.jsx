@@ -2,7 +2,6 @@ import PropTypes from 'prop-types';
 import classNames from 'classnames';
 import React from 'react';
 import styled from 'react-emotion';
-import $ from 'jquery';
 import createReactClass from 'create-react-class';
 import Reflux from 'reflux';
 import {registerAnchor, unregisterAnchor} from '../../actionCreators/guides';
@@ -35,14 +34,10 @@ const GuideAnchor = createReactClass({
   },
 
   componentDidUpdate(prevProps, prevState) {
-    // Invisible pings should not be scrolled to since they are not attached to a specific element.
     if (!prevState.active && this.state.active && this.props.type !== 'invisible') {
-      $('html, body').animate(
-        {
-          scrollTop: $(this.anchorElement).offset().top,
-        },
-        1000
-      );
+      this.anchorElement.scrollIntoView({
+        behavior: 'smooth',
+      });
     }
   },
 
@@ -69,10 +64,9 @@ const GuideAnchor = createReactClass({
     let {target, type} = this.props;
 
     return (
-      <div
+      <span
         ref={el => (this.anchorElement = el)}
         className={classNames('guide-anchor', `anchor-type-${type}`)}
-        style={{position: 'relative'}}
       >
         {this.props.children}
         <StyledGuideAnchor
@@ -80,7 +74,7 @@ const GuideAnchor = createReactClass({
           className={classNames('guide-anchor-ping', target)}
           active={this.state.active}
         />
-      </div>
+      </span>
     );
   },
 });

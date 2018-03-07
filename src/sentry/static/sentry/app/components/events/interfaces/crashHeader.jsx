@@ -99,10 +99,8 @@ const CrashHeader = createReactClass({
     return (
       <div className="crash-title">
         {this.props.beforeTitle}
-        {this.props.hasGuideAnchor ? (
-          <GuideAnchor target="exception" type="text" />
-        ) : null}
         <h3 className="pull-left">
+          {this.props.hasGuideAnchor ? <GuideAnchor target="exception" /> : null}
           {this.props.title}
           <small style={{marginLeft: 5}}>
             (<a
