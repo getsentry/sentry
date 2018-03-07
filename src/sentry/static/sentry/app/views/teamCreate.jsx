@@ -29,6 +29,25 @@ export default class TeamCreate extends AsyncView {
     return 'Create Team';
   }
 
+  renderField() {
+    let features = new Set(this.context.organization.features);
+    return features.has('internal-catchall') ? (
+      <TextField
+        name="slug"
+        label={t('Team Slug')}
+        placeholder={t('e.g. operations, web, desktop')}
+        required={true}
+      />
+    ) : (
+      <TextField
+        name="name"
+        label={t('Team Name')}
+        placeholder={t('e.g. Operations, Web, Desktop')}
+        required={true}
+      />
+    );
+  }
+
   renderBody() {
     let {orgId} = this.props.params;
     return (
@@ -48,12 +67,7 @@ export default class TeamCreate extends AsyncView {
           onSubmitSuccess={this.onSubmitSuccess}
           requireChanges={true}
         >
-          <TextField
-            name="name"
-            label={t('Team Name')}
-            placeholder={t('e.g. Operations, Web, Desktop')}
-            required={true}
-          />
+          {this.renderField()}
         </ApiForm>
       </NarrowLayout>
     );
