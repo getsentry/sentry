@@ -1,6 +1,6 @@
 import PropTypes from 'prop-types';
 import React from 'react';
-// import styled from 'react-emotion';
+import styled from 'react-emotion';
 import {MentionsInput, Mention} from 'react-mentions';
 
 import {Client} from '../../../api';
@@ -11,6 +11,18 @@ import SentryTypes from '../../../proptypes';
 
 import {addErrorMessage, addSuccessMessage} from '../../../actionCreators/indicator';
 import {t} from '../../../locale';
+
+const SyntaxOverlay = styled.div`
+  margin: 5px;
+  padding: 0px;
+  width: calc(100% - 10px);
+  height: 1em;
+  background-color: red;
+  opacity: 0.1;
+  pointer-events: none;
+  position: absolute;
+  top: ${({line}) => line}em;
+`;
 
 let styles;
 class ProjectOwnership extends React.Component {
@@ -85,34 +97,37 @@ class ProjectOwnership extends React.Component {
 
     return (
       <React.Fragment>
-        <MentionsInput
-          style={styles}
-          placeholder={'Project Ownership'}
-          onChange={this.onChange.bind(this)}
-          onBlur={this.onBlur}
-          onKeyDown={this.onKeyDown}
-          value={text}
-          required={true}
-          autoFocus={true}
-          displayTransform={(id, display, type) =>
-            `${type === 'member' ? '@' : '#'}${display}`}
-          markup="**[sentry.strip:__type__]__display__**"
-        >
-          <Mention
-            type="member"
-            trigger="@"
-            data={mentionableUsers}
-            onAdd={this.onAddMember}
-            appendSpaceOnAdd={true}
-          />
-          <Mention
-            type="team"
-            trigger="#"
-            data={mentionableTeams}
-            onAdd={this.onAddTeam}
-            appendSpaceOnAdd={true}
-          />
-        </MentionsInput>
+        <div style={{position: 'relative'}}>
+          <MentionsInput
+            style={styles}
+            placeholder={'Project Ownership'}
+            onChange={this.onChange.bind(this)}
+            onBlur={this.onBlur}
+            onKeyDown={this.onKeyDown}
+            value={text}
+            required={true}
+            autoFocus={true}
+            displayTransform={(id, display, type) =>
+              `${type === 'member' ? '@' : '#'}${display}`}
+            markup="**[sentry.strip:__type__]__display__**"
+          >
+            <Mention
+              type="member"
+              trigger="@"
+              data={mentionableUsers}
+              onAdd={this.onAddMember}
+              appendSpaceOnAdd={true}
+            />
+            <Mention
+              type="team"
+              trigger="#"
+              data={mentionableTeams}
+              onAdd={this.onAddTeam}
+              appendSpaceOnAdd={true}
+            />
+          </MentionsInput>
+          {error && <SyntaxOverlay line={error.raw[0].match(/line (\d*),/)[1] - 1} />}
+        </div>
         {error && error.raw.toString()}
         <Button
           size="small"
@@ -169,7 +184,7 @@ styles = {
     },
 
     input: {
-      padding: '15px 20px 0',
+      padding: '5px 5px 0',
       minHeight: 140,
       overflow: 'auto',
       outline: 0,
