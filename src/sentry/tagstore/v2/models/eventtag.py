@@ -10,15 +10,15 @@ from __future__ import absolute_import
 from django.db import models
 from django.utils import timezone
 
-from sentry.db.models import (Model, BoundedPositiveIntegerField, FlexibleForeignKey, sane_repr)
+from sentry.db.models import (Model, BoundedBigIntegerField, FlexibleForeignKey, sane_repr)
 
 
 class EventTag(Model):
     __core__ = False
 
-    project_id = BoundedPositiveIntegerField()
-    group_id = BoundedPositiveIntegerField()
-    event_id = BoundedPositiveIntegerField()
+    project_id = BoundedBigIntegerField()
+    group_id = BoundedBigIntegerField()
+    event_id = BoundedBigIntegerField()
     key = FlexibleForeignKey('tagstore.TagKey', db_column='key_id')
     value = FlexibleForeignKey('tagstore.TagValue', db_column='value_id')
     date_added = models.DateTimeField(default=timezone.now, db_index=True)
