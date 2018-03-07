@@ -3,9 +3,14 @@ import React from 'react';
 import _ from 'lodash';
 import createReactClass from 'create-react-class';
 import $ from 'jquery';
+import styled from 'react-emotion';
 import {t} from '../../locale';
 import ExternalLink from '../externalLink';
 import HookStore from '../../stores/hookStore';
+import QuestionMarkIcon from './questionMarkIcon';
+import AssistantContainer from './assistantContainer';
+import Input from '../../views/settings/components/forms/controls/input';
+import InlineSvg from '../../components/inlineSvg';
 
 // SupportDrawer slides up when the user clicks on a "Need Help?" cue.
 const SupportDrawer = createReactClass({
@@ -115,27 +120,57 @@ const SupportDrawer = createReactClass({
 
   render() {
     return (
-      <div className="search">
-        <form onSubmit={this.handleSubmit}>
-          <input
-            className="search-input form-control"
+      <AssistantContainer>
+        <QuestionMarkIcon />
+        <StyledSearchFormContainer onSubmit={this.handleSubmit}>
+          <StyledSearchIcon src="icon-search" />
+          <StyledInput
             type="text"
             placeholder={t('Search FAQs and docs...')}
             onChange={this.handleChange}
             value={this.state.inputVal}
             autoFocus
           />
-          <span className="icon-search" />
-          <a
-            className="icon-close pull-right search-close"
-            onClick={this.props.onClose}
-          />
           {this.renderDropdownResults()}
-        </form>
+        </StyledSearchFormContainer>
+        <StyledCloseIcon src="icon-close-lg" onClick={this.props.onClose} />
         {HookStore.get('assistant:support-button').map(cb => cb(this.state.inputVal))}
-      </div>
+      </AssistantContainer>
     );
   },
 });
+
+const StyledInput = styled(Input)`
+  padding: 0.25em 0.25em 0.25em 1em;
+  height: 2em;
+  flex-grow: 1;
+  text-indent: 1em;
+  width: 275px;
+  border-top-left-radius: 4em;
+  border-bottom-left-radius: 4em;
+`;
+
+const StyledSearchIcon = styled(InlineSvg)`
+  left: 0.875em;
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  color: ${p => p.theme.gray1};
+  width: 0.9em;
+  height: 0.9em;
+`;
+
+const StyledCloseIcon = styled(InlineSvg)`
+  right: 0.25rem;
+  stroke-width: 3px;
+  width: 0.75em;
+  height: 0.75em;
+  margin: 0 0.875em 0 0.5em;
+`;
+
+const StyledSearchFormContainer = styled('form')`
+  position: relative;
+  margin-left: 0.5em;
+`;
 
 export default SupportDrawer;
