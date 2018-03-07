@@ -12,7 +12,7 @@ GUIDES = {
             {
                 'title': _('Stacktrace'),
                 'message': _(
-                    'See the sequence of function calls that led to the error, global and local '
+                    'See the sequence of function calls that led to the error, and global/local '
                     'variables for each stack frame.'),
                 'target': 'exception',
             },
@@ -43,6 +43,21 @@ GUIDES = {
                     '</a> to learn more.'),
                 'target': 'issue_number',
             },
+            {
+                'title': _('Issue Tracking'),
+                'message': _(
+                    'Create issues within your project management tool. A list of all integrations '
+                    'can be found <a href="https://docs.sentry.io/integrations/">here</a>.'),
+                'target': 'issue_tracking',
+            },
+            {
+                'title': _('Delete & Discard'),
+                'message': _(
+                    'Deleting & Discarding an issue deletes most of the data associated with the '
+                    'issue and discards future events matching the issue before it reaches your '
+                    'stream. This is useful to permanently ignore errors you don\'t care about.'),
+                'target': 'delete_discard',
+            },
         ],
     },
     'releases': {
@@ -53,15 +68,16 @@ GUIDES = {
             {
                 'title': _('Releases'),
                 'message': _('A release is a specific version of your code deployed to an '
-                             'environment. When you tell Sentry about your releases, it can predict which '
-                             'commits caused an error and who might be a likely owner.'),
+                             'environment. When you tell Sentry about your releases, it can '
+                             'predict which commits caused an error and who might be a likely '
+                             'owner.'),
                 'target': 'releases',
             },
             {
                 'title': _('Releases'),
                 'message': _('Sentry does this by tying together commits in the release, files '
-                             'touched by those commits, files observed in the stacktrace, and authors '
-                             'of those files. Learn more about releases '
+                             'touched by those commits, files observed in the stacktrace, and '
+                             'authors of those files. Learn more about releases '
                              '<a href="https://docs.sentry.io/learn/releases/">here</a>.'),
             },
         ]

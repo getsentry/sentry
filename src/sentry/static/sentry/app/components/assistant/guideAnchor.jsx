@@ -66,7 +66,7 @@ const GuideAnchor = createReactClass({
     return (
       <div
         ref={el => (this.anchorElement = el)}
-        className={classNames('guide-anchor', type)}
+        className={classNames('guide-anchor', `anchor-type-${type}`)}
       >
         {this.props.children}
         <span
