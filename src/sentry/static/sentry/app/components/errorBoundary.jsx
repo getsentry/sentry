@@ -4,15 +4,23 @@ import styled from 'react-emotion';
 
 import {t} from '../locale';
 import DetailedError from './errors/detailedError';
-import Button from './buttons/button';
 
 const Wrapper = styled.div`
-  display: flex;
-  align-items: center;
-  flex-direction: column;
   color: ${p => p.theme.gray4};
   padding: ${p => p.theme.grid * 3}px;
 `;
+
+const StackTrace = styled.pre`
+  white-space: pre-wrap;
+  max-width: 1000px;
+  margin: auto;
+`;
+
+let exclamation = ['Raspberries', 'Snap', 'Frig', 'Welp', 'Uhhhh', 'Hmmm'];
+
+let getExclamation = () => {
+  return exclamation[Math.floor(Math.random() * exclamation.length)];
+};
 
 class ErrorBoundary extends React.Component {
   constructor(props) {
@@ -23,26 +31,18 @@ class ErrorBoundary extends React.Component {
     this.setState({error});
     Raven.captureException(error, {extra: errorInfo});
   }
-  openFeedback() {
-    if (window.Raven) {
-      window.Raven.lastEventId() && window.Raven.showReportDialog();
-    }
-  }
   render() {
     if (this.state.error) {
       return (
         <Wrapper>
           <DetailedError
-            heading={t('Aw crap')}
+            heading={getExclamation()}
             message={t(
               `Something went horribly wrong rendering this page.
-               \n Thankfully, we use Sentry, so the team has been notified and it should be fixed soon!`
+               \n Hopefully we use a good error reporting service, and this will be fixed soon.`
             )}
           />
-          <Button className="pull-right" onClick={this.openFeedback}>
-            {t('Fill out a report')}
-          </Button>
-          <pre>{this.state.error.toString()}</pre>
+          <StackTrace>{this.state.error.toString()}</StackTrace>
         </Wrapper>
       );
     } else {

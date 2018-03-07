@@ -27,6 +27,7 @@ window.scrollTo = sinon.spy();
 window.Raven = {
   captureMessage: sinon.spy(),
   captureException: sinon.spy(),
+  lastEventId: sinon.spy(),
 };
 window.TestStubs = {
   // react-router's 'router' context

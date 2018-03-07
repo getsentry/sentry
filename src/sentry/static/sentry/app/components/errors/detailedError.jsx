@@ -22,6 +22,20 @@ class DetailedError extends React.Component {
     hideSupportLinks: false,
   };
 
+  componentDidMount() {
+    // window.Raven.lastEventId() may not be immediatly true, so double-check after raven has time to send an error
+    setTimeout(() => {
+      this.forceUpdate();
+    }, 100);
+  }
+
+  openFeedback(e) {
+    e.preventDefault();
+    if (window.Raven) {
+      window.Raven.lastEventId() && window.Raven.showReportDialog();
+    }
+  }
+
   render() {
     const {className, heading, message, onRetry, hideSupportLinks} = this.props;
     const cx = classNames('detailed-error', className);
@@ -50,6 +64,12 @@ class DetailedError extends React.Component {
 
               {!hideSupportLinks && (
                 <div className="detailed-error-support-links">
+                  {window.Raven &&
+                    window.Raven.lastEventId() && (
+                      <a onClick={this.openFeedback} href="">
+                        Fill out a report
+                      </a>
+                    )}
                   <a href="https://status.sentry.io/">Service status</a>
 
                   <a href="https://sentry.io/support/">Contact support</a>
