@@ -10,7 +10,7 @@ import LoadingIndicator from '../components/loadingIndicator';
 import Pagination from '../components/pagination';
 import CompactIssue from '../components/compactIssue';
 import EventUserReport from '../components/events/userReport';
-import {t} from '../locale';
+import {t, tct} from '../locale';
 import withEnvironment from '../utils/withEnvironment';
 
 const ProjectUserReports = createReactClass({
@@ -171,10 +171,16 @@ const ProjectUserReports = createReactClass({
   },
 
   renderEmpty() {
+    const {environment} = this.state;
+    const message = environment
+      ? tct('No user reports have been collected from your [env] environment.', {
+          env: environment.displayName,
+        })
+      : t('No user reports have been collected.');
     return (
       <div className="box empty-stream">
         <span className="icon icon-exclamation" />
-        <p>{t('No user reports have been collected.')}</p>
+        <p>{message}</p>
         <p>
           <Link to={this.getUserReportsUrl()}>
             {t('Learn how to integrate User Feedback')}
