@@ -243,6 +243,8 @@ const AssigneeSelector = createReactClass({
     let teamNodes = [];
     let org = this.context.organization;
     let features = new Set(org.features);
+    let access = new Set(org.access);
+
     if (features.has('internal-catchall')) {
       teamNodes = AssigneeSelector.filterMembers(
         this.assignableTeams(),
@@ -319,16 +321,17 @@ const AssigneeSelector = createReactClass({
                 </li>
               )}
 
-              {ConfigStore.getConfig().invitesEnabled && (
-                <MenuItem
-                  className="invite-member"
-                  disabled={!loading}
-                  to={`/settings/organization/${this.context.organization
-                    .slug}/members/new/`}
-                >
-                  <span className="icon-plus" /> {t('Invite Member')}
-                </MenuItem>
-              )}
+              {ConfigStore.getConfig().invitesEnabled &&
+                access.has('org:write') && (
+                  <MenuItem
+                    className="invite-member"
+                    disabled={!loading}
+                    to={`/settings/organization/${this.context.organization
+                      .slug}/members/new/`}
+                  >
+                    <span className="icon-plus" /> {t('Invite Member')}
+                  </MenuItem>
+                )}
 
               {memberListLoading && (
                 <li>

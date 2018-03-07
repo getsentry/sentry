@@ -273,10 +273,19 @@ describe('AssigneeSelector', function() {
       expect(assigneeSelector.find('MenuItem.invite-member').exists()).toBe(false);
 
       sandbox.stub(ConfigStore, 'getConfig').returns({invitesEnabled: true});
-      // Create a new selector because update() doesn't re-render if the state doesn't change.
+      // Create a new selector because assigneeSelector.update() won't re-render
+      // if the state doesn't change.
       let sel = mount(<AssigneeSelector id="1337" />, TestStubs.routerContext());
       sel.find('a').simulate('click');
       expect(sel.find('MenuItem.invite-member').length).toBe(1);
+
+      // Remove org:write access permission and make sure invite member button is not shown.
+      sel = mount(<AssigneeSelector id="1337" />, TestStubs.routerContext());
+      sel.setContext({
+        organization: {id: '1', features: new Set(['internal-catchall'])},
+      });
+      sel.find('a').simulate('click');
+      expect(sel.find('MenuItem.invite-member').exists()).toBe(false);
     });
   });
 
