@@ -21,13 +21,12 @@ class Annotation(object):
 
 
 class Notification(object):
-    def __init__(self, event, rule=None, rules=None, owners=None):
+    def __init__(self, event, rule=None, rules=None):
         if rule and not rules:
             rules = [rule]
 
         self.event = event
         self.rules = rules or []
-        self.owners = owners
 
     @property
     def rule(self):

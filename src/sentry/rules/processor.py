@@ -131,9 +131,8 @@ class RuleProcessor(object):
                 continue
 
             action_inst = action_cls(self.project, data=action, rule=rule)
-            owners = self.get_owners()
             results = safe_execute(
-                action_inst.after, event=self.event, state=state, owners=owners, _with_transaction=False
+                action_inst.after, event=self.event, state=state, _with_transaction=False
             )
             if results is None:
                 self.logger.warn('Action %s did not return any futures', action['id'])
