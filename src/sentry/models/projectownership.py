@@ -48,21 +48,19 @@ class ProjectOwnership(Model):
                 project_id=project_id,
             )
 
-        if ownership.schema is None:
-            return cls.Everyone if ownership.fallthrough else []
-
-        for rule in load_schema(ownership.schema):
-            if rule.test(data):
-                # This is O(n) to resolve, but should be fine for now
-                # since we don't even explain that you can use multiple
-                # let alone a number that would be potentially abusive.
-                owners = []
-                for o in rule.owners:
-                    try:
-                        owners.append(resolve_actor(o, project_id))
-                    except UnknownActor:
-                        continue
-                return owners
+        if ownership.schema is not None:
+            for rule in load_schema(ownership.schema):
+                if rule.test(data):
+                    # This is O(n) to resolve, but should be fine for now
+                    # since we don't even explain that you can use multiple
+                    # let alone a number that would be potentially abusive.
+                    owners = []
+                    for o in rule.owners:
+                        try:
+                            owners.append(resolve_actor(o, project_id))
+                        except UnknownActor:
+                            continue
+                    return owners
 
         return cls.Everyone if ownership.fallthrough else []
 
