@@ -460,8 +460,10 @@ const Stream = createReactClass({
       // and remove it from the query if someone does provide it this way
       if (this.props.hasEnvironmentsFeature) {
         const queryEnvironment = queryString.getQueryEnvironment(query);
-        const env = EnvironmentStore.getByName(queryEnvironment);
-        setActiveEnvironment(env);
+        if (queryEnvironment !== null) {
+          const env = EnvironmentStore.getByName(queryEnvironment);
+          setActiveEnvironment(env);
+        }
 
         query = queryString.getQueryStringWithoutEnvironment(query);
       }
