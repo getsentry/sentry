@@ -46,6 +46,9 @@ class Actor(object):
 
     @classmethod
     def resolve_many(cls, actors):
+        if not actors:
+            return []
+
         actors_by_type = defaultdict(list)
         for actor in actors:
             actors_by_type[actor.type].append(actor)
