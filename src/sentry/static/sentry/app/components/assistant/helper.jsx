@@ -122,6 +122,9 @@ const StyledCueText = styled('span')`
 `;
 
 const StyledAssistantContainer = styled(AssistantContainer)`
+  display: flex;
+  align-items: center;
+
   &:hover {
     cursor: pointer;
 

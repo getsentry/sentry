@@ -82,14 +82,9 @@ const SupportDrawer = createReactClass({
       let link = `https://docs.sentry.io/${result.path}/`;
 
       return (
-        <li
-          className="search-tag search-tag-docs search-autocomplete-item"
-          key={i + 'doc'}
-        >
-          <ExternalLink href={link}>
-            <span className="title">{title}</span>
-          </ExternalLink>
-        </li>
+        <StyledExternalLink key={i + 'doc'} href={link}>
+          {title}
+        </StyledExternalLink>
       );
     });
   },
@@ -97,48 +92,54 @@ const SupportDrawer = createReactClass({
   renderHelpCenterResults() {
     return this.state.helpcenterResults.map((result, i) => {
       return (
-        <li className="search-tag search-tag-qa search-autocomplete-item" key={i}>
-          <ExternalLink href={result.html_url}>
-            <span className="title">{result.title}</span>
-          </ExternalLink>
-        </li>
+        <StyledExternalLink key={i} href={result.html_url}>
+          {result.title}
+        </StyledExternalLink>
       );
     });
   },
 
-  renderDropdownResults() {
+  render() {
     let docsResults = this.renderDocsResults();
     let helpcenterResults = this.renderHelpCenterResults();
     let results = helpcenterResults.concat(docsResults);
+    let hasResults = results && results.length > 0;
 
     return (
-      <div className="results">
-        <ul className="search-autocomplete-list">{results}</ul>
-      </div>
-    );
-  },
-
-  render() {
-    return (
-      <AssistantContainer>
-        <QuestionMarkIcon />
-        <StyledSearchFormContainer onSubmit={this.handleSubmit}>
-          <StyledSearchIcon src="icon-search" />
-          <StyledInput
-            type="text"
-            placeholder={t('Search FAQs and docs...')}
-            onChange={this.handleChange}
-            value={this.state.inputVal}
-            autoFocus
-          />
-          {this.renderDropdownResults()}
-        </StyledSearchFormContainer>
-        <StyledCloseIcon src="icon-close-lg" onClick={this.props.onClose} />
+      <StyledAssistantContainer hasResults={hasResults}>
+        <StyledAssistantInputRow>
+          <QuestionMarkIcon />
+          <StyledSearchContainer onSubmit={this.handleSubmit}>
+            <StyledSearchIcon src="icon-search" />
+            <StyledInput
+              type="text"
+              placeholder={t('Search FAQs and docs...')}
+              onChange={this.handleChange}
+              value={this.state.inputVal}
+              autoFocus
+            />
+            <StyledCloseIcon src="icon-close-lg" onClick={this.props.onClose} />
+          </StyledSearchContainer>
+        </StyledAssistantInputRow>
+        {hasResults && <StyledResults>{results}</StyledResults>}
         {HookStore.get('assistant:support-button').map(cb => cb(this.state.inputVal))}
-      </AssistantContainer>
+      </StyledAssistantContainer>
     );
   },
 });
+
+const StyledAssistantContainer = styled(AssistantContainer)`
+  display: flex;
+  flex-direction: column;
+  transition: 0.1s height;
+  ${p => (p.hasResults ? 'height: 300px' : '')};
+`;
+
+const StyledAssistantInputRow = styled('div')`
+  display: flex;
+  align-items: center;
+  height: 110px;
+`;
 
 const StyledInput = styled(Input)`
   padding: 0.25em 0.25em 0.25em 1em;
@@ -146,8 +147,8 @@ const StyledInput = styled(Input)`
   flex-grow: 1;
   text-indent: 1em;
   width: 275px;
-  border-top-left-radius: 4em;
-  border-bottom-left-radius: 4em;
+  border-top-left-radius: 1.45em;
+  border-bottom-left-radius: 1.45em;
 `;
 
 const StyledSearchIcon = styled(InlineSvg)`
@@ -165,12 +166,33 @@ const StyledCloseIcon = styled(InlineSvg)`
   stroke-width: 3px;
   width: 0.75em;
   height: 0.75em;
-  margin: 0 0.875em 0 0.5em;
+  margin: 0 0.875em 0 0.66em;
 `;
 
-const StyledSearchFormContainer = styled('form')`
+const StyledSearchContainer = styled('form')`
   position: relative;
   margin-left: 0.5em;
+  display: flex;
+  align-items: center;
+  flex-grow: 1;
+`;
+
+const StyledResults = styled('div')`
+  flex-grow: 1;
+  overflow: scroll;
+  border-bottom-left-radius: 1.45em;
+  border-bottom-right-radius: 1.45em;
+`;
+
+const StyledExternalLink = styled(ExternalLink)`
+  color: ${p => p.theme.gray4};
+  display: block;
+  font-size: 0.875;
+  padding: 0.5em 1em;
+
+  &:not(:last-of-type) {
+    border-bottom: 1px solid ${p => p.theme.borderLight};
+  }
 `;
 
 export default SupportDrawer;

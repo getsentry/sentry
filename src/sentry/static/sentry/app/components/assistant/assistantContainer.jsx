@@ -7,14 +7,11 @@ const AssistantContainer = styled('div')`
   height: 2.75em;
   background: ${p => p.theme.offWhite};
   border: 1px solid ${p => p.theme.borderLight};
-  border-radius: 20px;
-  border-radius: 3em;
+  border-radius: 1.45em;
   color: ${p => p.theme.purple};
   font-weight: bold;
   box-shadow: ${p => p.theme.dropShadowHeavy};
-  display: flex;
   font-size: 1.33rem;
-  align-items: center;
 }
 `;
 
