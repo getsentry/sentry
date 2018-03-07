@@ -63,6 +63,10 @@ class V2TagStorage(TagStorage):
             grouptagvalue_model=GroupTagValue,
         )
 
+    def setup_cleanup(self, tagvalue_model, grouptagvalue_model, eventtag_model):
+        # TODO: fix for sharded DB
+        pass
+
     def setup_deletions(self, **kwargs):
         super(V2TagStorage, self).setup_deletions(**kwargs)
 

@@ -57,6 +57,15 @@ class LegacyTagStorage(TagStorage):
             grouptagvalue_model=GroupTagValue,
         )
 
+    def setup_cleanup(self, tagvalue_model, grouptagvalue_model, eventtag_model):
+        from sentry.runner.commands import cleanup
+
+        cleanup.EXTRA_BULK_QUERY_DELETES += [
+            (grouptagvalue_model, 'last_seen', None),
+            (tagvalue_model, 'last_seen', None),
+            (eventtag_model, 'date_added', 'date_added'),
+        ]
+
     def setup_deletions(self, **kwargs):
         super(LegacyTagStorage, self).setup_deletions(**kwargs)
 
