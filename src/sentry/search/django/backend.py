@@ -8,8 +8,6 @@ sentry.search.django.backend
 
 from __future__ import absolute_import
 
-from collections import defaultdict
-
 from django.db.models import Q
 
 from sentry import tagstore
@@ -23,58 +21,94 @@ from sentry.utils.dates import to_timestamp
 from sentry.utils.db import get_db_engine
 
 
-class Condition(object):
-    def __init__(self, callback, additional_fields=None, destructive=True):
-        self.callback = callback
-        self.additional_fields = additional_fields or []
-        self.destructive = destructive
-
-    def apply(self, name, queryset, parameters):
-        accessor = parameters.pop if self.destructive else parameters.__getitem__
-        return self.callback(
-            queryset,
-            accessor(name),
-            *map(accessor, self.additional_fields)
-        )
-
-
-class ScalarCondition(Condition):
-    def __init__(self, parameter, field, operator, destructive=True):
-        super(ScalarCondition, self).__init__(
-            lambda queryset, value, inclusive: queryset.filter(**{
-                '{}__{}{}'.format(field, operator, 'e' if inclusive else ''): value,
-            }),
-            ['{}_inclusive'.format(parameter)],
-            destructive=destructive,
-        )
-
-
 class QuerySetBuilder(object):
+    """\
+    Adds filters to a ``QuerySet`` from a ``parameters`` mapping.
+
+    ``Condition`` objects are registered by their parameter name and used to
+    update the ``QuerySet`` instance provided to the ``build`` method if they
+    are present in the ``parameters`` mapping.
+    """
+
     def __init__(self, conditions):
         self.conditions = conditions
 
     def build(self, queryset, parameters):
         for name, condition in self.conditions.items():
             if name in parameters:
-                queryset = condition.apply(name, queryset, parameters)
+                queryset = condition.apply(queryset, name, parameters)
         return queryset
 
 
+class Condition(object):
+    """\
+    Adds a single filter to a ``QuerySet`` object. Used with
+    ``QuerySetBuilder``.
+    """
+
+    def apply(self, queryset, name, parameters):
+        raise NotImplementedError
+
+
+class CallbackCondition(Condition):
+    def __init__(self, callback, destructive=True):
+        self.callback = callback
+        self.destructive = destructive
+
+    def apply(self, queryset, name, parameters):
+        accessor = parameters.pop if self.destructive else parameters.__getitem__
+        return self.callback(queryset, accessor(name))
+
+
+class ScalarCondition(Condition):
+    """\
+    Adds a scalar filter (less than or greater than are supported) to a
+    ``QuerySet`` object. Whether or not the filter is inclusive is defined by
+    the '{parameter_name}_inclusive' parameter.
+    """
+
+    def __init__(self, field, operator, destructive=True):
+        assert operator in ['lt', 'gt']
+        self.field = field
+        self.operator = operator
+        self.destructive = destructive
+
+    def apply(self, queryset, name, parameters):
+        accessor = parameters.pop if self.destructive else parameters.__getitem__
+        inclusive = accessor('{}_inclusive'.format(name))
+        return queryset.filter(**{
+            '{}__{}{}'.format(
+                self.field,
+                self.operator,
+                'e' if inclusive else ''
+            ): accessor(name)
+        })
+
+
 def get_sql_column(model, field):
+    "Convert a model class and field name to it's quoted SQL column representation."
     return '"{}"."{}"'.format(*[
         model._meta.db_table,
         model._meta.get_field_by_name(field)[0].column,
     ])
 
 
-sort_strategies = defaultdict(lambda: (Paginator, '-sort_value'), {
+sort_strategies = {
+    # sort_by -> Tuple[
+    #   Paginator,
+    #   String: QuerySet order_by parameter
+    # ]
     'priority': (Paginator, '-score'),
     'date': (DateTimePaginator, '-last_seen'),
     'new': (DateTimePaginator, '-first_seen'),
     'freq': (Paginator, '-times_seen'),
-})
+}
 
 environment_sort_strategies = {
+    # sort_by -> Tuple[
+    #   String: SQL expression to generate sort value (of type T, used below),
+    #   Function[T] -> int: function for converting sort value to cursor value),
+    # ]
     'priority': ('log(times_seen) * 600 + last_seen::abstime::int', int),
     'date': ('last_seen', lambda score: int(to_timestamp(score) * 1000)),
     'new': ('first_seen', lambda score: int(to_timestamp(score) * 1000)),
@@ -108,32 +142,32 @@ class DjangoSearchBackend(SearchBackend):
             tags = {}
 
         group_queryset = QuerySetBuilder({
-            'query': Condition(
+            'query': CallbackCondition(
                 lambda queryset, query: queryset.filter(
                     Q(message__icontains=query) | Q(culprit__icontains=query),
                 ) if query else queryset,
             ),
-            'status': Condition(
+            'status': CallbackCondition(
                 lambda queryset, status: queryset.filter(status=status),
             ),
-            'bookmarked_by': Condition(
+            'bookmarked_by': CallbackCondition(
                 lambda queryset, user: queryset.filter(
                     bookmark_set__project=project,
                     bookmark_set__user=user,
                 ),
             ),
-            'assigned_to': Condition(
+            'assigned_to': CallbackCondition(
                 lambda queryset, user: queryset.filter(
                     assignee_set__project=project,
                     assignee_set__user=user,
                 ),
             ),
-            'unassigned': Condition(
+            'unassigned': CallbackCondition(
                 lambda queryset, unassigned: queryset.filter(
                     assignee_set__isnull=unassigned,
                 ),
             ),
-            'subscribed_by': Condition(
+            'subscribed_by': CallbackCondition(
                 lambda queryset, user: queryset.filter(
                     id__in=GroupSubscription.objects.filter(
                         project=project,
@@ -142,8 +176,8 @@ class DjangoSearchBackend(SearchBackend):
                     ).values_list('group'),
                 ),
             ),
-            'active_at_from': ScalarCondition('active_at_from', 'active_at', 'gt'),
-            'active_at_to': ScalarCondition('active_at_to', 'active_at', 'lt'),
+            'active_at_from': ScalarCondition('active_at', 'gt'),
+            'active_at_to': ScalarCondition('active_at', 'lt'),
         }).build(
             Group.objects.filter(project=project).exclude(status__in=[
                 GroupStatus.PENDING_DELETION,
@@ -164,7 +198,7 @@ class DjangoSearchBackend(SearchBackend):
 
             group_matches = set(
                 QuerySetBuilder({
-                    'first_release': Condition(
+                    'first_release': CallbackCondition(
                         lambda queryset, version: queryset.extra(
                             where=[
                                 '{} = {}'.format(
@@ -182,7 +216,7 @@ class DjangoSearchBackend(SearchBackend):
                             tables=[Release._meta.db_table],
                         ),
                     ),
-                    'times_seen': Condition(
+                    'times_seen': CallbackCondition(
                         # This condition represents the exact number of times
                         # that an issue has been seen in an environment. Since
                         # an issue can't be seen in an environment more times
@@ -194,7 +228,7 @@ class DjangoSearchBackend(SearchBackend):
                         ),
                         destructive=False,
                     ),
-                    'times_seen_lower': Condition(
+                    'times_seen_lower': CallbackCondition(
                         # This condition represents the lower threshold for the
                         # number of times an issue has been seen in an
                         # environment. Since an issue can't be seen in an
@@ -216,7 +250,7 @@ class DjangoSearchBackend(SearchBackend):
                     # for all of it's GroupEnvironment relations; 3. The first
                     # seen time is always less than or equal to the last seen
                     # time.
-                    'age_from': Condition(
+                    'age_from': CallbackCondition(
                         # This condition represents the lower threshold for
                         # "first seen" time for an environment. Due to
                         # assertions #1 and #3, we can exclude any groups where
@@ -226,7 +260,7 @@ class DjangoSearchBackend(SearchBackend):
                         ),
                         destructive=False,
                     ),
-                    'age_to': Condition(
+                    'age_to': CallbackCondition(
                         # This condition represents the upper threshold for
                         # "first seen" time for an environment. Due to
                         # assertions #1, we can exclude any values where the
@@ -236,7 +270,7 @@ class DjangoSearchBackend(SearchBackend):
                         ),
                         destructive=False,
                     ),
-                    'last_seen_from': Condition(
+                    'last_seen_from': CallbackCondition(
                         # This condition represents the lower threshold for
                         # "last seen" time for an environment. Due to assertion
                         # #2, we can exclude any values where the group last
@@ -246,7 +280,7 @@ class DjangoSearchBackend(SearchBackend):
                         ),
                         destructive=False,
                     ),
-                    'last_seen_to': Condition(
+                    'last_seen_to': CallbackCondition(
                         # This condition represents the upper threshold for
                         # "last seen" time for an environment. Due to
                         # assertions #2 and #3, we can exclude any values where
@@ -278,15 +312,15 @@ class DjangoSearchBackend(SearchBackend):
             sort_expression, sort_value_to_cursor_value = environment_sort_strategies[sort_by]
             candidates = dict(
                 QuerySetBuilder({
-                    'age_from': ScalarCondition('age_from', 'first_seen', 'gt'),
-                    'age_to': ScalarCondition('age_to', 'first_seen', 'lt'),
-                    'last_seen_from': ScalarCondition('last_seen_from', 'last_seen', 'gt'),
-                    'last_seen_to': ScalarCondition('last_seen_to', 'last_seen', 'lt'),
-                    'times_seen': Condition(
+                    'age_from': ScalarCondition('first_seen', 'gt'),
+                    'age_to': ScalarCondition('first_seen', 'lt'),
+                    'last_seen_from': ScalarCondition('last_seen', 'gt'),
+                    'last_seen_to': ScalarCondition('last_seen', 'lt'),
+                    'times_seen': CallbackCondition(
                         lambda queryset, times_seen: queryset.filter(times_seen=times_seen),
                     ),
-                    'times_seen_lower': ScalarCondition('times_seen_lower', 'times_seen', 'gt'),
-                    'times_seen_upper': ScalarCondition('times_seen_upper', 'times_seen', 'lt'),
+                    'times_seen_lower': ScalarCondition('times_seen', 'gt'),
+                    'times_seen_upper': ScalarCondition('times_seen', 'lt'),
                 }).build(
                     tagstore.get_group_tag_value_qs(
                         project.id,
@@ -333,21 +367,21 @@ class DjangoSearchBackend(SearchBackend):
             return result
         else:
             group_queryset = QuerySetBuilder({
-                'first_release': Condition(
+                'first_release': CallbackCondition(
                     lambda queryset, version: queryset.filter(
                         first_release__organization_id=project.organization_id,
                         first_release__version=version,
                     ),
                 ),
-                'age_from': ScalarCondition('age_from', 'first_seen', 'gt'),
-                'age_to': ScalarCondition('age_to', 'first_seen', 'lt'),
-                'last_seen_from': ScalarCondition('last_seen_from', 'last_seen', 'gt'),
-                'last_seen_to': ScalarCondition('last_seen_to', 'last_seen', 'lt'),
-                'times_seen': Condition(
+                'age_from': ScalarCondition('first_seen', 'gt'),
+                'age_to': ScalarCondition('first_seen', 'lt'),
+                'last_seen_from': ScalarCondition('last_seen', 'gt'),
+                'last_seen_to': ScalarCondition('last_seen', 'lt'),
+                'times_seen': CallbackCondition(
                     lambda queryset, times_seen: queryset.filter(times_seen=times_seen),
                 ),
-                'times_seen_lower': ScalarCondition('times_seen_lower', 'times_seen', 'gt'),
-                'times_seen_upper': ScalarCondition('times_seen_upper', 'times_seen', 'lt'),
+                'times_seen_lower': ScalarCondition('times_seen', 'gt'),
+                'times_seen_upper': ScalarCondition('times_seen', 'lt'),
             }).build(
                 group_queryset,
                 parameters,
