@@ -291,12 +291,20 @@ def merge_into(self, other, callback=lambda x: x, using='default'):
                 post_save.send(created=True, **signal_kwargs)
 
 
-def bulk_delete_objects(model, limit=10000, transaction_id=None, logger=None, **filters):
+def bulk_delete_objects(model, limit=10000, transaction_id=None,
+                        logger=None, partition_key=None, **filters):
     connection = connections[router.db_for_write(model)]
     quote_name = connection.ops.quote_name
 
     query = []
     params = []
+    partition_query = []
+
+    if partition_key:
+        for column, value in partition_key.items():
+            partition_query.append('%s = %%s' % (quote_name(column), ))
+            params.append(value)
+
     for column, value in filters.items():
         query.append('%s = %%s' % (quote_name(column), ))
         params.append(value)
@@ -304,13 +312,14 @@ def bulk_delete_objects(model, limit=10000, transaction_id=None, logger=None, **
     if db.is_postgres():
         query = """
             delete from %(table)s
-            where id = any(array(
+            where %(partition_query)s id = any(array(
                 select id
                 from %(table)s
                 where (%(query)s)
                 limit %(limit)d
             ))
         """ % dict(
+            partition_query=(' AND '.join(partition_query)) + (' AND ' if partition_query else ''),
             query=' AND '.join(query),
             table=model._meta.db_table,
             limit=limit,

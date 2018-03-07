@@ -19,10 +19,11 @@ class BaseRelation(object):
 
 
 class ModelRelation(BaseRelation):
-    def __init__(self, model, query, task=None):
+    def __init__(self, model, query, task=None, partition_key=None):
         params = {
             'model': model,
             'query': query,
+            'partition_key': partition_key,
         }
         super(ModelRelation, self).__init__(params=params, task=task)
 
@@ -238,6 +239,14 @@ class BulkModelDeletionTask(ModelDeletionTask):
     """
     DEFAULT_CHUNK_SIZE = 10000
 
+    def __init__(self, manager, model, query, chunk_size=DEFAULT_CHUNK_SIZE,
+                 partition_key=None, **kwargs):
+        super(BulkModelDeletionTask, self).__init__(
+            manager, model, query, chunk_size=chunk_size, **kwargs
+        )
+
+        self.partition_key = partition_key
+
     def chunk(self):
         return self.delete_instance_bulk()
 
@@ -247,6 +256,7 @@ class BulkModelDeletionTask(ModelDeletionTask):
                 model=self.model,
                 limit=self.chunk_size,
                 transaction_id=self.transaction_id,
+                partition_key=self.partition_key,
                 **self.query
             )
         finally:

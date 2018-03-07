@@ -69,6 +69,8 @@ class V2TagStorage(TagStorage):
         from sentry.deletions import default_manager as deletion_manager
         from sentry.deletions.base import ModelRelation, ModelDeletionTask
 
+        # NOTE: EventTag is handled by cleanup
+
         class TagKeyDeletionTask(ModelDeletionTask):
             def get_child_relations(self, instance):
                 # in bulk
