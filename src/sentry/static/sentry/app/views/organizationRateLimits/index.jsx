@@ -5,7 +5,6 @@ import createReactClass from 'create-react-class';
 
 import OrganizationState from '../../mixins/organizationState';
 import LazyLoad from '../../components/lazyLoad';
-import getSettingsComponent from '../../utils/getSettingsComponent';
 
 const OrganizationRateLimits = createReactClass({
   displayName: 'OrganizationRateLimits',
@@ -18,13 +17,11 @@ const OrganizationRateLimits = createReactClass({
     if (!this.context.organization) return null;
 
     return (
+      // TODO(billy): Move to routes
       <LazyLoad
         component={() =>
-          getSettingsComponent(
-            () =>
-              import(/*webpackChunkName: "rateLimitView"*/ '../settings/organization/rateLimit/rateLimitView'),
-            () => import(/*webpackChunkName: "rateLimitView.old"*/ './rateLimitView.old'),
-            this.props.routes
+          import(/*webpackChunkName: "rateLimitView"*/ '../settings/organization/rateLimit/rateLimitView').then(
+            mod => mod.default
           )}
         {...this.props}
         organization={this.context.organization}
