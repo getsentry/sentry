@@ -206,6 +206,7 @@ class DjangoSearchBackendTest(TestCase):
         results = self.backend.query(
             self.project1,
             age_from=self.group2.first_seen,
+            age_from_inclusive=True,
         )
         assert len(results) == 1
         assert results[0] == self.group2
@@ -213,6 +214,7 @@ class DjangoSearchBackendTest(TestCase):
         results = self.backend.query(
             self.project1,
             age_to=self.group1.first_seen + timedelta(minutes=1),
+            age_to_inclusive=True,
         )
         assert len(results) == 1
         assert results[0] == self.group1
@@ -220,7 +222,9 @@ class DjangoSearchBackendTest(TestCase):
         results = self.backend.query(
             self.project1,
             age_from=self.group1.first_seen,
+            age_from_inclusive=True,
             age_to=self.group1.first_seen + timedelta(minutes=1),
+            age_to_inclusive=True,
         )
         assert len(results) == 1
         assert results[0] == self.group1
@@ -229,6 +233,7 @@ class DjangoSearchBackendTest(TestCase):
         results = self.backend.query(
             self.project1,
             last_seen_from=self.group1.last_seen,
+            last_seen_from_inclusive=True,
         )
         assert len(results) == 1
         assert results[0] == self.group1
@@ -236,6 +241,7 @@ class DjangoSearchBackendTest(TestCase):
         results = self.backend.query(
             self.project1,
             last_seen_to=self.group2.last_seen + timedelta(minutes=1),
+            last_seen_to_inclusive=True,
         )
         assert len(results) == 1
         assert results[0] == self.group2
@@ -243,7 +249,9 @@ class DjangoSearchBackendTest(TestCase):
         results = self.backend.query(
             self.project1,
             last_seen_from=self.group1.last_seen,
+            last_seen_from_inclusive=True,
             last_seen_to=self.group1.last_seen + timedelta(minutes=1),
+            last_seen_to_inclusive=True,
         )
         assert len(results) == 1
         assert results[0] == self.group1
