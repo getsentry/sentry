@@ -4,7 +4,7 @@ import createReactClass from 'create-react-class';
 import styled from 'react-emotion';
 import {t} from '../../locale';
 import {closeGuide, fetchGuides, nextStep} from '../../actionCreators/guides';
-import SupportSearch from './supportSearch';
+import SupportDrawer from './supportDrawer';
 import GuideDrawer from './guideDrawer';
 import GuideStore from '../../stores/guideStore';
 import CueIcon from './cueIcon';
@@ -89,7 +89,7 @@ const AssistantHelper = createReactClass({
                 onDismiss={this.handleDismiss}
               />
             ) : (
-              <SupportSearch onClose={this.handleSupportDrawerClose} />
+              <SupportDrawer onClose={this.handleSupportDrawerClose} />
             )}
           </div>
         ) : (
