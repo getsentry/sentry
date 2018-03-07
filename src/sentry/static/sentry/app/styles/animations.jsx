@@ -29,3 +29,15 @@ export const pulse = keyframes`
     transform: scale(1, 1);
   }
 `;
+
+export const expandOut = keyframes`
+  0% {
+    transform: scale(1, 1);
+    opacity: 1;
+  }
+
+  100% {
+    transform: scale(5, 5);
+    opacity: 0;
+  }
+`;

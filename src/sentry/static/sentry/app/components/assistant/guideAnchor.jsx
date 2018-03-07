@@ -1,11 +1,13 @@
 import PropTypes from 'prop-types';
 import classNames from 'classnames';
 import React from 'react';
+import styled from 'react-emotion';
 import $ from 'jquery';
 import createReactClass from 'create-react-class';
 import Reflux from 'reflux';
 import {registerAnchor, unregisterAnchor} from '../../actionCreators/guides';
 import GuideStore from '../../stores/guideStore';
+import {expandOut} from '../../styles/animations';
 
 // A guide anchor provides a ripple-effect on an element to draw attention to it.
 // Guide anchors register with the guide store, which uses this information to
@@ -70,16 +72,65 @@ const GuideAnchor = createReactClass({
       <div
         ref={el => (this.anchorElement = el)}
         className={classNames('guide-anchor', `anchor-type-${type}`)}
+        style={{position: 'relative'}}
       >
         {this.props.children}
-        <span
-          className={classNames(target, 'guide-anchor-ping', {
-            active: this.state.active,
-          })}
+        <StyledGuideAnchor
+          type={type}
+          className={classNames('guide-anchor-ping', target)}
+          active={this.state.active}
         />
       </div>
     );
   },
 });
+
+const StyledGuideAnchor = styled('div')`
+  width: 12px;
+  height: 12px;
+  cursor: pointer;
+  z-index: 999;
+  position: relative;
+  pointer-events: none;
+  animation: ${expandOut} 1.5s ease-out infinite;
+  visibility: hidden;
+
+  &,
+  &:before,
+  &:after {
+    position: absolute;
+    display: block;
+    left: 50%;
+    top: 50%;
+    transform: translate(-50%, -50%);
+    background-color: ${p => p.theme.greenLight};
+    border-radius: 50%;
+  }
+
+  &:before,
+  &:after {
+    content: '';
+  }
+
+  &:before {
+    width: 75%;
+    height: 75%;
+    background-color: ${p => p.theme.greenDark};
+  }
+
+  &:after {
+    width: 50%;
+    height: 50%;
+    color: ${p => p.theme.green};
+  }
+
+  ${p => (p.active ? 'visibility: visible;' : '')} ${p =>
+      p.type == 'text'
+        ? `
+    display: inline-block;
+    position: relative;
+  `
+        : ''};
+`;
 
 export default GuideAnchor;

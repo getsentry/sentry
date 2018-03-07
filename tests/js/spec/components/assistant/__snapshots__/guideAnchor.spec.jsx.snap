@@ -3,9 +3,16 @@
 exports[`GuideAnchor renders 1`] = `
 <div
   className="guide-anchor anchor-type-text"
+  style={
+    Object {
+      "position": "relative",
+    }
+  }
 >
-  <span
-    className="target 1 guide-anchor-ping"
+  <StyledGuideAnchor
+    active={false}
+    className="guide-anchor-ping target 1"
+    type="text"
   />
 </div>
 `;
@@ -13,9 +20,16 @@ exports[`GuideAnchor renders 1`] = `
 exports[`GuideAnchor turns active when guide state changes 1`] = `
 <div
   className="guide-anchor anchor-type-text"
+  style={
+    Object {
+      "position": "relative",
+    }
+  }
 >
-  <span
-    className="target 1 guide-anchor-ping active"
+  <StyledGuideAnchor
+    active={true}
+    className="guide-anchor-ping target 1"
+    type="text"
   />
 </div>
 `;
