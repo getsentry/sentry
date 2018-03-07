@@ -88,29 +88,31 @@ class EmailsTest(TestCase):
         self.assertNotIn('bar@example.com', resp.content)
         assert 'bar@example.com' not in (email.email for email in user.emails.all())
 
-    def test_change_primary_email(self):
+    def test_change_verified_primary_email(self):
         user = self.create_user('foo@example.com')
         self.login_as(user)
         resp = self.client.get(self.path)
         self.assertIn('foo@example.com', resp.content)
+        UserEmail.objects.create(email='bar@example.com', is_verified=True, user=user)
         resp = self.client.post(
             self.path, {'primary': '',
                         'new_primary_email': 'bar@example.com'}, follow=True
         )
         self.assertIn('bar@example.com', resp.content)
         user = User.objects.get(id=user.id)
-        assert user.email != 'foo@example.com'
         assert user.email == 'bar@example.com'
+        assert user.username == 'bar@example.com'
 
-    def test_username_updates(self):
+    def test_change_unverified_primary_email(self):
         user = self.create_user('foo@example.com')
         self.login_as(user)
-        email = UserEmail(user=user, email='bar@example.com')
-        email.save()
-        self.client.post(
-            self.path, data={'primary': '',
-                             'new_primary_email': 'bar@example.com'}, follow=True
+        resp = self.client.get(self.path)
+        self.assertIn('foo@example.com', resp.content)
+        UserEmail.objects.create(email='bar@example.com', is_verified=False, user=user)
+        resp = self.client.post(
+            self.path, {'primary': '',
+                        'new_primary_email': 'bar@example.com'}, follow=True
         )
         user = User.objects.get(id=user.id)
-        assert user.username != 'foo@example.com'
-        assert user.username == 'bar@example.com'
+        assert user.email == 'foo@example.com'
+        assert user.username == 'foo@example.com'
