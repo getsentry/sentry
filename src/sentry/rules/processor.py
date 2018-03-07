@@ -7,7 +7,7 @@ from collections import namedtuple
 from datetime import timedelta
 from django.utils import timezone
 
-from sentry.models import GroupRuleStatus, ProjectOwnership, Rule
+from sentry.models import GroupRuleStatus, Rule
 from sentry.rules import EventState, rules
 from sentry.utils.safe import safe_execute
 
@@ -153,13 +153,3 @@ class RuleProcessor(object):
         for rule in self.get_rules():
             self.apply_rule(rule)
         return six.itervalues(self.grouped_futures)
-
-    def get_owners(self):
-        # TODO(LB): Ask where to put this. not really able to figure it out so far
-        try:
-            project_ownership = ProjectOwnership.objects.get(project_id=self.project.id)
-        except ProjectOwnership.DoesNotExist:
-            owners = []
-        else:
-            owners = project_ownership.get_owners(self.event)
-        return owners or []

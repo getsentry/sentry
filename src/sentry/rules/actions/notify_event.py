@@ -33,7 +33,7 @@ class NotifyEventAction(EventAction):
 
         return results
 
-    def after(self, event, state, owners):
+    def after(self, event, state):
         group = event.group
 
         for plugin in self.get_plugins():
@@ -43,4 +43,4 @@ class NotifyEventAction(EventAction):
                 continue
 
             metrics.incr('notifications.sent', instance=plugin.slug)
-            yield self.future(plugin.rule_notify, None, owners=owners)
+            yield self.future(plugin.rule_notify)

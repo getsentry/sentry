@@ -19,6 +19,8 @@ from django.utils.encoding import force_text
 from django.utils.safestring import mark_safe
 
 from sentry import features, options
+from sentry.models import ProjectOwnership
+
 from sentry.api.fields.actor import Actor
 from sentry.digests.utilities import get_digest_metadata
 from sentry.plugins import register
@@ -112,6 +114,16 @@ class MailPlugin(NotificationPlugin):
             return False
 
         return super(MailPlugin, self).should_notify(group, event)
+
+    def get_owners(self, project, event):
+        # TODO(LB): Ask where to put this. not really able to figure it out so far
+        try:
+            project_ownership = ProjectOwnership.objects.get(project_id=project.id)
+        except ProjectOwnership.DoesNotExist:
+            owners = []
+        else:
+            owners = project_ownership.get_owners(event)
+        return owners or []
 
     def get_send_to(self, project, owners=None):
         """

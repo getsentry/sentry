@@ -33,7 +33,7 @@ class NotifyEventServiceAction(EventAction):
     form_cls = NotifyEventServiceForm
     label = 'Send a notification via {service}'
 
-    def after(self, event, state, owners):
+    def after(self, event, state):
         service = self.get_option('service')
 
         extra = {'event_id': event.id}
@@ -55,7 +55,7 @@ class NotifyEventServiceAction(EventAction):
             return
 
         metrics.incr('notifications.sent', instance=plugin.slug)
-        yield self.future(callback=plugin.rule_notify, key=None, owners=owners)
+        yield self.future(plugin.rule_notify)
 
     def get_plugins(self):
         from sentry.plugins.bases.notify import NotificationPlugin

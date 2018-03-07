@@ -14,7 +14,7 @@ from sentry.rules.base import RuleBase
 class EventAction(RuleBase):
     rule_type = 'action/event'
 
-    def after(self, event, state, **kwargs):
+    def after(self, event, state):
         """
         Executed after a Rule matches.
 
