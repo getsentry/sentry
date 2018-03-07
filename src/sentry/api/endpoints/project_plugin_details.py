@@ -182,16 +182,16 @@ class ProjectPluginDetailsEndpoint(ProjectEndpoint):
                     value=value,
                 )
 
-                self.create_audit_entry(
-                    request=request,
-                    organization=project.organization,
-                    target_object=project.id,
-                    event=AuditLogEntryEvent.INTEGRATION_EDIT,
-                    data={'integration': plugin_id, 'project': project.slug}
-                )
-
         context = serialize(plugin, request.user, PluginWithConfigSerializer(project))
 
         plugin_enabled.send(plugin=plugin, project=project, user=request.user, sender=self)
+
+        self.create_audit_entry(
+            request=request,
+            organization=project.organization,
+            target_object=project.id,
+            event=AuditLogEntryEvent.INTEGRATION_EDIT,
+            data={'integration': plugin_id, 'project': project.slug}
+        )
 
         return Response(context)
