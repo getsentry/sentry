@@ -79,6 +79,9 @@ class Actor(object):
             for key, value in actor_dict.items()
         }
 
+    def __eq__(self, other):
+        return (self.id, self.type) == (other.id, other.type)
+
 
 class ActorField(serializers.WritableField):
     def to_native(self, obj):
