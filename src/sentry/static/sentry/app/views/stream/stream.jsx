@@ -258,7 +258,22 @@ const Stream = createReactClass({
         search => search.id === searchId
       );
       if (searchResult) {
-        newState.query = searchResult.query;
+        // New behavior is that we'll no longer want to support environment in saved search
+        // We check if the query contains a valid environment and update the global setting if so
+        // We'll always strip environment from the querystring whether valid or not
+        if (this.props.hasEnvironmentsFeature) {
+          const queryEnv = queryString.getQueryEnvironment(searchResult.query);
+          if (queryEnv) {
+            const env = EnvironmentStore.getByName(queryEnv);
+            setActiveEnvironment(env);
+          }
+          newState.query = queryString.getQueryStringWithoutEnvironment(
+            searchResult.query
+          );
+        } else {
+          // Old behavior, keep the environment in the querystring
+          newState.query = searchResult.query;
+        }
       } else {
         newState.searchId = null;
       }
