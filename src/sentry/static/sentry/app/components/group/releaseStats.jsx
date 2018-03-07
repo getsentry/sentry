@@ -17,8 +17,6 @@ import MenuItem from '../menuItem';
 import SeenInfo from './seenInfo';
 import {t} from '../../locale';
 
-// TODO(dcramer): this should listen to EnvironmentStore
-// changes
 const GroupReleaseStats = createReactClass({
   displayName: 'GroupReleaseStats',
 
@@ -52,11 +50,7 @@ const GroupReleaseStats = createReactClass({
   },
 
   componentWillMount() {
-    if (this.state.loading) {
-      this.fetchData();
-    }
-    // onLatestContextChange might not be triggered when component mounted
-    this.onLatestContextChange(LatestContextStore.getInitialState());
+    this.fetchData();
   },
 
   shouldComponentUpdate(nextProps, nextState) {
@@ -96,6 +90,8 @@ const GroupReleaseStats = createReactClass({
     let stats = group.stats['24h'];
     let until = stats[stats.length - 1][0] + 1;
 
+    // TODO(lyn): We might not need to make this request anymore since the group
+    // endpoint now accepts the environment parameter
     this.api.request(`/issues/${group.id}/environments/${env.urlRoutingName}/`, {
       query: {
         until,
