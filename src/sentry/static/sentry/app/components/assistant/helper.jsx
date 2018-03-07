@@ -111,11 +111,12 @@ const AssistantHelper = createReactClass({
 });
 
 const StyledCueText = styled('span')`
-  width: 0;
+  width: 0px;
   overflow: hidden;
   opacity: 0;
   transition: 0.2s all;
   white-space: nowrap;
+  color: ${p => p.purpleDark};
 
   ${p =>
     p.hasGuide &&
@@ -131,24 +132,27 @@ const StyledAssistantContainer = styled(AssistantContainer)`
   align-items: center;
   cursor: pointer;
 
-  ${p =>
-    !p.hasGuide &&
-    `
-    &:hover {
-      ${StyledCueText} {
-        width: 5.5em;
+  &:hover ${StyledCueText} {
+    ${p => {
+      return !p.hasGuide
+        ? `
+        width: 80px;
         opacity: 1;
         margin: 0 0.5em;
-      }
-    }
-  `} ${p =>
-      p.hasGuide
-        ? `
-    background-color: ${p.theme.greenDark};
-    border-color: ${p.theme.greenLight};
-    color: ${p.theme.offWhite};
-  `
-        : ''};
+      `
+        : '';
+    }};
+  }
+
+  ${p => {
+    return p.hasGuide
+      ? `
+      background-color: ${p.theme.greenDark};
+      border-color: ${p.theme.greenLight};
+      color: ${p.theme.offWhite};
+    `
+      : '';
+  }};
 `;
 
 export default AssistantHelper;
