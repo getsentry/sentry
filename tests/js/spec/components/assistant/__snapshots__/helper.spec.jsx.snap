@@ -25,7 +25,7 @@ exports[`Helper renders cue 1`] = `
 
 exports[`Helper renders guide drawer 1`] = `
 <div>
-  <AssistantDrawer>
+  <div>
     <GuideDrawer
       guide={
         Object {
@@ -53,16 +53,16 @@ exports[`Helper renders guide drawer 1`] = `
       onFinish={[Function]}
       step={1}
     />
-  </AssistantDrawer>
+  </div>
 </div>
 `;
 
 exports[`Helper renders support drawer 1`] = `
 <div>
-  <AssistantDrawer>
+  <div>
     <SupportDrawer
       onClose={[Function]}
     />
-  </AssistantDrawer>
+  </div>
 </div>
 `;

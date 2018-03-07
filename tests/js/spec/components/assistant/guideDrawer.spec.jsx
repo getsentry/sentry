@@ -23,7 +23,7 @@ describe('GuideDrawer', function() {
     );
     expect(wrapper).toMatchSnapshot();
     wrapper
-      .find('Button')
+      .find('.close-button')
       .last()
       .simulate('click');
     expect(mock2).toHaveBeenCalled();

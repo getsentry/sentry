@@ -10,6 +10,7 @@ const QuestionMarkIcon = styled(({hasGuide, ...props}) => (
 ))`
   width: 2.75em;
   height: 2.75em;
+  color: ${p => (p.hasGuide ? p.theme.greenLight : p.theme.offWhite)};
 `;
 
 export default QuestionMarkIcon;

@@ -1,75 +1,107 @@
 // Jest Snapshot v1, https://goo.gl/fbAQLP
 
 exports[`GuideDrawer gets dismissed 1`] = `
-<div>
-  <div
-    className="assistant-drawer-title"
-  >
-    1. Title 1
-  </div>
-  <div
-    className="assistant-drawer-message"
-    dangerouslySetInnerHTML={
-      Object {
-        "__html": "Message 1",
-      }
-    }
-  />
-  <div>
-    <div>
-      <Button
-        disabled={false}
-        onClick={[Function]}
-      >
-        Next
-         →
-      </Button>
-      <Button
-        disabled={false}
-        onClick={[MockFunction]}
-      >
-        Dismiss
-      </Button>
+<StyledAssistantContainer>
+  <StyledAssistantInputRow>
+    <QuestionMarkIcon
+      hasGuide={true}
+    />
+    <StyledTitle>
+      1. Title 1
+    </StyledTitle>
+    <div
+      className="close-button"
+    >
+      <StyledCloseIcon
+        src="icon-close-lg"
+      />
     </div>
-  </div>
-</div>
+  </StyledAssistantInputRow>
+  <StyledContent>
+    <div
+      dangerouslySetInnerHTML={
+        Object {
+          "__html": "Message 1",
+        }
+      }
+    />
+    <StyledActions>
+      <div>
+        <Button
+          disabled={false}
+          onClick={[Function]}
+        >
+          Next
+           →
+        </Button>
+        <Button
+          className="close-button"
+          disabled={false}
+          onClick={[MockFunction]}
+        >
+          Dismiss
+        </Button>
+      </div>
+    </StyledActions>
+  </StyledContent>
+</StyledAssistantContainer>
 `;
 
 exports[`GuideDrawer renders next step 1`] = `
-<div>
-  <div
-    className="assistant-drawer-title"
-  >
-    2. Title 2
-  </div>
-  <div
-    className="assistant-drawer-message"
-    dangerouslySetInnerHTML={
-      Object {
-        "__html": "Message 2",
-      }
-    }
-  />
-  <div>
-    <div>
-      <p>
-        Did you find this guide useful?
-      </p>
-      <Button
-        disabled={false}
-        onClick={[Function]}
-      >
-        Yes
-           ✔
-      </Button>
-      <Button
-        disabled={false}
-        onClick={[Function]}
-      >
-        No
-           ✖
-      </Button>
+<StyledAssistantContainer>
+  <StyledAssistantInputRow>
+    <QuestionMarkIcon
+      hasGuide={true}
+    />
+    <StyledTitle>
+      2. Title 2
+    </StyledTitle>
+    <div
+      className="close-button"
+    >
+      <StyledCloseIcon
+        src="icon-close-lg"
+      />
     </div>
-  </div>
-</div>
+  </StyledAssistantInputRow>
+  <StyledContent>
+    <div
+      dangerouslySetInnerHTML={
+        Object {
+          "__html": "Message 2",
+        }
+      }
+    />
+    <StyledActions>
+      <div>
+        <p>
+          Did you find this guide useful?
+        </p>
+        <Button
+          disabled={false}
+          onClick={[Function]}
+          priority="success"
+          size="small"
+        >
+          Yes
+             ✔
+        </Button>
+        <Button
+          disabled={false}
+          onClick={[Function]}
+          priority="success"
+          size="small"
+          style={
+            Object {
+              "marginLeft": "0.25em",
+            }
+          }
+        >
+          No
+             ✖
+        </Button>
+      </div>
+    </StyledActions>
+  </StyledContent>
+</StyledAssistantContainer>
 `;
