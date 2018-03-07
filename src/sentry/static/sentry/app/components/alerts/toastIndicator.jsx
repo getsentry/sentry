@@ -1,6 +1,6 @@
 import PropTypes from 'prop-types';
 import React from 'react';
-import styled from 'react-emotion';
+import styled, {cx} from 'react-emotion';
 
 import {t} from '../../locale';
 import InlineSvg from '../inlineSvg';
@@ -80,7 +80,7 @@ const Undo = styled.div`
   }
 `;
 
-function ToastIndicator({indicator, onDismiss, ...props}) {
+function ToastIndicator({indicator, onDismiss, className, ...props}) {
   let icon;
   let {options, message, type} = indicator;
   let {undo, disableDismiss} = options || {};
@@ -98,7 +98,11 @@ function ToastIndicator({indicator, onDismiss, ...props}) {
     icon = <InlineSvg src="icon-circle-close" size="24px" />;
   }
   return (
-    <Toast onClick={handleClick} {...props}>
+    <Toast
+      onClick={handleClick}
+      className={cx(className, 'ref-toast', `ref-${type}`)}
+      {...props}
+    >
       {type == 'loading' ? <LoadingIndicator mini /> : <Icon type={type}>{icon}</Icon>}
       <Message>{message}</Message>
       {showUndo && <Undo onClick={undo}>{t('Undo')}</Undo>}

@@ -1,8 +1,9 @@
+import React from 'react';
 import styled from 'react-emotion';
 
-const TextBlock = styled.div`
+const TextBlock = styled(({noMargin, ...props}) => <div {...props} />)`
   line-height: 1.5;
-  margin-bottom: 30px;
+  ${p => (p.noMargin ? '' : 'margin-bottom: 30px')};
 `;
 
 export default TextBlock;

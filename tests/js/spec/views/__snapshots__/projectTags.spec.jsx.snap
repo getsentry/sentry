@@ -33,14 +33,14 @@ exports[`ProjectTags renders 1`] = `
   margin-bottom: 30px;
 }
 
-.glamor-63 {
+.glamor-65 {
   background: #fff;
   border: 1px solid;
   margin-bottom: NaNpx;
   position: relative;
 }
 
-.glamor-19 {
+.glamor-21 {
   border-bottom: 1px solid;
   border-radius: 0 0;
   text-transform: uppercase;
@@ -49,13 +49,13 @@ exports[`ProjectTags renders 1`] = `
   padding: 15px 20px;
 }
 
-.glamor-15 {
+.glamor-17 {
   font-size: inherit;
   text-transform: inherit;
   margin: 0;
 }
 
-.glamor-13 {
+.glamor-15 {
   font-size: 12px;
   font-weight: 600;
   text-transform: uppercase;
@@ -65,7 +65,7 @@ exports[`ProjectTags renders 1`] = `
   margin: 0;
 }
 
-.glamor-10 {
+.glamor-12 {
   box-sizing: border-box;
   display: -webkit-box;
   display: -webkit-flex;
@@ -73,14 +73,14 @@ exports[`ProjectTags renders 1`] = `
   display: flex;
 }
 
-.glamor-8 {
+.glamor-10 {
   box-sizing: border-box;
   -webkit-flex: 1;
   -ms-flex: 1;
   flex: 1;
 }
 
-.glamor-29 {
+.glamor-31 {
   box-sizing: border-box;
   padding: 0px;
   display: -webkit-box;
@@ -94,11 +94,11 @@ exports[`ProjectTags renders 1`] = `
   border-bottom: 1px solid;
 }
 
-.glamor-29:last-child {
+.glamor-31:last-child {
   border: 0;
 }
 
-.glamor-25 {
+.glamor-27 {
   box-sizing: border-box;
   padding: 16px;
   -webkit-flex: 1;
@@ -106,12 +106,12 @@ exports[`ProjectTags renders 1`] = `
   flex: 1;
 }
 
-.glamor-23 {
+.glamor-25 {
   font-size: 0.8em;
   margin-left: 8px;
 }
 
-.glamor-27 {
+.glamor-29 {
   box-sizing: border-box;
   padding: 16px;
   display: -webkit-box;
@@ -171,83 +171,87 @@ exports[`ProjectTags renders 1`] = `
           </Wrapper>
         </SettingsPageHeading>
         <TextBlock>
-          <div
+          <Component
             className="glamor-6 glamor-7"
           >
-            <span
-              key="5"
+            <div
+              className="glamor-6 glamor-7"
             >
               <span
-                key="0"
+                key="5"
               >
-                Each event in Sentry may be annotated with various tags (key and value pairs).
+                <span
+                  key="0"
+                >
+                  Each event in Sentry may be annotated with various tags (key and value pairs).
           Learn how to 
-              </span>
-              <ExternalLink
-                href="https://docs.sentry.io/hosted/learn/context/"
-                key="2"
-                rel="noreferrer noopener"
-                target="_blank"
-              >
-                <a
+                </span>
+                <ExternalLink
                   href="https://docs.sentry.io/hosted/learn/context/"
+                  key="2"
                   rel="noreferrer noopener"
                   target="_blank"
                 >
-                  <span
-                    key="1"
+                  <a
+                    href="https://docs.sentry.io/hosted/learn/context/"
+                    rel="noreferrer noopener"
+                    target="_blank"
                   >
-                    add custom tags
-                  </span>
-                </a>
-              </ExternalLink>
-              <span
-                key="3"
-              >
-                .
+                    <span
+                      key="1"
+                    >
+                      add custom tags
+                    </span>
+                  </a>
+                </ExternalLink>
+                <span
+                  key="3"
+                >
+                  .
+                </span>
               </span>
-            </span>
-          </div>
+            </div>
+          </Component>
         </TextBlock>
         <Panel>
           <div
-            className="glamor-63 glamor-64"
+            className="glamor-65 glamor-66"
           >
             <PanelHeader>
               <StyledPanelHeader>
                 <Component
-                  className="glamor-19 glamor-20"
+                  className="glamor-21 glamor-22"
                 >
                   <div
-                    className="glamor-19 glamor-20"
+                    className="glamor-21 glamor-22"
                   >
                     <StyledPanelHeading>
                       <Component
-                        className="glamor-15 glamor-12"
+                        className="glamor-17 glamor-14"
                       >
                         <PanelHeading
-                          className="glamor-15 glamor-12"
+                          className="glamor-17 glamor-14"
                         >
                           <div
-                            className="glamor-12 glamor-13 glamor-14"
+                            className="glamor-14 glamor-15 glamor-16"
                           >
                             <Flex>
                               <Base
-                                className="glamor-10"
+                                className="glamor-12"
                               >
                                 <div
-                                  className="glamor-10"
+                                  className="glamor-12"
                                   is={null}
                                 >
                                   <Box
                                     flex="1"
                                   >
                                     <Base
-                                      className="glamor-8"
+                                      className="glamor-10"
                                       flex="1"
                                     >
                                       <div
-                                        className="glamor-8"
+                                        className="glamor-10"
                                         is={null}
                                       >
                                         Tags
@@ -286,11 +290,11 @@ exports[`ProjectTags renders 1`] = `
                   >
                     <Base
                       align="center"
-                      className="ref-tag-row glamor-29 glamor-30"
+                      className="ref-tag-row glamor-31 glamor-32"
                       p={0}
                     >
                       <div
-                        className="ref-tag-row glamor-29 glamor-30"
+                        className="ref-tag-row glamor-31 glamor-32"
                         is={null}
                       >
                         <Box
@@ -300,12 +304,12 @@ exports[`ProjectTags renders 1`] = `
                         >
                           <Base
                             align="flex-end"
-                            className="glamor-25"
+                            className="glamor-27"
                             flex="1"
                             p={2}
                           >
                             <div
-                              className="glamor-25"
+                              className="glamor-27"
                               is={null}
                             >
                               <span>
@@ -313,7 +317,7 @@ exports[`ProjectTags renders 1`] = `
                               </span>
                               <Description>
                                 <span
-                                  className="glamor-23 glamor-24"
+                                  className="glamor-25 glamor-26"
                                 >
                                   browser
                                 </span>
@@ -327,11 +331,11 @@ exports[`ProjectTags renders 1`] = `
                         >
                           <Base
                             align="center"
-                            className="glamor-27"
+                            className="glamor-29"
                             p={2}
                           >
                             <div
-                              className="glamor-27"
+                              className="glamor-29"
                               is={null}
                             >
                               <LinkWithConfirmation
@@ -433,11 +437,11 @@ exports[`ProjectTags renders 1`] = `
                   >
                     <Base
                       align="center"
-                      className="ref-tag-row glamor-29 glamor-30"
+                      className="ref-tag-row glamor-31 glamor-32"
                       p={0}
                     >
                       <div
-                        className="ref-tag-row glamor-29 glamor-30"
+                        className="ref-tag-row glamor-31 glamor-32"
                         is={null}
                       >
                         <Box
@@ -447,12 +451,12 @@ exports[`ProjectTags renders 1`] = `
                         >
                           <Base
                             align="flex-end"
-                            className="glamor-25"
+                            className="glamor-27"
                             flex="1"
                             p={2}
                           >
                             <div
-                              className="glamor-25"
+                              className="glamor-27"
                               is={null}
                             >
                               <span>
@@ -460,7 +464,7 @@ exports[`ProjectTags renders 1`] = `
                               </span>
                               <Description>
                                 <span
-                                  className="glamor-23 glamor-24"
+                                  className="glamor-25 glamor-26"
                                 >
                                   device
                                 </span>
@@ -474,11 +478,11 @@ exports[`ProjectTags renders 1`] = `
                         >
                           <Base
                             align="center"
-                            className="glamor-27"
+                            className="glamor-29"
                             p={2}
                           >
                             <div
-                              className="glamor-27"
+                              className="glamor-29"
                               is={null}
                             >
                               <LinkWithConfirmation
@@ -580,11 +584,11 @@ exports[`ProjectTags renders 1`] = `
                   >
                     <Base
                       align="center"
-                      className="ref-tag-row glamor-29 glamor-30"
+                      className="ref-tag-row glamor-31 glamor-32"
                       p={0}
                     >
                       <div
-                        className="ref-tag-row glamor-29 glamor-30"
+                        className="ref-tag-row glamor-31 glamor-32"
                         is={null}
                       >
                         <Box
@@ -594,12 +598,12 @@ exports[`ProjectTags renders 1`] = `
                         >
                           <Base
                             align="flex-end"
-                            className="glamor-25"
+                            className="glamor-27"
                             flex="1"
                             p={2}
                           >
                             <div
-                              className="glamor-25"
+                              className="glamor-27"
                               is={null}
                             >
                               <span>
@@ -607,7 +611,7 @@ exports[`ProjectTags renders 1`] = `
                               </span>
                               <Description>
                                 <span
-                                  className="glamor-23 glamor-24"
+                                  className="glamor-25 glamor-26"
                                 >
                                   url
                                 </span>
@@ -621,11 +625,11 @@ exports[`ProjectTags renders 1`] = `
                         >
                           <Base
                             align="center"
-                            className="glamor-27"
+                            className="glamor-29"
                             p={2}
                           >
                             <div
-                              className="glamor-27"
+                              className="glamor-29"
                               is={null}
                             >
                               <LinkWithConfirmation
@@ -727,11 +731,11 @@ exports[`ProjectTags renders 1`] = `
                   >
                     <Base
                       align="center"
-                      className="ref-tag-row glamor-29 glamor-30"
+                      className="ref-tag-row glamor-31 glamor-32"
                       p={0}
                     >
                       <div
-                        className="ref-tag-row glamor-29 glamor-30"
+                        className="ref-tag-row glamor-31 glamor-32"
                         is={null}
                       >
                         <Box
@@ -741,12 +745,12 @@ exports[`ProjectTags renders 1`] = `
                         >
                           <Base
                             align="flex-end"
-                            className="glamor-25"
+                            className="glamor-27"
                             flex="1"
                             p={2}
                           >
                             <div
-                              className="glamor-25"
+                              className="glamor-27"
                               is={null}
                             >
                               <span>
@@ -754,7 +758,7 @@ exports[`ProjectTags renders 1`] = `
                               </span>
                               <Description>
                                 <span
-                                  className="glamor-23 glamor-24"
+                                  className="glamor-25 glamor-26"
                                 >
                                   environment
                                 </span>
@@ -768,11 +772,11 @@ exports[`ProjectTags renders 1`] = `
                         >
                           <Base
                             align="center"
-                            className="glamor-27"
+                            className="glamor-29"
                             p={2}
                           >
                             <div
-                              className="glamor-27"
+                              className="glamor-29"
                               is={null}
                             >
                               <Tooltip
