@@ -62,13 +62,6 @@ class LegacyTagStorage(TagStorage):
 
         from sentry.deletions import default_manager as deletion_manager
         from sentry.deletions.base import ModelRelation, ModelDeletionTask
-        from sentry.models import Event
-
-        deletion_manager.add_bulk_dependencies(Event, [
-            lambda instance_list: ModelRelation(EventTag,
-                                                {'event_id__in': [i.id for i in instance_list]},
-                                                ModelDeletionTask),
-        ])
 
         class TagKeyDeletionTask(ModelDeletionTask):
             def get_child_relations(self, instance):

@@ -23,8 +23,11 @@ class ModelRelation(BaseRelation):
         params = {
             'model': model,
             'query': query,
-            'partition_key': partition_key,
         }
+
+        if partition_key:
+            params['partition_key'] = partition_key
+
         super(ModelRelation, self).__init__(params=params, task=task)
 
 
@@ -239,11 +242,8 @@ class BulkModelDeletionTask(ModelDeletionTask):
     """
     DEFAULT_CHUNK_SIZE = 10000
 
-    def __init__(self, manager, model, query, chunk_size=DEFAULT_CHUNK_SIZE,
-                 partition_key=None, **kwargs):
-        super(BulkModelDeletionTask, self).__init__(
-            manager, model, query, chunk_size=chunk_size, **kwargs
-        )
+    def __init__(self, manager, model, query, partition_key=None, **kwargs):
+        super(BulkModelDeletionTask, self).__init__(manager, model, query, **kwargs)
 
         self.partition_key = partition_key
 
