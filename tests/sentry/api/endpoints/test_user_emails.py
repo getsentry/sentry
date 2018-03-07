@@ -2,7 +2,7 @@ from __future__ import absolute_import
 
 from django.core.urlresolvers import reverse
 
-from sentry.models import User, UserEmail, UserOption
+from sentry.models import User, UserEmail
 from sentry.testutils import APITestCase
 
 
@@ -27,38 +27,6 @@ class UserEmailsTest(APITestCase):
         secondary_emails = filter(lambda n: not n['isPrimary'], response.data)
         assert len(secondary_emails) == 2
 
-    def test_add_new_primary_email(self):
-        UserOption.objects.set_value(user=self.user, key='alert_email', value='foo@example.com')
-        UserOption.objects.set_value(user=self.user, key='mail:email', value='foo@example.com')
-
-        # invalid email address
-        response = self.client.put(self.url, data={
-            'email': 'invalidprimary',
-        })
-        assert response.status_code == 400
-
-        # same email as current primary
-        response = self.client.put(self.url, data={
-            'email': 'foo@example.com',
-        })
-        assert response.status_code == 400
-
-        # valid primary email
-        response = self.client.put(self.url, data={
-            'email': 'newprimary@example.com',
-        })
-        assert response.status_code == 204
-
-        users = User.objects.filter(email='newprimary@example.com')
-        assert len(users) == 1
-        assert UserEmail.objects.filter(user=users[0], email='newprimary@example.com').exists()
-
-        # updated user options
-        assert UserOption.objects.get(user=users[0],
-                                      key='alert_email').value == 'newprimary@example.com'
-        assert UserOption.objects.get(user=users[0],
-                                      key='mail:email').value == 'newprimary@example.com'
-
     def test_add_secondary_email(self):
         # test invalid email
         response = self.client.post(self.url, data={
@@ -72,7 +40,7 @@ class UserEmailsTest(APITestCase):
             'email': 'altemail1@example.com',
         })
 
-        assert response.status_code == 204
+        assert response.status_code == 201
         assert len(UserEmail.objects.filter(user=self.user, email='altemail1@example.com'))
 
         # duplicate email
@@ -81,23 +49,27 @@ class UserEmailsTest(APITestCase):
         })
         assert response.status_code == 400
 
-    def test_change_secondary_to_primary(self):
-        # valid secondary email
-        response = self.client.post(self.url, data={
-            'email': 'altemail1@example.com',
-        })
-        assert response.status_code == 204
-        assert len(UserEmail.objects.filter(user=self.user, email='altemail1@example.com'))
-
-        # duplicate email
+    def test_change_verified_secondary_to_primary(self):
+        UserEmail.objects.create(user=self.user, email='altemail1@example.com', is_verified=True)
         response = self.client.put(self.url, data={
             'email': 'altemail1@example.com',
         })
-        assert response.status_code == 204
+        assert response.status_code == 200
 
         user = User.objects.get(id=self.user.id)
         assert user.email == 'altemail1@example.com'
         assert user.username == 'altemail1@example.com'
+
+    def test_change_unverified_secondary_to_primary(self):
+        UserEmail.objects.create(user=self.user, email='altemail1@example.com', is_verified=False)
+        response = self.client.put(self.url, data={
+            'email': 'altemail1@example.com',
+        })
+        assert response.status_code == 400
+
+        user = User.objects.get(id=self.user.id)
+        assert user.email != 'altemail1@example.com'
+        assert user.username != 'altemail1@example.com'
 
     def test_remove_email(self):
         UserEmail.objects.create(user=self.user, email='altemail1@example.com')

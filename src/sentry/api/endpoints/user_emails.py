@@ -19,7 +19,7 @@ logger = logging.getLogger('sentry.accounts')
 class InvalidEmailResponse(Response):
     def __init__(self):
         super(InvalidEmailResponse, self).__init__(
-            {'detail': 'Invalid email'},
+            {'detail': 'Invalid email', 'email': 'Invalid email'},
             status=status.HTTP_400_BAD_REQUEST
         )
 
@@ -80,7 +80,7 @@ class UserEmailsEndpoint(UserEndpoint):
 
         emails = user.emails.all()
 
-        return Response(serialize(list(emails), user=user))
+        return self.respond(serialize(list(emails), user=user))
 
     @sudo_required
     def post(self, request, user):
@@ -116,7 +116,7 @@ class UserEmailsEndpoint(UserEndpoint):
                 }
             )
 
-            return Response(status=status.HTTP_204_NO_CONTENT)
+            return self.respond(serialize(new_email, user=request.user), status=201)
 
     @sudo_required
     def put(self, request, user):
@@ -141,27 +141,33 @@ class UserEmailsEndpoint(UserEndpoint):
             return InvalidEmailResponse()
 
         new_email = serializer.object['email'].lower().strip()
+        if new_email == old_email:
+            return InvalidEmailResponse()
 
         # If email doesn't exist for user, attempt to add new email
-        if not UserEmail.objects.filter(
+        new_email_obj = UserEmail.objects.filter(
             user=user, email__iexact=new_email
-        ).exists():
+        ).first()
+        if not new_email_obj:
             try:
-                added_email = add_email(new_email, user, serializer.object['newsletter'])
+                new_email_obj = add_email(new_email, user, serializer.object['newsletter'])
             except InvalidEmailError:
                 return InvalidEmailResponse()
             except DuplicateEmailError:
-                pass
+                new_email_obj = UserEmail.objects.filter(
+                    user=user, email__iexact=new_email
+                ).first()
+                assert new_email_obj
             else:
                 logger.info(
                     'user.email.add',
                     extra={
                         'user_id': user.id,
                         'ip_address': request.META['REMOTE_ADDR'],
-                        'email': added_email.email,
+                        'email': new_email_obj.email,
                     }
                 )
-                new_email = added_email.email
+                new_email = new_email_obj.email
 
         # Check if email is in use
         # Is this a security/abuse concern?
@@ -169,8 +175,9 @@ class UserEmailsEndpoint(UserEndpoint):
                                ).exclude(id=user.id).exists():
             return InvalidEmailResponse()
 
-        if new_email == old_email:
-            return InvalidEmailResponse()
+        if not new_email_obj.is_verified:
+            return self.respond(
+                {'email': 'You must verified your email address before marking it as primary.'}, status=400)
 
         # update notification settings for those set to primary email with new primary email
         alert_email = UserOption.objects.get_value(user=user, key='alert_email')
@@ -203,7 +210,7 @@ class UserEmailsEndpoint(UserEndpoint):
             }
         )
 
-        return Response(status=status.HTTP_204_NO_CONTENT)
+        return self.respond(serialize(new_email_obj, user=request.user))
 
     @sudo_required
     def delete(self, request, user):
@@ -223,8 +230,8 @@ class UserEmailsEndpoint(UserEndpoint):
 
         # Don't allow deleting primary email?
         if primary_email == del_email:
-            return Response({'detail': 'Cannot remove primary email'},
-                            status=status.HTTP_400_BAD_REQUEST)
+            return self.respond({'detail': 'Cannot remove primary email'},
+                                status=status.HTTP_400_BAD_REQUEST)
 
         del_email.delete()
 
@@ -237,4 +244,4 @@ class UserEmailsEndpoint(UserEndpoint):
             }
         )
 
-        return Response(status=status.HTTP_204_NO_CONTENT)
+        return self.respond(status=status.HTTP_204_NO_CONTENT)

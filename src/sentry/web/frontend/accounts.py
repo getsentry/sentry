@@ -524,7 +524,12 @@ def show_emails(request):
             )
 
         elif new_primary != user.email:
-
+            new_primary_email = UserEmail.objects.get(user=user, email__iexact=new_primary)
+            if not new_primary_email.is_verified:
+                messages.add_message(
+                    request, messages.ERROR, _("Cannot make an unverified address your primary email")
+                )
+                return HttpResponseRedirect(request.path)
             # update notification settings for those set to primary email with new primary email
             alert_email = UserOption.objects.get_value(user=user, key='alert_email')
 
