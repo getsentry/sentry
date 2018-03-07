@@ -272,7 +272,10 @@ describe('AssigneeSelector', function() {
       assigneeSelector.update();
       expect(assigneeSelector.find('MenuItem.invite-member').exists()).toBe(false);
 
-      sandbox.stub(ConfigStore, 'getConfig').returns({invitesEnabled: true});
+      sandbox
+        .stub(ConfigStore, 'get')
+        .withArgs('invitesEnabled')
+        .returns(true);
       // Create a new selector because assigneeSelector.update() won't re-render
       // if the state doesn't change.
       let sel = mount(<AssigneeSelector id="1337" />, TestStubs.routerContext());

@@ -321,7 +321,7 @@ const AssigneeSelector = createReactClass({
                 </li>
               )}
 
-              {ConfigStore.getConfig().invitesEnabled &&
+              {ConfigStore.get('invitesEnabled') &&
                 access.has('org:write') && (
                   <MenuItem
                     className="invite-member"
