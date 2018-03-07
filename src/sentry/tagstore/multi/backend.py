@@ -8,6 +8,7 @@ sentry.tagstore.multi.backend
 
 from __future__ import absolute_import
 
+import logging
 import six
 import random
 from threading import Thread
@@ -17,6 +18,9 @@ from operator import itemgetter
 
 from sentry.tagstore.base import TagStorage
 from sentry.utils.imports import import_string
+
+
+logger = logging.getLogger('sentry.tagstore.multi')
 
 
 class QueuedRunner(object):
@@ -36,8 +40,8 @@ class QueuedRunner(object):
                 (func, args, kwargs) = q.get()
                 try:
                     func(*args, **kwargs)
-                except Exception:
-                    pass
+                except Exception as e:
+                    logger.exception(e)
                 finally:
                     q.task_done()
 
