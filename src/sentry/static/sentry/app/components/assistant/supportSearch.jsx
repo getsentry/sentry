@@ -7,7 +7,7 @@ import styled from 'react-emotion';
 import {t} from '../../locale';
 import ExternalLink from '../externalLink';
 import HookStore from '../../stores/hookStore';
-import QuestionMarkIcon from './questionMarkIcon';
+import CueIcon from './cueIcon';
 import AssistantContainer from './assistantContainer';
 import Input from '../../views/settings/components/forms/controls/input';
 import InlineSvg from '../../components/inlineSvg';
@@ -104,7 +104,7 @@ const SupportDrawer = createReactClass({
     return (
       <StyledAssistantContainer hasResults={hasResults}>
         <StyledAssistantInputRow>
-          <QuestionMarkIcon />
+          <CueIcon />
           <StyledSearchContainer onSubmit={this.handleSubmit}>
             <StyledSearchIcon src="icon-search" />
             <StyledInput

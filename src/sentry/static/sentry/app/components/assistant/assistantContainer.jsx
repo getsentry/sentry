@@ -2,6 +2,7 @@ import styled from 'react-emotion';
 
 const AssistantContainer = styled('div')`
   position: fixed;
+  z-index: ${p => p.theme.zIndex.modal};
   bottom: 1.5rem;
   right: 1.5rem;
   height: 2.75em;
