@@ -35,7 +35,8 @@ export default class TeamCreate extends AsyncView {
       <TextField
         name="slug"
         label={t('Team Slug')}
-        placeholder={t('e.g. operations, web, desktop')}
+        placeholder={t('e.g. operations, web-frontend, desktop')}
+        help={t('May contain letters, numbers, dashes and underscores.')}
         required={true}
       />
     ) : (
