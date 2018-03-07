@@ -46,6 +46,9 @@ class Actor(object):
 
     @classmethod
     def resolve_many(cls, actors):
+        if not actors:
+            return []
+
         actors_by_type = defaultdict(list)
         for actor in actors:
             actors_by_type[actor.type].append(actor)
@@ -75,6 +78,11 @@ class Actor(object):
             key: resolved_actors[value.type][value.id]
             for key, value in actor_dict.items()
         }
+
+    def __eq__(self, other):
+        if type(other) != type(self):
+            return False
+        return (self.id, self.type) == (other.id, other.type)
 
 
 class ActorField(serializers.WritableField):
