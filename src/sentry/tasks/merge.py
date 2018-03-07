@@ -304,11 +304,8 @@ def merge_objects(models, group, new_group, limit=1000, logger=None, transaction
 
         # not all models have a 'project' or 'project_id' field, but we make a best effort
         # to filter on one if it is available
-        has_project = 'project' in all_fields
-        has_project_id = 'project_id' in all_fields
+        has_project = 'project_id' in all_fields or 'project' in all_fields
         if has_project:
-            project_qs = model.objects.filter(project=group.project)
-        elif has_project_id:
             project_qs = model.objects.filter(project_id=group.project_id)
         else:
             project_qs = model.objects.all()
