@@ -174,9 +174,9 @@ def load_data(platform, default=None, timestamp=None, sample_name=None):
     }
     data.setdefault('tags', [
         ['environment', 'prod'],
-        ['release', '897a3d8'],
         ['level', 'error'],
         ['browser', 'Firefox 58.0'],
+        ['logger', 'sentry.billing'],
     ])
 
     start = datetime.utcnow()
