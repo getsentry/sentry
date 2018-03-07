@@ -2,6 +2,8 @@ import PropTypes from 'prop-types';
 import React from 'react';
 import styled from 'react-emotion';
 
+import {t} from '../../../../../locale';
+
 class RangeSlider extends React.Component {
   static propTypes = {
     name: PropTypes.string.isRequired,
@@ -68,9 +70,8 @@ class RangeSlider extends React.Component {
     }
   }
 
-  handleInput = e => {
+  getActualValue = sliderValue => {
     let {allowedValues} = this.props;
-    let sliderValue = parseInt(e.target.value, 10);
     let value;
 
     if (allowedValues) {
@@ -80,12 +81,18 @@ class RangeSlider extends React.Component {
       value = sliderValue;
     }
 
+    return value;
+  };
+
+  handleInput = e => {
+    let sliderValue = parseInt(e.target.value, 10);
+
     this.setState({
       sliderValue,
     });
 
     if (this.props.onChange) {
-      // `value` is the allowed value if `allowedValues` is defined (i.e. not index)
+      let value = this.getActualValue(sliderValue);
       this.props.onChange(value, e);
     }
   };
@@ -101,7 +108,8 @@ class RangeSlider extends React.Component {
       min = 0;
       max = allowedValues.length - 1;
       actualValue = allowedValues[sliderValue];
-      displayValue = typeof actualValue !== 'undefined' ? actualValue : 'Invalid value';
+      displayValue =
+        typeof actualValue !== 'undefined' ? actualValue : t('Invalid value');
     }
 
     displayValue =
