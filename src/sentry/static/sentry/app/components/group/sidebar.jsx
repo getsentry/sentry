@@ -58,6 +58,20 @@ const GroupSidebar = createReactClass({
         });
       },
     });
+    // Fetch group data for all environments since the one in GroupState is filtered for the selected environment
+    // The charts rely on having all environment data as well as the data for the selected env
+    this.api.request(`/issues/${group.id}/`, {
+      success: data => {
+        this.setState({
+          allEnvironmentsGroupData: data,
+        });
+      },
+      error: () => {
+        this.setState({
+          error: true,
+        });
+      },
+    });
   },
 
   subscriptionReasons: {
@@ -202,8 +216,9 @@ const GroupSidebar = createReactClass({
     return (
       <div className="group-stats">
         <SuggestedOwners event={this.props.event} />
-
-        <GroupReleaseStats group={group} location={this.context.location} />
+        {this.state.allEnvironmentsGroupData && (
+          <GroupReleaseStats group={this.state.allEnvironmentsGroupData} />
+        )}
 
         {this.renderPluginIssue()}
 
