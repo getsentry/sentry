@@ -59,7 +59,7 @@ class DjangoSearchBackend(SearchBackend):
         limit=None,
         environment=None,
     ):
-        from sentry.models import Event, Group, GroupSubscription, GroupStatus
+        from sentry.models import Event, Group, GroupSubscription, GroupStatus, OrganizationMember
 
         if tags is None:
             tags = {}
@@ -92,9 +92,20 @@ class DjangoSearchBackend(SearchBackend):
             )
 
         if assigned_to:
+            teams = []
+            try:
+                member = OrganizationMember.objects.get(
+                    user=assigned_to,
+                    organization_id=project.organization_id,
+                )
+            except OrganizationMember.DoesNotExist:
+                pass
+            else:
+                teams = member.get_teams()
+
             queryset = queryset.filter(
-                assignee_set__project=project,
-                assignee_set__user=assigned_to,
+                Q(assignee_set__user=assigned_to, assignee_set__project=project) |
+                Q(assignee_set__team__in=teams)
             )
         elif unassigned in (True, False):
             queryset = queryset.filter(
