@@ -32,10 +32,6 @@ const SupportDrawer = createReactClass({
     this.setState({inputVal: ''});
   },
 
-  handleSubmit(evt) {
-    evt.preventDefault();
-  },
-
   search: _.debounce(function() {
     if (this.state.inputVal.length <= 2) {
       this.setState({
@@ -118,7 +114,9 @@ const SupportDrawer = createReactClass({
               value={this.state.inputVal}
               autoFocus
             />
-            <StyledCloseIcon src="icon-close-lg" onClick={this.props.onClose} />
+            <div onClick={this.props.onClose}>
+              <StyledCloseIcon src="icon-close-lg" />
+            </div>
           </StyledSearchContainer>
         </StyledAssistantInputRow>
         {hasResults && <StyledResults>{results}</StyledResults>}
@@ -167,6 +165,7 @@ const StyledCloseIcon = styled(InlineSvg)`
   width: 0.75em;
   height: 0.75em;
   margin: 0 0.875em 0 0.66em;
+  cursor: pointer;
 `;
 
 const StyledSearchContainer = styled('form')`
