@@ -1,6 +1,7 @@
 from __future__ import absolute_import
 
 import six
+import uuid
 
 from rest_framework.response import Response
 
@@ -13,6 +14,13 @@ from sentry.models import Relay
 
 from smith import create_register_challenge, validate_register_response, \
     get_register_response_relay_id, PublicKey
+
+
+def get_header_relay_id(request):
+    try:
+        return six.text_type(uuid.UUID(request.META['HTTP_X_SENTRY_RELAY_ID']))
+    except (LookupError, ValueError, TypeError):
+        pass
 
 
 class RelayRegisterChallengeEndpoint(Endpoint):
@@ -36,6 +44,11 @@ class RelayRegisterChallengeEndpoint(Endpoint):
 
         challenge = create_register_challenge(request.body, sig)
         relay_id = six.text_type(challenge['relay_id'])
+        if relay_id != get_header_relay_id(request):
+            return Response({
+                'detail': 'relay_id in payload did not match header',
+            }, status=400)
+
         try:
             relay = Relay.objects.get(relay_id=relay_id)
         except Relay.DoesNotExist:
@@ -76,6 +89,11 @@ class RelayRegisterResponseEndpoint(Endpoint):
             }, status=400)
 
         relay_id = six.text_type(get_register_response_relay_id(request.body))
+        if relay_id != get_header_relay_id(request):
+            return Response({
+                'detail': 'relay_id in payload did not match header',
+            }, status=400)
+
         params = default_cache.get('relay-auth:%s' % relay_id)
         if params is None:
             return Response({
