@@ -266,6 +266,30 @@ describe('AssigneeSelector', function() {
         })[1].mock.calls[1][1].data.assignedTo
       ).toBe('');
     });
+
+    it('shows invite member button', function() {
+      openMenu();
+      assigneeSelector.update();
+      expect(assigneeSelector.find('MenuItem.invite-member').exists()).toBe(false);
+
+      sandbox
+        .stub(ConfigStore, 'get')
+        .withArgs('invitesEnabled')
+        .returns(true);
+      // Create a new selector because assigneeSelector.update() won't re-render
+      // if the state doesn't change.
+      let sel = mount(<AssigneeSelector id="1337" />, TestStubs.routerContext());
+      sel.find('a').simulate('click');
+      expect(sel.find('MenuItem.invite-member').length).toBe(1);
+
+      // Remove org:write access permission and make sure invite member button is not shown.
+      sel = mount(<AssigneeSelector id="1337" />, TestStubs.routerContext());
+      sel.setContext({
+        organization: {id: '1', features: new Set(['internal-catchall'])},
+      });
+      sel.find('a').simulate('click');
+      expect(sel.find('MenuItem.invite-member').exists()).toBe(false);
+    });
   });
 
   describe('onFilterKeyDown()', function() {
