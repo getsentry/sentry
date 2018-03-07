@@ -314,10 +314,17 @@ class Activity extends React.Component {
     this.refs.activityFeed.remountComponent();
   };
 
+  getViewMoreLink() {
+    return `/organizations/${this.props.params.orgId}/activity/`;
+  }
+
   render() {
     return (
       <div>
         <div className="pull-right">
+          <Link className="btn btn-sm btn-default" to={this.getViewMoreLink()}>
+            {t('View more')}
+          </Link>
           <a
             className="btn btn-sm btn-default"
             style={{marginLeft: 5}}

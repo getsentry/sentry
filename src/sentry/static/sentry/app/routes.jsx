@@ -37,6 +37,7 @@ import MyIssuesViewed from './views/myIssues/viewed';
 import NewProject from './views/projectInstall/newProject';
 import OnboardingConfigure from './views/onboarding/configure/index';
 import OnboardingWizard from './views/onboarding/index';
+import OrganizationActivity from './views/organizationActivity';
 import OrganizationApiKeyDetailsView from './views/settings/organization/apiKeys/organizationApiKeyDetailsView';
 import OrganizationApiKeysView from './views/settings/organization/apiKeys/organizationApiKeysView';
 import OrganizationAuditLogView from './views/settings/organization/auditLog/auditLogView';
@@ -593,6 +594,11 @@ function routes() {
 
       <Route path="/:orgId/" component={errorHandler(OrganizationDetails)}>
         <IndexRoute component={errorHandler(OrganizationDashboard)} />
+
+        <Route
+          path="/organizations/:orgId/activity/"
+          component={errorHandler(OrganizationActivity)}
+        />
 
         <Route
           path="/organizations/:orgId/teams/new/"
