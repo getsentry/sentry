@@ -45,18 +45,18 @@ exports[`CreateProject render() should render roles when available and allowed, 
   margin-bottom: 30px;
 }
 
-.glamor-21 {
+.glamor-25 {
   margin-bottom: 0;
 }
 
-.glamor-41 {
+.glamor-47 {
   background: #fff;
   border: 1px solid;
   margin-bottom: NaNpx;
   position: relative;
 }
 
-.glamor-15 {
+.glamor-17 {
   border-bottom: 1px solid;
   border-radius: 0 0;
   text-transform: uppercase;
@@ -65,13 +65,13 @@ exports[`CreateProject render() should render roles when available and allowed, 
   padding: 15px 20px;
 }
 
-.glamor-11 {
+.glamor-13 {
   font-size: inherit;
   text-transform: inherit;
   margin: 0;
 }
 
-.glamor-9 {
+.glamor-11 {
   font-size: 12px;
   font-weight: 600;
   text-transform: uppercase;
@@ -81,7 +81,7 @@ exports[`CreateProject render() should render roles when available and allowed, 
   margin: 0;
 }
 
-.glamor-24 {
+.glamor-28 {
   box-sizing: border-box;
   padding: 16px;
   display: -webkit-box;
@@ -91,11 +91,11 @@ exports[`CreateProject render() should render roles when available and allowed, 
   border-bottom: 1px solid;
 }
 
-.glamor-24:last-child {
+.glamor-28:last-child {
   border: 0;
 }
 
-.glamor-22 {
+.glamor-26 {
   display: -webkit-box;
   display: -webkit-flex;
   display: -ms-flexbox;
@@ -110,19 +110,19 @@ exports[`CreateProject render() should render roles when available and allowed, 
   margin-bottom: 0;
 }
 
-.glamor-19 {
+.glamor-21 {
   line-height: 1.5;
   margin-bottom: 30px;
   margin-bottom: 0;
 }
 
-.glamor-62 {
+.glamor-68 {
   -webkit-flex-wrap: wrap;
   -ms-flex-wrap: wrap;
   flex-wrap: wrap;
 }
 
-.glamor-58 {
+.glamor-64 {
   box-sizing: border-box;
   padding: 16px;
   display: -webkit-box;
@@ -135,11 +135,11 @@ exports[`CreateProject render() should render roles when available and allowed, 
   flex-wrap: wrap;
 }
 
-.glamor-58:last-child {
+.glamor-64:last-child {
   border: 0;
 }
 
-.glamor-54 {
+.glamor-60 {
   width: 25%;
   padding: 6px;
 }
@@ -184,11 +184,15 @@ exports[`CreateProject render() should render roles when available and allowed, 
       </Wrapper>
     </SettingsPageHeading>
     <TextBlock>
-      <div
+      <Component
         className="glamor-6 glamor-7"
       >
-        Invite a member to join this organization via their email address. If they do not already have an account, they will first be asked to create one. Multiple emails delimited by commas.
-      </div>
+        <div
+          className="glamor-6 glamor-7"
+        >
+          Invite a member to join this organization via their email address. If they do not already have an account, they will first be asked to create one. Multiple emails delimited by commas.
+        </div>
+      </Component>
     </TextBlock>
     <div>
       <div
@@ -257,25 +261,25 @@ exports[`CreateProject render() should render roles when available and allowed, 
           className="new-invite-team"
         >
           <div
-            className="new-invite-team glamor-41 glamor-42"
+            className="new-invite-team glamor-47 glamor-48"
           >
             <PanelHeader>
               <StyledPanelHeader>
                 <Component
-                  className="glamor-15 glamor-16"
+                  className="glamor-17 glamor-18"
                 >
                   <div
-                    className="glamor-15 glamor-16"
+                    className="glamor-17 glamor-18"
                   >
                     <StyledPanelHeading>
                       <Component
-                        className="glamor-11 glamor-8"
+                        className="glamor-13 glamor-10"
                       >
                         <PanelHeading
-                          className="glamor-11 glamor-8"
+                          className="glamor-13 glamor-10"
                         >
                           <div
-                            className="glamor-8 glamor-9 glamor-10"
+                            className="glamor-10 glamor-11 glamor-12"
                           >
                             Role
                           </div>
@@ -295,29 +299,29 @@ exports[`CreateProject render() should render roles when available and allowed, 
                 className=""
               >
                 <PanelItem
-                  className="glamor-28"
+                  className="glamor-32"
                   key="1"
                   onClick={[Function]}
                   p={2}
                 >
                   <StyledPanelItem
-                    className="glamor-28"
+                    className="glamor-32"
                     onClick={[Function]}
                     p={2}
                   >
                     <Base
-                      className="glamor-24 glamor-25"
+                      className="glamor-28 glamor-29"
                       onClick={[Function]}
                       p={2}
                     >
                       <div
-                        className="glamor-24 glamor-25"
+                        className="glamor-28 glamor-29"
                         is={null}
                         onClick={[Function]}
                       >
                         <Label>
                           <label
-                            className="glamor-22 glamor-23"
+                            className="glamor-26 glamor-27"
                           >
                             <Radio
                               checked={false}
@@ -354,17 +358,21 @@ exports[`CreateProject render() should render roles when available and allowed, 
                             >
                               member
                               <TextBlock
-                                className="glamor-21"
+                                className="glamor-25"
                               >
-                                <div
-                                  className="glamor-19 glamor-7"
+                                <Component
+                                  className="glamor-21 glamor-7"
                                 >
                                   <div
-                                    className="help-block"
+                                    className="glamor-21 glamor-7"
                                   >
-                                    a normal member
+                                    <div
+                                      className="help-block"
+                                    >
+                                      a normal member
+                                    </div>
                                   </div>
-                                </div>
+                                </Component>
                               </TextBlock>
                             </div>
                           </label>
@@ -374,29 +382,29 @@ exports[`CreateProject render() should render roles when available and allowed, 
                   </StyledPanelItem>
                 </PanelItem>
                 <PanelItem
-                  className="glamor-28"
+                  className="glamor-32"
                   key="2"
                   onClick={[Function]}
                   p={2}
                 >
                   <StyledPanelItem
-                    className="glamor-28"
+                    className="glamor-32"
                     onClick={[Function]}
                     p={2}
                   >
                     <Base
-                      className="glamor-24 glamor-25"
+                      className="glamor-28 glamor-29"
                       onClick={[Function]}
                       p={2}
                     >
                       <div
-                        className="glamor-24 glamor-25"
+                        className="glamor-28 glamor-29"
                         is={null}
                         onClick={[Function]}
                       >
                         <Label>
                           <label
-                            className="glamor-22 glamor-23"
+                            className="glamor-26 glamor-27"
                           >
                             <Radio
                               checked={false}
@@ -433,17 +441,21 @@ exports[`CreateProject render() should render roles when available and allowed, 
                             >
                               bar
                               <TextBlock
-                                className="glamor-21"
+                                className="glamor-25"
                               >
-                                <div
-                                  className="glamor-19 glamor-7"
+                                <Component
+                                  className="glamor-21 glamor-7"
                                 >
                                   <div
-                                    className="help-block"
+                                    className="glamor-21 glamor-7"
                                   >
-                                    another role
+                                    <div
+                                      className="help-block"
+                                    >
+                                      another role
+                                    </div>
                                   </div>
-                                </div>
+                                </Component>
                               </TextBlock>
                             </div>
                           </label>
@@ -485,25 +497,25 @@ exports[`CreateProject render() should render roles when available and allowed, 
           className="new-invite-team"
         >
           <div
-            className="new-invite-team glamor-41 glamor-42"
+            className="new-invite-team glamor-47 glamor-48"
           >
             <PanelHeader>
               <StyledPanelHeader>
                 <Component
-                  className="glamor-15 glamor-16"
+                  className="glamor-17 glamor-18"
                 >
                   <div
-                    className="glamor-15 glamor-16"
+                    className="glamor-17 glamor-18"
                   >
                     <StyledPanelHeading>
                       <Component
-                        className="glamor-11 glamor-8"
+                        className="glamor-13 glamor-10"
                       >
                         <PanelHeading
-                          className="glamor-11 glamor-8"
+                          className="glamor-13 glamor-10"
                         >
                           <div
-                            className="glamor-8 glamor-9 glamor-10"
+                            className="glamor-10 glamor-11 glamor-12"
                           >
                             Team
                           </div>
@@ -524,26 +536,26 @@ exports[`CreateProject render() should render roles when available and allowed, 
                 className="grouping-controls team-choices"
               >
                 <PanelItem
-                  className="glamor-62"
+                  className="glamor-68"
                   p={2}
                 >
                   <StyledPanelItem
-                    className="glamor-62"
+                    className="glamor-68"
                     p={2}
                   >
                     <Base
-                      className="glamor-58 glamor-25"
+                      className="glamor-64 glamor-29"
                       p={2}
                     >
                       <div
-                        className="glamor-58 glamor-25"
+                        className="glamor-64 glamor-29"
                         is={null}
                       >
                         <TeamItem
                           key="bar"
                         >
                           <div
-                            className="glamor-54 glamor-55"
+                            className="glamor-60 glamor-61"
                           >
                             <label
                               className="checkbox"
@@ -576,7 +588,7 @@ exports[`CreateProject render() should render roles when available and allowed, 
                           key="foo"
                         >
                           <div
-                            className="glamor-54 glamor-55"
+                            className="glamor-60 glamor-61"
                           >
                             <label
                               className="checkbox"

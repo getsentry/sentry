@@ -45,16 +45,18 @@ window.TestStubs = {
     pathame: '/mock-pathname/',
   }),
 
-  routerContext: () => ({
+  routerContext: ([context, childContextTypes] = []) => ({
     context: {
       location: TestStubs.location(),
       router: TestStubs.router(),
       organization: TestStubs.Organization(),
+      ...context,
     },
     childContextTypes: {
       router: PropTypes.object,
       location: PropTypes.object,
       organization: PropTypes.object,
+      ...childContextTypes,
     },
   }),
 
