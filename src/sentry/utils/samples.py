@@ -172,6 +172,12 @@ def load_data(platform, default=None, timestamp=None, sample_name=None):
         "data": '{"hello": "world"}',
         "method": "GET"
     }
+    data.setdefault('tags', [
+        ['environment', 'prod'],
+        ['release', '897a3d8'],
+        ['level', 'error'],
+        ['browser', 'Firefox 58.0'],
+    ])
 
     start = datetime.utcnow()
     if timestamp:
