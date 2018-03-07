@@ -80,6 +80,8 @@ class Actor(object):
         }
 
     def __eq__(self, other):
+        if type(other) != type(self):
+            return False
         return (self.id, self.type) == (other.id, other.type)
 
 
