@@ -2,7 +2,7 @@ from __future__ import absolute_import
 
 from sentry.testutils import TestCase
 from sentry.api.fields.actor import Actor
-from sentry.models import ProjectOwnership, User
+from sentry.models import ProjectOwnership, User, Team
 from sentry.ownership.grammar import Rule, Owner, Matcher, dump_schema
 
 
@@ -14,7 +14,10 @@ class ProjectOwnershipTestCase(TestCase):
         ProjectOwnership.objects.create(
             project_id=self.project.id,
             schema=dump_schema([
-                Rule(Matcher('path', '*.py'), [Owner('user', self.user.email)]),
+                Rule(Matcher('path', '*.py'), [
+                    Owner('user', self.user.email),
+                    Owner('team', self.team.slug),
+                ]),
             ]),
             fallthrough=True,
         )
@@ -30,7 +33,7 @@ class ProjectOwnershipTestCase(TestCase):
                     }]
                 }
             }
-        ) == [Actor(self.user.id, User)]
+        ) == [Actor(self.user.id, User), Actor(self.team.id, Team)]
 
         assert ProjectOwnership.get_owners(
             self.project.id, {
