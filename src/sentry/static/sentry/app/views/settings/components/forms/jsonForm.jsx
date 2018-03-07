@@ -3,6 +3,7 @@ import PropTypes from 'prop-types';
 import React from 'react';
 import scrollToElement from 'scroll-to-element';
 
+import {defined} from '../../../../utils';
 import FieldFromConfig from './fieldFromConfig';
 import Panel from '../panel';
 import PanelBody from '../panelBody';
@@ -20,14 +21,27 @@ class JsonForm extends React.Component {
           PropTypes.oneOfType([PropTypes.func, FieldFromConfig.propTypes.field])
         ),
       })
-    ).isRequired,
+    ),
+
+    /**
+     * If `forms` is not defined, `title` + `fields` must be required.
+     * Allows more fine grain control of title/fields
+     */
+    fields: PropTypes.arrayOf(
+      PropTypes.oneOfType([PropTypes.func, FieldFromConfig.propTypes.field])
+    ),
+    /**
+     * Panel title if `forms` is not defined
+     */
+    title: PropTypes.string,
+
     access: PropTypes.object,
     additionalFieldProps: PropTypes.object,
     renderFooter: PropTypes.func,
     /**
      * Renders inside of PanelBody
      */
-    renderBodyStart: PropTypes.func,
+    renderHeader: PropTypes.func,
   };
 
   static defaultProps = {
@@ -73,53 +87,122 @@ class JsonForm extends React.Component {
   render() {
     let {
       forms,
+      title,
+      fields,
+
       access,
       additionalFieldProps,
       renderFooter,
-      renderBodyStart,
+      renderHeader,
       // eslint-disable-next-line no-unused-vars
       location,
       ...otherProps
     } = this.props;
-    let shouldRenderFooter = typeof renderFooter === 'function';
-    let shouldRenderBodyStart = typeof renderBodyStart === 'function';
+
+    let hasFormGroups = defined(forms);
+    let formPanelProps = {
+      access,
+      additionalFieldProps,
+      renderFooter,
+      renderHeader,
+      highlighted: this.state.highlighted,
+    };
 
     return (
       <Box {...otherProps}>
-        {forms.map(({title, fields}) => {
-          return (
-            <Panel key={title} id={title}>
-              <PanelHeader>{title}</PanelHeader>
-              <PanelBody>
-                {shouldRenderBodyStart && renderBodyStart({title, fields})}
-
-                {fields.map(field => {
-                  if (typeof field === 'function') {
-                    return field();
-                  }
-
-                  // eslint-disable-next-line no-unused-vars
-                  let {defaultValue, ...fieldWithoutDefaultValue} = field;
-
-                  return (
-                    <FieldFromConfig
-                      access={access}
-                      key={field.name}
-                      {...otherProps}
-                      {...additionalFieldProps}
-                      field={fieldWithoutDefaultValue}
-                      highlighted={this.state.highlighted === `#${field.name}`}
-                    />
-                  );
-                })}
-                {shouldRenderFooter && renderFooter({title, fields})}
-              </PanelBody>
-            </Panel>
-          );
-        })}
+        {hasFormGroups ? (
+          forms.map(formGroup => (
+            <FormPanel
+              key={formGroup.title}
+              title={formGroup.title}
+              fields={formGroup.fields}
+              {...formPanelProps}
+            />
+          ))
+        ) : (
+          <FormPanel title={title} fields={fields} {...formPanelProps} />
+        )}
       </Box>
     );
   }
 }
 
 export default JsonForm;
+
+class FormPanel extends React.Component {
+  static propTypes = {
+    /**
+     * Panel title
+     */
+    title: PropTypes.string,
+    /**
+     * List of fields to render
+     */
+    fields: PropTypes.arrayOf(
+      PropTypes.oneOfType([PropTypes.func, FieldFromConfig.propTypes.field])
+    ),
+
+    access: PropTypes.object,
+    additionalFieldProps: PropTypes.object,
+
+    /**
+     * The name of the field that should be highlighted
+     */
+    highlighted: PropTypes.string,
+
+    /**
+     * Renders inside of PanelBody at the start
+     */
+    renderHeader: PropTypes.func,
+    /**
+     * Renders inside of PanelBody before PanelBody close
+     */
+    renderFooter: PropTypes.func,
+  };
+
+  render() {
+    let {
+      title,
+      fields,
+      access,
+      additionalFieldProps,
+      renderFooter,
+      renderHeader,
+      // eslint-disable-next-line no-unused-vars
+      location,
+      ...otherProps
+    } = this.props;
+    let shouldRenderFooter = typeof renderFooter === 'function';
+    let shouldRenderHeader = typeof renderHeader === 'function';
+
+    return (
+      <Panel key={title} id={title}>
+        <PanelHeader>{title}</PanelHeader>
+        <PanelBody>
+          {shouldRenderHeader && renderHeader({title, fields})}
+
+          {fields.map(field => {
+            if (typeof field === 'function') {
+              return field();
+            }
+
+            // eslint-disable-next-line no-unused-vars
+            let {defaultValue, ...fieldWithoutDefaultValue} = field;
+
+            return (
+              <FieldFromConfig
+                access={access}
+                key={field.name}
+                {...otherProps}
+                {...additionalFieldProps}
+                field={fieldWithoutDefaultValue}
+                highlighted={this.props.highlighted === `#${field.name}`}
+              />
+            );
+          })}
+          {shouldRenderFooter && renderFooter({title, fields})}
+        </PanelBody>
+      </Panel>
+    );
+  }
+}
