@@ -17,7 +17,7 @@ class TeamAvatar extends React.Component {
 
   getDisplayName = () => {
     let team = this.props.team;
-    return team.name || team.slug;
+    return team.slug;
   };
 
   render() {

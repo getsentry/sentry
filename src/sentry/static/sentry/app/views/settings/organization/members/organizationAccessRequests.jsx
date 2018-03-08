@@ -63,7 +63,7 @@ class OrganizationAccessRequests extends React.Component {
                 <Box p={2} flex="1">
                   {tct('[name] requests access to the [team] team.', {
                     name: <strong>{displayName}</strong>,
-                    team: <strong>{team.name}</strong>,
+                    team: <strong>#{team.slug}</strong>,
                   })}
                 </Box>
                 <Box p={2}>

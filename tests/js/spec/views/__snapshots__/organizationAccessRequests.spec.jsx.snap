@@ -46,7 +46,8 @@ exports[`OrganizationAccessRequests renders list 1`] = `
           <strong
             key="2"
           >
-            Team Name
+            #
+            team-slug
           </strong>
           <span
             key="3"

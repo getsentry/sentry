@@ -121,7 +121,7 @@ const MissingProjectMembership = createReactClass({
     return teams.map(team => {
       return (
         <p key={team.slug}>
-          {team.name}: {this.renderJoinTeam(team, features)}
+          #{team.slug}: {this.renderJoinTeam(team, features)}
         </p>
       );
     });
