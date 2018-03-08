@@ -32,24 +32,31 @@ class QueuedRunner(object):
     """
 
     def __init__(self):
-        self.q = q = Queue(maxsize=100)
+        self.q = Queue(maxsize=100)
+        self.worker_running = False
 
+    def start_worker(self):
         def worker():
             while True:
-                (func, args, kwargs) = q.get()
+                (func, args, kwargs) = self.q.get()
                 try:
                     func(*args, **kwargs)
                 except Exception as e:
                     logger.exception(e)
                 finally:
-                    q.task_done()
+                    self.q.task_done()
 
         t = Thread(target=worker)
         t.setDaemon(True)
         t.start()
 
+        self.worker_running = True
+
     def run(self, f, *args, **kwargs):
         if random.random() <= options.get('tagstore.multi-sampling'):
+            if not self.worker_running:
+                self.start_worker()
+
             try:
                 self.q.put((f, args, kwargs), block=False)
             except Full:
