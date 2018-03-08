@@ -6,7 +6,7 @@ from collections import defaultdict
 from django.db.models import Sum
 from itertools import izip
 
-# from sentry import tagstore
+from sentry import tagstore
 from sentry.api.serializers import Serializer, register, serialize
 from sentry.db.models.query import in_iexact
 from sentry.models import (
@@ -158,40 +158,50 @@ class ReleaseSerializer(Serializer):
             }
         return result
 
-    def get_attrs(self, item_list, user, *args, **kwargs):
-        project = kwargs.get('project')
-        # TODO(LB): This is kind of weird. Not sure why we're using tagstore as opposed to
-        # releaseenvironment
-        # if project:
-        #    project_ids = [project.id]
-        # else:
-        #    project_ids = list(ReleaseProject.objects.filter(release__in=item_list).values_list(
-        #        'project_id', flat=True
-        #    ).distinct())
+    def __get_release_data_no_environment(self, project, item_list):
+        if project:
+            project_ids = [project.id]
+        else:
+            project_ids = list(ReleaseProject.objects.filter(release__in=item_list).values_list(
+                'project_id', flat=True
+            ).distinct())
 
-        # tags = {}
-        # tvs = tagstore.get_release_tags(project_ids,
-        #                                environment_id=None,
-        #                                versions=[o.version for o in item_list])
-        # for tv in tvs:
-        #    val = tags.get(tv.value)
-        #    tags[tv.value] = {
-        #        'first_seen': min(tv.first_seen, val['first_seen']) if val else tv.first_seen,
-        #        'last_seen': max(tv.last_seen, val['last_seen']) if val else tv.last_seen
-        #    }
-        owners = {
-            d['id']: d for d in serialize(set(i.owner for i in item_list if i.owner_id), user)
-        }
+        tags = {}
+        tvs = tagstore.get_release_tags(project_ids,
+                                        environment_id=None,
+                                        versions=[o.version for o in item_list])
+        for tv in tvs:
+            val = tags.get(tv.value)
+            tags[tv.value] = {
+                'first_seen': min(tv.first_seen, val['first_seen']) if val else tv.first_seen,
+                'last_seen': max(tv.last_seen, val['last_seen']) if val else tv.last_seen
+            }
+        if project:
+            group_counts_by_release = dict(
+                ReleaseProject.objects.filter(project=project, release__in=item_list)
+                .values_list('release_id', 'new_groups')
+            )
+        else:
+            # assume it should be a sum across release
+            # if no particular project specified
+            group_counts_by_release = dict(
+                ReleaseProject.objects.filter(release__in=item_list, new_groups__isnull=False)
+                .values('release_id').annotate(new_groups=Sum('new_groups'))
+                .values_list('release_id', 'new_groups')
+            )
+        return tags, group_counts_by_release
 
+    def __get_release_data_with_environment(self, project, item_list):
         if project:
             release_project_envs = ReleaseProjectEnvironment.objects.filter(
-                project=project, release__in=item_list)
+                project=project, release__in=item_list).select_related('release')
         else:
-            release_project_envs = ReleaseProjectEnvironment.objects.filter(release__in=item_list)
+            release_project_envs = ReleaseProjectEnvironment.objects.filter(
+                release__in=item_list).select_related('release')
 
         first_and_last_seen = {}
         for release_project_env in release_project_envs:
-            first_and_last_seen[release_project_env.id] = {
+            first_and_last_seen[release_project_env.release.version] = {
                 'first_seen': release_project_env.first_seen,
                 'last_seen': release_project_env.last_seen,
             }
@@ -200,6 +210,23 @@ class ReleaseSerializer(Serializer):
                 new_issues_count=Sum('new_issues_count'))
             .values_list('release_id', 'new_issues_count')
         )
+        return first_and_last_seen, issue_counts_by_release
+
+    def get_attrs(self, item_list, user, *args, **kwargs):
+        project = kwargs.get('project')
+        environment = kwargs.get('environment')
+        # TODO(LB): This is kind of weird. Not sure why we're using tagstore as opposed to
+        # releaseenvironment
+        if environment is None:
+            tags, issue_counts_by_release = self.__get_release_data_no_environment(
+                project, item_list)
+        else:
+            first_and_last_seen, issue_counts_by_release = self.__get_release_data_with_environment(
+                project, item_list)
+
+        owners = {
+            d['id']: d for d in serialize(set(i.owner for i in item_list if i.owner_id), user)
+        }
 
         release_metadata_attrs = self._get_commit_metadata(item_list, user)
         deploy_metadata_attrs = self._get_deploy_metadata(item_list, user)
@@ -219,12 +246,21 @@ class ReleaseSerializer(Serializer):
         result = {}
         for item in item_list:
             result[item] = {
-                #    'tag': tags.get(item.version),
                 'owner': owners[six.text_type(item.owner_id)] if item.owner_id else None,
                 'new_issues': issue_counts_by_release.get(item.id) or 0,
-                'first_and_last_seen': first_and_last_seen.get(item.version),
                 'projects': release_projects.get(item.id, [])
             }
+            if environment is None:
+                result[item].update({
+                    'tag': tags.get(item.version),
+                    'first_and_last_seen': None,
+                })
+            else:
+                result[item].update({
+                    'tag': None,
+                    'first_and_last_seen': first_and_last_seen.get(item.version),
+                })
+
             result[item].update(release_metadata_attrs[item])
             result[item].update(deploy_metadata_attrs[item])
         return result

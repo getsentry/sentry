@@ -3,11 +3,12 @@ from __future__ import absolute_import
 from rest_framework import serializers
 from rest_framework.response import Response
 
+from sentry.api.base import EnvironmentMixin
 from sentry.api.bases.project import ProjectEndpoint, ProjectReleasePermission
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.serializers import serialize
 from sentry.api.serializers.rest_framework import CommitSerializer, ListField
-from sentry.models import Activity, Group, Release, ReleaseFile
+from sentry.models import Activity, Environment, Group, Release, ReleaseFile
 from sentry.plugins.interfaces.releasehook import ReleaseHook
 from sentry.constants import VERSION_LENGTH
 
@@ -21,7 +22,7 @@ class ReleaseSerializer(serializers.Serializer):
     commits = ListField(child=CommitSerializer(), required=False, allow_null=False)
 
 
-class ProjectReleaseDetailsEndpoint(ProjectEndpoint):
+class ProjectReleaseDetailsEndpoint(ProjectEndpoint, EnvironmentMixin):
     permission_classes = (ProjectReleasePermission, )
 
     def get(self, request, project, version):
@@ -39,13 +40,26 @@ class ProjectReleaseDetailsEndpoint(ProjectEndpoint):
         :auth: required
         """
         try:
-            release = Release.objects.get(
-                organization_id=project.organization_id,
-                projects=project,
-                version=version,
+            environment = self._get_environment_from_request(
+                request,
+                project.organization_id,
             )
-        except Release.DoesNotExist:
-            raise ResourceDoesNotExist
+        except Environment.DoesNotExist:
+            # TODO(LB): Not sure what to do with this part.
+            # This enpoint feels a bit weird to do this with
+            release = Release.objects.none()
+        else:
+            try:
+                release = Release.objects.get(
+                    organization_id=project.organization_id,
+                    projects=project,
+                    version=version,
+                )
+            except Release.DoesNotExist:
+                raise ResourceDoesNotExist
+            else:
+                return Response(serialize(release, request.user,
+                                          project=project, environment=environment))
 
         return Response(serialize(release, request.user, project=project))
 
