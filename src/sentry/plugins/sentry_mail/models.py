@@ -126,7 +126,9 @@ class MailPlugin(NotificationPlugin):
             return []
 
         owners = ProjectOwnership.get_owners(project.id, event.data)
-        if owners and owners != ProjectOwnership.Everyone:
+        if owners != ProjectOwnership.Everyone:
+            if not owners:
+                return []
             from sentry.models import User
             send_to_list = []
             teams_to_resolve = []
@@ -137,9 +139,10 @@ class MailPlugin(NotificationPlugin):
                     teams_to_resolve.append(owner.id)
 
             # get all users in teams
-            send_to_list += User.objects.filter(
-                sentry_orgmember_set__organizationmemberteam__team__id__in=teams_to_resolve,
-            ).values_list('id', flat=True)
+            if teams_to_resolve:
+                send_to_list += User.objects.filter(
+                    sentry_orgmember_set__organizationmemberteam__team__id__in=teams_to_resolve,
+                ).values_list('id', flat=True)
             return send_to_list
 
         cache_key = '%s:send_to:%s' % (self.get_conf_key(), project.pk)

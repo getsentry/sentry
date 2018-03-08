@@ -601,8 +601,7 @@ class MailPluginOwnersTest(TestCase):
             datetime=self.group.last_seen,
             data=self.make_event_data('foo.cpp')
         )
-        assert (sorted(set([self.user.pk, self.user2.pk])) == sorted(
-            self.plugin.get_send_to(self.project, event.data)))
+        assert [] == sorted(self.plugin.get_send_to(self.project, event.data))
 
     @mock.patch('sentry.plugins.sentry_mail.models.MailPlugin._send_mail')
     def test_notify_users_with_owners(self, _send_mail):
