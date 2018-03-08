@@ -26,7 +26,7 @@ class TagKey(Model):
     __core__ = False
 
     project_id = BoundedBigIntegerField(db_index=True)
-    environment_id = BoundedBigIntegerField(null=True)
+    environment_id = BoundedBigIntegerField()
     key = models.CharField(max_length=MAX_TAG_KEY_LENGTH)
     values_seen = BoundedPositiveIntegerField(default=0)
     status = BoundedPositiveIntegerField(
