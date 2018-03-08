@@ -130,6 +130,34 @@ def _get_committers(annotated_frames, commits):
     return user_dicts
 
 
+def get_previous_releases(project, start_version, limit=5):
+    # given a release version + project, return the previous
+    # `limit` releases (includes the release specified by `version`)
+    try:
+        release_dates = Release.objects.filter(
+            organization_id=project.organization_id,
+            version=start_version,
+            projects=project,
+        ).values('date_released', 'date_added').get()
+    except Release.DoesNotExist:
+        return []
+
+    start_date = release_dates['date_released'] or release_dates['date_added']
+
+    return list(Release.objects.filter(
+        projects=project,
+        organization_id=project.organization_id,
+    ).extra(
+        select={
+            'date': 'COALESCE(date_released, date_added)',
+        },
+        where=["COALESCE(date_released, date_added) <= %s"],
+        params=[start_date]
+    ).extra(
+        order_by=['-date']
+    )[:limit])
+
+
 def get_event_file_committers(project, event, frame_limit=25):
     # populate event data
     Event.objects.bind_nodes([event], 'data')
@@ -141,8 +169,7 @@ def get_event_file_committers(project, event, frame_limit=25):
     if not first_release_version:
         raise Release.DoesNotExist
 
-    releases = Release.get_closest_releases(project, first_release_version)
-
+    releases = get_previous_releases(project, first_release_version)
     if not releases:
         raise Release.DoesNotExist
 
