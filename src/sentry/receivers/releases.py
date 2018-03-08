@@ -16,7 +16,7 @@ def ensure_release_exists(instance, created, **kwargs):
     if instance.data and instance.data.get('release_id'):
         return
 
-    project = Project.objects.get(pk=instance.project_id)
+    project = Project.objects.get_from_cache(id=instance.project_id)
 
     try:
         with transaction.atomic():
@@ -32,7 +32,12 @@ def ensure_release_exists(instance, created, **kwargs):
         )
         release.update(date_added=instance.first_seen)
     else:
-        instance.update(data={'release_id': release.id})
+        # Make sure we use our partition key since `instance` is a
+        # `TagValue`.
+        type(instance).objects.filter(
+            id=instance.id,
+            project_id=instance.project_id,
+        ).update(data={'release_id': release.id})
 
     release.add_project(project)
 
