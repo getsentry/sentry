@@ -548,6 +548,13 @@ class MailPluginOwnersTest(TestCase):
         }
         return data
 
+    def assert_notify(self, event, emails_sent_to):
+        mail.outbox = []
+        with self.options({'system.url-prefix': 'http://example.com'}), self.tasks():
+            self.plugin.notify(Notification(event=event))
+        assert len(mail.outbox) == len(emails_sent_to)
+        assert sorted(email.to[0] for email in mail.outbox) == sorted(emails_sent_to)
+
     def test_get_send_to_with_team_owners(self):
         event = Event(
             group=self.group,
@@ -603,27 +610,30 @@ class MailPluginOwnersTest(TestCase):
         )
         assert [] == sorted(self.plugin.get_send_to(self.project, event.data))
 
-    @mock.patch('sentry.plugins.sentry_mail.models.MailPlugin._send_mail')
-    def test_notify_users_with_owners(self, _send_mail):
-        event = Event(
+    def test_notify_users_with_owners(self):
+        event_all_users = Event(
             group=self.group,
             message=self.group.message,
             project=self.project,
             datetime=self.group.last_seen,
-            data=self.make_event_data('foo.cbl')
+            data=self.make_event_data('foo.cbl'),
         )
-        notification = Notification(
-            event=event,
+        self.assert_notify(event_all_users, [self.user.email, self.user2.email])
+
+        event_team = Event(
+            group=self.group,
+            message=self.group.message,
+            project=self.project,
+            datetime=self.group.last_seen,
+            data=self.make_event_data('foo.py'),
         )
+        self.assert_notify(event_team, [self.user.email, self.user2.email])
 
-        with self.options({'system.url-prefix': 'http://example.com'}):
-            self.plugin.notify(notification)
-
-        # TODO(LB): Need help with the meaning of these functions
-        # not getting expected result
-        assert _send_mail.call_count is 2
-        args, kwargs = _send_mail.call_args
-        self.assertEquals(kwargs.get('send_to'), [self.user.id, self.user2.id])
-        self.assertEquals(kwargs.get('project'), self.project)
-        self.assertEquals(kwargs.get('reference'), self.group)
-        assert kwargs.get('subject') == u'TEST-2 - hello world'
+        event_single_user = Event(
+            group=self.group,
+            message=self.group.message,
+            project=self.project,
+            datetime=self.group.last_seen,
+            data=self.make_event_data('foo.jx'),
+        )
+        self.assert_notify(event_single_user, [self.user2.email])

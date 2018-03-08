@@ -125,25 +125,26 @@ class MailPlugin(NotificationPlugin):
             logger.debug('Tried to send notification to invalid project: %r', project)
             return []
 
-        owners = ProjectOwnership.get_owners(project.id, event.data)
-        if owners != ProjectOwnership.Everyone:
-            if not owners:
-                return []
-            from sentry.models import User
-            send_to_list = []
-            teams_to_resolve = []
-            for owner in owners:
-                if owner.type == User:
-                    send_to_list.append(owner.id)
-                else:
-                    teams_to_resolve.append(owner.id)
+        if event:
+            owners = ProjectOwnership.get_owners(project.id, event.data)
+            if owners != ProjectOwnership.Everyone:
+                if not owners:
+                    return []
+                from sentry.models import User
+                send_to_list = []
+                teams_to_resolve = []
+                for owner in owners:
+                    if owner.type == User:
+                        send_to_list.append(owner.id)
+                    else:
+                        teams_to_resolve.append(owner.id)
 
-            # get all users in teams
-            if teams_to_resolve:
-                send_to_list += User.objects.filter(
-                    sentry_orgmember_set__organizationmemberteam__team__id__in=teams_to_resolve,
-                ).values_list('id', flat=True)
-            return send_to_list
+                # get all users in teams
+                if teams_to_resolve:
+                    send_to_list += User.objects.filter(
+                        sentry_orgmember_set__organizationmemberteam__team__id__in=teams_to_resolve,
+                    ).values_list('id', flat=True)
+                return send_to_list
 
         cache_key = '%s:send_to:%s' % (self.get_conf_key(), project.pk)
         send_to_list = cache.get(cache_key)
