@@ -209,36 +209,73 @@ class DjangoSearchBackendTest(TestCase):
     def test_tags(self):
         results = self.backend.query(
             self.project,
-            tags={
-                'environment': 'staging'})
-        assert len(results) == 1
-        assert results[0] == self.group2
-
-        results = self.backend.query(self.project, tags={'environment': 'example.com'})
-        assert len(results) == 0
-
-        results = self.backend.query(self.project, tags={'environment': ANY})
-        assert len(results) == 2
+            tags={'environment': 'staging'})
+        assert list(results) == [self.group2]
 
         results = self.backend.query(
-            self.project, tags={'environment': 'staging',
-                                'server': 'example.com'}
-        )
-        assert len(results) == 1
-        assert results[0] == self.group2
-
-        results = self.backend.query(self.project, tags={'environment': 'staging', 'server': ANY})
-        assert len(results) == 1
-        assert results[0] == self.group2
+            self.project,
+            tags={'environment': 'example.com'})
+        assert list(results) == []
 
         results = self.backend.query(
-            self.project, tags={'environment': 'staging',
-                                'server': 'bar.example.com'}
-        )
-        assert len(results) == 0
+            self.project,
+            tags={'environment': ANY})
+        assert list(results) == [self.group1, self.group2]
+
+        results = self.backend.query(
+            self.project,
+            tags={'environment': 'staging',
+                  'server': 'example.com'})
+        assert list(results) == [self.group2]
+
+        results = self.backend.query(
+            self.project,
+            tags={'environment': 'staging',
+                  'server': ANY})
+        assert list(results) == [self.group2]
+
+        results = self.backend.query(
+            self.project,
+            tags={'environment': 'staging',
+                  'server': 'bar.example.com'})
+        assert list(results) == []
 
     def test_tags_with_environment(self):
-        raise NotImplementedError
+        results = self.backend.query(
+            self.project,
+            environment=self.environments['production'],
+            tags={'server': 'example.com'})
+        assert list(results) == [self.group1]
+
+        results = self.backend.query(
+            self.project,
+            environment=self.environments['staging'],
+            tags={'server': 'example.com'})
+        assert list(results) == [self.group2]
+
+        results = self.backend.query(
+            self.project,
+            environment=self.environments['staging'],
+            tags={'server': ANY})
+        assert list(results) == [self.group2]
+
+        results = self.backend.query(
+            self.project,
+            environment=self.environments['production'],
+            tags={'url': 'http://example.com'})
+        assert list(results) == []
+
+        results = self.backend.query(
+            self.project,
+            environment=self.environments['staging'],
+            tags={'url': 'http://example.com'})
+        assert list(results) == [self.group2]
+
+        results = self.backend.query(
+            self.project,
+            environment=self.environments['staging'],
+            tags={'server': 'bar.example.com'})
+        assert list(results) == []
 
     def test_bookmarked_by(self):
         results = self.backend.query(self.project, bookmarked_by=self.user)
