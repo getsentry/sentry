@@ -319,16 +319,14 @@ class DjangoSearchBackendTest(TestCase):
             age_from=self.group2.first_seen,
             age_from_inclusive=True,
         )
-        assert len(results) == 1
-        assert results[0] == self.group2
+        assert list(results) == [self.group2]
 
         results = self.backend.query(
             self.project,
             age_to=self.group1.first_seen + timedelta(minutes=1),
             age_to_inclusive=True,
         )
-        assert len(results) == 1
-        assert results[0] == self.group1
+        assert list(results) == [self.group1]
 
         results = self.backend.query(
             self.project,
@@ -337,11 +335,58 @@ class DjangoSearchBackendTest(TestCase):
             age_to=self.group1.first_seen + timedelta(minutes=1),
             age_to_inclusive=True,
         )
-        assert len(results) == 1
-        assert results[0] == self.group1
+        assert list(results) == [self.group1]
 
     def test_age_filter_with_environment(self):
-        raise NotImplementedError
+        results = self.backend.query(
+            self.project,
+            environment=self.environments['production'],
+            age_from=self.group1.first_seen,
+            age_from_inclusive=True,
+        )
+        assert list(results) == [self.group1]
+
+        results = self.backend.query(
+            self.project,
+            environment=self.environments['production'],
+            age_to=self.group1.first_seen,
+            age_to_inclusive=True,
+        )
+        assert list(results) == [self.group1]
+
+        results = self.backend.query(
+            self.project,
+            environment=self.environments['production'],
+            age_from=self.group1.first_seen,
+            age_from_inclusive=False,
+        )
+        assert list(results) == []
+
+        event = self.create_event(
+            group=self.group1,
+            datetime=self.group1.first_seen + timedelta(days=1),
+            tags={
+                'environment': 'development',
+            }
+        )
+
+        self._setup_tags_for_event(event)
+
+        results = self.backend.query(
+            self.project,
+            environment=self.environments['production'],
+            age_from=self.group1.first_seen,
+            age_from_inclusive=False,
+        )
+        assert list(results) == []
+
+        results = self.backend.query(
+            self.project,
+            environment=self.environments['development'],
+            age_from=self.group1.first_seen,
+            age_from_inclusive=False,
+        )
+        assert list(results) == [self.group1]
 
     def test_last_seen_filter(self):
         results = self.backend.query(
@@ -349,16 +394,14 @@ class DjangoSearchBackendTest(TestCase):
             last_seen_from=self.group1.last_seen,
             last_seen_from_inclusive=True,
         )
-        assert len(results) == 1
-        assert results[0] == self.group1
+        assert list(results) == [self.group1]
 
         results = self.backend.query(
             self.project,
             last_seen_to=self.group2.last_seen + timedelta(minutes=1),
             last_seen_to_inclusive=True,
         )
-        assert len(results) == 1
-        assert results[0] == self.group2
+        assert list(results) == [self.group2]
 
         results = self.backend.query(
             self.project,
@@ -367,11 +410,58 @@ class DjangoSearchBackendTest(TestCase):
             last_seen_to=self.group1.last_seen + timedelta(minutes=1),
             last_seen_to_inclusive=True,
         )
-        assert len(results) == 1
-        assert results[0] == self.group1
+        assert list(results) == [self.group1]
 
     def test_last_seen_filter_with_environment(self):
-        raise NotImplementedError
+        results = self.backend.query(
+            self.project,
+            environment=self.environments['production'],
+            last_seen_from=self.group1.last_seen,
+            last_seen_from_inclusive=True,
+        )
+        assert list(results) == [self.group1]
+
+        results = self.backend.query(
+            self.project,
+            environment=self.environments['production'],
+            last_seen_to=self.group1.last_seen,
+            last_seen_to_inclusive=True,
+        )
+        assert list(results) == [self.group1]
+
+        results = self.backend.query(
+            self.project,
+            environment=self.environments['production'],
+            last_seen_from=self.group1.last_seen,
+            last_seen_from_inclusive=False,
+        )
+        assert list(results) == []
+
+        event = self.create_event(
+            group=self.group1,
+            datetime=self.group1.last_seen + timedelta(days=1),
+            tags={
+                'environment': 'development',
+            }
+        )
+
+        self._setup_tags_for_event(event)
+
+        results = self.backend.query(
+            self.project,
+            environment=self.environments['production'],
+            last_seen_from=self.group1.last_seen,
+            last_seen_from_inclusive=False,
+        )
+        assert list(results) == []
+
+        results = self.backend.query(
+            self.project,
+            environment=self.environments['development'],
+            last_seen_from=self.group1.last_seen,
+            last_seen_from_inclusive=False,
+        )
+        assert list(results) == [self.group1]
 
     def test_date_filter(self):
         results = self.backend.query(
