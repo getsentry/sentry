@@ -19,7 +19,7 @@ const ProjectDetailsLayout = createReactClass({
 
   getInitialState() {
     return {
-      environments: [],
+      environments: EnvironmentStore.getActive() || [],
       projectNavSection: null,
     };
   },
