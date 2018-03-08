@@ -10,6 +10,7 @@ import GroupChart from './groupChart';
 import GroupCheckBox from './groupCheckBox';
 import ProjectState from '../../mixins/projectState';
 import GroupStore from '../../stores/groupStore';
+import GuideAnchor from '../../components/assistant/guideAnchor';
 import SelectedGroupStore from '../../stores/selectedGroupStore';
 import EventOrGroupHeader from '../eventOrGroupHeader';
 import EventOrGroupExtraDetails from '../eventOrGroupExtraDetails';
@@ -133,6 +134,7 @@ const StreamGroup = createReactClass({
           <GroupChart id={data.id} statsPeriod={this.props.statsPeriod} data={data} />
         </div>
         <div className="col-md-1 col-xs-2 event-count align-right">
+          <GuideAnchor target="events" type="text" />
           <Count value={data.count} />
         </div>
         <div className="col-md-1 col-xs-2 event-users align-right">

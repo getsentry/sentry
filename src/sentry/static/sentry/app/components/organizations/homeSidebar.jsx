@@ -3,6 +3,7 @@ import React from 'react';
 
 import createReactClass from 'create-react-class';
 
+import GuideAnchor from '../assistant/guideAnchor';
 import ListLink from '../listLink';
 import OrganizationState from '../../mixins/organizationState';
 import HookStore from '../../stores/hookStore';
@@ -23,6 +24,7 @@ const OrgSettingsMenu = ({access, org, features}) => {
         {access.has('org:read') &&
           access.has('member:read') && (
             <ListLink to={`${pathPrefix}/members/`}>
+              <GuideAnchor target="invite" type="text" />
               {t('Members')}&nbsp;
               {access.has('org:write') &&
                 org.pendingAccessRequests > 0 && (
