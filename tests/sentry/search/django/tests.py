@@ -143,37 +143,68 @@ class DjangoSearchBackendTest(TestCase):
 
     def test_query(self):
         results = self.backend.query(self.project, query='foo')
-        assert len(results) == 1
-        assert results[0] == self.group1
+        assert list(results) == [self.group1]
 
         results = self.backend.query(self.project, query='bar')
-        assert len(results) == 1
-        assert results[0] == self.group2
+        assert list(results) == [self.group2]
+
+    def test_query_with_environment(self):
+        results = self.backend.query(
+            self.project,
+            environment=self.environments['production'],
+            query='foo')
+        assert list(results) == [self.group1]
+
+        results = self.backend.query(
+            self.project,
+            environment=self.environments['production'],
+            query='bar')
+        assert list(results) == []
+
+        results = self.backend.query(
+            self.project,
+            environment=self.environments['staging'],
+            query='bar')
+        assert list(results) == [self.group2]
 
     def test_sort(self):
         results = self.backend.query(self.project, sort_by='date')
-        assert len(results) == 2
-        assert results[0] == self.group1
-        assert results[1] == self.group2
+        assert list(results) == [self.group1, self.group2]
 
         results = self.backend.query(self.project, sort_by='new')
-        assert len(results) == 2
-        assert results[0] == self.group2
-        assert results[1] == self.group1
+        assert list(results) == [self.group2, self.group1]
 
         results = self.backend.query(self.project, sort_by='freq')
-        assert len(results) == 2
-        assert results[0] == self.group2
-        assert results[1] == self.group1
+        assert list(results) == [self.group2, self.group1]
+
+    def test_sort_with_environment(self):
+        raise NotImplementedError
 
     def test_status(self):
         results = self.backend.query(self.project, status=GroupStatus.UNRESOLVED)
-        assert len(results) == 1
-        assert results[0] == self.group1
+        assert list(results) == [self.group1]
 
         results = self.backend.query(self.project, status=GroupStatus.RESOLVED)
-        assert len(results) == 1
-        assert results[0] == self.group2
+        assert list(results) == [self.group2]
+
+    def test_status_with_environment(self):
+        results = self.backend.query(
+            self.project,
+            environment=self.environments['production'],
+            status=GroupStatus.UNRESOLVED)
+        assert list(results) == [self.group1]
+
+        results = self.backend.query(
+            self.project,
+            environment=self.environments['staging'],
+            status=GroupStatus.RESOLVED)
+        assert list(results) == [self.group2]
+
+        results = self.backend.query(
+            self.project,
+            environment=self.environments['production'],
+            status=GroupStatus.RESOLVED)
+        assert list(results) == []
 
     def test_tags(self):
         results = self.backend.query(
@@ -206,10 +237,25 @@ class DjangoSearchBackendTest(TestCase):
         )
         assert len(results) == 0
 
+    def test_tags_with_environment(self):
+        raise NotImplementedError
+
     def test_bookmarked_by(self):
         results = self.backend.query(self.project, bookmarked_by=self.user)
-        assert len(results) == 1
-        assert results[0] == self.group2
+        assert list(results) == [self.group2]
+
+    def test_bookmarked_by_with_environment(self):
+        results = self.backend.query(
+            self.project,
+            environment=self.environments['staging'],
+            bookmarked_by=self.user)
+        assert list(results) == [self.group2]
+
+        results = self.backend.query(
+            self.project,
+            environment=self.environments['production'],
+            bookmarked_by=self.user)
+        assert list(results) == []
 
     def test_project(self):
         results = self.backend.query(self.create_project(name='project2'))
@@ -226,6 +272,9 @@ class DjangoSearchBackendTest(TestCase):
 
         results = self.backend.query(self.project, cursor=results.next, limit=1, sort_by='date')
         assert len(results) == 0
+
+    def test_pagination_with_environment(self):
+        raise NotImplementedError
 
     def test_age_filter(self):
         results = self.backend.query(
@@ -254,6 +303,9 @@ class DjangoSearchBackendTest(TestCase):
         assert len(results) == 1
         assert results[0] == self.group1
 
+    def test_age_filter_with_environment(self):
+        raise NotImplementedError
+
     def test_last_seen_filter(self):
         results = self.backend.query(
             self.project,
@@ -281,6 +333,9 @@ class DjangoSearchBackendTest(TestCase):
         assert len(results) == 1
         assert results[0] == self.group1
 
+    def test_last_seen_filter_with_environment(self):
+        raise NotImplementedError
+
     def test_date_filter(self):
         results = self.backend.query(
             self.project,
@@ -306,24 +361,70 @@ class DjangoSearchBackendTest(TestCase):
         assert results[0] == self.group1
         assert results[1] == self.group2
 
+    def test_date_filter_with_environment(self):
+        raise NotImplementedError
+
     def test_unassigned(self):
         results = self.backend.query(self.project, unassigned=True)
-        assert len(results) == 1
-        assert results[0] == self.group1
+        assert list(results) == [self.group1]
 
         results = self.backend.query(self.project, unassigned=False)
-        assert len(results) == 1
-        assert results[0] == self.group2
+        assert list(results) == [self.group2]
+
+    def test_unassigned_with_environment(self):
+        results = self.backend.query(
+            self.project,
+            environment=self.environments['production'],
+            unassigned=True)
+        assert list(results) == [self.group1]
+
+        results = self.backend.query(
+            self.project,
+            environment=self.environments['staging'],
+            unassigned=False)
+        assert list(results) == [self.group2]
+
+        results = self.backend.query(
+            self.project,
+            environment=self.environments['production'],
+            unassigned=False)
+        assert list(results) == []
 
     def test_assigned_to(self):
         results = self.backend.query(self.project, assigned_to=self.user)
-        assert len(results) == 1
-        assert results[0] == self.group2
+        assert list(results) == [self.group2]
+
+    def test_assigned_to_with_environment(self):
+        results = self.backend.query(
+            self.project,
+            environment=self.environments['staging'],
+            assigned_to=self.user)
+        assert list(results) == [self.group2]
+
+        results = self.backend.query(
+            self.project,
+            environment=self.environments['production'],
+            assigned_to=self.user)
+        assert list(results) == []
 
     def test_subscribed_by(self):
         results = self.backend.query(
             self.group1.project,
             subscribed_by=self.user,
         )
-        assert len(results) == 1
-        assert results[0] == self.group1
+        assert list(results) == [self.group1]
+
+    def test_subscribed_by_with_environment(self):
+        results = self.backend.query(
+            self.group1.project,
+            environment=self.environments['production'],
+            subscribed_by=self.user,
+        )
+        assert list(results) == [self.group1]
+
+        results = self.backend.query(
+            self.group1.project,
+            environment=self.environments['staging'],
+            subscribed_by=self.user,
+        )
+        assert list(results) == []
