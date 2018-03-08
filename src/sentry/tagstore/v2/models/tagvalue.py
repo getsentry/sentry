@@ -11,6 +11,7 @@ import six
 
 from django.db import models
 from django.utils import timezone
+from django.utils.functional import cached_property
 
 from sentry.api.serializers import Serializer, register
 from sentry.constants import MAX_TAG_VALUE_LENGTH
@@ -45,7 +46,7 @@ class TagValue(Model):
 
     __repr__ = sane_repr('project_id', '_key', 'value')
 
-    @property
+    @cached_property
     def key(self):
         from sentry.tagstore.v2.models import TagKey
         return TagKey.objects.filter(
