@@ -13,6 +13,10 @@ export function loadSearchMap() {
 
     if (!mod) return;
 
-    addForm({formGroups: mod.default || mod.formGroups, route: mod.route});
+    addForm({
+      formGroups: mod.default || mod.formGroups,
+      fields: mod.fields,
+      route: mod.route,
+    });
   });
 }
