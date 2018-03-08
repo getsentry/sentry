@@ -72,6 +72,7 @@ exports[`ProjectTeamsSettings render() renders 1`] = `
               "slug": "team-slug",
             }
           }
+          teamCount={1}
         />
       </PanelBody>
     </Panel>
