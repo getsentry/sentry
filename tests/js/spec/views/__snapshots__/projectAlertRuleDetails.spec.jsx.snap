@@ -386,7 +386,7 @@ exports[`ProjectAlertRuleDetails Edit alert rule renders 1`] = `
                     choices={
                       Array [
                         Array [
-                          "all",
+                          "__all_environments__",
                           "All Environments",
                         ],
                       ]
@@ -432,8 +432,8 @@ exports[`ProjectAlertRuleDetails Edit alert rule renders 1`] = `
                           value=""
                         >
                           <option
-                            key="all"
-                            value="all"
+                            key="__all_environments__"
+                            value="__all_environments__"
                           >
                             All Environments
                           </option>
@@ -1074,7 +1074,7 @@ exports[`ProjectAlertRuleDetails New alert rule renders 1`] = `
                     choices={
                       Array [
                         Array [
-                          "all",
+                          "__all_environments__",
                           "All Environments",
                         ],
                       ]
@@ -1120,8 +1120,8 @@ exports[`ProjectAlertRuleDetails New alert rule renders 1`] = `
                           value=""
                         >
                           <option
-                            key="all"
-                            value="all"
+                            key="__all_environments__"
+                            value="__all_environments__"
                           >
                             All Environments
                           </option>
