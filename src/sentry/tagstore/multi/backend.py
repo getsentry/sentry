@@ -32,29 +32,36 @@ class QueuedRunner(object):
     """
 
     def __init__(self):
-        self.q = q = Queue(maxsize=100)
+        self.q = Queue(maxsize=100)
         self.sample_channel = getattr(settings, 'SENTRY_TAGSTORE_MULTI_SAMPLING', 1.0)
+        self.worker_running = False
 
+    def run(self, f, *args, **kwargs):
+        if random.random() <= self.sample_channel:
+            if not self.worker_running:
+                self.start_worker()
+
+            try:
+                self.q.put((f, args, kwargs), block=False)
+            except Full:
+                return
+
+    def start_worker(self):
         def worker():
             while True:
-                (func, args, kwargs) = q.get()
+                (func, args, kwargs) = self.q.get()
                 try:
                     func(*args, **kwargs)
                 except Exception as e:
                     logger.exception(e)
                 finally:
-                    q.task_done()
+                    self.q.task_done()
 
         t = Thread(target=worker)
         t.setDaemon(True)
         t.start()
 
-    def run(self, f, *args, **kwargs):
-        if random.random() <= self.sample_channel:
-            try:
-                self.q.put((f, args, kwargs), block=False)
-            except Full:
-                return
+        self.worker_running = True
 
 
 class ImmediateRunner(object):
