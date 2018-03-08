@@ -489,6 +489,7 @@ class MailPluginOwnersTest(TestCase):
         return MailPlugin()
 
     def setUp(self):
+        from sentry.ownership.grammar import Rule
         self.user = self.create_user(email='foo@example.com', is_active=True)
         self.user2 = self.create_user(email='baz@example.com', is_active=True)
 
