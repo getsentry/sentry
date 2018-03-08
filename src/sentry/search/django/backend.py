@@ -112,12 +112,14 @@ sort_strategies = {
 
 def get_priority_sort_expression(model):
     engine = get_db_engine(router.db_for_read(model))
+    table = get_sql_table(model)
     if 'postgres' in engine:
-        return 'log({table}.times_seen) * 600 + {table}.last_seen::abstime::int'.format(
-            table=get_sql_table(model),
-        )
+        return 'log({table}.times_seen) * 600 + {table}.last_seen::abstime::int'.format(table=table)
     else:
-        raise NotImplementedError  # TODO
+        # TODO: This should be improved on other databases where possible.
+        # (This doesn't work on some databases: SQLite for example doesn't
+        # have a built-in logarithm function.)
+        return '{}.times_seen'.format(table)
 
 
 environment_sort_strategies = {
