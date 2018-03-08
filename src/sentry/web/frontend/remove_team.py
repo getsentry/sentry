@@ -33,7 +33,7 @@ class RemoveTeamView(TeamView):
 
             messages.add_message(
                 request, messages.SUCCESS,
-                _(u'The team %r was scheduled for deletion.') % (team.name.encode('utf-8'), )
+                _(u'The team #%r was scheduled for deletion.') % (team.slug.encode('utf-8'), )
             )
 
             return HttpResponseRedirect(reverse('sentry'))
