@@ -8,6 +8,7 @@ sentry.search.django.backend
 
 from __future__ import absolute_import
 
+from django.db import router
 from django.db.models import Q
 
 from sentry import tagstore
@@ -108,15 +109,38 @@ sort_strategies = {
     'freq': (Paginator, '-times_seen'),
 }
 
+
+def get_priority_sort_expression(model):
+    engine = get_db_engine(router.db_for_read(model))
+    if 'postgres' in engine:
+        return 'log({table}.times_seen) * 600 + {table}.last_seen::abstime::int'.format(
+            table=get_sql_table(model),
+        )
+    else:
+        raise NotImplementedError  # TODO
+
+
 environment_sort_strategies = {
     # sort_by -> Tuple[
-    #   String: SQL expression to generate sort value (of type T, used below),
+    #   Function[Model] returning String: SQL expression to generate sort value (of type T, used below),
     #   Function[T] -> int: function for converting sort value to cursor value),
     # ]
-    'priority': ('log({table}.times_seen) * 600 + {table}.last_seen::abstime::int', int),
-    'date': ('{table}.last_seen', lambda score: int(to_timestamp(score) * 1000)),
-    'new': ('{table}.first_seen', lambda score: int(to_timestamp(score) * 1000)),
-    'freq': ('{table}.times_seen', int),
+    'priority': (
+        get_priority_sort_expression,
+        int,
+    ),
+    'date': (
+        lambda model: '{}.last_seen'.format(get_sql_table(model)),
+        lambda score: int(to_timestamp(score) * 1000),
+    ),
+    'new': (
+        lambda model: '{}.first_seen'.format(get_sql_table(model)),
+        lambda score: int(to_timestamp(score) * 1000),
+    ),
+    'freq': (
+        lambda model: '{}.times_seen'.format(get_sql_table(model)),
+        int,
+    ),
 }
 
 
@@ -313,7 +337,7 @@ class DjangoSearchBackend(SearchBackend):
                 ).values_list('id', flat=True)  # TODO: Limit?
             )
 
-            sort_expression, sort_value_to_cursor_value = environment_sort_strategies[sort_by]
+            get_sort_expression, sort_value_to_cursor_value = environment_sort_strategies[sort_by]
 
             group_tag_value_queryset = tagstore.get_group_tag_value_qs(
                 project.id,
@@ -339,9 +363,7 @@ class DjangoSearchBackend(SearchBackend):
                     parameters,
                 ).extra(
                     select={
-                        'sort_value': sort_expression.format(
-                            table=get_sql_table(group_tag_value_queryset.model),
-                        ),
+                        'sort_value': get_sort_expression(group_tag_value_queryset.model),
                     },
                 ).values_list('group_id', 'sort_value')
             )
