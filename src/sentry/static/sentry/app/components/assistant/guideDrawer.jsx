@@ -5,8 +5,8 @@ import Button from '../buttons/button';
 import {t} from '../../locale';
 import {markUseful, nextStep} from '../../actionCreators/guides';
 import CueIcon from './cueIcon';
+import CloseIcon from './closeIcon';
 import AssistantContainer from './assistantContainer';
-import InlineSvg from '../../components/inlineSvg';
 
 // GuideDrawer is what slides up when the user clicks on a guide cue.
 export default class GuideDrawer extends React.Component {
@@ -29,16 +29,15 @@ export default class GuideDrawer extends React.Component {
           <CueIcon hasGuide={true} />
           <StyledTitle>{this.props.guide.steps[this.props.step - 1].title}</StyledTitle>
           <div className="close-button" onClick={this.handleDismiss}>
-            <StyledCloseIcon src="icon-close-lg" />
+            <CloseIcon />
           </div>
         </StyledAssistantInputRow>
         <StyledContent>
           <div
           dangerouslySetInnerHTML={{
             __html: this.props.guide.steps[this.props.step - 1].message,
-          }}>
-          </div>
-          <StyledActions>
+          }}></div>
+          <div style={{marginTop: '1em'}}>
             {this.props.step < this.props.guide.steps.length ? (
               <div>
                 <Button onClick={nextStep}>{t('Next')} &rarr;</Button>
@@ -64,7 +63,7 @@ export default class GuideDrawer extends React.Component {
                 </Button>
               </div>
             )}
-          </StyledActions>
+          </div>
         </StyledContent>
       </StyledAssistantContainer>
     );
@@ -76,14 +75,6 @@ const StyledAssistantContainer = styled(AssistantContainer)`
   border-color: ${p => p.theme.greenLight};
   color: ${p => p.theme.offWhite};
   height: auto;
-`;
-
-const StyledCloseIcon = styled(InlineSvg)`
-  stroke-width: 3px;
-  width: 0.75em;
-  height: 0.75em;
-  margin: 0 0.875em 0 0.66em;
-  cursor: pointer;
 `;
 
 const StyledAssistantInputRow = styled('div')`
@@ -102,7 +93,4 @@ const StyledContent = styled('div')`
   margin: 1.5rem;
   width: 400px;
   line-height: 1.5;
-`;
-const StyledActions = styled('div')`
-  margin-top: 1em;
 `;

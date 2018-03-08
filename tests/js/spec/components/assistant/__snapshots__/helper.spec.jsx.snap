@@ -25,44 +25,40 @@ exports[`Helper renders cue 1`] = `
 
 exports[`Helper renders guide drawer 1`] = `
 <div>
-  <div>
-    <GuideDrawer
-      guide={
-        Object {
-          "cue": "Click here for a tour of the issue page",
-          "id": 1,
-          "page": "issue",
-          "required_targets": Array [
-            "target 1",
-          ],
-          "steps": Array [
-            Object {
-              "message": "Message 1",
-              "target": "target 1",
-              "title": "1. Title 1",
-            },
-            Object {
-              "message": "Message 2",
-              "target": "target 2",
-              "title": "2. Title 2",
-            },
-          ],
-        }
+  <GuideDrawer
+    guide={
+      Object {
+        "cue": "Click here for a tour of the issue page",
+        "id": 1,
+        "page": "issue",
+        "required_targets": Array [
+          "target 1",
+        ],
+        "steps": Array [
+          Object {
+            "message": "Message 1",
+            "target": "target 1",
+            "title": "1. Title 1",
+          },
+          Object {
+            "message": "Message 2",
+            "target": "target 2",
+            "title": "2. Title 2",
+          },
+        ],
       }
-      onDismiss={[Function]}
-      onFinish={[Function]}
-      step={1}
-    />
-  </div>
+    }
+    onDismiss={[Function]}
+    onFinish={[Function]}
+    step={1}
+  />
 </div>
 `;
 
 exports[`Helper renders support drawer 1`] = `
 <div>
-  <div>
-    <SupportDrawer
-      onClose={[Function]}
-    />
-  </div>
+  <SupportDrawer
+    onClose={[Function]}
+  />
 </div>
 `;

@@ -12,9 +12,7 @@ exports[`GuideDrawer gets dismissed 1`] = `
     <div
       className="close-button"
     >
-      <StyledCloseIcon
-        src="icon-close-lg"
-      />
+      <CloseIcon />
     </div>
   </StyledAssistantInputRow>
   <StyledContent>
@@ -25,7 +23,13 @@ exports[`GuideDrawer gets dismissed 1`] = `
         }
       }
     />
-    <StyledActions>
+    <div
+      style={
+        Object {
+          "marginTop": "1em",
+        }
+      }
+    >
       <div>
         <Button
           disabled={false}
@@ -42,7 +46,7 @@ exports[`GuideDrawer gets dismissed 1`] = `
           Dismiss
         </Button>
       </div>
-    </StyledActions>
+    </div>
   </StyledContent>
 </StyledAssistantContainer>
 `;
@@ -59,9 +63,7 @@ exports[`GuideDrawer renders next step 1`] = `
     <div
       className="close-button"
     >
-      <StyledCloseIcon
-        src="icon-close-lg"
-      />
+      <CloseIcon />
     </div>
   </StyledAssistantInputRow>
   <StyledContent>
@@ -72,7 +74,13 @@ exports[`GuideDrawer renders next step 1`] = `
         }
       }
     />
-    <StyledActions>
+    <div
+      style={
+        Object {
+          "marginTop": "1em",
+        }
+      }
+    >
       <div>
         <p>
           Did you find this guide useful?
@@ -101,7 +109,7 @@ exports[`GuideDrawer renders next step 1`] = `
              ✖
         </Button>
       </div>
-    </StyledActions>
+    </div>
   </StyledContent>
 </StyledAssistantContainer>
 `;

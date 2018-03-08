@@ -79,20 +79,22 @@ const AssistantHelper = createReactClass({
 
     return (
       <div>
-        {showDrawer ? (
-          <div>
-            {this.state.currentGuide ? (
-              <GuideDrawer
-                guide={currentGuide}
-                step={currentStep}
-                onFinish={closeGuide}
-                onDismiss={this.handleDismiss}
-              />
-            ) : (
-              <SupportDrawer onClose={this.handleSupportDrawerClose} />
-            )}
-          </div>
-        ) : (
+        {showDrawer &&
+          this.state.currentGuide && (
+            <GuideDrawer
+              guide={currentGuide}
+              step={currentStep}
+              onFinish={closeGuide}
+              onDismiss={this.handleDismiss}
+            />
+          )}
+
+        {showDrawer &&
+          !this.state.currentGuide && (
+            <SupportDrawer onClose={this.handleSupportDrawerClose} />
+          )}
+
+        {!showDrawer && (
           <StyledAssistantContainer
             onClick={this.handleDrawerOpen}
             className="assistant-cue"
@@ -133,26 +135,24 @@ const StyledAssistantContainer = styled(AssistantContainer)`
   cursor: pointer;
 
   &:hover ${StyledCueText} {
-    ${p => {
-      return !p.hasGuide
-        ? `
-        width: 80px;
-        opacity: 1;
-        margin: 0 0.5em;
+    ${p =>
+      !p.hasGuide &&
       `
-        : '';
-    }};
+      width: 80px;
+      // we have to set this to a fixed width
+      // so that the animation works
+      opacity: 1;
+      margin: 0 0.5em;
+    `};
   }
 
-  ${p => {
-    return p.hasGuide
-      ? `
-      background-color: ${p.theme.greenDark};
-      border-color: ${p.theme.greenLight};
-      color: ${p.theme.offWhite};
+  ${p =>
+    p.hasGuide &&
     `
-      : '';
-  }};
+    background-color: ${p.theme.greenDark};
+    border-color: ${p.theme.greenLight};
+    color: ${p.theme.offWhite};
+    `};
 `;
 
 export default AssistantHelper;

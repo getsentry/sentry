@@ -1,6 +1,48 @@
 // Jest Snapshot v1, https://goo.gl/fbAQLP
 
 exports[`ResolveActions with confirmation step renders 1`] = `
+.glamor-0 {
+  width: 12px;
+  height: 12px;
+  cursor: pointer;
+  z-index: 999;
+  position: relative;
+  pointer-events: none;
+  -webkit-animation: animation-1vh9m9r-expandOut 1.5s ease-out infinite;
+  animation: animation-1vh9m9r-expandOut 1.5s ease-out infinite;
+  visibility: hidden;
+  display: inline-block;
+  position: relative;
+}
+
+.glamor-0,
+.glamor-0:before,
+.glamor-0:after {
+  position: absolute;
+  display: block;
+  left: 50%;
+  top: 50%;
+  -webkit-transform: translate(-50%,-50%);
+  -ms-transform: translate(-50%,-50%);
+  transform: translate(-50%,-50%);
+  border-radius: 50%;
+}
+
+.glamor-0:before,
+.glamor-0:after {
+  content: '';
+}
+
+.glamor-0:before {
+  width: 75%;
+  height: 75%;
+}
+
+.glamor-0:after {
+  width: 50%;
+  height: 50%;
+}
+
 <ResolveActions
   confirmLabel="Resolve"
   confirmMessage="Are you sure???"
@@ -116,13 +158,20 @@ exports[`ResolveActions with confirmation step renders 1`] = `
               target="resolve"
               type="text"
             >
-              <div
+              <span
                 className="guide-anchor anchor-type-text"
               >
-                <span
-                  className="resolve guide-anchor-ping"
-                />
-              </div>
+                <StyledGuideAnchor
+                  active={false}
+                  className="guide-anchor-ping resolve"
+                  type="text"
+                >
+                  <div
+                    className="guide-anchor-ping resolve glamor-0 glamor-1"
+                    type="text"
+                  />
+                </StyledGuideAnchor>
+              </span>
             </GuideAnchor>
             Resolve
           </a>
@@ -433,6 +482,48 @@ exports[`ResolveActions with confirmation step renders 1`] = `
 `;
 
 exports[`ResolveActions without confirmation renders 1`] = `
+.glamor-0 {
+  width: 12px;
+  height: 12px;
+  cursor: pointer;
+  z-index: 999;
+  position: relative;
+  pointer-events: none;
+  -webkit-animation: animation-1vh9m9r-expandOut 1.5s ease-out infinite;
+  animation: animation-1vh9m9r-expandOut 1.5s ease-out infinite;
+  visibility: hidden;
+  display: inline-block;
+  position: relative;
+}
+
+.glamor-0,
+.glamor-0:before,
+.glamor-0:after {
+  position: absolute;
+  display: block;
+  left: 50%;
+  top: 50%;
+  -webkit-transform: translate(-50%,-50%);
+  -ms-transform: translate(-50%,-50%);
+  transform: translate(-50%,-50%);
+  border-radius: 50%;
+}
+
+.glamor-0:before,
+.glamor-0:after {
+  content: '';
+}
+
+.glamor-0:before {
+  width: 75%;
+  height: 75%;
+}
+
+.glamor-0:after {
+  width: 50%;
+  height: 50%;
+}
+
 <ResolveActions
   confirmLabel="Resolve"
   hasRelease={false}
@@ -537,13 +628,20 @@ exports[`ResolveActions without confirmation renders 1`] = `
             target="resolve"
             type="text"
           >
-            <div
+            <span
               className="guide-anchor anchor-type-text"
             >
-              <span
-                className="resolve guide-anchor-ping"
-              />
-            </div>
+              <StyledGuideAnchor
+                active={false}
+                className="guide-anchor-ping resolve"
+                type="text"
+              >
+                <div
+                  className="guide-anchor-ping resolve glamor-0 glamor-1"
+                  type="text"
+                />
+              </StyledGuideAnchor>
+            </span>
           </GuideAnchor>
           Resolve
         </a>

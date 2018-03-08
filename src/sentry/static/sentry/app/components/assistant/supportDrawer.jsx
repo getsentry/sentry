@@ -8,6 +8,7 @@ import {t} from '../../locale';
 import ExternalLink from '../externalLink';
 import HookStore from '../../stores/hookStore';
 import CueIcon from './cueIcon';
+import CloseIcon from './closeIcon';
 import AssistantContainer from './assistantContainer';
 import Input from '../../views/settings/components/forms/controls/input';
 import InlineSvg from '../../components/inlineSvg';
@@ -115,7 +116,7 @@ const SupportDrawer = createReactClass({
               autoFocus
             />
             <div onClick={this.props.onClose}>
-              <StyledCloseIcon src="icon-close-lg" />
+              <CloseIcon />
             </div>
           </StyledSearchContainer>
         </StyledAssistantInputRow>
@@ -157,15 +158,6 @@ const StyledSearchIcon = styled(InlineSvg)`
   color: ${p => p.theme.gray1};
   width: 0.9em;
   height: 0.9em;
-`;
-
-const StyledCloseIcon = styled(InlineSvg)`
-  right: 0.25rem;
-  stroke-width: 3px;
-  width: 0.75em;
-  height: 0.75em;
-  margin: 0 0.875em 0 0.66em;
-  cursor: pointer;
 `;
 
 const StyledSearchContainer = styled('form')`
