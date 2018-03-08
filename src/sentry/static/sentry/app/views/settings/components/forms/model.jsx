@@ -333,12 +333,11 @@ class FormModel {
    */
   @action
   saveField(id, currentValue) {
+    let initialValue = this.initialData[id];
+
     // Don't save if field hasn't changed
     // Don't need to check for error state since initialData wouldn't have updated since last error
-    if (
-      currentValue === this.initialData[id] ||
-      (currentValue === '' && !defined(this.initialData[id]))
-    )
+    if (currentValue === initialValue || (currentValue === '' && !defined(initialValue)))
       return null;
 
     // Check for error first
@@ -381,6 +380,13 @@ class FormModel {
       .catch(resp => {
         // should we revert field value to last known state?
         saveSnapshot = null;
+
+        // Field can be configured to reset on error
+        // e.g. BooleanFields
+        let shouldReset = this.getDescriptor(id, 'resetOnError');
+        if (shouldReset) {
+          this.setValue(id, initialValue);
+        }
 
         // API can return a JSON object with either:
         // 1) map of {[fieldName] => Array<ErrorMessages>}
