@@ -186,7 +186,14 @@ class UpdateProjectRuleTest(APITestCase):
 
         project = self.create_project()
 
-        rule = Rule.objects.create(project=project, label='foo')
+        rule = Rule.objects.create(
+            project=project,
+            environment_id=Environment.get_or_create(
+                project,
+                'production',
+            ).id,
+            label='foo',
+        )
 
         url = reverse(
             'sentry-api-0-project-rule-details',
