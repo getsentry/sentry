@@ -58,7 +58,7 @@ class OnboardingProject extends React.Component {
           >
             {teams.map(({slug, name, id}, i) => (
               <option key={id} value={slug}>
-                {name}
+                #{slug}
               </option>
             ))}
           </SelectInput>

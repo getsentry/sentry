@@ -69,7 +69,7 @@ const ProjectChooser = createReactClass({
         <div className="box" key={i}>
           <div key={team.id}>
             <div className="box-header" key={team.id}>
-              <h2>{features.has('internal-catchall') ? team.slug : team.name}</h2>
+              <h2>{features.has('internal-catchall') ? `#${team.slug}` : team.name}</h2>
             </div>
             <div className="box-content">
               <table className="table">

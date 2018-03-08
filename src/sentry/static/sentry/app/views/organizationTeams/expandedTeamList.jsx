@@ -115,7 +115,7 @@ const ExpandedTeamList = createReactClass({
               </Link>
             )}
           </div>
-          <h3>{team.name}</h3>
+          <h3>#{team.slug}</h3>
         </div>
         <div className="box-content">
           <table className="table table-no-top-border m-b-0">

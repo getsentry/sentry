@@ -69,10 +69,10 @@ const TeamRow = createReactClass({
           <h5 style={{margin: '10px 0px'}}>
             {access.has('team:write') ? (
               <Link to={`/settings/organization/${orgId}/teams/${team.slug}`}>
-                {team.name}
+                #{team.slug}
               </Link>
             ) : (
-              team.name
+              `#${team.slug}`
             )}
           </h5>
         </Box>

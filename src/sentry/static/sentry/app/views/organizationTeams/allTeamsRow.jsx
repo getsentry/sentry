@@ -99,7 +99,7 @@ const AllTeamsRow = createReactClass({
     return (
       <tr>
         <td>
-          <h5>{team.name}</h5>
+          <h5>#{team.slug}</h5>
         </td>
         <td className="actions align-right">
           {this.state.loading ? (

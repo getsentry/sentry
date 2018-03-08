@@ -6,10 +6,10 @@ exports[`TeamAvatar render() renders 1`] = `
 >
   <Tooltip
     disabled={true}
-    title="Team Name"
+    title="team-slug"
   >
     <LetterAvatar
-      displayName="Team Name"
+      displayName="team-slug"
       identifier="team-slug"
     />
   </Tooltip>
