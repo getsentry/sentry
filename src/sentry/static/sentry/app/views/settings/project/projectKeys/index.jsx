@@ -177,7 +177,7 @@ const KeyRow = createReactClass({
           <PanelBody>
             <ProjectKeyCredentials
               projectId={`${data.projectId}`}
-              dsn={data.dsn}
+              data={data}
               features={features}
             />
           </PanelBody>

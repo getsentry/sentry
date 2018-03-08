@@ -167,7 +167,7 @@ class KeyRateLimitsForm extends React.Component {
   static propTypes = {
     organization: PropTypes.object.isRequired,
     project: PropTypes.object.isRequired,
-    data: PropTypes.object.isRequired,
+    data: SentryTypes.ProjectKey.isRequired,
     enabled: PropTypes.bool,
     hooksDisabled: PropTypes.arrayOf(PropTypes.func),
   };
@@ -292,7 +292,7 @@ const KeySettings = createReactClass({
     project: PropTypes.object.isRequired,
     access: PropTypes.object.isRequired,
     features: PropTypes.object.isRequired,
-    data: PropTypes.object.isRequired,
+    data: SentryTypes.ProjectKey.isRequired,
     onRemove: PropTypes.func.isRequired,
     rateLimitsEnabled: PropTypes.bool,
   },
@@ -385,7 +385,7 @@ const KeySettings = createReactClass({
 
             <ProjectKeyCredentials
               projectId={`${data.projectId}`}
-              dsn={data.dsn}
+              data={data}
               features={features}
               showPublicKey
               showSecretKey

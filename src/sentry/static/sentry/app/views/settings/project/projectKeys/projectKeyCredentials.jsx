@@ -5,12 +5,13 @@ import {t, tct} from '../../../../locale';
 import ExternalLink from '../../../../components/externalLink';
 import Field from '../../components/forms/field';
 import TextCopyInput from '../../components/forms/textCopyInput';
+import SentryTypes from '../../../../proptypes';
 import getDynamicText from '../../../../utils/getDynamicText';
 
 class ProjectKeyCredentials extends React.Component {
   static propTypes = {
     projectId: PropTypes.string.isRequired,
-    dsn: PropTypes.object.isRequired,
+    data: SentryTypes.ProjectKey,
     features: PropTypes.object,
 
     showDsn: PropTypes.bool,
@@ -36,7 +37,7 @@ class ProjectKeyCredentials extends React.Component {
     let {
       features,
       projectId,
-      dsn,
+      data,
       showDsn,
       showDsnPublic,
       showCspEndpoint,
@@ -52,8 +53,8 @@ class ProjectKeyCredentials extends React.Component {
           <Field label={t('DSN')} inline={false} hideControlState>
             <TextCopyInput>
               {getDynamicText({
-                value: dsn.secret,
-                fixed: dsn.secret.replace(
+                value: data.dsn.secret,
+                fixed: data.dsn.secret.replace(
                   new RegExp(`\/${projectId}$`),
                   '/<<projectId>>'
                 ),
@@ -80,8 +81,8 @@ class ProjectKeyCredentials extends React.Component {
           >
             <TextCopyInput>
               {getDynamicText({
-                value: dsn.public,
-                fixed: dsn.public.replace(
+                value: data.dsn.public,
+                fixed: data.dsn.public.replace(
                   new RegExp(`\/${projectId}$`),
                   '/<<projectId>>'
                 ),
@@ -105,8 +106,11 @@ class ProjectKeyCredentials extends React.Component {
           >
             <TextCopyInput>
               {getDynamicText({
-                value: dsn.csp,
-                fixed: dsn.csp.replace(new RegExp(`\/${projectId}$`), '/<<projectId>>'),
+                value: data.dsn.csp,
+                fixed: data.dsn.csp.replace(
+                  new RegExp(`\/${projectId}$`),
+                  '/<<projectId>>'
+                ),
               })}
             </TextCopyInput>
           </Field>
@@ -127,8 +131,8 @@ class ProjectKeyCredentials extends React.Component {
             >
               <TextCopyInput>
                 {getDynamicText({
-                  value: dsn.minidump,
-                  fixed: dsn.minidump.replace(
+                  value: data.dsn.minidump,
+                  fixed: data.dsn.minidump.replace(
                     new RegExp(`\/${projectId}$`),
                     '/<<projectId>>'
                   ),
@@ -141,7 +145,7 @@ class ProjectKeyCredentials extends React.Component {
           <Field label={t('Public Key')} inline={true} hideControlState>
             <TextCopyInput>
               {getDynamicText({
-                value: dsn.public,
+                value: data.public,
                 fixed: '__PUBLICKEY__',
               })}
             </TextCopyInput>
@@ -152,7 +156,7 @@ class ProjectKeyCredentials extends React.Component {
           <Field label={t('Secret Key')} inline={true} hideControlState>
             <TextCopyInput>
               {getDynamicText({
-                value: dsn.secret,
+                value: data.secret,
                 fixed: '__SECRETKEY__',
               })}
             </TextCopyInput>
