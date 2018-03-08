@@ -444,6 +444,13 @@ class FormModel {
         return resp;
       })
       .catch(error => {
+        // Field can be configured to reset on error
+        // e.g. BooleanFields
+        let shouldReset = this.getDescriptor(id, 'resetOnError');
+        if (shouldReset) {
+          this.setValue(id, oldValue);
+        }
+
         if (this.options.onSubmitError) {
           this.options.onSubmitError(error, this, id);
         }

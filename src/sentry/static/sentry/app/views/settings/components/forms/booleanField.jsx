@@ -27,6 +27,7 @@ export default class BooleanField extends InputField {
     return (
       <InputField
         {...fieldProps}
+        resetOnError
         field={({onChange, onBlur, value, disabled, ...props}) => {
           // Create a function with required args bound
           let handleChange = this.handleChange.bind(this, value, onChange, onBlur);
