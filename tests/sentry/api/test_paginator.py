@@ -400,4 +400,4 @@ class SequencePaginatorTestCase(SimpleTestCase):
     def test_hits(self):
         n = 10
         paginator = SequencePaginator([(i, i) for i in range(n)])
-        assert paginator.get_result(5).hits == n
+        assert paginator.get_result(5, count_hits=True).hits == n

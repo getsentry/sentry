@@ -8,6 +8,7 @@ sentry.tagstore.v2.backend
 
 from __future__ import absolute_import
 
+import collections
 import six
 
 import logging
@@ -672,7 +673,8 @@ class V2TagStorage(TagStorage):
             _key__key='sentry:user',
         ).order_by('-last_seen')[:limit])
 
-    def get_group_ids_for_search_filter(self, project_id, environment_id, tags, limit=1000):
+    def get_group_ids_for_search_filter(
+            self, project_id, environment_id, tags, candidates=None, limit=1000):
         from sentry.search.base import ANY, EMPTY
         # Django doesnt support union, so we limit results and try to find
         # reasonable matches
@@ -682,7 +684,7 @@ class V2TagStorage(TagStorage):
         tag_lookups = sorted(six.iteritems(tags), key=lambda (k, v): v == ANY)
 
         # get initial matches to start the filter
-        matches = None
+        matches = candidates
 
         # for each remaining tag, find matches contained in our
         # existing set, pruning it down each iteration
@@ -746,12 +748,20 @@ class V2TagStorage(TagStorage):
 
         return qs
 
-    def get_group_tag_value_qs(self, project_id, group_id, environment_id, key):
+    def get_group_tag_value_qs(self, project_id, group_id, environment_id, key, value=None):
         qs = GroupTagValue.objects.filter(
             project_id=project_id,
-            group_id=group_id,
             _key__key=key,
         )
+
+        if isinstance(group_id, collections.Iterable):
+            qs = qs.filter(group_id__in=group_id)
+        else:
+            qs = qs.filter(group_id=group_id)
+
+        if value is not None:
+            qs = qs.filter(_value__value=value)
+
         qs = self._add_environment_filter(qs, environment_id)
         return qs
 
