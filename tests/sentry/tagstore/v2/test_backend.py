@@ -589,7 +589,7 @@ class TagStorage(TestCase):
         v1, _ = self.ts.get_or_create_group_tag_value(
             self.proj1.id,
             self.proj1group1.id,
-            None,
+            0,
             'sentry:user',
             'email:user@sentry.io')
 
@@ -605,7 +605,7 @@ class TagStorage(TestCase):
         v1, _ = self.ts.get_or_create_group_tag_value(
             self.proj1.id,
             self.proj1group1.id,
-            None,
+            0,
             'sentry:user',
             'email:user@sentry.io')
 

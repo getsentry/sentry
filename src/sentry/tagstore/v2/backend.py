@@ -30,6 +30,9 @@ from .models import EventTag, GroupTagKey, GroupTagValue, TagKey, TagValue
 logger = logging.getLogger('sentry.tagstore.v2')
 
 
+AGGREGATE_ENVIRONMENT_ID = 0
+
+
 class V2TagStorage(TagStorage):
     """\
     The v2 tagstore backend stores and respects ``environment_id``.
@@ -136,6 +139,8 @@ class V2TagStorage(TagStorage):
                         })
 
     def create_tag_key(self, project_id, environment_id, key, **kwargs):
+        environment_id = AGGREGATE_ENVIRONMENT_ID if environment_id is None else environment_id
+
         return TagKey.objects.create(
             project_id=project_id,
             environment_id=environment_id,
@@ -144,6 +149,8 @@ class V2TagStorage(TagStorage):
         )
 
     def get_or_create_tag_key(self, project_id, environment_id, key, **kwargs):
+        assert environment_id is not None
+
         return TagKey.objects.get_or_create(
             project_id=project_id,
             environment_id=environment_id,
@@ -152,6 +159,8 @@ class V2TagStorage(TagStorage):
         )
 
     def create_tag_value(self, project_id, environment_id, key, value, **kwargs):
+        environment_id = AGGREGATE_ENVIRONMENT_ID if environment_id is None else environment_id
+
         tag_key_kwargs = kwargs.copy()
         for k in ['times_seen', 'first_seen', 'last_seen']:
             tag_key_kwargs.pop(k, None)
@@ -168,6 +177,8 @@ class V2TagStorage(TagStorage):
 
     def get_or_create_tag_value(self, project_id, environment_id,
                                 key, value, key_id=None, **kwargs):
+        assert environment_id is not None
+
         if key_id is None:
             tag_key, _ = self.get_or_create_tag_key(
                 project_id, environment_id, key, **kwargs)
@@ -181,6 +192,8 @@ class V2TagStorage(TagStorage):
         )
 
     def create_group_tag_key(self, project_id, group_id, environment_id, key, **kwargs):
+        environment_id = AGGREGATE_ENVIRONMENT_ID if environment_id is None else environment_id
+
         tag_key_kwargs = kwargs.copy()
         tag_key_kwargs.pop('values_seen', None)
 
@@ -195,6 +208,8 @@ class V2TagStorage(TagStorage):
         )
 
     def get_or_create_group_tag_key(self, project_id, group_id, environment_id, key, **kwargs):
+        assert environment_id is not None
+
         tag_key, _ = self.get_or_create_tag_key(
             project_id, environment_id, key, **kwargs)
 
@@ -207,6 +222,8 @@ class V2TagStorage(TagStorage):
 
     def create_group_tag_value(self, project_id, group_id, environment_id,
                                key, value, **kwargs):
+        environment_id = AGGREGATE_ENVIRONMENT_ID if environment_id is None else environment_id
+
         other_kwargs = kwargs.copy()
         for k in ['times_seen', 'first_seen', 'last_seen']:
             other_kwargs.pop(k, None)
@@ -227,6 +244,8 @@ class V2TagStorage(TagStorage):
 
     def get_or_create_group_tag_value(self, project_id, group_id,
                                       environment_id, key, value, **kwargs):
+        assert environment_id is not None
+
         tag_key, _ = self.get_or_create_tag_key(
             project_id, environment_id, key, **kwargs)
 
@@ -436,7 +455,7 @@ class V2TagStorage(TagStorage):
 
     def incr_tag_value_times_seen(self, project_id, environment_id,
                                   key, value, extra=None, count=1):
-        for env in [environment_id, None]:
+        for env in [environment_id, AGGREGATE_ENVIRONMENT_ID]:
             tagkey, _ = self.get_or_create_tag_key(project_id, env, key)
 
             buffer.incr(TagValue,
@@ -452,7 +471,7 @@ class V2TagStorage(TagStorage):
 
     def incr_group_tag_value_times_seen(self, project_id, group_id, environment_id,
                                         key, value, extra=None, count=1):
-        for env in [environment_id, None]:
+        for env in [environment_id, AGGREGATE_ENVIRONMENT_ID]:
             tagkey, _ = self.get_or_create_tag_key(project_id, env, key)
             tagvalue, _ = self.get_or_create_tag_value(project_id, env, key, value)
 
@@ -472,12 +491,14 @@ class V2TagStorage(TagStorage):
         # NOTE: `environment_id=None` needs to be filtered differently in this method.
         # EventTag never has NULL `environment_id` fields (individual Events always have an environment),
         # and so `environment_id=None` needs to query EventTag for *all* environments (except, ironically
-        # the aggregate environment, which is NULL).
+        # the aggregate environment).
 
         if environment_id is None:
             # filter for all 'real' environments
-            env_filter = {'_key__environment_id__isnull': False}
+            exclude = {'_key__environment_id': AGGREGATE_ENVIRONMENT_ID}
+            env_filter = {}
         else:
+            exclude = {}
             env_filter = {'_key__environment_id': environment_id}
 
         tagvalue_qs = TagValue.objects.filter(
@@ -485,7 +506,12 @@ class V2TagStorage(TagStorage):
                          for k, v in six.iteritems(tags))),
             project_id=project_id,
             **env_filter
-        ).values_list('_key_id', 'id', '_key__key', 'value')
+        )
+
+        if exclude:
+            tagvalue_qs = tagvalue_qs.exclude(**exclude)
+
+        tagvalue_qs = tagvalue_qs.values_list('_key_id', 'id', '_key__key', 'value')
 
         tagvalues = defaultdict(list)
         for key_id, value_id, key, value in tagvalue_qs:
@@ -545,6 +571,8 @@ class V2TagStorage(TagStorage):
 
     def get_group_tag_value_count(self, project_id, group_id, environment_id, key):
         if db.is_postgres():
+            environment_id = AGGREGATE_ENVIRONMENT_ID if environment_id is None else environment_id
+
             # This doesnt guarantee percentage is accurate, but it does ensure
             # that the query has a maximum cost
             using = router.db_for_read(GroupTagValue)
@@ -557,13 +585,13 @@ class V2TagStorage(TagStorage):
                     FROM tagstore_grouptagvalue
                     INNER JOIN tagstore_tagkey
                     ON (tagstore_grouptagvalue.key_id = tagstore_tagkey.id)
-                    WHERE tagstore_grouptagvalue.group_id = %%s
-                    AND tagstore_tagkey.environment_id %s %%s
-                    AND tagstore_tagkey.key = %%s
+                    WHERE tagstore_grouptagvalue.group_id = %s
+                    AND tagstore_tagkey.environment_id = %s
+                    AND tagstore_tagkey.key = %s
                     ORDER BY last_seen DESC
                     LIMIT 10000
                 ) as a
-            """ % ('IS' if environment_id is None else '='), [group_id, environment_id, key]
+            """, [group_id, environment_id, key]
             )
             return cursor.fetchone()[0] or 0
 
@@ -578,6 +606,8 @@ class V2TagStorage(TagStorage):
 
     def get_top_group_tag_values(self, project_id, group_id, environment_id, key, limit=3):
         if db.is_postgres():
+            environment_id = AGGREGATE_ENVIRONMENT_ID if environment_id is None else environment_id
+
             # This doesnt guarantee percentage is accurate, but it does ensure
             # that the query has a maximum cost
             return list(
@@ -597,14 +627,14 @@ class V2TagStorage(TagStorage):
                     INNER JOIN tagstore_tagkey
                     ON (tagstore_grouptagvalue.key_id = tagstore_tagkey.id)
                     WHERE tagstore_grouptagvalue.group_id = %%s
-                    AND tagstore_tagkey.environment_id %s %%s
+                    AND tagstore_tagkey.environment_id = %%s
                     AND tagstore_tagkey.key = %%s
                     ORDER BY last_seen DESC
                     LIMIT 10000
                 ) as a
                 ORDER BY times_seen DESC
                 LIMIT %d
-            """ % ('IS' if environment_id is None else '=', limit), [group_id, environment_id, key]
+            """ % limit, [group_id, environment_id, key]
                 )
             )
 
@@ -655,7 +685,7 @@ class V2TagStorage(TagStorage):
     def get_group_ids_for_users(self, project_ids, event_users, limit=100):
         return list(GroupTagValue.objects.filter(
             project_id__in=project_ids,
-            _key__environment_id__isnull=True,
+            _key__environment_id=AGGREGATE_ENVIRONMENT_ID,
             _key__key='sentry:user',
             _value__value__in=[eu.tag_value for eu in event_users],
         ).order_by('-last_seen').values_list('group_id', flat=True)[:limit])
@@ -668,7 +698,7 @@ class V2TagStorage(TagStorage):
 
         return list(GroupTagValue.objects.filter(
             reduce(or_, tag_filters),
-            _key__environment_id__isnull=True,
+            _key__environment_id=AGGREGATE_ENVIRONMENT_ID,
             _key__key='sentry:user',
         ).order_by('-last_seen')[:limit])
 
@@ -766,15 +796,11 @@ class V2TagStorage(TagStorage):
         Filter a queryset by the provided `environment_id`, handling
         whether a JOIN is required or not depending on the model.
         """
+        if environment_id is None:
+            environment_id = AGGREGATE_ENVIRONMENT_ID
         if queryset.model == TagKey:
-            if environment_id is None:
-                return queryset.filter(environment_id__isnull=True)
-            else:
-                return queryset.filter(environment_id=environment_id)
+            return queryset.filter(environment_id=environment_id)
         elif queryset.model in (TagValue, GroupTagKey, GroupTagValue):
-            if environment_id is None:
-                return queryset.filter(_key__environment_id__isnull=True)
-            else:
-                return queryset.filter(_key__environment_id=environment_id)
+            return queryset.filter(_key__environment_id=environment_id)
         else:
             raise ValueError("queryset of unsupported model '%s' provided" % queryset.model)

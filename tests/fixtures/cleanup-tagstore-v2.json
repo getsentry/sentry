@@ -3,6 +3,7 @@
       "fields": {
         "id": 1,
         "project_id": 1,
+        "environment_id": 0,
         "key": "key",
         "values_seen": 1,
         "status": 0
