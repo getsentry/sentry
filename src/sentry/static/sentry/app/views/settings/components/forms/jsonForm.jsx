@@ -36,6 +36,7 @@ class JsonForm extends React.Component {
     title: PropTypes.string,
 
     access: PropTypes.object,
+    features: PropTypes.object,
     additionalFieldProps: PropTypes.object,
     renderFooter: PropTypes.func,
     /**
@@ -91,6 +92,7 @@ class JsonForm extends React.Component {
       fields,
 
       access,
+      features,
       additionalFieldProps,
       renderFooter,
       renderHeader,
@@ -102,6 +104,7 @@ class JsonForm extends React.Component {
     let hasFormGroups = defined(forms);
     let formPanelProps = {
       access,
+      features,
       additionalFieldProps,
       renderFooter,
       renderHeader,
