@@ -769,6 +769,18 @@ exports[`Issues -> Merged View renders with mocked data 1`] = `
                           <div
                             className="event-issue-header"
                           >
+                            <GuideAnchor
+                              target="issues"
+                              type="text"
+                            >
+                              <div
+                                className="guide-anchor text"
+                              >
+                                <span
+                                  className="issues guide-anchor-ping"
+                                />
+                              </div>
+                            </GuideAnchor>
                             <h3
                               className="truncate"
                             >
@@ -1205,6 +1217,18 @@ exports[`Issues -> Merged View renders with mocked data 1`] = `
                           <div
                             className="event-issue-header"
                           >
+                            <GuideAnchor
+                              target="issues"
+                              type="text"
+                            >
+                              <div
+                                className="guide-anchor text"
+                              >
+                                <span
+                                  className="issues guide-anchor-ping"
+                                />
+                              </div>
+                            </GuideAnchor>
                             <h3
                               className="truncate"
                             >
@@ -2116,6 +2140,18 @@ exports[`Issues -> Merged View renders with mocked data 2`] = `
                           <div
                             className="event-issue-header"
                           >
+                            <GuideAnchor
+                              target="issues"
+                              type="text"
+                            >
+                              <div
+                                className="guide-anchor text"
+                              >
+                                <span
+                                  className="issues guide-anchor-ping"
+                                />
+                              </div>
+                            </GuideAnchor>
                             <h3
                               className="truncate"
                             >
@@ -2552,6 +2588,18 @@ exports[`Issues -> Merged View renders with mocked data 2`] = `
                           <div
                             className="event-issue-header"
                           >
+                            <GuideAnchor
+                              target="issues"
+                              type="text"
+                            >
+                              <div
+                                className="guide-anchor text"
+                              >
+                                <span
+                                  className="issues guide-anchor-ping"
+                                />
+                              </div>
+                            </GuideAnchor>
                             <h3
                               className="truncate"
                             >
