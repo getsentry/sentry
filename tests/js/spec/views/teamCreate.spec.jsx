@@ -13,7 +13,7 @@ describe('TeamCreate', function() {
           }}
         />,
         {
-          context: {router: TestStubs.router()},
+          context: {router: TestStubs.router(), organization: TestStubs.Organization()},
         }
       );
       expect(wrapper).toMatchSnapshot();
