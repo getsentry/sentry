@@ -53,8 +53,8 @@ class GroupEventDataSection extends React.Component {
             ) : (
               <div>{this.props.title}</div>
             )}
-            {this.props.type === 'extra' ? (
-              <GuideAnchor target="extra" type="text" />
+            {this.props.type === 'tags' ? (
+              <GuideAnchor target="tags" type="text" />
             ) : null}
             {this.props.type === 'extra' && (
               <div className="btn-group pull-right">

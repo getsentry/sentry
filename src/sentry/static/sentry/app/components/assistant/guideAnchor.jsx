@@ -7,9 +7,12 @@ import Reflux from 'reflux';
 import {registerAnchor, unregisterAnchor} from '../../actionCreators/guides';
 import GuideStore from '../../stores/guideStore';
 
-// A guide anchor provides a ripple-effect on an element on the page to draw attention
-// to it. Guide anchors register with the guide store, which uses this information to
-// determine which guides can be shown on the page.
+// A guide anchor provides a ripple-effect on an element to draw attention to it.
+// Guide anchors register with the guide store, which uses this information to
+// determine which guides can be shown on the page. Multiple guide anchors on
+// a page can have the same `target` property, which will make all of them glow
+// when a step in the guide matches that target (although only one of them will
+// be scrolled to).
 const GuideAnchor = createReactClass({
   propTypes: {
     target: PropTypes.string.isRequired,

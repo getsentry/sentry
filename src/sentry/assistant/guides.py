@@ -19,35 +19,42 @@ GUIDES = {
             {
                 'title': _('Breadcrumbs'),
                 'message': _(
-                    'Breadcrumbs are a trail of events that happened prior to the error. These '
-                    'are similar to traditional logs but can record more rich structured data. '
-                    'When integrated with web frameworks, breadcrumbs are also automatically '
-                    'captured for events like database calls or network requests.'),
+                    'Breadcrumbs are a trail of events that happened prior to the error. They\'re '
+                    'similar to traditional logs but can record more rich structured data. '
+                    'When Sentry is used with web frameworks, breadcrumbs are automatically '
+                    'captured for events like database calls and network requests.'),
                 'target': 'breadcrumbs',
             },
             {
                 'title': _('Tags'),
                 'message': _(
-                    'Tags are key-value pairs sent with every event. Here you can see '
-                    'the distribution of tags for all events in this event group. Tags are '
-                    'useful for searching and filtering events. E.g. you can search for all '
-                    'events coming from a specific machine, browser, release etc.'),
+                    'Tags are arbitrary key-value pairs sent with every event. You can filter '
+                    'events by tags - for example, searching for all events from a specific '
+                    'machine, browser, release etc. The sidebar on the right shows you the '
+                    'distribution of tags for all events in this event group.'),
                 'target': 'tags',
+            },
+            {
+                'title': _('Resolution'),
+                'message': _(
+                    'Resolving an issue removes it from the default dashboard view of unresolved '
+                    'issues. You can ask Sentry to alert you when a resolved issue re-occurs.'),
+                'target': 'resolve',
             },
             {
                 'title': _('Issue number'),
                 'message': _(
-                    'The issue number is a unique identifier for the issue, and can be included '
-                    'in a commit messages to tell Sentry to resolve the issue when the commit '
-                    'gets deployed. See <a href="https://docs.sentry.io/learn/releases/">Releases'
-                    '</a> to learn more.'),
+                    'This is a unique identifier for the issue, and can be included in a commit '
+                    'message to tell Sentry to resolve the issue when the commit gets deployed. '
+                    'See <a href="https://docs.sentry.io/learn/releases/">Releases</a> '
+                    'to learn more.'),
                 'target': 'issue_number',
             },
             {
                 'title': _('Issue Tracking'),
                 'message': _(
-                    'Create issues within your project management tool. A list of all integrations '
-                    'can be found <a href="https://docs.sentry.io/integrations/">here</a>.'),
+                    'Create issues within your project management tool. Sentry integrates with '
+                    '<a href="https://docs.sentry.io/integrations/">many popular tools</a>.'),
                 'target': 'issue_tracking',
             },
             {

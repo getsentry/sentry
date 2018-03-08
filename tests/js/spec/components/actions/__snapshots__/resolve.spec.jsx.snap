@@ -82,6 +82,18 @@ exports[`ResolveActions with confirmation step renders 1`] = `
     <div
       className="btn-group"
     >
+      <GuideAnchor
+        target="resolve"
+        type="text"
+      >
+        <div
+          className="guide-anchor anchor-type-text"
+        >
+          <span
+            className="resolve guide-anchor-ping"
+          />
+        </div>
+      </GuideAnchor>
       <ActionLink
         className="btn btn-default btn-sm"
         confirmLabel="Resolve"
@@ -405,7 +417,7 @@ exports[`ResolveActions with confirmation step renders 1`] = `
                         disabled={false}
                         onClick={[Function]}
                       >
-                        Another version\u2026
+                        Another version…
                       </a>
                     </ActionLink>
                   </Tooltip>
@@ -500,6 +512,18 @@ exports[`ResolveActions without confirmation renders 1`] = `
     <div
       className="btn-group"
     >
+      <GuideAnchor
+        target="resolve"
+        type="text"
+      >
+        <div
+          className="guide-anchor anchor-type-text"
+        >
+          <span
+            className="resolve guide-anchor-ping"
+          />
+        </div>
+      </GuideAnchor>
       <ActionLink
         className="btn btn-default btn-sm"
         confirmLabel="Resolve"
@@ -636,7 +660,7 @@ exports[`ResolveActions without confirmation renders 1`] = `
                         disabled={false}
                         onClick={[Function]}
                       >
-                        Another version\u2026
+                        Another version…
                       </a>
                     </ActionLink>
                   </Tooltip>

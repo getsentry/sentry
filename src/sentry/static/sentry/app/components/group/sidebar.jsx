@@ -13,7 +13,6 @@ import HookStore from '../../stores/hookStore';
 import IndicatorStore from '../../stores/indicatorStore';
 import TagDistributionMeter from './tagDistributionMeter';
 import LoadingError from '../../components/loadingError';
-import GuideAnchor from '../../components/assistant/guideAnchor';
 import {t, tct} from '../../locale';
 
 const GroupSidebar = createReactClass({
@@ -225,7 +224,6 @@ const GroupSidebar = createReactClass({
 
         {this.state.hooks}
 
-        <GuideAnchor target="tags" type="text" />
         <h6>
           <span>{t('Tags')}</span>
         </h6>
