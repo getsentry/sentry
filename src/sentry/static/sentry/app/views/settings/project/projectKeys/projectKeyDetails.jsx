@@ -243,7 +243,7 @@ class KeyRateLimitsForm extends React.Component {
                 {({onChange, onBlur, value}) => {
                   return (
                     <Flex>
-                      <Box flex="2">
+                      <Flex flex="2" align="center">
                         <InputControl
                           type="number"
                           name="rateLimit.count"
@@ -253,7 +253,7 @@ class KeyRateLimitsForm extends React.Component {
                           onChange={this.handleChangeCount.bind(this, onChange, value)}
                           onBlur={this.handleChangeCount.bind(this, onBlur, value)}
                         />
-                      </Box>
+                      </Flex>
                       <Flex justify="center" align="center" mx={10} flex="1">
                         <small css={{whiteSpace: 'nowrap'}}>event(s) in</small>
                       </Flex>
