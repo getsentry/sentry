@@ -27,31 +27,44 @@ export default class BooleanField extends InputField {
     return (
       <InputField
         {...fieldProps}
-        field={({onChange, onBlur, value, disabled, ...props}) => (
-          <Confirm
-            message={confirm}
-            onConfirm={this.handleChange.bind(this, value, onChange, onBlur, {})}
-          >
-            {({open}) => (
-              <Switch
-                size="lg"
-                {...props}
-                isActive={!!value}
-                isDisabled={disabled}
-                toggle={e => {
-                  // If we have a `confirm` prop and enabling switch
-                  // Then show confirm dialog, otherwise propagate change as normal
-                  if (!!confirm && !value) {
-                    open();
-                    return;
-                  }
+        field={({onChange, onBlur, value, disabled, ...props}) => {
+          // Create a function with required args bound
+          let handleChange = this.handleChange.bind(this, value, onChange, onBlur);
 
-                  this.handleChange(value, onChange, onBlur, e);
-                }}
-              />
-            )}
-          </Confirm>
-        )}
+          let switchProps = {
+            size: 'lg',
+            ...props,
+            isActive: !!value,
+            isDisabled: disabled,
+            toggle: handleChange,
+          };
+
+          if (confirm) {
+            return (
+              <Confirm message={confirm} onConfirm={() => handleChange({})}>
+                {({open}) => (
+                  <Switch
+                    {...switchProps}
+                    toggle={e => {
+                      // If we have a `confirm` prop and enabling switch
+                      // Then show confirm dialog, otherwise propagate change as normal
+                      //
+                      // TODO(billy): We will probably want a way to control if it happens on enable or disable
+                      if (!!confirm && !value) {
+                        open();
+                        return;
+                      }
+
+                      handleChange(e);
+                    }}
+                  />
+                )}
+              </Confirm>
+            );
+          }
+
+          return <Switch {...switchProps} />;
+        }}
       />
     );
   }
