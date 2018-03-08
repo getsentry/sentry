@@ -121,13 +121,15 @@ class DjangoSearchBackendTest(TestCase):
                 environment_id=environment.id,
                 key=key,
                 value=value,
-                defaults={
-                    'first_seen': event.datetime,
-                    'last_seen': event.datetime,
-                },
             )
 
-            if not created:
+            if created:  # XXX: Hack for tagstore compat
+                value.update(
+                    times_seen=1,
+                    first_seen=event.datetime,
+                    last_seen=event.datetime,
+                )
+            else:
                 updates = {
                     'times_seen': value.times_seen + 1,
                 }
