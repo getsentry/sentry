@@ -28,6 +28,7 @@ const TeamRow = createReactClass({
     team: PropTypes.object.isRequired,
     access: PropTypes.object.isRequired,
     onRemove: PropTypes.func.isRequired,
+    teamCount: PropTypes.number.isRequired,
   },
 
   mixins: [ApiMixin],
@@ -69,17 +70,25 @@ const TeamRow = createReactClass({
           <h5 style={{margin: '10px 0px'}}>
             {access.has('team:write') ? (
               <Link to={`/settings/organization/${orgId}/teams/${team.slug}`}>
-                {team.name}
+                #{team.slug}
               </Link>
             ) : (
-              team.name
+              `#${team.slug}`
             )}
           </h5>
         </Box>
         {this.props.access.has('project:write') && (
           <Box pl={2}>
             <Confirm
-              message={t('Are you sure you want to remove this team?')}
+              message={
+                this.props.teamCount === 1
+                  ? t(
+                      'This is the last team with access to this project. Removing it will mean ' +
+                        'only owners and managers will be able to access the project pages. Are ' +
+                        'you sure you want to remove this team?'
+                    )
+                  : t('Are you sure you want to remove this team?')
+              }
               onConfirm={this.handleRemove}
               disabled={this.state.loading}
             >
@@ -166,6 +175,7 @@ class ProjectTeams extends AsyncView {
               projectId={projectId}
               team={team}
               onRemove={this.handleRemovedTeam.bind(this, team)}
+              teamCount={this.state.projectTeams.length}
             />
           );
         })}

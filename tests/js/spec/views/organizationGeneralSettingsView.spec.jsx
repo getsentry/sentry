@@ -214,4 +214,122 @@ describe('OrganizationGeneralSettingsView', function() {
       done();
     });
   });
+
+  it('enables require2fa but cancels confirm modal', function(done) {
+    let mock = MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/',
+      method: 'PUT',
+    });
+    let wrapper = mount(
+      <OrganizationGeneralSettingsView params={{orgId: org.slug}} />,
+      TestStubs.routerContext([
+        {
+          organization: TestStubs.Organization({
+            features: ['require-2fa'],
+          }),
+        },
+      ])
+    );
+
+    wrapper.setState({loading: false});
+    setTimeout(() => {
+      wrapper.update();
+      expect(wrapper.find('Switch[name="require2FA"]')).toHaveLength(1);
+      wrapper.find('Switch[name="require2FA"]').simulate('click');
+      expect(wrapper.find('Field[name="require2FA"] ModalDialog')).toHaveLength(1);
+
+      // Cancel
+      wrapper
+        .find('Field[name="require2FA"] ModalDialog .modal-footer Button')
+        .first()
+        .simulate('click');
+      expect(wrapper.find('Field[name="require2FA"] ModalDialog')).toHaveLength(0);
+      expect(wrapper.find('Switch[name="require2FA"]').prop('isActive')).toBe(false);
+      expect(mock).not.toHaveBeenCalled();
+      done();
+    });
+  });
+
+  it('enables require2fa with confirm modal', function(done) {
+    let mock = MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/',
+      method: 'PUT',
+    });
+
+    let wrapper = mount(
+      <OrganizationGeneralSettingsView params={{orgId: org.slug}} />,
+      TestStubs.routerContext([
+        {
+          organization: TestStubs.Organization({
+            features: ['require-2fa'],
+          }),
+        },
+      ])
+    );
+
+    wrapper.setState({loading: false});
+    setTimeout(() => {
+      wrapper.update();
+      expect(wrapper.find('Switch[name="require2FA"]')).toHaveLength(1);
+      wrapper.find('Switch[name="require2FA"]').simulate('click');
+      expect(wrapper.find('Field[name="require2FA"] ModalDialog')).toHaveLength(1);
+
+      // Confirm
+      wrapper
+        .find(
+          'Field[name="require2FA"] ModalDialog .modal-footer Button[priority="primary"]'
+        )
+        .simulate('click');
+      expect(wrapper.find('Field[name="require2FA"] ModalDialog')).toHaveLength(0);
+      expect(wrapper.find('Switch[name="require2FA"]').prop('isActive')).toBe(true);
+      expect(mock).toHaveBeenCalledWith(
+        '/organizations/org-slug/',
+        expect.objectContaining({
+          method: 'PUT',
+          data: {
+            require2FA: true,
+          },
+        })
+      );
+      done();
+    });
+  });
+
+  it('returns to "off" if switch enable fails (e.g. API error)', function(done) {
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/',
+      method: 'PUT',
+      statusCode: 500,
+    });
+
+    let wrapper = mount(
+      <OrganizationGeneralSettingsView params={{orgId: org.slug}} />,
+      TestStubs.routerContext([
+        {
+          organization: TestStubs.Organization({
+            features: ['require-2fa'],
+          }),
+        },
+      ])
+    );
+
+    wrapper.setState({loading: false});
+    setTimeout(() => {
+      wrapper.update();
+      wrapper.find('Switch[name="require2FA"]').simulate('click');
+
+      // Confirm but has API failure
+      wrapper
+        .find(
+          'Field[name="require2FA"] ModalDialog .modal-footer Button[priority="primary"]'
+        )
+        .simulate('click');
+
+      setTimeout(() => {
+        wrapper.update();
+        expect(wrapper.find('Switch[name="require2FA"]').prop('isActive')).toBe(false);
+        done();
+      });
+    });
+  });
 });

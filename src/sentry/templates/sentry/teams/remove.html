@@ -10,7 +10,7 @@
   <div class="page-header">
     <h2>
       {% trans "Remove Team" %}
-      <small>{{ team.name }}</small>
+      <small>#{{ team.slug }}</small>
     </h2>
   </div>
   <form action="" method="post">
@@ -25,8 +25,7 @@
     {% endfor %}
 
     <fieldset class="form-actions">
-      <button type="submit" class="btn btn-danger"
-              onclick="return confirm('Are you sure you want to remove this team?')">{% trans "Remove Team" %}</button>
+      <button type="submit" class="btn btn-danger">{% trans "Remove Team" %}</button>
       <a href="{% absolute_uri '/organizations/{}/teams/{}/settings/' team.organization.slug team.slug %}" class="btn btn-default">{% trans "Cancel" %}</a>
     </fieldset>
   </form>

@@ -2,6 +2,7 @@ import PropTypes from 'prop-types';
 import React from 'react';
 import {Link} from 'react-router';
 
+import ProjectLink from '../../components/projectLink';
 import ProjectSelector from './projectSelector';
 import BookmarkToggle from '../projects/bookmarkToggle';
 import DropdownLink from '../dropdownLink';
@@ -63,25 +64,31 @@ class ProjectHeader extends React.Component {
 
             <ul className="nav nav-tabs">
               <li className={navSection == 'stream' ? 'active' : ''}>
-                <Link to={`/${org.slug}/${project.slug}/`}>{t('Issues')}</Link>
+                <ProjectLink to={`/${org.slug}/${project.slug}/`}>
+                  {t('Issues')}
+                </ProjectLink>
               </li>
               {features.has('global-events') && (
                 <li className={navSection == 'events' ? 'active' : ''}>
-                  <Link to={`/${org.slug}/${project.slug}/events/`}>{t('Events')}</Link>
+                  <ProjectLink to={`/${org.slug}/${project.slug}/events/`}>
+                    {t('Events')}
+                  </ProjectLink>
                 </li>
               )}
               <li className={navSection == 'dashboard' ? 'active' : ''}>
-                <Link to={`/${org.slug}/${project.slug}/dashboard/`}>
+                <ProjectLink to={`/${org.slug}/${project.slug}/dashboard/`}>
                   {t('Overview')}
-                </Link>
+                </ProjectLink>
               </li>
               <li className={navSection == 'user-feedback' ? 'active' : ''}>
-                <Link to={`/${org.slug}/${project.slug}/user-feedback/`}>
+                <ProjectLink to={`/${org.slug}/${project.slug}/user-feedback/`}>
                   {t('User Feedback')}
-                </Link>
+                </ProjectLink>
               </li>
               <li className={navSection == 'releases' ? 'active' : ''}>
-                <Link to={`/${org.slug}/${project.slug}/releases/`}>{t('Releases')}</Link>
+                <ProjectLink to={`/${org.slug}/${project.slug}/releases/`}>
+                  {t('Releases')}
+                </ProjectLink>
               </li>
               {access.has('project:write') && (
                 <li className={navSection == 'settings' ? 'active' : ''}>
