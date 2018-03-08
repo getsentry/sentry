@@ -130,7 +130,7 @@ const NoteInput = createReactClass({
   cleanMarkdown(text) {
     return text
       .replace(/\[sentry\.strip:member\]/g, '@')
-      .replace(/\[sentry\.strip:team\]/g, '#');
+      .replace(/\[sentry\.strip:team\]/g, '');
   },
 
   create() {
@@ -280,7 +280,7 @@ const NoteInput = createReactClass({
       .filter(({projects}) => !!projects.find(p => p.slug === group.project.slug))
       .map(team => ({
         id: buildTeamId(team.id),
-        display: team.slug,
+        display: `#${team.slug}`,
         email: team.id,
       }));
   },
@@ -344,7 +344,7 @@ const NoteInput = createReactClass({
               required={true}
               autoFocus={true}
               displayTransform={(id, display, type) =>
-                `${type === 'member' ? '@' : '#'}${display}`}
+                `${type === 'member' ? '@' : ''}${display}`}
               markup="**[sentry.strip:__type__]__display__**"
             >
               <Mention
