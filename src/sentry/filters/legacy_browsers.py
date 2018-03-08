@@ -182,6 +182,10 @@ class LegacyBrowsersFilter(Filter):
         if not browser['family']:
             return False
 
+        # IE Desktop and IE Mobile use the same engines, therefore we can treat them as one
+        if browser['family'] == "IE Mobile":
+            browser['family'] = "IE"
+
         # handle old style config
         if opts == '1':
             return self.filter_default(browser)
