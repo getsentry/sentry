@@ -177,8 +177,51 @@ class DjangoSearchBackendTest(TestCase):
         results = self.backend.query(self.project, sort_by='freq')
         assert list(results) == [self.group2, self.group1]
 
+        results = self.backend.query(self.project, sort_by='priority')
+        assert list(results) == [self.group2, self.group1]
+
     def test_sort_with_environment(self):
-        raise NotImplementedError
+        group2 = self.create_group(
+            times_seen=self.group1.times_seen + 10,
+            first_seen=self.group1.first_seen + timedelta(days=1),
+            last_seen=self.group1.last_seen + timedelta(days=1),
+        )
+
+        for dt in [group2.first_seen, group2.first_seen + timedelta(days=1), group2.last_seen]:
+            event = self.create_event(
+                group=group2,
+                datetime=dt,
+                tags={'environment': 'production'}
+            )
+            self._setup_tags_for_event(event)
+
+        results = self.backend.query(
+            self.project,
+            environment=self.environments['production'],
+            sort_by='date',
+        )
+        assert list(results) == [group2, self.group1]
+
+        results = self.backend.query(
+            self.project,
+            environment=self.environments['production'],
+            sort_by='new',
+        )
+        assert list(results) == [group2, self.group1]
+
+        results = self.backend.query(
+            self.project,
+            environment=self.environments['production'],
+            sort_by='freq',
+        )
+        assert list(results) == [group2, self.group1]
+
+        results = self.backend.query(
+            self.project,
+            environment=self.environments['production'],
+            sort_by='priority',
+        )
+        assert list(results) == [group2, self.group1]
 
     def test_status(self):
         results = self.backend.query(self.project, status=GroupStatus.UNRESOLVED)
