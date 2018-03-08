@@ -344,7 +344,7 @@ class DjangoSearchBackend(SearchBackend):
                     candidates.keys(),
                     limit=len(candidates),
                 )
-                for key in set(candidates) - set(matches):
+                for key in set(candidates) - set(matches or []):
                     del candidates[key]
 
             result = SequencePaginator(
