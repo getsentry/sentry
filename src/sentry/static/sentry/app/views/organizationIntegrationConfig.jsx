@@ -121,7 +121,7 @@ export default class OrganizationIntegrationConfig extends AsyncView {
 
     return [
       ['config', `/organizations/${orgId}/config/integrations/`],
-      ['itemList', `/organizations/${orgId}/integrations/`, {query: {status: ''}}],
+      ['itemList', `/organizations/${orgId}/integrations/`],
     ];
   }
 
