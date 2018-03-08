@@ -1,4 +1,5 @@
 import React from 'react';
+import styled from 'react-emotion';
 
 import {t} from '../../../locale';
 import AsyncView from '../../asyncView';
@@ -8,10 +9,14 @@ import PanelBody from '../components/panelBody';
 import PanelHeader from '../components/panelHeader';
 import SentryTypes from '../../../proptypes';
 import SettingsPageHeader from '../components/settingsPageHeader';
-import TextBlock from '../components/text/textBlock';
 import Form from '../components/forms/form';
 import JsonForm from '../components/forms/jsonForm';
 import OwnerInput from './ownerInput';
+
+const CodeBlock = styled.pre`
+  word-break: break-all;
+  white-space: pre-wrap;
+`;
 
 class ProjectOwnership extends AsyncView {
   static propTypes = {
@@ -47,11 +52,23 @@ class ProjectOwnership extends AsyncView {
         <Panel>
           <PanelHeader>{t('Ownership Rules')}</PanelHeader>
           <PanelBody disablePadding={false}>
-            <TextBlock>
+            <p>
               {t(
-                "To configure automated issue ownership in Sentry, you'll need to define rules here."
+                "To configure automated issue ownership in Sentry, you'll need to define rules here. "
               )}
-            </TextBlock>
+            </p>
+            <p>{t('Rules follow the pattern type:glob owner, owner')}</p>
+            <p>
+              {t(
+                'Owners can be team identifiers starting with #, or user emails starting with @'
+              )}
+            </p>
+            Examples:
+            <CodeBlock>
+              path:src/sentry/pipeline/* @person@sentry.io, #platform
+              {'\n'}
+              url:sentry.io/settings/* #workflow
+            </CodeBlock>
             <OwnerInput {...this.props} initialText={ownership.raw || ''} />
           </PanelBody>
         </Panel>

@@ -44,7 +44,7 @@ class ProjectOwnership extends React.Component {
     return 'Ownership';
   }
 
-  updateOwnership(data) {
+  updateOwnership() {
     let {organization, project} = this.props;
     this.setState({error: null});
 
@@ -53,7 +53,7 @@ class ProjectOwnership extends React.Component {
       `/projects/${organization.slug}/${project.slug}/ownership/`,
       {
         method: 'PUT',
-        data,
+        data: {raw: this.state.text},
       }
     );
 
@@ -97,7 +97,14 @@ class ProjectOwnership extends React.Component {
 
     return (
       <React.Fragment>
-        <div style={{position: 'relative'}}>
+        <div
+          style={{position: 'relative'}}
+          onKeyDown={e => {
+            if (e.metaKey && e.key == 'Enter') {
+              this.updateOwnership();
+            }
+          }}
+        >
           <MentionsInput
             style={styles}
             placeholder={'Project Ownership'}
@@ -127,17 +134,19 @@ class ProjectOwnership extends React.Component {
             />
           </MentionsInput>
           {error && <SyntaxOverlay line={error.raw[0].match(/line (\d*),/)[1] - 1} />}
+          {error && error.raw.toString()}
+          <div style={{textAlign: 'end', paddingTop: '10px'}}>
+            <Button
+              size="small"
+              priority="primary"
+              onClick={() => {
+                this.updateOwnership();
+              }}
+            >
+              {t('Save Changes')}
+            </Button>
+          </div>
         </div>
-        {error && error.raw.toString()}
-        <Button
-          size="small"
-          priority="primary"
-          onClick={() => {
-            this.updateOwnership({raw: this.state.text});
-          }}
-        >
-          {t('Save Changes')}
-        </Button>
       </React.Fragment>
     );
   }
