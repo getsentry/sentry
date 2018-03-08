@@ -80,17 +80,15 @@ const StyledAssistantContainer = styled(AssistantContainer)`
 const StyledAssistantInputRow = styled('div')`
   display: flex;
   align-items: center;
-  height: 35px;
 `;
 
 const StyledTitle = styled('div')`
-  font-size: 1.25em;
+  font-size: 1.5em;
   margin-left: 0.5em;
   flex-grow: 1;
 `;
 
 const StyledContent = styled('div')`
   margin: 1.5rem;
-  width: 400px;
   line-height: 1.5;
 `;

@@ -1,7 +1,7 @@
 // Jest Snapshot v1, https://goo.gl/fbAQLP
 
 exports[`Helper renders cue 1`] = `
-<div>
+<StyledHelper>
   <StyledAssistantContainer
     className="assistant-cue"
     hasGuide={null}
@@ -20,11 +20,11 @@ exports[`Helper renders cue 1`] = `
       />
     </StyledCueText>
   </StyledAssistantContainer>
-</div>
+</StyledHelper>
 `;
 
 exports[`Helper renders guide drawer 1`] = `
-<div>
+<StyledHelper>
   <GuideDrawer
     guide={
       Object {
@@ -52,13 +52,13 @@ exports[`Helper renders guide drawer 1`] = `
     onFinish={[Function]}
     step={1}
   />
-</div>
+</StyledHelper>
 `;
 
 exports[`Helper renders support drawer 1`] = `
-<div>
+<StyledHelper>
   <SupportDrawer
     onClose={[Function]}
   />
-</div>
+</StyledHelper>
 `;

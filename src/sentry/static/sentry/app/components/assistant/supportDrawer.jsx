@@ -137,7 +137,6 @@ const StyledAssistantContainer = styled(AssistantContainer)`
 const StyledAssistantInputRow = styled('div')`
   display: flex;
   align-items: center;
-  height: 110px;
 `;
 
 const StyledInput = styled(Input)`
@@ -145,19 +144,16 @@ const StyledInput = styled(Input)`
   height: 2em;
   flex-grow: 1;
   text-indent: 1em;
-  width: 275px;
-  border-top-left-radius: 1.45em;
-  border-bottom-left-radius: 1.45em;
+  border-top-left-radius: 1.45rem;
+  border-bottom-left-radius: 1.45rem;
 `;
 
 const StyledSearchIcon = styled(InlineSvg)`
-  left: 0.875em;
+  left: 0.75em;
   position: absolute;
-  top: 50%;
+  top: 53%; //this is an optics thing
   transform: translateY(-50%);
   color: ${p => p.theme.gray1};
-  width: 0.9em;
-  height: 0.9em;
 `;
 
 const StyledSearchContainer = styled('form')`
@@ -170,6 +166,7 @@ const StyledSearchContainer = styled('form')`
 
 const StyledResults = styled('div')`
   flex-grow: 1;
+  flex-basis: 0;
   overflow: scroll;
   border-bottom-left-radius: 1.45em;
   border-bottom-right-radius: 1.45em;

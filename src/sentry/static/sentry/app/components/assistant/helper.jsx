@@ -78,7 +78,7 @@ const AssistantHelper = createReactClass({
     }
 
     return (
-      <div>
+      <StyledHelper>
         {showDrawer &&
           this.state.currentGuide && (
             <GuideDrawer
@@ -107,10 +107,15 @@ const AssistantHelper = createReactClass({
             </StyledCueText>
           </StyledAssistantContainer>
         )}
-      </div>
+      </StyledHelper>
     );
   },
 });
+
+//this globally controls the size of the component
+const StyledHelper = styled('div')`
+  font-size: 1.4rem;
+`;
 
 const StyledCueText = styled('span')`
   width: 0px;
@@ -133,14 +138,17 @@ const StyledAssistantContainer = styled(AssistantContainer)`
   display: flex;
   align-items: center;
   cursor: pointer;
+  max-width: 300px;
+  min-width: 0;
+  width: auto;
 
   &:hover ${StyledCueText} {
     ${p =>
       !p.hasGuide &&
       `
-      width: 80px;
-      // we have to set this to a fixed width
-      // so that the animation works
+      width: 6em;
+      // this is roughly long enough for the copy 'need help?'
+      // at any base font size. if you change the copy, change this value
       opacity: 1;
       margin: 0 0.5em;
     `};
