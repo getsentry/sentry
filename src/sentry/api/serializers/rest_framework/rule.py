@@ -87,7 +87,7 @@ class RuleSerializer(serializers.Serializer):
 
     def save(self, rule):
         rule.project = self.context['project']
-        if self.data.get('environment'):
+        if 'environment' in self.data:
             rule.environment_id = self.data['environment']
         if self.data.get('name'):
             rule.label = self.data['name']
