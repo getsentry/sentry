@@ -2,6 +2,7 @@ import PropTypes from 'prop-types';
 import React from 'react';
 
 import {t, tct} from '../../../../locale';
+import ExternalLink from '../../../../components/externalLink';
 import Field from '../../components/forms/field';
 import TextCopyInput from '../../components/forms/textCopyInput';
 import getDynamicText from '../../../../utils/getDynamicText';
@@ -64,9 +65,16 @@ class ProjectKeyCredentials extends React.Component {
         {showDsnPublic && (
           <Field
             label={t('DSN (Public)')}
-            help={tct('Use your public DSN with browser-based SDKs such as [raven-js].', {
-              'raven-js': <a href="https://github.com/getsentry/raven-js">raven-js</a>,
-            })}
+            help={tct(
+              'Use your public DSN with browser-based SDKs such as [link:raven-js].',
+              {
+                link: (
+                  <ExternalLink href="https://github.com/getsentry/raven-js">
+                    raven-js
+                  </ExternalLink>
+                ),
+              }
+            )}
             inline={false}
             hideControlState
           >

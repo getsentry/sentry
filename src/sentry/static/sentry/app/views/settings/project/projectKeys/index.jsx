@@ -20,6 +20,7 @@ import Button from '../../../../components/buttons/button';
 import ClippedBox from '../../../../components/clippedBox';
 import Confirm from '../../../../components/confirm';
 import EmptyMessage from '../../components/emptyMessage';
+import ExternalLink from '../../../../components/externalLink';
 import Pagination from '../../../../components/pagination';
 import Panel from '../../components/panel';
 import PanelBody from '../../components/panelBody';
@@ -318,7 +319,7 @@ export default class ProjectKeys extends AsyncView {
             information on integrating Sentry with your application take a look at our
             [link:documentation].`,
               {
-                link: <a href="https://docs.sentry.io/" />,
+                link: <ExternalLink href="https://docs.sentry.io/" />,
                 code: <code />,
               }
             )}
