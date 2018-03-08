@@ -294,9 +294,11 @@ export default class OrganizationIntegrationConfig extends AsyncView {
           </Box>
           <Box ml={60}>
             <MetadataLink href={provider.metadata.issue_url}>
-              Report an Issue
+              {t('Report an Issue')}
             </MetadataLink>
-            <MetadataLink href={provider.metadata.source_url}>View Source</MetadataLink>
+            <MetadataLink href={provider.metadata.source_url}>
+              {t('View Source')}
+            </MetadataLink>
           </Box>
         </Details>
       </React.Fragment>
