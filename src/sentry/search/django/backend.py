@@ -86,12 +86,12 @@ class ScalarCondition(Condition):
 
 
 def get_sql_table(model):
-    return '"{}"'.format(model._meta.db_table)
+    return '{}'.format(model._meta.db_table)
 
 
 def get_sql_column(model, field):
-    "Convert a model class and field name to it's quoted SQL column representation."
-    return '{}."{}"'.format(*[
+    "Convert a model class and field name to it's (unquoted!) SQL column representation."
+    return '{}.{}'.format(*[
         get_sql_table(model),
         model._meta.get_field_by_name(field)[0].column,
     ])
