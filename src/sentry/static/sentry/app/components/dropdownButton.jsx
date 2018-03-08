@@ -23,15 +23,17 @@ const StyledChevronDown = styled(props => (
   margin-right: 0.5em;
 `;
 
-const StyledButton = styled(props => <Button {...props} />)`
+const StyledButton = styled(({isOpen, ...props}) => <Button {...props} />)`
   border-bottom-right-radius: ${p => (p.isOpen ? 0 : p.theme.borderRadius)};
   border-bottom-left-radius: ${p => (p.isOpen ? 0 : p.theme.borderRadius)};
   position: relative;
   z-index: 1;
   box-shadow: none;
 
-  &, &:hover { border-bottom-color: ${p =>
-    p.isOpen ? 'transparent' : p.theme.borderDark};}
+  &,
+  &:hover {
+    border-bottom-color: ${p => (p.isOpen ? 'transparent' : p.theme.borderDark)};
+  }
 `;
 
 export default DropdownButton;

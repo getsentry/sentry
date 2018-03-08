@@ -125,10 +125,7 @@ describe('ProjectTeamsSettings', function() {
       wrapper.find('DropdownButton').simulate('click');
 
       // click a team
-      let el = wrapper
-        .find('.ref-autocomplete-items')
-        .childAt(0)
-        .childAt(0);
+      let el = wrapper.find('AutoCompleteItem').first();
       el.simulate('click');
 
       expect(mock).toHaveBeenCalledWith(
