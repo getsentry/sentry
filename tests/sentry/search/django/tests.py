@@ -115,33 +115,34 @@ class DjangoSearchBackendTest(TestCase):
         )
 
         for key, value in tags.items():
-            value, created = tagstore.get_or_create_group_tag_value(
-                project_id=event.project_id,
-                group_id=event.group_id,
-                environment_id=environment.id,
-                key=key,
-                value=value,
-            )
-
-            if created:  # XXX: Hack for tagstore compat
-                value.update(
-                    times_seen=1,
-                    first_seen=event.datetime,
-                    last_seen=event.datetime,
+            for environment_id in [None, environment.id]:
+                tag_value, created = tagstore.get_or_create_group_tag_value(
+                    project_id=event.project_id,
+                    group_id=event.group_id,
+                    environment_id=environment_id,
+                    key=key,
+                    value=value,
                 )
-            else:
-                updates = {
-                    'times_seen': value.times_seen + 1,
-                }
 
-                if event.datetime < value.first_seen:
-                    updates['first_seen'] = event.datetime
+                if created:  # XXX: Hack for tagstore compat
+                    tag_value.update(
+                        times_seen=1,
+                        first_seen=event.datetime,
+                        last_seen=event.datetime,
+                    )
+                else:
+                    updates = {
+                        'times_seen': tag_value.times_seen + 1,
+                    }
 
-                if event.datetime > value.last_seen:
-                    updates['last_seen'] = event.datetime
+                    if event.datetime < tag_value.first_seen:
+                        updates['first_seen'] = event.datetime
 
-                if updates:
-                    value.update(**updates)
+                    if event.datetime > tag_value.last_seen:
+                        updates['last_seen'] = event.datetime
+
+                    if updates:
+                        tag_value.update(**updates)
 
     def test_query(self):
         results = self.backend.query(self.project, query='foo')

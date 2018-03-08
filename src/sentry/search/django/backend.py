@@ -85,10 +85,14 @@ class ScalarCondition(Condition):
         })
 
 
+def get_sql_table(model):
+    return '"{}"'.format(model._meta.db_table)
+
+
 def get_sql_column(model, field):
     "Convert a model class and field name to it's quoted SQL column representation."
-    return '"{}"."{}"'.format(*[
-        model._meta.db_table,
+    return '{}."{}"'.format(*[
+        get_sql_table(model),
         model._meta.get_field_by_name(field)[0].column,
     ])
 
@@ -109,10 +113,10 @@ environment_sort_strategies = {
     #   String: SQL expression to generate sort value (of type T, used below),
     #   Function[T] -> int: function for converting sort value to cursor value),
     # ]
-    'priority': ('log(times_seen) * 600 + last_seen::abstime::int', int),
-    'date': ('last_seen', lambda score: int(to_timestamp(score) * 1000)),
-    'new': ('first_seen', lambda score: int(to_timestamp(score) * 1000)),
-    'freq': ('times_seen', int),
+    'priority': ('log({table}.times_seen) * 600 + {table}.last_seen::abstime::int', int),
+    'date': ('{table}.last_seen', lambda score: int(to_timestamp(score) * 1000)),
+    'new': ('{table}.first_seen', lambda score: int(to_timestamp(score) * 1000)),
+    'freq': ('{table}.times_seen', int),
 }
 
 
@@ -310,6 +314,15 @@ class DjangoSearchBackend(SearchBackend):
             )
 
             sort_expression, sort_value_to_cursor_value = environment_sort_strategies[sort_by]
+
+            group_tag_value_queryset = tagstore.get_group_tag_value_qs(
+                project.id,
+                group_matches,
+                environment.id,
+                'environment',
+                environment.name,
+            )
+
             candidates = dict(
                 QuerySetBuilder({
                     'age_from': ScalarCondition('first_seen', 'gt'),
@@ -322,17 +335,13 @@ class DjangoSearchBackend(SearchBackend):
                     'times_seen_lower': ScalarCondition('times_seen', 'gt'),
                     'times_seen_upper': ScalarCondition('times_seen', 'lt'),
                 }).build(
-                    tagstore.get_group_tag_value_qs(
-                        project.id,
-                        group_matches,
-                        environment.id,
-                        'environment',
-                        environment.name,
-                    ),
+                    group_tag_value_queryset,
                     parameters,
                 ).extra(
                     select={
-                        'sort_value': sort_expression,
+                        'sort_value': sort_expression.format(
+                            table=get_sql_table(group_tag_value_queryset.model),
+                        ),
                     },
                 ).values_list('group_id', 'sort_value')
             )
