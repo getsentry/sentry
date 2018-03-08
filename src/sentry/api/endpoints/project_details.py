@@ -97,8 +97,23 @@ class ProjectAdminSerializer(ProjectMemberSerializer):
     resolveAge = serializers.IntegerField(required=False)
     platform = serializers.CharField(required=False)
 
+    def validate_digestsMinDelay(self, attrs, source):
+        max_delay = attrs['digestsMaxDelay'] if 'digestsMaxDelay' in attrs else self.context['project'].get_option(
+            'digests:mail:maximum_delay')
+
+        # allow min to be set if max is not set
+        if max_delay is not None and attrs[source] > max_delay:
+            raise serializers.ValidationError(
+                'The minimum delay on digests must be lower than the maximum.'
+            )
+        return attrs
+
     def validate_digestsMaxDelay(self, attrs, source):
-        if attrs[source] < attrs['digestsMinDelay']:
+        min_delay = attrs['digestsMinDelay'] if 'digestsMinDelay' in attrs else self.context['project'].get_option(
+            'digests:mail:minimum_delay')
+
+        # allows max to be set if min is not set
+        if min_delay is not None and attrs[source] < min_delay:
             raise serializers.ValidationError(
                 'The maximum delay on digests must be higher than the minimum.'
             )

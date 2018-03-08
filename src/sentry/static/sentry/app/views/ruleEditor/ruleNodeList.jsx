@@ -1,5 +1,6 @@
 import PropTypes from 'prop-types';
 import React from 'react';
+import styled from 'react-emotion';
 
 import SelectInput from '../../components/selectInput';
 import RuleNode from './ruleNode';
@@ -65,20 +66,18 @@ class RuleNodeList extends React.Component {
   render() {
     return (
       <div className={this.props.className}>
-        <table className="node-list table" style={{marginBottom: '10px'}}>
-          <tbody>
-            {this.state.items.map((item, idx) => {
-              return (
-                <RuleNode
-                  key={item.key_attr}
-                  node={this.getNode(item.id)}
-                  onDelete={this.onDeleteRow.bind(this, idx)}
-                  data={item}
-                />
-              );
-            })}
-          </tbody>
-        </table>
+        <RuleNodes>
+          {this.state.items.map((item, idx) => {
+            return (
+              <RuleNode
+                key={item.key_attr}
+                node={this.getNode(item.id)}
+                onDelete={this.onDeleteRow.bind(this, idx)}
+                data={item}
+              />
+            );
+          })}
+        </RuleNodes>
         <fieldset className="node-selector">
           <SelectInput onChange={this.onAddRow} style={{width: '100%'}}>
             <option key="blank" />
@@ -97,3 +96,9 @@ class RuleNodeList extends React.Component {
 }
 
 export default RuleNodeList;
+
+const RuleNodes = styled.div`
+  display: flex;
+  flex-direction: column;
+  margin-bottom: 10px;
+`;

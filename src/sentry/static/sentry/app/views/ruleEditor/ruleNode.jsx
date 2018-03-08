@@ -1,6 +1,7 @@
 import PropTypes from 'prop-types';
 import React from 'react';
 import ReactDOM from 'react-dom';
+import styled, {cx} from 'react-emotion';
 import $ from 'jquery';
 
 class RuleNode extends React.Component {
@@ -45,19 +46,63 @@ class RuleNode extends React.Component {
   render() {
     let {data, node} = this.props;
     return (
-      <tr>
-        <td className="rule-form">
+      <RuleNodeRow>
+        <RuleNodeForm>
           <input type="hidden" name="id" value={data.id} />
           <span ref="html" dangerouslySetInnerHTML={{__html: node.html}} />
-        </td>
-        <td className="align-right">
+        </RuleNodeForm>
+        <RuleNodeControls>
           <a onClick={this.props.onDelete}>
             <span className="icon-trash" />
           </a>
-        </td>
-      </tr>
+        </RuleNodeControls>
+      </RuleNodeRow>
     );
   }
 }
 
 export default RuleNode;
+
+const RuleNodeRow = styled.div`
+  display: flex;
+  align-items: center;
+  padding: 0 10px;
+
+  &:nth-child(odd) {
+    background-color: ${p => p.theme.offWhite};
+  }
+`;
+
+// This needs to have class name "rule-form" because of how we serialize rules atm
+const RuleNodeForm = styled(({className, ...props}) => (
+  <div {...props} className={cx(className, 'rule-form')} />
+))`
+  display: flex;
+  flex: 1;
+  margin: 10px 0;
+
+  .select2-container {
+    margin: 0 6px;
+  }
+
+  input[type='text'],
+  input[type='number'] {
+    box-shadow: inset 0 2px 0 rgba(0, 0, 0, 0.04);
+    border: 1px solid #c9c0d1;
+    position: relative;
+    border-radius: 3px;
+    color: #493e54;
+    padding: 1px 8px 2px; // select2 height = 29px
+    line-height: 1.5;
+    margin: 0 6px;
+  }
+  span {
+    display: flex;
+    align-items: center;
+    white-space: nowrap;
+  }
+`;
+
+const RuleNodeControls = styled.div`
+  margin-left: 6px;
+`;
