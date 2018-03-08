@@ -2,7 +2,7 @@ import React from 'react';
 import {mount} from 'enzyme';
 
 import {Client} from 'app/api';
-import OwnerInput from 'app/views/settings/project/ownerInput';
+import OwnerInput from 'app/views/settings/project/projectOwnership/ownerInput';
 
 describe('ProjectTeamsSettings', function() {
   let org;

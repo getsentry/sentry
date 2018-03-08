@@ -30,16 +30,16 @@ exports[`ProjectTeamsSettings render() renders 1`] = `
           Rules follow the pattern type:glob owner, owner
         </p>
         <p>
-          Owners can be team identifiers starting with #, or user emails starting with @
+          Owners can be team identifiers starting with #, or user emails (use @ to input from list)
         </p>
         Examples:
         <CodeBlock>
-          path:src/sentry/pipeline/* @person@sentry.io, #platform
+          path:src/sentry/pipeline/* person@sentry.io, #platform
           
 
-          url:sentry.io/settings/* #workflow
+          url:http://sentry.io/settings/* #workflow
         </CodeBlock>
-        <ProjectOwnership
+        <OwnerInput
           initialText="url:src @dummy@example.com"
           organization={
             Object {

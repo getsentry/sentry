@@ -1,7 +1,7 @@
 // Jest Snapshot v1, https://goo.gl/fbAQLP
 
 exports[`ProjectTeamsSettings render() renders 1`] = `
-<ProjectOwnership
+<OwnerInput
   initialText="url:src @dummy@example.com"
   organization={
     Object {
@@ -362,5 +362,5 @@ exports[`ProjectTeamsSettings render() renders 1`] = `
       </Button>
     </div>
   </div>
-</ProjectOwnership>
+</OwnerInput>
 `;

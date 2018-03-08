@@ -1,16 +1,16 @@
 import React from 'react';
 import styled from 'react-emotion';
 
-import {t} from '../../../locale';
-import AsyncView from '../../asyncView';
+import {t} from '../../../../locale';
+import AsyncView from '../../../asyncView';
 
-import Panel from '../components/panel';
-import PanelBody from '../components/panelBody';
-import PanelHeader from '../components/panelHeader';
-import SentryTypes from '../../../proptypes';
-import SettingsPageHeader from '../components/settingsPageHeader';
-import Form from '../components/forms/form';
-import JsonForm from '../components/forms/jsonForm';
+import Panel from '../../components/panel';
+import PanelBody from '../../components/panelBody';
+import PanelHeader from '../../components/panelHeader';
+import SentryTypes from '../../../../proptypes';
+import SettingsPageHeader from '../../components/settingsPageHeader';
+import Form from '../../components/forms/form';
+import JsonForm from '../../components/forms/jsonForm';
 import OwnerInput from './ownerInput';
 
 const CodeBlock = styled.pre`
@@ -25,7 +25,7 @@ class ProjectOwnership extends AsyncView {
   };
 
   getTitle() {
-    return 'Ownership';
+    return t('Ownership');
   }
 
   getEndpoints() {
@@ -60,14 +60,14 @@ class ProjectOwnership extends AsyncView {
             <p>{t('Rules follow the pattern type:glob owner, owner')}</p>
             <p>
               {t(
-                'Owners can be team identifiers starting with #, or user emails starting with @'
+                'Owners can be team identifiers starting with #, or user emails (use @ to input from list)'
               )}
             </p>
             Examples:
             <CodeBlock>
-              path:src/sentry/pipeline/* @person@sentry.io, #platform
+              path:src/sentry/pipeline/* person@sentry.io, #platform
               {'\n'}
-              url:sentry.io/settings/* #workflow
+              url:http://sentry.io/settings/* #workflow
             </CodeBlock>
             <OwnerInput {...this.props} initialText={ownership.raw || ''} />
           </PanelBody>

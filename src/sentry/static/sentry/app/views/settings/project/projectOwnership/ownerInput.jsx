@@ -3,14 +3,15 @@ import React from 'react';
 import styled from 'react-emotion';
 import {MentionsInput, Mention} from 'react-mentions';
 
-import {Client} from '../../../api';
-import memberListStore from '../../../stores/memberListStore';
-import TeamStore from '../../../stores/teamStore';
-import Button from '../../../components/buttons/button';
-import SentryTypes from '../../../proptypes';
+import {Client} from '../../../../api';
+import memberListStore from '../../../../stores/memberListStore';
+import TeamStore from '../../../../stores/teamStore';
+import Button from '../../../../components/buttons/button';
+import SentryTypes from '../../../../proptypes';
 
-import {addErrorMessage, addSuccessMessage} from '../../../actionCreators/indicator';
-import {t} from '../../../locale';
+import {addErrorMessage, addSuccessMessage} from '../../../../actionCreators/indicator';
+import {t} from '../../../../locale';
+import OwnerInputStyle from './ownerInputStyles';
 
 const SyntaxOverlay = styled.div`
   margin: 5px;
@@ -24,8 +25,7 @@ const SyntaxOverlay = styled.div`
   top: ${({line}) => line}em;
 `;
 
-let styles;
-class ProjectOwnership extends React.Component {
+class OwnerInput extends React.Component {
   static propTypes = {
     organization: SentryTypes.Organization,
     project: SentryTypes.Project,
@@ -40,11 +40,7 @@ class ProjectOwnership extends React.Component {
     };
   }
 
-  getTitle() {
-    return 'Ownership';
-  }
-
-  updateOwnership() {
+  handleUpdateOwnership = () => {
     let {organization, project} = this.props;
     this.setState({error: null});
 
@@ -59,15 +55,15 @@ class ProjectOwnership extends React.Component {
 
     request
       .then(() => {
-        addSuccessMessage('Updated Ownership Rules');
+        addSuccessMessage(t('Updated ownership rules'));
       })
       .catch(error => {
         this.setState({error: error.responseJSON});
-        addErrorMessage('Error Updating Ownership Rules');
+        addErrorMessage(t('Error updating ownership rules'));
       });
 
     return request;
-  }
+  };
 
   mentionableUsers() {
     return memberListStore.getAll().map(member => ({
@@ -101,12 +97,12 @@ class ProjectOwnership extends React.Component {
           style={{position: 'relative'}}
           onKeyDown={e => {
             if (e.metaKey && e.key == 'Enter') {
-              this.updateOwnership();
+              this.handleUpdateOwnership();
             }
           }}
         >
           <MentionsInput
-            style={styles}
+            style={OwnerInputStyle}
             placeholder={'Project Ownership'}
             onChange={this.onChange.bind(this)}
             onBlur={this.onBlur}
@@ -115,34 +111,26 @@ class ProjectOwnership extends React.Component {
             required={true}
             autoFocus={true}
             displayTransform={(id, display, type) =>
-              `${type === 'member' ? '@' : '#'}${display}`}
+              `${type === 'member' ? '' : '#'}${display}`}
             markup="**[sentry.strip:__type__]__display__**"
           >
             <Mention
               type="member"
               trigger="@"
               data={mentionableUsers}
-              onAdd={this.onAddMember}
               appendSpaceOnAdd={true}
             />
             <Mention
               type="team"
               trigger="#"
               data={mentionableTeams}
-              onAdd={this.onAddTeam}
               appendSpaceOnAdd={true}
             />
           </MentionsInput>
           {error && <SyntaxOverlay line={error.raw[0].match(/line (\d*),/)[1] - 1} />}
           {error && error.raw.toString()}
           <div style={{textAlign: 'end', paddingTop: '10px'}}>
-            <Button
-              size="small"
-              priority="primary"
-              onClick={() => {
-                this.updateOwnership();
-              }}
-            >
+            <Button size="small" priority="primary" onClick={this.handleUpdateOwnership}>
               {t('Save Changes')}
             </Button>
           </div>
@@ -151,74 +139,5 @@ class ProjectOwnership extends React.Component {
     );
   }
 }
-styles = {
-  control: {
-    backgroundColor: '#fff',
-    fontSize: 15,
-    fontWeight: 'normal',
-  },
 
-  input: {
-    margin: 0,
-    fontFamily: 'Rubik, sans-serif',
-    wordBreak: 'break-all',
-    whiteSpace: 'pre-wrap',
-  },
-
-  '&singleLine': {
-    control: {
-      display: 'inline-block',
-
-      width: 130,
-    },
-
-    highlighter: {
-      padding: 1,
-      border: '2px inset transparent',
-    },
-
-    input: {
-      padding: 1,
-      border: '2px inset',
-    },
-  },
-
-  '&multiLine': {
-    control: {
-      fontFamily: 'Lato, Avenir Next, Helvetica Neue, sans-serif',
-    },
-
-    highlighter: {
-      padding: 20,
-    },
-
-    input: {
-      padding: '5px 5px 0',
-      minHeight: 140,
-      overflow: 'auto',
-      outline: 0,
-      border: '1 solid',
-    },
-  },
-
-  suggestions: {
-    list: {
-      maxHeight: 150,
-      overflow: 'auto',
-      backgroundColor: 'white',
-      border: '1px solid rgba(0,0,0,0.15)',
-      fontSize: 12,
-    },
-
-    item: {
-      padding: '5px 15px',
-      borderBottom: '1px solid rgba(0,0,0,0.15)',
-
-      '&focused': {
-        backgroundColor: '#f8f6f9',
-      },
-    },
-  },
-};
-
-export default ProjectOwnership;
+export default OwnerInput;
