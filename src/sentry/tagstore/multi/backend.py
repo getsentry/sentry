@@ -13,9 +13,9 @@ import six
 import random
 from threading import Thread
 from six.moves.queue import Queue, Full
-from django.conf import settings
 from operator import itemgetter
 
+from sentry import options
 from sentry.tagstore.base import TagStorage
 from sentry.utils.imports import import_string
 
@@ -33,18 +33,7 @@ class QueuedRunner(object):
 
     def __init__(self):
         self.q = Queue(maxsize=100)
-        self.sample_channel = getattr(settings, 'SENTRY_TAGSTORE_MULTI_SAMPLING', 1.0)
         self.worker_running = False
-
-    def run(self, f, *args, **kwargs):
-        if random.random() <= self.sample_channel:
-            if not self.worker_running:
-                self.start_worker()
-
-            try:
-                self.q.put((f, args, kwargs), block=False)
-            except Full:
-                return
 
     def start_worker(self):
         def worker():
@@ -62,6 +51,16 @@ class QueuedRunner(object):
         t.start()
 
         self.worker_running = True
+
+    def run(self, f, *args, **kwargs):
+        if random.random() <= options.get('tagstore.multi-sampling'):
+            if not self.worker_running:
+                self.start_worker()
+
+            try:
+                self.q.put((f, args, kwargs), block=False)
+            except Full:
+                return
 
 
 class ImmediateRunner(object):
