@@ -354,7 +354,51 @@ class DjangoSearchBackendTest(TestCase):
         assert len(results) == 0
 
     def test_pagination_with_environment(self):
-        raise NotImplementedError
+        group2 = self.create_group(
+            times_seen=self.group1.times_seen + 10,
+            first_seen=self.group1.first_seen + timedelta(days=1),
+            last_seen=self.group1.last_seen + timedelta(days=1),
+        )
+
+        for dt in [group2.first_seen, group2.first_seen + timedelta(days=1), group2.last_seen]:
+            event = self.create_event(
+                group=group2,
+                datetime=dt,
+                tags={'environment': 'production'}
+            )
+            self._setup_tags_for_event(event)
+
+        results = self.backend.query(
+            self.project,
+            environment=self.environments['production'],
+            sort_by='date',
+            limit=1,
+            count_hits=True,
+        )
+        assert list(results) == [group2]
+        assert results.hits == 2
+
+        results = self.backend.query(
+            self.project,
+            environment=self.environments['production'],
+            sort_by='date',
+            limit=1,
+            cursor=results.next,
+            count_hits=True,
+        )
+        assert list(results) == [self.group1]
+        assert results.hits == 2
+
+        results = self.backend.query(
+            self.project,
+            environment=self.environments['production'],
+            sort_by='date',
+            limit=1,
+            cursor=results.next,
+            count_hits=True,
+        )
+        assert list(results) == []
+        assert results.hits == 2
 
     def test_age_filter(self):
         results = self.backend.query(
