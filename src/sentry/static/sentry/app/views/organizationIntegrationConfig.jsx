@@ -28,17 +28,17 @@ const IntegrationIcon = styled.img`
 `;
 
 const IntegrationName = styled.div`
-  font-size: 16px;
+  font-size: 1.6rem;
   margin-bottom: 3px;
 `;
 
 const DomainName = styled.div`
   color: ${p => p.theme.gray3};
-  font-size: 14px;
+  font-size: 1.4rem;
 `;
 
 const Details = styled(Flex)`
-  font-size: 15px;
+  font-size: 1.5rem;
   line-height: 2.1rem;
 `;
 

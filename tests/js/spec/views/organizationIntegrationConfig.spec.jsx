@@ -1,15 +1,9 @@
 /*global global*/
-import PropTypes from 'prop-types';
 import React from 'react';
 import {mount, shallow} from 'enzyme';
 
-import {Client} from 'app/api';
 import OrganizationIntegrationConfig from 'app/views/organizationIntegrationConfig';
-
-const childContextTypes = {
-  organization: PropTypes.object,
-  location: PropTypes.object,
-};
+import {Client} from 'app/api';
 
 describe('OrganizationIntegrationConfig', function() {
   beforeEach(function() {
@@ -24,11 +18,7 @@ describe('OrganizationIntegrationConfig', function() {
       orgId: org.slug,
       providerKey: provider.key,
     };
-    const context = {
-      router: TestStubs.router(),
-      organization: TestStubs.Organization(),
-      location: TestStubs.location(),
-    };
+    const routerContext = TestStubs.routerContext();
 
     describe('without any integrations', function() {
       beforeEach(function() {
@@ -43,10 +33,10 @@ describe('OrganizationIntegrationConfig', function() {
       });
 
       it('Displays an empty list', function() {
-        const wrapper = shallow(<OrganizationIntegrationConfig params={params} />, {
-          context,
-          childContextTypes,
-        });
+        const wrapper = shallow(
+          <OrganizationIntegrationConfig params={params} />,
+          routerContext
+        );
         expect(wrapper.find('PanelBody EmptyMessage').exists()).toBe(true);
       });
 
@@ -54,10 +44,7 @@ describe('OrganizationIntegrationConfig', function() {
         const invalidKeyParams = {...params, providerKey: 'bad-key'};
         const wrapper = shallow(
           <OrganizationIntegrationConfig params={invalidKeyParams} />,
-          {
-            context,
-            childContextTypes,
-          }
+          routerContext
         );
         expect(wrapper).toMatchSnapshot();
       });
@@ -76,18 +63,18 @@ describe('OrganizationIntegrationConfig', function() {
       });
 
       it('renders', function() {
-        const wrapper = mount(<OrganizationIntegrationConfig params={params} />, {
-          context,
-          childContextTypes,
-        });
+        const wrapper = mount(
+          <OrganizationIntegrationConfig params={params} />,
+          routerContext
+        );
         expect(wrapper).toMatchSnapshot();
       });
 
       it('opens a dialog on integration add', function() {
-        const wrapper = mount(<OrganizationIntegrationConfig params={params} />, {
-          context,
-          childContextTypes,
-        });
+        const wrapper = mount(
+          <OrganizationIntegrationConfig params={params} />,
+          routerContext
+        );
 
         const focus = jest.fn();
         const open = jest.fn().mockReturnValue({focus});
@@ -102,10 +89,10 @@ describe('OrganizationIntegrationConfig', function() {
       });
 
       it('Adds an integration on dialog completion', function() {
-        const wrapper = mount(<OrganizationIntegrationConfig params={params} />, {
-          context,
-          childContextTypes,
-        });
+        const wrapper = mount(
+          <OrganizationIntegrationConfig params={params} />,
+          routerContext
+        );
 
         wrapper.instance().receiveMessage({
           source: null,
@@ -126,10 +113,10 @@ describe('OrganizationIntegrationConfig', function() {
       });
 
       it('Merges existing integrations', function() {
-        const wrapper = mount(<OrganizationIntegrationConfig params={params} />, {
-          context,
-          childContextTypes,
-        });
+        const wrapper = mount(
+          <OrganizationIntegrationConfig params={params} />,
+          routerContext
+        );
 
         const updatedIntegration = {
           id: '1',
@@ -153,10 +140,10 @@ describe('OrganizationIntegrationConfig', function() {
       });
 
       it('Deletes an integration', function() {
-        const wrapper = mount(<OrganizationIntegrationConfig params={params} />, {
-          context,
-          childContextTypes,
-        });
+        const wrapper = mount(
+          <OrganizationIntegrationConfig params={params} />,
+          routerContext
+        );
 
         Client.addMockResponse({
           url: `/organizations/${org.slug}/integrations/${integration.id}/`,

@@ -122,12 +122,12 @@ exports[`OrganizationIntegrationConfig render() with one integration renders 1`]
 }
 
 .glamor-31 {
-  font-size: 16px;
+  font-size: 1.6rem;
   margin-bottom: 3px;
 }
 
 .glamor-33 {
-  font-size: 14px;
+  font-size: 1.4rem;
 }
 
 .glamor-37 {
@@ -170,7 +170,7 @@ exports[`OrganizationIntegrationConfig render() with one integration renders 1`]
   display: -webkit-flex;
   display: -ms-flexbox;
   display: flex;
-  font-size: 15px;
+  font-size: 1.5rem;
   line-height: 2.1rem;
 }
 
