@@ -126,7 +126,7 @@ class MailPlugin(NotificationPlugin):
             return []
 
         # TODO(LB): not yet implemented. dependent upon matt's code.
-        owners = ProjectOwnership.get_owners(project.id, event.data)
+        owners = ProjectOwnership.get_owners(project.id, event.data) if event is not None else None
         if owners and owners != ProjectOwnership.Everyone:
             from sentry.models import User
             send_to_list = []

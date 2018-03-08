@@ -4,7 +4,6 @@ from __future__ import absolute_import
 
 from datetime import datetime
 
-import pytest
 import mock
 import pytz
 import six
@@ -17,13 +16,13 @@ from mock import Mock
 from sentry.api.serializers import (
     serialize, ProjectUserReportSerializer
 )
-from sentry.api.fields.actor import Actor
 from sentry.digests.notifications import build_digest, event_to_record
 from sentry.interfaces.stacktrace import Stacktrace
 from sentry.models import (
-    Activity, Event, Group, GroupSubscription, OrganizationMember, OrganizationMemberTeam, Rule,
-    User, UserOption, UserReport
+    Activity, Event, Group, GroupSubscription, OrganizationMember, OrganizationMemberTeam,
+    ProjectOwnership, Rule, UserOption, UserReport
 )
+from sentry.ownership.grammar import Owner, Matcher, dump_schema
 from sentry.plugins import Notification
 from sentry.plugins.sentry_mail.activity.base import ActivityEmail
 from sentry.plugins.sentry_mail.models import MailPlugin
@@ -230,75 +229,6 @@ class MailPluginTest(TestCase):
 
         assert user4.pk not in self.plugin.get_sendable_users(project)
 
-    @pytest.mark.xfail('dependent on matt\'s code going to look at it later and fix it.')
-    def test_get_send_to_with_team_owners(self):
-        from sentry.models import Team
-
-        user = self.create_user(email='foo@example.com', is_active=True)
-        user2 = self.create_user(email='baz@example.com', is_active=True)
-
-        organization = self.create_organization(owner=user)
-        team = self.create_team(organization=organization)
-
-        project = self.create_project(name='Test', teams=[team])
-        OrganizationMemberTeam.objects.create(
-            organizationmember=OrganizationMember.objects.get(
-                user=user,
-                organization=organization,
-            ),
-            team=team,
-        )
-        self.create_member(user=user2, organization=organization, teams=[team])
-
-        # owners team
-        owners = [Actor(team.id, Team)]
-        assert (sorted(set([user.pk, user2.pk])) == sorted(
-            self.plugin.get_send_to(project, owners)))
-
-    @pytest.mark.xfail('dependent on matt\'s code going to look at it later and fix it.')
-    def test_get_send_to_with_user_owners(self):
-        user = self.create_user(email='foo@example.com', is_active=True)
-        user2 = self.create_user(email='baz@example.com', is_active=True)
-
-        organization = self.create_organization(owner=user)
-        team = self.create_team(organization=organization)
-
-        project = self.create_project(name='Test', teams=[team])
-        OrganizationMemberTeam.objects.create(
-            organizationmember=OrganizationMember.objects.get(
-                user=user,
-                organization=organization,
-            ),
-            team=team,
-        )
-        self.create_member(user=user2, organization=organization, teams=[team])
-        # owners members
-        owners = [Actor(user.id, User), Actor(user2.id, User)]
-        assert (sorted(set([user.pk, user2.pk])) == sorted(
-            self.plugin.get_send_to(project, owners)))
-
-    @pytest.mark.xfail('dependent on matt\'s code going to look at it later and fix it.')
-    def test_get_send_to_with_user_owner(self):
-        user = self.create_user(email='foo@example.com', is_active=True)
-        user2 = self.create_user(email='baz@example.com', is_active=True)
-
-        organization = self.create_organization(owner=user)
-        team = self.create_team(organization=organization)
-
-        project = self.create_project(name='Test', teams=[team])
-        OrganizationMemberTeam.objects.create(
-            organizationmember=OrganizationMember.objects.get(
-                user=user,
-                organization=organization,
-            ),
-            team=team,
-        )
-        self.create_member(user=user2, organization=organization, teams=[team])
-        # owners single member
-        owners = [Actor(user2.id, User)]
-        assert (sorted(set([user2.pk])) == sorted(
-            self.plugin.get_send_to(project, owners)))
-
     def test_notify_users_with_utf8_subject(self):
         group = self.create_group(message='Hello world')
         event = self.create_event(group=group, message=u'רונית מגן', tags={'level': 'error'})
@@ -462,60 +392,6 @@ class MailPluginTest(TestCase):
 
         assert 'Suspect Commits' in msg.body
 
-    @pytest.mark.xfail('dependent on matt\'s code going to look at it later and fix it.')
-    @mock.patch('sentry.plugins.sentry_mail.models.MailPlugin._send_mail')
-    def test_notify_users_with_owners(self, _send_mail):
-        user = self.create_user(email='foo@example.com', is_active=True)
-        user2 = self.create_user(email='baz@example.com', is_active=True)
-
-        organization = self.create_organization(owner=user)
-        team = self.create_team(organization=organization)
-
-        project = self.create_project(name='Test', teams=[team])
-        OrganizationMemberTeam.objects.create(
-            organizationmember=OrganizationMember.objects.get(
-                user=user,
-                organization=organization,
-            ),
-            team=team,
-        )
-        self.create_member(user=user2, organization=organization, teams=[team])
-
-        group = Group(
-            id=2,
-            first_seen=timezone.now(),
-            last_seen=timezone.now(),
-            project=project,
-            message='hello world',
-            logger='root',
-            short_id=2,
-        )
-
-        event = Event(
-            group=group,
-            message=group.message,
-            project=project,
-            datetime=group.last_seen,
-            data={'tags': [
-                ('level', 'error'),
-            ]},
-        )
-
-        # owners = [Actor(user.id, User)]
-        notification = Notification(
-            event=event,
-        )
-
-        with self.options({'system.url-prefix': 'http://example.com'}):
-            self.plugin.notify(notification)
-
-        assert _send_mail.call_count is 1
-        args, kwargs = _send_mail.call_args
-        self.assertEquals(kwargs.get('send_to'), [user.id])
-        self.assertEquals(kwargs.get('project'), project)
-        self.assertEquals(kwargs.get('reference'), group)
-        assert kwargs.get('subject') == u'TEST-2 - hello world'
-
 
 class MailPluginSignalsTest(TestCase):
     @fixture
@@ -605,3 +481,149 @@ class ActivityEmailTestCase(TestCase):
             get_value.side_effect = lambda project, key, default=None: \
                 "[Example prefix] " if key == "mail:subject_prefix" else default
             assert email.get_subject_with_prefix().startswith('[Example prefix] ')
+
+
+class MailPluginOwnersTest(TestCase):
+    @fixture
+    def plugin(self):
+        return MailPlugin()
+
+    def setUp(self):
+        self.user = self.create_user(email='foo@example.com', is_active=True)
+        self.user2 = self.create_user(email='baz@example.com', is_active=True)
+
+        self.organization = self.create_organization(owner=self.user)
+        self.team = self.create_team(organization=self.organization)
+
+        self.project = self.create_project(name='Test', teams=[self.team])
+        OrganizationMemberTeam.objects.create(
+            organizationmember=OrganizationMember.objects.get(
+                user=self.user,
+                organization=self.organization,
+            ),
+            team=self.team,
+        )
+        self.create_member(user=self.user2, organization=self.organization, teams=[self.team])
+        self.group = Group(
+            id=2,
+            first_seen=timezone.now(),
+            last_seen=timezone.now(),
+            project=self.project,
+            message='hello world',
+            logger='root',
+            short_id=2,
+        )
+        ProjectOwnership.objects.create(
+            project_id=self.project.id,
+            schema=dump_schema([
+                Rule(Matcher('path', '*.py'), [
+                    Owner('team', self.team.slug),
+                ]),
+                Rule(Matcher('path', '*.jx'), [
+                    Owner('user', self.user2.email),
+                ]),
+                Rule(Matcher('path', '*.cbl'), [
+                    Owner('user', self.user.email),
+                    Owner('user', self.user2.email),
+                ])
+            ]),
+            fallthrough=True,
+        )
+
+    def make_event_data(self, filename, url='http://example.com'):
+        data = {
+            'tags': [('level', 'error')],
+            'sentry.interfaces.Stacktrace': {
+                'frames': [
+                    {
+                        'lineno': 1,
+                        'filename': filename,
+                    },
+                ],
+            },
+            'sentry.interfaces.Http': {
+                'url': url
+            },
+        }
+        return data
+
+    def test_get_send_to_with_team_owners(self):
+        event = Event(
+            group=self.group,
+            message=self.group.message,
+            project=self.project,
+            datetime=self.group.last_seen,
+            data=self.make_event_data('foo.py')
+        )
+        assert (sorted(set([self.user.pk, self.user2.pk])) == sorted(
+            self.plugin.get_send_to(self.project, event.data)))
+
+    def test_get_send_to_with_user_owners(self):
+        event = Event(
+            group=self.group,
+            message=self.group.message,
+            project=self.project,
+            datetime=self.group.last_seen,
+            data=self.make_event_data('foo.cbl')
+        )
+        assert (sorted(set([self.user.pk, self.user2.pk])) == sorted(
+            self.plugin.get_send_to(self.project, event.data)))
+
+    def test_get_send_to_with_user_owner(self):
+        event = Event(
+            group=self.group,
+            message=self.group.message,
+            project=self.project,
+            datetime=self.group.last_seen,
+            data=self.make_event_data('foo.jx')
+        )
+        assert (sorted(set([self.user2.pk])) == sorted(
+            self.plugin.get_send_to(self.project, event.data)))
+
+    def test_get_send_to_with_fallthrough(self):
+        event = Event(
+            group=self.group,
+            message=self.group.message,
+            project=self.project,
+            datetime=self.group.last_seen,
+            data=self.make_event_data('foo.jx')
+        )
+        assert (sorted(set([self.user2.pk])) == sorted(
+            self.plugin.get_send_to(self.project, event.data)))
+
+    def test_get_send_to_without_fallthrough(self):
+        ProjectOwnership.objects.get(project_id=self.project.id).update(fallthrough=False)
+        event = Event(
+            group=self.group,
+            message=self.group.message,
+            project=self.project,
+            datetime=self.group.last_seen,
+            data=self.make_event_data('foo.cpp')
+        )
+        assert (sorted(set([self.user.pk, self.user2.pk])) == sorted(
+            self.plugin.get_send_to(self.project, event.data)))
+
+    @mock.patch('sentry.plugins.sentry_mail.models.MailPlugin._send_mail')
+    def test_notify_users_with_owners(self, _send_mail):
+        event = Event(
+            group=self.group,
+            message=self.group.message,
+            project=self.project,
+            datetime=self.group.last_seen,
+            data=self.make_event_data('foo.cbl')
+        )
+        notification = Notification(
+            event=event,
+        )
+
+        with self.options({'system.url-prefix': 'http://example.com'}):
+            self.plugin.notify(notification)
+
+        # TODO(LB): Need help with the meaning of these functions
+        # not getting expected result
+        assert _send_mail.call_count is 2
+        args, kwargs = _send_mail.call_args
+        self.assertEquals(kwargs.get('send_to'), [self.user.id, self.user2.id])
+        self.assertEquals(kwargs.get('project'), self.project)
+        self.assertEquals(kwargs.get('reference'), self.group)
+        assert kwargs.get('subject') == u'TEST-2 - hello world'
