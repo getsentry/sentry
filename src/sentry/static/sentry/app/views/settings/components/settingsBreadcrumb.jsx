@@ -1,8 +1,12 @@
+import {Flex} from 'grid-emotion';
+import {browserHistory} from 'react-router';
 import PropTypes from 'prop-types';
 import React from 'react';
 import styled from 'react-emotion';
 
 import Crumb from './crumb.styled';
+import InlineSvg from '../../../components/inlineSvg';
+import LetterAvatar from '../../../components/letterAvatar';
 import Link from '../../../components/link';
 import LoadingIndicator from '../../../components/loadingIndicator';
 import SentryTypes from '../../../proptypes';
@@ -13,33 +17,9 @@ import replaceRouterParams from '../../../utils/replaceRouterParams';
 import withLatestContext from '../../../utils/withLatestContext';
 import withProjects from '../../../utils/withProjects';
 
-import InlineSvg from '../../../components/inlineSvg';
-
 const Breadcrumbs = styled.div`
   display: flex;
   align-items: center;
-`;
-
-const MenuItem = styled(({active, ...props}) => <Link {...props} />)`
-  display: block;
-  padding: 15px;
-  border-bottom: 1px solid ${p => p.theme.borderLight};
-
-  &:last-child {
-    border: none;
-  }
-
-  &:hover {
-    background: ${p => p.theme.offWhite};
-  }
-
-  ${p =>
-    p.active
-      ? `
-      font-weight: bold;
-    background: ${p.theme.offWhite};
-  `
-      : ''};
 `;
 
 const StyledLink = styled(Link)`
@@ -129,21 +109,20 @@ const ProjectCrumb = withProjects(
               )}
             </ProjectName>
           }
-          {...props}
-        >
-          {projects.map(project => (
-            <MenuItem
-              to={recreateRoute(route, {
+          onSelect={item => {
+            browserHistory.push(
+              recreateRoute(route, {
                 routes,
-                params: {...params, projectId: project.slug},
-              })}
-              active={project.slug === params.projectId}
-              key={project.slug}
-            >
-              {project.slug}
-            </MenuItem>
-          ))}
-        </SettingsBreadcrumbDropdown>
+                params: {...params, projectId: item.value},
+              })
+            );
+          }}
+          items={projects.map(project => ({
+            value: project.slug,
+            label: project.slug,
+          }))}
+          {...props}
+        />
       );
     }
   )
@@ -171,26 +150,34 @@ const MENUS = {
                 params: {...params, orgId: organization.slug},
               })}
             >
-              {organization.name}
+              <Flex align="center">
+                <span style={{width: 18, height: 18, marginRight: 6}}>
+                  <LetterAvatar
+                    style={{display: 'inline-block'}}
+                    displayName={organization.slug}
+                    identifier={organization.slug}
+                  />
+                </span>
+                {organization.slug}
+              </Flex>
             </StyledLink>
           }
+          onSelect={item => {
+            browserHistory.push(
+              recreateRoute(route, {
+                routes,
+                params: {...params, orgId: item.value},
+              })
+            );
+          }}
           hasMenu={hasMenu}
           route={route}
+          items={organizations.map(org => ({
+            value: org.slug,
+            label: org.slug,
+          }))}
           {...props}
-        >
-          {organizations.map(org => (
-            <MenuItem
-              to={recreateRoute(route, {
-                routes,
-                params: {...params, orgId: org.slug},
-              })}
-              active={org.slug === params.orgId}
-              key={org.slug}
-            >
-              {org.name}
-            </MenuItem>
-          ))}
-        </SettingsBreadcrumbDropdown>
+        />
       );
     }
   ),

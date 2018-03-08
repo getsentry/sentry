@@ -1,32 +1,9 @@
 import PropTypes from 'prop-types';
 import React from 'react';
-import styled from 'react-emotion';
 
-import DropdownMenu from '../../../components/dropdownMenu';
+import DropdownAutoCompleteMenu from '../../../components/dropdownAutoCompleteMenu';
 import SettingsBreadcrumbDivider from './settingsBreadcrumbDivider';
 import Crumb from './crumb.styled';
-
-const Menu = styled.div`
-  font-size: 16px;
-  position: absolute;
-  opacity: 0;
-  visibility: hidden;
-  top: 140%;
-  width: 200px;
-  background: #fff;
-  border: 1px solid ${p => p.theme.borderDark};
-  box-shadow: ${p => p.theme.dropShadowHeavy};
-  transition: 0.1s all ease;
-  border-radius: ${p => p.theme.borderRadius};
-  overflow: hidden;
-
-  ${p =>
-    p.isOpen
-      ? `
-  opacity: 1;
-  visibility: visible;`
-      : ''};
-`;
 
 class SettingsBreadcrumbDropdown extends React.Component {
   static propTypes = {
@@ -35,6 +12,8 @@ class SettingsBreadcrumbDropdown extends React.Component {
     isLast: PropTypes.bool,
     enterDelay: PropTypes.number,
     name: PropTypes.node,
+    items: PropTypes.array,
+    onSelect: PropTypes.func,
   };
 
   static defaultProps = {
@@ -46,85 +25,66 @@ class SettingsBreadcrumbDropdown extends React.Component {
 
     this.entering = false;
     this.leaving = false;
-    this.state = {isOpen: false};
   }
 
   // Adds a delay when mouse hovers on actor (in this case the breadcrumb)
-  handleMouseEnterActor = () => {
+  handleMouseEnterActor = (actions, e) => {
     if (this.leaving) {
       clearTimeout(this.leaving);
     }
 
-    this.entering = setTimeout(
-      () => this.setState({isOpen: true}),
-      this.props.enterDelay
-    );
+    this.entering = setTimeout(() => actions.open(), this.props.enterDelay);
   };
 
   // handles mouseEnter event on actor and menu, should clear the leaving timeout and keep menu open
-  handleMouseEnter = () => {
+  handleMouseEnter = (actions, e) => {
     if (this.leaving) {
       clearTimeout(this.leaving);
     }
 
-    this.setState({isOpen: true});
+    actions.open();
   };
 
   // handles mouseLeave event on actor and menu, adds a timeout before updating state to account for
   // mouseLeave into
-  handleMouseLeave = e => {
+  handleMouseLeave = (actions, e) => {
     if (this.entering) {
       clearTimeout(this.entering);
     }
 
-    this.leaving = setTimeout(() => this.setState({isOpen: false}), 200);
+    this.leaving = setTimeout(() => actions.open(), 200);
   };
 
   // Close immediately when actor is clicked clicked
-  handleClickActor = e => {
-    this.setState({isOpen: false});
+  handleClickActor = (actions, e) => {
+    actions.close();
   };
 
   // Close immediately when clicked outside
-  handleClose = () => {
-    this.setState({isOpen: false});
+  handleClose = actions => {
+    actions.close();
   };
 
   render() {
-    let {children, hasMenu, route, isLast, name} = this.props;
+    let {hasMenu, route, isLast, name, items, onSelect} = this.props;
     return (
-      <DropdownMenu isOpen={this.state.isOpen} onClickOutside={this.handleClose}>
-        {({isOpen, getRootProps, getActorProps, getMenuProps}) => {
+      <DropdownAutoCompleteMenu items={items} onSelect={onSelect} isStyled>
+        {({actions, isOpen}) => {
           return (
-            <Crumb {...getRootProps({hasMenu})}>
+            <Crumb hasMenu={hasMenu}>
               <div
-                {...getActorProps({
-                  onClick: this.handleClickActor,
-                  onMouseEnter: this.handleMouseEnterActor,
-                  onMouseLeave: this.handleMouseLeave,
-                  style: {display: 'inline'},
-                })}
+                onClick={this.handleClickActor.bind(this, actions)}
+                onMouseEnter={this.handleMouseEnterActor.bind(this, actions)}
+                onMouseLeave={this.handleMouseLeave.bind(this, actions)}
+                style={{display: 'inline'}}
               >
                 {name || route.name}{' '}
               </div>
               <SettingsBreadcrumbDivider isHover={hasMenu && isOpen} isLast={isLast} />
-              {hasMenu && (
-                <Menu
-                  {...getMenuProps({
-                    isOpen,
-                    isStyled: true,
-                    onMouseEnter: this.handleMouseEnter,
-                    onMouseLeave: this.handleMouseLeave,
-                    className: 'menu',
-                  })}
-                >
-                  {children}
-                </Menu>
-              )}
             </Crumb>
           );
         }}
-      </DropdownMenu>
+      </DropdownAutoCompleteMenu>
     );
   }
 }
