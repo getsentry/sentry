@@ -48,6 +48,7 @@ class ProjectReleaseDetailsEndpoint(ProjectEndpoint, EnvironmentMixin):
             # TODO(LB): Not sure what to do with this part.
             # This enpoint feels a bit weird to do this with
             release = Release.objects.none()
+            environment = None
         else:
             try:
                 release = Release.objects.get(

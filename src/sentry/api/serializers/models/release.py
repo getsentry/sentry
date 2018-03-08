@@ -191,13 +191,13 @@ class ReleaseSerializer(Serializer):
             )
         return tags, group_counts_by_release
 
-    def __get_release_data_with_environment(self, project, item_list):
+    def __get_release_data_with_environment(self, project, item_list, environment):
         if project:
             release_project_envs = ReleaseProjectEnvironment.objects.filter(
-                project=project, release__in=item_list).select_related('release')
+                project=project, release__in=item_list, environment=environment).select_related('release')
         else:
             release_project_envs = ReleaseProjectEnvironment.objects.filter(
-                release__in=item_list).select_related('release')
+                release__in=item_list, environment=environment).select_related('release')
 
         first_and_last_seen = {}
         for release_project_env in release_project_envs:
@@ -222,7 +222,7 @@ class ReleaseSerializer(Serializer):
                 project, item_list)
         else:
             first_and_last_seen, issue_counts_by_release = self.__get_release_data_with_environment(
-                project, item_list)
+                project, item_list, environment)
 
         owners = {
             d['id']: d for d in serialize(set(i.owner for i in item_list if i.owner_id), user)
