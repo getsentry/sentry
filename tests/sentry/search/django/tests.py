@@ -181,15 +181,12 @@ class DjangoSearchBackendTest(TestCase):
         assert list(results) == [self.group2, self.group1]
 
     def test_sort_with_environment(self):
-        group2 = self.create_group(
-            times_seen=self.group1.times_seen + 10,
-            first_seen=self.group1.first_seen + timedelta(days=1),
-            last_seen=self.group1.last_seen + timedelta(days=1),
-        )
-
-        for dt in [group2.first_seen, group2.first_seen + timedelta(days=1), group2.last_seen]:
+        for dt in [
+                self.group1.first_seen + timedelta(days=1),
+                self.group1.first_seen + timedelta(days=2),
+                self.group1.last_seen + timedelta(days=1)]:
             event = self.create_event(
-                group=group2,
+                group=self.group2,
                 datetime=dt,
                 tags={'environment': 'production'}
             )
@@ -200,28 +197,28 @@ class DjangoSearchBackendTest(TestCase):
             environment=self.environments['production'],
             sort_by='date',
         )
-        assert list(results) == [group2, self.group1]
+        assert list(results) == [self.group2, self.group1]
 
         results = self.backend.query(
             self.project,
             environment=self.environments['production'],
             sort_by='new',
         )
-        assert list(results) == [group2, self.group1]
+        assert list(results) == [self.group2, self.group1]
 
         results = self.backend.query(
             self.project,
             environment=self.environments['production'],
             sort_by='freq',
         )
-        assert list(results) == [group2, self.group1]
+        assert list(results) == [self.group2, self.group1]
 
         results = self.backend.query(
             self.project,
             environment=self.environments['production'],
             sort_by='priority',
         )
-        assert list(results) == [group2, self.group1]
+        assert list(results) == [self.group2, self.group1]
 
     def test_status(self):
         results = self.backend.query(self.project, status=GroupStatus.UNRESOLVED)
@@ -354,15 +351,12 @@ class DjangoSearchBackendTest(TestCase):
         assert len(results) == 0
 
     def test_pagination_with_environment(self):
-        group2 = self.create_group(
-            times_seen=self.group1.times_seen + 10,
-            first_seen=self.group1.first_seen + timedelta(days=1),
-            last_seen=self.group1.last_seen + timedelta(days=1),
-        )
-
-        for dt in [group2.first_seen, group2.first_seen + timedelta(days=1), group2.last_seen]:
+        for dt in [
+                self.group1.first_seen + timedelta(days=1),
+                self.group1.first_seen + timedelta(days=2),
+                self.group1.last_seen + timedelta(days=1)]:
             event = self.create_event(
-                group=group2,
+                group=self.group2,
                 datetime=dt,
                 tags={'environment': 'production'}
             )
@@ -375,7 +369,7 @@ class DjangoSearchBackendTest(TestCase):
             limit=1,
             count_hits=True,
         )
-        assert list(results) == [group2]
+        assert list(results) == [self.group2]
         assert results.hits == 2
 
         results = self.backend.query(
