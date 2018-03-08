@@ -14,7 +14,7 @@ exports[`Configure should render correctly render() should redirect to if no mat
     >
       Configure your application
     </h2>
-    <ProjectContext
+    <withRouter(ProjectContext)
       orgId="testOrg"
       projectId="project-slug"
       style={
@@ -40,7 +40,7 @@ exports[`Configure should render correctly render() should redirect to if no mat
           }
         />
       </ProjectDocsContext>
-    </ProjectContext>
+    </withRouter(ProjectContext)>
     <Waiting
       hasEvent={false}
       skip={[Function]}
@@ -343,7 +343,7 @@ exports[`Configure should render correctly render() shouldn't redirect for a fou
     >
       Configure your application
     </h2>
-    <ProjectContext
+    <withRouter(ProjectContext)
       orgId="testOrg"
       projectId="project-slug"
       style={
@@ -369,7 +369,7 @@ exports[`Configure should render correctly render() shouldn't redirect for a fou
           }
         />
       </ProjectDocsContext>
-    </ProjectContext>
+    </withRouter(ProjectContext)>
     <Waiting
       hasEvent={false}
       skip={[Function]}
