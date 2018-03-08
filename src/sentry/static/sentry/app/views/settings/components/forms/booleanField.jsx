@@ -51,7 +51,8 @@ export default class BooleanField extends InputField {
                       // Then show confirm dialog, otherwise propagate change as normal
                       //
                       // TODO(billy): We will probably want a way to control if it happens on enable or disable
-                      if (!!confirm && !value) {
+                      if (!value) {
+                        // Open confirm modal
                         open();
                         return;
                       }
