@@ -114,7 +114,7 @@ const AssigneeSelector = createReactClass({
       .map(team => ({
         id: buildTeamId(team.id),
         name: team.slug,
-        display: team.slug,
+        display: `#${team.slug}`,
         team,
       }));
   },
