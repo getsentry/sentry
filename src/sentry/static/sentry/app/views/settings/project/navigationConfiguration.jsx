@@ -44,6 +44,11 @@ export default function getConfiguration({project}) {
           show: ({access}) => access.has('project:write'),
         },
         {
+          path: `${pathPrefix}/ownership/`,
+          title: t('Issue Ownership'),
+          show: ({access}) => access.has('project:write'),
+        },
+        {
           path: `${pathPrefix}/data-forwarding/`,
           title: t('Data Forwarding'),
         },

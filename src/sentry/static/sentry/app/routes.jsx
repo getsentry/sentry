@@ -299,6 +299,13 @@ const projectSettingsRoutes = (
       component={errorHandler(LazyLoad)}
     />
     <Route
+      path="ownership/"
+      name="Issue Ownership"
+      componentPromise={() =>
+        import(/* webpackChunkName: "projectOwnership" */ './views/settings/project/projectOwnership')}
+      component={errorHandler(LazyLoad)}
+    />
+    <Route
       path="data-forwarding/"
       name="Data Forwarding"
       component={errorHandler(ProjectDataForwarding)}
