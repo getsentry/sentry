@@ -30,6 +30,7 @@ describe('ProjectAlertSettings', function() {
         <ProjectAlertSettings
           params={{orgId: org.slug, projectId: project.slug}}
           organization={org}
+          routes={[]}
         />,
         {
           context: {

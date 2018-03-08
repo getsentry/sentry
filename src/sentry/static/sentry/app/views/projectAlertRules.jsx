@@ -1,7 +1,8 @@
+import {Link} from 'react-router';
 import PropTypes from 'prop-types';
 import React from 'react';
-import {Link} from 'react-router';
 import createReactClass from 'create-react-class';
+import styled from 'react-emotion';
 
 import {t} from '../locale';
 import ApiMixin from '../mixins/apiMixin';
@@ -12,7 +13,30 @@ import IndicatorStore from '../stores/indicatorStore';
 import ListLink from '../components/listLink';
 import LoadingError from '../components/loadingError';
 import LoadingIndicator from '../components/loadingIndicator';
+import Panel from './settings/components/panel';
+import PanelBody from './settings/components/panelBody';
+import PanelHeader from './settings/components/panelHeader';
 import SettingsPageHeader from './settings/components/settingsPageHeader';
+import recreateRoute from '../utils/recreateRoute';
+
+const TextColorLink = styled(Link)`
+  color: ${p => p.theme.gray3};
+`;
+
+const RuleDescriptionRow = styled.div`
+  display: flex;
+`;
+const RuleDescriptionColumn = styled.div`
+  flex: 1;
+  padding: ${p => p.theme.grid * 2}px;
+  height: 100%;
+`;
+const Condition = styled.div`
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  height: 100%;
+`;
 
 const RuleRow = createReactClass({
   displayName: 'RuleRow',
@@ -56,12 +80,20 @@ const RuleRow = createReactClass({
   },
 
   render() {
-    let {orgId, projectId, data} = this.props;
-    let editLink = `/${orgId}/${projectId}/settings/alerts/rules/${data.id}/`;
+    let {data} = this.props;
+    let editLink = recreateRoute(`${data.id}/`, this.props);
+
     return (
-      <div className="box">
-        <div className="box-header">
-          <div className="pull-right">
+      <Panel>
+        <PanelHeader
+          css={{paddingTop: 5, paddingBottom: 5}}
+          isFlex
+          align="center"
+          justify="space-between"
+        >
+          <TextColorLink to={editLink}>{data.name}</TextColorLink>
+
+          <div>
             <Button style={{marginRight: 5}} size="small" to={editLink}>
               {t('Edit Rule')}
             </Button>
@@ -75,15 +107,13 @@ const RuleRow = createReactClass({
               </Button>
             </Confirm>
           </div>
-          <h3>
-            <Link to={editLink}>{data.name}</Link>
-          </h3>
-        </div>
-        <div className="box-content with-padding">
-          <div className="row">
-            <div className="col-md-6">
+        </PanelHeader>
+
+        <PanelBody>
+          <RuleDescriptionRow>
+            <RuleDescriptionColumn>
               {data.conditions.length !== 0 && (
-                <div>
+                <Condition>
                   <h6>
                     When <strong>{data.actionMatch}</strong> of these conditions are met:
                   </h6>
@@ -98,12 +128,12 @@ const RuleRow = createReactClass({
                       })}
                     </tbody>
                   </table>
-                </div>
+                </Condition>
               )}
-            </div>
-            <div className="col-md-6">
+            </RuleDescriptionColumn>
+            <RuleDescriptionColumn>
               {data.actions.length !== 0 && (
-                <div>
+                <Condition>
                   <h6>
                     Take these actions at most{' '}
                     <strong>
@@ -122,18 +152,21 @@ const RuleRow = createReactClass({
                       })}
                     </tbody>
                   </table>
-                </div>
+                </Condition>
               )}
-            </div>
-          </div>
-        </div>
-      </div>
+            </RuleDescriptionColumn>
+          </RuleDescriptionRow>
+        </PanelBody>
+      </Panel>
     );
   },
 });
 
 const ProjectAlertRules = createReactClass({
   displayName: 'ProjectAlertRules',
+  propTypes: {
+    routes: PropTypes.array.isRequired,
+  },
   mixins: [ApiMixin],
 
   getInitialState() {
@@ -212,6 +245,8 @@ const ProjectAlertRules = createReactClass({
               data={rule}
               orgId={orgId}
               projectId={projectId}
+              params={this.props.params}
+              routes={this.props.routes}
               onDelete={this.onDeleteRule.bind(this, rule)}
             />
           );
@@ -221,14 +256,13 @@ const ProjectAlertRules = createReactClass({
   },
 
   render() {
-    let {orgId, projectId} = this.props.params;
     return (
       <div>
         <SettingsPageHeader
           title={t('Alerts')}
           action={
             <Button
-              to={`/${orgId}/${projectId}/settings/alerts/rules/new/`}
+              to={recreateRoute('new/', this.props)}
               priority="primary"
               size="small"
               className="pull-right"
@@ -239,12 +273,13 @@ const ProjectAlertRules = createReactClass({
           }
           tabs={
             <ul className="nav nav-tabs" style={{borderBottom: '1px solid #ddd'}}>
-              <ListLink to={`/${orgId}/${projectId}/settings/alerts/`} index={true}>
+              <ListLink
+                to={recreateRoute('alerts/', {...this.props, stepBack: -1})}
+                index={true}
+              >
                 {t('Settings')}
               </ListLink>
-              <ListLink to={`/${orgId}/${projectId}/settings/alerts/rules/`}>
-                {t('Rules')}
-              </ListLink>
+              <ListLink to={recreateRoute('', this.props)}>{t('Rules')}</ListLink>
             </ul>
           }
         />
