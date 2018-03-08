@@ -505,14 +505,12 @@ class MailPluginOwnersTest(TestCase):
             team=self.team,
         )
         self.create_member(user=self.user2, organization=self.organization, teams=[self.team])
-        self.group = Group(
-            id=2,
+        self.group = self.create_group(
             first_seen=timezone.now(),
             last_seen=timezone.now(),
             project=self.project,
-            message='hello world',
+            message='hello  world',
             logger='root',
-            short_id=2,
         )
         ProjectOwnership.objects.create(
             project_id=self.project.id,
