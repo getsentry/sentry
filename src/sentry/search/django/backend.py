@@ -326,8 +326,9 @@ class DjangoSearchBackend(SearchBackend):
                         project.id,
                         group_matches,
                         environment.id,
-                        'environment'
-                    ).filter(value=environment.name),
+                        'environment',
+                        environment.name,
+                    ),
                     parameters,
                 ).extra(
                     select={

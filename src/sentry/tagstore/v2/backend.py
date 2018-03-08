@@ -748,7 +748,7 @@ class V2TagStorage(TagStorage):
 
         return qs
 
-    def get_group_tag_value_qs(self, project_id, group_id, environment_id, key):
+    def get_group_tag_value_qs(self, project_id, group_id, environment_id, key, value=None):
         qs = GroupTagValue.objects.filter(
             project_id=project_id,
             _key__key=key,
@@ -758,6 +758,9 @@ class V2TagStorage(TagStorage):
             qs = qs.filter(group_id__in=group_id)
         else:
             qs = qs.filter(group_id=group_id)
+
+        if value is not None:
+            qs = qs.filter(_value__value=value)
 
         qs = self._add_environment_filter(qs, environment_id)
         return qs

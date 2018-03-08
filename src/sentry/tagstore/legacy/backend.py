@@ -615,13 +615,16 @@ class LegacyTagStorage(TagStorage):
 
         return queryset
 
-    def get_group_tag_value_qs(self, project_id, group_id, environment_id, key):
+    def get_group_tag_value_qs(self, project_id, group_id, environment_id, key, value=None):
         queryset = GroupTagValue.objects.filter(key=key)
 
         if isinstance(group_id, collections.Iterable):
             queryset = queryset.filter(group_id__in=group_id)
         else:
             queryset = queryset.filter(group_id=group_id)
+
+        if value is not None:
+            queryset = queryset.filter(value=value)
 
         return queryset
 
