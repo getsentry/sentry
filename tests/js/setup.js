@@ -594,6 +594,8 @@ window.TestStubs = {
   ProjectAlertRule: () => {
     return {
       id: '1',
+      actions: [],
+      conditions: [],
     };
   },
 

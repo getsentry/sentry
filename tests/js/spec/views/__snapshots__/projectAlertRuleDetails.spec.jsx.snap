@@ -17,6 +17,7 @@ exports[`ProjectAlertRuleDetails Edit alert rule renders 1`] = `
     Object {
       "orgId": "org-slug",
       "projectId": "project-slug",
+      "ruleId": "1",
     }
   }
 >
@@ -75,6 +76,7 @@ exports[`ProjectAlertRuleDetails Edit alert rule renders 1`] = `
           Object {
             "orgId": "org-slug",
             "projectId": "project-slug",
+            "ruleId": "1",
           }
         }
         project={
@@ -118,7 +120,7 @@ exports[`ProjectAlertRuleDetails Edit alert rule renders 1`] = `
               className="box-header"
             >
               <h3>
-                New Alert Rule
+                Edit Alert Rule
               </h3>
             </div>
             <div
@@ -133,7 +135,6 @@ exports[`ProjectAlertRuleDetails Edit alert rule renders 1`] = `
               >
                 <input
                   className="form-control"
-                  defaultValue=""
                   onChange={[Function]}
                   placeholder="My Rule Name"
                   required={true}
@@ -185,7 +186,6 @@ exports[`ProjectAlertRuleDetails Edit alert rule renders 1`] = `
                           "marginRight": 5,
                         }
                       }
-                      value="all"
                     >
                       <div
                         className="control-group required"
@@ -208,7 +208,7 @@ exports[`ProjectAlertRuleDetails Edit alert rule renders 1`] = `
                             onChange={[Function]}
                             placeholder="--"
                             required={true}
-                            value="all"
+                            value=""
                           >
                             <option
                               key="all"
@@ -238,6 +238,7 @@ exports[`ProjectAlertRuleDetails Edit alert rule renders 1`] = `
               </div>
               <RuleNodeList
                 className="rule-condition-list"
+                handlePropertyChange={[Function]}
                 initialItems={Array []}
                 nodes={
                   Array [
@@ -377,6 +378,7 @@ exports[`ProjectAlertRuleDetails Edit alert rule renders 1`] = `
               </h6>
               <RuleNodeList
                 className="rule-action-list"
+                handlePropertyChange={[Function]}
                 initialItems={Array []}
                 nodes={
                   Array [
@@ -514,7 +516,6 @@ exports[`ProjectAlertRuleDetails Edit alert rule renders 1`] = `
                           "width": 140,
                         }
                       }
-                      value={30}
                     >
                       <div
                         className="control-group required"
@@ -538,7 +539,7 @@ exports[`ProjectAlertRuleDetails Edit alert rule renders 1`] = `
                             onChange={[Function]}
                             placeholder="--"
                             required={true}
-                            value={30}
+                            value=""
                           >
                             <option
                               key="5"
@@ -859,6 +860,7 @@ exports[`ProjectAlertRuleDetails New alert rule renders 1`] = `
               </div>
               <RuleNodeList
                 className="rule-condition-list"
+                handlePropertyChange={[Function]}
                 initialItems={Array []}
                 nodes={
                   Array [
@@ -998,6 +1000,7 @@ exports[`ProjectAlertRuleDetails New alert rule renders 1`] = `
               </h6>
               <RuleNodeList
                 className="rule-action-list"
+                handlePropertyChange={[Function]}
                 initialItems={Array []}
                 nodes={
                   Array [

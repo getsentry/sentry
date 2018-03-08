@@ -62,13 +62,11 @@ describe('ProjectAlertRuleDetails', function() {
       expect(selects.last().props().value).toBe(30);
     });
 
-    // TODO: Rewrite the rule editor to not use  ReactDOM.findDOMNode so this can be tested
-    xdescribe('update', function() {
+    describe('update', function() {
       let name;
       beforeEach(function() {
         name = wrapper.find('input').first();
-        name.value = 'My rule';
-        name.simulate('change');
+        name.simulate('change', {target: {value: 'My rule'}});
 
         wrapper.find('form').simulate('submit');
       });
@@ -94,14 +92,14 @@ describe('ProjectAlertRuleDetails', function() {
     let wrapper, mock;
     beforeEach(function() {
       mock = Client.addMockResponse({
-        url: '/projects/org-slug/project-slug/rules/',
+        url: '/projects/org-slug/project-slug/rules/1/',
         method: 'PUT',
         body: TestStubs.ProjectAlertRule(),
       });
 
       wrapper = mount(
         <ProjectAlertRuleDetails
-          params={{orgId: 'org-slug', projectId: 'project-slug'}}
+          params={{orgId: 'org-slug', projectId: 'project-slug', ruleId: '1'}}
         />,
         {
           context: {
@@ -115,11 +113,9 @@ describe('ProjectAlertRuleDetails', function() {
       expect(wrapper).toMatchSnapshot();
     });
 
-    // TODO: Rewrite the rule editor to not use  ReactDOM.findDOMNode so this can be tested
-    xit('updates', function() {
+    it('updates', function() {
       let name = wrapper.find('input').first();
-      name.value = 'My rule';
-      name.simulate('change');
+      name.simulate('change', {target: {value: 'My rule'}});
 
       wrapper.find('form').simulate('submit');
       expect(mock).toHaveBeenCalled();
