@@ -23,7 +23,6 @@ const LatestContextStore = Reflux.createStore({
     this.listenTo(OrganizationsActions.update, this.onUpdateOrganization);
     this.listenTo(EnvironmentActions.setActive, this.onSetActiveEnvironment);
     this.listenTo(EnvironmentActions.clearActive, this.onClearActiveEnvironment);
-    this.listenTo(EnvironmentActions.setDefault, this.onSetActiveEnvironment);
   },
 
   reset() {

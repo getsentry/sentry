@@ -8,8 +8,8 @@ export function clearActiveEnvironment() {
   EnvironmentActions.clearActive();
 }
 
-export function loadEnvironments(data) {
-  EnvironmentActions.loadData(data);
+export function loadEnvironments(data, envName) {
+  EnvironmentActions.loadData(data, envName);
 }
 
 export function loadActiveEnvironments(data) {
@@ -18,8 +18,4 @@ export function loadActiveEnvironments(data) {
 
 export function loadHiddenEnvironments(data) {
   EnvironmentActions.loadHiddenData(data);
-}
-
-export function setDefaultEnvironment(env) {
-  EnvironmentActions.setDefault(env);
 }
