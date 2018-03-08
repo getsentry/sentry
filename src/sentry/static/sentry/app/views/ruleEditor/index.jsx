@@ -20,6 +20,8 @@ import PanelBody from '../settings/components/panelBody';
 import PanelHeader from '../settings/components/panelHeader';
 import RuleNodeList from './ruleNodeList';
 
+const ALL_ENVIRONMENTS_KEY = '__all_environments__';
+
 const FREQUENCY_CHOICES = [
   ['5', t('5 minutes')],
   ['10', t('10 minutes')],
@@ -158,7 +160,7 @@ const RuleEditor = createReactClass({
 
   handleEnvironmentChange(val) {
     // If 'All Environments' is selected the value should be null
-    if (val === 'all') {
+    if (val === ALL_ENVIRONMENTS_KEY) {
       this.handleChange('environment', null);
     } else {
       this.handleChange('environment', val);
@@ -176,14 +178,17 @@ const RuleEditor = createReactClass({
   render() {
     const activeEnvs = EnvironmentStore.getActive() || [];
     const environmentChoices = [
-      ['all', t('All Environments')],
+      [ALL_ENVIRONMENTS_KEY, t('All Environments')],
       ...activeEnvs.map(env => [env.name, env.displayName]),
     ];
 
     if (!this.state.rule) return <LoadingIndicator />;
 
     const {rule, loading, error} = this.state;
-    const {actionMatch, actions, conditions, frequency, name, environment} = rule;
+    const {actionMatch, actions, conditions, frequency, name} = rule;
+
+    const environment =
+      rule.environment === null ? ALL_ENVIRONMENTS_KEY : rule.environment;
 
     return (
       <form onSubmit={this.onSubmit} ref={node => (this.formNode = node)}>
