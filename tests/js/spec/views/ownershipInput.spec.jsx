@@ -1,39 +1,45 @@
 import React from 'react';
-import {shallow} from 'enzyme';
+import {mount} from 'enzyme';
 
 import {Client} from 'app/api';
-import ProjectOwnership from 'app/views/settings/project/projectOwnership';
+import OwnerInput from 'app/views/settings/project/ownerInput';
 
 describe('ProjectTeamsSettings', function() {
   let org;
   let project;
+  let put;
 
   beforeEach(function() {
     org = TestStubs.Organization();
     project = TestStubs.Project();
 
-    Client.addMockResponse({
-      url: `/projects/${org.slug}/${project.slug}/`,
-      method: 'GET',
-      body: project,
-    });
-    Client.addMockResponse({
+    put = Client.addMockResponse({
       url: `/projects/${org.slug}/${project.slug}/ownership/`,
-      method: 'GET',
-      body: {raw: 'url:src @dummy@example.com', fallthrough: 'false'},
+      method: 'PUT',
+      body: {raw: 'url:src @dummy@example.com'},
     });
   });
 
   describe('render()', function() {
     it('renders', function() {
-      let wrapper = shallow(
-        <ProjectOwnership
+      let wrapper = mount(
+        <OwnerInput
           params={{orgId: org.slug, projectId: project.slug}}
           organization={org}
+          initialText="url:src @dummy@example.com"
           project={project}
         />,
         TestStubs.routerContext()
       );
+
+      let submit = wrapper.find('button');
+
+      expect(put).not.toHaveBeenCalled();
+
+      submit.simulate('click');
+
+      expect(put).toHaveBeenCalled();
+
       expect(wrapper).toMatchSnapshot();
     });
   });
