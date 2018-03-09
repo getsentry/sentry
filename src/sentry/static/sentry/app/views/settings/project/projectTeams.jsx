@@ -195,7 +195,7 @@ class ProjectTeams extends AsyncView {
       .filter(team => {
         return team.hasAccess && !projectTeams.has(team.slug);
       })
-      .map(team => ({value: team.id, label: team.slug}));
+      .map(team => ({value: team.id, label: `#${team.slug}`}));
 
     return (
       <div>
