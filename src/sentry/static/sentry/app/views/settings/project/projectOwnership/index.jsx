@@ -65,7 +65,7 @@ class ProjectOwnership extends AsyncView {
             </p>
             Examples:
             <CodeBlock>
-              path:src/sentry/pipeline/* person@sentry.io, #platform
+              path:src/sentry/pipeline/* person@sentry.io #platform
               {'\n'}
               url:http://sentry.io/settings/* #workflow
             </CodeBlock>

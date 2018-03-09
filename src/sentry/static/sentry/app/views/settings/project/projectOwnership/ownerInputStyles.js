@@ -7,7 +7,7 @@ let styles = {
 
   input: {
     margin: 0,
-    fontFamily: 'Rubik, sans-serif',
+    fontFamily: 'Monaco, Consolas, "Courier New", monospace',
     wordBreak: 'break-all',
     whiteSpace: 'pre-wrap',
   },
@@ -32,7 +32,7 @@ let styles = {
 
   '&multiLine': {
     control: {
-      fontFamily: 'Lato, Avenir Next, Helvetica Neue, sans-serif',
+      fontFamily: 'Monaco, Consolas, "Courier New", monospace',
     },
 
     highlighter: {
@@ -54,7 +54,7 @@ let styles = {
       overflow: 'auto',
       backgroundColor: 'white',
       border: '1px solid rgba(0,0,0,0.15)',
-      fontSize: 12,
+      fontSize: 15,
     },
 
     item: {
