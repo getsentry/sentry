@@ -93,7 +93,7 @@ url:http://sentry.io/settings/* #workflow"
         Object {
           "&multiLine": Object {
             "control": Object {
-              "fontFamily": "Lato, Avenir Next, Helvetica Neue, sans-serif",
+              "fontFamily": "Monaco, Consolas, \\"Courier New\\", monospace",
             },
             "highlighter": Object {
               "padding": 20,
@@ -126,7 +126,7 @@ url:http://sentry.io/settings/* #workflow"
             "fontWeight": "normal",
           },
           "input": Object {
-            "fontFamily": "Rubik, sans-serif",
+            "fontFamily": "Monaco, Consolas, \\"Courier New\\", monospace",
             "margin": 0,
             "whiteSpace": "pre-wrap",
             "wordBreak": "break-all",
@@ -142,7 +142,7 @@ url:http://sentry.io/settings/* #workflow"
             "list": Object {
               "backgroundColor": "white",
               "border": "1px solid rgba(0,0,0,0.15)",
-              "fontSize": 12,
+              "fontSize": 15,
               "maxHeight": 150,
               "overflow": "auto",
             },
@@ -185,7 +185,7 @@ url:http://sentry.io/settings/* #workflow"
             style={
               Object {
                 "backgroundColor": "#fff",
-                "fontFamily": "Lato, Avenir Next, Helvetica Neue, sans-serif",
+                "fontFamily": "Monaco, Consolas, \\"Courier New\\", monospace",
                 "fontSize": 15,
                 "fontWeight": "normal",
               }
@@ -200,7 +200,7 @@ url:http://sentry.io/settings/* #workflow"
                   "bottom": 0,
                   "boxSizing": "border-box",
                   "display": "block",
-                  "fontFamily": "Rubik, sans-serif",
+                  "fontFamily": "Monaco, Consolas, \\"Courier New\\", monospace",
                   "height": "100%",
                   "margin": 0,
                   "minHeight": 140,
@@ -236,7 +236,7 @@ url:http://sentry.io/settings/* #workflow"
                     "bottom": 0,
                     "boxSizing": "border-box",
                     "display": "block",
-                    "fontFamily": "Rubik, sans-serif",
+                    "fontFamily": "Monaco, Consolas, \\"Courier New\\", monospace",
                     "height": "100%",
                     "margin": 0,
                     "minHeight": 140,
@@ -272,7 +272,7 @@ url:http://sentry.io/settings/* #workflow"
                       "boxSizing": "border-box",
                       "color": "transparent",
                       "display": "block",
-                      "fontFamily": "Rubik, sans-serif",
+                      "fontFamily": "Monaco, Consolas, \\"Courier New\\", monospace",
                       "height": "100%",
                       "margin": 0,
                       "minHeight": 140,
@@ -328,7 +328,7 @@ url:http://sentry.io/settings/* #workflow"
                   "bottom": 0,
                   "boxSizing": "border-box",
                   "display": "block",
-                  "fontFamily": "Rubik, sans-serif",
+                  "fontFamily": "Monaco, Consolas, \\"Courier New\\", monospace",
                   "height": "100%",
                   "margin": 0,
                   "minHeight": 140,
