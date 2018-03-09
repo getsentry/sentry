@@ -20,7 +20,7 @@ class SlackNotifyServiceForm(forms.Form):
         attrs={'style': 'width:150px'},
     ))
     channel = forms.CharField(widget=forms.TextInput(
-        attrs={'placeholder': 'i.e #critical or @evan'},
+        attrs={'placeholder': 'i.e #critical'},
     ))
     channel_id = forms.HiddenInput()
 
