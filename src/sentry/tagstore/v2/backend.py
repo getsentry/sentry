@@ -316,7 +316,8 @@ class V2TagStorage(TagStorage):
                     'project_id': project_id,
                     'group_id': group_id,
                     'event_id': event_id,
-                }
+                },
+                exc_info=True
             )
 
     def get_tag_key(self, project_id, environment_id, key, status=TagKeyStatus.VISIBLE):
