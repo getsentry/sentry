@@ -10,6 +10,9 @@ from sentry.tasks.clear_expired_resolutions import clear_expired_resolutions
 
 
 def ensure_release_exists(instance, created, **kwargs):
+    if not created:
+        return
+
     if instance.key != 'sentry:release':
         return
 

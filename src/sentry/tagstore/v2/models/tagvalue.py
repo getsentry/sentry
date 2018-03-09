@@ -47,11 +47,14 @@ class TagValue(Model):
 
     @property
     def key(self):
-        from sentry.tagstore.v2.models import TagKey
-        return TagKey.objects.filter(
-            project_id=self.project_id,
-            id=self._key_id,
-        ).values_list('key', flat=True).get()
+        if hasattr(self, '_set_key'):
+            return self._set_key
+
+        return self._key.key
+
+    @key.setter
+    def key(self, key):
+        self._set_key = key
 
     def get_label(self):
         from sentry import tagstore

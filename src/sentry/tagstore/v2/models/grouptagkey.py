@@ -40,7 +40,14 @@ class GroupTagKey(Model):
 
     @property
     def key(self):
+        if hasattr(self, '_set_key'):
+            return self._set_key
+
         return self._key.key
+
+    @key.setter
+    def key(self, key):
+        self._set_key = key
 
     def merge_counts(self, new_group):
         from sentry.tagstore.v2.models import GroupTagValue
