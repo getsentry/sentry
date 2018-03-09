@@ -41,7 +41,7 @@ class DjangoSearchBackendTest(TestCase):
             datetime=datetime(2013, 7, 13, 3, 8, 24, 880386),
             tags={
                 'server': 'example.com',
-                'env': 'production',
+                'environment': 'production',
             }
         )
         self.event3 = self.create_event(
@@ -50,7 +50,7 @@ class DjangoSearchBackendTest(TestCase):
             datetime=datetime(2013, 8, 13, 3, 8, 24, 880386),
             tags={
                 'server': 'example.com',
-                'env': 'production',
+                'environment': 'production',
             }
         )
 
@@ -74,7 +74,7 @@ class DjangoSearchBackendTest(TestCase):
             datetime=datetime(2013, 7, 14, 3, 8, 24, 880386),
             tags={
                 'server': 'example.com',
-                'env': 'staging',
+                'environment': 'staging',
                 'url': 'http://example.com',
             }
         )
@@ -152,27 +152,34 @@ class DjangoSearchBackendTest(TestCase):
     def test_tags(self):
         results = self.backend.query(
             self.project,
-            tags={'env': 'staging'})
+            tags={'environment': 'staging'})
         assert set(results) == set([self.group2])
 
-        results = self.backend.query(self.project, tags={'env': 'example.com'})
+        results = self.backend.query(
+            self.project,
+            tags={'environment': 'example.com'})
         assert set(results) == set([])
 
-        results = self.backend.query(self.project, tags={'env': ANY})
+        results = self.backend.query(
+            self.project,
+            tags={'environment': ANY})
         assert set(results) == set([self.group2, self.group1])
 
         results = self.backend.query(
             self.project,
-            tags={'env': 'staging',
+            tags={'environment': 'staging',
                   'server': 'example.com'})
-        assert set(results) == set([self.group2])
-
-        results = self.backend.query(self.project, tags={'env': 'staging', 'server': ANY})
         assert set(results) == set([self.group2])
 
         results = self.backend.query(
             self.project,
-            tags={'env': 'staging',
+            tags={'environment': 'staging',
+                  'server': ANY})
+        assert set(results) == set([self.group2])
+
+        results = self.backend.query(
+            self.project,
+            tags={'environment': 'staging',
                   'server': 'bar.example.com'})
         assert set(results) == set([])
 
