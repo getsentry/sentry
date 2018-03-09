@@ -1,4 +1,5 @@
 import React from 'react';
+import PropTypes from 'prop-types';
 import createReactClass from 'create-react-class';
 import {Link} from 'react-router';
 import ApiMixin from '../mixins/apiMixin';
@@ -8,9 +9,15 @@ import LoadingError from '../components/loadingError';
 import LoadingIndicator from '../components/loadingIndicator';
 import {percent, deviceNameMapper} from '../utils';
 import {t} from '../locale';
+import withEnvironment from '../utils/withEnvironment';
 
 const GroupTags = createReactClass({
   displayName: 'GroupTags',
+
+  propTypes: {
+    environment: PropTypes.object,
+  },
+
   mixins: [ApiMixin, GroupState],
 
   getInitialState() {
@@ -18,11 +25,18 @@ const GroupTags = createReactClass({
       tagList: null,
       loading: true,
       error: false,
+      environment: this.props.environment,
     };
   },
 
   componentWillMount() {
     this.fetchData();
+  },
+
+  componentWillReceiveProps(nextProps) {
+    if (nextProps.environment !== this.props.environment) {
+      this.setState({environment: nextProps.environment}, this.fetchData);
+    }
   },
 
   fetchData() {
@@ -31,9 +45,15 @@ const GroupTags = createReactClass({
       error: false,
     });
 
+    const query = {};
+    if (this.state.environment) {
+      query.environment = this.state.environment.name;
+    }
+
     // TODO(dcramer): each tag should be a separate query as the tags endpoint
     // is not performant
     this.api.request('/issues/' + this.getGroup().id + '/tags/', {
+      query,
       success: data => {
         this.setState({
           tagList: data,
@@ -128,4 +148,4 @@ const GroupTags = createReactClass({
   },
 });
 
-export default GroupTags;
+export default withEnvironment(GroupTags);
