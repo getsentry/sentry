@@ -17,7 +17,7 @@ import PanelHeader from './settings/components/panelHeader';
 import SettingsPageHeader from './settings/components/settingsPageHeader';
 import TextBlock from './settings/components/text/textBlock';
 import TextField from './settings/components/forms/textField';
-import projectFields from '../data/forms/projectGeneralSettings';
+import {fields} from '../data/forms/projectGeneralSettings';
 
 const noMargin = {marginBottom: 0};
 
@@ -25,8 +25,10 @@ const AutoResolveFooter = () => (
   <Box p={2} pb={0}>
     <PanelAlert type="warning" icon="icon-circle-exclamation" css={noMargin}>
       <strong>
-        {t(`Note: Enabling auto resolve will immediately resolve anything that has
-                  not been seen within this period of time. There is no undo!`)}
+        {t(
+          'Note: Enabling auto resolve will immediately resolve anything that has ' +
+            'not been seen within this period of time. There is no undo!'
+        )}
       </strong>
     </PanelAlert>
   </Box>
@@ -219,6 +221,10 @@ export default class ProjectGeneralSettings extends AsyncView {
     let project = this.state.data;
     let {orgId, projectId} = this.props.params;
     let endpoint = `/projects/${orgId}/${projectId}/`;
+    let jsonFormProps = {
+      additionalFieldProps: {organization},
+      access: new Set(organization.access),
+    };
 
     return (
       <div>
@@ -241,43 +247,69 @@ export default class ProjectGeneralSettings extends AsyncView {
           }}
         >
           <JsonForm
-            forms={projectFields}
-            additionalFieldProps={{organization}}
-            access={new Set(organization.access)}
-            renderHeader={({title}) => {
-              if (title === 'Client Security') {
-                return (
-                  <Box p={2} pb={0}>
-                    <PanelAlert type="info" icon="icon-circle-exclamation" css={noMargin}>
-                      <TextBlock css={noMargin}>
-                        {tct(
-                          'Configure origin URLs which Sentry should accept events from. This is used for communication with clients like [link].',
-                          {
-                            link: (
-                              <a href="https://github.com/getsentry/raven-js">raven-js</a>
-                            ),
-                          }
-                        )}{' '}
-                        {tct(
-                          'This will restrict requests based on the [Origin] and [Referer] headers.',
-                          {
-                            Origin: <code>Origin</code>,
-                            Referer: <code>Referer</code>,
-                          }
-                        )}
-                      </TextBlock>
-                    </PanelAlert>
-                  </Box>
-                );
-              }
-              return null;
-            }}
-            renderFooter={({title}) => {
-              if (title === 'Event Settings') {
-                return <AutoResolveFooter />;
-              }
-              return null;
-            }}
+            {...jsonFormProps}
+            title={t('Project Details')}
+            fields={[fields.name, fields.slug, fields.team]}
+          />
+
+          <JsonForm
+            {...jsonFormProps}
+            title={t('Email')}
+            fields={[fields.subjectTemplate]}
+          />
+
+          <JsonForm
+            {...jsonFormProps}
+            title={t('Event Settings')}
+            fields={[fields.defaultEnvironment, fields.resolveAge]}
+            renderFooter={() => <AutoResolveFooter />}
+          />
+
+          <JsonForm
+            {...jsonFormProps}
+            title={t('Data Privacy')}
+            fields={[
+              fields.dataScrubber,
+              fields.dataScrubberDefaults,
+              fields.scrubIPAddresses,
+              fields.sensitiveFields,
+              fields.safeFields,
+            ]}
+          />
+
+          <JsonForm
+            {...jsonFormProps}
+            title={t('Client Security')}
+            fields={[
+              fields.allowedDomains,
+              fields.scrapeJavaScript,
+              fields.securityToken,
+              fields.securityTokenHeader,
+              fields.verifySSL,
+            ]}
+            renderHeader={() => (
+              <Box p={2} pb={0}>
+                <PanelAlert type="info" icon="icon-circle-exclamation" css={noMargin}>
+                  <TextBlock noMargin>
+                    {tct(
+                      'Configure origin URLs which Sentry should accept events from. This is used for communication with clients like [link].',
+                      {
+                        link: (
+                          <a href="https://github.com/getsentry/raven-js">raven-js</a>
+                        ),
+                      }
+                    )}{' '}
+                    {tct(
+                      'This will restrict requests based on the [Origin] and [Referer] headers.',
+                      {
+                        Origin: <code>Origin</code>,
+                        Referer: <code>Referer</code>,
+                      }
+                    )}
+                  </TextBlock>
+                </PanelAlert>
+              </Box>
+            )}
           />
         </Form>
 
