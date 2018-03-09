@@ -93,7 +93,12 @@ export default class Form extends React.Component {
     }
 
     if (this.props.onSubmit) {
-      this.props.onSubmit(this.model.getData(), this.onSubmitSuccess, this.onSubmitError);
+      this.props.onSubmit(
+        this.model.getData(),
+        this.onSubmitSuccess,
+        this.onSubmitError,
+        e
+      );
     } else {
       this.model.saveForm();
     }
