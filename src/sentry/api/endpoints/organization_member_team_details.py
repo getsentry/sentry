@@ -14,7 +14,7 @@ from sentry.models import (
     AuditLogEntryEvent, OrganizationAccessRequest, OrganizationMember, OrganizationMemberTeam, Team
 )
 
-ERR_INSUFFICIENT_ROLE = 'You cannot modify a member other than yourself.'
+ERR_INSUFFICIENT_ROLE = 'You do not have permission to edit that user\'s membership.'
 
 
 class OrganizationMemberTeamSerializer(serializers.Serializer):
