@@ -49,7 +49,6 @@ class GroupTagValue(Model):
         if hasattr(self, '_set_key'):
             return self._set_key
 
-        assert hasattr(self, '__key_cache'), "use select_related to fetch the _key!"
         return self._key.key
 
     @key.setter
