@@ -46,11 +46,25 @@ class GroupTagValue(Model):
 
     @property
     def key(self):
+        if hasattr(self, '_set_key'):
+            return self._set_key
+
         return self._key.key
+
+    @key.setter
+    def key(self, key):
+        self._set_key = key
 
     @property
     def value(self):
+        if hasattr(self, '_set_value'):
+            return self._set_value
+
         return self._value.value
+
+    @value.setter
+    def value(self, value):
+        self._set_value = value
 
     def save(self, *args, **kwargs):
         if not self.first_seen:
