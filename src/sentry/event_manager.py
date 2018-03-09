@@ -579,6 +579,13 @@ class EventManager(object):
                 for key, value in added_tags:
                     tags.setdefault(key, value)
 
+        for path, iface in six.iteritems(event.interfaces):
+            for k, v in iface.iter_tags():
+                tags[k] = v
+            # Get rid of ephemeral interface data
+            if iface.ephemeral:
+                data.pop(iface.get_path(), None)
+
         # tags are stored as a tuple
         tags = tags.items()
 
@@ -587,12 +594,6 @@ class EventManager(object):
         data['tags'] = tags
 
         data['fingerprint'] = fingerprint or ['{{ default }}']
-
-        for path, iface in six.iteritems(event.interfaces):
-            data['tags'].extend(iface.iter_tags())
-            # Get rid of ephemeral interface data
-            if iface.ephemeral:
-                data.pop(iface.get_path(), None)
 
         # prioritize fingerprint over checksum as its likely the client defaulted
         # a checksum whereas the fingerprint was explicit
