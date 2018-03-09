@@ -39,4 +39,4 @@ class AssistantActivity(APITestCase):
         assert resp.status_code == 201
         resp = self.client.get(self.path)
         assert resp.status_code == 200
-        assert resp.data == {}
+        assert len(resp.data) == len(GUIDES) - 1
