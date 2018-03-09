@@ -100,43 +100,37 @@ class V2TagStorage(TagStorage):
     def setup_receivers(self, **kwargs):
         super(V2TagStorage, self).setup_receivers(**kwargs)
 
-        from sentry.signals import buffer_incr_complete
+        from django.db.models.signals import post_save
 
-        @buffer_incr_complete.connect(sender=TagValue, weak=False)
-        def record_project_tag_count(filters, created, **kwargs):
+        def record_project_tag_count(instance, created, **kwargs):
             if not created:
                 return
-
-            project_id = filters['project_id']
-            key_id = filters['_key_id']
 
             buffer.incr(TagKey,
                         columns={
                             'values_seen': 1,
                         },
                         filters={
-                            'id': key_id,
-                            'project_id': project_id,
+                            'id': instance._key_id,
+                            'project_id': instance.project_id,
                         })
 
-        @buffer_incr_complete.connect(sender=GroupTagValue, weak=False)
-        def record_group_tag_count(filters, created, extra, **kwargs):
+        def record_group_tag_count(instance, created, **kwargs):
             if not created:
                 return
-
-            project_id = extra['project_id']
-            group_id = filters['group_id']
-            key_id = filters['_key_id']
 
             buffer.incr(GroupTagKey,
                         columns={
                             'values_seen': 1,
                         },
                         filters={
-                            'project_id': project_id,
-                            'group_id': group_id,
-                            '_key_id': key_id,
+                            'project_id': instance.project_id,
+                            'group_id': instance.group_id,
+                            '_key_id': instance._key_id,
                         })
+
+        post_save.connect(record_project_tag_count, sender=TagValue, weak=False)
+        post_save.connect(record_group_tag_count, sender=GroupTagValue, weak=False)
 
     def create_tag_key(self, project_id, environment_id, key, **kwargs):
         environment_id = AGGREGATE_ENVIRONMENT_ID if environment_id is None else environment_id
