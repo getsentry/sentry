@@ -22,6 +22,8 @@ Enzyme.configure({disableLifecycleMethods: true});
 
 window.$ = window.jQuery = jQuery;
 window.sinon = sinon;
+window.scrollTo = sinon.spy();
+
 window.Raven = {
   captureMessage: sinon.spy(),
   captureException: sinon.spy(),
@@ -37,7 +39,7 @@ window.TestStubs = {
     setRouteLeaveHook: sinon.spy(),
     isActive: sinon.spy(),
     createHref: sinon.spy(),
-    location: sinon.spy(),
+    location: {},
   }),
 
   location: () => ({
