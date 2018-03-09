@@ -5,6 +5,7 @@ from __future__ import absolute_import
 from datetime import datetime, timedelta
 
 from sentry import tagstore
+from sentry.event_manager import ScoreClause
 from sentry.models import (
     GroupAssignee, GroupBookmark, GroupStatus, GroupSubscription
 )
@@ -20,27 +21,27 @@ class DjangoSearchBackendTest(TestCase):
     def setUp(self):
         self.backend = self.create_backend()
 
-        self.project1 = self.create_project(name='project1')
-        self.env1 = self.create_environment(project=self.project1, name='env1')
-        self.project2 = self.create_project(name='project2')
-        self.env2 = self.create_environment(project=self.project2, name='env2')
-
         self.group1 = self.create_group(
-            project=self.project1,
+            project=self.project,
             checksum='a' * 32,
             message='foo',
             times_seen=5,
             status=GroupStatus.UNRESOLVED,
             last_seen=datetime(2013, 8, 13, 3, 8, 24, 880386),
             first_seen=datetime(2013, 7, 13, 3, 8, 24, 880386),
+            score=ScoreClause.calculate(
+                times_seen=5,
+                last_seen=datetime(2013, 8, 13, 3, 8, 24, 880386),
+            ),
         )
+
         self.event1 = self.create_event(
             event_id='a' * 32,
             group=self.group1,
             datetime=datetime(2013, 7, 13, 3, 8, 24, 880386),
             tags={
                 'server': 'example.com',
-                'env': 'production',
+                'environment': 'production',
             }
         )
         self.event3 = self.create_event(
@@ -49,18 +50,22 @@ class DjangoSearchBackendTest(TestCase):
             datetime=datetime(2013, 8, 13, 3, 8, 24, 880386),
             tags={
                 'server': 'example.com',
-                'env': 'production',
+                'environment': 'production',
             }
         )
 
         self.group2 = self.create_group(
-            project=self.project1,
+            project=self.project,
             checksum='b' * 32,
             message='bar',
             times_seen=10,
             status=GroupStatus.RESOLVED,
             last_seen=datetime(2013, 7, 14, 3, 8, 24, 880386),
             first_seen=datetime(2013, 7, 14, 3, 8, 24, 880386),
+            score=ScoreClause.calculate(
+                times_seen=10,
+                last_seen=datetime(2013, 7, 14, 3, 8, 24, 880386),
+            ),
         )
 
         self.event2 = self.create_event(
@@ -69,7 +74,7 @@ class DjangoSearchBackendTest(TestCase):
             datetime=datetime(2013, 7, 14, 3, 8, 24, 880386),
             tags={
                 'server': 'example.com',
-                'env': 'staging',
+                'environment': 'staging',
                 'url': 'http://example.com',
             }
         )
@@ -118,175 +123,154 @@ class DjangoSearchBackendTest(TestCase):
         )
 
     def test_query(self):
-        results = self.backend.query(self.project1, query='foo')
-        assert len(results) == 1
-        assert results[0] == self.group1
+        results = self.backend.query(self.project, query='foo')
+        assert set(results) == set([self.group1])
 
-        results = self.backend.query(self.project1, query='bar')
-        assert len(results) == 1
-        assert results[0] == self.group2
+        results = self.backend.query(self.project, query='bar')
+        assert set(results) == set([self.group2])
 
     def test_sort(self):
-        results = self.backend.query(self.project1, sort_by='date')
-        assert len(results) == 2
-        assert results[0] == self.group1
-        assert results[1] == self.group2
+        results = self.backend.query(self.project, sort_by='date')
+        assert list(results) == [self.group1, self.group2]
 
-        results = self.backend.query(self.project1, sort_by='new')
-        assert len(results) == 2
-        assert results[0] == self.group2
-        assert results[1] == self.group1
+        results = self.backend.query(self.project, sort_by='new')
+        assert list(results) == [self.group2, self.group1]
 
-        results = self.backend.query(self.project1, sort_by='freq')
-        assert len(results) == 2
-        assert results[0] == self.group2
-        assert results[1] == self.group1
+        results = self.backend.query(self.project, sort_by='freq')
+        assert list(results) == [self.group2, self.group1]
+
+        results = self.backend.query(self.project, sort_by='priority')
+        assert list(results) == [self.group1, self.group2]
 
     def test_status(self):
-        results = self.backend.query(self.project1, status=GroupStatus.UNRESOLVED)
-        assert len(results) == 1
-        assert results[0] == self.group1
+        results = self.backend.query(self.project, status=GroupStatus.UNRESOLVED)
+        assert set(results) == set([self.group1])
 
-        results = self.backend.query(self.project1, status=GroupStatus.RESOLVED)
-        assert len(results) == 1
-        assert results[0] == self.group2
+        results = self.backend.query(self.project, status=GroupStatus.RESOLVED)
+        assert set(results) == set([self.group2])
 
     def test_tags(self):
         results = self.backend.query(
-            self.project1,
-            tags={
-                'env': 'staging'})
-        assert len(results) == 1
-        assert results[0] == self.group2
-
-        results = self.backend.query(self.project1, tags={'env': 'example.com'})
-        assert len(results) == 0
-
-        results = self.backend.query(self.project1, tags={'env': ANY})
-        assert len(results) == 2
+            self.project,
+            tags={'environment': 'staging'})
+        assert set(results) == set([self.group2])
 
         results = self.backend.query(
-            self.project1, tags={'env': 'staging',
-                                 'server': 'example.com'}
-        )
-        assert len(results) == 1
-        assert results[0] == self.group2
-
-        results = self.backend.query(self.project1, tags={'env': 'staging', 'server': ANY})
-        assert len(results) == 1
-        assert results[0] == self.group2
+            self.project,
+            tags={'environment': 'example.com'})
+        assert set(results) == set([])
 
         results = self.backend.query(
-            self.project1, tags={'env': 'staging',
-                                 'server': 'bar.example.com'}
-        )
-        assert len(results) == 0
+            self.project,
+            tags={'environment': ANY})
+        assert set(results) == set([self.group2, self.group1])
+
+        results = self.backend.query(
+            self.project,
+            tags={'environment': 'staging',
+                  'server': 'example.com'})
+        assert set(results) == set([self.group2])
+
+        results = self.backend.query(
+            self.project,
+            tags={'environment': 'staging',
+                  'server': ANY})
+        assert set(results) == set([self.group2])
+
+        results = self.backend.query(
+            self.project,
+            tags={'environment': 'staging',
+                  'server': 'bar.example.com'})
+        assert set(results) == set([])
 
     def test_bookmarked_by(self):
-        results = self.backend.query(self.project1, bookmarked_by=self.user)
-        assert len(results) == 1
-        assert results[0] == self.group2
+        results = self.backend.query(self.project, bookmarked_by=self.user)
+        assert set(results) == set([self.group2])
 
     def test_project(self):
-        results = self.backend.query(self.project2)
-        assert len(results) == 0
+        results = self.backend.query(self.create_project(name='other'))
+        assert set(results) == set([])
 
     def test_pagination(self):
-        results = self.backend.query(self.project1, limit=1, sort_by='date')
-        assert len(results) == 1
-        assert results[0] == self.group1
+        results = self.backend.query(self.project, limit=1, sort_by='date')
+        assert set(results) == set([self.group1])
 
-        results = self.backend.query(self.project1, cursor=results.next, limit=1, sort_by='date')
-        assert len(results) == 1
-        assert results[0] == self.group2
+        results = self.backend.query(self.project, cursor=results.next, limit=1, sort_by='date')
+        assert set(results) == set([self.group2])
 
-        results = self.backend.query(self.project1, cursor=results.next, limit=1, sort_by='date')
-        assert len(results) == 0
+        results = self.backend.query(self.project, cursor=results.next, limit=1, sort_by='date')
+        assert set(results) == set([])
 
     def test_age_filter(self):
         results = self.backend.query(
-            self.project1,
+            self.project,
             age_from=self.group2.first_seen,
         )
-        assert len(results) == 1
-        assert results[0] == self.group2
+        assert set(results) == set([self.group2])
 
         results = self.backend.query(
-            self.project1,
+            self.project,
             age_to=self.group1.first_seen + timedelta(minutes=1),
         )
-        assert len(results) == 1
-        assert results[0] == self.group1
+        assert set(results) == set([self.group1])
 
         results = self.backend.query(
-            self.project1,
+            self.project,
             age_from=self.group1.first_seen,
             age_to=self.group1.first_seen + timedelta(minutes=1),
         )
-        assert len(results) == 1
-        assert results[0] == self.group1
+        assert set(results) == set([self.group1])
 
     def test_last_seen_filter(self):
         results = self.backend.query(
-            self.project1,
+            self.project,
             last_seen_from=self.group1.last_seen,
         )
-        assert len(results) == 1
-        assert results[0] == self.group1
+        assert set(results) == set([self.group1])
 
         results = self.backend.query(
-            self.project1,
+            self.project,
             last_seen_to=self.group2.last_seen + timedelta(minutes=1),
         )
-        assert len(results) == 1
-        assert results[0] == self.group2
+        assert set(results) == set([self.group2])
 
         results = self.backend.query(
-            self.project1,
+            self.project,
             last_seen_from=self.group1.last_seen,
             last_seen_to=self.group1.last_seen + timedelta(minutes=1),
         )
-        assert len(results) == 1
-        assert results[0] == self.group1
+        assert set(results) == set([self.group1])
 
     def test_date_filter(self):
         results = self.backend.query(
-            self.project1,
+            self.project,
             date_from=self.event2.datetime,
         )
-        assert len(results) == 2
-        assert results[0] == self.group1
-        assert results[1] == self.group2
+        assert set(results) == set([self.group1, self.group2])
 
         results = self.backend.query(
-            self.project1,
+            self.project,
             date_to=self.event1.datetime + timedelta(minutes=1),
         )
-        assert len(results) == 1
-        assert results[0] == self.group1
+        assert set(results) == set([self.group1])
 
         results = self.backend.query(
-            self.project1,
+            self.project,
             date_from=self.event1.datetime,
             date_to=self.event2.datetime + timedelta(minutes=1),
         )
-        assert len(results) == 2
-        assert results[0] == self.group1
-        assert results[1] == self.group2
+        assert set(results) == set([self.group1, self.group2])
 
     def test_unassigned(self):
-        results = self.backend.query(self.project1, unassigned=True)
-        assert len(results) == 1
-        assert results[0] == self.group1
+        results = self.backend.query(self.project, unassigned=True)
+        assert set(results) == set([self.group1])
 
-        results = self.backend.query(self.project1, unassigned=False)
-        assert len(results) == 1
-        assert results[0] == self.group2
+        results = self.backend.query(self.project, unassigned=False)
+        assert set(results) == set([self.group2])
 
     def test_assigned_to(self):
-        results = self.backend.query(self.project1, assigned_to=self.user)
-        assert len(results) == 1
-        assert results[0] == self.group2
+        results = self.backend.query(self.project, assigned_to=self.user)
+        assert set(results) == set([self.group2])
 
         # test team assignee
         ga = GroupAssignee.objects.get(
@@ -297,19 +281,17 @@ class DjangoSearchBackendTest(TestCase):
         ga.update(team=self.team, user=None)
         assert GroupAssignee.objects.get(id=ga.id).user is None
 
-        results = self.backend.query(self.project1, assigned_to=self.user)
-        assert len(results) == 1
-        assert results[0] == self.group2
+        results = self.backend.query(self.project, assigned_to=self.user)
+        assert set(results) == set([self.group2])
 
         # test when there should be no results
         other_user = self.create_user()
-        results = self.backend.query(self.project1, assigned_to=other_user)
-        assert len(results) == 0
+        results = self.backend.query(self.project, assigned_to=other_user)
+        assert set(results) == set([])
 
     def test_subscribed_by(self):
         results = self.backend.query(
             self.group1.project,
             subscribed_by=self.user,
         )
-        assert len(results) == 1
-        assert results[0] == self.group1
+        assert set(results) == set([self.group1])
