@@ -75,12 +75,20 @@ exports[`ProjectTeamsSettings render() renders 1`] = `
     }
   >
     <withDefaultStyle(MentionsInput)
+      autoCapitalize="off"
+      autoComplete="off"
+      autoCorrect="off"
       autoFocus={true}
       displayTransform={[Function]}
       markup="**[sentry.strip:__type__]__display__**"
       onChange={[Function]}
-      placeholder="Project Ownership"
+      placeholder="#example usage
+
+path:src/sentry/pipeline/* person@sentry.io #platform
+
+url:http://sentry.io/settings/* #workflow"
       required={true}
+      spellCheck="false"
       style={
         Object {
           "&multiLine": Object {
@@ -144,6 +152,9 @@ exports[`ProjectTeamsSettings render() renders 1`] = `
       value="url:src @dummy@example.com"
     >
       <MentionsInput
+        autoCapitalize="off"
+        autoComplete="off"
+        autoCorrect="off"
         autoFocus={true}
         displayTransform={[Function]}
         markup="**[sentry.strip:__type__]__display__**"
@@ -151,9 +162,14 @@ exports[`ProjectTeamsSettings render() renders 1`] = `
         onChange={[Function]}
         onKeyDown={[Function]}
         onSelect={[Function]}
-        placeholder="Project Ownership"
+        placeholder="#example usage
+
+path:src/sentry/pipeline/* person@sentry.io #platform
+
+url:http://sentry.io/settings/* #workflow"
         required={true}
         singleLine={false}
+        spellCheck="false"
         style={[Function]}
         value="url:src @dummy@example.com"
       >
@@ -288,6 +304,9 @@ exports[`ProjectTeamsSettings render() renders 1`] = `
               </Highlighter>
             </withDefaultStyle(Highlighter)>
             <textarea
+              autoCapitalize="off"
+              autoComplete="off"
+              autoCorrect="off"
               autoFocus={true}
               onBlur={[Function]}
               onChange={[Function]}
@@ -295,8 +314,13 @@ exports[`ProjectTeamsSettings render() renders 1`] = `
               onCompositionStart={[Function]}
               onKeyDown={[Function]}
               onSelect={[Function]}
-              placeholder="Project Ownership"
+              placeholder="#example usage
+
+path:src/sentry/pipeline/* person@sentry.io #platform
+
+url:http://sentry.io/settings/* #workflow"
               required={true}
+              spellCheck="false"
               style={
                 Object {
                   "backgroundColor": "transparent",
