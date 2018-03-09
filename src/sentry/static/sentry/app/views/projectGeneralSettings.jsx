@@ -182,7 +182,7 @@ export default class ProjectGeneralSettings extends AsyncView {
             forms={projectFields}
             additionalFieldProps={{organization}}
             access={new Set(organization.access)}
-            renderBodyStart={({title}) => {
+            renderHeader={({title}) => {
               if (title === 'Client Security') {
                 return (
                   <Box p={2} pb={0}>

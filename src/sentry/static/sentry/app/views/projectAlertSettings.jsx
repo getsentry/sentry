@@ -110,7 +110,7 @@ export default class ProjectAlertSettings extends AsyncView {
         >
           <JsonForm
             forms={alertsFormGroups}
-            renderBodyStart={({title}) => {
+            renderHeader={({title}) => {
               if (title === 'Digests') {
                 return (
                   <PanelAlert m={0} mb={0} type="info" icon="icon-circle-exclamation">
