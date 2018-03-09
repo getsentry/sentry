@@ -41,15 +41,15 @@ class QueuedRunner(object):
                 try:
                     func(*args, **kwargs)
                     metrics.incr(
-                        'tagstore.multi.runner',
-                        instance='executed',
+                        'tagstore.multi.runner.execute',
+                        instance='success',
                         skip_internal=True,
                     )
                 except Exception as e:
                     logger.exception(e)
                     metrics.incr(
-                        'tagstore.multi.runner',
-                        instance='exception',
+                        'tagstore.multi.runner.execute',
+                        instance='fail',
                         skip_internal=True,
                     )
                 finally:
@@ -60,29 +60,24 @@ class QueuedRunner(object):
         t.start()
 
     def run(self, f, *args, **kwargs):
-        metrics.incr(
-            'tagstore.multi.runner',
-            instance='run',
-            skip_internal=True,
-        )
         if random.random() <= options.get('tagstore.multi-sampling'):
             try:
                 self.q.put((f, args, kwargs), block=False)
                 metrics.incr(
-                    'tagstore.multi.runner',
+                    'tagstore.multi.runner.schedule',
                     instance='put',
                     skip_internal=True,
                 )
             except Full:
                 metrics.incr(
-                    'tagstore.multi.runner',
+                    'tagstore.multi.runner.schedule',
                     instance='full',
                     skip_internal=True,
                 )
                 return
         else:
             metrics.incr(
-                'tagstore.multi.runner',
+                'tagstore.multi.runner.schedule',
                 instance='sampled',
                 skip_internal=True,
             )
