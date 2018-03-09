@@ -168,12 +168,15 @@ class V2TagStorage(TagStorage):
         tag_key, _ = self.get_or_create_tag_key(
             project_id, environment_id, key, **tag_key_kwargs)
 
-        return TagValue.objects.create(
+        tv = TagValue.objects.create(
             project_id=project_id,
             _key_id=tag_key.id,
             value=value,
             **kwargs
         )
+
+        tv.key = key
+        return tv
 
     def get_or_create_tag_value(self, project_id, environment_id,
                                 key, value, key_id=None, **kwargs):
@@ -184,12 +187,15 @@ class V2TagStorage(TagStorage):
                 project_id, environment_id, key, **kwargs)
             key_id = tag_key.id
 
-        return TagValue.objects.get_or_create(
+        tv, created = TagValue.objects.get_or_create(
             project_id=project_id,
             _key_id=key_id,
             value=value,
             **kwargs
         )
+
+        tv.key = key
+        return (tv, created)
 
     def create_group_tag_key(self, project_id, group_id, environment_id, key, **kwargs):
         environment_id = AGGREGATE_ENVIRONMENT_ID if environment_id is None else environment_id
@@ -200,12 +206,15 @@ class V2TagStorage(TagStorage):
         tag_key, _ = self.get_or_create_tag_key(
             project_id, environment_id, key, **tag_key_kwargs)
 
-        return GroupTagKey.objects.create(
+        gtk = GroupTagKey.objects.create(
             project_id=project_id,
             group_id=group_id,
             _key_id=tag_key.id,
             **kwargs
         )
+
+        gtk.key = key
+        return gtk
 
     def get_or_create_group_tag_key(self, project_id, group_id, environment_id, key, **kwargs):
         assert environment_id is not None
@@ -213,12 +222,15 @@ class V2TagStorage(TagStorage):
         tag_key, _ = self.get_or_create_tag_key(
             project_id, environment_id, key, **kwargs)
 
-        return GroupTagKey.objects.get_or_create(
+        gtk, created = GroupTagKey.objects.get_or_create(
             project_id=project_id,
             group_id=group_id,
             _key_id=tag_key.id,
             **kwargs
         )
+
+        gtk.key = key
+        return (gtk, created)
 
     def create_group_tag_value(self, project_id, group_id, environment_id,
                                key, value, **kwargs):
@@ -234,13 +246,17 @@ class V2TagStorage(TagStorage):
         tag_value, _ = self.get_or_create_tag_value(
             project_id, environment_id, key, value, **other_kwargs)
 
-        return GroupTagValue.objects.create(
+        gtv = GroupTagValue.objects.create(
             project_id=project_id,
             group_id=group_id,
             _key_id=tag_key.id,
             _value_id=tag_value.id,
             **kwargs
         )
+
+        gtv.key = key
+        gtv.value = value
+        return gtv
 
     def get_or_create_group_tag_value(self, project_id, group_id,
                                       environment_id, key, value, **kwargs):
@@ -252,13 +268,17 @@ class V2TagStorage(TagStorage):
         tag_value, _ = self.get_or_create_tag_value(
             project_id, environment_id, key, value, **kwargs)
 
-        return GroupTagValue.objects.get_or_create(
+        gtv, created = GroupTagValue.objects.get_or_create(
             project_id=project_id,
             group_id=group_id,
             _key_id=tag_key.id,
             _value_id=tag_value.id,
             **kwargs
         )
+
+        gtv.key = key
+        gtv.value = value
+        return (gtv, created)
 
     def create_event_tags(self, project_id, group_id, environment_id, event_id, tags):
         assert environment_id is not None
@@ -358,7 +378,7 @@ class V2TagStorage(TagStorage):
     def get_group_tag_key(self, project_id, group_id, environment_id, key):
         from sentry.tagstore.exceptions import GroupTagKeyNotFound
 
-        qs = GroupTagKey.objects.select_related('_key', '_value').filter(
+        qs = GroupTagKey.objects.select_related('_key').filter(
             project_id=project_id,
             group_id=group_id,
             _key__key=key,
@@ -372,7 +392,7 @@ class V2TagStorage(TagStorage):
             raise GroupTagKeyNotFound
 
     def get_group_tag_keys(self, project_id, group_id, environment_id, limit=None):
-        qs = GroupTagKey.objects.select_related('_key', '_value').filter(
+        qs = GroupTagKey.objects.select_related('_key').filter(
             group_id=group_id,
         )
 
@@ -639,7 +659,7 @@ class V2TagStorage(TagStorage):
             )
 
         cutoff = timezone.now() - timedelta(days=7)
-        qs = GroupTagValue.objects.filter(
+        qs = GroupTagValue.objects.select_related('_key', '_value').filter(
             group_id=group_id,
             _key__key=key,
             last_seen__gte=cutoff,
