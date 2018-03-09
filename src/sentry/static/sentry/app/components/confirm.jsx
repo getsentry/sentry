@@ -7,14 +7,21 @@ import {t} from '../locale';
 
 class Confirm extends React.PureComponent {
   static propTypes = {
-    disabled: PropTypes.bool,
-    message: PropTypes.node.isRequired,
     onConfirm: PropTypes.func.isRequired,
-    onConfirming: PropTypes.func,
-    onCancel: PropTypes.func,
-    priority: PropTypes.oneOf(['primary', 'danger']).isRequired,
     confirmText: PropTypes.string.isRequired,
     cancelText: PropTypes.string.isRequired,
+    priority: PropTypes.oneOf(['primary', 'danger']).isRequired,
+    message: PropTypes.node,
+    /**
+     * Renderer that passes:
+     * `confirm`: Allows renderer to perform confirm action
+     * `close`: Allows renderer to toggle confirm modal
+     */
+    renderMessage: PropTypes.func,
+
+    disabled: PropTypes.bool,
+    onConfirming: PropTypes.func,
+    onCancel: PropTypes.func,
   };
 
   static defaultProps = {
@@ -89,15 +96,32 @@ class Confirm extends React.PureComponent {
   };
 
   render() {
-    let {disabled, message, priority, confirmText, cancelText, children} = this.props;
+    let {
+      disabled,
+      message,
+      renderMessage,
+      priority,
+      confirmText,
+      cancelText,
+      children,
+    } = this.props;
 
-    let confirmMessage = React.isValidElement(message) ? (
-      message
-    ) : (
-      <p>
-        <strong>{message}</strong>
-      </p>
-    );
+    let confirmMessage;
+
+    if (typeof renderMessage === 'function') {
+      confirmMessage = renderMessage({
+        confirm: this.handleConfirm,
+        close: this.handleToggle,
+      });
+    } else {
+      confirmMessage = React.isValidElement(message) ? (
+        message
+      ) : (
+        <p>
+          <strong>{message}</strong>
+        </p>
+      );
+    }
 
     return (
       <React.Fragment>

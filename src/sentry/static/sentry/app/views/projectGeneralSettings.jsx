@@ -3,21 +3,20 @@ import PropTypes from 'prop-types';
 import React from 'react';
 
 import {getOrganizationState} from '../mixins/organizationState';
+import {removeProject, transferProject} from '../actionCreators/projects';
 import {t, tct} from '../locale';
 import AsyncView from './asyncView';
+import Button from '../components/buttons/button';
+import Confirm from '../components/confirm';
+import Field from './settings/components/forms/field';
 import Form from './settings/components/forms/form';
-
-import FieldControl from './settings/components/forms/field/fieldControl';
-import FieldDescription from './settings/components/forms/field/fieldDescription';
-import FieldLabel from './settings/components/forms/field/fieldLabel';
-import FieldHelp from './settings/components/forms/field/fieldHelp';
-import FieldWrapper from './settings/components/forms/field/fieldWrapper';
 import JsonForm from './settings/components/forms/jsonForm';
 import Panel from './settings/components/panel';
 import PanelAlert from './settings/components/panelAlert';
 import PanelHeader from './settings/components/panelHeader';
 import SettingsPageHeader from './settings/components/settingsPageHeader';
 import TextBlock from './settings/components/text/textBlock';
+import TextField from './settings/components/forms/textField';
 import projectFields from '../data/forms/projectGeneralSettings';
 
 const noMargin = {marginBottom: 0};
@@ -38,118 +37,181 @@ export default class ProjectGeneralSettings extends AsyncView {
     organization: PropTypes.object.isRequired,
   };
 
+  constructor(...args) {
+    super(...args);
+    this._form = {};
+  }
+
   getEndpoints() {
     let {orgId, projectId} = this.props.params;
     return [['data', `/projects/${orgId}/${projectId}/`]];
   }
 
-  renderRemoveProject() {
-    let {orgId, projectId} = this.props.params;
+  handleTransferFieldChange = (id, value) => {
+    this._form[id] = value;
+  };
 
+  handleRemoveProject = () => {
+    let {orgId} = this.props.params;
     let project = this.state.data;
+    if (!project) return;
 
+    removeProject(this.api, orgId, project).then(() => {
+      // Need to hard reload because lots of components do not listen to Projects Store
+      window.location.assign('/');
+    });
+  };
+
+  handleTransferProject = () => {
+    let {orgId} = this.props.params;
+    let project = this.state.data;
+    if (!project) return;
+    if (!this._form.email) return;
+
+    transferProject(this.api, orgId, project, this._form.email).then(() => {
+      // Need to hard reload because lots of components do not listen to Projects Store
+      window.location.assign('/');
+    });
+  };
+
+  renderRemoveProject() {
+    let project = this.state.data;
     let isProjectAdmin = getOrganizationState(this.context.organization)
       .getAccess()
       .has('project:admin');
+    let {isInternal} = project;
 
-    if (!isProjectAdmin) {
-      return (
-        <FieldWrapper inline>
-          <FieldDescription inline>
-            <FieldHelp>
-              {t('You do not have the required permission to remove this project.')}
-            </FieldHelp>
-          </FieldDescription>
-        </FieldWrapper>
-      );
-    } else if (project.isInternal) {
-      return (
-        <FieldWrapper inline>
-          <FieldDescription inline>
-            <FieldHelp>
-              {t(
-                'This project cannot be removed. It is used internally by the Sentry server.'
-              )}
-            </FieldHelp>
-          </FieldDescription>
-        </FieldWrapper>
-      );
-    } else {
-      return (
-        <FieldWrapper inline>
-          <FieldDescription inline>
-            <FieldLabel>{t('Remove Project')}</FieldLabel>
-            <FieldHelp>
-              Remove the <strong>{project.slug}</strong> project and all related data.
-              <br />
-              Careful, this action cannot be undone.
-            </FieldHelp>
-          </FieldDescription>
-          <FieldControl>
-            <a
-              href={`/${orgId}/${projectId}/settings/remove/`}
-              className="btn btn-danger"
+    return (
+      <Field
+        label={t('Remove Project')}
+        help={tct(
+          'Remove the [project] project and all related data. [linebreak] Careful, this action cannot be undone.',
+          {
+            project: <strong>{project.slug}</strong>,
+            linebreak: <br />,
+          }
+        )}
+      >
+        {!isProjectAdmin &&
+          t('You do not have the required permission to remove this project.')}
+
+        {isInternal &&
+          t(
+            'This project cannot be removed. It is used internally by the Sentry server.'
+          )}
+
+        {isProjectAdmin &&
+          !isInternal && (
+            <Confirm
+              onConfirm={this.handleRemoveProject}
+              priority="danger"
+              title={t('Remove project?')}
+              confirmText={t('Remove project')}
+              message={
+                <div>
+                  <TextBlock>
+                    <strong>
+                      {t('Removing this project is permanent and cannot be undone!')}
+                    </strong>
+                  </TextBlock>
+                  <TextBlock>
+                    {t('This will also remove all associated event data.')}
+                  </TextBlock>
+                </div>
+              }
             >
-              {t('Remove Project')}
-            </a>
-          </FieldControl>
-        </FieldWrapper>
-      );
-    }
+              <div>
+                <Button className="ref-remove-project" type="button" priority="danger">
+                  {t('Remove Project')}
+                </Button>
+              </div>
+            </Confirm>
+          )}
+      </Field>
+    );
   }
 
   renderTransferProject() {
-    let {orgId, projectId} = this.props.params;
-
     let project = this.state.data;
     let isProjectAdmin = getOrganizationState(this.context.organization)
       .getAccess()
       .has('project:admin');
+    let {isInternal} = project;
 
-    if (!isProjectAdmin) {
-      return (
-        <FieldWrapper inline>
-          <FieldDescription inline>
-            <FieldHelp>
-              {t('You do not have the required permission to transfer this project.')}
-            </FieldHelp>
-          </FieldDescription>
-        </FieldWrapper>
-      );
-    } else if (project.isInternal) {
-      return (
-        <FieldWrapper inline>
-          <FieldDescription inline>
-            <FieldHelp>
-              {t(
-                'This project cannot be removed. It is used internally by the Sentry server.'
+    return (
+      <Field
+        label={t('Transfer Project')}
+        help={tct(
+          'Transfer the [project] project and all related data. [linebreak] Careful, this action cannot be undone.',
+          {
+            project: <strong>{project.slug}</strong>,
+            linebreak: <br />,
+          }
+        )}
+      >
+        {!isProjectAdmin &&
+          t('You do not have the required permission to transfer this project.')}
+
+        {isInternal &&
+          t(
+            'This project cannot be transferred. It is used internally by the Sentry server.'
+          )}
+
+        {isProjectAdmin &&
+          !isInternal && (
+            <Confirm
+              onConfirm={this.handleTransferProject}
+              priority="danger"
+              title={`${t('Transfer project')}?`}
+              confirmText={t('Transfer project')}
+              renderMessage={({confirm}) => (
+                <div>
+                  <TextBlock>
+                    <strong>
+                      {t('Transferring this project is permanent and cannot be undone!')}
+                    </strong>
+                  </TextBlock>
+                  <TextBlock>
+                    {t(
+                      'Please enter the owner of the organization you would like to transfer this project to.'
+                    )}
+                  </TextBlock>
+                  <Panel>
+                    <PanelHeader>{t('Transfer to')}</PanelHeader>
+                    <Form
+                      hideFooter
+                      onFieldChange={this.handleTransferFieldChange}
+                      onSubmit={(data, onSuccess, onError, e) => {
+                        e.stopPropagation();
+                        confirm();
+                      }}
+                    >
+                      <TextField
+                        name="email"
+                        label={t('Organization Owner')}
+                        placeholder="admin@example.com"
+                        required
+                        help={tct(
+                          'A request will be emailed to the new owner in order to transfer [project] to a new organization.',
+                          {
+                            project: <strong> {project.slug} </strong>,
+                          }
+                        )}
+                      />
+                    </Form>
+                  </Panel>
+                </div>
               )}
-            </FieldHelp>
-          </FieldDescription>
-        </FieldWrapper>
-      );
-    } else {
-      return (
-        <FieldWrapper inline>
-          <FieldDescription inline>
-            <FieldLabel>{t('Transfer Project')}</FieldLabel>
-            <FieldHelp>
-              Transfer the <strong>{project.slug}</strong> project and all related data.
-              <br />
-              Careful, this action cannot be undone.
-            </FieldHelp>
-          </FieldDescription>
-          <FieldControl>
-            <a
-              href={`/${orgId}/${projectId}/settings/transfer/`}
-              className="btn btn-danger"
             >
-              {t('Transfer Project')}
-            </a>
-          </FieldControl>
-        </FieldWrapper>
-      );
-    }
+              <div>
+                <Button className="ref-transfer-project" type="button" priority="danger">
+                  {t('Transfer Project')}
+                </Button>
+              </div>
+            </Confirm>
+          )}
+      </Field>
+    );
   }
 
   renderBody() {
