@@ -2,7 +2,7 @@ import PropTypes from 'prop-types';
 import React from 'react';
 import styled from 'react-emotion';
 
-import InlineSvg from '../../../components/inlineSvg';
+import InlineSvg from '../../../../components/inlineSvg';
 
 const StyledDivider = styled.span`
   display: inline-block;
@@ -24,7 +24,7 @@ const StyledInlineSvg = styled(InlineSvg)`
   display: block;
 `;
 
-class SettingsBreadcrumbDivider extends React.Component {
+class Divider extends React.Component {
   static propTypes = {
     isHover: PropTypes.bool,
     isLast: PropTypes.bool,
@@ -41,4 +41,4 @@ class SettingsBreadcrumbDivider extends React.Component {
   }
 }
 
-export default SettingsBreadcrumbDivider;
+export default Divider;
