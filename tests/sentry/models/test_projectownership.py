@@ -8,13 +8,15 @@ from sentry.ownership.grammar import Rule, Owner, Matcher, dump_schema
 
 class ProjectOwnershipTestCase(TestCase):
     def test_get_owners_default(self):
-        assert ProjectOwnership.get_owners(self.project.id, {}) == ProjectOwnership.Everyone
+        assert ProjectOwnership.get_owners(self.project.id, {}) == (ProjectOwnership.Everyone, None)
 
     def test_get_owners_basic(self):
+        matcher = Matcher('path', '*.py')
+
         ProjectOwnership.objects.create(
             project_id=self.project.id,
             schema=dump_schema([
-                Rule(Matcher('path', '*.py'), [
+                Rule(matcher, [
                     Owner('user', self.user.email),
                     Owner('team', self.team.slug),
                 ]),
@@ -23,7 +25,7 @@ class ProjectOwnershipTestCase(TestCase):
         )
 
         # No data matches
-        assert ProjectOwnership.get_owners(self.project.id, {}) == ProjectOwnership.Everyone
+        assert ProjectOwnership.get_owners(self.project.id, {}) == (ProjectOwnership.Everyone, None)
 
         assert ProjectOwnership.get_owners(
             self.project.id, {
@@ -33,7 +35,7 @@ class ProjectOwnershipTestCase(TestCase):
                     }]
                 }
             }
-        ) == [Actor(self.user.id, User), Actor(self.team.id, Team)]
+        ) == ([Actor(self.user.id, User), Actor(self.team.id, Team)], matcher)
 
         assert ProjectOwnership.get_owners(
             self.project.id, {
@@ -43,7 +45,7 @@ class ProjectOwnershipTestCase(TestCase):
                     }]
                 }
             }
-        ) == ProjectOwnership.Everyone
+        ) == (ProjectOwnership.Everyone, None)
 
         # When fallthrough = False, we don't implicitly assign to Everyone
         ProjectOwnership.objects.filter(
@@ -58,4 +60,4 @@ class ProjectOwnershipTestCase(TestCase):
                     }]
                 }
             }
-        ) == []
+        ) == ([], None)
