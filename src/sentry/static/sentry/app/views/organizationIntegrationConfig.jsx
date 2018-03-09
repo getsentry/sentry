@@ -155,7 +155,7 @@ export default class OrganizationIntegrationConfig extends AsyncView {
     const {success, data} = message.data;
 
     if (!success) {
-      // TODO: Error state here
+      IndicatorStore.addError(t('Unable to add Integration'));
       return;
     }
 
