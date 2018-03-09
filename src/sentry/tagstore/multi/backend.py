@@ -17,6 +17,7 @@ from operator import itemgetter
 
 from sentry import options
 from sentry.tagstore.base import TagStorage
+from sentry.utils import metrics
 from sentry.utils.imports import import_string
 
 
@@ -41,8 +42,18 @@ class QueuedRunner(object):
                 (func, args, kwargs) = self.q.get()
                 try:
                     func(*args, **kwargs)
+                    metrics.incr(
+                        'tagstore.multi.runner.execute',
+                        instance='success',
+                        skip_internal=True,
+                    )
                 except Exception as e:
                     logger.exception(e)
+                    metrics.incr(
+                        'tagstore.multi.runner.execute',
+                        instance='fail',
+                        skip_internal=True,
+                    )
                 finally:
                     self.q.task_done()
 
@@ -59,8 +70,24 @@ class QueuedRunner(object):
 
             try:
                 self.q.put((f, args, kwargs), block=False)
+                metrics.incr(
+                    'tagstore.multi.runner.schedule',
+                    instance='put',
+                    skip_internal=True,
+                )
             except Full:
+                metrics.incr(
+                    'tagstore.multi.runner.schedule',
+                    instance='full',
+                    skip_internal=True,
+                )
                 return
+        else:
+            metrics.incr(
+                'tagstore.multi.runner.schedule',
+                instance='sampled',
+                skip_internal=True,
+            )
 
 
 class ImmediateRunner(object):
@@ -103,6 +130,12 @@ class MultiTagStorage(TagStorage):
         """\
         Call `func` on all backends, returning the first backend's return value, or raising any exception.
         """
+
+        metrics.incr(
+            'tagstore.multi.call',
+            instance=func,
+            skip_internal=True,
+        )
 
         ret_val = None
         exc = None
