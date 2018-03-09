@@ -83,10 +83,15 @@ class V2TagStorage(TagStorage):
             def get_child_relations(self, instance):
                 # in bulk
                 model_list = (GroupTagValue, GroupTagKey, TagValue)
+
+                # required to deal with custom SQL queries and the ORM
+                # in `bulk_delete_objects`
+                key_id_field_name = 'key_id' if (db.is_postgres() or db.is_mysql()) else '_key_id'
+
                 relations = [
                     ModelRelation(m, {
                         'project_id': instance.project_id,
-                        'key_id': instance.id,
+                        key_id_field_name: instance.id,
                     }) for m in model_list
                 ]
                 return relations
