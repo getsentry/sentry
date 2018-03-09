@@ -11,7 +11,7 @@ import PanelAlert from './settings/components/panelAlert';
 import PluginList from '../components/pluginList';
 import SentryTypes from '../proptypes';
 import SettingsPageHeader from './settings/components/settingsPageHeader';
-import alertsFormGroups from '../data/forms/projectAlerts';
+import {fields} from '../data/forms/projectAlerts';
 import recreateRoute from '../utils/recreateRoute';
 
 export default class ProjectAlertSettings extends AsyncView {
@@ -108,25 +108,22 @@ export default class ProjectAlertSettings extends AsyncView {
           apiMethod="PUT"
           apiEndpoint={`/projects/${orgId}/${projectId}/`}
         >
-          <JsonForm
-            forms={alertsFormGroups}
-            renderHeader={({title}) => {
-              if (title === 'Digests') {
-                return (
-                  <PanelAlert m={0} mb={0} type="info" icon="icon-circle-exclamation">
-                    {t(
-                      'Sentry will automatically digest alerts sent ' +
-                        'by some services to avoid flooding your inbox ' +
-                        'with individual issue notifications. To control ' +
-                        'how frequently notifications are delivered, use ' +
-                        'the sliders below.'
-                    )}
-                  </PanelAlert>
-                );
-              }
+          <JsonForm title={t('Email Settings')} fields={[fields.subjectTemplate]} />
 
-              return null;
-            }}
+          <JsonForm
+            title={t('Digests')}
+            fields={[fields.digestsMinDelay, fields.digestsMaxDelay]}
+            renderHeader={() => (
+              <PanelAlert m={0} mb={0} type="info" icon="icon-circle-exclamation">
+                {t(
+                  'Sentry will automatically digest alerts sent ' +
+                    'by some services to avoid flooding your inbox ' +
+                    'with individual issue notifications. To control ' +
+                    'how frequently notifications are delivered, use ' +
+                    'the sliders below.'
+                )}
+              </PanelAlert>
+            )}
           />
         </Form>
 
