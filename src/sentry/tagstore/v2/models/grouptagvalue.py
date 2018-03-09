@@ -71,7 +71,8 @@ class GroupTagValue(Model):
             self.first_seen = self.last_seen
         super(GroupTagValue, self).save(*args, **kwargs)
 
-    def get_select_related(self):
+    @staticmethod
+    def get_select_related_for_merge():
         return ('_key', '_value', )
 
     def merge_counts(self, new_group):
