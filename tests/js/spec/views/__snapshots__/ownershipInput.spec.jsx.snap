@@ -75,17 +75,25 @@ exports[`ProjectTeamsSettings render() renders 1`] = `
     }
   >
     <withDefaultStyle(MentionsInput)
+      autoCapitalize="off"
+      autoComplete="off"
+      autoCorrect="off"
       autoFocus={true}
       displayTransform={[Function]}
       markup="**[sentry.strip:__type__]__display__**"
       onChange={[Function]}
-      placeholder="Project Ownership"
+      placeholder="#example usage
+
+path:src/sentry/pipeline/* person@sentry.io #platform
+
+url:http://sentry.io/settings/* #workflow"
       required={true}
+      spellCheck="false"
       style={
         Object {
           "&multiLine": Object {
             "control": Object {
-              "fontFamily": "Lato, Avenir Next, Helvetica Neue, sans-serif",
+              "fontFamily": "Monaco, Consolas, \\"Courier New\\", monospace",
             },
             "highlighter": Object {
               "padding": 20,
@@ -118,7 +126,7 @@ exports[`ProjectTeamsSettings render() renders 1`] = `
             "fontWeight": "normal",
           },
           "input": Object {
-            "fontFamily": "Rubik, sans-serif",
+            "fontFamily": "Monaco, Consolas, \\"Courier New\\", monospace",
             "margin": 0,
             "whiteSpace": "pre-wrap",
             "wordBreak": "break-all",
@@ -134,7 +142,7 @@ exports[`ProjectTeamsSettings render() renders 1`] = `
             "list": Object {
               "backgroundColor": "white",
               "border": "1px solid rgba(0,0,0,0.15)",
-              "fontSize": 12,
+              "fontSize": 15,
               "maxHeight": 150,
               "overflow": "auto",
             },
@@ -144,6 +152,9 @@ exports[`ProjectTeamsSettings render() renders 1`] = `
       value="url:src @dummy@example.com"
     >
       <MentionsInput
+        autoCapitalize="off"
+        autoComplete="off"
+        autoCorrect="off"
         autoFocus={true}
         displayTransform={[Function]}
         markup="**[sentry.strip:__type__]__display__**"
@@ -151,9 +162,14 @@ exports[`ProjectTeamsSettings render() renders 1`] = `
         onChange={[Function]}
         onKeyDown={[Function]}
         onSelect={[Function]}
-        placeholder="Project Ownership"
+        placeholder="#example usage
+
+path:src/sentry/pipeline/* person@sentry.io #platform
+
+url:http://sentry.io/settings/* #workflow"
         required={true}
         singleLine={false}
+        spellCheck="false"
         style={[Function]}
         value="url:src @dummy@example.com"
       >
@@ -169,7 +185,7 @@ exports[`ProjectTeamsSettings render() renders 1`] = `
             style={
               Object {
                 "backgroundColor": "#fff",
-                "fontFamily": "Lato, Avenir Next, Helvetica Neue, sans-serif",
+                "fontFamily": "Monaco, Consolas, \\"Courier New\\", monospace",
                 "fontSize": 15,
                 "fontWeight": "normal",
               }
@@ -184,7 +200,7 @@ exports[`ProjectTeamsSettings render() renders 1`] = `
                   "bottom": 0,
                   "boxSizing": "border-box",
                   "display": "block",
-                  "fontFamily": "Rubik, sans-serif",
+                  "fontFamily": "Monaco, Consolas, \\"Courier New\\", monospace",
                   "height": "100%",
                   "margin": 0,
                   "minHeight": 140,
@@ -220,7 +236,7 @@ exports[`ProjectTeamsSettings render() renders 1`] = `
                     "bottom": 0,
                     "boxSizing": "border-box",
                     "display": "block",
-                    "fontFamily": "Rubik, sans-serif",
+                    "fontFamily": "Monaco, Consolas, \\"Courier New\\", monospace",
                     "height": "100%",
                     "margin": 0,
                     "minHeight": 140,
@@ -256,7 +272,7 @@ exports[`ProjectTeamsSettings render() renders 1`] = `
                       "boxSizing": "border-box",
                       "color": "transparent",
                       "display": "block",
-                      "fontFamily": "Rubik, sans-serif",
+                      "fontFamily": "Monaco, Consolas, \\"Courier New\\", monospace",
                       "height": "100%",
                       "margin": 0,
                       "minHeight": 140,
@@ -288,6 +304,9 @@ exports[`ProjectTeamsSettings render() renders 1`] = `
               </Highlighter>
             </withDefaultStyle(Highlighter)>
             <textarea
+              autoCapitalize="off"
+              autoComplete="off"
+              autoCorrect="off"
               autoFocus={true}
               onBlur={[Function]}
               onChange={[Function]}
@@ -295,8 +314,13 @@ exports[`ProjectTeamsSettings render() renders 1`] = `
               onCompositionStart={[Function]}
               onKeyDown={[Function]}
               onSelect={[Function]}
-              placeholder="Project Ownership"
+              placeholder="#example usage
+
+path:src/sentry/pipeline/* person@sentry.io #platform
+
+url:http://sentry.io/settings/* #workflow"
               required={true}
+              spellCheck="false"
               style={
                 Object {
                   "backgroundColor": "transparent",
@@ -304,7 +328,7 @@ exports[`ProjectTeamsSettings render() renders 1`] = `
                   "bottom": 0,
                   "boxSizing": "border-box",
                   "display": "block",
-                  "fontFamily": "Rubik, sans-serif",
+                  "fontFamily": "Monaco, Consolas, \\"Courier New\\", monospace",
                   "height": "100%",
                   "margin": 0,
                   "minHeight": 140,

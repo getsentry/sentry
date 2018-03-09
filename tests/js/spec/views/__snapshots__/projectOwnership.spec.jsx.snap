@@ -34,7 +34,7 @@ exports[`ProjectTeamsSettings render() renders 1`] = `
         </p>
         Examples:
         <CodeBlock>
-          path:src/sentry/pipeline/* person@sentry.io, #platform
+          path:src/sentry/pipeline/* person@sentry.io #platform
           
 
           url:http://sentry.io/settings/* #workflow

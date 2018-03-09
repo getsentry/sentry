@@ -68,7 +68,7 @@ class OwnerInput extends React.Component {
   mentionableUsers() {
     return memberListStore.getAll().map(member => ({
       id: member.id,
-      display: member.name,
+      display: member.email,
       email: member.email,
     }));
   }
@@ -103,7 +103,9 @@ class OwnerInput extends React.Component {
         >
           <MentionsInput
             style={OwnerInputStyle}
-            placeholder={'Project Ownership'}
+            placeholder={
+              '#example usage\n\npath:src/sentry/pipeline/* person@sentry.io #platform\n\nurl:http://sentry.io/settings/* #workflow'
+            }
             onChange={this.onChange.bind(this)}
             onBlur={this.onBlur}
             onKeyDown={this.onKeyDown}
@@ -113,6 +115,10 @@ class OwnerInput extends React.Component {
             displayTransform={(id, display, type) =>
               `${type === 'member' ? '' : '#'}${display}`}
             markup="**[sentry.strip:__type__]__display__**"
+            spellCheck="false"
+            autoComplete="off"
+            autoCorrect="off"
+            autoCapitalize="off"
           >
             <Mention
               type="member"
