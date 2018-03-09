@@ -18,7 +18,12 @@ exports[`ProjectTeamsSettings render() renders 1`] = `
               Create a new team
             </Button>
           }
+<<<<<<< HEAD
           alignMenu="right"
+=======
+          alignMenu="left"
+          isOpen={false}
+>>>>>>> user badges for durpdown
           items={
             Array [
               Object {

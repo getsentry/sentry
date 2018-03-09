@@ -1,0 +1,53 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`DropdownAutoComplete render() renders with a group 1`] = `
+<div
+  style={
+    Object {
+      "display": "inline-block",
+      "position": "relative",
+    }
+  }
+>
+  <StyledMenu
+    alignMenu="left"
+  >
+    <AutoComplete
+      itemToString={[Function]}
+      onSelect={[Function]}
+    />
+  </StyledMenu>
+  <div
+    onClick={[Function]}
+  >
+    Click Me!
+  </div>
+</div>
+`;
+
+exports[`DropdownAutoComplete render() renders without a group 1`] = `
+<div
+  style={
+    Object {
+      "display": "inline-block",
+      "position": "relative",
+    }
+  }
+>
+  <StyledMenu
+    alignMenu="left"
+  >
+    <AutoComplete
+      itemToString={[Function]}
+      onSelect={[Function]}
+    />
+  </StyledMenu>
+  <div
+    onClick={[Function]}
+  >
+    Click Me!
+  </div>
+</div>
+`;
+
+exports[`DropdownAutoComplete render() selects 1`] = `[MockFunction]`;

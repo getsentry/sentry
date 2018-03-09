@@ -37,6 +37,12 @@ exports[`TeamMembers render() renders 1`] = `
               },
             ]
           }
+<<<<<<< HEAD
+=======
+          alignMenu="right"
+          isOpen={false}
+          items={Array []}
+>>>>>>> user badges for durpdown
           onSelect={[Function]}
         />
       </div>
