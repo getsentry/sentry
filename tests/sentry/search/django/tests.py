@@ -5,6 +5,7 @@ from __future__ import absolute_import
 from datetime import datetime, timedelta
 
 from sentry import tagstore
+from sentry.event_manager import ScoreClause
 from sentry.models import (
     GroupAssignee, GroupBookmark, GroupStatus, GroupSubscription
 )
@@ -28,7 +29,12 @@ class DjangoSearchBackendTest(TestCase):
             status=GroupStatus.UNRESOLVED,
             last_seen=datetime(2013, 8, 13, 3, 8, 24, 880386),
             first_seen=datetime(2013, 7, 13, 3, 8, 24, 880386),
+            score=ScoreClause.calculate(
+                times_seen=5,
+                last_seen=datetime(2013, 8, 13, 3, 8, 24, 880386),
+            ),
         )
+
         self.event1 = self.create_event(
             event_id='a' * 32,
             group=self.group1,
@@ -56,6 +62,10 @@ class DjangoSearchBackendTest(TestCase):
             status=GroupStatus.RESOLVED,
             last_seen=datetime(2013, 7, 14, 3, 8, 24, 880386),
             first_seen=datetime(2013, 7, 14, 3, 8, 24, 880386),
+            score=ScoreClause.calculate(
+                times_seen=10,
+                last_seen=datetime(2013, 7, 14, 3, 8, 24, 880386),
+            ),
         )
 
         self.event2 = self.create_event(
@@ -128,6 +138,9 @@ class DjangoSearchBackendTest(TestCase):
 
         results = self.backend.query(self.project, sort_by='freq')
         assert list(results) == [self.group2, self.group1]
+
+        results = self.backend.query(self.project, sort_by='priority')
+        assert list(results) == [self.group1, self.group2]
 
     def test_status(self):
         results = self.backend.query(self.project, status=GroupStatus.UNRESOLVED)
