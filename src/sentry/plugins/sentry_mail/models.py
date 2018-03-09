@@ -127,7 +127,7 @@ class MailPlugin(NotificationPlugin):
             return []
 
         if event:
-            owners = ProjectOwnership.get_owners(project.id, event.data)
+            owners, _ = ProjectOwnership.get_owners(project.id, event.data)
             if owners != ProjectOwnership.Everyone:
                 if not owners:
                     metrics.incr(
