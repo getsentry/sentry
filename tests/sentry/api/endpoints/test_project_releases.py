@@ -60,7 +60,7 @@ class ProjectReleaseListTest(APITestCase):
         assert response.data[0]['version'] == release3.version
         assert response.data[1]['version'] == release2.version
         assert response.data[2]['version'] == release1.version
-        assert response.data[2]['newIssues'] == 5
+        assert response.data[2]['newGroups'] == 5
 
     def test_query_filter(self):
         self.login_as(user=self.user)
@@ -204,7 +204,7 @@ class ProjectReleaseListEnvironmentsTest(APITestCase):
         assert response_versions == releases_versions
 
     def assert_release_details(self, release, new_issues_count, first_seen, last_seen):
-        assert release['newIssues'] == new_issues_count
+        assert release['newGroups'] == new_issues_count
         assert release['firstEvent'] == first_seen
         assert release['lastEvent'] == last_seen
 

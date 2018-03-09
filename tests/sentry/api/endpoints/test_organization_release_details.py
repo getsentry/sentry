@@ -63,7 +63,7 @@ class ReleaseDetailsTest(APITestCase):
 
         assert response.status_code == 200, response.content
         assert response.data['version'] == release.version
-        assert response.data['newIssues'] == 5
+        assert response.data['newGroups'] == 5
 
         # no access
         url = reverse(

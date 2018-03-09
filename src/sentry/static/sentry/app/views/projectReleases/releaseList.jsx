@@ -36,7 +36,7 @@ class ReleaseList extends React.Component {
                   <ReleaseStats release={release} />
                 </div>
                 <div className="col-sm-2 col-xs-3 text-big text-light">
-                  <Count className="release-count" value={release.newIssues} />
+                  <Count className="release-count" value={release.newGroups} />
                 </div>
                 <div className="col-sm-2 col-xs-3 text-light">
                   {release.lastEvent ? (

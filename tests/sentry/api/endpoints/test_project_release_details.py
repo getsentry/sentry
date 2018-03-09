@@ -55,13 +55,13 @@ class ReleaseDetailsTest(APITestCase):
         response = self.client.get(url)
         assert response.status_code == 200, response.content
         assert response.data['version'] == release.version
-        assert response.data['newIssues'] == 5
+        assert response.data['newGroups'] == 5
 
         # with env flag
         response = self.client.get(url + '?environment=' + environment.name)
         assert response.status_code == 200, response.content
         assert response.data['version'] == release.version
-        assert response.data['newIssues'] == 4
+        assert response.data['newGroups'] == 4
         assert response.data['firstEvent'] == date
         assert response.data['lastEvent'] == date + timedelta(days=1)
 

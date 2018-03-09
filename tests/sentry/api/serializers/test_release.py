@@ -104,7 +104,7 @@ class ReleaseSerializerTest(TestCase):
         assert result['version'] == release.version
         assert result['shortVersion'] == release.version
         # should be sum of all projects
-        assert result['newIssues'] == 2
+        assert result['newGroups'] == 2
         # should be tags from all projects
         tagvalue1 = tagstore.get_tag_value(project.id, None, key, value)
         tagvalue2 = tagstore.get_tag_value(project2.id, None, key, value)
@@ -115,7 +115,7 @@ class ReleaseSerializerTest(TestCase):
 
         result = serialize(release, user, project=project)
         # should be groups from one project
-        assert result['newIssues'] == 1
+        assert result['newGroups'] == 1
         # should be tags from one project
         assert result['firstEvent'] == tagvalue1.first_seen
         assert result['lastEvent'] == tagvalue1.last_seen

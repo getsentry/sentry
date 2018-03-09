@@ -62,7 +62,7 @@ const ReleaseProjectStatSparkline = createReactClass({
       method: 'GET',
       success: (data, _, jqXHR) => {
         this.setState({
-          newIssueCount: data.newIssues,
+          newIssueCount: data.newGroups,
           loading: false,
         });
       },

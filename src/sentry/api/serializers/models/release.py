@@ -247,7 +247,7 @@ class ReleaseSerializer(Serializer):
         for item in item_list:
             result[item] = {
                 'owner': owners[six.text_type(item.owner_id)] if item.owner_id else None,
-                'new_issues': issue_counts_by_release.get(item.id) or 0,
+                'new_groups': issue_counts_by_release.get(item.id) or 0,
                 'projects': release_projects.get(item.id, [])
             }
             if environment is None:
@@ -274,7 +274,7 @@ class ReleaseSerializer(Serializer):
             'dateReleased': obj.date_released,
             'dateCreated': obj.date_added,
             'data': obj.data,
-            'newIssues': attrs['new_issues'],
+            'newGroups': attrs['new_groups'],
             'owner': attrs['owner'],
             'commitCount': obj.commit_count,
             'lastCommit': attrs.get('last_commit'),
