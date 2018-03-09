@@ -49,7 +49,21 @@ class GroupTagValue(Model):
         if hasattr(self, '_set_key'):
             return self._set_key
 
-        return self._key.key
+        if hasattr(self, '__key_cache'):
+            return self._key.key
+
+        # fallback
+        from sentry.tagstore.v2.models import TagKey
+
+        tk = TagKey.objects.filter(
+            project_id=self.project_id,
+            id=self._key_id,
+        ).values_list('key', flat=True).get()
+
+        # cache for future calls
+        self.key = tk
+
+        return tk
 
     @key.setter
     def key(self, key):
@@ -60,7 +74,21 @@ class GroupTagValue(Model):
         if hasattr(self, '_set_value'):
             return self._set_value
 
-        return self._value.value
+        if hasattr(self, '__value_cache'):
+            return self._value.value
+
+        # fallback
+        from sentry.tagstore.v2.models import TagValue
+
+        tv = TagValue.objects.filter(
+            project_id=self.project_id,
+            id=self._value_id,
+        ).values_list('value', flat=True).get()
+
+        # cache for future calls
+        self.value = tv
+
+        return tv
 
     @value.setter
     def value(self, value):
