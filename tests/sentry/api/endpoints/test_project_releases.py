@@ -98,7 +98,7 @@ class ProjectReleaseListEnvironmentsTest(APITestCase):
     def setUp(self):
         self.login_as(user=self.user)
 
-        self.datetime = datetime(2013, 8, 13, 3, 8, 24, 880386, tzinfo=timezone.utc)
+        self.datetime = datetime(2013, 8, 13, 3, 8, 24, tzinfo=timezone.utc)
         team = self.create_team()
         project1 = self.create_project(teams=[team], name='foo')
         project2 = self.create_project(teams=[team], name='bar')
