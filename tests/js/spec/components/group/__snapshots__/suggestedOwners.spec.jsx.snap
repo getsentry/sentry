@@ -1,0 +1,100 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`SuggestedOwners render() should not show owners committers without featureflag 1`] = `
+<SuggestedOwners
+  event={
+    Object {
+      "eventID": "12345",
+      "groupID": "1",
+      "id": "1",
+      "message": "ApiException",
+    }
+  }
+>
+  <div
+    className="m-b-1"
+  />
+</SuggestedOwners>
+`;
+
+exports[`SuggestedOwners render() should show owners when enable 1`] = `
+<SuggestedOwners
+  event={
+    Object {
+      "eventID": "12345",
+      "groupID": "1",
+      "id": "1",
+      "message": "ApiException",
+    }
+  }
+>
+  <div
+    className="m-b-1"
+  >
+    <h6>
+      <span>
+        Owners
+      </span>
+      <small
+        style={
+          Object {
+            "background": "#FFFFFF",
+          }
+        }
+      >
+        Click to assign
+      </small>
+    </h6>
+    <div
+      className="avatar-grid"
+    >
+      <span
+        className="avatar-grid-item tip"
+        key="1:user"
+        onClick={[Function]}
+        title="<div><div class=\\"tooltip-owners-name\\">Jane Doe</div><ul class=\\"tooltip-owners-commits\\">Assigned based on your Project&#x27;s Issue Ownership settings</ul><ul class=\\"tooltip-owners-commits\\">path matched: sentry/tagstore/*</ul></div>"
+      >
+        <ActorAvatar
+          actor={
+            Object {
+              "id": "1",
+              "name": "Jane Doe",
+              "type": "user",
+            }
+          }
+          hasTooltip={false}
+        >
+          <Avatar
+            className="avatar"
+            gravatar={true}
+            hasTooltip={false}
+            size={64}
+            user={
+              Object {
+                "email": "janedoe@example.com",
+                "id": "1",
+                "name": "Jane Doe",
+              }
+            }
+          >
+            <Tooltip
+              disabled={true}
+              title="Jane Doe (janedoe@example.com)"
+            >
+              <span
+                className="avatar"
+              >
+                <img
+                  onError={[Function]}
+                  onLoad={[Function]}
+                  src="undefined/avatar/e1f3994f2632af3d1c8c2dcc168a10e6?s=64&d=blank"
+                />
+              </span>
+            </Tooltip>
+          </Avatar>
+        </ActorAvatar>
+      </span>
+    </div>
+  </div>
+</SuggestedOwners>
+`;

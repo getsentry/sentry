@@ -171,12 +171,12 @@ const SuggestedOwners = createReactClass({
               {t("Assigned based on your Project's Issue Ownership settings")}
             </ul>
             <ul className="tooltip-owners-commits">
-              {rule[0] + t(' matched ') + rule[1]}
+              {rule[0] + t(' matched: ') + rule[1]}
             </ul>
           </div>
         )}
       >
-        <ActorAvatar actor={owner} />
+        <ActorAvatar actor={owner} hasTooltip={false} />
       </span>
     );
   },
@@ -194,7 +194,7 @@ const SuggestedOwners = createReactClass({
           <React.Fragment>
             <h6>
               <span>{t('Suggested Owners')}</span>
-              <small style={{background: '#FFFFFF'}}>Click to assign</small>
+              <small style={{background: '#FFFFFF'}}>{t('Click to assign')}</small>
             </h6>
             <div className="avatar-grid">{committers.map(this.renderCommitter)}</div>
           </React.Fragment>
@@ -204,7 +204,7 @@ const SuggestedOwners = createReactClass({
           <React.Fragment>
             <h6>
               <span>{t('Owners')}</span>
-              <small style={{background: '#FFFFFF'}}>Click to assign</small>
+              <small style={{background: '#FFFFFF'}}>{t('Click to assign')}</small>
             </h6>
             <div className="avatar-grid">{owners.map(this.renderOwner)}</div>
           </React.Fragment>
