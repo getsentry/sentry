@@ -24,7 +24,7 @@ const GroupDetails = createReactClass({
   propTypes: {
     setProjectNavSection: PropTypes.func,
     memberList: PropTypes.array,
-    environment: PropTypes.object,
+    environment: SentryTypes.Environment,
   },
 
   childContextTypes: {

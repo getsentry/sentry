@@ -2,6 +2,7 @@ import PropTypes from 'prop-types';
 import React from 'react';
 import createReactClass from 'create-react-class';
 import moment from 'moment';
+import SentryTypes from '../../proptypes';
 import ApiMixin from '../../mixins/apiMixin';
 import BarChart from '../../components/barChart';
 import DynamicWrapper from '../../components/dynamicWrapper';
@@ -15,7 +16,7 @@ const ProjectChart = createReactClass({
   propTypes: {
     dateSince: PropTypes.number.isRequired,
     resolution: PropTypes.string.isRequired,
-    environment: PropTypes.object,
+    environment: SentryTypes.Environment,
   },
 
   mixins: [ApiMixin, ProjectState],

@@ -152,6 +152,11 @@ export const NavigationObject = PropTypes.shape({
   ),
 });
 
+export const Environment = PropTypes.shape({
+  id: PropTypes.string.isRequired,
+  name: PropTypes.string.isRequired,
+});
+
 export const Plugin = {
   assets: PropTypes.array,
   author: PropTypes.shape({
@@ -189,6 +194,7 @@ let SentryTypes = {
   }),
   Actor,
   Group,
+  Environment,
   Event,
   Organization: PropTypes.shape({
     id: PropTypes.string.isRequired,

@@ -4,6 +4,7 @@ import Reflux from 'reflux';
 import createReactClass from 'create-react-class';
 import {omit} from 'lodash';
 
+import SentryTypes from '../../proptypes';
 import ProjectState from '../../mixins/projectState';
 import TagStore from '../../stores/tagStore';
 import withEnvironment from '../../utils/withEnvironment';
@@ -13,7 +14,7 @@ import {fetchTags} from '../../actionCreators/tags';
 const StreamContainer = createReactClass({
   displayName: 'StreamContainer',
   propTypes: {
-    environment: PropTypes.object,
+    environment: SentryTypes.Environment,
     setProjectNavSection: PropTypes.func,
   },
 

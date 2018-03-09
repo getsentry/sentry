@@ -1,8 +1,8 @@
 import React from 'react';
-import PropTypes from 'prop-types';
 import createReactClass from 'create-react-class';
 import {browserHistory} from 'react-router';
 
+import SentryTypes from '../proptypes';
 import ApiMixin from '../mixins/apiMixin';
 import GroupState from '../mixins/groupState';
 import LoadingError from '../components/loadingError';
@@ -20,7 +20,7 @@ const GroupEvents = createReactClass({
   displayName: 'GroupEvents',
 
   propTypes: {
-    environment: PropTypes.object,
+    environment: SentryTypes.Environment,
   },
 
   mixins: [ApiMixin, GroupState],

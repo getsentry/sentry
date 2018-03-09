@@ -1,8 +1,8 @@
 import React from 'react';
-import PropTypes from 'prop-types';
 import Reflux from 'reflux';
 import createReactClass from 'create-react-class';
 
+import SentryTypes from '../proptypes';
 import EnvironmentStore from '../stores/environmentStore';
 import ProjectHeader from '../components/projectHeader';
 import ProjectState from '../mixins/projectState';
@@ -12,7 +12,7 @@ const ProjectDetailsLayout = createReactClass({
   displayName: 'ProjectDetailsLayout',
 
   propTypes: {
-    environment: PropTypes.object,
+    environment: SentryTypes.Environment,
   },
 
   mixins: [ProjectState, Reflux.connect(EnvironmentStore, 'environments')],

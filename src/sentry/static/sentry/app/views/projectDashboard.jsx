@@ -3,6 +3,7 @@ import React from 'react';
 import createReactClass from 'create-react-class';
 import {Link} from 'react-router';
 
+import SentryTypes from '../proptypes';
 import EventList from './projectDashboard/eventList';
 import ProjectState from '../mixins/projectState';
 import ProjectChart from './projectDashboard/chart';
@@ -20,7 +21,7 @@ const ProjectDashboard = createReactClass({
   propTypes: {
     defaultStatsPeriod: PropTypes.string,
     setProjectNavSection: PropTypes.func,
-    environment: PropTypes.object,
+    environment: SentryTypes.Environment,
   },
 
   mixins: [ProjectState],

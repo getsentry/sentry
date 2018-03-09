@@ -3,6 +3,7 @@ import React from 'react';
 import createReactClass from 'create-react-class';
 import {browserHistory} from 'react-router';
 
+import SentryTypes from '../../proptypes';
 import ApiMixin from '../../mixins/apiMixin';
 import LoadingError from '../../components/loadingError';
 import LoadingIndicator from '../../components/loadingIndicator';
@@ -21,7 +22,7 @@ const ProjectReleases = createReactClass({
 
   propTypes: {
     setProjectNavSection: PropTypes.func,
-    environment: PropTypes.object,
+    environment: SentryTypes.Environment,
   },
 
   mixins: [ApiMixin],

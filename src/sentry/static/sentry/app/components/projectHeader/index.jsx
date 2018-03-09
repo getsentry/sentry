@@ -2,6 +2,7 @@ import PropTypes from 'prop-types';
 import React from 'react';
 import {Link} from 'react-router';
 
+import SentryTypes from '../../proptypes';
 import ProjectLink from '../../components/projectLink';
 import ProjectSelector from './projectSelector';
 import BookmarkToggle from '../projects/bookmarkToggle';
@@ -22,7 +23,7 @@ class ProjectHeader extends React.Component {
     organization: PropTypes.object.isRequired,
     environments: PropTypes.array.isRequired,
     activeSection: PropTypes.string,
-    activeEnvironment: PropTypes.object,
+    activeEnvironment: SentryTypes.Environment,
   };
 
   static defaultProps = {

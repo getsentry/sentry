@@ -1,7 +1,7 @@
 import React from 'react';
-import PropTypes from 'prop-types';
 import createReactClass from 'create-react-class';
 import {Link} from 'react-router';
+import SentryTypes from '../proptypes';
 import ApiMixin from '../mixins/apiMixin';
 import GroupState from '../mixins/groupState';
 import EventUserReport from '../components/events/userReport';
@@ -14,7 +14,7 @@ const GroupUserReports = createReactClass({
   displayName: 'GroupUserReports',
 
   propTypes: {
-    environment: PropTypes.object,
+    environment: SentryTypes.Environment,
   },
 
   mixins: [ApiMixin, GroupState],
