@@ -158,12 +158,14 @@ const TeamMembers = createReactClass({
 
     if (!access.has('org:write')) {
       return (
-        <a
-          className="btn btn-default btn-disabled tip pull-right"
+        <DropdownButton
+          disabled={true}
           title={t('You do not have enough permission to add new members')}
+          isOpen={false}
+          size="xsmall"
         >
-          <span className="icon-plus" /> {t('Add Member')}
-        </a>
+          {t('Add Member')}
+        </DropdownButton>
       );
     }
 
@@ -174,7 +176,7 @@ const TeamMembers = createReactClass({
       .map(m => {
         return {
           value: m.id,
-          label: m.name || m.email,
+          label: <StyledUserBadge user={m} orgId={params.orgId} />,
         };
       });
 
@@ -182,6 +184,7 @@ const TeamMembers = createReactClass({
       <DropdownAutoComplete
         items={items}
         onSelect={this.addTeamMember}
+        alignMenu="right"
         action={
           <Button
             priority="primary"
@@ -192,8 +195,8 @@ const TeamMembers = createReactClass({
         }
       >
         {({isOpen, selectedItem}) => (
-          <DropdownButton isOpen={isOpen}>
-            <span className="icon-plus" /> {t('Add Member')}
+          <DropdownButton isOpen={isOpen} size="xsmall">
+            {t('Add Member')}
           </DropdownButton>
         )}
       </DropdownAutoComplete>
@@ -257,6 +260,12 @@ const StyledMemberContainer = styled('div')`
   justify-content: space-between;
   padding: 1.25em 1em;
   border-bottom: 1px solid ${p => p.theme.borderLight};
+`;
+
+const StyledUserBadge = styled(UserBadge)`
+  max-width: 250px;
+  padding: 0.25em 0;
+  font-size: 0.875em;
 `;
 
 export default TeamMembers;

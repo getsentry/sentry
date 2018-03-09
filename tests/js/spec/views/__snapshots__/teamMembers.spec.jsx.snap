@@ -27,6 +27,7 @@ exports[`TeamMembers render() renders 1`] = `
               Add New Organization Member
             </Button>
           }
+          alignMenu="right"
           isOpen={false}
           items={Array []}
           onSelect={[Function]}
