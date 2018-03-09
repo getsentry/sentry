@@ -1,7 +1,7 @@
 import React from 'react';
-import PropTypes from 'prop-types';
 import createReactClass from 'create-react-class';
 import {Link} from 'react-router';
+import SentryTypes from '../proptypes';
 import ApiMixin from '../mixins/apiMixin';
 import Count from '../components/count';
 import GroupState from '../mixins/groupState';
@@ -15,7 +15,7 @@ const GroupTags = createReactClass({
   displayName: 'GroupTags',
 
   propTypes: {
-    environment: PropTypes.object,
+    environment: SentryTypes.Environment,
   },
 
   mixins: [ApiMixin, GroupState],

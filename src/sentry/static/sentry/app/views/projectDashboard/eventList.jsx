@@ -2,6 +2,7 @@ import PropTypes from 'prop-types';
 import React from 'react';
 import createReactClass from 'create-react-class';
 import jQuery from 'jquery';
+import SentryTypes from '../../proptypes';
 import ApiMixin from '../../mixins/apiMixin';
 import LoadingError from '../../components/loadingError';
 import LoadingIndicator from '../../components/loadingIndicator';
@@ -14,7 +15,7 @@ const EventList = createReactClass({
 
   propTypes: {
     type: PropTypes.oneOf(['new', 'priority']).isRequired,
-    environment: PropTypes.object,
+    environment: SentryTypes.Environment,
     dateSince: PropTypes.number,
   },
 
