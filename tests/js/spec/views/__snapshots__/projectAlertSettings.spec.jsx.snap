@@ -119,7 +119,7 @@ exports[`ProjectAlertSettings render() renders 1`] = `
             },
           ]
         }
-        renderBodyStart={[Function]}
+        renderHeader={[Function]}
       />
     </Form>
     <PluginList
