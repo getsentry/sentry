@@ -316,6 +316,9 @@ def merge_objects(models, group, new_group, limit=1000, logger=None, transaction
         else:
             queryset = project_qs.filter(group_id=group.id)
 
+        if hasattr(model, 'get_select_related'):
+            queryset = queryset.select_related(*model.get_select_related())
+
         for obj in queryset[:limit]:
             try:
                 with transaction.atomic(using=router.db_for_write(model)):

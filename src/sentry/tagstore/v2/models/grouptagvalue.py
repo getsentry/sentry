@@ -71,6 +71,9 @@ class GroupTagValue(Model):
             self.first_seen = self.last_seen
         super(GroupTagValue, self).save(*args, **kwargs)
 
+    def get_select_related(self):
+        return ('_key', '_value', )
+
     def merge_counts(self, new_group):
         try:
             with transaction.atomic(using=router.db_for_write(GroupTagValue)):
