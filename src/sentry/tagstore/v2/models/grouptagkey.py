@@ -49,6 +49,10 @@ class GroupTagKey(Model):
     def key(self, key):
         self._set_key = key
 
+    @staticmethod
+    def get_select_related_for_merge():
+        return ('_key', )
+
     def merge_counts(self, new_group):
         from sentry.tagstore.v2.models import GroupTagValue
 
