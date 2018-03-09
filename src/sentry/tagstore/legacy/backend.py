@@ -19,6 +19,7 @@ from operator import or_
 from six.moves import reduce
 
 from sentry import buffer
+from sentry.receivers.releases import ensure_release_exists
 from sentry.tagstore import TagKeyStatus
 from sentry.tagstore.base import TagStorage
 from sentry.utils import db
@@ -92,8 +93,6 @@ class LegacyTagStorage(TagStorage):
         deletion_manager.register(TagKey, TagKeyDeletionTask)
 
     def setup_receivers(self, **kwargs):
-        super(LegacyTagStorage, self).setup_receivers(**kwargs)
-
         from sentry.signals import buffer_incr_complete
 
         # Legacy tag write flow:
@@ -168,12 +167,16 @@ class LegacyTagStorage(TagStorage):
         return TagKey.objects.get_or_create(project_id=project_id, key=key, **kwargs)
 
     def create_tag_value(self, project_id, environment_id, key, value, **kwargs):
-        return TagValue.objects.create(project_id=project_id, key=key, value=value, **kwargs)
+        tv = TagValue.objects.create(project_id=project_id, key=key, value=value, **kwargs)
+        ensure_release_exists(tv, True)
+        return tv
 
     def get_or_create_tag_value(self, project_id, environment_id,
                                 key, value, key_id=None, **kwargs):
-        return TagValue.objects.get_or_create(
+        tv, created = TagValue.objects.get_or_create(
             project_id=project_id, key=key, value=value, **kwargs)
+        ensure_release_exists(tv, created)
+        return (tv, created)
 
     def create_group_tag_key(self, project_id, group_id, environment_id, key, **kwargs):
         return GroupTagKey.objects.create(project_id=project_id, group_id=group_id,
