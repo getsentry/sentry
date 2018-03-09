@@ -31,11 +31,16 @@ const withEnvironmentInQueryString = WrappedComponent =>
         const {query, pathname} = this.props.location;
 
         if (this.state.environment) {
-          query.environment = this.state.environment.name;
-        } else {
-          delete query.environment;
+          const envName = this.state.environment.name;
+          const hasValidEnvironmentInQuery =
+            'environment' in query && query.environment === envName;
+
+          // Update environment in browser history if it is not in sync with the currently active one
+          if (!hasValidEnvironmentInQuery) {
+            query.environment = this.state.environment.name;
+            browserHistory.replace(`${pathname}?${qs.stringify(query)}`);
+          }
         }
-        browserHistory.replace(`${pathname}?${qs.stringify(query)}`);
       }
     },
 
