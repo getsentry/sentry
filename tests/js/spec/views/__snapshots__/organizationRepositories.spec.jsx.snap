@@ -30,7 +30,7 @@ exports[`OrganizationRepositories renders with a repository 1`] = `
                     "type": "text",
                   },
                 ],
-                "id": "github",
+                "key": "github",
                 "name": "GitHub",
               }
             }
@@ -147,7 +147,7 @@ exports[`OrganizationRepositories renders with github provider 1`] = `
                     "type": "text",
                   },
                 ],
-                "id": "github",
+                "key": "github",
                 "name": "GitHub",
               }
             }

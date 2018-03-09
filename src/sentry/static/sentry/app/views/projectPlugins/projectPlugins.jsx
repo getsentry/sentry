@@ -6,7 +6,6 @@ import LoadingIndicator from '../../components/loadingIndicator';
 import ProjectPluginRow from './projectPluginRow';
 import RouteError from '../routeError';
 import SentryTypes from '../../proptypes';
-import SettingsPageHeader from '../settings/components/settingsPageHeader';
 
 class ProjectPlugins extends React.Component {
   static propTypes = {
@@ -23,37 +22,35 @@ class ProjectPlugins extends React.Component {
     let hasError = error;
     let isLoading = !hasError && loading;
 
+    if (hasError) {
+      return <RouteError error={error} component={this} onRetry={onError} />;
+    }
+
+    if (isLoading) {
+      return <LoadingIndicator />;
+    }
+
     return (
-      <div>
-        <SettingsPageHeader title={t('Integrations')} />
-
-        {hasError && <RouteError error={error} component={this} onRetry={onError} />}
-        {isLoading && <LoadingIndicator />}
-
-        {!isLoading &&
-          !hasError && (
-            <div className="panel panel-default">
-              <table className="table integrations simple">
-                <thead>
-                  <tr>
-                    <th colSpan={2}>{t('Integration')}</th>
-                    <th className="align-right">{t('Enabled')}</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {plugins.map(plugin => (
-                    <ProjectPluginRow
-                      key={plugin.id}
-                      projectId={projectId}
-                      orgId={orgId}
-                      {...plugin}
-                      onChange={onChange}
-                    />
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
+      <div className="panel panel-default">
+        <table className="table integrations simple">
+          <thead>
+            <tr>
+              <th colSpan={2}>{t('Legacy Integration')}</th>
+              <th className="align-right">{t('Enabled')}</th>
+            </tr>
+          </thead>
+          <tbody>
+            {plugins.map(plugin => (
+              <ProjectPluginRow
+                key={plugin.id}
+                projectId={projectId}
+                orgId={orgId}
+                {...plugin}
+                onChange={onChange}
+              />
+            ))}
+          </tbody>
+        </table>
       </div>
     );
   }

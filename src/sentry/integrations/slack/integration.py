@@ -16,11 +16,19 @@ Define a relationship between Sentry and your Slack workspace(s).
    specified channel.
 """
 
+alert_link = {
+    'text': 'Looking to send Sentry alerts to Slack? Add an **Alert Rule** for this project.',
+    'link': '/settings/organization/{orgId}/project/{projectId}/alerts/rules/'
+}
+
 metadata = IntegrationMetadata(
     description=DESCRIPTION.strip(),
     author='The Sentry Team',
     issue_url='https://github.com/getsentry/sentry/issues/new?title=Slack%20Integration:%20&labels=Component%3A%20Integrations',
-    source_url='https://github.com/getsentry/sentry/tree/master/src/sentry/integrations/slack'
+    source_url='https://github.com/getsentry/sentry/tree/master/src/sentry/integrations/slack',
+    aspects={
+        'alert_link': alert_link,
+    }
 )
 
 
