@@ -20,13 +20,8 @@ class DjangoSearchBackendTest(TestCase):
     def setUp(self):
         self.backend = self.create_backend()
 
-        self.project1 = self.create_project(name='project1')
-        self.env1 = self.create_environment(project=self.project1, name='env1')
-        self.project2 = self.create_project(name='project2')
-        self.env2 = self.create_environment(project=self.project2, name='env2')
-
         self.group1 = self.create_group(
-            project=self.project1,
+            project=self.project,
             checksum='a' * 32,
             message='foo',
             times_seen=5,
@@ -54,7 +49,7 @@ class DjangoSearchBackendTest(TestCase):
         )
 
         self.group2 = self.create_group(
-            project=self.project1,
+            project=self.project,
             checksum='b' * 32,
             message='bar',
             times_seen=10,
@@ -118,108 +113,108 @@ class DjangoSearchBackendTest(TestCase):
         )
 
     def test_query(self):
-        results = self.backend.query(self.project1, query='foo')
+        results = self.backend.query(self.project, query='foo')
         assert len(results) == 1
         assert results[0] == self.group1
 
-        results = self.backend.query(self.project1, query='bar')
+        results = self.backend.query(self.project, query='bar')
         assert len(results) == 1
         assert results[0] == self.group2
 
     def test_sort(self):
-        results = self.backend.query(self.project1, sort_by='date')
+        results = self.backend.query(self.project, sort_by='date')
         assert len(results) == 2
         assert results[0] == self.group1
         assert results[1] == self.group2
 
-        results = self.backend.query(self.project1, sort_by='new')
+        results = self.backend.query(self.project, sort_by='new')
         assert len(results) == 2
         assert results[0] == self.group2
         assert results[1] == self.group1
 
-        results = self.backend.query(self.project1, sort_by='freq')
+        results = self.backend.query(self.project, sort_by='freq')
         assert len(results) == 2
         assert results[0] == self.group2
         assert results[1] == self.group1
 
     def test_status(self):
-        results = self.backend.query(self.project1, status=GroupStatus.UNRESOLVED)
+        results = self.backend.query(self.project, status=GroupStatus.UNRESOLVED)
         assert len(results) == 1
         assert results[0] == self.group1
 
-        results = self.backend.query(self.project1, status=GroupStatus.RESOLVED)
+        results = self.backend.query(self.project, status=GroupStatus.RESOLVED)
         assert len(results) == 1
         assert results[0] == self.group2
 
     def test_tags(self):
         results = self.backend.query(
-            self.project1,
+            self.project,
             tags={
                 'env': 'staging'})
         assert len(results) == 1
         assert results[0] == self.group2
 
-        results = self.backend.query(self.project1, tags={'env': 'example.com'})
+        results = self.backend.query(self.project, tags={'env': 'example.com'})
         assert len(results) == 0
 
-        results = self.backend.query(self.project1, tags={'env': ANY})
+        results = self.backend.query(self.project, tags={'env': ANY})
         assert len(results) == 2
 
         results = self.backend.query(
-            self.project1, tags={'env': 'staging',
-                                 'server': 'example.com'}
+            self.project, tags={'env': 'staging',
+                                'server': 'example.com'}
         )
         assert len(results) == 1
         assert results[0] == self.group2
 
-        results = self.backend.query(self.project1, tags={'env': 'staging', 'server': ANY})
+        results = self.backend.query(self.project, tags={'env': 'staging', 'server': ANY})
         assert len(results) == 1
         assert results[0] == self.group2
 
         results = self.backend.query(
-            self.project1, tags={'env': 'staging',
-                                 'server': 'bar.example.com'}
+            self.project, tags={'env': 'staging',
+                                'server': 'bar.example.com'}
         )
         assert len(results) == 0
 
     def test_bookmarked_by(self):
-        results = self.backend.query(self.project1, bookmarked_by=self.user)
+        results = self.backend.query(self.project, bookmarked_by=self.user)
         assert len(results) == 1
         assert results[0] == self.group2
 
     def test_project(self):
-        results = self.backend.query(self.project2)
+        results = self.backend.query(self.create_project(name='other'))
         assert len(results) == 0
 
     def test_pagination(self):
-        results = self.backend.query(self.project1, limit=1, sort_by='date')
+        results = self.backend.query(self.project, limit=1, sort_by='date')
         assert len(results) == 1
         assert results[0] == self.group1
 
-        results = self.backend.query(self.project1, cursor=results.next, limit=1, sort_by='date')
+        results = self.backend.query(self.project, cursor=results.next, limit=1, sort_by='date')
         assert len(results) == 1
         assert results[0] == self.group2
 
-        results = self.backend.query(self.project1, cursor=results.next, limit=1, sort_by='date')
+        results = self.backend.query(self.project, cursor=results.next, limit=1, sort_by='date')
         assert len(results) == 0
 
     def test_age_filter(self):
         results = self.backend.query(
-            self.project1,
+            self.project,
             age_from=self.group2.first_seen,
         )
         assert len(results) == 1
         assert results[0] == self.group2
 
         results = self.backend.query(
-            self.project1,
+            self.project,
             age_to=self.group1.first_seen + timedelta(minutes=1),
         )
         assert len(results) == 1
         assert results[0] == self.group1
 
         results = self.backend.query(
-            self.project1,
+            self.project,
             age_from=self.group1.first_seen,
             age_to=self.group1.first_seen + timedelta(minutes=1),
         )
@@ -228,21 +223,21 @@ class DjangoSearchBackendTest(TestCase):
 
     def test_last_seen_filter(self):
         results = self.backend.query(
-            self.project1,
+            self.project,
             last_seen_from=self.group1.last_seen,
         )
         assert len(results) == 1
         assert results[0] == self.group1
 
         results = self.backend.query(
-            self.project1,
+            self.project,
             last_seen_to=self.group2.last_seen + timedelta(minutes=1),
         )
         assert len(results) == 1
         assert results[0] == self.group2
 
         results = self.backend.query(
-            self.project1,
+            self.project,
             last_seen_from=self.group1.last_seen,
             last_seen_to=self.group1.last_seen + timedelta(minutes=1),
         )
@@ -251,7 +246,7 @@ class DjangoSearchBackendTest(TestCase):
 
     def test_date_filter(self):
         results = self.backend.query(
-            self.project1,
+            self.project,
             date_from=self.event2.datetime,
         )
         assert len(results) == 2
@@ -259,14 +254,14 @@ class DjangoSearchBackendTest(TestCase):
         assert results[1] == self.group2
 
         results = self.backend.query(
-            self.project1,
+            self.project,
             date_to=self.event1.datetime + timedelta(minutes=1),
         )
         assert len(results) == 1
         assert results[0] == self.group1
 
         results = self.backend.query(
-            self.project1,
+            self.project,
             date_from=self.event1.datetime,
             date_to=self.event2.datetime + timedelta(minutes=1),
         )
@@ -275,16 +270,16 @@ class DjangoSearchBackendTest(TestCase):
         assert results[1] == self.group2
 
     def test_unassigned(self):
-        results = self.backend.query(self.project1, unassigned=True)
+        results = self.backend.query(self.project, unassigned=True)
         assert len(results) == 1
         assert results[0] == self.group1
 
-        results = self.backend.query(self.project1, unassigned=False)
+        results = self.backend.query(self.project, unassigned=False)
         assert len(results) == 1
         assert results[0] == self.group2
 
     def test_assigned_to(self):
-        results = self.backend.query(self.project1, assigned_to=self.user)
+        results = self.backend.query(self.project, assigned_to=self.user)
         assert len(results) == 1
         assert results[0] == self.group2
 
@@ -297,13 +292,13 @@ class DjangoSearchBackendTest(TestCase):
         ga.update(team=self.team, user=None)
         assert GroupAssignee.objects.get(id=ga.id).user is None
 
-        results = self.backend.query(self.project1, assigned_to=self.user)
+        results = self.backend.query(self.project, assigned_to=self.user)
         assert len(results) == 1
         assert results[0] == self.group2
 
         # test when there should be no results
         other_user = self.create_user()
-        results = self.backend.query(self.project1, assigned_to=other_user)
+        results = self.backend.query(self.project, assigned_to=other_user)
         assert len(results) == 0
 
     def test_subscribed_by(self):
