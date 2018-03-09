@@ -26,6 +26,7 @@ class EventOrGroupHeader extends React.Component {
     includeLink: PropTypes.bool,
     hideIcons: PropTypes.bool,
     hideLevel: PropTypes.bool,
+    query: PropTypes.string,
   };
 
   static defaultProps = {
@@ -56,7 +57,7 @@ class EventOrGroupHeader extends React.Component {
     if (includeLink) {
       props.to = `/${orgId}/${projectId}/issues/${isEvent ? groupID : id}/${isEvent
         ? `events/${data.id}/`
-        : ''}`;
+        : ''}${this.props.query ? `?query=${this.props.query}` : ''}`;
       Wrapper = Link;
     } else {
       Wrapper = 'span';
