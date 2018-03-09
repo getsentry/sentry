@@ -21,11 +21,12 @@ from sentry.utils.cursors import build_cursor, Cursor, CursorResult
 quote_name = connections['default'].ops.quote_name
 
 
+MAX_LIMIT = 100
 MAX_HITS_LIMIT = 1000
 
 
 class BasePaginator(object):
-    def __init__(self, queryset, order_by=None, max_limit=100):
+    def __init__(self, queryset, order_by=None, max_limit=MAX_LIMIT):
         if order_by:
             if order_by.startswith('-'):
                 self.key, self.desc = order_by[1:], True
@@ -253,7 +254,7 @@ def reverse_bisect_left(a, x, lo=0, hi=None):
 
 
 class SequencePaginator(object):
-    def __init__(self, data, reverse=False):
+    def __init__(self, data, reverse=False, max_limit=MAX_LIMIT):
         self.scores, self.values = map(
             list,
             zip(*sorted(data, reverse=reverse)),
@@ -263,8 +264,11 @@ class SequencePaginator(object):
             reverse_bisect_left if reverse else bisect.bisect_left,
             self.scores,
         )
+        self.max_limit = max_limit
 
-    def get_result(self, limit, cursor=None):
+    def get_result(self, limit, cursor=None, count_hits=False):
+        limit = min(limit, self.max_limit)
+
         if cursor is None:
             cursor = Cursor(0, 0, False)
 
@@ -312,6 +316,6 @@ class SequencePaginator(object):
             self.values[lo:hi],
             prev=prev_cursor,
             next=next_cursor,
-            hits=min(len(self.scores), MAX_HITS_LIMIT),
-            max_hits=MAX_HITS_LIMIT,
+            hits=min(len(self.scores), MAX_HITS_LIMIT) if count_hits else None,
+            max_hits=MAX_HITS_LIMIT if count_hits else None,
         )
