@@ -25,6 +25,7 @@ from sentry.digests.utilities import get_digest_metadata
 from sentry.plugins import register
 from sentry.plugins.base.structs import Notification
 from sentry.plugins.bases.notify import NotificationPlugin
+from sentry.utils import metrics
 from sentry.utils.cache import cache
 from sentry.utils.committers import get_event_file_committers
 from sentry.utils.email import MessageBuilder, group_id_to_email
@@ -129,8 +130,13 @@ class MailPlugin(NotificationPlugin):
             owners = ProjectOwnership.get_owners(project.id, event.data)
             if owners != ProjectOwnership.Everyone:
                 if not owners:
+                    metrics.incr(
+                        'owners.empty.match', tags={
+                            'organization': project.organization_id})
                     return []
+
                 from sentry.models import User
+                metrics.incr('owners.match', tags={'organization': project.organization_id})
                 send_to_list = []
                 teams_to_resolve = []
                 for owner in owners:
@@ -145,6 +151,7 @@ class MailPlugin(NotificationPlugin):
                         sentry_orgmember_set__organizationmemberteam__team__id__in=teams_to_resolve,
                     ).values_list('id', flat=True)
                 return send_to_list
+            metrics.incr('owners.everyone', tags={'organization': project.organization_id})
 
         cache_key = '%s:send_to:%s' % (self.get_conf_key(), project.pk)
         send_to_list = cache.get(cache_key)
