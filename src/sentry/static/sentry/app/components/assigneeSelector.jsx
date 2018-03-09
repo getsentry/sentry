@@ -79,7 +79,7 @@ const AssigneeSelector = createReactClass({
     if (nextProps.id != this.props.id || loading != this.state.loading) {
       let group = GroupStore.get(this.props.id);
       this.setState({
-        assignedTo: group.assignedTo,
+        assignedTo: group && group.assignedTo,
         loading,
       });
     }
@@ -212,8 +212,19 @@ const AssigneeSelector = createReactClass({
   render() {
     let {loading, assignedTo, filter, memberList} = this.state;
     let memberListLoading = this.state.memberList === null;
+    let group = GroupStore.get(this.props.id);
 
-    let className = classNames('assignee-selector anchor-right ', {
+    if (loading || !group) {
+      return (
+        <div>
+          <div className="assignee-selector anchor-right">
+            <LoadingIndicator mini style={{marginRight: '10px'}} />
+          </div>
+        </div>
+      );
+    }
+
+    let className = classNames('assignee-selector anchor-right', {
       unassigned: !assignedTo,
     });
 
@@ -269,79 +280,75 @@ const AssigneeSelector = createReactClass({
     return (
       <div>
         <div className={className}>
-          {loading ? (
-            <LoadingIndicator mini style={{float: 'left'}} />
-          ) : (
-            <DropdownLink
-              className="assignee-selector-toggle"
-              onOpen={this.onDropdownOpen}
-              onClose={this.onDropdownClose}
-              isOpen={this.state.isOpen}
-              alwaysRenderMenu={false}
-              title={
-                assignedTo ? (
-                  <ActorAvatar actor={assignedTo} className="avatar" size={48} />
-                ) : (
-                  <span className="icon-user" />
-                )
-              }
-            >
-              {!memberListLoading && (
-                <MenuItem noAnchor>
-                  <input
-                    type="text"
-                    className="form-control input-sm"
-                    placeholder={
-                      features.has('internal-catchall')
-                        ? t('Filter teams and people')
-                        : t('Filter members')
-                    }
-                    ref={ref => this.onFilterMount(ref)}
-                    onClick={this.onFilterClick}
-                    onKeyDown={this.onFilterKeyDown}
-                    onKeyUp={this.onFilterKeyUp}
-                  />
+          <DropdownLink
+            className="assignee-selector-toggle"
+            onOpen={this.onDropdownOpen}
+            onClose={this.onDropdownClose}
+            isOpen={this.state.isOpen}
+            alwaysRenderMenu={false}
+            title={
+              assignedTo ? (
+                <ActorAvatar actor={assignedTo} className="avatar" size={48} />
+              ) : (
+                <span className="icon-user" />
+              )
+            }
+          >
+            {!memberListLoading && (
+              <MenuItem noAnchor>
+                <input
+                  type="text"
+                  className="form-control input-sm"
+                  placeholder={
+                    features.has('internal-catchall')
+                      ? t('Filter teams and people')
+                      : t('Filter members')
+                  }
+                  ref={ref => this.onFilterMount(ref)}
+                  onClick={this.onFilterClick}
+                  onKeyDown={this.onFilterKeyDown}
+                  onKeyUp={this.onFilterKeyUp}
+                />
+              </MenuItem>
+            )}
+
+            {!memberListLoading &&
+              assignedTo && (
+                <MenuItem
+                  className="clear-assignee"
+                  disabled={!loading}
+                  onSelect={this.clearAssignTo}
+                >
+                  <span className="icon-circle-cross" /> {t('Clear Assignee')}
                 </MenuItem>
               )}
 
-              {!memberListLoading &&
-                assignedTo && (
-                  <MenuItem
-                    className="clear-assignee"
-                    disabled={!loading}
-                    onSelect={this.clearAssignTo}
-                  >
-                    <span className="icon-circle-cross" /> {t('Clear Assignee')}
-                  </MenuItem>
-                )}
+            {!memberListLoading && (
+              <li>
+                <ul>{[...teamNodes, ...memberNodes]}</ul>
+              </li>
+            )}
 
-              {!memberListLoading && (
-                <li>
-                  <ul>{[...teamNodes, ...memberNodes]}</ul>
-                </li>
+            {ConfigStore.get('invitesEnabled') &&
+              access.has('org:write') && (
+                <MenuItem
+                  className="invite-member"
+                  disabled={!loading}
+                  to={`/settings/organization/${this.context.organization
+                    .slug}/members/new/`}
+                >
+                  <span className="icon-plus" /> {t('Invite Member')}
+                </MenuItem>
               )}
 
-              {ConfigStore.get('invitesEnabled') &&
-                access.has('org:write') && (
-                  <MenuItem
-                    className="invite-member"
-                    disabled={!loading}
-                    to={`/settings/organization/${this.context.organization
-                      .slug}/members/new/`}
-                  >
-                    <span className="icon-plus" /> {t('Invite Member')}
-                  </MenuItem>
-                )}
-
-              {memberListLoading && (
-                <li>
-                  <FlowLayout center className="list-loading-container">
-                    <LoadingIndicator mini />
-                  </FlowLayout>
-                </li>
-              )}
-            </DropdownLink>
-          )}
+            {memberListLoading && (
+              <li>
+                <FlowLayout center className="list-loading-container">
+                  <LoadingIndicator mini />
+                </FlowLayout>
+              </li>
+            )}
+          </DropdownLink>
         </div>
       </div>
     );
