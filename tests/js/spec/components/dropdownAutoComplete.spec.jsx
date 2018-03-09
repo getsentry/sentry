@@ -1,97 +1,56 @@
 import React from 'react';
-import {mount, shallow} from 'enzyme';
+import {mount} from 'enzyme';
 
 import DropdownAutoComplete from 'app/components/dropdownAutoComplete';
 
 describe('DropdownAutoComplete', function() {
-  describe('render()', function() {
-    it('renders without a group', function() {
-      const wrapper = shallow(
-        <DropdownAutoComplete
-          isOpen={true}
-          items={[
-            {
-              value: 'apple',
-              label: <div>Apple</div>,
-            },
-            {
-              value: 'bacon',
-              label: <div>Bacon</div>,
-            },
-            {
-              value: 'corn',
-              label: <div>Corn</div>,
-            },
-          ]}
-        >
-          {() => 'Click Me!'}
-        </DropdownAutoComplete>
-      );
-      expect(wrapper).toMatchSnapshot();
-    });
+  it('has actor wrapper', function() {
+    const wrapper = mount(
+      <DropdownAutoComplete
+        items={[
+          {
+            value: 'apple',
+            label: <div>Apple</div>,
+          },
+          {
+            value: 'bacon',
+            label: <div>Bacon</div>,
+          },
+          {
+            value: 'corn',
+            label: <div>Corn</div>,
+          },
+        ]}
+      >
+        {() => 'Click Me!'}
+      </DropdownAutoComplete>
+    );
+    expect(wrapper.find('[role="button"]')).toHaveLength(1);
+    expect(wrapper.find('[role="button"]').text()).toBe('Click Me!');
+  });
 
-    it('renders with a group', function() {
-      const wrapper = shallow(
-        <DropdownAutoComplete
-          isOpen={true}
-          items={[
-            {
-              group: {
-                value: 'countries',
-                label: 'countries',
-              },
-              items: [
-                {
-                  value: 'new zealand',
-                  label: <div>New Zealand</div>,
-                },
-                {
-                  value: 'australia',
-                  label: <div>Australia</div>,
-                },
-              ],
-            },
-          ]}
-        >
-          {() => 'Click Me!'}
-        </DropdownAutoComplete>
-      );
-      expect(wrapper).toMatchSnapshot();
-    });
-
-    it('selects', function() {
-      const mock = jest.fn();
-
-      const wrapper = mount(
-        <DropdownAutoComplete
-          isOpen={true}
-          items={[
-            {
-              group: {
-                value: 'countries',
-                label: 'countries',
-              },
-              items: [
-                {
-                  value: 'new zealand',
-                  label: <div>New Zealand</div>,
-                },
-                {
-                  value: 'australia',
-                  label: <div>Australia</div>,
-                },
-              ],
-            },
-          ]}
-        >
-          {({selectedItem}) => (selectedItem ? selectedItem.label : 'Click me!')}
-        </DropdownAutoComplete>
-      );
-      wrapper
-        .find('[index]')
-        .last()
-        .simulate('click');
-      expect(mock).toMatchSnapshot();
-    });
+  it('opens dropdown menu when actor is clicked', function() {
+    const wrapper = mount(
+      <DropdownAutoComplete
+        items={[
+          {
+            value: 'apple',
+            label: <div>Apple</div>,
+          },
+          {
+            value: 'bacon',
+            label: <div>Bacon</div>,
+          },
+          {
+            value: 'corn',
+            label: <div>Corn</div>,
+          },
+        ]}
+      >
+        {() => 'Click Me!'}
+      </DropdownAutoComplete>
+    );
+    wrapper.find('[role="button"]').simulate('click');
+    expect(wrapper.find('StyledMenu')).toHaveLength(1);
   });
 });

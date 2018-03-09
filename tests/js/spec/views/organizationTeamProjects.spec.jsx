@@ -82,7 +82,7 @@ describe('OrganizationTeamProjects', function() {
     let add = wrapper.find('DropdownButton').first();
     add.simulate('click');
 
-    let el = wrapper.find('.ref-autocomplete-items').childAt(0);
+    let el = wrapper.find('AutoCompleteItem').first();
     el.simulate('click');
 
     wrapper.update();

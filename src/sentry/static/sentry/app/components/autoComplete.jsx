@@ -25,6 +25,9 @@ class AutoComplete extends React.Component {
     itemToString: PropTypes.func.isRequired,
     defaultHighlightedIndex: PropTypes.number,
     defaultInputValue: PropTypes.string,
+    /**
+     * Currently, this does not act as a "controlled" prop, only for initial state of dropdown
+     */
     isOpen: PropTypes.bool,
     onSelect: PropTypes.func,
   };
@@ -40,6 +43,7 @@ class AutoComplete extends React.Component {
       isOpen: !!props.isOpen,
       highlightedIndex: props.defaultHighlightedIndex || 0,
       inputValue: props.defaultInputValue || '',
+      selectedItem: null,
     };
 
     this.items = new Map();
@@ -142,7 +146,10 @@ class AutoComplete extends React.Component {
     callIfFunction(onSelect, item);
 
     this.closeMenu();
-    this.setState({inputValue: itemToString(item)});
+    this.setState({
+      selectedItem: item,
+      inputValue: itemToString(item),
+    });
   };
 
   moveHighlightedIndex = (step, e) => {
@@ -157,12 +164,22 @@ class AutoComplete extends React.Component {
     });
   };
 
+  /**
+   * Open dropdown menu
+   *
+   * This is exposed to render function
+   */
   openMenu = () => {
     this.setState({
       isOpen: true,
     });
   };
 
+  /**
+   * Close dropdown menu
+   *
+   * This is exposed to render function
+   */
   closeMenu = () => {
     this.setState({
       isOpen: false,
@@ -213,7 +230,12 @@ class AutoComplete extends React.Component {
             },
             getItemProps: this.getItemProps,
             inputValue: this.state.inputValue,
+            selectedItem: this.state.selectedItem,
             highlightedIndex: this.state.highlightedIndex,
+            actions: {
+              open: this.openMenu,
+              close: this.closeMenu,
+            },
           })}
       </DropdownMenu>
     );
