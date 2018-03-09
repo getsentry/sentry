@@ -2,7 +2,8 @@ import React from 'react';
 import Reflux from 'reflux';
 import createReactClass from 'create-react-class';
 import {t} from '../../locale';
-import {closeGuide, fetchGuides, nextStep} from '../../actionCreators/guides';
+
+import {dismiss, closeGuide, fetchGuides, nextStep} from '../../actionCreators/guides';
 import SupportDrawer from './supportDrawer';
 import GuideDrawer from './guideDrawer';
 import GuideStore from '../../stores/guideStore';
@@ -54,6 +55,11 @@ const AssistantHelper = createReactClass({
     });
   },
 
+  handleCueDismiss() {
+    dismiss(this.state.currentGuide.id);
+    closeGuide();
+  },
+
   render() {
     const cueText = this.state.currentGuide
       ? this.state.currentGuide.cue
@@ -86,9 +92,16 @@ const AssistantHelper = createReactClass({
             )}
           </div>
         ) : (
-          <a onClick={this.handleDrawerOpen} className="assistant-cue">
-            {cueText}
-          </a>
+          <div>
+            <a onClick={this.handleDrawerOpen} className="assistant-cue">
+              {cueText}
+            </a>
+            <a
+              onClick={this.handleCueDismiss}
+              className="icon-close assistant-cue"
+              hidden={!this.state.currentGuide}
+            />
+          </div>
         )}
       </div>
     );
