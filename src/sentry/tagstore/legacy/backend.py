@@ -8,6 +8,7 @@ sentry.tagstore.legacy.backend
 
 from __future__ import absolute_import
 
+import collections
 import six
 
 from collections import defaultdict
@@ -543,7 +544,8 @@ class LegacyTagStorage(TagStorage):
             key='sentry:user',
         ).order_by('-last_seen')[:limit])
 
-    def get_group_ids_for_search_filter(self, project_id, environment_id, tags, limit=1000):
+    def get_group_ids_for_search_filter(
+            self, project_id, environment_id, tags, candidates=None, limit=1000):
         from sentry.search.base import ANY, EMPTY
         # Django doesnt support union, so we limit results and try to find
         # reasonable matches
@@ -553,7 +555,7 @@ class LegacyTagStorage(TagStorage):
         tag_lookups = sorted(six.iteritems(tags), key=lambda (k, v): v == ANY)
 
         # get initial matches to start the filter
-        matches = None
+        matches = candidates
 
         # for each remaining tag, find matches contained in our
         # existing set, pruning it down each iteration
@@ -613,11 +615,18 @@ class LegacyTagStorage(TagStorage):
 
         return queryset
 
-    def get_group_tag_value_qs(self, project_id, group_id, environment_id, key):
-        return GroupTagValue.objects.filter(
-            group_id=group_id,
-            key=key,
-        )
+    def get_group_tag_value_qs(self, project_id, group_id, environment_id, key, value=None):
+        queryset = GroupTagValue.objects.filter(key=key)
+
+        if isinstance(group_id, collections.Iterable):
+            queryset = queryset.filter(group_id__in=group_id)
+        else:
+            queryset = queryset.filter(group_id=group_id)
+
+        if value is not None:
+            queryset = queryset.filter(value=value)
+
+        return queryset
 
     def update_group_for_events(self, project_id, event_ids, destination_id):
         return EventTag.objects.filter(

@@ -352,7 +352,7 @@ class TagStorage(Service):
         """
         raise NotImplementedError
 
-    def get_group_tag_value_qs(self, project_id, group_id, environment_id, key):
+    def get_group_tag_value_qs(self, project_id, group_id, environment_id, key, value=None):
         """
         >>> get_group_tag_value_qs(1, 2, 3, 'environment')
         """
@@ -406,7 +406,8 @@ class TagStorage(Service):
         """
         raise NotImplementedError
 
-    def get_group_ids_for_search_filter(self, project_id, environment_id, tags):
+    def get_group_ids_for_search_filter(
+            self, project_id, environment_id, tags, candidates=None, limit=1000):
         """
         >>> get_group_ids_for_search_filter(1, 2, [('key1', 'value1'), ('key2', 'value2')])
         """
