@@ -60,9 +60,10 @@ class ProjectOwnership(Model):
                             owners.append(resolve_actor(o, project_id))
                         except UnknownActor:
                             continue
-                    return owners
+                    return owners, rule.matcher
 
-        return cls.Everyone if ownership.fallthrough else []
+        owners = cls.Everyone if ownership.fallthrough else []
+        return owners, None
 
 
 class UnknownActor(Exception):
