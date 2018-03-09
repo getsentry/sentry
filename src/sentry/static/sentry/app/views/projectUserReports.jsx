@@ -3,6 +3,7 @@ import PropTypes from 'prop-types';
 import React from 'react';
 import createReactClass from 'create-react-class';
 import {browserHistory, Link} from 'react-router';
+import SentryTypes from '../proptypes';
 import ApiMixin from '../mixins/apiMixin';
 import GroupStore from '../stores/groupStore';
 import LoadingError from '../components/loadingError';
@@ -20,7 +21,7 @@ const ProjectUserReports = createReactClass({
     defaultQuery: PropTypes.string,
     defaultStatus: PropTypes.string,
     setProjectNavSection: PropTypes.func,
-    environment: PropTypes.object,
+    environment: SentryTypes.Environment,
   },
 
   mixins: [ApiMixin],

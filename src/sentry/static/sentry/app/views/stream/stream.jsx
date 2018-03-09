@@ -7,6 +7,7 @@ import Cookies from 'js-cookie';
 import {StickyContainer, Sticky} from 'react-sticky';
 import classNames from 'classnames';
 
+import SentryTypes from '../../proptypes';
 import ApiMixin from '../../mixins/apiMixin';
 import GroupStore from '../../stores/groupStore';
 import EnvironmentStore from '../../stores/environmentStore';
@@ -35,7 +36,7 @@ const Stream = createReactClass({
   displayName: 'Stream',
 
   propTypes: {
-    environment: PropTypes.object,
+    environment: SentryTypes.Environment,
     hasEnvironmentsFeature: PropTypes.bool,
     tags: PropTypes.object,
     tagsLoading: PropTypes.bool,
