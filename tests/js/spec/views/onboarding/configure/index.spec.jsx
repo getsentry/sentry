@@ -10,7 +10,6 @@ describe('Configure should render correctly', function() {
 
   beforeEach(function() {
     sandbox = sinon.sandbox.create();
-    // stubbedApiRequest = sandbox.mock(Client.prototype, 'request', "");
     Client.addMockResponse({
       url: '/projects/testOrg/project-slug/',
       body: TestStubs.Project(),
