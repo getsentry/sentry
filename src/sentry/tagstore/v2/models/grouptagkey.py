@@ -63,10 +63,6 @@ class GroupTagKey(Model):
     def key(self, key):
         self._set_key = key
 
-    @staticmethod
-    def get_select_related_for_merge():
-        return ('_key', )
-
     def merge_counts(self, new_group):
         from sentry.tagstore.v2.models import GroupTagValue
 
@@ -74,10 +70,12 @@ class GroupTagKey(Model):
             with transaction.atomic(using=router.db_for_write(GroupTagKey)):
                 GroupTagKey.objects.filter(
                     group_id=new_group.id,
+                    project_id=new_group.project_id,
                     _key_id=self._key_id,
                 ).update(
                     values_seen=GroupTagValue.objects.filter(
                         group_id=new_group.id,
+                        project_id=new_group.project_id,
                         _key_id=self._key_id,
                     ).count()
                 )
