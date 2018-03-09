@@ -5,10 +5,11 @@ import ReactDOMServer from 'react-dom/server';
 import moment from 'moment';
 
 import Avatar from '../avatar';
+import ActorAvatar from '../actorAvatar';
 import TooltipMixin from '../../mixins/tooltip';
 import ApiMixin from '../../mixins/apiMixin';
 import GroupState from '../../mixins/groupState';
-import {assignToUser} from '../../actionCreators/group';
+import {assignToUser, assignToActor} from '../../actionCreators/group';
 import {t} from '../../locale';
 
 const SuggestedOwners = createReactClass({
@@ -31,7 +32,11 @@ const SuggestedOwners = createReactClass({
   ],
 
   getInitialState() {
-    return {owners: undefined};
+    return {
+      rule: null,
+      owners: [],
+      committers: [],
+    };
   },
 
   componentDidMount() {
@@ -67,16 +72,29 @@ const SuggestedOwners = createReactClass({
       {
         success: (data, _, jqXHR) => {
           this.setState({
-            owners: data.committers,
+            committers: data.committers,
           });
         },
         error: error => {
           this.setState({
-            owners: undefined,
+            committers: [],
           });
         },
       }
     );
+    this.api.request(`/projects/${org.slug}/${project.slug}/events/${event.id}/owners/`, {
+      success: (data, _, jqXHR) => {
+        this.setState({
+          owners: data.owners,
+          rule: data.rule,
+        });
+      },
+      error: error => {
+        this.setState({
+          owners: [],
+        });
+      },
+    });
   },
 
   assignTo(user) {
@@ -85,8 +103,17 @@ const SuggestedOwners = createReactClass({
     }
   },
 
-  renderCommitter(owner) {
-    let {author, commits} = owner;
+  assignToActor(actor) {
+    if (actor.id !== undefined) {
+      assignToActor({
+        actor,
+        id: this.props.event.groupID,
+      });
+    }
+  },
+
+  renderCommitter(committer) {
+    let {author, commits} = committer;
     return (
       <span
         key={author.id || author.email}
@@ -130,17 +157,58 @@ const SuggestedOwners = createReactClass({
     );
   },
 
+  renderOwner(owner) {
+    let {rule} = this.state;
+    return (
+      <span
+        key={`${owner.id}:${owner.type}`}
+        className="avatar-grid-item tip"
+        onClick={() => this.assignToActor(owner)}
+        title={ReactDOMServer.renderToStaticMarkup(
+          <div>
+            <div className="tooltip-owners-name">{owner.name}</div>
+            <ul className="tooltip-owners-commits">
+              {t("Assigned based on your Project's Issue Ownership settings")}
+            </ul>
+            <ul className="tooltip-owners-commits">
+              {rule[0] + t(' matched: ') + rule[1]}
+            </ul>
+          </div>
+        )}
+      >
+        <ActorAvatar actor={owner} hasTooltip={false} />
+      </span>
+    );
+  },
+
   render() {
-    if (!(this.state.owners && this.state.owners.length)) {
+    let {committers, owners} = this.state;
+    let showOwners = new Set(this.getOrganization().features).has('internal-catchall');
+
+    if (owners.length == 0 && committers.length == 0) {
       return null;
     }
     return (
       <div className="m-b-1">
-        <h6>
-          <span>{t('Suggested Owners')}</span>
-          <small style={{background: '#FFFFFF'}}>Click to assign</small>
-        </h6>
-        <div className="avatar-grid">{this.state.owners.map(this.renderCommitter)}</div>
+        {committers.length ? (
+          <React.Fragment>
+            <h6>
+              <span>{t('Suggested Owners')}</span>
+              <small style={{background: '#FFFFFF'}}>{t('Click to assign')}</small>
+            </h6>
+            <div className="avatar-grid">{committers.map(this.renderCommitter)}</div>
+          </React.Fragment>
+        ) : null}
+
+        {showOwners && owners.length ? (
+          <React.Fragment>
+            <h6>
+              <span>{t('Owners')}</span>
+              <small style={{background: '#FFFFFF'}}>{t('Click to assign')}</small>
+            </h6>
+            <div className="avatar-grid">{owners.map(this.renderOwner)}</div>
+          </React.Fragment>
+        ) : null}
       </div>
     );
   },
