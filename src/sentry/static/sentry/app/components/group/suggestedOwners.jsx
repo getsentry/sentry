@@ -33,6 +33,7 @@ const SuggestedOwners = createReactClass({
 
   getInitialState() {
     return {
+      rule: null,
       owners: [],
       committers: [],
     };
@@ -84,7 +85,8 @@ const SuggestedOwners = createReactClass({
     this.api.request(`/projects/${org.slug}/${project.slug}/events/${event.id}/owners/`, {
       success: (data, _, jqXHR) => {
         this.setState({
-          owners: data,
+          owners: data.owners,
+          rule: data.rule,
         });
       },
       error: error => {
@@ -156,6 +158,7 @@ const SuggestedOwners = createReactClass({
   },
 
   renderOwner(owner) {
+    let {rule} = this.state;
     return (
       <span
         key={`${owner.id}:${owner.type}`}
@@ -166,6 +169,9 @@ const SuggestedOwners = createReactClass({
             <div className="tooltip-owners-name">{owner.name}</div>
             <ul className="tooltip-owners-commits">
               {t("Assigned based on your Project's Issue Ownership settings")}
+            </ul>
+            <ul className="tooltip-owners-commits">
+              {rule[0] + t(' matched ') + rule[1]}
             </ul>
           </div>
         )}
