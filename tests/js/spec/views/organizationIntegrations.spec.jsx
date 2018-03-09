@@ -84,7 +84,7 @@ describe('OrganizationIntegrations', function() {
       it('renders with a repository', function() {
         Client.addMockResponse({
           url: '/organizations/org-slug/integrations/',
-          body: [TestStubs.Integration()],
+          body: [TestStubs.GitHubIntegration()],
         });
         let wrapper = mount(<OrganizationIntegrations params={{orgId: 'org-slug'}} />, {
           context: {
