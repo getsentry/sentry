@@ -31,15 +31,18 @@ class EventOwnersEndpoint(ProjectEndpoint):
         # populate event data
         Event.objects.bind_nodes([event], 'data')
 
-        owners = ProjectOwnership.get_owners(project.id, event.data)
+        owners, matcher = ProjectOwnership.get_owners(project.id, event.data)
 
         # For sake of the API, we don't differentiate between
         # the implicit "everyone" and no owners
         if owners == ProjectOwnership.Everyone:
             owners = []
 
-        return Response(serialize(
-            Actor.resolve_many(owners),
-            request.user,
-            ActorSerializer(),
-        ))
+        return Response({
+            'owners': serialize(
+                Actor.resolve_many(owners),
+                request.user,
+                ActorSerializer(),
+            ),
+            'rule': matcher,
+        })
