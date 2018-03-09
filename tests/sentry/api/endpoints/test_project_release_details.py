@@ -1,13 +1,9 @@
 from __future__ import absolute_import
 
-from datetime import datetime, timedelta
-from django.utils import timezone
+from datetime import datetime
 from django.core.urlresolvers import reverse
 
-from sentry.models import (
-    Activity, Environment, File,
-    Release, ReleaseCommit, ReleaseFile, ReleaseProject, ReleaseProjectEnvironment
-)
+from sentry.models import (Activity, File, Release, ReleaseCommit, ReleaseFile, ReleaseProject)
 from sentry.testutils import APITestCase
 
 
@@ -17,30 +13,13 @@ class ReleaseDetailsTest(APITestCase):
 
         project = self.create_project(name='foo')
         project2 = self.create_project(name='bar', organization=project.organization)
+
         release = Release.objects.create(
             organization_id=project.organization_id,
             version='1',
         )
         release.add_project(project)
         release.add_project(project2)
-
-        environment = Environment.objects.create(
-            organization_id=project.organization_id,
-            name='prod',
-        )
-        environment.add_project(project)
-        environment.add_project(project2)
-
-        date = datetime(2016, 8, 1, 0, 0, 15, tzinfo=timezone.utc)
-
-        ReleaseProjectEnvironment.objects.create(
-            project_id=project.id,
-            release_id=release.id,
-            environment_id=environment.id,
-            new_issues_count=4,
-            first_seen=date,
-            last_seen=date + timedelta(days=1),
-        )
 
         ReleaseProject.objects.filter(project=project, release=release).update(new_groups=5)
 
@@ -53,17 +32,10 @@ class ReleaseDetailsTest(APITestCase):
             }
         )
         response = self.client.get(url)
+
         assert response.status_code == 200, response.content
         assert response.data['version'] == release.version
         assert response.data['newGroups'] == 5
-
-        # with env flag
-        response = self.client.get(url + '?environment=' + environment.name)
-        assert response.status_code == 200, response.content
-        assert response.data['version'] == release.version
-        assert response.data['newGroups'] == 4
-        assert response.data['firstEvent'] == date
-        assert response.data['lastEvent'] == date + timedelta(days=1)
 
 
 class UpdateReleaseDetailsTest(APITestCase):
