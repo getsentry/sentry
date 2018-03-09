@@ -127,6 +127,15 @@ describe('AutoComplete', function() {
     expect(wrapper.state('isOpen')).toBe(false);
   });
 
+  it('can open and close dropdown menu using injected actions', function() {
+    let [injectedProps] = autoCompleteState;
+    injectedProps.actions.open();
+    expect(wrapper.state('isOpen')).toBe(true);
+
+    injectedProps.actions.close();
+    expect(wrapper.state('isOpen')).toBe(false);
+  });
+
   it('reopens dropdown menu after Escape is pressed and input is changed', function() {
     input.simulate('focus');
     expect(wrapper.state('isOpen')).toBe(true);
