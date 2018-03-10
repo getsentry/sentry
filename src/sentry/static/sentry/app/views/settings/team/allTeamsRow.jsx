@@ -6,7 +6,7 @@ import createReactClass from 'create-react-class';
 
 import {addErrorMessage, addSuccessMessage} from '../../../actionCreators/indicator';
 import {joinTeam, leaveTeam} from '../../../actionCreators/teams';
-import {t} from '../../../locale';
+import {t, tct} from '../../../locale';
 import ApiMixin from '../../../mixins/apiMixin';
 import PanelItem from '../components/panelItem';
 
@@ -51,14 +51,22 @@ const AllTeamsRow = createReactClass({
             loading: false,
             error: false,
           });
-          addSuccessMessage(`You have joined #${team.slug}`);
+          addSuccessMessage(
+            tct('You have joined [team]', {
+              team: `#${team.slug}`,
+            })
+          );
         },
         error: () => {
           this.setState({
             loading: false,
             error: true,
           });
-          addErrorMessage(`Unable to join #${team.slug}`);
+          addErrorMessage(
+            tct('Unable to join [team]', {
+              team: `#${team.slug}`,
+            })
+          );
         },
       }
     );
@@ -83,14 +91,22 @@ const AllTeamsRow = createReactClass({
             loading: false,
             error: false,
           });
-          addSuccessMessage(`You have left #${team.slug}`);
+          addSuccessMessage(
+            tct('You have left [team]', {
+              team: `#${team.slug}`,
+            })
+          );
         },
         error: () => {
           this.setState({
             loading: false,
             error: true,
           });
-          addErrorMessage(`Unable to leave #${team.slug}`);
+          addErrorMessage(
+            tct('Unable to leave [team]', {
+              team: `#${team.slug}`,
+            })
+          );
         },
       }
     );
