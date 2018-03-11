@@ -122,7 +122,7 @@ test-cli:
 
 test-js:
 	@echo "--> Building static assets"
-	@${NPM_ROOT}/.bin/webpack --profile --json > webpack-stats.json
+	${NPM_ROOT}/.bin/webpack --profile --json > webpack-stats.json
 	@echo "--> Running JavaScript tests"
 	@npm run test-ci
 	@echo ""
@@ -147,7 +147,7 @@ test-network:
 	@echo ""
 
 test-acceptance: build-platform-assets
-	@echo "--> Building static assets"
+	echo "--> Building static assets"
 	@${NPM_ROOT}/.bin/webpack
 	@echo "--> Running acceptance tests"
 	py.test tests/acceptance --cov . --cov-report="xml:coverage.xml" --junit-xml="junit.xml" --html="pytest.html"

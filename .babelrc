@@ -13,7 +13,7 @@
   "plugins": [
     "emotion",
     "@babel/plugin-proposal-decorators",
-    "@babel/plugin-proposal-class-properties",
+    ["@babel/plugin-proposal-class-properties", { "loose" : true }],
     "@babel/plugin-syntax-dynamic-import",
     "@babel/plugin-proposal-object-rest-spread",
     "@babel/plugin-proposal-optional-chaining",
@@ -27,11 +27,7 @@
     ]
   ],
   "env": {
-    "production": {
-      "plugins": [
-        "idx"
-      ]
-    },
+    "production": {},
     "development": {
       "plugins": [
         ["emotion", {"sourceMap": true, "autoLabel": true}]
