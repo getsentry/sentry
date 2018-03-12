@@ -55,7 +55,7 @@ const AssistantHelper = createReactClass({
     });
   },
 
-  handleCueDismiss() {
+  handleDismiss() {
     dismiss(this.state.currentGuide.id);
     closeGuide();
   },
@@ -86,6 +86,7 @@ const AssistantHelper = createReactClass({
                 guide={this.state.currentGuide}
                 step={this.state.currentStep}
                 onClose={closeGuide}
+                handleDismiss={this.handleDismiss}
               />
             ) : (
               <SupportDrawer onClose={this.handleSupportDrawerClose} />
@@ -97,7 +98,7 @@ const AssistantHelper = createReactClass({
               {cueText}
             </a>
             <a
-              onClick={this.handleCueDismiss}
+              onClick={this.handleDismiss}
               className="icon-close assistant-cue"
               hidden={!this.state.currentGuide}
             />
