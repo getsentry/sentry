@@ -8,10 +8,12 @@ sentry.search.django.backend
 
 from __future__ import absolute_import
 
+from datetime import timedelta
 from django.db import router
 from django.db.models import Q
+from django.utils import timezone
 
-from sentry import tagstore
+from sentry import quotas, tagstore
 from sentry.api.paginator import DateTimePaginator, Paginator
 from sentry.search.base import EMPTY, SearchBackend
 from sentry.search.django.constants import (
@@ -255,6 +257,13 @@ class DjangoSearchBackend(SearchBackend):
             score_clause = MSSQL_SORT_CLAUSES[sort_by]
         else:
             score_clause = SORT_CLAUSES[sort_by]
+
+        # filter out groups which are beyond the retention period
+        retention = quotas.get_event_retention(organization=project.organization)
+        if retention:
+            queryset = queryset.filter(
+                last_seen__gte=timezone.now() - timedelta(days=retention)
+            )
 
         queryset = queryset.extra(
             select={'sort_value': score_clause},
