@@ -56,13 +56,11 @@ class Condition(object):
 
 
 class CallbackCondition(Condition):
-    def __init__(self, callback, destructive=True):
+    def __init__(self, callback):
         self.callback = callback
-        self.destructive = destructive
 
     def apply(self, queryset, name, parameters):
-        accessor = parameters.pop if self.destructive else parameters.__getitem__
-        return self.callback(queryset, accessor(name))
+        return self.callback(queryset, parameters[name])
 
 
 class ScalarCondition(Condition):
@@ -72,21 +70,23 @@ class ScalarCondition(Condition):
     the '{parameter_name}_inclusive' parameter.
     """
 
-    def __init__(self, field, operator, destructive=True):
+    def __init__(self, field, operator, default_inclusivity=False):
         assert operator in ['lt', 'gt']
         self.field = field
         self.operator = operator
-        self.destructive = destructive
+        self.default_inclusivity = default_inclusivity
 
     def apply(self, queryset, name, parameters):
-        accessor = parameters.pop if self.destructive else parameters.__getitem__
-        inclusive = accessor('{}_inclusive'.format(name))
+        inclusive = parameters.get(
+            '{}_inclusive'.format(name),
+            self.default_inclusivity,
+        )
         return queryset.filter(**{
             '{}__{}{}'.format(
                 self.field,
                 self.operator,
                 'e' if inclusive else ''
-            ): accessor(name)
+            ): parameters[name]
         })
 
 
@@ -282,7 +282,6 @@ class DjangoSearchBackend(SearchBackend):
                     lambda queryset, times_seen: queryset.exclude(
                         times_seen__lt=times_seen,
                     ),
-                    destructive=False,
                 ),
                 'times_seen_lower': CallbackCondition(
                     # This condition represents the lower threshold for the
@@ -293,7 +292,6 @@ class DjangoSearchBackend(SearchBackend):
                     lambda queryset, times_seen: queryset.exclude(
                         times_seen__lt=times_seen,
                     ),
-                    destructive=False,
                 ),
                 # The following conditions make a few assertions that are are
                 # correct in an abstract sense but may not accurately reflect
@@ -312,7 +310,6 @@ class DjangoSearchBackend(SearchBackend):
                     lambda queryset, first_seen: queryset.exclude(
                         last_seen__lt=first_seen,
                     ),
-                    destructive=False,
                 ),
                 'age_to': CallbackCondition(
                     # This condition represents the upper threshold for "first
@@ -322,7 +319,6 @@ class DjangoSearchBackend(SearchBackend):
                     lambda queryset, first_seen: queryset.exclude(
                         first_seen__gt=first_seen,
                     ),
-                    destructive=False,
                 ),
                 'last_seen_from': CallbackCondition(
                     # This condition represents the lower threshold for "last
@@ -332,7 +328,6 @@ class DjangoSearchBackend(SearchBackend):
                     lambda queryset, last_seen: queryset.exclude(
                         last_seen__lt=last_seen,
                     ),
-                    destructive=False,
                 ),
                 'last_seen_to': CallbackCondition(
                     # This condition represents the upper threshold for "last
@@ -342,7 +337,6 @@ class DjangoSearchBackend(SearchBackend):
                     lambda queryset, last_seen: queryset.exclude(
                         first_seen__gt=last_seen,
                     ),
-                    destructive=False,
                 ),
             }).build(
                 group_queryset.extra(
