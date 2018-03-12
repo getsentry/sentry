@@ -70,20 +70,20 @@ const TeamProjects = createReactClass({
     });
   },
 
-  handleLinkProject(project, value) {
+  handleLinkProject(project, action) {
     let {orgId, teamId} = this.props.params;
     this.api.request(`/projects/${orgId}/${project.slug}/teams/${teamId}/`, {
-      method: value === 'Add' ? 'POST' : 'DELETE',
+      method: action === 'add' ? 'POST' : 'DELETE',
       success: () => {
         let team = TeamStore.getBySlug(this.props.params.teamId);
-        if (value == 'Add') {
+        if (action == 'add') {
           team.projects = [...team.projects, project];
         } else {
           team.projects = team.projects.filter(({id}) => id != project.id);
         }
         TeamActions.updateSuccess(0, teamId, team);
         addSuccessMessage(
-          value === 'Add'
+          action === 'add'
             ? t('Successfully added project to team.')
             : t('Successfully removed project from team')
         );
@@ -99,10 +99,10 @@ const TeamProjects = createReactClass({
       return p.id === selection.value;
     });
 
-    this.handleLinkProject(project, 'Add');
+    this.handleLinkProject(project, 'add');
   },
 
-  projectPanelcontents(projects, direction) {
+  projectPanelcontents(projects) {
     return projects.length ? (
       sortProjects(projects).map((project, i) => (
         <PanelItem p={0} key={project.id} align="center">
@@ -113,10 +113,10 @@ const TeamProjects = createReactClass({
             <Button
               size="small"
               onClick={() => {
-                this.handleLinkProject(project, direction);
+                this.handleLinkProject(project, 'remove');
               }}
             >
-              {direction}
+              {t('Remove')}
             </Button>
           </Box>
         </PanelItem>
@@ -166,7 +166,7 @@ const TeamProjects = createReactClass({
               </div>
             </PanelHeaderContentContainer>
           </PanelHeader>
-          <PanelBody>{this.projectPanelcontents(linkedProjects, 'Remove')}</PanelBody>
+          <PanelBody>{this.projectPanelcontents(linkedProjects)}</PanelBody>
         </Panel>
       </div>
     );
