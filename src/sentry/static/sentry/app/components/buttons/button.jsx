@@ -11,10 +11,10 @@ import '../../../less/components/button.less';
 const Icon = styled(Box)`
   margin-right: ${p => (p.size ? '6px' : '8px')};
   margin-left: -2px;
+`;
 
-  {InlineSvg} {
-    display: block;
-  }
+const StyledInlineSvg = styled(InlineSvg)`
+  display: block;
 `;
 
 class Button extends React.Component {
@@ -105,7 +105,7 @@ class Button extends React.Component {
       <Flex align="center" className="button-label">
         {icon && (
           <Icon size={size}>
-            <InlineSvg src={icon} size={size === 'small' ? '12px' : '16px'} />
+            <StyledInlineSvg src={icon} size={size === 'small' ? '12px' : '16px'} />
           </Icon>
         )}
         {children}
