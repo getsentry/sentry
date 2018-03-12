@@ -2,7 +2,12 @@ from __future__ import absolute_import
 
 import six
 
-from sentry import tagstore
+from datetime import timedelta
+from django.db.models import Q
+from django.utils import timezone
+from rest_framework.response import Response
+
+from sentry import quotas, tagstore
 from sentry.api.base import DocSection, EnvironmentMixin
 from sentry.api.bases import GroupEndpoint
 from sentry.api.serializers import serialize
@@ -10,9 +15,7 @@ from sentry.api.paginator import DateTimePaginator
 from sentry.models import Environment, Event, Group
 from sentry.search.utils import parse_query
 from sentry.utils.apidocs import scenario, attach_scenarios
-from rest_framework.response import Response
 from sentry.search.utils import InvalidQuery
-from django.db.models import Q
 
 
 @scenario('ListAvailableSamples')
@@ -100,5 +103,12 @@ class GroupEventsEndpoint(GroupEndpoint, EnvironmentMixin):
                 return respond(events.none())
 
             events = events.filter(id__in=event_ids)
+
+        # filter out events which are beyond the retention period
+        retention = quotas.get_event_retention(organization=group.project.organization)
+        if retention:
+            events = events.filter(
+                datetime__gte=timezone.now() - timedelta(days=retention)
+            )
 
         return respond(events)

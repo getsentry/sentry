@@ -298,6 +298,17 @@ class GroupListTest(APITestCase):
         assert len(response.data) == 1
         assert response.data[0]['id'] == six.text_type(group.id)
 
+    def test_filters_based_on_retention(self):
+        self.login_as(user=self.user)
+
+        self.create_group(last_seen=timezone.now() - timedelta(days=2))
+
+        with self.options({'system.event-retention-days': 1}):
+            response = self.client.get(self.path)
+
+        assert response.status_code == 200, response.content
+        assert len(response.data) == 0
+
 
 class GroupUpdateTest(APITestCase):
     @fixture
