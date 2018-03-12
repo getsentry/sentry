@@ -1,14 +1,14 @@
+import {Box} from 'grid-emotion';
+import {Link} from 'react-router';
 import PropTypes from 'prop-types';
 import React from 'react';
 import createReactClass from 'create-react-class';
-import {Link} from 'react-router';
-import {Box} from 'grid-emotion';
 
-import ApiMixin from '../../../mixins/apiMixin';
-import AlertActions from '../../../actions/alertActions';
-import PanelItem from '../components/panelItem';
+import {addErrorMessage, addSuccessMessage} from '../../../actionCreators/indicator';
 import {joinTeam, leaveTeam} from '../../../actionCreators/teams';
-import {t} from '../../../locale';
+import {t, tct} from '../../../locale';
+import ApiMixin from '../../../mixins/apiMixin';
+import PanelItem from '../components/panelItem';
 
 // TODO(dcramer): this isnt great UX
 
@@ -33,6 +33,8 @@ const AllTeamsRow = createReactClass({
   },
 
   joinTeam() {
+    let {organization, team} = this.props;
+
     this.setState({
       loading: true,
     });
@@ -40,8 +42,8 @@ const AllTeamsRow = createReactClass({
     joinTeam(
       this.api,
       {
-        orgId: this.props.organization.slug,
-        teamId: this.props.team.slug,
+        orgId: organization.slug,
+        teamId: team.slug,
       },
       {
         success: () => {
@@ -49,22 +51,30 @@ const AllTeamsRow = createReactClass({
             loading: false,
             error: false,
           });
+          addSuccessMessage(
+            tct('You have joined [team]', {
+              team: `#${team.slug}`,
+            })
+          );
         },
         error: () => {
           this.setState({
             loading: false,
             error: true,
           });
-          AlertActions.addAlert({
-            message: t('There was an error while trying to join the team.'),
-            type: 'error',
-          });
+          addErrorMessage(
+            tct('Unable to join [team]', {
+              team: `#${team.slug}`,
+            })
+          );
         },
       }
     );
   },
 
   leaveTeam() {
+    let {organization, team} = this.props;
+
     this.setState({
       loading: true,
     });
@@ -72,8 +82,8 @@ const AllTeamsRow = createReactClass({
     leaveTeam(
       this.api,
       {
-        orgId: this.props.organization.slug,
-        teamId: this.props.team.slug,
+        orgId: organization.slug,
+        teamId: team.slug,
       },
       {
         success: () => {
@@ -81,16 +91,22 @@ const AllTeamsRow = createReactClass({
             loading: false,
             error: false,
           });
+          addSuccessMessage(
+            tct('You have left [team]', {
+              team: `#${team.slug}`,
+            })
+          );
         },
         error: () => {
           this.setState({
             loading: false,
             error: true,
           });
-          AlertActions.addAlert({
-            message: t('There was an error while trying to leave the team.'),
-            type: 'error',
-          });
+          addErrorMessage(
+            tct('Unable to leave [team]', {
+              team: `#${team.slug}`,
+            })
+          );
         },
       }
     );
