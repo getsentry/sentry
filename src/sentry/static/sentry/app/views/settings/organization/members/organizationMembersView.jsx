@@ -232,8 +232,9 @@ class OrganizationMembersView extends OrganizationSettingsView {
             : undefined
         }
         to={recreateRoute('new', {routes, params})}
+        icon="icon-circle-add"
       >
-        <span className="icon-plus" /> {t('Invite Member')}
+        {t('Invite Member')}
       </Button>
     );
 

@@ -49,8 +49,9 @@ class OrganizationProjectsView extends OrganizationSettingsView {
             : undefined
         }
         to={`/organizations/${organization.slug}/projects/new/`}
+        icon="icon-circle-add"
       >
-        <span className="icon-plus" /> {t('Create Project')}
+        {t('Create Project')}
       </Button>
     );
 
