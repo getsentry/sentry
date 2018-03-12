@@ -70,7 +70,7 @@ class ScalarCondition(Condition):
     the '{parameter_name}_inclusive' parameter.
     """
 
-    def __init__(self, field, operator, default_inclusivity=False):
+    def __init__(self, field, operator, default_inclusivity=True):
         assert operator in ['lt', 'gt']
         self.field = field
         self.operator = operator
@@ -186,7 +186,7 @@ def assigned_to_filter(queryset, user, project):
 class DjangoSearchBackend(SearchBackend):
     def query(self, project, tags=None, environment=None, sort_by='date', limit=100,
               cursor=None, count_hits=False, paginator_options=None, **parameters):
-        from sentry.models import (Environment, Group, GroupEnvironment,
+        from sentry.models import (Environment, Event, Group, GroupEnvironment,
                                    GroupStatus, GroupSubscription, Release)
 
         if paginator_options is None:
@@ -253,6 +253,25 @@ class DjangoSearchBackend(SearchBackend):
                     projects=project,
                     name=tags.pop('environment'),
                 ).id == environment.id
+
+            event_queryset_builder = QuerySetBuilder({
+                'date_from': ScalarCondition('date_added', 'gt'),
+                'date_to': ScalarCondition('date_added', 'lt'),
+            })
+            if any(key in parameters for key in event_queryset_builder.conditions.keys()):
+                group_queryset = group_queryset.filter(
+                    id__in=list(
+                        event_queryset_builder.build(
+                            tagstore.get_event_tag_qs(
+                                project.id,
+                                environment.id,
+                                'environment',
+                                environment.name,
+                            ),
+                            parameters,
+                        ).distinct().values_list('group_id', flat=True)[:1000],
+                    )
+                )
 
             group_queryset = QuerySetBuilder({
                 'first_release': CallbackCondition(
@@ -408,6 +427,20 @@ class DjangoSearchBackend(SearchBackend):
 
             return result
         else:
+            event_queryset_builder = QuerySetBuilder({
+                'date_from': ScalarCondition('datetime', 'gt'),
+                'date_to': ScalarCondition('datetime', 'lt'),
+            })
+            if any(key in parameters for key in event_queryset_builder.conditions.keys()):
+                group_queryset = group_queryset.filter(
+                    id__in=list(
+                        event_queryset_builder.build(
+                            Event.objects.filter(project_id=project.id),
+                            parameters,
+                        ).distinct().values_list('group_id', flat=True)[:1000],
+                    )
+                )
+
             group_queryset = QuerySetBuilder({
                 'first_release': CallbackCondition(
                     lambda queryset, version: queryset.filter(

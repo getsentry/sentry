@@ -2,6 +2,7 @@
 
 from __future__ import absolute_import
 
+import pytest
 import pytz
 from datetime import datetime, timedelta
 
@@ -14,6 +15,20 @@ from sentry.search.base import ANY
 from sentry.search.django.backend import DjangoSearchBackend
 from sentry.tagstore.v2.backend import AGGREGATE_ENVIRONMENT_ID
 from sentry.testutils import TestCase
+
+
+def xfail_if_legacy(reason):
+    def decorator(function):
+        from sentry.tagstore.legacy.backend import LegacyTagStorage
+        return pytest.mark.xfail(
+            isinstance(
+                tagstore.backend._wrapped,
+                LegacyTagStorage,
+            ),
+            reason=reason,
+            strict=True,
+        )(function)
+    return decorator
 
 
 class DjangoSearchBackendTest(TestCase):
@@ -157,6 +172,15 @@ class DjangoSearchBackendTest(TestCase):
 
                     if updates:
                         tag_value.update(**updates)
+
+                tagstore.create_event_tags(
+                    project_id=event.project_id,
+                    group_id=event.group_id,
+                    environment_id=environment_id,
+                    event_id=event.id,
+                    tags=tags.items(),
+                    date_added=event.datetime,
+                )
 
     def test_query(self):
         results = self.backend.query(self.project, query='foo')
@@ -579,8 +603,29 @@ class DjangoSearchBackendTest(TestCase):
         )
         assert set(results) == set([self.group1, self.group2])
 
+    @xfail_if_legacy('unsupported due to insufficient index')
     def test_date_filter_with_environment(self):
-        raise NotImplementedError
+        results = self.backend.query(
+            self.project,
+            environment=self.environments['production'],
+            date_from=self.event2.datetime,
+        )
+        assert set(results) == set([self.group1])
+
+        results = self.backend.query(
+            self.project,
+            environment=self.environments['production'],
+            date_to=self.event1.datetime + timedelta(minutes=1),
+        )
+        assert set(results) == set([self.group1])
+
+        results = self.backend.query(
+            self.project,
+            environment=self.environments['staging'],
+            date_from=self.event1.datetime,
+            date_to=self.event2.datetime + timedelta(minutes=1),
+        )
+        assert set(results) == set([self.group2])
 
     def test_unassigned(self):
         results = self.backend.query(self.project, unassigned=True)
