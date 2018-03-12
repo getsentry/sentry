@@ -47,7 +47,7 @@ describe('Sudo Modal', function() {
   });
 
   it('can delete an org with sudo flow', function(done) {
-    mount(<App />);
+    mount(<App>{<div>placeholder content</div>}</App>);
 
     let api = new Client();
     let successCb = jest.fn();
