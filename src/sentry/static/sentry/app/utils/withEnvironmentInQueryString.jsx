@@ -45,6 +45,7 @@ const withEnvironmentInQueryString = WrappedComponent =>
     },
 
     onLatestContextChange({environment, organization}) {
+      // TODO(lyn): Remove this when environments feature is active
       const hasEnvironmentsFeature = this.hasEnvironmentsFeature(organization);
 
       if (hasEnvironmentsFeature && environment !== this.state.environment) {
