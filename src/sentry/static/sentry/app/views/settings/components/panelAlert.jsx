@@ -11,6 +11,13 @@ const StyledPanelAlert = styled(Alert)`
   border-radius: 0;
 `;
 
+const DEFAULT_ICONS = {
+  info: 'icon-circle-question',
+  error: 'icon-circle-close',
+  warning: 'icon-circle-exclamation',
+  success: 'icon-circle-success',
+};
+
 class PanelAlert extends React.Component {
   static propTypes = {
     /**
@@ -22,16 +29,27 @@ class PanelAlert extends React.Component {
      */
     mb: PropTypes.number,
     theme: PropTypes.object,
+    type: PropTypes.oneOf(['info', 'warning', 'success', 'error']),
+    icon: PropTypes.string,
   };
 
   static defaultProps = {};
 
   render() {
-    let {m, mb, theme, ...props} = this.props;
+    let {m, mb, theme, type, icon, ...props} = this.props;
     let marginSize = typeof m !== 'undefined' ? m : theme.grid;
     let marginBottom = typeof mb !== 'undefined' ? mb : theme.grid;
+    let iconOrDefault = icon || DEFAULT_ICONS[type];
 
-    return <StyledPanelAlert {...props} m={marginSize} mb={marginBottom} />;
+    return (
+      <StyledPanelAlert
+        {...props}
+        icon={iconOrDefault}
+        type={type}
+        m={marginSize}
+        mb={marginBottom}
+      />
+    );
   }
 }
 
