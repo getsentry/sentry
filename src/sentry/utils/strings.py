@@ -15,13 +15,7 @@ import string
 import zlib
 
 from django.utils.encoding import force_text, smart_text
-from itertools import count
 
-# Callsigns we do not want to generate automatically because they might
-# overlap with something else that is popular (like GH for GitHub)
-CALLSIGN_BLACKLIST = ['GH']
-
-_callsign_re = re.compile(r'^[A-Z]{2,6}$')
 _word_sep_re = re.compile(r'[\s.;,_-]+(?u)')
 _camelcase_re = re.compile(r'(?:[A-Z]{2,}(?=[A-Z]))|(?:[A-Z][a-z0-9]+)|(?:[a-z0-9]+)')
 _letters_re = re.compile(r'[A-Z]+')
@@ -112,46 +106,6 @@ def to_unicode(value):
         except Exception:
             value = '(Error decoding value)'
     return value
-
-
-def validate_callsign(value):
-    if not value:
-        return None
-    callsign = value.strip().upper()
-    if _callsign_re.match(callsign) is None:
-        return None
-    return callsign
-
-
-def iter_callsign_choices(project_name):
-    words = list(x.upper() for x in tokens_from_name(project_name, remove_digits=True))
-    bits = []
-
-    if len(words) == 2:
-        bits.append(words[0][:1] + words[1][:1])
-    elif len(words) == 3:
-        bits.append(words[0][:1] + words[1][:1] + words[2][:1])
-    elif words:
-        bit = words[0][:2]
-        if len(bit) == 2:
-            bits.append(bit)
-        bit = words[0][:3]
-        if len(bit) == 3:
-            bits.append(bit)
-
-    # Fallback if nothing else works, use PR for project
-    if not bits:
-        bits.append('PR')
-
-    for bit in bits:
-        if bit not in CALLSIGN_BLACKLIST:
-            yield bit
-
-    for idx in count(2):
-        for bit in bits:
-            bit = '%s%d' % (bit, idx)
-            if bit not in CALLSIGN_BLACKLIST:
-                yield bit
 
 
 def split_camelcase(word):

@@ -21,9 +21,7 @@ const MissingProjectMembership = createReactClass({
 
   getInitialState() {
     let {organization, projectId} = this.props;
-    let project = organization.projects.filter(p => {
-      return p.slug === projectId;
-    })[0];
+    let project = organization.projects.find(p => p.slug === projectId);
 
     return {
       loading: false,
