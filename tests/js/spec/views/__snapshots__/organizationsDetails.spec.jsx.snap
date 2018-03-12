@@ -83,6 +83,18 @@ exports[`OrganizationDetails render() deletion in progress should render a delet
 `;
 
 exports[`OrganizationDetails render() pending deletion should render a restoration prompt 1`] = `
+.glamor-0 {
+  box-sizing: border-box;
+  display: -webkit-box;
+  display: -webkit-flex;
+  display: -ms-flexbox;
+  display: flex;
+  -webkit-align-items: center;
+  -webkit-box-align: center;
+  -ms-flex-align: center;
+  align-items: center;
+}
+
 <div
   class="app"
 >
@@ -138,13 +150,9 @@ exports[`OrganizationDetails render() pending deletion should render a restorati
                 role="button"
               >
                 <div
-                  class="flow-layout"
+                  class="button-label glamor-0"
                 >
-                  <span
-                    class="button-label"
-                  >
-                    Restore Organization
-                  </span>
+                  Restore Organization
                 </div>
               </button>
             </p>

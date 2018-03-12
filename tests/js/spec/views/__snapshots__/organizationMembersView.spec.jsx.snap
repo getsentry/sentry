@@ -1,13 +1,13 @@
 // Jest Snapshot v1, https://goo.gl/fbAQLP
 
 exports[`OrganizationMembersView No Require Link does not have 2fa warning if user has 2fa 1`] = `
-.glamor-4 {
+.glamor-17 {
   font-size: 14px;
   box-shadow: inset 0 -1px 0;
   margin: -20px 0 30px;
 }
 
-.glamor-2 {
+.glamor-13 {
   box-sizing: border-box;
   display: -webkit-box;
   display: -webkit-flex;
@@ -28,14 +28,29 @@ exports[`OrganizationMembersView No Require Link does not have 2fa warning if us
   flex: 1;
 }
 
-.glamor-87 {
+.glamor-9 {
+  box-sizing: border-box;
+  margin-right: 6px;
+  margin-left: -2px;
+}
+
+.glamor-5 {
+  display: block;
+}
+
+.glamor-3 {
+  vertical-align: middle;
+  display: block;
+}
+
+.glamor-106 {
   background: #fff;
   border: 1px solid;
   margin-bottom: NaNpx;
   position: relative;
 }
 
-.glamor-23 {
+.glamor-36 {
   border-bottom: 1px solid;
   border-radius: 0 0;
   text-transform: uppercase;
@@ -44,13 +59,13 @@ exports[`OrganizationMembersView No Require Link does not have 2fa warning if us
   padding: 15px 0;
 }
 
-.glamor-19 {
+.glamor-32 {
   font-size: inherit;
   text-transform: inherit;
   margin: 0;
 }
 
-.glamor-17 {
+.glamor-30 {
   font-size: 12px;
   font-weight: 600;
   text-transform: uppercase;
@@ -60,7 +75,7 @@ exports[`OrganizationMembersView No Require Link does not have 2fa warning if us
   margin: 0;
 }
 
-.glamor-6 {
+.glamor-19 {
   box-sizing: border-box;
   padding-left: 16px;
   padding-right: 16px;
@@ -69,21 +84,21 @@ exports[`OrganizationMembersView No Require Link does not have 2fa warning if us
   flex: 1;
 }
 
-.glamor-8 {
+.glamor-21 {
   box-sizing: border-box;
   width: 180px;
   padding-left: 16px;
   padding-right: 16px;
 }
 
-.glamor-10 {
+.glamor-23 {
   box-sizing: border-box;
   width: 140px;
   padding-left: 16px;
   padding-right: 16px;
 }
 
-.glamor-43 {
+.glamor-58 {
   box-sizing: border-box;
   padding: 0px;
   padding-top: 16px;
@@ -99,16 +114,16 @@ exports[`OrganizationMembersView No Require Link does not have 2fa warning if us
   border-bottom: 1px solid;
 }
 
-.glamor-43:last-child {
+.glamor-58:last-child {
   border: 0;
 }
 
-.glamor-27 {
+.glamor-40 {
   box-sizing: border-box;
   padding-left: 16px;
 }
 
-.glamor-35 {
+.glamor-48 {
   box-sizing: border-box;
   padding-left: 8px;
   padding-right: 16px;
@@ -117,11 +132,11 @@ exports[`OrganizationMembersView No Require Link does not have 2fa warning if us
   flex: 1;
 }
 
-.glamor-29 {
+.glamor-42 {
   font-size: 16px;
 }
 
-.glamor-33 {
+.glamor-46 {
   font-size: 14px;
 }
 
@@ -173,15 +188,12 @@ exports[`OrganizationMembersView No Require Link does not have 2fa warning if us
           action={
             <Button
               disabled={false}
+              icon="icon-circle-add"
               priority="primary"
               size="small"
               title={undefined}
               to="new"
             >
-              <span
-                className="icon-plus"
-              />
-               
               Invite Member
             </Button>
           }
@@ -189,17 +201,17 @@ exports[`OrganizationMembersView No Require Link does not have 2fa warning if us
         >
           <Wrapper>
             <div
-              className="glamor-4 glamor-5"
+              className="glamor-17 glamor-18"
             >
               <Flex
                 align="center"
               >
                 <Base
                   align="center"
-                  className="glamor-2"
+                  className="glamor-13"
                 >
                   <div
-                    className="glamor-2"
+                    className="glamor-13"
                     is={null}
                   >
                     <Title>
@@ -212,6 +224,7 @@ exports[`OrganizationMembersView No Require Link does not have 2fa warning if us
                     <div>
                       <Button
                         disabled={false}
+                        icon="icon-circle-add"
                         priority="primary"
                         size="small"
                         to="new"
@@ -232,23 +245,68 @@ exports[`OrganizationMembersView No Require Link does not have 2fa warning if us
                             role="button"
                             style={Object {}}
                           >
-                            <FlowLayout
-                              truncate={false}
+                            <Flex
+                              align="center"
+                              className="button-label"
                             >
-                              <div
-                                className="flow-layout"
+                              <Base
+                                align="center"
+                                className="button-label glamor-13"
                               >
-                                <span
-                                  className="button-label"
+                                <div
+                                  className="button-label glamor-13"
+                                  is={null}
                                 >
-                                  <span
-                                    className="icon-plus"
-                                  />
-                                   
+                                  <Icon
+                                    size="small"
+                                  >
+                                    <Base
+                                      className="glamor-9 glamor-10"
+                                      size="small"
+                                    >
+                                      <div
+                                        className="glamor-9 glamor-10"
+                                        is={null}
+                                        size="small"
+                                      >
+                                        <StyledInlineSvg
+                                          size="12px"
+                                          src="icon-circle-add"
+                                        >
+                                          <InlineSvg
+                                            className="glamor-5 glamor-2"
+                                            size="12px"
+                                            src="icon-circle-add"
+                                          >
+                                            <StyledSvg
+                                              className="glamor-5 glamor-2"
+                                              height="12px"
+                                              style={Object {}}
+                                              viewBox={Object {}}
+                                              width="12px"
+                                            >
+                                              <svg
+                                                className="glamor-2 glamor-3 glamor-4"
+                                                height="12px"
+                                                style={Object {}}
+                                                viewBox={Object {}}
+                                                width="12px"
+                                              >
+                                                <use
+                                                  href="#test"
+                                                  xlinkHref="#test"
+                                                />
+                                              </svg>
+                                            </StyledSvg>
+                                          </InlineSvg>
+                                        </StyledInlineSvg>
+                                      </div>
+                                    </Base>
+                                  </Icon>
                                   Invite Member
-                                </span>
-                              </div>
-                            </FlowLayout>
+                                </div>
+                              </Base>
+                            </Flex>
                           </a>
                         </Link>
                       </Button>
@@ -267,7 +325,7 @@ exports[`OrganizationMembersView No Require Link does not have 2fa warning if us
         />
         <Panel>
           <div
-            className="glamor-87 glamor-88"
+            className="glamor-106 glamor-107"
           >
             <PanelHeader
               disablePadding={true}
@@ -276,31 +334,31 @@ exports[`OrganizationMembersView No Require Link does not have 2fa warning if us
                 disablePadding={true}
               >
                 <Component
-                  className="glamor-23 glamor-24"
+                  className="glamor-36 glamor-37"
                   disablePadding={true}
                 >
                   <div
-                    className="glamor-23 glamor-24"
+                    className="glamor-36 glamor-37"
                   >
                     <StyledPanelHeading>
                       <Component
-                        className="glamor-19 glamor-16"
+                        className="glamor-32 glamor-29"
                       >
                         <PanelHeading
-                          className="glamor-19 glamor-16"
+                          className="glamor-32 glamor-29"
                         >
                           <div
-                            className="glamor-16 glamor-17 glamor-18"
+                            className="glamor-29 glamor-30 glamor-31"
                           >
                             <Flex
                               align="center"
                             >
                               <Base
                                 align="center"
-                                className="glamor-2"
+                                className="glamor-13"
                               >
                                 <div
-                                  className="glamor-2"
+                                  className="glamor-13"
                                   is={null}
                                 >
                                   <Box
@@ -308,12 +366,12 @@ exports[`OrganizationMembersView No Require Link does not have 2fa warning if us
                                     px={2}
                                   >
                                     <Base
-                                      className="glamor-6"
+                                      className="glamor-19"
                                       flex="1"
                                       px={2}
                                     >
                                       <div
-                                        className="glamor-6"
+                                        className="glamor-19"
                                         is={null}
                                       >
                                         Member
@@ -325,12 +383,12 @@ exports[`OrganizationMembersView No Require Link does not have 2fa warning if us
                                     w={180}
                                   >
                                     <Base
-                                      className="glamor-8"
+                                      className="glamor-21"
                                       px={2}
                                       w={180}
                                     >
                                       <div
-                                        className="glamor-8"
+                                        className="glamor-21"
                                         is={null}
                                       >
                                         Status
@@ -342,12 +400,12 @@ exports[`OrganizationMembersView No Require Link does not have 2fa warning if us
                                     w={140}
                                   >
                                     <Base
-                                      className="glamor-10"
+                                      className="glamor-23"
                                       px={2}
                                       w={140}
                                     >
                                       <div
-                                        className="glamor-10"
+                                        className="glamor-23"
                                         is={null}
                                       >
                                         Role
@@ -359,12 +417,12 @@ exports[`OrganizationMembersView No Require Link does not have 2fa warning if us
                                     w={140}
                                   >
                                     <Base
-                                      className="glamor-10"
+                                      className="glamor-23"
                                       px={2}
                                       w={140}
                                     >
                                       <div
-                                        className="glamor-10"
+                                        className="glamor-23"
                                         is={null}
                                       >
                                         Actions
@@ -458,23 +516,23 @@ exports[`OrganizationMembersView No Require Link does not have 2fa warning if us
                     >
                       <Base
                         align="center"
-                        className="glamor-43 glamor-44"
+                        className="glamor-58 glamor-59"
                         p={0}
                         py={2}
                       >
                         <div
-                          className="glamor-43 glamor-44"
+                          className="glamor-58 glamor-59"
                           is={null}
                         >
                           <Box
                             pl={2}
                           >
                             <Base
-                              className="glamor-27"
+                              className="glamor-40"
                               pl={2}
                             >
                               <div
-                                className="glamor-27"
+                                className="glamor-40"
                                 is={null}
                               >
                                 <Avatar
@@ -528,13 +586,13 @@ exports[`OrganizationMembersView No Require Link does not have 2fa warning if us
                             pr={2}
                           >
                             <Base
-                              className="glamor-35"
+                              className="glamor-48"
                               flex="1"
                               pl={1}
                               pr={2}
                             >
                               <div
-                                className="glamor-35"
+                                className="glamor-48"
                                 is={null}
                               >
                                 <h5
@@ -548,11 +606,11 @@ exports[`OrganizationMembersView No Require Link does not have 2fa warning if us
                                     to="1"
                                   >
                                     <Link
-                                      className="glamor-29 glamor-30"
+                                      className="glamor-42 glamor-43"
                                       to="1"
                                     >
                                       <a
-                                        className="glamor-29 glamor-30"
+                                        className="glamor-42 glamor-43"
                                         href="1"
                                       />
                                     </Link>
@@ -560,7 +618,7 @@ exports[`OrganizationMembersView No Require Link does not have 2fa warning if us
                                 </h5>
                                 <Email>
                                   <div
-                                    className="glamor-33 glamor-34"
+                                    className="glamor-46 glamor-47"
                                   />
                                 </Email>
                               </div>
@@ -571,12 +629,12 @@ exports[`OrganizationMembersView No Require Link does not have 2fa warning if us
                             w={180}
                           >
                             <Base
-                              className="glamor-8"
+                              className="glamor-21"
                               px={2}
                               w={180}
                             >
                               <div
-                                className="glamor-8"
+                                className="glamor-21"
                                 is={null}
                               >
                                 <div>
@@ -602,12 +660,12 @@ exports[`OrganizationMembersView No Require Link does not have 2fa warning if us
                             w={140}
                           >
                             <Base
-                              className="glamor-10"
+                              className="glamor-23"
                               px={2}
                               w={140}
                             >
                               <div
-                                className="glamor-10"
+                                className="glamor-23"
                                 is={null}
                               />
                             </Base>
@@ -617,12 +675,12 @@ exports[`OrganizationMembersView No Require Link does not have 2fa warning if us
                             w={140}
                           >
                             <Base
-                              className="glamor-10"
+                              className="glamor-23"
                               px={2}
                               w={140}
                             >
                               <div
-                                className="glamor-10"
+                                className="glamor-23"
                                 is={null}
                               >
                                 <Button
@@ -636,23 +694,26 @@ exports[`OrganizationMembersView No Require Link does not have 2fa warning if us
                                     onClick={[Function]}
                                     role="button"
                                   >
-                                    <FlowLayout
-                                      truncate={false}
+                                    <Flex
+                                      align="center"
+                                      className="button-label"
                                     >
-                                      <div
-                                        className="flow-layout"
+                                      <Base
+                                        align="center"
+                                        className="button-label glamor-13"
                                       >
-                                        <span
-                                          className="button-label"
+                                        <div
+                                          className="button-label glamor-13"
+                                          is={null}
                                         >
                                           <span
                                             className="icon icon-exit"
                                           />
                                            
                                           Leave
-                                        </span>
-                                      </div>
-                                    </FlowLayout>
+                                        </div>
+                                      </Base>
+                                    </Flex>
                                   </button>
                                 </Button>
                               </div>
@@ -731,23 +792,23 @@ exports[`OrganizationMembersView No Require Link does not have 2fa warning if us
                     >
                       <Base
                         align="center"
-                        className="glamor-43 glamor-44"
+                        className="glamor-58 glamor-59"
                         p={0}
                         py={2}
                       >
                         <div
-                          className="glamor-43 glamor-44"
+                          className="glamor-58 glamor-59"
                           is={null}
                         >
                           <Box
                             pl={2}
                           >
                             <Base
-                              className="glamor-27"
+                              className="glamor-40"
                               pl={2}
                             >
                               <div
-                                className="glamor-27"
+                                className="glamor-40"
                                 is={null}
                               >
                                 <Avatar
@@ -801,13 +862,13 @@ exports[`OrganizationMembersView No Require Link does not have 2fa warning if us
                             pr={2}
                           >
                             <Base
-                              className="glamor-35"
+                              className="glamor-48"
                               flex="1"
                               pl={1}
                               pr={2}
                             >
                               <div
-                                className="glamor-35"
+                                className="glamor-48"
                                 is={null}
                               >
                                 <h5
@@ -821,11 +882,11 @@ exports[`OrganizationMembersView No Require Link does not have 2fa warning if us
                                     to="2"
                                   >
                                     <Link
-                                      className="glamor-29 glamor-30"
+                                      className="glamor-42 glamor-43"
                                       to="2"
                                     >
                                       <a
-                                        className="glamor-29 glamor-30"
+                                        className="glamor-42 glamor-43"
                                         href="2"
                                       />
                                     </Link>
@@ -833,7 +894,7 @@ exports[`OrganizationMembersView No Require Link does not have 2fa warning if us
                                 </h5>
                                 <Email>
                                   <div
-                                    className="glamor-33 glamor-34"
+                                    className="glamor-46 glamor-47"
                                   />
                                 </Email>
                               </div>
@@ -844,12 +905,12 @@ exports[`OrganizationMembersView No Require Link does not have 2fa warning if us
                             w={180}
                           >
                             <Base
-                              className="glamor-8"
+                              className="glamor-21"
                               px={2}
                               w={180}
                             >
                               <div
-                                className="glamor-8"
+                                className="glamor-21"
                                 is={null}
                               >
                                 <div>
@@ -870,12 +931,12 @@ exports[`OrganizationMembersView No Require Link does not have 2fa warning if us
                             w={140}
                           >
                             <Base
-                              className="glamor-10"
+                              className="glamor-23"
                               px={2}
                               w={140}
                             >
                               <div
-                                className="glamor-10"
+                                className="glamor-23"
                                 is={null}
                               />
                             </Base>
@@ -885,12 +946,12 @@ exports[`OrganizationMembersView No Require Link does not have 2fa warning if us
                             w={140}
                           >
                             <Base
-                              className="glamor-10"
+                              className="glamor-23"
                               px={2}
                               w={140}
                             >
                               <div
-                                className="glamor-10"
+                                className="glamor-23"
                                 is={null}
                               >
                                 <Button
@@ -904,23 +965,26 @@ exports[`OrganizationMembersView No Require Link does not have 2fa warning if us
                                     onClick={[Function]}
                                     role="button"
                                   >
-                                    <FlowLayout
-                                      truncate={false}
+                                    <Flex
+                                      align="center"
+                                      className="button-label"
                                     >
-                                      <div
-                                        className="flow-layout"
+                                      <Base
+                                        align="center"
+                                        className="button-label glamor-13"
                                       >
-                                        <span
-                                          className="button-label"
+                                        <div
+                                          className="button-label glamor-13"
+                                          is={null}
                                         >
                                           <span
                                             className="icon icon-exit"
                                           />
                                            
                                           Leave
-                                        </span>
-                                      </div>
-                                    </FlowLayout>
+                                        </div>
+                                      </Base>
+                                    </Flex>
                                   </button>
                                 </Button>
                               </div>
@@ -999,23 +1063,23 @@ exports[`OrganizationMembersView No Require Link does not have 2fa warning if us
                     >
                       <Base
                         align="center"
-                        className="glamor-43 glamor-44"
+                        className="glamor-58 glamor-59"
                         p={0}
                         py={2}
                       >
                         <div
-                          className="glamor-43 glamor-44"
+                          className="glamor-58 glamor-59"
                           is={null}
                         >
                           <Box
                             pl={2}
                           >
                             <Base
-                              className="glamor-27"
+                              className="glamor-40"
                               pl={2}
                             >
                               <div
-                                className="glamor-27"
+                                className="glamor-40"
                                 is={null}
                               >
                                 <Avatar
@@ -1069,13 +1133,13 @@ exports[`OrganizationMembersView No Require Link does not have 2fa warning if us
                             pr={2}
                           >
                             <Base
-                              className="glamor-35"
+                              className="glamor-48"
                               flex="1"
                               pl={1}
                               pr={2}
                             >
                               <div
-                                className="glamor-35"
+                                className="glamor-48"
                                 is={null}
                               >
                                 <h5
@@ -1089,11 +1153,11 @@ exports[`OrganizationMembersView No Require Link does not have 2fa warning if us
                                     to="3"
                                   >
                                     <Link
-                                      className="glamor-29 glamor-30"
+                                      className="glamor-42 glamor-43"
                                       to="3"
                                     >
                                       <a
-                                        className="glamor-29 glamor-30"
+                                        className="glamor-42 glamor-43"
                                         href="3"
                                       />
                                     </Link>
@@ -1101,7 +1165,7 @@ exports[`OrganizationMembersView No Require Link does not have 2fa warning if us
                                 </h5>
                                 <Email>
                                   <div
-                                    className="glamor-33 glamor-34"
+                                    className="glamor-46 glamor-47"
                                   />
                                 </Email>
                               </div>
@@ -1112,12 +1176,12 @@ exports[`OrganizationMembersView No Require Link does not have 2fa warning if us
                             w={180}
                           >
                             <Base
-                              className="glamor-8"
+                              className="glamor-21"
                               px={2}
                               w={180}
                             >
                               <div
-                                className="glamor-8"
+                                className="glamor-21"
                                 is={null}
                               >
                                 <div>
@@ -1138,12 +1202,12 @@ exports[`OrganizationMembersView No Require Link does not have 2fa warning if us
                             w={140}
                           >
                             <Base
-                              className="glamor-10"
+                              className="glamor-23"
                               px={2}
                               w={140}
                             >
                               <div
-                                className="glamor-10"
+                                className="glamor-23"
                                 is={null}
                               />
                             </Base>
@@ -1153,12 +1217,12 @@ exports[`OrganizationMembersView No Require Link does not have 2fa warning if us
                             w={140}
                           >
                             <Base
-                              className="glamor-10"
+                              className="glamor-23"
                               px={2}
                               w={140}
                             >
                               <div
-                                className="glamor-10"
+                                className="glamor-23"
                                 is={null}
                               >
                                 <Button
@@ -1172,23 +1236,26 @@ exports[`OrganizationMembersView No Require Link does not have 2fa warning if us
                                     onClick={[Function]}
                                     role="button"
                                   >
-                                    <FlowLayout
-                                      truncate={false}
+                                    <Flex
+                                      align="center"
+                                      className="button-label"
                                     >
-                                      <div
-                                        className="flow-layout"
+                                      <Base
+                                        align="center"
+                                        className="button-label glamor-13"
                                       >
-                                        <span
-                                          className="button-label"
+                                        <div
+                                          className="button-label glamor-13"
+                                          is={null}
                                         >
                                           <span
                                             className="icon icon-exit"
                                           />
                                            
                                           Leave
-                                        </span>
-                                      </div>
-                                    </FlowLayout>
+                                        </div>
+                                      </Base>
+                                    </Flex>
                                   </button>
                                 </Button>
                               </div>
@@ -1213,13 +1280,13 @@ exports[`OrganizationMembersView No Require Link does not have 2fa warning if us
 `;
 
 exports[`OrganizationMembersView Require Link does not have 2fa warning if user has 2fa 1`] = `
-.glamor-4 {
+.glamor-17 {
   font-size: 14px;
   box-shadow: inset 0 -1px 0;
   margin: -20px 0 30px;
 }
 
-.glamor-2 {
+.glamor-13 {
   box-sizing: border-box;
   display: -webkit-box;
   display: -webkit-flex;
@@ -1240,14 +1307,29 @@ exports[`OrganizationMembersView Require Link does not have 2fa warning if user 
   flex: 1;
 }
 
-.glamor-87 {
+.glamor-9 {
+  box-sizing: border-box;
+  margin-right: 6px;
+  margin-left: -2px;
+}
+
+.glamor-5 {
+  display: block;
+}
+
+.glamor-3 {
+  vertical-align: middle;
+  display: block;
+}
+
+.glamor-110 {
   background: #fff;
   border: 1px solid;
   margin-bottom: NaNpx;
   position: relative;
 }
 
-.glamor-23 {
+.glamor-36 {
   border-bottom: 1px solid;
   border-radius: 0 0;
   text-transform: uppercase;
@@ -1256,13 +1338,13 @@ exports[`OrganizationMembersView Require Link does not have 2fa warning if user 
   padding: 15px 0;
 }
 
-.glamor-19 {
+.glamor-32 {
   font-size: inherit;
   text-transform: inherit;
   margin: 0;
 }
 
-.glamor-17 {
+.glamor-30 {
   font-size: 12px;
   font-weight: 600;
   text-transform: uppercase;
@@ -1272,7 +1354,7 @@ exports[`OrganizationMembersView Require Link does not have 2fa warning if user 
   margin: 0;
 }
 
-.glamor-6 {
+.glamor-19 {
   box-sizing: border-box;
   padding-left: 16px;
   padding-right: 16px;
@@ -1281,21 +1363,21 @@ exports[`OrganizationMembersView Require Link does not have 2fa warning if user 
   flex: 1;
 }
 
-.glamor-8 {
+.glamor-21 {
   box-sizing: border-box;
   width: 180px;
   padding-left: 16px;
   padding-right: 16px;
 }
 
-.glamor-10 {
+.glamor-23 {
   box-sizing: border-box;
   width: 140px;
   padding-left: 16px;
   padding-right: 16px;
 }
 
-.glamor-43 {
+.glamor-60 {
   box-sizing: border-box;
   padding: 0px;
   padding-top: 16px;
@@ -1311,16 +1393,16 @@ exports[`OrganizationMembersView Require Link does not have 2fa warning if user 
   border-bottom: 1px solid;
 }
 
-.glamor-43:last-child {
+.glamor-60:last-child {
   border: 0;
 }
 
-.glamor-27 {
+.glamor-40 {
   box-sizing: border-box;
   padding-left: 16px;
 }
 
-.glamor-35 {
+.glamor-48 {
   box-sizing: border-box;
   padding-left: 8px;
   padding-right: 16px;
@@ -1329,11 +1411,11 @@ exports[`OrganizationMembersView Require Link does not have 2fa warning if user 
   flex: 1;
 }
 
-.glamor-29 {
+.glamor-42 {
   font-size: 16px;
 }
 
-.glamor-33 {
+.glamor-46 {
   font-size: 14px;
 }
 
@@ -1385,15 +1467,12 @@ exports[`OrganizationMembersView Require Link does not have 2fa warning if user 
           action={
             <Button
               disabled={false}
+              icon="icon-circle-add"
               priority="primary"
               size="small"
               title={undefined}
               to="new"
             >
-              <span
-                className="icon-plus"
-              />
-               
               Invite Member
             </Button>
           }
@@ -1401,17 +1480,17 @@ exports[`OrganizationMembersView Require Link does not have 2fa warning if user 
         >
           <Wrapper>
             <div
-              className="glamor-4 glamor-5"
+              className="glamor-17 glamor-18"
             >
               <Flex
                 align="center"
               >
                 <Base
                   align="center"
-                  className="glamor-2"
+                  className="glamor-13"
                 >
                   <div
-                    className="glamor-2"
+                    className="glamor-13"
                     is={null}
                   >
                     <Title>
@@ -1424,6 +1503,7 @@ exports[`OrganizationMembersView Require Link does not have 2fa warning if user 
                     <div>
                       <Button
                         disabled={false}
+                        icon="icon-circle-add"
                         priority="primary"
                         size="small"
                         to="new"
@@ -1444,23 +1524,68 @@ exports[`OrganizationMembersView Require Link does not have 2fa warning if user 
                             role="button"
                             style={Object {}}
                           >
-                            <FlowLayout
-                              truncate={false}
+                            <Flex
+                              align="center"
+                              className="button-label"
                             >
-                              <div
-                                className="flow-layout"
+                              <Base
+                                align="center"
+                                className="button-label glamor-13"
                               >
-                                <span
-                                  className="button-label"
+                                <div
+                                  className="button-label glamor-13"
+                                  is={null}
                                 >
-                                  <span
-                                    className="icon-plus"
-                                  />
-                                   
+                                  <Icon
+                                    size="small"
+                                  >
+                                    <Base
+                                      className="glamor-9 glamor-10"
+                                      size="small"
+                                    >
+                                      <div
+                                        className="glamor-9 glamor-10"
+                                        is={null}
+                                        size="small"
+                                      >
+                                        <StyledInlineSvg
+                                          size="12px"
+                                          src="icon-circle-add"
+                                        >
+                                          <InlineSvg
+                                            className="glamor-5 glamor-2"
+                                            size="12px"
+                                            src="icon-circle-add"
+                                          >
+                                            <StyledSvg
+                                              className="glamor-5 glamor-2"
+                                              height="12px"
+                                              style={Object {}}
+                                              viewBox={Object {}}
+                                              width="12px"
+                                            >
+                                              <svg
+                                                className="glamor-2 glamor-3 glamor-4"
+                                                height="12px"
+                                                style={Object {}}
+                                                viewBox={Object {}}
+                                                width="12px"
+                                              >
+                                                <use
+                                                  href="#test"
+                                                  xlinkHref="#test"
+                                                />
+                                              </svg>
+                                            </StyledSvg>
+                                          </InlineSvg>
+                                        </StyledInlineSvg>
+                                      </div>
+                                    </Base>
+                                  </Icon>
                                   Invite Member
-                                </span>
-                              </div>
-                            </FlowLayout>
+                                </div>
+                              </Base>
+                            </Flex>
                           </a>
                         </Link>
                       </Button>
@@ -1479,7 +1604,7 @@ exports[`OrganizationMembersView Require Link does not have 2fa warning if user 
         />
         <Panel>
           <div
-            className="glamor-87 glamor-88"
+            className="glamor-110 glamor-111"
           >
             <PanelHeader
               disablePadding={true}
@@ -1488,31 +1613,31 @@ exports[`OrganizationMembersView Require Link does not have 2fa warning if user 
                 disablePadding={true}
               >
                 <Component
-                  className="glamor-23 glamor-24"
+                  className="glamor-36 glamor-37"
                   disablePadding={true}
                 >
                   <div
-                    className="glamor-23 glamor-24"
+                    className="glamor-36 glamor-37"
                   >
                     <StyledPanelHeading>
                       <Component
-                        className="glamor-19 glamor-16"
+                        className="glamor-32 glamor-29"
                       >
                         <PanelHeading
-                          className="glamor-19 glamor-16"
+                          className="glamor-32 glamor-29"
                         >
                           <div
-                            className="glamor-16 glamor-17 glamor-18"
+                            className="glamor-29 glamor-30 glamor-31"
                           >
                             <Flex
                               align="center"
                             >
                               <Base
                                 align="center"
-                                className="glamor-2"
+                                className="glamor-13"
                               >
                                 <div
-                                  className="glamor-2"
+                                  className="glamor-13"
                                   is={null}
                                 >
                                   <Box
@@ -1520,12 +1645,12 @@ exports[`OrganizationMembersView Require Link does not have 2fa warning if user 
                                     px={2}
                                   >
                                     <Base
-                                      className="glamor-6"
+                                      className="glamor-19"
                                       flex="1"
                                       px={2}
                                     >
                                       <div
-                                        className="glamor-6"
+                                        className="glamor-19"
                                         is={null}
                                       >
                                         Member
@@ -1537,12 +1662,12 @@ exports[`OrganizationMembersView Require Link does not have 2fa warning if user 
                                     w={180}
                                   >
                                     <Base
-                                      className="glamor-8"
+                                      className="glamor-21"
                                       px={2}
                                       w={180}
                                     >
                                       <div
-                                        className="glamor-8"
+                                        className="glamor-21"
                                         is={null}
                                       >
                                         Status
@@ -1554,12 +1679,12 @@ exports[`OrganizationMembersView Require Link does not have 2fa warning if user 
                                     w={140}
                                   >
                                     <Base
-                                      className="glamor-10"
+                                      className="glamor-23"
                                       px={2}
                                       w={140}
                                     >
                                       <div
-                                        className="glamor-10"
+                                        className="glamor-23"
                                         is={null}
                                       >
                                         Role
@@ -1571,12 +1696,12 @@ exports[`OrganizationMembersView Require Link does not have 2fa warning if user 
                                     w={140}
                                   >
                                     <Base
-                                      className="glamor-10"
+                                      className="glamor-23"
                                       px={2}
                                       w={140}
                                     >
                                       <div
-                                        className="glamor-10"
+                                        className="glamor-23"
                                         is={null}
                                       >
                                         Actions
@@ -1670,23 +1795,23 @@ exports[`OrganizationMembersView Require Link does not have 2fa warning if user 
                     >
                       <Base
                         align="center"
-                        className="glamor-43 glamor-44"
+                        className="glamor-60 glamor-61"
                         p={0}
                         py={2}
                       >
                         <div
-                          className="glamor-43 glamor-44"
+                          className="glamor-60 glamor-61"
                           is={null}
                         >
                           <Box
                             pl={2}
                           >
                             <Base
-                              className="glamor-27"
+                              className="glamor-40"
                               pl={2}
                             >
                               <div
-                                className="glamor-27"
+                                className="glamor-40"
                                 is={null}
                               >
                                 <Avatar
@@ -1740,13 +1865,13 @@ exports[`OrganizationMembersView Require Link does not have 2fa warning if user 
                             pr={2}
                           >
                             <Base
-                              className="glamor-35"
+                              className="glamor-48"
                               flex="1"
                               pl={1}
                               pr={2}
                             >
                               <div
-                                className="glamor-35"
+                                className="glamor-48"
                                 is={null}
                               >
                                 <h5
@@ -1760,11 +1885,11 @@ exports[`OrganizationMembersView Require Link does not have 2fa warning if user 
                                     to="1"
                                   >
                                     <Link
-                                      className="glamor-29 glamor-30"
+                                      className="glamor-42 glamor-43"
                                       to="1"
                                     >
                                       <a
-                                        className="glamor-29 glamor-30"
+                                        className="glamor-42 glamor-43"
                                         href="1"
                                       />
                                     </Link>
@@ -1772,7 +1897,7 @@ exports[`OrganizationMembersView Require Link does not have 2fa warning if user 
                                 </h5>
                                 <Email>
                                   <div
-                                    className="glamor-33 glamor-34"
+                                    className="glamor-46 glamor-47"
                                   />
                                 </Email>
                               </div>
@@ -1783,12 +1908,12 @@ exports[`OrganizationMembersView Require Link does not have 2fa warning if user 
                             w={180}
                           >
                             <Base
-                              className="glamor-8"
+                              className="glamor-21"
                               px={2}
                               w={180}
                             >
                               <div
-                                className="glamor-8"
+                                className="glamor-21"
                                 is={null}
                               >
                                 <div>
@@ -1821,19 +1946,22 @@ exports[`OrganizationMembersView Require Link does not have 2fa warning if user 
                                         }
                                       }
                                     >
-                                      <FlowLayout
-                                        truncate={false}
+                                      <Flex
+                                        align="center"
+                                        className="button-label"
                                       >
-                                        <div
-                                          className="flow-layout"
+                                        <Base
+                                          align="center"
+                                          className="button-label glamor-13"
                                         >
-                                          <span
-                                            className="button-label"
+                                          <div
+                                            className="button-label glamor-13"
+                                            is={null}
                                           >
                                             Resend invite
-                                          </span>
-                                        </div>
-                                      </FlowLayout>
+                                          </div>
+                                        </Base>
+                                      </Flex>
                                     </button>
                                   </Button>
                                 </div>
@@ -1845,12 +1973,12 @@ exports[`OrganizationMembersView Require Link does not have 2fa warning if user 
                             w={140}
                           >
                             <Base
-                              className="glamor-10"
+                              className="glamor-23"
                               px={2}
                               w={140}
                             >
                               <div
-                                className="glamor-10"
+                                className="glamor-23"
                                 is={null}
                               />
                             </Base>
@@ -1860,12 +1988,12 @@ exports[`OrganizationMembersView Require Link does not have 2fa warning if user 
                             w={140}
                           >
                             <Base
-                              className="glamor-10"
+                              className="glamor-23"
                               px={2}
                               w={140}
                             >
                               <div
-                                className="glamor-10"
+                                className="glamor-23"
                                 is={null}
                               >
                                 <Button
@@ -1879,23 +2007,26 @@ exports[`OrganizationMembersView Require Link does not have 2fa warning if user 
                                     onClick={[Function]}
                                     role="button"
                                   >
-                                    <FlowLayout
-                                      truncate={false}
+                                    <Flex
+                                      align="center"
+                                      className="button-label"
                                     >
-                                      <div
-                                        className="flow-layout"
+                                      <Base
+                                        align="center"
+                                        className="button-label glamor-13"
                                       >
-                                        <span
-                                          className="button-label"
+                                        <div
+                                          className="button-label glamor-13"
+                                          is={null}
                                         >
                                           <span
                                             className="icon icon-exit"
                                           />
                                            
                                           Leave
-                                        </span>
-                                      </div>
-                                    </FlowLayout>
+                                        </div>
+                                      </Base>
+                                    </Flex>
                                   </button>
                                 </Button>
                               </div>
@@ -1974,23 +2105,23 @@ exports[`OrganizationMembersView Require Link does not have 2fa warning if user 
                     >
                       <Base
                         align="center"
-                        className="glamor-43 glamor-44"
+                        className="glamor-60 glamor-61"
                         p={0}
                         py={2}
                       >
                         <div
-                          className="glamor-43 glamor-44"
+                          className="glamor-60 glamor-61"
                           is={null}
                         >
                           <Box
                             pl={2}
                           >
                             <Base
-                              className="glamor-27"
+                              className="glamor-40"
                               pl={2}
                             >
                               <div
-                                className="glamor-27"
+                                className="glamor-40"
                                 is={null}
                               >
                                 <Avatar
@@ -2044,13 +2175,13 @@ exports[`OrganizationMembersView Require Link does not have 2fa warning if user 
                             pr={2}
                           >
                             <Base
-                              className="glamor-35"
+                              className="glamor-48"
                               flex="1"
                               pl={1}
                               pr={2}
                             >
                               <div
-                                className="glamor-35"
+                                className="glamor-48"
                                 is={null}
                               >
                                 <h5
@@ -2064,11 +2195,11 @@ exports[`OrganizationMembersView Require Link does not have 2fa warning if user 
                                     to="2"
                                   >
                                     <Link
-                                      className="glamor-29 glamor-30"
+                                      className="glamor-42 glamor-43"
                                       to="2"
                                     >
                                       <a
-                                        className="glamor-29 glamor-30"
+                                        className="glamor-42 glamor-43"
                                         href="2"
                                       />
                                     </Link>
@@ -2076,7 +2207,7 @@ exports[`OrganizationMembersView Require Link does not have 2fa warning if user 
                                 </h5>
                                 <Email>
                                   <div
-                                    className="glamor-33 glamor-34"
+                                    className="glamor-46 glamor-47"
                                   />
                                 </Email>
                               </div>
@@ -2087,12 +2218,12 @@ exports[`OrganizationMembersView Require Link does not have 2fa warning if user 
                             w={180}
                           >
                             <Base
-                              className="glamor-8"
+                              className="glamor-21"
                               px={2}
                               w={180}
                             >
                               <div
-                                className="glamor-8"
+                                className="glamor-21"
                                 is={null}
                               >
                                 <div>
@@ -2125,19 +2256,22 @@ exports[`OrganizationMembersView Require Link does not have 2fa warning if user 
                                         }
                                       }
                                     >
-                                      <FlowLayout
-                                        truncate={false}
+                                      <Flex
+                                        align="center"
+                                        className="button-label"
                                       >
-                                        <div
-                                          className="flow-layout"
+                                        <Base
+                                          align="center"
+                                          className="button-label glamor-13"
                                         >
-                                          <span
-                                            className="button-label"
+                                          <div
+                                            className="button-label glamor-13"
+                                            is={null}
                                           >
                                             Resend invite
-                                          </span>
-                                        </div>
-                                      </FlowLayout>
+                                          </div>
+                                        </Base>
+                                      </Flex>
                                     </button>
                                   </Button>
                                 </div>
@@ -2149,12 +2283,12 @@ exports[`OrganizationMembersView Require Link does not have 2fa warning if user 
                             w={140}
                           >
                             <Base
-                              className="glamor-10"
+                              className="glamor-23"
                               px={2}
                               w={140}
                             >
                               <div
-                                className="glamor-10"
+                                className="glamor-23"
                                 is={null}
                               />
                             </Base>
@@ -2164,12 +2298,12 @@ exports[`OrganizationMembersView Require Link does not have 2fa warning if user 
                             w={140}
                           >
                             <Base
-                              className="glamor-10"
+                              className="glamor-23"
                               px={2}
                               w={140}
                             >
                               <div
-                                className="glamor-10"
+                                className="glamor-23"
                                 is={null}
                               >
                                 <Button
@@ -2183,23 +2317,26 @@ exports[`OrganizationMembersView Require Link does not have 2fa warning if user 
                                     onClick={[Function]}
                                     role="button"
                                   >
-                                    <FlowLayout
-                                      truncate={false}
+                                    <Flex
+                                      align="center"
+                                      className="button-label"
                                     >
-                                      <div
-                                        className="flow-layout"
+                                      <Base
+                                        align="center"
+                                        className="button-label glamor-13"
                                       >
-                                        <span
-                                          className="button-label"
+                                        <div
+                                          className="button-label glamor-13"
+                                          is={null}
                                         >
                                           <span
                                             className="icon icon-exit"
                                           />
                                            
                                           Leave
-                                        </span>
-                                      </div>
-                                    </FlowLayout>
+                                        </div>
+                                      </Base>
+                                    </Flex>
                                   </button>
                                 </Button>
                               </div>
@@ -2278,23 +2415,23 @@ exports[`OrganizationMembersView Require Link does not have 2fa warning if user 
                     >
                       <Base
                         align="center"
-                        className="glamor-43 glamor-44"
+                        className="glamor-60 glamor-61"
                         p={0}
                         py={2}
                       >
                         <div
-                          className="glamor-43 glamor-44"
+                          className="glamor-60 glamor-61"
                           is={null}
                         >
                           <Box
                             pl={2}
                           >
                             <Base
-                              className="glamor-27"
+                              className="glamor-40"
                               pl={2}
                             >
                               <div
-                                className="glamor-27"
+                                className="glamor-40"
                                 is={null}
                               >
                                 <Avatar
@@ -2348,13 +2485,13 @@ exports[`OrganizationMembersView Require Link does not have 2fa warning if user 
                             pr={2}
                           >
                             <Base
-                              className="glamor-35"
+                              className="glamor-48"
                               flex="1"
                               pl={1}
                               pr={2}
                             >
                               <div
-                                className="glamor-35"
+                                className="glamor-48"
                                 is={null}
                               >
                                 <h5
@@ -2368,11 +2505,11 @@ exports[`OrganizationMembersView Require Link does not have 2fa warning if user 
                                     to="3"
                                   >
                                     <Link
-                                      className="glamor-29 glamor-30"
+                                      className="glamor-42 glamor-43"
                                       to="3"
                                     >
                                       <a
-                                        className="glamor-29 glamor-30"
+                                        className="glamor-42 glamor-43"
                                         href="3"
                                       />
                                     </Link>
@@ -2380,7 +2517,7 @@ exports[`OrganizationMembersView Require Link does not have 2fa warning if user 
                                 </h5>
                                 <Email>
                                   <div
-                                    className="glamor-33 glamor-34"
+                                    className="glamor-46 glamor-47"
                                   />
                                 </Email>
                               </div>
@@ -2391,12 +2528,12 @@ exports[`OrganizationMembersView Require Link does not have 2fa warning if user 
                             w={180}
                           >
                             <Base
-                              className="glamor-8"
+                              className="glamor-21"
                               px={2}
                               w={180}
                             >
                               <div
-                                className="glamor-8"
+                                className="glamor-21"
                                 is={null}
                               >
                                 <div>
@@ -2417,12 +2554,12 @@ exports[`OrganizationMembersView Require Link does not have 2fa warning if user 
                             w={140}
                           >
                             <Base
-                              className="glamor-10"
+                              className="glamor-23"
                               px={2}
                               w={140}
                             >
                               <div
-                                className="glamor-10"
+                                className="glamor-23"
                                 is={null}
                               />
                             </Base>
@@ -2432,12 +2569,12 @@ exports[`OrganizationMembersView Require Link does not have 2fa warning if user 
                             w={140}
                           >
                             <Base
-                              className="glamor-10"
+                              className="glamor-23"
                               px={2}
                               w={140}
                             >
                               <div
-                                className="glamor-10"
+                                className="glamor-23"
                                 is={null}
                               >
                                 <Button
@@ -2451,23 +2588,26 @@ exports[`OrganizationMembersView Require Link does not have 2fa warning if user 
                                     onClick={[Function]}
                                     role="button"
                                   >
-                                    <FlowLayout
-                                      truncate={false}
+                                    <Flex
+                                      align="center"
+                                      className="button-label"
                                     >
-                                      <div
-                                        className="flow-layout"
+                                      <Base
+                                        align="center"
+                                        className="button-label glamor-13"
                                       >
-                                        <span
-                                          className="button-label"
+                                        <div
+                                          className="button-label glamor-13"
+                                          is={null}
                                         >
                                           <span
                                             className="icon icon-exit"
                                           />
                                            
                                           Leave
-                                        </span>
-                                      </div>
-                                    </FlowLayout>
+                                        </div>
+                                      </Base>
+                                    </Flex>
                                   </button>
                                 </Button>
                               </div>

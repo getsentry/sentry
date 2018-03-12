@@ -1,6 +1,18 @@
 // Jest Snapshot v1, https://goo.gl/fbAQLP
 
 exports[`ProjectTeamsSettings render() renders 1`] = `
+.glamor-0 {
+  box-sizing: border-box;
+  display: -webkit-box;
+  display: -webkit-flex;
+  display: -ms-flexbox;
+  display: flex;
+  -webkit-align-items: center;
+  -webkit-box-align: center;
+  -ms-flex-align: center;
+  align-items: center;
+}
+
 <OwnerInput
   initialText="url:src @dummy@example.com"
   organization={
@@ -369,19 +381,22 @@ url:http://sentry.io/settings/* #workflow"
           onClick={[Function]}
           role="button"
         >
-          <FlowLayout
-            truncate={false}
+          <Flex
+            align="center"
+            className="button-label"
           >
-            <div
-              className="flow-layout"
+            <Base
+              align="center"
+              className="button-label glamor-0"
             >
-              <span
-                className="button-label"
+              <div
+                className="button-label glamor-0"
+                is={null}
               >
                 Save Changes
-              </span>
-            </div>
-          </FlowLayout>
+              </div>
+            </Base>
+          </Flex>
         </button>
       </Button>
     </div>

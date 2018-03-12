@@ -1,11 +1,21 @@
+import {Flex, Box} from 'grid-emotion';
 import {Link} from 'react-router';
 import PropTypes from 'prop-types';
 import React from 'react';
+import styled from 'react-emotion';
 import classNames from 'classnames';
 
-import FlowLayout from '../flowLayout';
-
+import InlineSvg from '../inlineSvg';
 import '../../../less/components/button.less';
+
+const Icon = styled(Box)`
+  margin-right: ${p => (p.size === 'small' ? '6px' : '8px')};
+  margin-left: -2px;
+`;
+
+const StyledInlineSvg = styled(InlineSvg)`
+  display: block;
+`;
 
 class Button extends React.Component {
   static propTypes = {
@@ -21,6 +31,7 @@ class Button extends React.Component {
      * Use this prop if button should use a normal (non-react-router) link
      */
     href: PropTypes.string,
+    icon: PropTypes.string,
     /**
      * Tooltip text
      */
@@ -63,6 +74,7 @@ class Button extends React.Component {
       busy,
       title,
       borderless,
+      icon,
 
       // destructure from `buttonProps`
       // not necessary, but just in case someone re-orders props
@@ -89,12 +101,15 @@ class Button extends React.Component {
       'button-disabled': disabled,
     });
 
-    // This container is useless now, but leaves room for when we need to add
-    // components (i.e. icons, busy indicator, etc)
     let childContainer = (
-      <FlowLayout truncate={false}>
-        <span className="button-label">{children}</span>
-      </FlowLayout>
+      <Flex align="center" className="button-label">
+        {icon && (
+          <Icon size={size}>
+            <StyledInlineSvg src={icon} size={size === 'small' ? '12px' : '16px'} />
+          </Icon>
+        )}
+        {children}
+      </Flex>
     );
 
     // Buttons come in 3 flavors: Link, anchor, and regular buttons. Let's

@@ -75,9 +75,8 @@ export default class ProjectAlertSettings extends AsyncView {
               to={recreateRoute('rules/new/', this.props)}
               priority="primary"
               size="small"
-              className="pull-right"
+              icon="icon-circle-add"
             >
-              <span className="icon-plus" />
               {t('New Alert Rule')}
             </Button>
           }

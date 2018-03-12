@@ -265,9 +265,8 @@ const ProjectAlertRules = createReactClass({
               to={recreateRoute('new/', this.props)}
               priority="primary"
               size="small"
-              className="pull-right"
+              icon="icon-circle-add"
             >
-              <span className="icon-plus" />
               {t('New Alert Rule')}
             </Button>
           }

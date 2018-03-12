@@ -1,14 +1,14 @@
 // Jest Snapshot v1, https://goo.gl/fbAQLP
 
 exports[`OrganizationTeamProjects Should render 1`] = `
-.glamor-49 {
+.glamor-53 {
   background: #fff;
   border: 1px solid;
   margin-bottom: NaNpx;
   position: relative;
 }
 
-.glamor-28 {
+.glamor-30 {
   border-bottom: 1px solid;
   border-radius: 0 0;
   text-transform: uppercase;
@@ -17,13 +17,13 @@ exports[`OrganizationTeamProjects Should render 1`] = `
   padding: 15px 20px;
 }
 
-.glamor-24 {
+.glamor-26 {
   font-size: inherit;
   text-transform: inherit;
   margin: 0;
 }
 
-.glamor-22 {
+.glamor-24 {
   font-size: 12px;
   font-weight: 600;
   text-transform: uppercase;
@@ -33,7 +33,7 @@ exports[`OrganizationTeamProjects Should render 1`] = `
   margin: 0;
 }
 
-.glamor-19 {
+.glamor-21 {
   display: -webkit-box;
   display: -webkit-flex;
   display: -ms-flexbox;
@@ -48,15 +48,27 @@ exports[`OrganizationTeamProjects Should render 1`] = `
   justify-content: space-between;
 }
 
-.glamor-15 {
+.glamor-17 {
   position: relative;
   display: inline-block;
 }
 
-.glamor-9 {
+.glamor-11 {
   position: relative;
   z-index: 1;
   box-shadow: none;
+}
+
+.glamor-9 {
+  box-sizing: border-box;
+  display: -webkit-box;
+  display: -webkit-flex;
+  display: -ms-flexbox;
+  display: flex;
+  -webkit-align-items: center;
+  -webkit-box-align: center;
+  -ms-flex-align: center;
+  align-items: center;
 }
 
 .glamor-3 {
@@ -68,7 +80,7 @@ exports[`OrganizationTeamProjects Should render 1`] = `
   margin-right: 0.5em;
 }
 
-.glamor-45 {
+.glamor-49 {
   box-sizing: border-box;
   padding: 0px;
   display: -webkit-box;
@@ -82,11 +94,11 @@ exports[`OrganizationTeamProjects Should render 1`] = `
   border-bottom: 1px solid;
 }
 
-.glamor-45:last-child {
+.glamor-49:last-child {
   border: 0;
 }
 
-.glamor-41 {
+.glamor-43 {
   box-sizing: border-box;
   padding: 16px;
   -webkit-flex: 1;
@@ -94,17 +106,17 @@ exports[`OrganizationTeamProjects Should render 1`] = `
   flex: 1;
 }
 
-.glamor-38 {
+.glamor-40 {
   color: #645574;
 }
 
-.glamor-32 {
+.glamor-34 {
   border: none;
   background-color: inherit;
   padding: 0;
 }
 
-.glamor-43 {
+.glamor-47 {
   box-sizing: border-box;
   padding: 16px;
 }
@@ -120,29 +132,29 @@ exports[`OrganizationTeamProjects Should render 1`] = `
   <div>
     <Panel>
       <div
-        className="glamor-49 glamor-50"
+        className="glamor-53 glamor-54"
       >
         <PanelHeader>
           <StyledPanelHeader>
             <Component
-              className="glamor-28 glamor-29"
+              className="glamor-30 glamor-31"
             >
               <div
-                className="glamor-28 glamor-29"
+                className="glamor-30 glamor-31"
               >
                 <StyledPanelHeading>
                   <Component
-                    className="glamor-24 glamor-21"
+                    className="glamor-26 glamor-23"
                   >
                     <PanelHeading
-                      className="glamor-24 glamor-21"
+                      className="glamor-26 glamor-23"
                     >
                       <div
-                        className="glamor-21 glamor-22 glamor-23"
+                        className="glamor-23 glamor-24 glamor-25"
                       >
                         <PanelHeaderContentContainer>
                           <div
-                            className="glamor-19 glamor-20"
+                            className="glamor-21 glamor-22"
                           >
                             Projects
                             <div
@@ -188,10 +200,10 @@ exports[`OrganizationTeamProjects Should render 1`] = `
                                     >
                                       <AutoCompleteRoot>
                                         <Component
-                                          className="glamor-15 glamor-16"
+                                          className="glamor-17 glamor-18"
                                         >
                                           <div
-                                            className="glamor-15 glamor-16"
+                                            className="glamor-17 glamor-18"
                                           >
                                             <div
                                               onClick={[Function]}
@@ -206,27 +218,30 @@ exports[`OrganizationTeamProjects Should render 1`] = `
                                                   isOpen={false}
                                                 >
                                                   <Component
-                                                    className="glamor-9 glamor-10"
+                                                    className="glamor-11 glamor-12"
                                                     isOpen={false}
                                                   >
                                                     <Button
-                                                      className="glamor-9 glamor-10"
+                                                      className="glamor-11 glamor-12"
                                                       disabled={false}
                                                     >
                                                       <button
-                                                        className="glamor-9 glamor-10 button button-default"
+                                                        className="glamor-11 glamor-12 button button-default"
                                                         disabled={false}
                                                         onClick={[Function]}
                                                         role="button"
                                                       >
-                                                        <FlowLayout
-                                                          truncate={false}
+                                                        <Flex
+                                                          align="center"
+                                                          className="button-label"
                                                         >
-                                                          <div
-                                                            className="flow-layout"
+                                                          <Base
+                                                            align="center"
+                                                            className="button-label glamor-9"
                                                           >
-                                                            <span
-                                                              className="button-label"
+                                                            <div
+                                                              className="button-label glamor-9"
+                                                              is={null}
                                                             >
                                                               <StyledChevronDown>
                                                                 <Component
@@ -263,9 +278,9 @@ exports[`OrganizationTeamProjects Should render 1`] = `
                                                                 className="icon-plus"
                                                               />
                                                               Add Project
-                                                            </span>
-                                                          </div>
-                                                        </FlowLayout>
+                                                            </div>
+                                                          </Base>
+                                                        </Flex>
                                                       </button>
                                                     </Button>
                                                   </Component>
@@ -309,11 +324,11 @@ exports[`OrganizationTeamProjects Should render 1`] = `
               >
                 <Base
                   align="center"
-                  className="glamor-45 glamor-46"
+                  className="glamor-49 glamor-50"
                   p={0}
                 >
                   <div
-                    className="glamor-45 glamor-46"
+                    className="glamor-49 glamor-50"
                     is={null}
                   >
                     <Box
@@ -321,12 +336,12 @@ exports[`OrganizationTeamProjects Should render 1`] = `
                       p={2}
                     >
                       <Base
-                        className="glamor-41"
+                        className="glamor-43"
                         flex="1"
                         p={2}
                       >
                         <div
-                          className="glamor-41"
+                          className="glamor-43"
                           is={null}
                         >
                           <ProjectItem
@@ -400,7 +415,7 @@ exports[`OrganizationTeamProjects Should render 1`] = `
                                   title="Add to bookmarks"
                                 >
                                   <button
-                                    className="tip glamor-32 glamor-33"
+                                    className="tip glamor-34 glamor-35"
                                     onClick={[Function]}
                                     title="Add to bookmarks"
                                   >
@@ -411,17 +426,17 @@ exports[`OrganizationTeamProjects Should render 1`] = `
                                 </InlineButton>
                               </Tooltip>
                               <Link
-                                className="glamor-38"
+                                className="glamor-40"
                                 to="/settings/organization/org-slug/project/project-slug/"
                               >
                                 <Link
-                                  className="glamor-38"
+                                  className="glamor-40"
                                   onlyActiveOnIndex={false}
                                   style={Object {}}
                                   to="/settings/organization/org-slug/project/project-slug/"
                                 >
                                   <a
-                                    className="glamor-38"
+                                    className="glamor-40"
                                     onClick={[Function]}
                                     style={Object {}}
                                   >
@@ -484,7 +499,7 @@ exports[`OrganizationTeamProjects Should render 1`] = `
                                       }
                                     >
                                       <ProjectLabel
-                                        className="glamor-34 glamor-35"
+                                        className="glamor-36 glamor-37"
                                         organization={
                                           Object {
                                             "access": Array [
@@ -543,7 +558,7 @@ exports[`OrganizationTeamProjects Should render 1`] = `
                                         }
                                       >
                                         <span
-                                          className="glamor-34 glamor-35"
+                                          className="glamor-36 glamor-37"
                                           organization={
                                             Object {
                                               "access": Array [
@@ -621,11 +636,11 @@ exports[`OrganizationTeamProjects Should render 1`] = `
                       p={2}
                     >
                       <Base
-                        className="glamor-43"
+                        className="glamor-47"
                         p={2}
                       >
                         <div
-                          className="glamor-43"
+                          className="glamor-47"
                           is={null}
                         >
                           <Button
@@ -639,19 +654,22 @@ exports[`OrganizationTeamProjects Should render 1`] = `
                               onClick={[Function]}
                               role="button"
                             >
-                              <FlowLayout
-                                truncate={false}
+                              <Flex
+                                align="center"
+                                className="button-label"
                               >
-                                <div
-                                  className="flow-layout"
+                                <Base
+                                  align="center"
+                                  className="button-label glamor-9"
                                 >
-                                  <span
-                                    className="button-label"
+                                  <div
+                                    className="button-label glamor-9"
+                                    is={null}
                                   >
                                     Remove
-                                  </span>
-                                </div>
-                              </FlowLayout>
+                                  </div>
+                                </Base>
+                              </Flex>
                             </button>
                           </Button>
                         </div>
