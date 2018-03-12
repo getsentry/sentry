@@ -9,7 +9,7 @@ import InlineSvg from '../inlineSvg';
 import '../../../less/components/button.less';
 
 const Icon = styled(Box)`
-  margin-right: ${p => (p.size ? '6px' : '8px')};
+  margin-right: ${p => (p.size == 'small' ? '6px' : '8px')};
   margin-left: -2px;
 `;
 
