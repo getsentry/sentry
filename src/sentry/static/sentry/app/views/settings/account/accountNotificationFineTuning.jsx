@@ -5,6 +5,7 @@ import styled from 'react-emotion';
 import {t} from '../../../locale';
 import AsyncView from '../../asyncView';
 import Form from '../components/forms/form';
+import JsonForm from '../components/forms/jsonForm';
 import Panel from '../components/panel';
 import PanelBody from '../components/panelBody';
 import PanelHeader from '../components/panelHeader';
@@ -12,6 +13,7 @@ import ProjectsStore from '../../../stores/projectsStore';
 import Select2Field from '../components/forms/select2Field';
 import SettingsPageHeader from '../components/settingsPageHeader';
 import TextBlock from '../components/text/textBlock';
+import {fields} from '../../../data/forms/accountNotificationSettings';
 import withOrganizations from '../../../utils/withOrganizations';
 
 const ACCOUNT_NOTIFICATION_FIELDS = {
@@ -20,6 +22,7 @@ const ACCOUNT_NOTIFICATION_FIELDS = {
     description: t('Control alerts that you receive per project.'),
     type: 'select',
     choices: [[-1, t('Default')], [1, t('On')], [0, t('Off')]],
+    defaultFieldName: 'subscribeByDefault',
   },
   workflow: {
     title: 'Workflow Notifications',
@@ -33,6 +36,7 @@ const ACCOUNT_NOTIFICATION_FIELDS = {
       [1, t('Only on issues I subscribe to')],
       [2, t('Never')],
     ],
+    defaultFieldName: 'workflowNotifications',
   },
   deploy: {
     title: t('Deploy Notifications'),
@@ -46,6 +50,7 @@ const ACCOUNT_NOTIFICATION_FIELDS = {
       [3, t('Only on deploys with my commits')],
       [4, t('Never')],
     ],
+    defaultFieldName: 'deployNotifications',
   },
   reports: {
     title: t('Weekly Reports'),
@@ -54,6 +59,7 @@ const ACCOUNT_NOTIFICATION_FIELDS = {
     ),
     type: 'select',
     choices: [[1, t('On')], [0, t('Off')]],
+    defaultFieldName: 'weeklyReports',
   },
 
   email: {
@@ -156,12 +162,12 @@ class AccountNotificationsByOrganization extends React.Component {
   }
 
   render() {
-    const fields = this.getFieldData();
+    const orgFields = this.getFieldData();
 
     return (
       <React.Fragment>
         <PanelHeader>{t('Organizations')}</PanelHeader>
-        {fields.map(field => {
+        {orgFields.map(field => {
           return (
             <PanelBodyLineItem key={field.name}>
               <Select2Field
@@ -185,7 +191,10 @@ const AccountNotificationsByOrganizationContainer = withOrganizations(
 export default class AccountNotificationFineTuning extends AsyncView {
   getEndpoints() {
     const {fineTuneType} = this.props.params;
-    const endpoints = [['notifications', `/users/me/notifications/${fineTuneType}/`]];
+    const endpoints = [
+      ['notifications', '/users/me/notifications/'],
+      ['fineTuneData', `/users/me/notifications/${fineTuneType}/`],
+    ];
 
     if (isGroupedByProject(fineTuneType)) {
       endpoints.push(['projects', '/projects/']);
@@ -232,11 +241,25 @@ export default class AccountNotificationFineTuning extends AsyncView {
         <SettingsPageHeader title={title} />
         {description && <TextBlock>{description}</TextBlock>}
 
+        {field &&
+          field.defaultFieldName && (
+            <Form
+              saveOnBlur
+              apiMethod="PUT"
+              apiEndpoint={'/users/me/notifications/'}
+              initialData={this.state.notifications}
+            >
+              <JsonForm
+                title={`Default ${title}`}
+                fields={[fields[field.defaultFieldName]]}
+              />
+            </Form>
+          )}
         <Form
           saveOnBlur
           apiMethod="PUT"
           apiEndpoint={`/users/me/notifications/${this.props.params.fineTuneType}/`}
-          initialData={this.state.notifications}
+          initialData={this.state.fineTuneData}
         >
           <Panel>
             {isProject && (
