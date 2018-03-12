@@ -1,7 +1,7 @@
 // Jest Snapshot v1, https://goo.gl/fbAQLP
 
 exports[`OrganizationTeamProjects Should render 1`] = `
-.glamor-45 {
+.glamor-49 {
   background: #fff;
   border: 1px solid;
   margin-bottom: NaNpx;
@@ -68,7 +68,7 @@ exports[`OrganizationTeamProjects Should render 1`] = `
   margin-right: 0.5em;
 }
 
-.glamor-41 {
+.glamor-45 {
   box-sizing: border-box;
   padding: 0px;
   display: -webkit-box;
@@ -82,11 +82,11 @@ exports[`OrganizationTeamProjects Should render 1`] = `
   border-bottom: 1px solid;
 }
 
-.glamor-41:last-child {
+.glamor-45:last-child {
   border: 0;
 }
 
-.glamor-37 {
+.glamor-41 {
   box-sizing: border-box;
   padding: 16px;
   -webkit-flex: 1;
@@ -94,7 +94,7 @@ exports[`OrganizationTeamProjects Should render 1`] = `
   flex: 1;
 }
 
-.glamor-34 {
+.glamor-38 {
   color: #645574;
 }
 
@@ -104,7 +104,7 @@ exports[`OrganizationTeamProjects Should render 1`] = `
   padding: 0;
 }
 
-.glamor-39 {
+.glamor-43 {
   box-sizing: border-box;
   padding: 16px;
 }
@@ -120,7 +120,7 @@ exports[`OrganizationTeamProjects Should render 1`] = `
   <div>
     <Panel>
       <div
-        className="glamor-45 glamor-46"
+        className="glamor-49 glamor-50"
       >
         <PanelHeader>
           <StyledPanelHeader>
@@ -309,11 +309,11 @@ exports[`OrganizationTeamProjects Should render 1`] = `
               >
                 <Base
                   align="center"
-                  className="glamor-41 glamor-42"
+                  className="glamor-45 glamor-46"
                   p={0}
                 >
                   <div
-                    className="glamor-41 glamor-42"
+                    className="glamor-45 glamor-46"
                     is={null}
                   >
                     <Box
@@ -321,12 +321,12 @@ exports[`OrganizationTeamProjects Should render 1`] = `
                       p={2}
                     >
                       <Base
-                        className="glamor-37"
+                        className="glamor-41"
                         flex="1"
                         p={2}
                       >
                         <div
-                          className="glamor-37"
+                          className="glamor-41"
                           is={null}
                         >
                           <ProjectItem
@@ -411,21 +411,21 @@ exports[`OrganizationTeamProjects Should render 1`] = `
                                 </InlineButton>
                               </Tooltip>
                               <Link
-                                className="glamor-34"
+                                className="glamor-38"
                                 to="/settings/organization/org-slug/project/project-slug/"
                               >
                                 <Link
-                                  className="glamor-34"
+                                  className="glamor-38"
                                   onlyActiveOnIndex={false}
                                   style={Object {}}
                                   to="/settings/organization/org-slug/project/project-slug/"
                                 >
                                   <a
-                                    className="glamor-34"
+                                    className="glamor-38"
                                     onClick={[Function]}
                                     style={Object {}}
                                   >
-                                    <ProjectLabel
+                                    <StyledProjectLabel
                                       organization={
                                         Object {
                                           "access": Array [
@@ -483,16 +483,132 @@ exports[`OrganizationTeamProjects Should render 1`] = `
                                         }
                                       }
                                     >
-                                      <span
-                                        className="project-label"
+                                      <ProjectLabel
+                                        className="glamor-34 glamor-35"
+                                        organization={
+                                          Object {
+                                            "access": Array [
+                                              "org:read",
+                                              "org:write",
+                                              "org:admin",
+                                              "project:read",
+                                              "project:write",
+                                              "project:admin",
+                                              "team:read",
+                                              "team:write",
+                                              "team:admin",
+                                            ],
+                                            "features": Array [],
+                                            "id": "3",
+                                            "name": "Organization Name",
+                                            "onboardingTasks": Array [],
+                                            "projects": Array [],
+                                            "slug": "org-slug",
+                                            "status": Object {
+                                              "id": "active",
+                                              "name": "active",
+                                            },
+                                            "teams": Array [],
+                                          }
+                                        }
+                                        project={
+                                          Object {
+                                            "allowedDomains": Array [
+                                              "example.com",
+                                              "https://example.com",
+                                            ],
+                                            "dataScrubber": false,
+                                            "dataScrubberDefaults": false,
+                                            "digestsMaxDelay": 60,
+                                            "digestsMinDelay": 5,
+                                            "id": "2",
+                                            "name": "Project Name",
+                                            "resolveAge": 48,
+                                            "safeFields": Array [
+                                              "business-email",
+                                              "company",
+                                            ],
+                                            "scrapeJavaScript": true,
+                                            "scrubIPAddresses": false,
+                                            "securityToken": "security-token",
+                                            "securityTokenHeader": "x-security-header",
+                                            "sensitiveFields": Array [
+                                              "creditcard",
+                                              "ssn",
+                                            ],
+                                            "slug": "project-slug",
+                                            "subjectTemplate": "[$project] \${tag:level}: $title",
+                                            "verifySSL": true,
+                                          }
+                                        }
                                       >
                                         <span
-                                          className="project-name"
+                                          className="glamor-34 glamor-35"
+                                          organization={
+                                            Object {
+                                              "access": Array [
+                                                "org:read",
+                                                "org:write",
+                                                "org:admin",
+                                                "project:read",
+                                                "project:write",
+                                                "project:admin",
+                                                "team:read",
+                                                "team:write",
+                                                "team:admin",
+                                              ],
+                                              "features": Array [],
+                                              "id": "3",
+                                              "name": "Organization Name",
+                                              "onboardingTasks": Array [],
+                                              "projects": Array [],
+                                              "slug": "org-slug",
+                                              "status": Object {
+                                                "id": "active",
+                                                "name": "active",
+                                              },
+                                              "teams": Array [],
+                                            }
+                                          }
+                                          project={
+                                            Object {
+                                              "allowedDomains": Array [
+                                                "example.com",
+                                                "https://example.com",
+                                              ],
+                                              "dataScrubber": false,
+                                              "dataScrubberDefaults": false,
+                                              "digestsMaxDelay": 60,
+                                              "digestsMinDelay": 5,
+                                              "id": "2",
+                                              "name": "Project Name",
+                                              "resolveAge": 48,
+                                              "safeFields": Array [
+                                                "business-email",
+                                                "company",
+                                              ],
+                                              "scrapeJavaScript": true,
+                                              "scrubIPAddresses": false,
+                                              "securityToken": "security-token",
+                                              "securityTokenHeader": "x-security-header",
+                                              "sensitiveFields": Array [
+                                                "creditcard",
+                                                "ssn",
+                                              ],
+                                              "slug": "project-slug",
+                                              "subjectTemplate": "[$project] \${tag:level}: $title",
+                                              "verifySSL": true,
+                                            }
+                                          }
                                         >
-                                          Project Name
+                                          <span
+                                            className="project-name"
+                                          >
+                                            Project Name
+                                          </span>
                                         </span>
-                                      </span>
-                                    </ProjectLabel>
+                                      </ProjectLabel>
+                                    </StyledProjectLabel>
                                   </a>
                                 </Link>
                               </Link>
@@ -505,11 +621,11 @@ exports[`OrganizationTeamProjects Should render 1`] = `
                       p={2}
                     >
                       <Base
-                        className="glamor-39"
+                        className="glamor-43"
                         p={2}
                       >
                         <div
-                          className="glamor-39"
+                          className="glamor-43"
                           is={null}
                         >
                           <Button

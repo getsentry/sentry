@@ -13,10 +13,14 @@ import ProjectLabel from '../../../components/projectLabel';
 import SentryTypes from '../../../proptypes';
 
 const InlineButton = styled('button')`
-  color: ${p => p.theme.gray3};
+  color: ${p => p.theme.gray1};
   border: none;
   background-color: inherit;
   padding: 0;
+`;
+
+const StyledProjectLabel = styled(ProjectLabel)`
+  color: ${p => p.theme.blue};
 `;
 
 const ProjectItem = createReactClass({
@@ -80,7 +84,7 @@ const ProjectItem = createReactClass({
           to={`/settings/organization/${org.slug}/project/${project.slug}/`}
           css={{color: theme.gray3}}
         >
-          <ProjectLabel project={project} organization={this.props.organization} />
+          <StyledProjectLabel project={project} organization={this.props.organization} />
         </Link>
       </div>
     );

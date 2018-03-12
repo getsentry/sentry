@@ -12,7 +12,7 @@ export default class ProjectLabel extends React.PureComponent {
     let features = new Set(organization.features);
 
     return (
-      <span className="project-label">
+      <span className="project-label" {...this.props}>
         <span className="project-name">
           {features.has('internal-catchall') ? project.slug : project.name}
         </span>
