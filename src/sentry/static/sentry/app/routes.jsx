@@ -41,7 +41,6 @@ import OrganizationActivity from './views/organizationActivity';
 import OrganizationApiKeyDetailsView from './views/settings/organization/apiKeys/organizationApiKeyDetailsView';
 import OrganizationApiKeysView from './views/settings/organization/apiKeys/organizationApiKeysView';
 import OrganizationAuditLogView from './views/settings/organization/auditLog/auditLogView';
-import OrganizationAuthView from './views/settings/organization/auth/organizationAuthView';
 import OrganizationCommits from './views/organizationCommits';
 import OrganizationContext from './views/organizationContext';
 import OrganizationCreate from './views/organizationCreate';
@@ -380,7 +379,7 @@ const projectSettingsRoutes = (
       componentPromise={() =>
         import(/* webpackChunkName: "OrganizationIntegrationConfig" */ './views/organizationIntegrationConfig')}
       component={errorHandler(LazyLoad)}
-    />,
+    />
     <Route
       path="install/"
       name="Basic Configuration"
@@ -446,7 +445,9 @@ function routes() {
       <Route
         path="auth/"
         name="Auth Providers"
-        component={errorHandler(OrganizationAuthView)}
+        componentPromise={() =>
+          import(/*webpackChunkName: OrganizationAuthView*/ './views/settings/organization/auth/organizationAuthView')}
+        component={errorHandler(LazyLoad)}
       />
 
       <Route

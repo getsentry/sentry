@@ -4,23 +4,23 @@ exports[`OrganizationAuthList renders 1`] = `
 <div
   className="sso"
 >
-  <h2>
-    Authentication
-  </h2>
-  <div
-    className="box"
-  >
-    <div
-      className="box-header"
+  <SettingsPageHeading
+    title="Authentication"
+  />
+  <Panel>
+    <PanelHeader>
+      Choose a provider
+    </PanelHeader>
+    <PanelBody
+      direction="column"
+      disablePadding={true}
+      flex={false}
     >
-      <h3>
-        Choose a provider
-      </h3>
-    </div>
-    <div
-      className="box-content with-padding"
-    >
-      <p>
+      <WithTheme(PanelAlert)
+        m={0}
+        mb={0}
+        type="info"
+      >
         <span
           key="4"
         >
@@ -44,19 +44,30 @@ exports[`OrganizationAuthList renders 1`] = `
           </ExternalLink>
         </span>
         .
-      </p>
-      <ul
-        className="simple-list list-unstyled"
+      </WithTheme(PanelAlert)>
+      <form
+        action="/organizations/org-slug/auth/configure/"
+        method="POST"
       >
+        <input
+          name="csrfmiddlewaretoken"
+          type="hidden"
+          value={null}
+        />
+        <input
+          name="init"
+          type="hidden"
+          value="1"
+        />
         <ProviderItem
           key="dummy"
           onConfigure={[Function]}
           providerKey="dummy"
           providerName="Dummy"
         />
-      </ul>
-    </div>
-  </div>
+      </form>
+    </PanelBody>
+  </Panel>
 </div>
 `;
 
@@ -64,23 +75,23 @@ exports[`OrganizationAuthList renders with no providers 1`] = `
 <div
   className="sso"
 >
-  <h2>
-    Authentication
-  </h2>
-  <div
-    className="box"
-  >
-    <div
-      className="box-header"
+  <SettingsPageHeading
+    title="Authentication"
+  />
+  <Panel>
+    <PanelHeader>
+      Choose a provider
+    </PanelHeader>
+    <PanelBody
+      direction="column"
+      disablePadding={true}
+      flex={false}
     >
-      <h3>
-        Choose a provider
-      </h3>
-    </div>
-    <div
-      className="box-content with-padding"
-    >
-      <p>
+      <WithTheme(PanelAlert)
+        m={0}
+        mb={0}
+        type="info"
+      >
         <span
           key="4"
         >
@@ -104,8 +115,23 @@ exports[`OrganizationAuthList renders with no providers 1`] = `
           </ExternalLink>
         </span>
         .
-      </p>
-      <p
+      </WithTheme(PanelAlert)>
+      <form
+        action="/organizations/org-slug/auth/configure/"
+        method="POST"
+      >
+        <input
+          name="csrfmiddlewaretoken"
+          type="hidden"
+          value={null}
+        />
+        <input
+          name="init"
+          type="hidden"
+          value="1"
+        />
+      </form>
+      <EmptyMessage
         style={
           Object {
             "padding": 50,
@@ -114,8 +140,8 @@ exports[`OrganizationAuthList renders with no providers 1`] = `
         }
       >
         No authentication providers are available.
-      </p>
-    </div>
-  </div>
+      </EmptyMessage>
+    </PanelBody>
+  </Panel>
 </div>
 `;

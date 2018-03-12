@@ -1,10 +1,18 @@
 import PropTypes from 'prop-types';
 import React from 'react';
 
+import {CSRF_COOKIE_NAME} from '../../../../constants';
 import {t, tct} from '../../../../locale';
+import EmptyMessage from '../../components/emptyMessage';
 import ExternalLink from '../../../../components/externalLink';
-import SentryTypes from '../../../../proptypes';
+import Panel from '../../components/panel';
+import PanelAlert from '../../components/panelAlert';
+import PanelBody from '../../components/panelBody';
+import PanelHeader from '../../components/panelHeader';
 import ProviderItem from './providerItem';
+import SentryTypes from '../../../../proptypes';
+import SettingsPageHeader from '../../components/settingsPageHeader';
+import getCookie from '../../../../utils/getCookie';
 
 class OrganizationAuthList extends React.Component {
   static contextTypes = {
@@ -12,24 +20,21 @@ class OrganizationAuthList extends React.Component {
   };
 
   static propTypes = {
-    onConfigure: PropTypes.func,
     providerList: PropTypes.arrayOf(PropTypes.arrayOf(PropTypes.string)),
   };
 
   render() {
-    let {providerList, onConfigure} = this.props;
+    let {organization} = this.context;
+    let {providerList} = this.props;
     let hasProviderList = providerList && !!providerList.length;
 
     return (
       <div className="sso">
-        <h2>{t('Authentication')}</h2>
-
-        <div className="box">
-          <div className="box-header">
-            <h3>{t('Choose a provider')}</h3>
-          </div>
-          <div className="box-content with-padding">
-            <p>
+        <SettingsPageHeader title="Authentication" />
+        <Panel>
+          <PanelHeader>{t('Choose a provider')}</PanelHeader>
+          <PanelBody>
+            <PanelAlert m={0} mb={0} type="info">
               {tct(
                 `Get started with Single Sign-on for your organization by selecting a
               provider. For more information on SSO please see our [link:documentation]`,
@@ -37,28 +42,36 @@ class OrganizationAuthList extends React.Component {
                   link: <ExternalLink href="https://docs.sentry.io/learn/sso/" />,
                 }
               )}.
-            </p>
+            </PanelAlert>
 
-            {hasProviderList && (
-              <ul className="simple-list list-unstyled">
-                {providerList.map(([providerKey, providerName]) => (
+            <form
+              action={`/organizations/${organization.slug}/auth/configure/`}
+              method="POST"
+            >
+              <input
+                type="hidden"
+                name="csrfmiddlewaretoken"
+                value={getCookie(CSRF_COOKIE_NAME)}
+              />
+              <input type="hidden" name="init" value="1" />
+
+              {hasProviderList &&
+                providerList.map(([providerKey, providerName]) => (
                   <ProviderItem
                     key={providerKey}
                     providerKey={providerKey}
                     providerName={providerName}
-                    onConfigure={onConfigure}
                   />
                 ))}
-              </ul>
-            )}
+            </form>
 
             {!hasProviderList && (
-              <p style={{padding: 50, textAlign: 'center'}}>
+              <EmptyMessage style={{padding: 50, textAlign: 'center'}}>
                 {t('No authentication providers are available.')}
-              </p>
+              </EmptyMessage>
             )}
-          </div>
-        </div>
+          </PanelBody>
+        </Panel>
       </div>
     );
   }
