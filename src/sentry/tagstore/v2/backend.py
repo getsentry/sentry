@@ -151,7 +151,7 @@ class V2TagStorage(TagStorage):
     def get_or_create_tag_key(self, project_id, environment_id, key, **kwargs):
         assert environment_id is not None
 
-        return TagKey.objects.get_or_create(
+        return TagKey.get_or_create(
             project_id=project_id,
             environment_id=environment_id,
             key=key,
@@ -187,7 +187,7 @@ class V2TagStorage(TagStorage):
                 project_id, environment_id, key, **kwargs)
             key_id = tag_key.id
 
-        tv, created = TagValue.objects.get_or_create(
+        tv, created = TagValue.get_or_create(
             project_id=project_id,
             _key_id=key_id,
             value=value,
@@ -244,7 +244,7 @@ class V2TagStorage(TagStorage):
             project_id, environment_id, key, **other_kwargs)
 
         tag_value, _ = self.get_or_create_tag_value(
-            project_id, environment_id, key, value, **other_kwargs)
+            project_id, environment_id, key, value, key_id=tag_key.id, **other_kwargs)
 
         gtv = GroupTagValue.objects.create(
             project_id=project_id,
@@ -266,7 +266,7 @@ class V2TagStorage(TagStorage):
             project_id, environment_id, key, **kwargs)
 
         tag_value, _ = self.get_or_create_tag_value(
-            project_id, environment_id, key, value, **kwargs)
+            project_id, environment_id, key, value, key_id=tag_key.id, **kwargs)
 
         gtv, created = GroupTagValue.objects.get_or_create(
             project_id=project_id,
@@ -494,7 +494,8 @@ class V2TagStorage(TagStorage):
                                         key, value, extra=None, count=1):
         for env in [environment_id, AGGREGATE_ENVIRONMENT_ID]:
             tagkey, _ = self.get_or_create_tag_key(project_id, env, key)
-            tagvalue, _ = self.get_or_create_tag_value(project_id, env, key, value)
+            tagvalue, _ = self.get_or_create_tag_value(
+                project_id, env, key, value, key_id=tagkey.id)
 
             buffer.incr(GroupTagValue,
                         columns={
