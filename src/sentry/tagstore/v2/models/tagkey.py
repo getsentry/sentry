@@ -17,6 +17,8 @@ from sentry.api.serializers import Serializer, register
 from sentry.tagstore import TagKeyStatus
 from sentry.constants import MAX_TAG_KEY_LENGTH
 from sentry.db.models import (Model, BoundedPositiveIntegerField, BoundedBigIntegerField, sane_repr)
+from sentry.utils.cache import cache
+from sentry.utils.hashlib import md5_text
 
 
 class TagKey(Model):
@@ -53,6 +55,27 @@ class TagKey(Model):
         return {
             'key': self.key,
         }
+
+    @classmethod
+    def get_cache_key(cls, project_id, environment_id, key):
+        return 'tagkey:1:%s:%s:%s' % (project_id, environment_id, md5_text(key).hexdigest())
+
+    @classmethod
+    def get_or_create(cls, project_id, environment_id, key, **kwargs):
+        cache_key = cls.get_cache_key(project_id, environment_id, key)
+
+        rv = cache.get(cache_key)
+        created = False
+        if rv is None:
+            rv, created = cls.objects.get_or_create(
+                project_id=project_id,
+                environment_id=environment_id,
+                key=key,
+                **kwargs
+            )
+            cache.set(cache_key, rv, 3600)
+
+        return rv, created
 
 
 @register(TagKey)

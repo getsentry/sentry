@@ -18,6 +18,8 @@ from sentry.db.models import (
     Model, BoundedPositiveIntegerField, BoundedBigIntegerField, GzippedDictField,
     BaseManager, FlexibleForeignKey, sane_repr
 )
+from sentry.utils.cache import cache
+from sentry.utils.hashlib import md5_text
 
 
 class TagValue(Model):
@@ -74,6 +76,27 @@ class TagValue(Model):
         from sentry import tagstore
 
         return tagstore.get_tag_value_label(self.key, self.value)
+
+    @classmethod
+    def get_cache_key(cls, project_id, _key_id, value):
+        return 'tagvalue:1:%s:%s:%s' % (project_id, _key_id, md5_text(value).hexdigest())
+
+    @classmethod
+    def get_or_create(cls, project_id, _key_id, value, **kwargs):
+        cache_key = cls.get_cache_key(project_id, _key_id, value)
+
+        rv = cache.get(cache_key)
+        created = False
+        if rv is None:
+            rv, created = cls.objects.get_or_create(
+                project_id=project_id,
+                _key_id=_key_id,
+                value=value,
+                **kwargs
+            )
+            cache.set(cache_key, rv, 3600)
+
+        return rv, created
 
 
 @register(TagValue)
