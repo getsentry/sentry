@@ -131,15 +131,21 @@ class MailPlugin(NotificationPlugin):
             if owners != ProjectOwnership.Everyone:
                 if not owners:
                     metrics.incr(
-                        'owners.empty.match',
-                        tags={'organization': project.organization_id},
+                        'features.owners.send_to',
+                        tags={
+                            'organization': project.organization_id,
+                            'outcome': 'empty',
+                        },
                         skip_internal=True,
                     )
                     return []
 
                 metrics.incr(
-                    'owners.match',
-                    tags={'organization': project.organization_id},
+                    'features.owners.send_to',
+                    tags={
+                        'organization': project.organization_id,
+                        'outcome': 'match',
+                    },
                     skip_internal=True,
                 )
                 send_to_list = []
@@ -157,11 +163,15 @@ class MailPlugin(NotificationPlugin):
                         sentry_orgmember_set__organizationmemberteam__team__id__in=teams_to_resolve,
                     ).values_list('id', flat=True)
                 return send_to_list
-            metrics.incr(
-                'owners.everyone',
-                tags={'organization': project.organization_id},
-                skip_internal=True,
-            )
+            else:
+                metrics.incr(
+                    'features.owners.send_to',
+                    tags={
+                        'organization': project.organization_id,
+                        'outcome': 'everyone',
+                    },
+                    skip_internal=True,
+                )
 
         cache_key = '%s:send_to:%s' % (self.get_conf_key(), project.pk)
         send_to_list = cache.get(cache_key)
