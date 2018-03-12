@@ -11,15 +11,13 @@ const help = {
 The <code>base-uri</code> directive defines the URIs that a user agent
 may use as the document base URL. If this value is absent, then any URI
 is allowed. If this directive is absent, the user agent will use the
-value in the <code>base</code> element.`
+value in the <code>&lt;base&gt;</code> element.`
   ),
   'child-src': t(
     `
-The <code>child-src</code> directive defines the valid sources for web
-workers and nested browsing contexts loaded using elements such as
-<frame> and <iframe>. This directive is preferred over the
-<code>frame-src</code> directive, which is deprecated. For workers,
-non-compliant requests are treated as fatal network errors by the user agent.`
+The <code>child-src</code> directive defines the valid sources for
+web workers and nested browsing contexts loaded using elements such as
+<code>&lt;frame&gt;</code> and <code>&lt;iframe&gt;</code>.`
   ),
   'connect-src': t(
     `
@@ -93,6 +91,18 @@ requested or loaded. When either the <code>style-src</code> or the
 <code>default-src</code> directive is included, inline use of the
 <code>&lt;style&gt;</code> element and HTML style attributes are disabled
 unless you specify 'unsafe-inline'.`
+  ),
+  'frame-src': t(
+    `
+The <code>frame-src</code> directive specifies valid sources for nested
+browsing contexts loading using elements such as
+<code>&lt;frame&gt;</code> and <code>&lt;iframe&gt;</code>.`
+  ),
+  'worker-src': t(
+    `
+The <code>worker-src</code> directive specifies valid sources for
+<code>Worker<code>, <code>SharedWorker</code>, or
+<code>ServiceWorker</code> scripts.`
   ),
 };
 

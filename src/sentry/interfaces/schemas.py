@@ -417,7 +417,8 @@ CSP_SCHEMA = {
                         'script-src',
                         'style-src',
                         'upgrade-insecure-requests',
-                        # 'frame-src', # Deprecated (https://developer.mozilla.org/en-US/docs/Web/Security/CSP/CSP_policy_directives#frame-src)
+                        'frame-src',
+                        'worker-src',
                         # 'sandbox', # Unsupported
                     ],
                 },
