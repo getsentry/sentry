@@ -94,7 +94,7 @@ def resolve_actor(owner, project_id):
                 slug=owner.identifier,
             ).values_list('id', flat=True)[0]
         except IndexError:
-            return UnknownActor
+            raise UnknownActor
 
         return Actor(team_id, Team)
 
