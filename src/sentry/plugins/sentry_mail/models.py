@@ -19,10 +19,13 @@ from django.utils.encoding import force_text
 from django.utils.safestring import mark_safe
 
 from sentry import features, options
+from sentry.models import ProjectOwnership, User
+
 from sentry.digests.utilities import get_digest_metadata
 from sentry.plugins import register
 from sentry.plugins.base.structs import Notification
 from sentry.plugins.bases.notify import NotificationPlugin
+from sentry.utils import metrics
 from sentry.utils.cache import cache
 from sentry.utils.committers import get_event_file_committers
 from sentry.utils.email import MessageBuilder, group_id_to_email
@@ -112,7 +115,7 @@ class MailPlugin(NotificationPlugin):
 
         return super(MailPlugin, self).should_notify(group, event)
 
-    def get_send_to(self, project):
+    def get_send_to(self, project, event=None):
         """
         Returns a list of user IDs for the users that should receive
         notifications for the provided project.
@@ -122,6 +125,53 @@ class MailPlugin(NotificationPlugin):
         if not (project and project.teams.exists()):
             logger.debug('Tried to send notification to invalid project: %r', project)
             return []
+
+        if event:
+            owners, _ = ProjectOwnership.get_owners(project.id, event.data)
+            if owners != ProjectOwnership.Everyone:
+                if not owners:
+                    metrics.incr(
+                        'features.owners.send_to',
+                        tags={
+                            'organization': project.organization_id,
+                            'outcome': 'empty',
+                        },
+                        skip_internal=True,
+                    )
+                    return []
+
+                metrics.incr(
+                    'features.owners.send_to',
+                    tags={
+                        'organization': project.organization_id,
+                        'outcome': 'match',
+                    },
+                    skip_internal=True,
+                )
+                send_to_list = []
+                teams_to_resolve = []
+                for owner in owners:
+                    if owner.type == User:
+                        send_to_list.append(owner.id)
+                    else:
+                        teams_to_resolve.append(owner.id)
+
+                # get all users in teams
+                if teams_to_resolve:
+                    send_to_list += User.objects.filter(
+                        is_active=True,
+                        sentry_orgmember_set__organizationmemberteam__team__id__in=teams_to_resolve,
+                    ).values_list('id', flat=True)
+                return send_to_list
+            else:
+                metrics.incr(
+                    'features.owners.send_to',
+                    tags={
+                        'organization': project.organization_id,
+                        'outcome': 'everyone',
+                    },
+                    skip_internal=True,
+                )
 
         cache_key = '%s:send_to:%s' % (self.get_conf_key(), project.pk)
         send_to_list = cache.get(cache_key)
@@ -144,6 +194,7 @@ class MailPlugin(NotificationPlugin):
         from sentry.models import Commit, Release
 
         event = notification.event
+
         group = event.group
         project = group.project
         org = group.organization
@@ -215,7 +266,7 @@ class MailPlugin(NotificationPlugin):
             'X-Sentry-Reply-To': group_id_to_email(group.id),
         }
 
-        for user_id in self.get_send_to(project):
+        for user_id in self.get_send_to(project=project, event=event):
             self.add_unsubscribe_link(context, user_id, project)
             self._send_mail(
                 subject=subject,
