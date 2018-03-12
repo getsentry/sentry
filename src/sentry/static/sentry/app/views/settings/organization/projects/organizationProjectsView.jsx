@@ -62,14 +62,19 @@ class OrganizationProjectsView extends OrganizationSettingsView {
           <PanelBody css={{width: '100%'}}>
             {sortProjects(projects).map((project, i) => (
               <PanelItem p={0} key={project.id} align="center">
-                <Box w={1 / 2} p={2}>
+                <Box p={2} flex="1">
                   <ProjectListItem
                     project={project}
                     organization={this.context.organization}
                   />
                 </Box>
-                <Box w={1 / 2} p={2}>
+                <Box w={3 / 12} p={2}>
                   <ProjectStatsGraph key={project.id} project={project} />
+                </Box>
+                <Box p={2} align="right">
+                  <Button size="small" to={`/${organization.slug}/${project.slug}/`}>
+                    {t('View Issues')}
+                  </Button>
                 </Box>
               </PanelItem>
             ))}

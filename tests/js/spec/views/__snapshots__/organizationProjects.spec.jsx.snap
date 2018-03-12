@@ -1,7 +1,7 @@
 // Jest Snapshot v1, https://goo.gl/fbAQLP
 
 exports[`OrganizationProjectsView render() Should render the projects in the store 1`] = `
-.glamor-30 {
+.glamor-36 {
   width: 100%;
 }
 
@@ -32,7 +32,7 @@ exports[`OrganizationProjectsView render() Should render the projects in the sto
   flex: 1;
 }
 
-.glamor-32 {
+.glamor-38 {
   background: #fff;
   border: 1px solid;
   margin-bottom: NaNpx;
@@ -64,7 +64,7 @@ exports[`OrganizationProjectsView render() Should render the projects in the sto
   margin: 0;
 }
 
-.glamor-26 {
+.glamor-32 {
   box-sizing: border-box;
   padding: 0px;
   display: -webkit-box;
@@ -78,17 +78,19 @@ exports[`OrganizationProjectsView render() Should render the projects in the sto
   border-bottom: 1px solid;
 }
 
-.glamor-26:last-child {
+.glamor-32:last-child {
   border: 0;
 }
 
-.glamor-22 {
+.glamor-26 {
   box-sizing: border-box;
-  width: 50%;
   padding: 16px;
+  -webkit-flex: 1;
+  -ms-flex: 1;
+  flex: 1;
 }
 
-.glamor-19 {
+.glamor-23 {
   color: #645574;
 }
 
@@ -96,6 +98,17 @@ exports[`OrganizationProjectsView render() Should render the projects in the sto
   border: none;
   background-color: inherit;
   padding: 0;
+}
+
+.glamor-28 {
+  box-sizing: border-box;
+  width: 25%;
+  padding: 16px;
+}
+
+.glamor-30 {
+  box-sizing: border-box;
+  padding: 16px;
 }
 
 <OrganizationProjectsViewContainer
@@ -245,7 +258,7 @@ exports[`OrganizationProjectsView render() Should render the projects in the sto
             className="table table-no-top-border m-b-0"
           >
             <div
-              className="table table-no-top-border m-b-0 glamor-32 glamor-33"
+              className="table table-no-top-border m-b-0 glamor-38 glamor-39"
             >
               <PanelHeader>
                 <StyledPanelHeader>
@@ -275,13 +288,13 @@ exports[`OrganizationProjectsView render() Should render the projects in the sto
                 </StyledPanelHeader>
               </PanelHeader>
               <PanelBody
-                className="glamor-30"
+                className="glamor-36"
                 direction="column"
                 disablePadding={true}
                 flex={false}
               >
                 <div
-                  className="glamor-30"
+                  className="glamor-36"
                 >
                   <PanelItem
                     align="center"
@@ -294,24 +307,24 @@ exports[`OrganizationProjectsView render() Should render the projects in the sto
                     >
                       <Base
                         align="center"
-                        className="glamor-26 glamor-27"
+                        className="glamor-32 glamor-33"
                         p={0}
                       >
                         <div
-                          className="glamor-26 glamor-27"
+                          className="glamor-32 glamor-33"
                           is={null}
                         >
                           <Box
+                            flex="1"
                             p={2}
-                            w={0.5}
                           >
                             <Base
-                              className="glamor-22"
+                              className="glamor-26"
+                              flex="1"
                               p={2}
-                              w={0.5}
                             >
                               <div
-                                className="glamor-22"
+                                className="glamor-26"
                                 is={null}
                               >
                                 <ProjectItem
@@ -396,21 +409,21 @@ exports[`OrganizationProjectsView render() Should render the projects in the sto
                                       </InlineButton>
                                     </Tooltip>
                                     <Link
-                                      className="glamor-19"
+                                      className="glamor-23"
                                       to="/settings/organization/org-slug/project/project-slug/"
                                     >
                                       <Link
-                                        className="glamor-19"
+                                        className="glamor-23"
                                         onlyActiveOnIndex={false}
                                         style={Object {}}
                                         to="/settings/organization/org-slug/project/project-slug/"
                                       >
                                         <a
-                                          className="glamor-19"
+                                          className="glamor-23"
                                           onClick={[Function]}
                                           style={Object {}}
                                         >
-                                          <ProjectLabel
+                                          <StyledProjectLabel
                                             organization={
                                               Object {
                                                 "access": Array [
@@ -468,16 +481,132 @@ exports[`OrganizationProjectsView render() Should render the projects in the sto
                                               }
                                             }
                                           >
-                                            <span
-                                              className="project-label"
+                                            <ProjectLabel
+                                              className="glamor-19 glamor-20"
+                                              organization={
+                                                Object {
+                                                  "access": Array [
+                                                    "org:read",
+                                                    "org:write",
+                                                    "org:admin",
+                                                    "project:read",
+                                                    "project:write",
+                                                    "project:admin",
+                                                    "team:read",
+                                                    "team:write",
+                                                    "team:admin",
+                                                  ],
+                                                  "features": Array [],
+                                                  "id": "3",
+                                                  "name": "Organization Name",
+                                                  "onboardingTasks": Array [],
+                                                  "projects": Array [],
+                                                  "slug": "org-slug",
+                                                  "status": Object {
+                                                    "id": "active",
+                                                    "name": "active",
+                                                  },
+                                                  "teams": Array [],
+                                                }
+                                              }
+                                              project={
+                                                Object {
+                                                  "allowedDomains": Array [
+                                                    "example.com",
+                                                    "https://example.com",
+                                                  ],
+                                                  "dataScrubber": false,
+                                                  "dataScrubberDefaults": false,
+                                                  "digestsMaxDelay": 60,
+                                                  "digestsMinDelay": 5,
+                                                  "id": "2",
+                                                  "name": "Project Name",
+                                                  "resolveAge": 48,
+                                                  "safeFields": Array [
+                                                    "business-email",
+                                                    "company",
+                                                  ],
+                                                  "scrapeJavaScript": true,
+                                                  "scrubIPAddresses": false,
+                                                  "securityToken": "security-token",
+                                                  "securityTokenHeader": "x-security-header",
+                                                  "sensitiveFields": Array [
+                                                    "creditcard",
+                                                    "ssn",
+                                                  ],
+                                                  "slug": "project-slug",
+                                                  "subjectTemplate": "[$project] \${tag:level}: $title",
+                                                  "verifySSL": true,
+                                                }
+                                              }
                                             >
                                               <span
-                                                className="project-name"
+                                                className="glamor-19 glamor-20"
+                                                organization={
+                                                  Object {
+                                                    "access": Array [
+                                                      "org:read",
+                                                      "org:write",
+                                                      "org:admin",
+                                                      "project:read",
+                                                      "project:write",
+                                                      "project:admin",
+                                                      "team:read",
+                                                      "team:write",
+                                                      "team:admin",
+                                                    ],
+                                                    "features": Array [],
+                                                    "id": "3",
+                                                    "name": "Organization Name",
+                                                    "onboardingTasks": Array [],
+                                                    "projects": Array [],
+                                                    "slug": "org-slug",
+                                                    "status": Object {
+                                                      "id": "active",
+                                                      "name": "active",
+                                                    },
+                                                    "teams": Array [],
+                                                  }
+                                                }
+                                                project={
+                                                  Object {
+                                                    "allowedDomains": Array [
+                                                      "example.com",
+                                                      "https://example.com",
+                                                    ],
+                                                    "dataScrubber": false,
+                                                    "dataScrubberDefaults": false,
+                                                    "digestsMaxDelay": 60,
+                                                    "digestsMinDelay": 5,
+                                                    "id": "2",
+                                                    "name": "Project Name",
+                                                    "resolveAge": 48,
+                                                    "safeFields": Array [
+                                                      "business-email",
+                                                      "company",
+                                                    ],
+                                                    "scrapeJavaScript": true,
+                                                    "scrubIPAddresses": false,
+                                                    "securityToken": "security-token",
+                                                    "securityTokenHeader": "x-security-header",
+                                                    "sensitiveFields": Array [
+                                                      "creditcard",
+                                                      "ssn",
+                                                    ],
+                                                    "slug": "project-slug",
+                                                    "subjectTemplate": "[$project] \${tag:level}: $title",
+                                                    "verifySSL": true,
+                                                  }
+                                                }
                                               >
-                                                Project Name
+                                                <span
+                                                  className="project-name"
+                                                >
+                                                  Project Name
+                                                </span>
                                               </span>
-                                            </span>
-                                          </ProjectLabel>
+                                            </ProjectLabel>
+                                          </StyledProjectLabel>
                                         </a>
                                       </Link>
                                     </Link>
@@ -488,15 +617,15 @@ exports[`OrganizationProjectsView render() Should render the projects in the sto
                           </Box>
                           <Box
                             p={2}
-                            w={0.5}
+                            w={0.25}
                           >
                             <Base
-                              className="glamor-22"
+                              className="glamor-28"
                               p={2}
-                              w={0.5}
+                              w={0.25}
                             >
                               <div
-                                className="glamor-22"
+                                className="glamor-28"
                                 is={null}
                               >
                                 <ProjectListItem
@@ -534,6 +663,59 @@ exports[`OrganizationProjectsView render() Should render the projects in the sto
                                 >
                                   <div />
                                 </ProjectListItem>
+                              </div>
+                            </Base>
+                          </Box>
+                          <Box
+                            align="right"
+                            p={2}
+                          >
+                            <Base
+                              align="right"
+                              className="glamor-30"
+                              p={2}
+                            >
+                              <div
+                                className="glamor-30"
+                                is={null}
+                              >
+                                <Button
+                                  disabled={false}
+                                  size="small"
+                                  to="/org-slug/project-slug/"
+                                >
+                                  <Link
+                                    className="button button-default button-sm"
+                                    disabled={false}
+                                    onClick={[Function]}
+                                    onlyActiveOnIndex={false}
+                                    role="button"
+                                    style={Object {}}
+                                    to="/org-slug/project-slug/"
+                                  >
+                                    <a
+                                      className="button button-default button-sm"
+                                      disabled={false}
+                                      onClick={[Function]}
+                                      role="button"
+                                      style={Object {}}
+                                    >
+                                      <FlowLayout
+                                        truncate={false}
+                                      >
+                                        <div
+                                          className="flow-layout"
+                                        >
+                                          <span
+                                            className="button-label"
+                                          >
+                                            View Issues
+                                          </span>
+                                        </div>
+                                      </FlowLayout>
+                                    </a>
+                                  </Link>
+                                </Button>
                               </div>
                             </Base>
                           </Box>
