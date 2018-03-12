@@ -1,10 +1,8 @@
 from __future__ import absolute_import, print_function
 
-from django.contrib import messages
 from django.core.urlresolvers import reverse
-from django.http import HttpResponseRedirect, Http404
+from django.http import Http404
 from django.views.decorators.cache import never_cache
-from django.utils.translation import ugettext_lazy as _
 
 from sentry import http
 from sentry.models import Integration, Identity, IdentityProvider, IdentityStatus, Organization
@@ -14,8 +12,6 @@ from sentry.web.frontend.base import BaseView
 from sentry.web.helpers import render_to_response
 
 from .utils import logger
-
-SLACK_IDENTITY_LINKED = _("Your Slack identity has been associated with your Sentry account")
 
 
 def build_linking_url(integration, organization, slack_id, notify_channel_id):
@@ -92,6 +88,7 @@ class SlackLinkIdentitiyView(BaseView):
                 'error': resp.get('error'),
             })
 
-        messages.add_message(self.request, messages.SUCCESS, SLACK_IDENTITY_LINKED)
-
-        return HttpResponseRedirect('/')
+        return render_to_response('sentry/slack-linked.html', request=request, context={
+            'channel_id': params['notify_channel_id'],
+            'team_id': integration.external_id,
+        })
