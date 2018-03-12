@@ -38,7 +38,8 @@ GUIDES = {
                 'title': _('Resolution'),
                 'message': _(
                     'Resolving an issue removes it from the default dashboard view of unresolved '
-                    'issues. You can ask Sentry to alert you when a resolved issue re-occurs.'),
+                    'issues. You can ask Sentry to <a href="/settings/account/notifications/"> '
+                    'alert you</a> when a resolved issue re-occurs.'),
                 'target': 'resolve',
             },
             {
