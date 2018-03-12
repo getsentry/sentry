@@ -19,9 +19,10 @@ from sentry.api.serializers import (
 from sentry.digests.notifications import build_digest, event_to_record
 from sentry.interfaces.stacktrace import Stacktrace
 from sentry.models import (
-    Activity, Event, Group, GroupSubscription, OrganizationMember, OrganizationMemberTeam, Rule,
-    UserOption, UserReport
+    Activity, Event, Group, GroupSubscription, OrganizationMember, OrganizationMemberTeam,
+    ProjectOwnership, Rule, UserOption, UserReport
 )
+from sentry.ownership.grammar import Owner, Matcher, dump_schema
 from sentry.plugins import Notification
 from sentry.plugins.sentry_mail.activity.base import ActivityEmail
 from sentry.plugins.sentry_mail.models import MailPlugin
@@ -480,3 +481,157 @@ class ActivityEmailTestCase(TestCase):
             get_value.side_effect = lambda project, key, default=None: \
                 "[Example prefix] " if key == "mail:subject_prefix" else default
             assert email.get_subject_with_prefix().startswith('[Example prefix] ')
+
+
+class MailPluginOwnersTest(TestCase):
+    @fixture
+    def plugin(self):
+        return MailPlugin()
+
+    def setUp(self):
+        from sentry.ownership.grammar import Rule
+        self.user = self.create_user(email='foo@example.com', is_active=True)
+        self.user2 = self.create_user(email='baz@example.com', is_active=True)
+
+        self.organization = self.create_organization(owner=self.user)
+        self.team = self.create_team(organization=self.organization)
+
+        self.project = self.create_project(name='Test', teams=[self.team])
+        OrganizationMemberTeam.objects.create(
+            organizationmember=OrganizationMember.objects.get(
+                user=self.user,
+                organization=self.organization,
+            ),
+            team=self.team,
+        )
+        self.create_member(user=self.user2, organization=self.organization, teams=[self.team])
+        self.group = self.create_group(
+            first_seen=timezone.now(),
+            last_seen=timezone.now(),
+            project=self.project,
+            message='hello  world',
+            logger='root',
+        )
+        ProjectOwnership.objects.create(
+            project_id=self.project.id,
+            schema=dump_schema([
+                Rule(Matcher('path', '*.py'), [
+                    Owner('team', self.team.slug),
+                ]),
+                Rule(Matcher('path', '*.jx'), [
+                    Owner('user', self.user2.email),
+                ]),
+                Rule(Matcher('path', '*.cbl'), [
+                    Owner('user', self.user.email),
+                    Owner('user', self.user2.email),
+                ])
+            ]),
+            fallthrough=True,
+        )
+
+    def make_event_data(self, filename, url='http://example.com'):
+        data = {
+            'tags': [('level', 'error')],
+            'sentry.interfaces.Stacktrace': {
+                'frames': [
+                    {
+                        'lineno': 1,
+                        'filename': filename,
+                    },
+                ],
+            },
+            'sentry.interfaces.Http': {
+                'url': url
+            },
+        }
+        return data
+
+    def assert_notify(self, event, emails_sent_to):
+        mail.outbox = []
+        with self.options({'system.url-prefix': 'http://example.com'}), self.tasks():
+            self.plugin.notify(Notification(event=event))
+        assert len(mail.outbox) == len(emails_sent_to)
+        assert sorted(email.to[0] for email in mail.outbox) == sorted(emails_sent_to)
+
+    def test_get_send_to_with_team_owners(self):
+        event = Event(
+            group=self.group,
+            message=self.group.message,
+            project=self.project,
+            datetime=self.group.last_seen,
+            data=self.make_event_data('foo.py')
+        )
+        assert (sorted(set([self.user.pk, self.user2.pk])) == sorted(
+            self.plugin.get_send_to(self.project, event.data)))
+
+    def test_get_send_to_with_user_owners(self):
+        event = Event(
+            group=self.group,
+            message=self.group.message,
+            project=self.project,
+            datetime=self.group.last_seen,
+            data=self.make_event_data('foo.cbl')
+        )
+        assert (sorted(set([self.user.pk, self.user2.pk])) == sorted(
+            self.plugin.get_send_to(self.project, event.data)))
+
+    def test_get_send_to_with_user_owner(self):
+        event = Event(
+            group=self.group,
+            message=self.group.message,
+            project=self.project,
+            datetime=self.group.last_seen,
+            data=self.make_event_data('foo.jx')
+        )
+        assert (sorted(set([self.user2.pk])) == sorted(
+            self.plugin.get_send_to(self.project, event.data)))
+
+    def test_get_send_to_with_fallthrough(self):
+        event = Event(
+            group=self.group,
+            message=self.group.message,
+            project=self.project,
+            datetime=self.group.last_seen,
+            data=self.make_event_data('foo.jx')
+        )
+        assert (sorted(set([self.user2.pk])) == sorted(
+            self.plugin.get_send_to(self.project, event.data)))
+
+    def test_get_send_to_without_fallthrough(self):
+        ProjectOwnership.objects.get(project_id=self.project.id).update(fallthrough=False)
+        event = Event(
+            group=self.group,
+            message=self.group.message,
+            project=self.project,
+            datetime=self.group.last_seen,
+            data=self.make_event_data('foo.cpp')
+        )
+        assert [] == sorted(self.plugin.get_send_to(self.project, event.data))
+
+    def test_notify_users_with_owners(self):
+        event_all_users = Event(
+            group=self.group,
+            message=self.group.message,
+            project=self.project,
+            datetime=self.group.last_seen,
+            data=self.make_event_data('foo.cbl'),
+        )
+        self.assert_notify(event_all_users, [self.user.email, self.user2.email])
+
+        event_team = Event(
+            group=self.group,
+            message=self.group.message,
+            project=self.project,
+            datetime=self.group.last_seen,
+            data=self.make_event_data('foo.py'),
+        )
+        self.assert_notify(event_team, [self.user.email, self.user2.email])
+
+        event_single_user = Event(
+            group=self.group,
+            message=self.group.message,
+            project=self.project,
+            datetime=self.group.last_seen,
+            data=self.make_event_data('foo.jx'),
+        )
+        self.assert_notify(event_single_user, [self.user2.email])
