@@ -18,6 +18,7 @@ exports[`TeamMembers render() renders 1`] = `
         }
       >
         <DropdownAutoComplete
+<<<<<<< HEAD
           alignMenu="right"
           items={
             Array [
@@ -43,6 +44,34 @@ exports[`TeamMembers render() renders 1`] = `
           isOpen={false}
           items={Array []}
 >>>>>>> user badges for durpdown
+=======
+          alignMenu="right"
+          isOpen={false}
+          items={
+            Array [
+              Object {
+                "group": Object {
+                  "label": <StyledMembersLabel>
+                    Members
+                     
+                    <Link
+                      style={
+                        Object {
+                          "float": "right",
+                        }
+                      }
+                      to="/settings/organization/org-slug/members/new/"
+                    >
+                      + Add Member
+                    </Link>
+                  </StyledMembersLabel>,
+                  "value": "members-label",
+                },
+                "items": Array [],
+              },
+            ]
+          }
+>>>>>>> add members button inside label as per designs
           onSelect={[Function]}
         />
       </div>

@@ -200,7 +200,11 @@ const TeamMembers = createReactClass({
     };
 
     return (
-      <DropdownAutoComplete items={[{items, group}]} onSelect={this.addTeamMember}>
+      <DropdownAutoComplete
+        items={[{items, group}]}
+        onSelect={this.addTeamMember}
+        alignMenu="right"
+      >
         {({isOpen, selectedItem}) => (
           <DropdownButton isOpen={isOpen} size="xsmall">
             {t('Add Member')}
@@ -286,6 +290,11 @@ const StyledMembersLabel = styled('div')`
 const StyledCreateMemberLink = styled(Link)`
   float: right;
   text-transform: none;
+`;
+
+const StyledMembersLabel = styled('div')`
+  font-size: 0.875em;
+  padding: 0.25em 0;
 `;
 
 export default TeamMembers;
