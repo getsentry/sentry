@@ -9,6 +9,7 @@ import {addErrorMessage, addSuccessMessage} from '../../../actionCreators/indica
 import Button from '../../../components/buttons/button';
 import DropdownAutoComplete from '../../../components/dropdownAutoComplete';
 import DropdownButton from '../../../components/dropdownButton';
+import EmptyMessage from '../components/emptyMessage';
 import ProjectsStore from '../../../stores/projectsStore';
 import TeamStore from '../../../stores/teamStore';
 import TeamActions from '../../../actions/teamActions';
@@ -102,23 +103,27 @@ const TeamProjects = createReactClass({
   },
 
   projectPanelcontents(projects, direction) {
-    return sortProjects(projects).map((project, i) => (
-      <PanelItem p={0} key={project.id} align="center">
-        <Box p={2} flex="1">
-          <ProjectListItem project={project} organization={this.context.organization} />
-        </Box>
-        <Box p={2}>
-          <Button
-            size="small"
-            onClick={() => {
-              this.handleLinkProject(project, direction);
-            }}
-          >
-            {direction}
-          </Button>
-        </Box>
-      </PanelItem>
-    ));
+    return projects.length ? (
+      sortProjects(projects).map((project, i) => (
+        <PanelItem p={0} key={project.id} align="center">
+          <Box p={2} flex="1">
+            <ProjectListItem project={project} organization={this.context.organization} />
+          </Box>
+          <Box p={2}>
+            <Button
+              size="small"
+              onClick={() => {
+                this.handleLinkProject(project, direction);
+              }}
+            >
+              {direction}
+            </Button>
+          </Box>
+        </PanelItem>
+      ))
+    ) : (
+      <EmptyMessage>{t("This team doesn't have access to any projects.")}</EmptyMessage>
+    );
   },
 
   render() {
