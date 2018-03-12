@@ -4,6 +4,7 @@ import classNames from 'classnames';
 
 import {t} from '../../locale';
 import InlineSvg from '../../components/inlineSvg';
+import Button from '../../components/buttons/button';
 
 class DetailedError extends React.Component {
   static propTypes = {
@@ -66,13 +67,13 @@ class DetailedError extends React.Component {
                 <div className="detailed-error-support-links">
                   {window.Raven &&
                     window.Raven.lastEventId() && (
-                      <a onClick={this.openFeedback} href="">
-                        Fill out a report
-                      </a>
+                      <Button priority="link" onClick={this.openFeedback}>
+                        {t('Fill out a report')}
+                      </Button>
                     )}
-                  <a href="https://status.sentry.io/">Service status</a>
+                  <a href="https://status.sentry.io/">{t('Service status')}</a>
 
-                  <a href="https://sentry.io/support/">Contact support</a>
+                  <a href="https://sentry.io/support/">{t('Contact support')}</a>
                 </div>
               )}
             </div>
