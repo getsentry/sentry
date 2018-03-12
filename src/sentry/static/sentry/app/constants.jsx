@@ -31,3 +31,5 @@ export const DEFAULT_API_SCOPES = [
 ];
 
 export const DEFAULT_TOAST_DURATION = 6000;
+
+export const CSRF_COOKIE_NAME = window.csrfCookieName || 'sc';
