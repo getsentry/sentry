@@ -1,17 +1,17 @@
 // Jest Snapshot v1, https://goo.gl/fbAQLP
 
 exports[`OrganizationProjectsView render() Should render the projects in the store 1`] = `
-.glamor-36 {
+.glamor-51 {
   width: 100%;
 }
 
-.glamor-4 {
+.glamor-17 {
   font-size: 14px;
   box-shadow: inset 0 -1px 0;
   margin: -20px 0 30px;
 }
 
-.glamor-2 {
+.glamor-13 {
   box-sizing: border-box;
   display: -webkit-box;
   display: -webkit-flex;
@@ -32,14 +32,29 @@ exports[`OrganizationProjectsView render() Should render the projects in the sto
   flex: 1;
 }
 
-.glamor-38 {
+.glamor-9 {
+  box-sizing: border-box;
+  margin-right: 6px;
+  margin-left: -2px;
+}
+
+.glamor-5 {
+  display: block;
+}
+
+.glamor-3 {
+  vertical-align: middle;
+  display: block;
+}
+
+.glamor-53 {
   background: #fff;
   border: 1px solid;
   margin-bottom: NaNpx;
   position: relative;
 }
 
-.glamor-13 {
+.glamor-26 {
   border-bottom: 1px solid;
   border-radius: 0 0;
   text-transform: uppercase;
@@ -48,13 +63,13 @@ exports[`OrganizationProjectsView render() Should render the projects in the sto
   padding: 15px 20px;
 }
 
-.glamor-9 {
+.glamor-22 {
   font-size: inherit;
   text-transform: inherit;
   margin: 0;
 }
 
-.glamor-7 {
+.glamor-20 {
   font-size: 12px;
   font-weight: 600;
   text-transform: uppercase;
@@ -64,7 +79,7 @@ exports[`OrganizationProjectsView render() Should render the projects in the sto
   margin: 0;
 }
 
-.glamor-32 {
+.glamor-47 {
   box-sizing: border-box;
   padding: 0px;
   display: -webkit-box;
@@ -78,11 +93,11 @@ exports[`OrganizationProjectsView render() Should render the projects in the sto
   border-bottom: 1px solid;
 }
 
-.glamor-32:last-child {
+.glamor-47:last-child {
   border: 0;
 }
 
-.glamor-26 {
+.glamor-39 {
   box-sizing: border-box;
   padding: 16px;
   -webkit-flex: 1;
@@ -90,23 +105,23 @@ exports[`OrganizationProjectsView render() Should render the projects in the sto
   flex: 1;
 }
 
-.glamor-23 {
+.glamor-36 {
   color: #645574;
 }
 
-.glamor-17 {
+.glamor-30 {
   border: none;
   background-color: inherit;
   padding: 0;
 }
 
-.glamor-28 {
+.glamor-41 {
   box-sizing: border-box;
   width: 25%;
   padding: 16px;
 }
 
-.glamor-30 {
+.glamor-45 {
   box-sizing: border-box;
   padding: 16px;
 }
@@ -168,15 +183,12 @@ exports[`OrganizationProjectsView render() Should render the projects in the sto
             action={
               <Button
                 disabled={false}
+                icon="icon-circle-add"
                 priority="primary"
                 size="small"
                 title={undefined}
                 to="/organizations/org-slug/projects/new/"
               >
-                <span
-                  className="icon-plus"
-                />
-                 
                 Create Project
               </Button>
             }
@@ -184,17 +196,17 @@ exports[`OrganizationProjectsView render() Should render the projects in the sto
           >
             <Wrapper>
               <div
-                className="glamor-4 glamor-5"
+                className="glamor-17 glamor-18"
               >
                 <Flex
                   align="center"
                 >
                   <Base
                     align="center"
-                    className="glamor-2"
+                    className="glamor-13"
                   >
                     <div
-                      className="glamor-2"
+                      className="glamor-13"
                       is={null}
                     >
                       <Title>
@@ -207,6 +219,7 @@ exports[`OrganizationProjectsView render() Should render the projects in the sto
                       <div>
                         <Button
                           disabled={false}
+                          icon="icon-circle-add"
                           priority="primary"
                           size="small"
                           to="/organizations/org-slug/projects/new/"
@@ -227,23 +240,68 @@ exports[`OrganizationProjectsView render() Should render the projects in the sto
                               role="button"
                               style={Object {}}
                             >
-                              <FlowLayout
-                                truncate={false}
+                              <Flex
+                                align="center"
+                                className="button-label"
                               >
-                                <div
-                                  className="flow-layout"
+                                <Base
+                                  align="center"
+                                  className="button-label glamor-13"
                                 >
-                                  <span
-                                    className="button-label"
+                                  <div
+                                    className="button-label glamor-13"
+                                    is={null}
                                   >
-                                    <span
-                                      className="icon-plus"
-                                    />
-                                     
+                                    <Icon
+                                      size="small"
+                                    >
+                                      <Base
+                                        className="glamor-9 glamor-10"
+                                        size="small"
+                                      >
+                                        <div
+                                          className="glamor-9 glamor-10"
+                                          is={null}
+                                          size="small"
+                                        >
+                                          <StyledInlineSvg
+                                            size="12px"
+                                            src="icon-circle-add"
+                                          >
+                                            <InlineSvg
+                                              className="glamor-5 glamor-2"
+                                              size="12px"
+                                              src="icon-circle-add"
+                                            >
+                                              <StyledSvg
+                                                className="glamor-5 glamor-2"
+                                                height="12px"
+                                                style={Object {}}
+                                                viewBox={Object {}}
+                                                width="12px"
+                                              >
+                                                <svg
+                                                  className="glamor-2 glamor-3 glamor-4"
+                                                  height="12px"
+                                                  style={Object {}}
+                                                  viewBox={Object {}}
+                                                  width="12px"
+                                                >
+                                                  <use
+                                                    href="#test"
+                                                    xlinkHref="#test"
+                                                  />
+                                                </svg>
+                                              </StyledSvg>
+                                            </InlineSvg>
+                                          </StyledInlineSvg>
+                                        </div>
+                                      </Base>
+                                    </Icon>
                                     Create Project
-                                  </span>
-                                </div>
-                              </FlowLayout>
+                                  </div>
+                                </Base>
+                              </Flex>
                             </a>
                           </Link>
                         </Button>
@@ -258,25 +316,25 @@ exports[`OrganizationProjectsView render() Should render the projects in the sto
             className="table table-no-top-border m-b-0"
           >
             <div
-              className="table table-no-top-border m-b-0 glamor-38 glamor-39"
+              className="table table-no-top-border m-b-0 glamor-53 glamor-54"
             >
               <PanelHeader>
                 <StyledPanelHeader>
                   <Component
-                    className="glamor-13 glamor-14"
+                    className="glamor-26 glamor-27"
                   >
                     <div
-                      className="glamor-13 glamor-14"
+                      className="glamor-26 glamor-27"
                     >
                       <StyledPanelHeading>
                         <Component
-                          className="glamor-9 glamor-6"
+                          className="glamor-22 glamor-19"
                         >
                           <PanelHeading
-                            className="glamor-9 glamor-6"
+                            className="glamor-22 glamor-19"
                           >
                             <div
-                              className="glamor-6 glamor-7 glamor-8"
+                              className="glamor-19 glamor-20 glamor-21"
                             >
                               Projects
                             </div>
@@ -288,13 +346,13 @@ exports[`OrganizationProjectsView render() Should render the projects in the sto
                 </StyledPanelHeader>
               </PanelHeader>
               <PanelBody
-                className="glamor-36"
+                className="glamor-51"
                 direction="column"
                 disablePadding={true}
                 flex={false}
               >
                 <div
-                  className="glamor-36"
+                  className="glamor-51"
                 >
                   <PanelItem
                     align="center"
@@ -307,11 +365,11 @@ exports[`OrganizationProjectsView render() Should render the projects in the sto
                     >
                       <Base
                         align="center"
-                        className="glamor-32 glamor-33"
+                        className="glamor-47 glamor-48"
                         p={0}
                       >
                         <div
-                          className="glamor-32 glamor-33"
+                          className="glamor-47 glamor-48"
                           is={null}
                         >
                           <Box
@@ -319,12 +377,12 @@ exports[`OrganizationProjectsView render() Should render the projects in the sto
                             p={2}
                           >
                             <Base
-                              className="glamor-26"
+                              className="glamor-39"
                               flex="1"
                               p={2}
                             >
                               <div
-                                className="glamor-26"
+                                className="glamor-39"
                                 is={null}
                               >
                                 <ProjectItem
@@ -398,7 +456,7 @@ exports[`OrganizationProjectsView render() Should render the projects in the sto
                                         title="Add to bookmarks"
                                       >
                                         <button
-                                          className="tip glamor-17 glamor-18"
+                                          className="tip glamor-30 glamor-31"
                                           onClick={[Function]}
                                           title="Add to bookmarks"
                                         >
@@ -409,17 +467,17 @@ exports[`OrganizationProjectsView render() Should render the projects in the sto
                                       </InlineButton>
                                     </Tooltip>
                                     <Link
-                                      className="glamor-23"
+                                      className="glamor-36"
                                       to="/settings/organization/org-slug/project/project-slug/"
                                     >
                                       <Link
-                                        className="glamor-23"
+                                        className="glamor-36"
                                         onlyActiveOnIndex={false}
                                         style={Object {}}
                                         to="/settings/organization/org-slug/project/project-slug/"
                                       >
                                         <a
-                                          className="glamor-23"
+                                          className="glamor-36"
                                           onClick={[Function]}
                                           style={Object {}}
                                         >
@@ -482,7 +540,7 @@ exports[`OrganizationProjectsView render() Should render the projects in the sto
                                             }
                                           >
                                             <ProjectLabel
-                                              className="glamor-19 glamor-20"
+                                              className="glamor-32 glamor-33"
                                               organization={
                                                 Object {
                                                   "access": Array [
@@ -541,7 +599,7 @@ exports[`OrganizationProjectsView render() Should render the projects in the sto
                                               }
                                             >
                                               <span
-                                                className="glamor-19 glamor-20"
+                                                className="glamor-32 glamor-33"
                                                 organization={
                                                   Object {
                                                     "access": Array [
@@ -620,12 +678,12 @@ exports[`OrganizationProjectsView render() Should render the projects in the sto
                             w={0.25}
                           >
                             <Base
-                              className="glamor-28"
+                              className="glamor-41"
                               p={2}
                               w={0.25}
                             >
                               <div
-                                className="glamor-28"
+                                className="glamor-41"
                                 is={null}
                               >
                                 <ProjectListItem
@@ -672,11 +730,11 @@ exports[`OrganizationProjectsView render() Should render the projects in the sto
                           >
                             <Base
                               align="right"
-                              className="glamor-30"
+                              className="glamor-45"
                               p={2}
                             >
                               <div
-                                className="glamor-30"
+                                className="glamor-45"
                                 is={null}
                               >
                                 <Button
@@ -700,19 +758,22 @@ exports[`OrganizationProjectsView render() Should render the projects in the sto
                                       role="button"
                                       style={Object {}}
                                     >
-                                      <FlowLayout
-                                        truncate={false}
+                                      <Flex
+                                        align="center"
+                                        className="button-label"
                                       >
-                                        <div
-                                          className="flow-layout"
+                                        <Base
+                                          align="center"
+                                          className="button-label glamor-13"
                                         >
-                                          <span
-                                            className="button-label"
+                                          <div
+                                            className="button-label glamor-13"
+                                            is={null}
                                           >
                                             View Issues
-                                          </span>
-                                        </div>
-                                      </FlowLayout>
+                                          </div>
+                                        </Base>
+                                      </Flex>
                                     </a>
                                   </Link>
                                 </Button>
