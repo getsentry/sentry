@@ -3,6 +3,12 @@ import PropTypes from 'prop-types';
 import React from 'react';
 import createReactClass from 'create-react-class';
 
+import {
+  addErrorMessage,
+  addLoadingMessage,
+  addSuccessMessage,
+  removeIndicator,
+} from '../../../actionCreators/indicator';
 import {t} from '../../../locale';
 import ApiMixin from '../../../mixins/apiMixin';
 import AsyncView from '../../asyncView';
@@ -11,7 +17,6 @@ import Confirm from '../../../components/confirm';
 import DropdownAutoComplete from '../../../components/dropdownAutoComplete';
 import DropdownButton from '../../../components/dropdownButton';
 import EmptyMessage from '../components/emptyMessage';
-import IndicatorStore from '../../../stores/indicatorStore';
 import Link from '../../../components/link';
 import Panel from '../components/panel';
 import PanelBody from '../components/panelBody';
@@ -43,20 +48,22 @@ const TeamRow = createReactClass({
   handleRemove() {
     if (this.state.loading) return;
 
-    let loadingIndicator = IndicatorStore.add(t('Saving changes..'));
+    let loadingIndicator = addLoadingMessage(t('Saving changes...'));
     let {orgId, projectId, team} = this.props;
     this.api.request(`/projects/${orgId}/${projectId}/teams/${team.slug}/`, {
       method: 'DELETE',
       success: (d, _, jqXHR) => {
         this.props.onRemove();
-        IndicatorStore.remove(loadingIndicator);
+        addSuccessMessage(t(`#${team.slug} has been removed from project`));
+        removeIndicator(loadingIndicator);
       },
       error: () => {
         this.setState({
           error: true,
           loading: false,
         });
-        IndicatorStore.remove(loadingIndicator);
+        removeIndicator(loadingIndicator);
+        addErrorMessage(t(`Unable to remove #${team.slug} from project`));
       },
     });
   },
@@ -135,20 +142,22 @@ class ProjectTeams extends AsyncView {
 
     let team = this.state.allTeams.find(tm => tm.id === selection.value);
 
-    let loadingIndicator = IndicatorStore.add(t('Saving changes..'));
+    let loadingIndicator = addLoadingMessage(t('Saving changes...'));
     let {orgId, projectId} = this.props.params;
     this.api.request(`/projects/${orgId}/${projectId}/teams/${team.slug}/`, {
       method: 'POST',
       success: (d, _, jqXHR) => {
         this.handleAddedTeam(team);
-        IndicatorStore.remove(loadingIndicator);
+        addSuccessMessage(t(`#${team.slug} has been added to project`));
+        removeIndicator(loadingIndicator);
       },
       error: () => {
         this.setState({
           error: true,
           loading: false,
         });
-        IndicatorStore.remove(loadingIndicator);
+        addErrorMessage(t(`Unable to add #${team.slug} to project`));
+        removeIndicator(loadingIndicator);
       },
     });
   };
