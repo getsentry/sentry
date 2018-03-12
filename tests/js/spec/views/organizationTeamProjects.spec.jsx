@@ -8,18 +8,21 @@ import ProjectsStore from 'app/stores/projectsStore';
 import OrganizationTeamProjects from 'app/views/settings/team/teamProjects';
 
 describe('OrganizationTeamProjects', function() {
+  let project;
+  let project2;
   let team;
   let putMock;
   let postMock;
   let deleteMock;
+
   beforeEach(function() {
-    let project = TestStubs.Project();
-    let project2 = TestStubs.Project({
+    team = TestStubs.Team({slug: 'team-slug'});
+    project = TestStubs.Project({teams: [team]});
+    project2 = TestStubs.Project({
       id: '3',
       slug: 'project-slug-2',
       name: 'Project Name 2',
     });
-    team = TestStubs.Team({projects: [project]});
 
     TeamStore.loadInitialData([team]);
     ProjectsStore.loadInitialData([project, project2]);
@@ -32,12 +35,16 @@ describe('OrganizationTeamProjects', function() {
 
     postMock = Client.addMockResponse({
       method: 'POST',
-      url: `/projects/org-slug/project-slug-2/teams/${team.slug}/`,
+      url: `/projects/org-slug/${project2.slug}/teams/${team.slug}/`,
+      body: {...project2, teams: [team]},
+      status: 201,
     });
 
     deleteMock = Client.addMockResponse({
       method: 'DELETE',
-      url: `/projects/org-slug/project-slug-2/teams/${team.slug}/`,
+      url: `/projects/org-slug/${project2.slug}/teams/${team.slug}/`,
+      body: {...project2, teams: []},
+      status: 204,
     });
   });
 

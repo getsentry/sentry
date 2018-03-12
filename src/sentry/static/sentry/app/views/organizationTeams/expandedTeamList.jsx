@@ -22,7 +22,7 @@ const ExpandedTeamList = createReactClass({
     access: PropTypes.object.isRequired,
     organization: SentryTypes.Organization.isRequired,
     teamList: PropTypes.arrayOf(SentryTypes.Team).isRequired,
-    projectStats: PropTypes.object,
+    projectList: PropTypes.arrayOf(SentryTypes.Project).isRequired,
     hasTeams: PropTypes.bool,
   },
 
@@ -64,14 +64,17 @@ const ExpandedTeamList = createReactClass({
     return `/organizations/${org.slug}`;
   },
 
-  renderProjectList(team) {
-    return (
-      <tbody>
-        {sortArray(team.projects, function(o) {
-          return o.name;
-        }).map(this.renderProject)}
-      </tbody>
+  getProjectsForTeam(team) {
+    return sortArray(
+      this.props.projectList.filter(p => !!p.teams.find(t1 => t1.slug == team.slug)),
+      function(o) {
+        return o.name;
+      }
     );
+  },
+
+  renderProjectList(team, projects) {
+    return <tbody>{projects.map(this.renderProject)}</tbody>;
   },
 
   renderNoProjects(team) {
@@ -98,6 +101,7 @@ const ExpandedTeamList = createReactClass({
   renderTeamNode(team, urlPrefix) {
     // TODO: make this cleaner
     let access = this.props.access;
+    let projects = this.getProjectsForTeam(team);
     let orgId = this.props.organization.slug;
     return (
       <div className="box" key={team.slug}>
@@ -119,8 +123,8 @@ const ExpandedTeamList = createReactClass({
         </div>
         <div className="box-content">
           <table className="table table-no-top-border m-b-0">
-            {team.projects.length
-              ? this.renderProjectList(team)
+            {projects.length
+              ? this.renderProjectList(team, projects)
               : this.renderNoProjects(team)}
           </table>
         </div>

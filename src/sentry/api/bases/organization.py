@@ -45,7 +45,10 @@ class OrganizationPermission(ScopedPermission):
             )
 
         elif request.auth:
-            return request.auth.organization_id == organization.id
+            if request.auth.organization_id == organization.id:
+                request.access = access.from_auth(request.auth)
+            else:
+                request.access = access.DEFAULT
 
         else:
             request.access = access.from_request(request, organization)
