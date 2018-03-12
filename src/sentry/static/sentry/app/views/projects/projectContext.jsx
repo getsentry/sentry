@@ -134,7 +134,7 @@ const ProjectContext = createReactClass({
 
   fetchData() {
     let {orgId, projectId, location} = this.props;
-    const query = location.query || {};
+    let query = location.query || {};
     let envName = query.environment;
     // we fetch core access/information from the global organization data
     let activeProject = this.identifyProject();
