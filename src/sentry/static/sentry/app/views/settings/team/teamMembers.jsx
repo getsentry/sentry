@@ -128,12 +128,12 @@ const TeamMembers = createReactClass({
       {
         orgId: params.orgId,
         teamId: params.teamId,
-        memberId: selection.value,
+        memberId: selection.memberId,
       },
       {
         success: () => {
           let orgMember = this.state.orgMemberList.find(member => {
-            return member.id === selection.value;
+            return member.id === selection.memberId;
           });
           this.setState({
             loading: false,
@@ -176,7 +176,8 @@ const TeamMembers = createReactClass({
       .filter(m => !existingMembers.has(m.id))
       .map(m => {
         return {
-          value: m.id,
+          value: `${m.name} ${m.email}`,
+          memberId: m.id,
           label: <StyledUserBadge user={m} orgId={params.orgId} />,
         };
       });
@@ -273,7 +274,7 @@ const StyledMemberContainer = styled('div')`
 `;
 
 const StyledUserBadge = styled(UserBadge)`
-  max-width: 250px;
+  width: 250px;
   padding: 0.25em 0;
   font-size: 0.875em;
 `;
