@@ -6,20 +6,24 @@ from django.http import HttpResponseRedirect, Http404
 from django.views.decorators.cache import never_cache
 from django.utils.translation import ugettext_lazy as _
 
+from sentry import http
 from sentry.models import Integration, Identity, IdentityProvider, IdentityStatus, Organization
 from sentry.utils.http import absolute_uri
 from sentry.utils.signing import sign, unsign
 from sentry.web.frontend.base import BaseView
 from sentry.web.helpers import render_to_response
 
+from .utils import logger
+
 SLACK_IDENTITY_LINKED = _("Your Slack identity has been associated with your Sentry account")
 
 
-def build_linking_url(integration, organization, slack_id):
+def build_linking_url(integration, organization, slack_id, notify_channel_id):
     signed_params = sign(
         integration_id=integration.id,
         organization_id=organization.id,
         slack_id=slack_id,
+        notify_channel_id=notify_channel_id,
     )
 
     return absolute_uri(reverse('sentry-integration-slack-link-identity', kwargs={
@@ -71,6 +75,22 @@ class SlackLinkIdentitiyView(BaseView):
             idp=idp,
             status=IdentityStatus.VALID,
         )
+
+        payload = {
+            'token': integration.metadata['access_token'],
+            'token': integration.metadata['access_token'],
+            'channel': params['notify_channel_id'],
+            'user': params['slack_id'],
+            'text': "Your Slack identity has been linked to your Sentry account. You're good to go!"
+        }
+
+        session = http.build_session()
+        req = session.post('https://slack.com/api/chat.postEphemeral', data=payload)
+        resp = req.json()
+        if not resp.get('ok'):
+            logger.error('slack.link-notify.response-error', extra={
+                'error': resp.get('error'),
+            })
 
         messages.add_message(self.request, messages.SUCCESS, SLACK_IDENTITY_LINKED)
 

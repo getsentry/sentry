@@ -214,7 +214,12 @@ class SlackActionEndpoint(Endpoint):
                 idp=IdentityProvider.objects.get(organization=group.organization),
             )
         except Identity.DoesNotExist:
-            associate_url = build_linking_url(integration, group.organization, user_id)
+            associate_url = build_linking_url(
+                integration,
+                group.organization,
+                user_id,
+                channel_id
+            )
 
             return self.respond({
                 'response_type': 'ephemeral',
