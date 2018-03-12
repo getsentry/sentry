@@ -8,6 +8,7 @@ const TeamStore = Reflux.createStore({
     this.reset();
 
     this.listenTo(TeamActions.updateSuccess, this.onUpdateSuccess);
+    this.listenTo(TeamActions.fetchDetailsSuccess, this.onUpdateSuccess);
     this.listenTo(ProjectsStore, this.onProject);
   },
 
@@ -28,7 +29,7 @@ const TeamStore = Reflux.createStore({
     this.trigger(new Set(items.map(item => item.id)));
   },
 
-  onUpdateSuccess(changeId, itemId, response) {
+  onUpdateSuccess(itemId, response) {
     if (!response) return;
 
     let item = this.getBySlug(itemId);
