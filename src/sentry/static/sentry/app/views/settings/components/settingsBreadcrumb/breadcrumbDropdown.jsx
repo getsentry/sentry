@@ -1,11 +1,11 @@
 import PropTypes from 'prop-types';
 import React from 'react';
 
-import DropdownAutoCompleteMenu from '../../../components/dropdownAutoCompleteMenu';
-import SettingsBreadcrumbDivider from './settingsBreadcrumbDivider';
-import Crumb from './crumb.styled';
+import Crumb from './crumb';
+import DropdownAutoCompleteMenu from '../../../../components/dropdownAutoCompleteMenu';
+import Divider from './divider';
 
-class SettingsBreadcrumbDropdown extends React.Component {
+class BreadcrumbDropdown extends React.Component {
   static propTypes = {
     hasMenu: PropTypes.bool,
     route: PropTypes.object,
@@ -80,7 +80,7 @@ class SettingsBreadcrumbDropdown extends React.Component {
               >
                 {name || route.name}{' '}
               </div>
-              <SettingsBreadcrumbDivider isHover={hasMenu && isOpen} isLast={isLast} />
+              <Divider isHover={hasMenu && isOpen} isLast={isLast} />
             </Crumb>
           );
         }}
@@ -89,4 +89,4 @@ class SettingsBreadcrumbDropdown extends React.Component {
   }
 }
 
-export default SettingsBreadcrumbDropdown;
+export default BreadcrumbDropdown;

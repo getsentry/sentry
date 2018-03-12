@@ -20,6 +20,7 @@ import OrganizationsLoader from '../components/organizations/organizationsLoader
 import OrganizationsStore from '../stores/organizationsStore';
 import GlobalModal from '../components/globalModal';
 import theme from '../utils/theme';
+import ErrorBoundary from '../components/errorBoundary';
 
 if (window.globalStaticUrl) __webpack_public_path__ = window.globalStaticUrl; // defined in layout.html
 
@@ -151,7 +152,7 @@ const App = createReactClass({
           <GlobalModal />
           <Alerts className="messages-container" />
           <Indicators className="indicators-container" />
-          {this.props.children}
+          <ErrorBoundary>{this.props.children}</ErrorBoundary>
           {ConfigStore.get('features').has('assistant') && <AssistantHelper />}
         </OrganizationsLoader>
       </ThemeProvider>
