@@ -18,7 +18,7 @@
       </p>
       {% if activation %}
         {% if activation.type == 'error' or activation.type == 'warning' or activation.type == 'info' %}
-          <p class="{{ activation.type }}">{{ activation.message }}</p>
+          <p class="{{ activation.type }}">{{ activation.message|safe }}</p>
         {% endif %}
       {% endif %}
       <form class="form-stacked" action="" method="post" autocomplete="off">
