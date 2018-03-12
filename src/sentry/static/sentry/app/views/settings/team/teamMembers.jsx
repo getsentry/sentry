@@ -293,8 +293,14 @@ const StyledCreateMemberLink = styled(Link)`
 `;
 
 const StyledMembersLabel = styled('div')`
-  font-size: 0.875em;
-  padding: 0.25em 0;
+  font-size: 0.75em;
+  padding: 0.75em 0;
+  text-transform: uppercase;
+`;
+
+const StyledCreateMemberLink = styled(Link)`
+  float: right;
+  text-transform: none;
 `;
 
 export default TeamMembers;
