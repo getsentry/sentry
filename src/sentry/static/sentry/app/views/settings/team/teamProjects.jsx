@@ -81,7 +81,7 @@ const TeamProjects = createReactClass({
         } else {
           team.projects = team.projects.filter(({id}) => id != project.id);
         }
-        TeamActions.updateSuccess(0, teamId, team);
+        TeamActions.updateSuccess(teamId, team);
         addSuccessMessage(
           action === 'add'
             ? t('Successfully added project to team.')
