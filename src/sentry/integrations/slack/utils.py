@@ -172,7 +172,7 @@ def build_attachment(group, event=None, identity=None, actions=None, rules=None)
         ignore_button,
         {
             'name': 'assign',
-            'text': 'Select Assignee ..',
+            'text': 'Select Assignee...',
             'type': 'select',
             'options': assignees,
             'selected_options': [assignee],
