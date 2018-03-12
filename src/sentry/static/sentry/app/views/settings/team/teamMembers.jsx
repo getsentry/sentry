@@ -5,6 +5,7 @@ import styled from 'react-emotion';
 import ApiMixin from '../../../mixins/apiMixin';
 import UserBadge from '../../../components/userBadge';
 import Button from '../../../components/buttons/button';
+import Link from '../../../components/link';
 import DropdownAutoComplete from '../../../components/dropdownAutoComplete';
 import DropdownButton from '../../../components/dropdownButton';
 import IndicatorStore from '../../../stores/indicatorStore';
@@ -180,19 +181,28 @@ const TeamMembers = createReactClass({
         };
       });
 
+    let dropdownLabel = (
+      <StyledMembersLabel>
+        Members{' '}
+        <Link
+          to={`/settings/organization/${params.orgId}/members/new/`}
+          style={{float: 'right'}}
+        >
+          + Add Member
+        </Link>
+      </StyledMembersLabel>
+    );
+
+    let group = {
+      label: dropdownLabel,
+      value: 'members-label',
+    };
+
     return (
       <DropdownAutoComplete
-        items={items}
+        items={[{items, group}]}
         onSelect={this.addTeamMember}
         alignMenu="right"
-        action={
-          <Button
-            priority="primary"
-            to={`/settings/organization/${params.orgId}/members/new/`}
-          >
-            Add New Organization Member
-          </Button>
-        }
       >
         {({isOpen, selectedItem}) => (
           <DropdownButton isOpen={isOpen} size="xsmall">
@@ -266,6 +276,11 @@ const StyledUserBadge = styled(UserBadge)`
   max-width: 250px;
   padding: 0.25em 0;
   font-size: 0.875em;
+`;
+
+const StyledMembersLabel = styled('div')`
+  font-size: 0.875em;
+  padding: 0.25em 0;
 `;
 
 export default TeamMembers;

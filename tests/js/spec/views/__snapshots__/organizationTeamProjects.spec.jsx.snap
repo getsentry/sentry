@@ -165,7 +165,6 @@ exports[`OrganizationTeamProjects Should render 1`] = `
                               }
                             >
                               <DropdownAutoComplete
-                                alignMenu="left"
                                 isOpen={false}
                                 items={
                                   Array [

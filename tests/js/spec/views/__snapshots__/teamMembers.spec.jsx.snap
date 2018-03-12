@@ -18,18 +18,32 @@ exports[`TeamMembers render() renders 1`] = `
         }
       >
         <DropdownAutoComplete
-          action={
-            <Button
-              disabled={false}
-              priority="primary"
-              to="/settings/organization/org-slug/members/new/"
-            >
-              Add New Organization Member
-            </Button>
-          }
           alignMenu="right"
           isOpen={false}
-          items={Array []}
+          items={
+            Array [
+              Object {
+                "group": Object {
+                  "label": <StyledMembersLabel>
+                    Members
+                     
+                    <Link
+                      style={
+                        Object {
+                          "float": "right",
+                        }
+                      }
+                      to="/settings/organization/org-slug/members/new/"
+                    >
+                      + Add Member
+                    </Link>
+                  </StyledMembersLabel>,
+                  "value": "members-label",
+                },
+                "items": Array [],
+              },
+            ]
+          }
           onSelect={[Function]}
         />
       </div>
