@@ -26,17 +26,11 @@ exports[`TeamMembers render() renders 1`] = `
                 "group": Object {
                   "label": <StyledMembersLabel>
                     Members
-                     
-                    <Link
-                      style={
-                        Object {
-                          "float": "right",
-                        }
-                      }
+                    <StyledCreateMemberLink
                       to="/settings/organization/org-slug/members/new/"
                     >
                       + Add Member
-                    </Link>
+                    </StyledCreateMemberLink>
                   </StyledMembersLabel>,
                   "value": "members-label",
                 },

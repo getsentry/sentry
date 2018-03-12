@@ -4,6 +4,7 @@ import styled from 'react-emotion';
 
 import ApiMixin from '../../../mixins/apiMixin';
 import UserBadge from '../../../components/userBadge';
+import UserListElement from '../../../components/userListElement';
 import Button from '../../../components/buttons/button';
 import Link from '../../../components/link';
 import DropdownAutoComplete from '../../../components/dropdownAutoComplete';
@@ -178,19 +179,18 @@ const TeamMembers = createReactClass({
         return {
           value: `${m.name} ${m.email}`,
           memberId: m.id,
-          label: <StyledUserBadge user={m} orgId={params.orgId} />,
+          label: <StyledUserListElement user={m} />,
         };
       });
 
     let dropdownLabel = (
       <StyledMembersLabel>
-        Members{' '}
-        <Link
+        Members
+        <StyledCreateMemberLink
           to={`/settings/organization/${params.orgId}/members/new/`}
-          style={{float: 'right'}}
         >
           + Add Member
-        </Link>
+        </StyledCreateMemberLink>
       </StyledMembersLabel>
     );
 
@@ -273,15 +273,20 @@ const StyledMemberContainer = styled('div')`
   border-bottom: 1px solid ${p => p.theme.borderLight};
 `;
 
-const StyledUserBadge = styled(UserBadge)`
+const StyledUserListElement = styled(UserListElement)`
   width: 250px;
-  padding: 0.25em 0;
-  font-size: 0.875em;
+  font-size: 0.75em;
 `;
 
 const StyledMembersLabel = styled('div')`
-  font-size: 0.875em;
-  padding: 0.25em 0;
+  font-size: 0.75em;
+  padding: 0.75em 0;
+  text-transform: uppercase;
+`;
+
+const StyledCreateMemberLink = styled(Link)`
+  float: right;
+  text-transform: none;
 `;
 
 export default TeamMembers;
