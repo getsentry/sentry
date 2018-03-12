@@ -1,9 +1,13 @@
-{% extends "sentry/bases/organization.html" %}
+{% extends "sentry/bases/modal.html" %}
 
 {% load crispy_forms_tags %}
 {% load i18n %}
 
-{% block org_auth_settings_nav %}active{% endblock %}
+{% block title %}{% trans "Auth" %} | {{ block.super }}{% endblock %}
+
+{% block modal_header_extra %}
+<span style="font-size:0.9em"> Back to Organization</span>
+{% endblock %}
 
 {% block main %}
   <h3>{{ provider_name }} Authentication</h3>
