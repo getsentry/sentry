@@ -19,7 +19,7 @@ from django.utils.encoding import force_text
 from django.utils.safestring import mark_safe
 
 from sentry import features, options
-from sentry.models import ProjectOwnership
+from sentry.models import ProjectOwnership, User
 
 from sentry.digests.utilities import get_digest_metadata
 from sentry.plugins import register
@@ -137,7 +137,6 @@ class MailPlugin(NotificationPlugin):
                     )
                     return []
 
-                from sentry.models import User
                 metrics.incr(
                     'owners.match',
                     tags={'organization': project.organization_id},
@@ -154,6 +153,7 @@ class MailPlugin(NotificationPlugin):
                 # get all users in teams
                 if teams_to_resolve:
                     send_to_list += User.objects.filter(
+                        is_active=True,
                         sentry_orgmember_set__organizationmemberteam__team__id__in=teams_to_resolve,
                     ).values_list('id', flat=True)
                 return send_to_list
