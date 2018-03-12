@@ -23,6 +23,10 @@ exports[`Issues -> Merged View renders with mocked data 1`] = `
   display: -webkit-flex;
   display: -ms-flexbox;
   display: flex;
+  -webkit-align-items: center;
+  -webkit-box-align: center;
+  -ms-flex-align: center;
+  align-items: center;
 }
 
 <GroupMergedView
@@ -419,19 +423,19 @@ exports[`Issues -> Merged View renders with mocked data 1`] = `
                               }
                             }
                           >
-                            <Flex>
+                            <Flex
+                              align="center"
+                              className="button-label"
+                            >
                               <Base
-                                className="glamor-0"
+                                align="center"
+                                className="button-label glamor-0"
                               >
                                 <div
-                                  className="glamor-0"
+                                  className="button-label glamor-0"
                                   is={null}
                                 >
-                                  <span
-                                    className="button-label"
-                                  >
-                                    Compare
-                                  </span>
+                                  Compare
                                 </div>
                               </Base>
                             </Flex>
@@ -460,19 +464,19 @@ exports[`Issues -> Merged View renders with mocked data 1`] = `
                             onClick={[Function]}
                             role="button"
                           >
-                            <Flex>
+                            <Flex
+                              align="center"
+                              className="button-label"
+                            >
                               <Base
-                                className="glamor-0"
+                                align="center"
+                                className="button-label glamor-0"
                               >
                                 <div
-                                  className="glamor-0"
+                                  className="button-label glamor-0"
                                   is={null}
                                 >
-                                  <span
-                                    className="button-label"
-                                  >
-                                    Collapse All
-                                  </span>
+                                  Collapse All
                                 </div>
                               </Base>
                             </Flex>
@@ -1364,6 +1368,10 @@ exports[`Issues -> Merged View renders with mocked data 2`] = `
   display: -webkit-flex;
   display: -ms-flexbox;
   display: flex;
+  -webkit-align-items: center;
+  -webkit-box-align: center;
+  -ms-flex-align: center;
+  align-items: center;
 }
 
 <GroupMergedView
@@ -1760,19 +1768,19 @@ exports[`Issues -> Merged View renders with mocked data 2`] = `
                               }
                             }
                           >
-                            <Flex>
+                            <Flex
+                              align="center"
+                              className="button-label"
+                            >
                               <Base
-                                className="glamor-0"
+                                align="center"
+                                className="button-label glamor-0"
                               >
                                 <div
-                                  className="glamor-0"
+                                  className="button-label glamor-0"
                                   is={null}
                                 >
-                                  <span
-                                    className="button-label"
-                                  >
-                                    Compare
-                                  </span>
+                                  Compare
                                 </div>
                               </Base>
                             </Flex>
@@ -1801,19 +1809,19 @@ exports[`Issues -> Merged View renders with mocked data 2`] = `
                             onClick={[Function]}
                             role="button"
                           >
-                            <Flex>
+                            <Flex
+                              align="center"
+                              className="button-label"
+                            >
                               <Base
-                                className="glamor-0"
+                                align="center"
+                                className="button-label glamor-0"
                               >
                                 <div
-                                  className="glamor-0"
+                                  className="button-label glamor-0"
                                   is={null}
                                 >
-                                  <span
-                                    className="button-label"
-                                  >
-                                    Collapse All
-                                  </span>
+                                  Collapse All
                                 </div>
                               </Base>
                             </Flex>

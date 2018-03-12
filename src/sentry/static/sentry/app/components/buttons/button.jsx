@@ -9,7 +9,7 @@ import InlineSvg from '../inlineSvg';
 import '../../../less/components/button.less';
 
 const Icon = styled(Box)`
-  margin-right: ${p => p.theme.grid}px;
+  margin-right: ${p => (p.size ? '6px' : '8px')};
   margin-left: -2px;
 
   {InlineSvg} {
@@ -102,15 +102,13 @@ class Button extends React.Component {
     });
 
     let childContainer = (
-      <Flex>
-        <span className="button-label">
-          {icon && (
-            <Icon>
-              <InlineSvg src={icon} size={size === 'small' ? '14px' : '16px'} />
-            </Icon>
-          )}
-          {children}
-        </span>
+      <Flex align="center" className="button-label">
+        {icon && (
+          <Icon size={size}>
+            <InlineSvg src={icon} size={size === 'small' ? '12px' : '16px'} />
+          </Icon>
+        )}
+        {children}
       </Flex>
     );
 

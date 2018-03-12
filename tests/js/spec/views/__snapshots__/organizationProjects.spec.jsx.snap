@@ -11,7 +11,7 @@ exports[`OrganizationProjectsView render() Should render the projects in the sto
   margin: -20px 0 30px;
 }
 
-.glamor-4 {
+.glamor-2 {
   box-sizing: border-box;
   display: -webkit-box;
   display: -webkit-flex;
@@ -30,14 +30,6 @@ exports[`OrganizationProjectsView render() Should render the projects in the sto
   -webkit-flex: 1;
   -ms-flex: 1;
   flex: 1;
-}
-
-.glamor-2 {
-  box-sizing: border-box;
-  display: -webkit-box;
-  display: -webkit-flex;
-  display: -ms-flexbox;
-  display: flex;
 }
 
 .glamor-34 {
@@ -186,10 +178,10 @@ exports[`OrganizationProjectsView render() Should render the projects in the sto
                 >
                   <Base
                     align="center"
-                    className="glamor-4"
+                    className="glamor-2"
                   >
                     <div
-                      className="glamor-4"
+                      className="glamor-2"
                       is={null}
                     >
                       <Title>
@@ -222,23 +214,23 @@ exports[`OrganizationProjectsView render() Should render the projects in the sto
                               role="button"
                               style={Object {}}
                             >
-                              <Flex>
+                              <Flex
+                                align="center"
+                                className="button-label"
+                              >
                                 <Base
-                                  className="glamor-2"
+                                  align="center"
+                                  className="button-label glamor-2"
                                 >
                                   <div
-                                    className="glamor-2"
+                                    className="button-label glamor-2"
                                     is={null}
                                   >
                                     <span
-                                      className="button-label"
-                                    >
-                                      <span
-                                        className="icon-plus"
-                                      />
-                                       
-                                      Create Project
-                                    </span>
+                                      className="icon-plus"
+                                    />
+                                     
+                                    Create Project
                                   </div>
                                 </Base>
                               </Flex>

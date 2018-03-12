@@ -7,7 +7,7 @@ exports[`OrganizationMembersView No Require Link does not have 2fa warning if us
   margin: -20px 0 30px;
 }
 
-.glamor-4 {
+.glamor-2 {
   box-sizing: border-box;
   display: -webkit-box;
   display: -webkit-flex;
@@ -26,14 +26,6 @@ exports[`OrganizationMembersView No Require Link does not have 2fa warning if us
   -webkit-flex: 1;
   -ms-flex: 1;
   flex: 1;
-}
-
-.glamor-2 {
-  box-sizing: border-box;
-  display: -webkit-box;
-  display: -webkit-flex;
-  display: -ms-flexbox;
-  display: flex;
 }
 
 .glamor-95 {
@@ -204,10 +196,10 @@ exports[`OrganizationMembersView No Require Link does not have 2fa warning if us
               >
                 <Base
                   align="center"
-                  className="glamor-4"
+                  className="glamor-2"
                 >
                   <div
-                    className="glamor-4"
+                    className="glamor-2"
                     is={null}
                   >
                     <Title>
@@ -240,23 +232,23 @@ exports[`OrganizationMembersView No Require Link does not have 2fa warning if us
                             role="button"
                             style={Object {}}
                           >
-                            <Flex>
+                            <Flex
+                              align="center"
+                              className="button-label"
+                            >
                               <Base
-                                className="glamor-2"
+                                align="center"
+                                className="button-label glamor-2"
                               >
                                 <div
-                                  className="glamor-2"
+                                  className="button-label glamor-2"
                                   is={null}
                                 >
                                   <span
-                                    className="button-label"
-                                  >
-                                    <span
-                                      className="icon-plus"
-                                    />
-                                     
-                                    Invite Member
-                                  </span>
+                                    className="icon-plus"
+                                  />
+                                   
+                                  Invite Member
                                 </div>
                               </Base>
                             </Flex>
@@ -308,10 +300,10 @@ exports[`OrganizationMembersView No Require Link does not have 2fa warning if us
                             >
                               <Base
                                 align="center"
-                                className="glamor-4"
+                                className="glamor-2"
                               >
                                 <div
-                                  className="glamor-4"
+                                  className="glamor-2"
                                   is={null}
                                 >
                                   <Box
@@ -647,23 +639,23 @@ exports[`OrganizationMembersView No Require Link does not have 2fa warning if us
                                     onClick={[Function]}
                                     role="button"
                                   >
-                                    <Flex>
+                                    <Flex
+                                      align="center"
+                                      className="button-label"
+                                    >
                                       <Base
-                                        className="glamor-2"
+                                        align="center"
+                                        className="button-label glamor-2"
                                       >
                                         <div
-                                          className="glamor-2"
+                                          className="button-label glamor-2"
                                           is={null}
                                         >
                                           <span
-                                            className="button-label"
-                                          >
-                                            <span
-                                              className="icon icon-exit"
-                                            />
-                                             
-                                            Leave
-                                          </span>
+                                            className="icon icon-exit"
+                                          />
+                                           
+                                          Leave
                                         </div>
                                       </Base>
                                     </Flex>
@@ -918,23 +910,23 @@ exports[`OrganizationMembersView No Require Link does not have 2fa warning if us
                                     onClick={[Function]}
                                     role="button"
                                   >
-                                    <Flex>
+                                    <Flex
+                                      align="center"
+                                      className="button-label"
+                                    >
                                       <Base
-                                        className="glamor-2"
+                                        align="center"
+                                        className="button-label glamor-2"
                                       >
                                         <div
-                                          className="glamor-2"
+                                          className="button-label glamor-2"
                                           is={null}
                                         >
                                           <span
-                                            className="button-label"
-                                          >
-                                            <span
-                                              className="icon icon-exit"
-                                            />
-                                             
-                                            Leave
-                                          </span>
+                                            className="icon icon-exit"
+                                          />
+                                           
+                                          Leave
                                         </div>
                                       </Base>
                                     </Flex>
@@ -1189,23 +1181,23 @@ exports[`OrganizationMembersView No Require Link does not have 2fa warning if us
                                     onClick={[Function]}
                                     role="button"
                                   >
-                                    <Flex>
+                                    <Flex
+                                      align="center"
+                                      className="button-label"
+                                    >
                                       <Base
-                                        className="glamor-2"
+                                        align="center"
+                                        className="button-label glamor-2"
                                       >
                                         <div
-                                          className="glamor-2"
+                                          className="button-label glamor-2"
                                           is={null}
                                         >
                                           <span
-                                            className="button-label"
-                                          >
-                                            <span
-                                              className="icon icon-exit"
-                                            />
-                                             
-                                            Leave
-                                          </span>
+                                            className="icon icon-exit"
+                                          />
+                                           
+                                          Leave
                                         </div>
                                       </Base>
                                     </Flex>
@@ -1239,7 +1231,7 @@ exports[`OrganizationMembersView Require Link does not have 2fa warning if user 
   margin: -20px 0 30px;
 }
 
-.glamor-4 {
+.glamor-2 {
   box-sizing: border-box;
   display: -webkit-box;
   display: -webkit-flex;
@@ -1258,14 +1250,6 @@ exports[`OrganizationMembersView Require Link does not have 2fa warning if user 
   -webkit-flex: 1;
   -ms-flex: 1;
   flex: 1;
-}
-
-.glamor-2 {
-  box-sizing: border-box;
-  display: -webkit-box;
-  display: -webkit-flex;
-  display: -ms-flexbox;
-  display: flex;
 }
 
 .glamor-99 {
@@ -1436,10 +1420,10 @@ exports[`OrganizationMembersView Require Link does not have 2fa warning if user 
               >
                 <Base
                   align="center"
-                  className="glamor-4"
+                  className="glamor-2"
                 >
                   <div
-                    className="glamor-4"
+                    className="glamor-2"
                     is={null}
                   >
                     <Title>
@@ -1472,23 +1456,23 @@ exports[`OrganizationMembersView Require Link does not have 2fa warning if user 
                             role="button"
                             style={Object {}}
                           >
-                            <Flex>
+                            <Flex
+                              align="center"
+                              className="button-label"
+                            >
                               <Base
-                                className="glamor-2"
+                                align="center"
+                                className="button-label glamor-2"
                               >
                                 <div
-                                  className="glamor-2"
+                                  className="button-label glamor-2"
                                   is={null}
                                 >
                                   <span
-                                    className="button-label"
-                                  >
-                                    <span
-                                      className="icon-plus"
-                                    />
-                                     
-                                    Invite Member
-                                  </span>
+                                    className="icon-plus"
+                                  />
+                                   
+                                  Invite Member
                                 </div>
                               </Base>
                             </Flex>
@@ -1540,10 +1524,10 @@ exports[`OrganizationMembersView Require Link does not have 2fa warning if user 
                             >
                               <Base
                                 align="center"
-                                className="glamor-4"
+                                className="glamor-2"
                               >
                                 <div
-                                  className="glamor-4"
+                                  className="glamor-2"
                                   is={null}
                                 >
                                   <Box
@@ -1852,19 +1836,19 @@ exports[`OrganizationMembersView Require Link does not have 2fa warning if user 
                                         }
                                       }
                                     >
-                                      <Flex>
+                                      <Flex
+                                        align="center"
+                                        className="button-label"
+                                      >
                                         <Base
-                                          className="glamor-2"
+                                          align="center"
+                                          className="button-label glamor-2"
                                         >
                                           <div
-                                            className="glamor-2"
+                                            className="button-label glamor-2"
                                             is={null}
                                           >
-                                            <span
-                                              className="button-label"
-                                            >
-                                              Resend invite
-                                            </span>
+                                            Resend invite
                                           </div>
                                         </Base>
                                       </Flex>
@@ -1913,23 +1897,23 @@ exports[`OrganizationMembersView Require Link does not have 2fa warning if user 
                                     onClick={[Function]}
                                     role="button"
                                   >
-                                    <Flex>
+                                    <Flex
+                                      align="center"
+                                      className="button-label"
+                                    >
                                       <Base
-                                        className="glamor-2"
+                                        align="center"
+                                        className="button-label glamor-2"
                                       >
                                         <div
-                                          className="glamor-2"
+                                          className="button-label glamor-2"
                                           is={null}
                                         >
                                           <span
-                                            className="button-label"
-                                          >
-                                            <span
-                                              className="icon icon-exit"
-                                            />
-                                             
-                                            Leave
-                                          </span>
+                                            className="icon icon-exit"
+                                          />
+                                           
+                                          Leave
                                         </div>
                                       </Base>
                                     </Flex>
@@ -2162,19 +2146,19 @@ exports[`OrganizationMembersView Require Link does not have 2fa warning if user 
                                         }
                                       }
                                     >
-                                      <Flex>
+                                      <Flex
+                                        align="center"
+                                        className="button-label"
+                                      >
                                         <Base
-                                          className="glamor-2"
+                                          align="center"
+                                          className="button-label glamor-2"
                                         >
                                           <div
-                                            className="glamor-2"
+                                            className="button-label glamor-2"
                                             is={null}
                                           >
-                                            <span
-                                              className="button-label"
-                                            >
-                                              Resend invite
-                                            </span>
+                                            Resend invite
                                           </div>
                                         </Base>
                                       </Flex>
@@ -2223,23 +2207,23 @@ exports[`OrganizationMembersView Require Link does not have 2fa warning if user 
                                     onClick={[Function]}
                                     role="button"
                                   >
-                                    <Flex>
+                                    <Flex
+                                      align="center"
+                                      className="button-label"
+                                    >
                                       <Base
-                                        className="glamor-2"
+                                        align="center"
+                                        className="button-label glamor-2"
                                       >
                                         <div
-                                          className="glamor-2"
+                                          className="button-label glamor-2"
                                           is={null}
                                         >
                                           <span
-                                            className="button-label"
-                                          >
-                                            <span
-                                              className="icon icon-exit"
-                                            />
-                                             
-                                            Leave
-                                          </span>
+                                            className="icon icon-exit"
+                                          />
+                                           
+                                          Leave
                                         </div>
                                       </Base>
                                     </Flex>
@@ -2494,23 +2478,23 @@ exports[`OrganizationMembersView Require Link does not have 2fa warning if user 
                                     onClick={[Function]}
                                     role="button"
                                   >
-                                    <Flex>
+                                    <Flex
+                                      align="center"
+                                      className="button-label"
+                                    >
                                       <Base
-                                        className="glamor-2"
+                                        align="center"
+                                        className="button-label glamor-2"
                                       >
                                         <div
-                                          className="glamor-2"
+                                          className="button-label glamor-2"
                                           is={null}
                                         >
                                           <span
-                                            className="button-label"
-                                          >
-                                            <span
-                                              className="icon icon-exit"
-                                            />
-                                             
-                                            Leave
-                                          </span>
+                                            className="icon icon-exit"
+                                          />
+                                           
+                                          Leave
                                         </div>
                                       </Base>
                                     </Flex>

@@ -93,14 +93,6 @@ exports[`OrganizationIntegrationConfig render() with one integration renders 1`]
   margin-right: 8px;
 }
 
-.glamor-12 {
-  box-sizing: border-box;
-  display: -webkit-box;
-  display: -webkit-flex;
-  display: -ms-flexbox;
-  display: flex;
-}
-
 .glamor-43 {
   box-sizing: border-box;
   padding: 0px;
@@ -360,23 +352,23 @@ exports[`OrganizationIntegrationConfig render() with one integration renders 1`]
                                           onClick={[Function]}
                                           role="button"
                                         >
-                                          <Flex>
+                                          <Flex
+                                            align="center"
+                                            className="button-label"
+                                          >
                                             <Base
-                                              className="glamor-12"
+                                              align="center"
+                                              className="button-label glamor-6"
                                             >
                                               <div
-                                                className="glamor-12"
+                                                className="button-label glamor-6"
                                                 is={null}
                                               >
                                                 <span
-                                                  className="button-label"
-                                                >
-                                                  <span
-                                                    className="icon icon-add"
-                                                  />
-                                                   
-                                                  Add Workspace
-                                                </span>
+                                                  className="icon icon-add"
+                                                />
+                                                 
+                                                Add Workspace
                                               </div>
                                             </Base>
                                           </Flex>
@@ -505,26 +497,26 @@ exports[`OrganizationIntegrationConfig render() with one integration renders 1`]
                                   onClick={[Function]}
                                   role="button"
                                 >
-                                  <Flex>
+                                  <Flex
+                                    align="center"
+                                    className="button-label"
+                                  >
                                     <Base
-                                      className="glamor-12"
+                                      align="center"
+                                      className="button-label glamor-6"
                                     >
                                       <div
-                                        className="glamor-12"
+                                        className="button-label glamor-6"
                                         is={null}
                                       >
                                         <span
-                                          className="button-label"
-                                        >
-                                          <span
-                                            className="icon icon-trash"
-                                            style={
-                                              Object {
-                                                "margin": 0,
-                                              }
+                                          className="icon icon-trash"
+                                          style={
+                                            Object {
+                                              "margin": 0,
                                             }
-                                          />
-                                        </span>
+                                          }
+                                        />
                                       </div>
                                     </Base>
                                   </Flex>

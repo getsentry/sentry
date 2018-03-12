@@ -7,6 +7,10 @@ exports[`ProjectTeamsSettings render() renders 1`] = `
   display: -webkit-flex;
   display: -ms-flexbox;
   display: flex;
+  -webkit-align-items: center;
+  -webkit-box-align: center;
+  -ms-flex-align: center;
+  align-items: center;
 }
 
 <OwnerInput
@@ -377,19 +381,19 @@ url:http://sentry.io/settings/* #workflow"
           onClick={[Function]}
           role="button"
         >
-          <Flex>
+          <Flex
+            align="center"
+            className="button-label"
+          >
             <Base
-              className="glamor-0"
+              align="center"
+              className="button-label glamor-0"
             >
               <div
-                className="glamor-0"
+                className="button-label glamor-0"
                 is={null}
               >
-                <span
-                  className="button-label"
-                >
-                  Save Changes
-                </span>
+                Save Changes
               </div>
             </Base>
           </Flex>
