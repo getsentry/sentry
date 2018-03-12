@@ -46,7 +46,7 @@ class Quota(Service):
     """
     __all__ = (
         'get_maximum_quota', 'get_organization_quota', 'get_project_quota', 'is_rate_limited',
-        'translate_quota', 'validate', 'refund',
+        'translate_quota', 'validate', 'refund', 'get_event_retention',
     )
 
     def __init__(self, **options):
@@ -137,3 +137,6 @@ class Quota(Service):
         Return the maximum capable rate for an organization.
         """
         return (options.get('system.rate-limit'), 60)
+
+    def get_event_retention(self, organization):
+        return options.get('system.event-retention-days') or None
