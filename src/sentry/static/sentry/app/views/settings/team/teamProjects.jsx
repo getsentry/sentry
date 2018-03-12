@@ -11,8 +11,6 @@ import DropdownAutoComplete from '../../../components/dropdownAutoComplete';
 import DropdownButton from '../../../components/dropdownButton';
 import EmptyMessage from '../components/emptyMessage';
 import ProjectsStore from '../../../stores/projectsStore';
-import TeamStore from '../../../stores/teamStore';
-import TeamActions from '../../../actions/teamActions';
 import LoadingError from '../../../components/loadingError';
 import OrganizationState from '../../../mixins/organizationState';
 import ProjectListItem from '../components/settingsProjectItem';
@@ -36,15 +34,15 @@ const TeamProjects = createReactClass({
     ApiMixin,
     OrganizationState,
     Reflux.listenTo(ProjectsStore, 'onProjectUpdate'),
-    Reflux.listenTo(TeamStore, 'onTeamUpdate'),
   ],
 
   getInitialState() {
-    let team = TeamStore.getBySlug(this.props.params.teamId);
+    let {teamId} = this.props.params;
+    let projectList = ProjectsStore.getAll();
     return {
-      allProjects: ProjectsStore.getAll(),
+      allProjects: projectList,
       error: false,
-      projectListLinked: team ? team.projects : [],
+      projectListLinked: projectList.filter(p => p.teams.find(t1 => teamId === t1.slug)),
     };
   },
 
@@ -59,14 +57,11 @@ const TeamProjects = createReactClass({
   },
 
   onProjectUpdate() {
+    let {teamId} = this.props.params;
+    let projectList = ProjectsStore.getAll();
     this.setState({
-      allProjects: ProjectsStore.getAll(),
-    });
-  },
-
-  onTeamUpdate() {
-    this.setState({
-      projectListLinked: TeamStore.getBySlug(this.props.params.teamId).projects,
+      allProjects: projectList,
+      projectListLinked: projectList.filter(p => p.teams.find(t1 => teamId === t1.slug)),
     });
   },
 
@@ -74,14 +69,8 @@ const TeamProjects = createReactClass({
     let {orgId, teamId} = this.props.params;
     this.api.request(`/projects/${orgId}/${project.slug}/teams/${teamId}/`, {
       method: action === 'add' ? 'POST' : 'DELETE',
-      success: () => {
-        let team = TeamStore.getBySlug(this.props.params.teamId);
-        if (action == 'add') {
-          team.projects = [...team.projects, project];
-        } else {
-          team.projects = team.projects.filter(({id}) => id != project.id);
-        }
-        TeamActions.updateSuccess(teamId, team);
+      success: data => {
+        ProjectsStore.onUpdateSuccess(data);
         addSuccessMessage(
           action === 'add'
             ? t('Successfully added project to team.')

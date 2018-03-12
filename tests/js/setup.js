@@ -457,14 +457,21 @@ window.TestStubs = {
     };
   },
 
-  Group: () => {
+  Group: params => {
+    let project = TestStubs.Project();
     return {
       id: '1',
       stats: {
         '24h': [[1517281200, 2], [1517310000, 1]],
         '30d': [[1514764800, 1], [1515024000, 122]],
       },
+      project: {
+        id: project.id,
+        slug: project.slug,
+      },
       tags: [],
+      assignedTo: null,
+      ...params,
     };
   },
 
@@ -611,6 +618,7 @@ window.TestStubs = {
       securityTokenHeader: 'x-security-header',
       verifySSL: true,
       features: [],
+      teams: [],
       ...params,
     };
   },
@@ -742,7 +750,6 @@ window.TestStubs = {
       id: '1',
       slug: 'team-slug',
       name: 'Team Name',
-      projects: [],
       ...params,
     };
   },
@@ -834,6 +841,14 @@ window.TestStubs = {
     lastLogin: '2018-01-25T19:57:46.973Z',
     permissions: [],
     email: 'billyfirefox@test.com',
+    ...params,
+  }),
+
+  User: params => ({
+    id: '1',
+    username: 'foo@example.com',
+    email: 'foo@example.com',
+    name: 'Foo Bar',
     ...params,
   }),
 };

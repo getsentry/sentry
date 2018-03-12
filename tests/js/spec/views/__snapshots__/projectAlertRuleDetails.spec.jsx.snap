@@ -152,6 +152,7 @@ exports[`ProjectAlertRuleDetails Edit alert rule renders 1`] = `
             ],
             "slug": "project-slug",
             "subjectTemplate": "[$project] \${tag:level}: $title",
+            "teams": Array [],
             "verifySSL": true,
           }
         }
@@ -841,6 +842,7 @@ exports[`ProjectAlertRuleDetails New alert rule renders 1`] = `
             ],
             "slug": "project-slug",
             "subjectTemplate": "[$project] \${tag:level}: $title",
+            "teams": Array [],
             "verifySSL": true,
           }
         }

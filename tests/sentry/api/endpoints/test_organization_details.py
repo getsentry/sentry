@@ -35,6 +35,35 @@ class OrganizationDetailsTest(APITestCase):
         assert response.status_code == 200, response.content
         assert response.data['id'] == six.text_type(org.id)
 
+        for i in range(5):
+            self.create_project(organization=org)
+
+        url = reverse(
+            'sentry-api-0-organization-details', kwargs={
+                'organization_slug': org.slug,
+            }
+        )
+        # TODO(dcramer): we need to pare this down -- lots of duplicate queries
+        # for membership data
+        with self.assertNumQueries(24, using='default'):
+            from django.db import connections
+            response = self.client.get(url, format='json')
+            print(connections['default'].queries)
+        assert len(response.data['projects']) == 5
+
+    def test_onboarding_tasks(self):
+        org = self.create_organization(owner=self.user)
+        self.login_as(user=self.user)
+        url = reverse(
+            'sentry-api-0-organization-details', kwargs={
+                'organization_slug': org.slug,
+            }
+        )
+        response = self.client.get(url, format='json')
+        assert response.data['onboardingTasks'] == []
+        assert response.status_code == 200, response.content
+        assert response.data['id'] == six.text_type(org.id)
+
         project = self.create_project(organization=org)
         project_created.send(project=project, user=self.user, sender=type(project))
 

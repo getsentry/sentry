@@ -90,7 +90,6 @@ import ReleaseDetails from './views/releaseDetails';
 import ReleaseNewEvents from './views/releaseNewEvents';
 import ReleaseOverview from './views/releases/releaseOverview';
 import RouteNotFound from './views/routeNotFound';
-import SetCallsignsAction from './views/requiredAdminActions/setCallsigns';
 import SettingsProjectProvider from './views/settings/settingsProjectProvider';
 import SettingsWrapper from './views/settings/settingsWrapper';
 import SharedGroupDetails from './views/sharedGroupDetails';
@@ -654,11 +653,6 @@ function routes() {
         <Route
           path="/organizations/:orgId/projects/choose/"
           component={errorHandler(ProjectChooser)}
-        />
-
-        <Route
-          path="/organizations/:orgId/actions/set-callsigns/"
-          component={errorHandler(SetCallsignsAction)}
         />
 
         <Route

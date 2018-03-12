@@ -5,7 +5,7 @@ import {MentionsInput, Mention} from 'react-mentions';
 
 import {Client} from '../../../../api';
 import memberListStore from '../../../../stores/memberListStore';
-import TeamStore from '../../../../stores/teamStore';
+import ProjectsStore from '../../../../stores/projectsStore';
 import Button from '../../../../components/buttons/button';
 import SentryTypes from '../../../../proptypes';
 
@@ -75,14 +75,15 @@ class OwnerInput extends React.Component {
 
   mentionableTeams() {
     let {project} = this.props;
-    return TeamStore.getAll()
-      .filter(({projects}) => !!projects.find(p => p.slug === project.slug))
-      .map(team => ({
-        id: team.id,
-        display: team.slug,
-        email: team.id,
-      }));
+    return (ProjectsStore.getAll().find(p => p.slug == project.slug) || {
+      teams: [],
+    }).teams.map(team => ({
+      id: team.id,
+      display: `#${team.slug}`,
+      email: team.id,
+    }));
   }
+
   onChange(v) {
     this.setState({text: v.target.value});
   }

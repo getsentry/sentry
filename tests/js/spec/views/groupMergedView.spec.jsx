@@ -11,7 +11,7 @@ import events from '../../mocks/events';
 jest.mock('app/api');
 jest.mock('app/mixins/projectState', () => {
   return {
-    getFeatures: () => new Set(['callsigns']),
+    getFeatures: () => new Set([]),
   };
 });
 

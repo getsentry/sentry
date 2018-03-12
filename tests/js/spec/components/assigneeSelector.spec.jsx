@@ -9,6 +9,7 @@ import GroupStore from 'app/stores/groupStore';
 import MemberListStore from 'app/stores/memberListStore';
 import ConfigStore from 'app/stores/configStore';
 import TeamStore from 'app/stores/teamStore';
+import ProjectsStore from 'app/stores/projectsStore';
 
 import stubReactComponents from '../../helpers/stubReactComponent';
 
@@ -16,47 +17,56 @@ describe('AssigneeSelector', function() {
   let sandbox;
   let assigneeSelector;
   let assignToUser;
-
-  const USER_1 = {
-    id: '1',
-    name: 'Jane Doe',
-    email: 'janedoe@example.com',
-  };
-  const USER_2 = {
-    id: '2',
-    name: 'John Smith',
-    email: 'johnsmith@example.com',
-  };
-  const USER_3 = {
-    id: '3',
-    name: 'J J',
-    email: 'jj@example.com',
-  };
-
-  const TEAM_1 = {
-    id: '3',
-    name: 'COOL TEAM',
-    slug: 'cool-team',
-    projects: [
-      {
-        slug: '2',
-      },
-    ],
-  };
+  let USER_1, USER_2, USER_3;
+  let TEAM_1;
+  let PROJECT_1;
+  let GROUP_1;
+  let PATH;
 
   beforeEach(function() {
     sandbox = sinon.sandbox.create();
     stubReactComponents(sandbox, [LoadingIndicator]);
 
-    sandbox.stub(MemberListStore, 'getAll').returns([USER_1, USER_2]);
-    sandbox.stub(TeamStore, 'getAll').returns([TEAM_1]);
-    sandbox.stub(GroupStore, 'get').returns({
+    USER_1 = TestStubs.User({
+      id: '1',
+      name: 'Jane Doe',
+      email: 'janedoe@example.com',
+    });
+    USER_2 = TestStubs.User({
+      id: '2',
+      name: 'John Smith',
+      email: 'johnsmith@example.com',
+    });
+    USER_3 = TestStubs.User({
+      id: '3',
+      name: 'J J',
+      email: 'jj@example.com',
+    });
+
+    TEAM_1 = TestStubs.Team({
+      id: '3',
+      name: 'COOL TEAM',
+      slug: 'cool-team',
+    });
+
+    PROJECT_1 = TestStubs.Project({
+      teams: [TEAM_1],
+    });
+
+    GROUP_1 = TestStubs.Group({
       id: '1337',
       project: {
-        slug: '2',
+        id: PROJECT_1.id,
+        slug: PROJECT_1.slug,
       },
-      assignedTo: null,
     });
+
+    PATH = `/issues/${GROUP_1.id}/`;
+
+    sandbox.stub(MemberListStore, 'getAll').returns([USER_1, USER_2]);
+    sandbox.stub(TeamStore, 'getAll').returns([TEAM_1]);
+    sandbox.stub(ProjectsStore, 'getAll').returns([PROJECT_1]);
+    sandbox.stub(GroupStore, 'get').returns(GROUP_1);
   });
 
   afterEach(function() {
@@ -126,35 +136,27 @@ describe('AssigneeSelector', function() {
       // Reset sandbox because we don't want <LoadingIndicator /> stubbed
       sandbox.restore();
       sandbox = sinon.sandbox.create();
+      sandbox.stub(MemberListStore, 'getAll').returns([USER_1, USER_2]);
       sandbox.stub(TeamStore, 'getAll').returns([TEAM_1]);
-
-      GroupStore.loadInitialData([
-        {
-          id: '1337',
-          project: {
-            slug: '2',
-          },
-          assignedTo: null,
-        },
-      ]);
+      sandbox.stub(ProjectsStore, 'getAll').returns([PROJECT_1]);
+      sandbox.stub(GroupStore, 'get').returns(GROUP_1);
 
       Client.addMockResponse({
         method: 'PUT',
-        url: '/issues/1337/',
+        url: `/issues/${GROUP_1.id}/`,
         body: {
-          id: '1337',
-          assignedTo: {
-            id: '1',
-            type: 'user',
-            name: 'Jane Doe',
-          },
+          ...GROUP_1,
+          assignedTo: USER_1,
         },
       });
 
       MemberListStore.items = [];
       MemberListStore.loaded = false;
 
-      assigneeSelector = mount(<AssigneeSelector id="1337" />, TestStubs.routerContext());
+      assigneeSelector = mount(
+        <AssigneeSelector id={GROUP_1.id} />,
+        TestStubs.routerContext()
+      );
       assigneeSelector.setContext({
         organization: {id: '1', features: new Set(['internal-catchall'])},
       });
@@ -247,7 +249,7 @@ describe('AssigneeSelector', function() {
       expect(assigneeSelector.find('LoadingIndicator').exists()).toBe(true);
 
       expect(
-        Client.findMockResponse('/issues/1337/', {
+        Client.findMockResponse(PATH, {
           method: 'PUT',
         })[0].callCount
       ).toBe(1);
@@ -255,13 +257,13 @@ describe('AssigneeSelector', function() {
       assigneeSelector.instance().clearAssignTo();
 
       expect(
-        Client.findMockResponse('/issues/1337/', {
+        Client.findMockResponse(PATH, {
           method: 'PUT',
         })[0].callCount
       ).toBe(2);
       //api was called with empty string, clearing assignment
       expect(
-        Client.findMockResponse('/issues/1337/', {
+        Client.findMockResponse(PATH, {
           method: 'PUT',
         })[1].mock.calls[1][1].data.assignedTo
       ).toBe('');
@@ -278,12 +280,12 @@ describe('AssigneeSelector', function() {
         .returns(true);
       // Create a new selector because assigneeSelector.update() won't re-render
       // if the state doesn't change.
-      let sel = mount(<AssigneeSelector id="1337" />, TestStubs.routerContext());
+      let sel = mount(<AssigneeSelector id={GROUP_1.id} />, TestStubs.routerContext());
       sel.find('a').simulate('click');
       expect(sel.find('MenuItem.invite-member').length).toBe(1);
 
       // Remove org:write access permission and make sure invite member button is not shown.
-      sel = mount(<AssigneeSelector id="1337" />, TestStubs.routerContext());
+      sel = mount(<AssigneeSelector id={GROUP_1.id} />, TestStubs.routerContext());
       sel.setContext({
         organization: {id: '1', features: new Set(['internal-catchall'])},
       });
@@ -298,7 +300,10 @@ describe('AssigneeSelector', function() {
       if (assigneeSelector) {
         assigneeSelector.unmount();
       }
-      assigneeSelector = mount(<AssigneeSelector id="1337" />, TestStubs.routerContext());
+      assigneeSelector = mount(
+        <AssigneeSelector id={GROUP_1.id} />,
+        TestStubs.routerContext()
+      );
       // open menu
       assigneeSelector.find('a').simulate('click');
 
@@ -344,7 +349,10 @@ describe('AssigneeSelector', function() {
         assigneeSelector.unmount();
       }
 
-      assigneeSelector = mount(<AssigneeSelector id="1337" />, TestStubs.routerContext());
+      assigneeSelector = mount(
+        <AssigneeSelector id={GROUP_1.id} />,
+        TestStubs.routerContext()
+      );
 
       // open menu
       assigneeSelector.find('a').simulate('click');

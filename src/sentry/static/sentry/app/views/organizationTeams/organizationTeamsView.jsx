@@ -13,6 +13,7 @@ class OrganizationTeamsView extends React.Component {
   static propTypes = {
     allTeams: PropTypes.arrayOf(SentryTypes.Team),
     activeTeams: PropTypes.arrayOf(SentryTypes.Team),
+    projectList: PropTypes.arrayOf(SentryTypes.Project),
     projectStats: PropTypes.array,
     organization: SentryTypes.Organization,
     access: PropTypes.object,
@@ -30,6 +31,7 @@ class OrganizationTeamsView extends React.Component {
     let {
       allTeams,
       activeTeams,
+      projectList,
       projectStats,
       organization,
       access,
@@ -78,6 +80,7 @@ class OrganizationTeamsView extends React.Component {
                 urlPrefix={urlPrefix}
                 organization={org}
                 teamList={activeTeams}
+                projectList={projectList}
                 projectStats={projectStats}
                 hasTeams={allTeams.length !== 0}
                 access={access}

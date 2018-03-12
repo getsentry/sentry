@@ -176,6 +176,7 @@ exports[`ProjectAlertSettings render() renders 1`] = `
           ],
           "slug": "project-slug",
           "subjectTemplate": "[$project] \${tag:level}: $title",
+          "teams": Array [],
           "verifySSL": true,
         }
       }

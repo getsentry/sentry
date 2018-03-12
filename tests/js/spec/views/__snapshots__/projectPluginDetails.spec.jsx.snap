@@ -195,6 +195,7 @@ exports[`ProjectPluginDetails renders 1`] = `
       ],
       "slug": "project-slug",
       "subjectTemplate": "[$project] \${tag:level}: $title",
+      "teams": Array [],
       "verifySSL": true,
     }
   }
@@ -275,6 +276,7 @@ exports[`ProjectPluginDetails renders 1`] = `
         ],
         "slug": "project-slug",
         "subjectTemplate": "[$project] \${tag:level}: $title",
+        "teams": Array [],
         "verifySSL": true,
       }
     }
@@ -491,6 +493,7 @@ exports[`ProjectPluginDetails renders 1`] = `
                     ],
                     "slug": "project-slug",
                     "subjectTemplate": "[$project] \${tag:level}: $title",
+                    "teams": Array [],
                     "verifySSL": true,
                   }
                 }
@@ -696,6 +699,7 @@ exports[`ProjectPluginDetails renders 1`] = `
                                   ],
                                   "slug": "project-slug",
                                   "subjectTemplate": "[$project] \${tag:level}: $title",
+                                  "teams": Array [],
                                   "verifySSL": true,
                                 }
                               }

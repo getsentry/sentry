@@ -10,7 +10,7 @@ import issues from '../../mocks/issues';
 jest.mock('app/api');
 jest.mock('app/mixins/projectState', () => {
   return {
-    getFeatures: () => new Set(['callsigns']),
+    getFeatures: () => new Set([]),
     getProjectFeatures: () => new Set(['similarity-view']),
   };
 });

@@ -7,15 +7,20 @@ import {ContextPickerModal} from 'app/components/contextPickerModal';
 jest.mock('jquery');
 
 describe('ContextPickerModal', function() {
-  let project = TestStubs.Project();
-  let org = TestStubs.Organization({projects: [project]});
-  let org2 = {slug: 'org2', id: '21', status: {id: 'active'}};
-  let project2 = {slug: 'project2'};
+  let project, project2, org, org2;
   let onFinish = jest.fn();
 
   beforeEach(function() {
     MockApiClient.clearMockResponses();
     onFinish.mockReset();
+
+    project = TestStubs.Project();
+    org = TestStubs.Organization({projects: [project]});
+    project2 = TestStubs.Project({slug: 'project2'});
+    org2 = TestStubs.Organization({
+      slug: 'org2',
+      id: '21',
+    });
   });
 
   const getComponent = props => (

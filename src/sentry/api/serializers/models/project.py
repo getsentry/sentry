@@ -164,7 +164,6 @@ class ProjectSerializer(Serializer):
             'name': obj.name,
             'isPublic': obj.public,
             'isBookmarked': attrs['is_bookmarked'],
-            'callSign': obj.callsign,
             'color': obj.color,
             'dateCreated': obj.date_added,
             'firstEvent': obj.first_event,
@@ -204,18 +203,19 @@ class ProjectWithTeamSerializer(ProjectSerializer):
         attrs = super(ProjectWithTeamSerializer,
                       self).get_attrs(item_list, user)
 
-        project_teams = list(
-            ProjectTeam.objects.filter(
-                project__in=item_list,
-            ).select_related('team')
-        )
+        project_teams = list(ProjectTeam.objects.filter(
+            project__in=item_list,
+        ).select_related('team'))
 
-        teams = {d['id']: d for d in serialize(
-            list(set(pt.team for pt in project_teams)), user)}
+        teams = {pt.team_id: {
+            'id': six.text_type(pt.team.id),
+            'slug': pt.team.slug,
+            'name': pt.team.name,
+        } for pt in project_teams}
 
         teams_by_project_id = defaultdict(list)
         for pt in project_teams:
-            teams_by_project_id[pt.project_id].append(teams[six.text_type(pt.team_id)])
+            teams_by_project_id[pt.project_id].append(teams[pt.team_id])
 
         for item in item_list:
             attrs[item]['teams'] = teams_by_project_id[item.id]
@@ -434,7 +434,6 @@ class SharedProjectSerializer(Serializer):
         return {
             'slug': obj.slug,
             'name': obj.name,
-            'callSign': obj.callsign,
             'color': obj.color,
             'features': feature_list,
             'organization': {

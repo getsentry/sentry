@@ -15,7 +15,7 @@ import FlowLayout from './flowLayout';
 import MenuItem from './menuItem';
 import {assignToUser, assignToActor, clearAssignment} from '../actionCreators/group';
 import GroupStore from '../stores/groupStore';
-import TeamStore from '../stores/teamStore';
+import ProjectsStore from '../stores/projectsStore';
 import LoadingIndicator from '../components/loadingIndicator';
 import MemberListStore from '../stores/memberListStore';
 import ConfigStore from '../stores/configStore';
@@ -64,9 +64,8 @@ const AssigneeSelector = createReactClass({
 
   getInitialState() {
     let group = GroupStore.get(this.props.id);
-
     return {
-      assignedTo: group.assignedTo,
+      assignedTo: group && group.assignedTo,
       memberList: MemberListStore.loaded ? MemberListStore.getAll() : null,
       filter: '',
       isOpen: false,
@@ -109,14 +108,14 @@ const AssigneeSelector = createReactClass({
   assignableTeams() {
     let group = GroupStore.get(this.props.id);
 
-    return TeamStore.getAll()
-      .filter(({projects}) => projects.some(p => p.slug === group.project.slug))
-      .map(team => ({
-        id: buildTeamId(team.id),
-        name: team.slug,
-        display: `#${team.slug}`,
-        team,
-      }));
+    return (ProjectsStore.getAll().find(p => p.slug == group.project.slug) || {
+      teams: [],
+    }).teams.map(team => ({
+      id: buildTeamId(team.id),
+      display: `#${team.slug}`,
+      email: team.id,
+      team,
+    }));
   },
 
   onGroupChange(itemIds) {

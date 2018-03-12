@@ -22,10 +22,6 @@ let ERROR_TYPES = {
   ORG_NOT_FOUND: 'ORG_NOT_FOUND',
 };
 
-function getRequiredAdminActions(org) {
-  return [];
-}
-
 const OrganizationContext = createReactClass({
   displayName: 'OrganizationContext',
 
@@ -88,7 +84,6 @@ const OrganizationContext = createReactClass({
           hooks.push(cb(data));
         });
 
-        data.requiredAdminActions = getRequiredAdminActions(data);
         this.setState({
           organization: data,
           loading: false,
