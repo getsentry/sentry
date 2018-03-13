@@ -625,7 +625,7 @@ class V2TagStorage(TagStorage):
         kv_pairs = tag_lookups.pop()
         matches = list(
             EventTag.objects.filter(
-                reduce(or_, (Q(key_id=k, value_id=v)
+                reduce(or_, (Q(value___key_id=k, value_id=v)
                              for k, v in kv_pairs)),
                 project_id=project_id,
                 group_id=group_id,
@@ -637,7 +637,7 @@ class V2TagStorage(TagStorage):
         for kv_pairs in tag_lookups:
             matches = list(
                 EventTag.objects.filter(
-                    reduce(or_, (Q(key_id=k, value_id=v)
+                    reduce(or_, (Q(value___key_id=k, value_id=v)
                                  for k, v in kv_pairs)),
                     project_id=project_id,
                     group_id=group_id,

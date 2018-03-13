@@ -1,6 +1,7 @@
 from __future__ import absolute_import
 
 from datetime import datetime, timedelta
+from django.conf import settings
 from mock import patch
 from uuid import uuid4
 
@@ -285,7 +286,10 @@ class DeleteTagKeyTest(TestCase):
         assert tagstore.get_group_tag_key(group2.project_id, group2.id, env2.id, key) is not None
         assert tagstore.get_group_tag_value(
             group2.project_id, group2.id, env2.id, key, value) is not None
-        assert EventTag.objects.filter(key_id=tk2.id).exists()
+        if settings.SENTRY_TAGSTORE.startswith('sentry.tagstore.v2'):
+            assert EventTag.objects.filter(value___key_id=tk2.id).exists()
+        else:
+            assert EventTag.objects.filter(key_id=tk2.id).exists()
 
 
 class DeleteGroupTest(TestCase):
