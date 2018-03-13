@@ -12,6 +12,7 @@ from sentry.models import (
 )
 from sentry.search.base import ANY
 from sentry.search.django.backend import DjangoSearchBackend
+from sentry.tagstore.v2.backend import AGGREGATE_ENVIRONMENT_ID
 from sentry.testutils import TestCase
 
 
@@ -128,7 +129,7 @@ class DjangoSearchBackendTest(TestCase):
         )
 
         for key, value in tags.items():
-            for environment_id in [None, environment.id]:
+            for environment_id in [AGGREGATE_ENVIRONMENT_ID, environment.id]:
                 tag_value, created = tagstore.get_or_create_group_tag_value(
                     project_id=event.project_id,
                     group_id=event.group_id,
