@@ -206,5 +206,5 @@ class OrganizationAuthSettingsView(OrganizationView):
 
         # Otherwise user is in bad state since frontend/react should handle this case
         return HttpResponseRedirect(
-            reverse('sentry-organization-auth-settings', args=[organization.slug])
+            reverse('sentry-organization-home', args=[organization.slug])
         )
