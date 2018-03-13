@@ -2,7 +2,7 @@
 
 exports[`GuideAnchor renders 1`] = `
 <div
-  className="guide-anchor text"
+  className="guide-anchor anchor-type-text"
 >
   <span
     className="target 1 guide-anchor-ping"
@@ -12,7 +12,7 @@ exports[`GuideAnchor renders 1`] = `
 
 exports[`GuideAnchor turns active when guide state changes 1`] = `
 <div
-  className="guide-anchor text"
+  className="guide-anchor anchor-type-text"
 >
   <span
     className="target 1 guide-anchor-ping active"

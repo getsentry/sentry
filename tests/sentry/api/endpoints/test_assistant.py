@@ -33,10 +33,10 @@ class AssistantActivity(APITestCase):
 
         # Dismiss the guide and make sure it is not returned again.
         resp = self.client.put(self.path, {
-            'guide_id': 1,
+            'guide_id': 2,
             'status': 'dismissed',
         })
         assert resp.status_code == 201
         resp = self.client.get(self.path)
         assert resp.status_code == 200
-        assert resp.data == {}
+        assert resp.data == {k: v for k, v in GUIDES.items() if v['id'] != 2}

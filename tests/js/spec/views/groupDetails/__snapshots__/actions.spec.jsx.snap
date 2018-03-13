@@ -48,11 +48,16 @@ exports[`GroupActions render() renders correctly 1`] = `
       }
     }
   />
-  <a
-    className="btn btn-default btn-sm btn-config-issue-tracking"
-    href="/org/project/settings/issue-tracking/"
+  <GuideAnchor
+    target="issue_tracking"
+    type="text"
   >
-    Link Issue Tracker
-  </a>
+    <a
+      className="btn btn-default btn-sm btn-config-issue-tracking"
+      href="/org/project/settings/issue-tracking/"
+    >
+      Link Issue Tracker
+    </a>
+  </GuideAnchor>
 </div>
 `;

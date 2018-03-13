@@ -8,6 +8,7 @@ import MenuItem from '../menuItem';
 import DropdownLink from '../dropdownLink';
 import ActionLink from './actionLink';
 import Tooltip from '../tooltip';
+import GuideAnchor from '../assistant/guideAnchor';
 
 export default class ResolveActions extends React.Component {
   static propTypes = {
@@ -131,6 +132,7 @@ export default class ResolveActions extends React.Component {
             onAction={() => onUpdate({status: 'resolved'})}
           >
             <span className="icon-checkmark" style={{marginRight: 5}} />
+            <GuideAnchor target="resolve" type="text" />
             {t('Resolve')}
           </ActionLink>
 

@@ -9,9 +9,12 @@ exports[`GuideDrawer gets dismissed 1`] = `
   </div>
   <div
     className="assistant-drawer-message"
-  >
-    Message 1
-  </div>
+    dangerouslySetInnerHTML={
+      Object {
+        "__html": "Message 1",
+      }
+    }
+  />
   <div>
     <div>
       <Button
@@ -41,9 +44,12 @@ exports[`GuideDrawer renders next step 1`] = `
   </div>
   <div
     className="assistant-drawer-message"
-  >
-    Message 2
-  </div>
+    dangerouslySetInnerHTML={
+      Object {
+        "__html": "Message 2",
+      }
+    }
+  />
   <div>
     <div>
       <p>

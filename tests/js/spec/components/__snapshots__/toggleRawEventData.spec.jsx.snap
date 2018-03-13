@@ -19,10 +19,6 @@ exports[`EventDataSection renders formatted 1`] = `
     <h3>
       Additional Data
     </h3>
-    <GuideAnchor
-      target="extra"
-      type="text"
-    />
     <div
       className="btn-group pull-right"
     >
@@ -65,10 +61,6 @@ exports[`EventDataSection renders raw 1`] = `
     <h3>
       Additional Data
     </h3>
-    <GuideAnchor
-      target="extra"
-      type="text"
-    />
     <div
       className="btn-group pull-right"
     >

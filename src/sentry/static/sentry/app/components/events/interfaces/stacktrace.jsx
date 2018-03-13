@@ -56,6 +56,7 @@ class StacktraceInterface extends React.Component {
         title={t('Stacktrace')}
         group={group}
         platform={evt.platform}
+        hasGuideAnchor={true}
         stacktrace={data}
         stackView={stackView}
         newestFirst={newestFirst}

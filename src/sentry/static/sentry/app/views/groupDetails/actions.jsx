@@ -12,6 +12,7 @@ import GroupState from '../../mixins/groupState';
 import HookStore from '../../stores/hookStore';
 import IndicatorStore from '../../stores/indicatorStore';
 import IssuePluginActions from '../../components/group/issuePluginActions';
+import GuideAnchor from '../../components/assistant/guideAnchor';
 import LinkWithConfirmation from '../../components/linkWithConfirmation';
 import MenuItem from '../../components/menuItem';
 import ShareIssue from '../../components/shareIssue';
@@ -53,6 +54,7 @@ class DeleteActions extends React.Component {
             )}
             onConfirm={this.props.onDiscard}
           >
+            <GuideAnchor type="text" target="delete_discard" />
             <span>{t('Delete and discard future events')}</span>
           </LinkWithConfirmation>
         </li>
@@ -62,7 +64,9 @@ class DeleteActions extends React.Component {
 
   render() {
     let features = new Set(this.props.project.features);
-    return (
+    let hasDiscard = features.has('discard-groups');
+
+    let btnGroup = (
       <div className="btn-group">
         <LinkWithConfirmation
           className="group-remove btn btn-default btn-sm"
@@ -74,11 +78,19 @@ class DeleteActions extends React.Component {
         >
           <span className="icon-trash" />
         </LinkWithConfirmation>
-        {features.has('discard-groups')
-          ? this.renderDiscard()
-          : this.renderDisabledDiscard()}
+        {hasDiscard ? this.renderDiscard() : this.renderDisabledDiscard()}
       </div>
     );
+
+    if (hasDiscard) {
+      btnGroup = (
+        <GuideAnchor type="text" target="delete_discard">
+          {btnGroup}
+        </GuideAnchor>
+      );
+    }
+
+    return btnGroup;
   }
 }
 
@@ -296,13 +308,15 @@ const GroupDetailsActions = createReactClass({
             return <IssuePluginActions key={plugin.slug} plugin={plugin} />;
           })}
         {!hasIssueTracking && (
-          <a
-            href={`/${this.getOrganization().slug}/${this.getProject()
-              .slug}/settings/issue-tracking/`}
-            className={'btn btn-default btn-sm btn-config-issue-tracking'}
-          >
-            {t('Link Issue Tracker')}
-          </a>
+          <GuideAnchor type="text" target="issue_tracking">
+            <a
+              href={`/${this.getOrganization().slug}/${this.getProject()
+                .slug}/settings/issue-tracking/`}
+              className={'btn btn-default btn-sm btn-config-issue-tracking'}
+            >
+              {t('Link Issue Tracker')}
+            </a>
+          </GuideAnchor>
         )}
       </div>
     );
