@@ -753,6 +753,7 @@ SENTRY_FEATURES = {
     'organizations:require-2fa': False,
     'organizations:environments': False,
     'organizations:internal-catchall': False,
+    'organizations:new-teams': False,
     'projects:global-events': False,
     'projects:plugins': True,
     'projects:dsym': False,
