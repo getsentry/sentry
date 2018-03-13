@@ -35,6 +35,7 @@ class EmailRow extends React.Component {
     isPrimary: PropTypes.bool,
     hideRemove: PropTypes.bool,
     onRemove: PropTypes.func,
+    onVerify: PropTypes.func,
     onSetPrimary: PropTypes.func,
   };
 
@@ -44,6 +45,10 @@ class EmailRow extends React.Component {
 
   handleRemove = e => {
     this.props.onRemove(this.props.email, e);
+  };
+
+  handleVerify = e => {
+    this.props.onVerify(this.props.email, e);
   };
 
   render() {
@@ -57,9 +62,15 @@ class EmailRow extends React.Component {
           {isPrimary && <Tag priority="success">{t('Primary')}</Tag>}
         </Flex>
         <Flex>
-          {!isPrimary && (
-            <Button size="small" onClick={this.handleSetPrimary}>
-              {t('Set as primary')}
+          {!isPrimary &&
+            isVerified && (
+              <Button size="small" onClick={this.handleSetPrimary}>
+                {t('Set as primary')}
+              </Button>
+            )}
+          {!isVerified && (
+            <Button size="small" onClick={this.handleVerify}>
+              {t('Resend verification')}
             </Button>
           )}
           {!hideRemove && (
@@ -98,31 +109,39 @@ class AccountEmails extends AsyncView {
     }
   };
 
-  handleSetPrimary = email => {
+  createApiCall = (endpoint, requestParams) => {
     this.setState({loading: true, emails: []}, () => {
       this.api
-        .requestPromise(ENDPOINT, {
-          method: 'PUT',
-          data: {
-            email,
-          },
-        })
+        .requestPromise(endpoint, requestParams)
         .then(this.remountComponent.bind(this))
         .catch(this.handleError);
     });
   };
 
+  handleSetPrimary = email => {
+    this.createApiCall(ENDPOINT, {
+      method: 'PUT',
+      data: {
+        email,
+      },
+    });
+  };
+
   handleRemove = email => {
-    this.setState({loading: true, emails: []}, () => {
-      this.api
-        .requestPromise(ENDPOINT, {
-          method: 'DELETE',
-          data: {
-            email,
-          },
-        })
-        .then(this.remountComponent.bind(this))
-        .catch(this.handleError);
+    this.createApiCall(ENDPOINT, {
+      method: 'DELETE',
+      data: {
+        email,
+      },
+    });
+  };
+
+  handleVerify = email => {
+    this.createApiCall(`${ENDPOINT}confirm/`, {
+      method: 'POST',
+      data: {
+        email,
+      },
     });
   };
 
@@ -147,6 +166,7 @@ class AccountEmails extends AsyncView {
                     key={emailObj.email}
                     onSetPrimary={this.handleSetPrimary}
                     onRemove={this.handleRemove}
+                    onVerify={this.handleVerify}
                     {...emailObj}
                   />
                 );

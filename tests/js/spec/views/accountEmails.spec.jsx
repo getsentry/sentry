@@ -91,6 +91,35 @@ describe('AccountEmails', function() {
     );
   });
 
+  it('can resend verification email', function() {
+    let mock = Client.addMockResponse({
+      url: `${ENDPOINT}confirm/`,
+      method: 'POST',
+      statusCode: 200,
+    });
+
+    let wrapper = mount(
+      <ThemeProvider theme={theme}>
+        <AccountEmails />
+      </ThemeProvider>,
+      TestStubs.routerContext()
+    );
+
+    expect(mock).not.toHaveBeenCalled();
+
+    wrapper.find('Button[children="Resend verification"]').simulate('click');
+
+    expect(mock).toHaveBeenCalledWith(
+      `${ENDPOINT}confirm/`,
+      expect.objectContaining({
+        method: 'POST',
+        data: {
+          email: 'secondary2@example.com',
+        },
+      })
+    );
+  });
+
   it('can add a secondary email', function() {
     let mock = Client.addMockResponse({
       url: ENDPOINT,
