@@ -82,18 +82,6 @@ exports[`ResolveActions with confirmation step renders 1`] = `
     <div
       className="btn-group"
     >
-      <GuideAnchor
-        target="resolve"
-        type="text"
-      >
-        <div
-          className="guide-anchor anchor-type-text"
-        >
-          <span
-            className="resolve guide-anchor-ping"
-          />
-        </div>
-      </GuideAnchor>
       <ActionLink
         className="btn btn-default btn-sm"
         confirmLabel="Resolve"
@@ -124,6 +112,18 @@ exports[`ResolveActions with confirmation step renders 1`] = `
                 }
               }
             />
+            <GuideAnchor
+              target="resolve"
+              type="text"
+            >
+              <div
+                className="guide-anchor anchor-type-text"
+              >
+                <span
+                  className="resolve guide-anchor-ping"
+                />
+              </div>
+            </GuideAnchor>
             Resolve
           </a>
           <Modal
@@ -512,18 +512,6 @@ exports[`ResolveActions without confirmation renders 1`] = `
     <div
       className="btn-group"
     >
-      <GuideAnchor
-        target="resolve"
-        type="text"
-      >
-        <div
-          className="guide-anchor anchor-type-text"
-        >
-          <span
-            className="resolve guide-anchor-ping"
-          />
-        </div>
-      </GuideAnchor>
       <ActionLink
         className="btn btn-default btn-sm"
         confirmLabel="Resolve"
@@ -545,6 +533,18 @@ exports[`ResolveActions without confirmation renders 1`] = `
               }
             }
           />
+          <GuideAnchor
+            target="resolve"
+            type="text"
+          >
+            <div
+              className="guide-anchor anchor-type-text"
+            >
+              <span
+                className="resolve guide-anchor-ping"
+              />
+            </div>
+          </GuideAnchor>
           Resolve
         </a>
       </ActionLink>

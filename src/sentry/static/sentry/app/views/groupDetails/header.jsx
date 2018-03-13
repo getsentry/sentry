@@ -137,8 +137,8 @@ const GroupHeader = createReactClass({
             <div className="flex flex-justify-right">
               {group.shortId && (
                 <div className="short-id-box count align-right">
-                  <GuideAnchor target="issue_number" type="text" />
                   <h6 className="nav-header">
+                    <GuideAnchor target="issue_number" type="text" />
                     <a
                       className="help-link tip"
                       title={t(
