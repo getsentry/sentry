@@ -115,8 +115,7 @@ class OwnerInput extends React.Component {
             value={text}
             required={true}
             autoFocus={true}
-            displayTransform={(id, display, type) =>
-              `${type === 'member' ? '' : '#'}${display}`}
+            displayTransform={(id, display, type) => `${display}`}
             markup="**[sentry.strip:__type__]__display__**"
             spellCheck="false"
             autoComplete="off"

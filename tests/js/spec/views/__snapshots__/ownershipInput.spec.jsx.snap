@@ -163,7 +163,7 @@ url:http://sentry.io/settings/* #workflow"
           },
         }
       }
-      value="url:src @dummy@example.com"
+      value="new"
     >
       <MentionsInput
         autoCapitalize="off"
@@ -185,7 +185,7 @@ url:http://sentry.io/settings/* #workflow"
         singleLine={false}
         spellCheck="false"
         style={[Function]}
-        value="url:src @dummy@example.com"
+        value="new"
       >
         <div
           style={
@@ -239,7 +239,7 @@ url:http://sentry.io/settings/* #workflow"
               }
               singleLine={false}
               style={[Function]}
-              value="url:src @dummy@example.com"
+              value="new"
             >
               <Highlighter
                 displayTransform={[Function]}
@@ -275,7 +275,7 @@ url:http://sentry.io/settings/* #workflow"
                 }
                 singleLine={false}
                 style={[Function]}
-                value="url:src @dummy@example.com"
+                value="new"
               >
                 <div
                   style={
@@ -311,7 +311,7 @@ url:http://sentry.io/settings/* #workflow"
                       }
                     }
                   >
-                    url:src @dummy@example.com
+                    new
                   </span>
                    
                 </div>
@@ -357,7 +357,7 @@ url:http://sentry.io/settings/* #workflow"
                   "wordBreak": "break-all",
                 }
               }
-              value="url:src @dummy@example.com"
+              value="new"
             />
           </div>
         </div>
