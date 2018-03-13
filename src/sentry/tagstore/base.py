@@ -248,7 +248,8 @@ class TagStorage(Service):
         """
         raise NotImplementedError
 
-    def create_event_tags(self, project_id, group_id, environment_id, event_id, tags):
+    def create_event_tags(self, project_id, group_id, environment_id,
+                          event_id, tags, date_added=None):
         """
         >>> create_event_tags(1, 2, 3, 4, [('foo', 'bar'), ('baz', 'qux')])
         """
