@@ -6,11 +6,10 @@ import Reflux from 'reflux';
 import createReactClass from 'create-react-class';
 import styled from 'react-emotion';
 
-import {openModal} from '../../../actionCreators/modal';
+import {navigateTo} from '../../../actionCreators/navigation';
 import {loadSearchMap} from '../../../actionCreators/formSearch';
 import {t} from '../../../locale';
 import AutoComplete from '../../../components/autoComplete';
-import ContextPickerModal from '../../../components/contextPickerModal';
 import FormSearchStore from '../../../stores/formSearchStore';
 import InlineSvg from '../../../components/inlineSvg';
 import replaceRouterParams from '../../../utils/replaceRouterParams';
@@ -115,27 +114,8 @@ class SettingsSearch extends React.Component {
 
     let {params, router} = this.props;
     let nextPath = replaceRouterParams(to, params);
-    // Check for placeholder params
-    let needOrg = nextPath.indexOf(':orgId') > -1;
-    let needProject = nextPath.indexOf(':projectId') > -1;
 
-    if (needOrg || needProject) {
-      openModal(({closeModal, Header, Body}) => (
-        <ContextPickerModal
-          Header={Header}
-          Body={Body}
-          nextPath={nextPath}
-          needOrg={needOrg}
-          onFinish={path => {
-            closeModal();
-            router.push(path);
-          }}
-          needProject={needProject}
-        />
-      ));
-    } else {
-      router.push(to);
-    }
+    navigateTo(nextPath, router);
   };
 
   render() {
