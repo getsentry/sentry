@@ -206,7 +206,8 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
         :pparam string project_slug: the slug of the project to delete.
         :param string name: the new name for the project.
         :param string slug: the new slug for the project.
-        :param string team: the slug of new team for the project.
+        :param string team: the slug of new team for the project. Note, will be deprecated
+                            soon when multiple teams can have access to a project.
         :param string platform: the new platform for the project.
         :param boolean isBookmarked: in case this API call is invoked with a
                                      user context this allows changing of
@@ -260,6 +261,15 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
         old_team_id = None
         new_team = None
         if result.get('team'):
+            if features.has('organizations:internal-catchall',
+                            project.organization, actor=request.user):
+                return Response(
+                    {
+                        'detail': ['Editing a team via this endpoint has been deprecated.']
+                    },
+                    status=400
+                )
+
             team_list = [
                 t for t in Team.objects.get_for_user(
                     organization=project.organization,
