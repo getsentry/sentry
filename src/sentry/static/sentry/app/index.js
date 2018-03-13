@@ -1,56 +1,41 @@
 /* global module */
-import jQuery from 'jquery';
-import moment from 'moment';
+import {AppContainer} from 'react-hot-loader';
+import {renderToStaticMarkup} from 'react-dom/server';
+import * as Emotion from 'emotion';
+import * as EmotionTheming from 'emotion-theming';
+import * as GridEmotion from 'grid-emotion';
+import JsCookie from 'js-cookie';
+import PropTypes from 'prop-types';
 import Raven from 'raven-js';
 import React from 'react';
+import ReactBootstrapModal from 'react-bootstrap/lib/Modal';
 import ReactDOM from 'react-dom';
-import createReactClass from 'create-react-class';
-import {AppContainer} from 'react-hot-loader';
-import PropTypes from 'prop-types';
-import {renderToStaticMarkup} from 'react-dom/server';
+import * as ReactEmotion from 'react-emotion';
 import Reflux from 'reflux';
 import * as Router from 'react-router';
-import ReactBootstrapModal from 'react-bootstrap/lib/Modal';
-import JsCookie from 'js-cookie';
-import * as EmotionTheming from 'emotion-theming';
-import * as Emotion from 'emotion';
-import * as ReactEmotion from 'react-emotion';
-import * as GridEmotion from 'grid-emotion';
+import createReactClass from 'create-react-class';
+import jQuery from 'jquery';
+import moment from 'moment';
 
 import './utils/emotion-setup';
+
+import {CSRF_COOKIE_NAME} from './constants';
+import Main from './main';
 import * as api from './api';
+import getCookie from './utils/getCookie';
 import * as il8n from './locale';
 import plugins from './plugins';
-import Main from './main';
-
-const csrfCookieName = window.csrfCookieName || 'sc';
-
-// setup jquery for CSRF tokens
-function getCookie(name) {
-  let cookieValue = null;
-  if (document.cookie && document.cookie !== '') {
-    let cookies = document.cookie.split(';');
-    for (let i = 0; i < cookies.length; i++) {
-      let cookie = jQuery.trim(cookies[i]);
-      // Does this cookie string begin with the name we want?
-      if (cookie.substring(0, name.length + 1) == name + '=') {
-        cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
-        break;
-      }
-    }
-  }
-  return cookieValue;
-}
 
 function csrfSafeMethod(method) {
   // these HTTP methods do not require CSRF protection
   return /^(GET|HEAD|OPTIONS|TRACE)$/.test(method);
 }
 
+// setup jquery for CSRF tokens
 jQuery.ajaxSetup({
   beforeSend: function(xhr, settings) {
     if (!csrfSafeMethod(settings.type) && !this.crossDomain) {
-      xhr.setRequestHeader('X-CSRFToken', getCookie(csrfCookieName));
+      xhr.setRequestHeader('X-CSRFToken', getCookie(CSRF_COOKIE_NAME));
     }
   },
 });
