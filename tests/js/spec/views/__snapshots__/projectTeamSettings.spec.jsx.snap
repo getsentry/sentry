@@ -18,7 +18,7 @@ exports[`ProjectTeamsSettings render() renders 1`] = `
               Create a new team
             </Button>
           }
-          alignMenu="left"
+          alignMenu="right"
           isOpen={false}
           items={
             Array [

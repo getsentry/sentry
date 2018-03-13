@@ -37,7 +37,6 @@ class DropdownAutoCompleteMenu extends React.Component {
 
   static defaultProps = {
     onSelect: () => {},
-    alignMenu: 'left',
   };
 
   filterItems = (items, inputValue) =>
@@ -186,20 +185,17 @@ const StyledMenu = styled(({isOpen, alignMenu, ...props}) => <div {...props} />)
   z-index: 1;
   max-height: 300px;
   overflow-y: scroll;
+  right: 0;
+  border-radius: ${({theme}) =>
+    `${theme.borderRadius} 0 ${theme.borderRadius} ${theme.borderRadius}`};
 
-  ${({alignMenu, theme: {borderRadius}}) => {
-    if (alignMenu == 'left')
-      return `
-      left: 0;
-      border-radius: 0 ${borderRadius} ${borderRadius} ${borderRadius};
-    `;
-    else if (alignMenu == 'right')
-      return `
-      right: 0;
-      border-radius: ${borderRadius} 0 ${borderRadius} ${borderRadius};
-    `;
-    else return '';
-  }};
+  ${({alignMenu, theme}) =>
+    alignMenu == 'left'
+      ? `
+    left: 0;
+    border-radius: 0 ${theme.borderRadius} ${theme.borderRadius} ${theme.borderRadius};
+  `
+      : ''};
 `;
 
 export default DropdownAutoCompleteMenu;
