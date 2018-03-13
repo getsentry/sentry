@@ -165,7 +165,6 @@ class GroupManager(BaseManager):
             })
 
             tagstore.incr_group_tag_value_times_seen(project_id, group.id, environment.id, key, value, extra={
-                'project_id': project_id,
                 'last_seen': date,
             })
 

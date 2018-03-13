@@ -148,7 +148,9 @@ class LegacyTagStorage(TagStorage):
             if not created:
                 return
 
-            project_id = extra['project_id']
+            # TODO: the fallback to `extra` is here only temporary as we
+            #       migrate to filters after the deploy completes
+            project_id = filters.get('project_id', extra.get('project_id'))
             group_id = filters['group_id']
             key = filters['key']
 
@@ -371,6 +373,7 @@ class LegacyTagStorage(TagStorage):
                         'times_seen': count,
                     },
                     filters={
+                        'project_id': project_id,
                         'group_id': group_id,
                         'key': key,
                         'value': value,
