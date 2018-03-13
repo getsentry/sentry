@@ -36,6 +36,11 @@ describe('ProjectTeamsSettings', function() {
 
       expect(put).not.toHaveBeenCalled();
 
+      // if text is inchange, submit button is disabled
+      submit.simulate('click');
+      expect(put).not.toHaveBeenCalled();
+
+      wrapper.setState({text: 'new'});
       submit.simulate('click');
 
       expect(put).toHaveBeenCalled();
