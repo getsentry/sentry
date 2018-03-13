@@ -263,6 +263,7 @@ class OrganizationIndexEndpoint(Endpoint):
                 terms_accepted.send_robust(
                     user=request.user,
                     organization=org,
+                    ip_address=request.META['REMOTE_ADDR'],
                     sender=type(self),
                 )
 
