@@ -22,6 +22,10 @@ class OrganizationTeamsView extends React.Component {
     params: PropTypes.object,
   };
 
+  static contextTypes = {
+    location: PropTypes.object.isRequired,
+  };
+
   render() {
     let {
       allTeams,
@@ -45,7 +49,15 @@ class OrganizationTeamsView extends React.Component {
         <div className="col-md-9">
           <div className="team-list">
             <ul className="nav nav-tabs border-bottom">
-              <ListLink to={`${urlPrefix}teams/your-teams/`}>{t('Your Teams')}</ListLink>
+              <ListLink
+                to={`${urlPrefix}teams/your-teams/`}
+                isActive={loc => {
+                  let pathname = this.context.location.pathname;
+                  return pathname === `${urlPrefix}teams/` || pathname === loc.pathname;
+                }}
+              >
+                {t('Your Teams')}
+              </ListLink>
               <ListLink to={`${urlPrefix}teams/all-teams/`}>
                 {t('All Teams')}{' '}
                 <span className="badge badge-soft">{allTeams.length}</span>
