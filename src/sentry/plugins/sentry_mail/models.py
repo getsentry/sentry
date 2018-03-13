@@ -132,13 +132,14 @@ class MailPlugin(NotificationPlugin):
             if owners != ProjectOwnership.Everyone:
                 outcome = 'empty' if not owners else 'match'
                 send_to_list = self.__owners_to_user_ids(owners)
-            metrics.incr('features.owners.send_to',
-                         tags={
-                             'organization': project.organization_id,
-                             'outcome': outcome,
-                         },
-                         skip_internal=True,
-                         )
+            metrics.incr(
+                'features.owners.send_to',
+                tags={
+                    'organization': project.organization_id,
+                    'outcome': outcome,
+                },
+                skip_internal=True,
+            )
         if not event or outcome == 'everyone':
             cache_key = '%s:send_to:%s' % (self.get_conf_key(), project.pk)
             send_to_list = cache.get(cache_key)
