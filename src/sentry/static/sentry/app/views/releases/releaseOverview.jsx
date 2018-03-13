@@ -16,9 +16,14 @@ import TimeSince from '../../components/timeSince';
 import ApiMixin from '../../mixins/apiMixin';
 
 import {t} from '../../locale';
+import SentryTypes from '../../proptypes';
 
 const ReleaseOverview = createReactClass({
   displayName: 'ReleaseOverview',
+
+  propTypes: {
+    environment: SentryTypes.Environment,
+  },
 
   contextTypes: {
     release: PropTypes.object,
@@ -38,14 +43,31 @@ const ReleaseOverview = createReactClass({
   },
 
   componentDidMount() {
+    this.fetchAll();
+  },
+
+  componentDidUpdate(prevProps) {
+    if (prevProps.environment !== this.props.environment) {
+      this.fetchAll();
+    }
+  },
+
+  fetchAll() {
     let {orgId, version} = this.props.params;
+    let query = {
+      ...this.props.location.query,
+    };
+
+    if (this.props.environment) {
+      query.environment = this.props.environment.name;
+    }
 
     let path = `/organizations/${orgId}/releases/${encodeURIComponent(
       version
     )}/commitfiles/`;
     this.api.request(path, {
       method: 'GET',
-      data: this.props.location.query,
+      data: query,
       success: (data, _, jqXHR) => {
         this.setState({
           fileList: data,
@@ -64,8 +86,11 @@ const ReleaseOverview = createReactClass({
 
   getReleaseProjects() {
     let {orgId, version} = this.props.params;
+    let query = this.props.environment ? {environment: this.props.environment.name} : {};
+
     let path = `/organizations/${orgId}/releases/${encodeURIComponent(version)}/`;
     this.api.request(path, {
+      query,
       method: 'GET',
       success: (data, _, jqXHR) => {
         this.setState({
@@ -82,9 +107,12 @@ const ReleaseOverview = createReactClass({
 
   getDeploys() {
     let {orgId, version} = this.props.params;
+    let query = this.props.environment ? {environment: this.props.environment.name} : {};
+
     let path = `/organizations/${orgId}/releases/${encodeURIComponent(version)}/deploys/`;
     this.api.request(path, {
       method: 'GET',
+      query,
       success: (data, _, jqXHR) => {
         this.setState({
           deploys: data,
@@ -101,9 +129,12 @@ const ReleaseOverview = createReactClass({
 
   getRepos() {
     let {orgId} = this.props.params;
+    let query = this.props.environment ? {environment: this.props.environment.name} : {};
+
     let path = `/organizations/${orgId}/repos/`;
     this.api.request(path, {
       method: 'GET',
+      query,
       success: (data, _, jqXHR) => {
         this.setState({
           hasRepos: data.length > 0,
