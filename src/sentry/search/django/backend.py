@@ -398,21 +398,13 @@ class DjangoSearchBackend(SearchBackend):
                     del candidates[key]
 
             result = SequencePaginator(
-                map(
-                    lambda (id, score): (sort_value_to_cursor_value(score), id),
-                    candidates.items(),
-                ),
+                [(sort_value_to_cursor_value(score), id) for (id, score) in candidates.items()],
                 reverse=True,
                 **paginator_options
             ).get_result(limit, cursor, count_hits=count_hits)
 
-            result.results = filter(
-                None,
-                map(
-                    Group.objects.in_bulk(result.results).get,
-                    result.results,
-                ),
-            )
+            groups = Group.objects.in_bulk(result.results)
+            result.results = [groups[k] for k in result.results if k in groups]
 
             return result
         else:
