@@ -11,11 +11,6 @@ exports[`Helper renders cue 1`] = `
     >
       Need Help?
     </a>
-    <a
-      className="icon-close assistant-cue"
-      hidden={true}
-      onClick={[Function]}
-    />
   </div>
 </div>
 `;
@@ -50,8 +45,8 @@ exports[`Helper renders guide drawer 1`] = `
           ],
         }
       }
-      handleDismiss={[Function]}
       onClose={[Function]}
+      onDismiss={[Function]}
       step={1}
     />
   </div>
