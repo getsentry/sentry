@@ -12,7 +12,7 @@ const StyledPanelAlert = styled(Alert)`
 `;
 
 const DEFAULT_ICONS = {
-  info: 'icon-circle-question',
+  info: 'icon-circle-info',
   error: 'icon-circle-close',
   warning: 'icon-circle-exclamation',
   success: 'icon-circle-success',
