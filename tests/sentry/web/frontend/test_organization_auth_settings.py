@@ -81,7 +81,6 @@ class OrganizationAuthSettingsTest(AuthProviderTestCase):
         user = self.create_user('bar@example.com')
         organization = self.create_organization(name='foo', owner=user)
 
-        base_path = reverse('sentry-organization-auth-settings', args=[organization.slug])
         configure_path = reverse(
             'sentry-organization-auth-provider-settings',
             args=[
@@ -100,7 +99,7 @@ class OrganizationAuthSettingsTest(AuthProviderTestCase):
             resp = self.client.post(path, {'email': user.email})
 
         assert resp.status_code == 302
-        assert resp['Location'] == 'http://testserver{}'.format(base_path)
+        assert resp['Location'] == 'http://testserver{}'.format(configure_path)
 
         auth_provider = AuthProvider.objects.get(
             organization=organization,
