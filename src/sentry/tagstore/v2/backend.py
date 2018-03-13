@@ -466,16 +466,26 @@ class V2TagStorage(TagStorage):
         return deleted
 
     def delete_all_group_tag_keys(self, project_id, group_id):
-        GroupTagKey.objects.filter(
-            project_id=project_id,
-            group_id=group_id,
-        ).delete()
+        using = router.db_for_read(GroupTagKey)
+        cursor = connections[using].cursor()
+        cursor.execute(
+            """
+            DELETE FROM tagstore_grouptagkey
+            WHERE project_id = %s
+              AND group_id = %s
+        """, [project_id, group_id]
+        )
 
     def delete_all_group_tag_values(self, project_id, group_id):
-        GroupTagValue.objects.filter(
-            project_id=project_id,
-            group_id=group_id,
-        ).delete()
+        using = router.db_for_read(GroupTagValue)
+        cursor = connections[using].cursor()
+        cursor.execute(
+            """
+            DELETE FROM tagstore_grouptagvalue
+            WHERE project_id = %s
+              AND group_id = %s
+        """, [project_id, group_id]
+        )
 
     def incr_tag_value_times_seen(self, project_id, environment_id,
                                   key, value, extra=None, count=1):
