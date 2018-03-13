@@ -125,61 +125,46 @@ class MailPlugin(NotificationPlugin):
         if not (project and project.teams.exists()):
             logger.debug('Tried to send notification to invalid project: %r', project)
             return []
-
         if event:
+            send_to_list = []
+            outcome = 'everyone'
             owners, _ = ProjectOwnership.get_owners(project.id, event.data)
             if owners != ProjectOwnership.Everyone:
-                if not owners:
-                    metrics.incr(
-                        'features.owners.send_to',
-                        tags={
-                            'organization': project.organization_id,
-                            'outcome': 'empty',
-                        },
-                        skip_internal=True,
-                    )
-                    return []
-
-                metrics.incr(
-                    'features.owners.send_to',
-                    tags={
-                        'organization': project.organization_id,
-                        'outcome': 'match',
-                    },
-                    skip_internal=True,
-                )
-                send_to_list = []
-                teams_to_resolve = []
-                for owner in owners:
-                    if owner.type == User:
-                        send_to_list.append(owner.id)
-                    else:
-                        teams_to_resolve.append(owner.id)
-
-                # get all users in teams
-                if teams_to_resolve:
-                    send_to_list += User.objects.filter(
-                        is_active=True,
-                        sentry_orgmember_set__organizationmemberteam__team__id__in=teams_to_resolve,
-                    ).values_list('id', flat=True)
-                return send_to_list
-            else:
-                metrics.incr(
-                    'features.owners.send_to',
-                    tags={
-                        'organization': project.organization_id,
-                        'outcome': 'everyone',
-                    },
-                    skip_internal=True,
-                )
-
-        cache_key = '%s:send_to:%s' % (self.get_conf_key(), project.pk)
-        send_to_list = cache.get(cache_key)
-        if send_to_list is None:
-            send_to_list = [s for s in self.get_sendable_users(project) if s]
-            cache.set(cache_key, send_to_list, 60)  # 1 minute cache
+                outcome = 'empty' if not owners else 'match'
+                send_to_list = self.__owners_to_user_ids(owners)
+            metrics.incr('features.owners.send_to',
+                         tags={
+                             'organization': project.organization_id,
+                             'outcome': outcome,
+                         },
+                         skip_internal=True,
+                         )
+        if not event or outcome == 'everyone':
+            cache_key = '%s:send_to:%s' % (self.get_conf_key(), project.pk)
+            send_to_list = cache.get(cache_key)
+            if send_to_list is None:
+                send_to_list = [s for s in self.get_sendable_users(project) if s]
+                cache.set(cache_key, send_to_list, 60)  # 1 minute cache
 
         return send_to_list
+
+    def __owners_to_user_ids(self, owners):
+        user_ids = []
+        team_ids = []
+        for owner in owners:
+            if owner.type == User:
+                user_ids.append(owner.id)
+            else:
+                team_ids.append(owner.id)
+        if team_ids:
+            user_ids += self.__teams_to_user_ids(team_ids)
+        return list(set(user_ids))
+
+    def __teams_to_user_ids(self, team_ids):
+        return User.objects.filter(
+            is_active=True,
+            sentry_orgmember_set__organizationmemberteam__team__id__in=team_ids,
+        ).distinct().values_list('id', flat=True)
 
     def add_unsubscribe_link(self, context, user_id, project):
         context['unsubscribe_link'] = generate_signed_link(
