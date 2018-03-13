@@ -275,11 +275,14 @@ const StyledMemberContainer = styled('div')`
 
 const StyledUserListElement = styled(UserListElement)`
   width: 250px;
-  font-size: 0.75em;
+  font-size: 0.875em;
+  &:hover {
+    cursor: pointer;
+  }
 `;
 
 const StyledMembersLabel = styled('div')`
-  font-size: 0.75em;
+  font-size: 0.875em;
   padding: 0.75em 0;
   text-transform: uppercase;
 `;
