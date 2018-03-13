@@ -9,7 +9,7 @@ from threading import Thread
 from six.moves.queue import Queue, Full
 
 
-class QueuedPublisher():
+class QueuedPublisher(object):
     """
     A publisher that queues items locally and publishes them to a
     remote pubsub service on a background thread.
@@ -31,9 +31,9 @@ class QueuedPublisher():
 
         def worker():
             while True:
-                (channel, item) = q.get()
+                (channel, key, value) = q.get()
                 try:
-                    self.publisher.publish(channel, item)
+                    self.publisher.publish(channel, key=key, value=value)
                 except Exception:
                     logger = logging.getLogger('sentry.errors')
                     logger.debug('could not submit event to pubsub')
@@ -47,22 +47,22 @@ class QueuedPublisher():
         self._started = True
         return True
 
-    def publish(self, channel, item):
+    def publish(self, channel, value, key=None):
         if not self._start():
             return
 
         sample_channel = getattr(settings, 'PUBSUB_SAMPLING', 1.0)
         if random.random() <= sample_channel:
             try:
-                self.q.put((channel, item), block=False)
+                self.q.put((channel, key, value), block=False)
             except Full:
                 return
 
 
-class RedisPublisher():
+class RedisPublisher(object):
     def __init__(self, connection):
         self.rds = None if connection is None else redis.StrictRedis(**connection)
 
-    def publish(self, channel, item):
+    def publish(self, channel, value, key=None):
         if self.rds is not None:
-            self.rds.publish(channel, item)
+            self.rds.publish(channel, value)
