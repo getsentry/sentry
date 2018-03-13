@@ -79,8 +79,8 @@ const AssigneeSelector = createReactClass({
     if (nextProps.id != this.props.id || loading != this.state.loading) {
       let group = GroupStore.get(this.props.id);
       this.setState({
-        assignedTo: group && group.assignedTo,
         loading,
+        assignedTo: group && group.assignedTo,
       });
     }
   },
@@ -209,12 +209,66 @@ const AssigneeSelector = createReactClass({
     );
   },
 
+  renderMemberNodes() {
+    let {filter, memberList} = this.state;
+    let members = AssigneeSelector.filterMembers(memberList, filter);
+    members = AssigneeSelector.putSessionUserFirst(members);
+
+    return members && members.length ? (
+      members.map(item => {
+        return (
+          <MenuItem
+            key={buildUserId(item.id)}
+            onSelect={this.assignToUser.bind(this, item)}
+          >
+            <Avatar user={item} className="avatar" size={48} />
+            {this.highlight(item.name || item.email, filter)}
+          </MenuItem>
+        );
+      })
+    ) : (
+      <li className="not-found">
+        <span>{t('No matching users found.')}</span>
+      </li>
+    );
+  },
+
+  renderTeamNodes() {
+    let {filter} = this.state;
+    let teamNodes = [];
+    let org = this.context.organization;
+    let features = new Set(org.features);
+
+    if (features.has('internal-catchall')) {
+      teamNodes = AssigneeSelector.filterMembers(
+        this.assignableTeams(),
+        filter
+      ).map(({id, display, team}) => {
+        return (
+          <MenuItem key={id} onSelect={this.assignToTeam.bind(this, team)}>
+            <TeamAvatar team={team} className="avatar" size={48} />
+            {this.highlight(display, filter)}
+          </MenuItem>
+        );
+      });
+      if (teamNodes.length > 0) {
+        teamNodes = [...teamNodes, <hr key="divider" style={{margin: 0}} />];
+      }
+    }
+    return teamNodes;
+  },
+
   render() {
-    let {loading, assignedTo, filter, memberList} = this.state;
-    let memberListLoading = this.state.memberList === null;
+    let {loading, assignedTo} = this.state;
     let group = GroupStore.get(this.props.id);
 
-    if (loading || !group) {
+    let org = this.context.organization;
+    let features = new Set(org.features);
+    let access = new Set(org.access);
+
+    let assigneeListLoading = this.state.memberList === null || !group;
+
+    if (loading) {
       return (
         <div>
           <div className="assignee-selector anchor-right">
@@ -227,55 +281,6 @@ const AssigneeSelector = createReactClass({
     let className = classNames('assignee-selector anchor-right', {
       unassigned: !assignedTo,
     });
-
-    let members = AssigneeSelector.filterMembers(memberList, filter);
-    members = AssigneeSelector.putSessionUserFirst(members);
-
-    let memberNodes =
-      members && members.length ? (
-        members.map(item => {
-          return (
-            <MenuItem
-              key={buildUserId(item.id)}
-              disabled={loading}
-              onSelect={this.assignToUser.bind(this, item)}
-            >
-              <Avatar user={item} className="avatar" size={48} />
-              {this.highlight(item.name || item.email, filter)}
-            </MenuItem>
-          );
-        })
-      ) : (
-        <li className="not-found">
-          <span>{t('No matching users found.')}</span>
-        </li>
-      );
-
-    let teamNodes = [];
-    let org = this.context.organization;
-    let features = new Set(org.features);
-    let access = new Set(org.access);
-
-    if (features.has('internal-catchall')) {
-      teamNodes = AssigneeSelector.filterMembers(
-        this.assignableTeams(),
-        filter
-      ).map(({id, display, team}) => {
-        return (
-          <MenuItem
-            key={id}
-            disabled={loading}
-            onSelect={this.assignToTeam.bind(this, team)}
-          >
-            <TeamAvatar team={team} className="avatar" size={48} />
-            {this.highlight(display, filter)}
-          </MenuItem>
-        );
-      });
-      if (teamNodes.length > 0) {
-        teamNodes = [...teamNodes, <hr key="divider" style={{margin: 0}} />];
-      }
-    }
 
     return (
       <div>
@@ -294,39 +299,44 @@ const AssigneeSelector = createReactClass({
               )
             }
           >
-            {!memberListLoading && (
-              <MenuItem noAnchor>
-                <input
-                  type="text"
-                  className="form-control input-sm"
-                  placeholder={
-                    features.has('internal-catchall')
-                      ? t('Filter teams and people')
-                      : t('Filter members')
-                  }
-                  ref={ref => this.onFilterMount(ref)}
-                  onClick={this.onFilterClick}
-                  onKeyDown={this.onFilterKeyDown}
-                  onKeyUp={this.onFilterKeyUp}
-                />
-              </MenuItem>
-            )}
-
-            {!memberListLoading &&
-              assignedTo && (
-                <MenuItem
-                  className="clear-assignee"
-                  disabled={!loading}
-                  onSelect={this.clearAssignTo}
-                >
-                  <span className="icon-circle-cross" /> {t('Clear Assignee')}
-                </MenuItem>
-              )}
-
-            {!memberListLoading && (
+            {assigneeListLoading ? (
               <li>
-                <ul>{[...teamNodes, ...memberNodes]}</ul>
+                <FlowLayout center className="list-loading-container">
+                  <LoadingIndicator mini />
+                </FlowLayout>
               </li>
+            ) : (
+              <React.Fragment>
+                <MenuItem noAnchor>
+                  <input
+                    type="text"
+                    className="form-control input-sm"
+                    placeholder={
+                      features.has('internal-catchall')
+                        ? t('Filter teams and people')
+                        : t('Filter members')
+                    }
+                    ref={ref => this.onFilterMount(ref)}
+                    onClick={this.onFilterClick}
+                    onKeyDown={this.onFilterKeyDown}
+                    onKeyUp={this.onFilterKeyUp}
+                  />
+                </MenuItem>
+
+                {assignedTo && (
+                  <MenuItem
+                    className="clear-assignee"
+                    disabled={!loading}
+                    onSelect={this.clearAssignTo}
+                  >
+                    <span className="icon-circle-cross" /> {t('Clear Assignee')}
+                  </MenuItem>
+                )}
+
+                <li>
+                  <ul>{[...this.renderTeamNodes(), ...this.renderMemberNodes()]}</ul>
+                </li>
+              </React.Fragment>
             )}
 
             {ConfigStore.get('invitesEnabled') &&
@@ -340,14 +350,6 @@ const AssigneeSelector = createReactClass({
                   <span className="icon-plus" /> {t('Invite Member')}
                 </MenuItem>
               )}
-
-            {memberListLoading && (
-              <li>
-                <FlowLayout center className="list-loading-container">
-                  <LoadingIndicator mini />
-                </FlowLayout>
-              </li>
-            )}
           </DropdownLink>
         </div>
       </div>
