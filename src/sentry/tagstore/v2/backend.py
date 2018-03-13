@@ -630,14 +630,13 @@ class V2TagStorage(TagStorage):
                 SELECT SUM(t)
                 FROM (
                     SELECT tagstore_grouptagvalue.times_seen as t
-                    FROM tagstore_grouptagvalue
-                    INNER JOIN tagstore_tagkey
-                    ON (tagstore_grouptagvalue.value_id = tagstore_tagvalue.id
-                        AND tagstore_tagvalue.key_id = tagstore_tagkey.id)
+                    FROM tagstore_grouptagvalue, tagstore_tagvalue, tagstore_tagkey
                     WHERE tagstore_grouptagvalue.group_id = %s
                     AND tagstore_tagkey.environment_id = %s
                     AND tagstore_tagkey.key = %s
-                    ORDER BY last_seen DESC
+                    AND tagstore_grouptagvalue.value_id = tagstore_tagvalue.id
+                    AND tagstore_tagvalue.key_id = tagstore_tagkey.id
+                    ORDER BY tagstore_grouptagvalue.last_seen DESC
                     LIMIT 10000
                 ) as a
             """, [group_id, environment_id, key]
@@ -668,18 +667,16 @@ class V2TagStorage(TagStorage):
                            tagstore_grouptagvalue.project_id,
                            tagstore_grouptagvalue.group_id,
                            tagstore_grouptagvalue.times_seen,
-                           tagstore_grouptagvalue.key_id,
                            tagstore_grouptagvalue.value_id,
                            tagstore_grouptagvalue.last_seen,
                            tagstore_grouptagvalue.first_seen
-                    FROM tagstore_grouptagvalue
-                    INNER JOIN tagstore_tagkey
-                    ON (tagstore_grouptagvalue.value_id = tagstore_tagvalue.id
-                        AND tagstore_tagvalue.key_id = tagstore_tagkey.id)
+                    FROM tagstore_grouptagvalue, tagstore_tagvalue, tagstore_tagkey
                     WHERE tagstore_grouptagvalue.group_id = %%s
                     AND tagstore_tagkey.environment_id = %%s
                     AND tagstore_tagkey.key = %%s
-                    ORDER BY last_seen DESC
+                    AND tagstore_grouptagvalue.value_id = tagstore_tagvalue.id
+                    AND tagstore_tagvalue.key_id = tagstore_tagkey.id
+                    ORDER BY tagstore_grouptagvalue.last_seen DESC
                     LIMIT 10000
                 ) as a
                 ORDER BY times_seen DESC
