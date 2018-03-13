@@ -484,7 +484,7 @@ const Stream = createReactClass({
       let {orgId, projectId} = this.props.params;
       HookStore.get('analytics:event').forEach(cb =>
         cb('issue.search', {
-          query: this.state.queruy,
+          query: this.state.query,
           organization_id: orgId,
           project_id: projectId,
         })
