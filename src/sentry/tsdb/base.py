@@ -197,49 +197,42 @@ class BaseTSDB(Service):
         """
         return int(epoch / seconds)
 
-    def get_optimal_rollup(self, start_timestamp, end_timestamp):
+    def get_optimal_rollup(self, start):
         """
-        Identify the lowest granularity rollup available within the given time
-        range.
+        Return the size (in seconds) of the finest-granularity available rollup
+        that will have data available in the given time range.
+
+        Because rollups are kept as a FIFO up to the current time, we check the
+        time range from ``start`` up until now.  Rollups in the distant past
+        will already have been TTL'd and ones in the future don't exist yet.
+
+        If no applicable rollups are found, return the largest (lowest
+        resolution) one
         """
-        num_seconds = int(to_timestamp(end_timestamp)) - int(to_timestamp(start_timestamp))
-
-        # This loop attempts to find the smallest possible rollup that will
-        # contain both the start and end timestamps. ``self.rollups`` is
-        # ordered from the highest resolution (smallest interval) to lowest
-        # resolution (largest interval.)
-        # XXX: There is a bug here, since this function assumes that the end
-        # timestamp is always equal to or greater than the current time. If the
-        # time range is shifted far enough into the past (e.g. a 30 second
-        # window, retrieved several days after it's occurrence), this can
-        # return a rollup that has already been evicted due to TTL, even if a
-        # lower resolution representation of the range exists.
-        for rollup, samples in six.iteritems(self.rollups):
-            if rollup * samples >= num_seconds:
-                return rollup
-
-        # If nothing actually matches the requested range, just return the
-        # lowest resolution interval.
-        return list(self.rollups)[-1]
+        seconds = (timezone.now() - start).total_seconds()
+        it = (size for size, count in six.iteritems(self.rollups) if size * count >= seconds)
+        return next(it, self.rollups.keys()[-1])
 
     def get_optimal_rollup_series(self, start, end=None, rollup=None):
+        """
+        Return the rollup size (in seconds) and the list of starting datetimes
+        for rollup-sized buckets that cover the range of time between ``start``
+        and ``end``. The last bucket will cover the ``end`` timestamp, but the
+        first bucket may start after ``start``.
+        """
         if end is None:
             end = timezone.now()
 
         if rollup is None:
-            rollup = self.get_optimal_rollup(start, end)
+            rollup = self.get_optimal_rollup(start)
 
-        # This attempts to create a range with a duration as close as possible
-        # to the requested interval using the requested (or inferred) rollup
-        # resolution. This result always includes the ``end`` timestamp, but
-        # may not include the ``start`` timestamp.
         series = []
         timestamp = end
         while timestamp >= start:
-            series.append(self.normalize_to_epoch(timestamp, rollup))
+            series.insert(0, self.normalize_to_epoch(timestamp, rollup))
             timestamp = timestamp - timedelta(seconds=rollup)
 
-        return rollup, sorted(series)
+        return rollup, series
 
     def get_active_series(self, start=None, end=None, timestamp=None):
         rollups = {}
