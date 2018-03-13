@@ -346,10 +346,9 @@ class V2TagStorage(TagStorage):
 
         tag_ids = []
         for key, value in tags:
-            tagkey, _ = self.get_or_create_tag_key(project_id, environment_id, key)
             tagvalue, _ = self.get_or_create_tag_value(
-                project_id, environment_id, key, value, key_id=tagkey.id)
-            tag_ids.append((tagkey.id, tagvalue.id))
+                project_id, environment_id, key, value)
+            tag_ids.append(tagvalue.id)
 
         try:
             # don't let a duplicate break the outer transaction
@@ -362,11 +361,10 @@ class V2TagStorage(TagStorage):
                         project_id=project_id,
                         group_id=group_id,
                         event_id=event_id,
-                        key_id=key_id,
                         value_id=value_id,
                         date_added=date_added,
                     )
-                    for key_id, value_id in tag_ids
+                    for value_id in tag_ids
                 ])
         except IntegrityError:
             logger.error(
