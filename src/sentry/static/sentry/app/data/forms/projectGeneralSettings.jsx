@@ -57,7 +57,10 @@ export const fields = {
     name: 'team',
     type: 'array',
     label: t('Team'),
-    visible: ({organization}) => organization.teams.length > 1,
+    visible: ({organization}) => {
+      let features = new Set(organization.features);
+      return !features.has('internal-catchall') && organization.teams.length > 1;
+    },
     choices: ({organization}) =>
       organization.teams.filter(o => o.isMember).map(o => [o.slug, o.slug]),
     help: t('Update the team that owns this project'),
