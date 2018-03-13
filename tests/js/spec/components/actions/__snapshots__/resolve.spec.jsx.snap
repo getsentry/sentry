@@ -112,6 +112,18 @@ exports[`ResolveActions with confirmation step renders 1`] = `
                 }
               }
             />
+            <GuideAnchor
+              target="resolve"
+              type="text"
+            >
+              <div
+                className="guide-anchor anchor-type-text"
+              >
+                <span
+                  className="resolve guide-anchor-ping"
+                />
+              </div>
+            </GuideAnchor>
             Resolve
           </a>
           <Modal
@@ -405,7 +417,7 @@ exports[`ResolveActions with confirmation step renders 1`] = `
                         disabled={false}
                         onClick={[Function]}
                       >
-                        Another version\u2026
+                        Another version…
                       </a>
                     </ActionLink>
                   </Tooltip>
@@ -521,6 +533,18 @@ exports[`ResolveActions without confirmation renders 1`] = `
               }
             }
           />
+          <GuideAnchor
+            target="resolve"
+            type="text"
+          >
+            <div
+              className="guide-anchor anchor-type-text"
+            >
+              <span
+                className="resolve guide-anchor-ping"
+              />
+            </div>
+          </GuideAnchor>
           Resolve
         </a>
       </ActionLink>
@@ -636,7 +660,7 @@ exports[`ResolveActions without confirmation renders 1`] = `
                         disabled={false}
                         onClick={[Function]}
                       >
-                        Another version\u2026
+                        Another version…
                       </a>
                     </ActionLink>
                   </Tooltip>

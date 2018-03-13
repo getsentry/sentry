@@ -8,6 +8,7 @@ import ApiMixin from '../../mixins/apiMixin';
 import LoadingError from '../../components/loadingError';
 import LoadingIndicator from '../../components/loadingIndicator';
 import Pagination from '../../components/pagination';
+import GuideAnchor from '../../components/assistant/guideAnchor';
 import SearchBar from '../../components/searchBar';
 import {t, tct} from '../../locale';
 
@@ -176,6 +177,7 @@ const ProjectReleases = createReactClass({
   render() {
     return (
       <div>
+        <GuideAnchor target="releases" type="invisible" />
         <div className="row release-list-header">
           <div className="col-sm-7">
             <h3>{t('Releases')}</h3>
