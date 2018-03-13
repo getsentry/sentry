@@ -101,16 +101,16 @@ GUIDES = {
         'required_targets': ['issues'],
         'steps': [
             {
-                'title': _('1. Events at Sentry'),
+                'title': _('1. Events'),
                 'message': _(
-                    'When your application throws an error, that error is captured by Sentry as an Event.'),
+                    'When your application throws an error, that error is captured by Sentry as an event.'),
                 'target': 'issues',
             },
             {
-                'title': _('2. Issues at Sentry'),
+                'title': _('2. Issues'),
                 'message': _(
-                    'Individual Events are then automatically rolled up and grouped into Issues with other like Events. '
-                    'A single Issue can represent anywhere from one to thousands of individual Events, depending on how many times a specific error is thrown'),
+                    'Individual events are then automatically rolled up and grouped into Issues with other similar events. '
+                    'A single issue can represent anywhere from one to thousands of individual events, depending on how many times a specific error is thrown'),
                 'target': 'events',
             },
         ]
