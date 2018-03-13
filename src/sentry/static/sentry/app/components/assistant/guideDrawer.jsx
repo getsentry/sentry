@@ -10,7 +10,7 @@ export default class GuideDrawer extends React.Component {
     guide: PropTypes.object.isRequired,
     step: PropTypes.number.isRequired,
     onClose: PropTypes.func.isRequired,
-    handleDismiss: PropTypes.func.isRequired,
+    onDismiss: PropTypes.func.isRequired,
   };
 
   handleUseful = useful => {
@@ -34,7 +34,7 @@ export default class GuideDrawer extends React.Component {
           {this.props.step < this.props.guide.steps.length ? (
             <div>
               <Button onClick={nextStep}>{t('Next')} &rarr;</Button>
-              <Button onClick={this.props.handleDismiss}>{t('Dismiss')}</Button>
+              <Button onClick={this.props.onDismiss}>{t('Dismiss')}</Button>
             </div>
           ) : (
             <div>
