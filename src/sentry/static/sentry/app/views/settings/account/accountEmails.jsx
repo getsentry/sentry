@@ -3,6 +3,7 @@ import PropTypes from 'prop-types';
 import React from 'react';
 import styled from 'react-emotion';
 
+import {addErrorMessage} from '../../../actionCreators/indicator';
 import {t} from '../../../locale';
 import AlertLink from '../../../components/alertLink';
 import AsyncView from '../../asyncView';
@@ -13,8 +14,8 @@ import Panel from '../components/panel';
 import PanelBody from '../components/panelBody';
 import PanelHeader from '../components/panelHeader';
 import PanelItem from '../components/panelItem';
-import Tag from '../components/tag';
 import SettingsPageHeader from '../components/settingsPageHeader';
+import Tag from '../components/tag';
 import accountEmailsFields from '../../../data/forms/accountEmails';
 
 const ENDPOINT = '/users/me/emails/';
@@ -89,6 +90,14 @@ class AccountEmails extends AsyncView {
     this.remountComponent();
   };
 
+  handleError = err => {
+    this.remountComponent();
+
+    if (err && err.responseJSON && err.responseJSON.email) {
+      addErrorMessage(err.responseJSON.email);
+    }
+  };
+
   handleSetPrimary = email => {
     this.setState({loading: true, emails: []}, () => {
       this.api
@@ -98,7 +107,8 @@ class AccountEmails extends AsyncView {
             email,
           },
         })
-        .then(this.remountComponent.bind(this));
+        .then(this.remountComponent.bind(this))
+        .catch(this.handleError);
     });
   };
 
@@ -111,7 +121,8 @@ class AccountEmails extends AsyncView {
             email,
           },
         })
-        .then(this.remountComponent.bind(this));
+        .then(this.remountComponent.bind(this))
+        .catch(this.handleError);
     });
   };
 
