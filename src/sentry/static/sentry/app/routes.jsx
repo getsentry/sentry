@@ -474,7 +474,7 @@ function routes() {
       <Route path="settings/" component={errorHandler(OrganizationGeneralSettingsView)} />
 
       <Route name="Teams" path="teams/">
-        <IndexRoute name="Teams" component={errorHandler(OrganizationTeams)} />
+        <IndexRoute component={errorHandler(OrganizationTeams)} />
 
         <Route
           path="all-teams/"
