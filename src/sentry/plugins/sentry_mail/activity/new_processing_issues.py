@@ -55,12 +55,12 @@ class NewProcessingIssuesActivityEmail(ActivityEmail):
         }
 
     def get_subject(self):
-        is_internal = features.has(
-            'organizations:internal-catchall',
+        has_new_teams = features.has(
+            'organizations:new-teams',
             self.organization,
         )
         return u'Processing Issues on {}'.format(
-            self.project.slug if is_internal else self.project.name,
+            self.project.slug if has_new_teams else self.project.name,
         )
 
     def get_template(self):

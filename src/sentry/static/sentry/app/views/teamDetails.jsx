@@ -97,7 +97,7 @@ const TeamDetails = createReactClass({
     const features = new Set(this.context.organization.features);
     return (
       <div>
-        <h3>{features.has('internal-catchall') ? `#${team.slug}` : team.name}</h3>
+        <h3>{features.has('new-teams') ? `#${team.slug}` : team.name}</h3>
 
         {!features.has('new-settings') &&
           access.has('team:admin') && (

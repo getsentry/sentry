@@ -94,7 +94,7 @@ const ProjectSelector = createReactClass({
       }
 
       let fullName;
-      if (features.has('internal-catchall')) {
+      if (features.has('new-teams')) {
         fullName = [project.name, project.slug];
       } else {
         fullName = [team.name, project.name, team.slug, project.slug];
@@ -224,7 +224,7 @@ const ProjectSelector = createReactClass({
     let label, text;
     let features = new Set(this.props.organization.features);
 
-    if (features.has('internal-catchall')) {
+    if (features.has('new-teams')) {
       label = <span>{project.slug}</span>;
       text = project.slug;
     } else if (!hasSingleTeam && project.name.indexOf(team.name) === -1) {
@@ -321,7 +321,7 @@ const ProjectSelector = createReactClass({
     let hasSingleTeam = org.teams.length === 1;
 
     let projectList;
-    if (features.has('internal-catchall')) {
+    if (features.has('new-teams')) {
       projectList = sortArray(this.state.projectList, ([team, project]) => {
         return [!project.isBookmarked, project.name];
       });

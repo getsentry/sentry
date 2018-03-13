@@ -58,7 +58,7 @@ describe('TeamCreate', function() {
       wrapper.setContext({
         organization: {
           id: '1337',
-          features: ['internal-catchall'],
+          features: ['new-teams'],
         },
       });
       wrapper.instance().onSubmitSuccess({

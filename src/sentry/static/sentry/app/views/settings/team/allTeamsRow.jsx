@@ -115,7 +115,7 @@ const AllTeamsRow = createReactClass({
   render() {
     let {access, team, urlPrefix, openMembership, organization} = this.props;
     let features = new Set(organization.features);
-    let display = features.has('internal-catchall') ? `#${team.slug}` : team.name;
+    let display = features.has('new-teams') ? `#${team.slug}` : team.name;
     return (
       <PanelItem p={0} align="center">
         <Box flex="1" p={2}>

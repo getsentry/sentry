@@ -296,9 +296,7 @@ const NoteInput = createReactClass({
       mentionableTeams,
     } = this.state;
 
-    let hasTeamMentions = new Set(this.getOrganization().features).has(
-      'internal-catchall'
-    );
+    let hasTeamMentions = new Set(this.getOrganization().features).has('new-teams');
     let placeHolderText = hasTeamMentions
       ? t('Add details or updates to this event. \nTag users with @, or teams with #')
       : t('Add details or updates to this event. \nTag users with @');

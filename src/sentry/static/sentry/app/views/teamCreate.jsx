@@ -18,7 +18,7 @@ export default class TeamCreate extends AsyncView {
 
     // Legacy behavior: redirect to project creation
     let redirectUrl = `/organizations/${orgId}/projects/new/?team=${data.slug}`;
-    if (features.has('internal-catchall')) {
+    if (features.has('new-teams')) {
       // New behavior: redirect to team settings page
       redirectUrl = `/settings/organization/${orgId}/teams/${data.slug}/`;
     }
@@ -31,7 +31,7 @@ export default class TeamCreate extends AsyncView {
 
   renderField() {
     let features = new Set(this.context.organization.features);
-    return features.has('internal-catchall') ? (
+    return features.has('new-teams') ? (
       <TextField
         name="slug"
         label={t('Team Slug')}
