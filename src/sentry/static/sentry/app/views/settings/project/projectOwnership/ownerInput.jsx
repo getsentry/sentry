@@ -88,7 +88,9 @@ class OwnerInput extends React.Component {
     this.setState({text: v.target.value});
   }
   render() {
+    let {initialText} = this.props;
     let {text, error} = this.state;
+
     let mentionableUsers = this.mentionableUsers();
     let mentionableTeams = this.mentionableTeams();
 
@@ -113,8 +115,7 @@ class OwnerInput extends React.Component {
             value={text}
             required={true}
             autoFocus={true}
-            displayTransform={(id, display, type) =>
-              `${type === 'member' ? '' : '#'}${display}`}
+            displayTransform={(id, display, type) => `${display}`}
             markup="**[sentry.strip:__type__]__display__**"
             spellCheck="false"
             autoComplete="off"
@@ -134,10 +135,18 @@ class OwnerInput extends React.Component {
               appendSpaceOnAdd={true}
             />
           </MentionsInput>
-          {error && <SyntaxOverlay line={error.raw[0].match(/line (\d*),/)[1] - 1} />}
+          {error &&
+            error.raw && (
+              <SyntaxOverlay line={error.raw[0].match(/line (\d*),/)[1] - 1} />
+            )}
           {error && error.raw.toString()}
           <div style={{textAlign: 'end', paddingTop: '10px'}}>
-            <Button size="small" priority="primary" onClick={this.handleUpdateOwnership}>
+            <Button
+              size="small"
+              priority="primary"
+              onClick={this.handleUpdateOwnership}
+              disabled={text === initialText}
+            >
               {t('Save Changes')}
             </Button>
           </div>
