@@ -99,7 +99,10 @@ class V2TagStorage(TagStorage):
             def mark_deletion_in_progress(self, instance_list):
                 for instance in instance_list:
                     if instance.status != TagKeyStatus.DELETION_IN_PROGRESS:
-                        instance.update(status=TagKeyStatus.DELETION_IN_PROGRESS)
+                        TagKey.objects.filter(
+                            id=instance.id,
+                            project_id=instance.project_id,
+                        ).update(status=TagKeyStatus.DELETION_IN_PROGRESS)
 
         deletion_manager.register(TagKey, TagKeyDeletionTask)
 
@@ -778,7 +781,10 @@ class V2TagStorage(TagStorage):
         )
 
         for instance in gtk_qs:
-            instance.update(
+            GroupTagKey.objects.filter(
+                id=instance.id,
+                project_id=project_id,
+            ).update(
                 values_seen=GroupTagValue.objects.filter(
                     project_id=instance.project_id,
                     group_id=instance.group_id,

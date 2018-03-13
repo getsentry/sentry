@@ -108,7 +108,11 @@ class GroupTagValue(Model):
                     _key_id=self._key_id,
                     _value_id=self._value_id,
                 )
-                new_obj.update(
+
+                GroupTagValue.objects.filter(
+                    id=new_obj.id,
+                    project_id=new_group.project_id,
+                ).update(
                     first_seen=min(new_obj.first_seen, self.first_seen),
                     last_seen=max(new_obj.last_seen, self.last_seen),
                     times_seen=new_obj.times_seen + self.times_seen,
