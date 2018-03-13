@@ -167,24 +167,24 @@ const GroupActivity = createReactClass({
         return t('%s first saw this issue', author);
       case 'assigned':
         if (data.assigneeType == 'team') {
-          return t('%(author)s assigned this event to the %(assignee)s Team', {
+          return t('%(author)s assigned this issue to #%(assignee)s', {
             author,
-            assignee: TeamStore.getById(data.assignee).name,
+            assignee: TeamStore.getById(data.assignee).slug,
           });
         }
         let assignee;
         if (item.user && data.assignee === item.user.id) {
           assignee = 'themselves';
-          return t('%s assigned this event to themselves', author);
+          return t('%s assigned this issue to themselves', author);
         } else {
           assignee = MemberListStore.getById(data.assignee);
           if (assignee && assignee.email) {
-            return t('%(author)s assigned this event to %(assignee)s', {
+            return t('%(author)s assigned this issue to %(assignee)s', {
               author,
               assignee: assignee.email,
             });
           } else {
-            return t('%s assigned this event to an unknown user', author);
+            return t('%s assigned this issue to an unknown user', author);
           }
         }
       case 'unassigned':
