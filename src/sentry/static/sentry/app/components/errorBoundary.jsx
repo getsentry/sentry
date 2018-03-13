@@ -1,6 +1,7 @@
 import Raven from 'raven-js';
 import React from 'react';
 import styled from 'react-emotion';
+import {browserHistory} from 'react-router';
 
 import {t} from '../locale';
 import DetailedError from './errors/detailedError';
@@ -15,6 +16,17 @@ class ErrorBoundary extends React.Component {
   constructor(props) {
     super(props);
     this.state = {error: null};
+  }
+
+  componentDidMount() {
+    // Listen for route changes so we can clear error
+    this.unlisten = browserHistory.listen(() => this.setState({error: null}));
+  }
+
+  componentWillUnmount() {
+    if (this.unlisten) {
+      this.unlisten();
+    }
   }
 
   componentDidCatch(error, errorInfo) {
