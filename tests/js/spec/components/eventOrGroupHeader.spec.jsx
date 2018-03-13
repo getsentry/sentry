@@ -10,9 +10,9 @@ const data = {
     directive: 'metadata directive',
     uri: 'metadata uri',
     value: 'metadata value',
-    message: 'metadata message'
+    message: 'metadata message',
   },
-  culprit: 'culprit'
+  culprit: 'culprit',
 };
 
 describe('EventOrGroupHeader', function() {
@@ -20,7 +20,7 @@ describe('EventOrGroupHeader', function() {
     const groupData = {
       ...data,
       level: 'error',
-      id: 'id'
+      id: 'id',
     };
     it('renders with `type = error`', function() {
       let component = shallow(
@@ -30,8 +30,8 @@ describe('EventOrGroupHeader', function() {
           data={{
             ...groupData,
             ...{
-              type: 'error'
-            }
+              type: 'error',
+            },
           }}
         />
       );
@@ -47,8 +47,8 @@ describe('EventOrGroupHeader', function() {
           data={{
             ...groupData,
             ...{
-              type: 'csp'
-            }
+              type: 'csp',
+            },
           }}
         />
       );
@@ -64,8 +64,8 @@ describe('EventOrGroupHeader', function() {
           data={{
             ...groupData,
             ...{
-              type: 'default'
-            }
+              type: 'default',
+            },
           }}
         />
       );
@@ -80,7 +80,7 @@ describe('EventOrGroupHeader', function() {
       id: 'id',
       eventID: 'eventID',
       groupID: 'groupID',
-      culprit: undefined
+      culprit: undefined,
     };
 
     it('renders with `type = error`', function() {
@@ -91,8 +91,8 @@ describe('EventOrGroupHeader', function() {
           data={{
             ...eventData,
             ...{
-              type: 'error'
-            }
+              type: 'error',
+            },
           }}
         />
       );
@@ -108,8 +108,8 @@ describe('EventOrGroupHeader', function() {
           data={{
             ...eventData,
             ...{
-              type: 'csp'
-            }
+              type: 'csp',
+            },
           }}
         />
       );
@@ -125,8 +125,8 @@ describe('EventOrGroupHeader', function() {
           data={{
             ...eventData,
             ...{
-              type: 'default'
-            }
+              type: 'default',
+            },
           }}
         />
       );
@@ -143,8 +143,8 @@ describe('EventOrGroupHeader', function() {
           data={{
             ...eventData,
             ...{
-              type: 'default'
-            }
+              type: 'default',
+            },
           }}
         />
       );

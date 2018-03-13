@@ -1,10 +1,11 @@
 import PropTypes from 'prop-types';
 import React from 'react';
+import createReactClass from 'create-react-class';
 import _ from 'lodash';
 
-import AlertActions from '../actions/alertActions';
 import Avatar from '../components/avatar';
 import EventOrGroupHeader from '../components/eventOrGroupHeader';
+import IndicatorStore from '../stores/indicatorStore';
 import LoadingError from '../components/loadingError';
 import LinkWithConfirmation from '../components/linkWithConfirmation';
 import TooltipMixin from '../mixins/tooltip';
@@ -13,22 +14,25 @@ import ApiMixin from '../mixins/apiMixin';
 
 import {t} from '../locale';
 
-const GroupTombstoneRow = React.createClass({
+const GroupTombstoneRow = createReactClass({
+  displayName: 'GroupTombstoneRow',
+
   propTypes: {
     data: PropTypes.object.isRequired,
     undiscard: PropTypes.func.isRequired,
     orgId: PropTypes.string.isRequired,
-    projectId: PropTypes.string.isRequired
+    projectId: PropTypes.string.isRequired,
   },
 
   mixins: [
     TooltipMixin({
-      selector: '.tip'
-    })
+      selector: '.tip',
+    }),
   ],
 
   render() {
-    let {data, undiscard} = this.props, actor = data.actor;
+    let {data, undiscard} = this.props,
+      actor = data.actor;
 
     return (
       <li className={`group row level-${data.level} type-${data.type}`}>
@@ -40,10 +44,11 @@ const GroupTombstoneRow = React.createClass({
           />
         </div>
         <div className="col-md-1 event-actor">
-          {actor &&
+          {actor && (
             <span className="tip" title={t('Discarded by %s', actor.name || actor.email)}>
               <Avatar user={data.actor} />
-            </span>}
+            </span>
+          )}
         </div>
         <div className="col-md-1 event-undiscard">
           <span className="tip" title={t('Undiscard')}>
@@ -58,23 +63,26 @@ const GroupTombstoneRow = React.createClass({
               )}
               onConfirm={() => {
                 undiscard(data.id);
-              }}>
+              }}
+            >
               <span className="icon-trash undiscard" />
             </LinkWithConfirmation>
           </span>
         </div>
       </li>
     );
-  }
+  },
 });
 
-const GroupTombstones = React.createClass({
+const GroupTombstones = createReactClass({
+  displayName: 'GroupTombstones',
+
   propTypes: {
     orgId: PropTypes.string.isRequired,
     projectId: PropTypes.string.isRequired,
     tombstones: PropTypes.array.isRequired,
     tombstoneError: PropTypes.bool.isRequired,
-    fetchData: PropTypes.func.isRequired
+    fetchData: PropTypes.func.isRequired,
   },
 
   mixins: [ApiMixin],
@@ -85,23 +93,23 @@ const GroupTombstones = React.createClass({
     this.api.request(path, {
       method: 'DELETE',
       success: data => {
-        AlertActions.addAlert({
-          message: t('Events similar to these will no longer be filtered'),
-          type: 'success'
-        });
+        IndicatorStore.add(
+          t('Events similar to these will no longer be filtered'),
+          'success',
+          {duration: 4000}
+        );
       },
       error: () => {
-        AlertActions.addAlert({
-          message: t('We were unable to discard this group'),
-          type: 'error'
+        IndicatorStore.add(t('We were unable to undiscard this group'), 'error', {
+          duration: 4000,
         });
-      }
+      },
     });
     this.props.fetchData();
   },
 
   renderEmpty() {
-    return <div className="box empty">{t('None')}</div>;
+    return <div className="box empty">{t('You have no discarded issues')}</div>;
   },
 
   render() {
@@ -112,27 +120,28 @@ const GroupTombstones = React.createClass({
       <div>
         <div className="row" style={{paddingTop: 10}}>
           <div className="col-md-12 discarded-groups">
-            <h5>{t('Discarded Groups')}</h5>
-            {tombstones.length
-              ? <ul className="group-list">
-                  {tombstones.map(data => {
-                    return (
-                      <GroupTombstoneRow
-                        key={data.id}
-                        data={data}
-                        orgId={orgId}
-                        projectId={projectId}
-                        undiscard={this.undiscard}
-                      />
-                    );
-                  })}
-                </ul>
-              : this.renderEmpty()}
+            {tombstones.length ? (
+              <ul className="group-list">
+                {tombstones.map(data => {
+                  return (
+                    <GroupTombstoneRow
+                      key={data.id}
+                      data={data}
+                      orgId={orgId}
+                      projectId={projectId}
+                      undiscard={this.undiscard}
+                    />
+                  );
+                })}
+              </ul>
+            ) : (
+              this.renderEmpty()
+            )}
           </div>
         </div>
       </div>
     );
-  }
+  },
 });
 
 export default GroupTombstones;

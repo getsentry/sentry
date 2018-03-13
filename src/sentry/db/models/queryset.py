@@ -5,7 +5,9 @@ __all__ = ('BoundDateQuerySet', 'BoundDateTimeQuerySet',
 
 import six
 
-from django.db.models.query import DateQuerySet, DateTimeQuerySet, QuerySet, ValuesQuerySet
+from django.db.models.query import (
+    DateQuerySet, DateTimeQuerySet, QuerySet, ValuesListQuerySet, ValuesQuerySet
+)
 
 
 def bound_queryset(cls, prefix='Bound'):
@@ -98,12 +100,14 @@ def bound_queryset(cls, prefix='Bound'):
 
 BoundQuerySet = bound_queryset(QuerySet)
 BoundValuesQuerySet = bound_queryset(ValuesQuerySet)
+BoundValuesListQuerySet = bound_queryset(ValuesListQuerySet)
 BoundDateQuerySet = bound_queryset(DateQuerySet)
 BoundDateTimeQuerySet = bound_queryset(DateTimeQuerySet)
 
 CLASS_MAPPING = {
     QuerySet: BoundQuerySet,
     ValuesQuerySet: BoundValuesQuerySet,
+    ValuesListQuerySet: BoundValuesListQuerySet,
     DateQuerySet: BoundDateQuerySet,
     DateTimeQuerySet: BoundDateTimeQuerySet,
 }

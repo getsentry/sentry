@@ -16,6 +16,7 @@ EMAILS = (
     ('/debug/mail/resolved-in-release/upcoming/', 'resolved in release upcoming'),
     ('/debug/mail/unassigned/', 'unassigned'),
     ('/debug/mail/unable-to-fetch-commits/', 'unable to fetch commits'),
+    ('/debug/mail/unable-to-delete-repo/', 'unable to delete repo'),
     ('/debug/mail/alert/', 'alert'),
     ('/debug/mail/digest/', 'digest'),
     ('/debug/mail/invalid-identity/', 'invalid identity'),
@@ -24,6 +25,9 @@ EMAILS = (
     ('/debug/mail/mfa-added/', 'mfa added'),
     ('/debug/mail/mfa-removed/', 'mfa removed'),
     ('/debug/mail/password-changed/', 'password changed'),
+    ('/debug/mail/sso-linked', 'sso linked'),
+    ('/debug/mail/sso-unlinked', 'sso unlinked'),
+    ('/debug/mail/sso-unlinked/no-password', 'sso unlinked without password'),
 )
 
 

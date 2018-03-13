@@ -14,10 +14,10 @@ const generateClassName = function(name) {
     .replace(/\-+$/, '');
 };
 
-const NoSummary = React.createClass({
-  propTypes: {
-    title: PropTypes.string.isRequired
-  },
+class NoSummary extends React.Component {
+  static propTypes = {
+    title: PropTypes.string.isRequired,
+  };
 
   render() {
     return (
@@ -27,13 +27,13 @@ const NoSummary = React.createClass({
       </div>
     );
   }
-});
+}
 
-const GenericSummary = React.createClass({
-  propTypes: {
+class GenericSummary extends React.Component {
+  static propTypes = {
     data: PropTypes.object.isRequired,
-    unknownTitle: PropTypes.string.isRequired
-  },
+    unknownTitle: PropTypes.string.isRequired,
+  };
 
   render() {
     let data = this.props.data;
@@ -48,16 +48,18 @@ const GenericSummary = React.createClass({
       <div className={`context-item ${className}`}>
         <span className="context-item-icon" />
         <h3>{data.name}</h3>
-        <p><strong>{t('Version:')}</strong> {data.version || t('Unknown')}</p>
+        <p>
+          <strong>{t('Version:')}</strong> {data.version || t('Unknown')}
+        </p>
       </div>
     );
   }
-});
+}
 
-const UserSummary = React.createClass({
-  propTypes: {
-    data: PropTypes.object.isRequired
-  },
+class UserSummary extends React.Component {
+  static propTypes = {
+    data: PropTypes.object.isRequired,
+  };
 
   render() {
     let user = this.props.data;
@@ -74,29 +76,33 @@ const UserSummary = React.createClass({
 
     return (
       <div className="context-item user">
-        {userTitle
-          ? <Avatar
-              user={user}
-              size={48}
-              className="context-item-icon"
-              gravatar={false}
-            />
-          : <span className="context-item-icon" />}
+        {userTitle ? (
+          <Avatar user={user} size={48} className="context-item-icon" gravatar={false} />
+        ) : (
+          <span className="context-item-icon" />
+        )}
         <h3>{userTitle}</h3>
-        {user.id && user.id !== userTitle
-          ? <p><strong>{t('ID:')}</strong> {user.id}</p>
-          : user.username &&
-              user.username !== userTitle &&
-              <p><strong>{t('Username:')}</strong> {user.username}</p>}
+        {user.id && user.id !== userTitle ? (
+          <p>
+            <strong>{t('ID:')}</strong> {user.id}
+          </p>
+        ) : (
+          user.username &&
+          user.username !== userTitle && (
+            <p>
+              <strong>{t('Username:')}</strong> {user.username}
+            </p>
+          )
+        )}
       </div>
     );
   }
-});
+}
 
-const DeviceSummary = React.createClass({
-  propTypes: {
-    data: PropTypes.object.isRequired
-  },
+class DeviceSummary extends React.Component {
+  static propTypes = {
+    data: PropTypes.object.isRequired,
+  };
 
   render() {
     let data = this.props.data;
@@ -116,13 +122,13 @@ const DeviceSummary = React.createClass({
       </div>
     );
   }
-});
+}
 
-const EventContextSummary = React.createClass({
-  propTypes: {
+class EventContextSummary extends React.Component {
+  static propTypes = {
     group: SentryTypes.Group.isRequired,
-    event: SentryTypes.Event.isRequired
-  },
+    event: SentryTypes.Event.isRequired,
+  };
 
   render() {
     let evt = this.props.event;
@@ -131,6 +137,8 @@ const EventContextSummary = React.createClass({
     let children = [<UserSummary key="user" data={evt.user} />];
     switch (evt.platform) {
       case 'cocoa':
+      // fallthrough
+      case 'native':
         children.push(<DeviceSummary key="device" data={contexts.device} />);
         children.push(
           <GenericSummary key="os" data={contexts.os} unknownTitle={t('Unknown OS')} />
@@ -153,13 +161,11 @@ const EventContextSummary = React.createClass({
           />
         );
         children.push(
-          contexts.os
-            ? <GenericSummary
-                key="os"
-                data={contexts.os}
-                unknownTitle={t('Unknown OS')}
-              />
-            : <DeviceSummary key="device" data={contexts.device} />
+          contexts.os ? (
+            <GenericSummary key="os" data={contexts.os} unknownTitle={t('Unknown OS')} />
+          ) : (
+            <DeviceSummary key="device" data={contexts.device} />
+          )
         );
         break;
       default:
@@ -171,23 +177,17 @@ const EventContextSummary = React.createClass({
           />
         );
         children.push(
-          contexts.os
-            ? <GenericSummary
-                key="os"
-                data={contexts.os}
-                unknownTitle={t('Unknown OS')}
-              />
-            : <DeviceSummary key="device" data={contexts.device} />
+          contexts.os ? (
+            <GenericSummary key="os" data={contexts.os} unknownTitle={t('Unknown OS')} />
+          ) : (
+            <DeviceSummary key="device" data={contexts.device} />
+          )
         );
         break;
     }
 
-    return (
-      <div className="context-summary">
-        {children}
-      </div>
-    );
+    return <div className="context-summary">{children}</div>;
   }
-});
+}
 
 export default EventContextSummary;

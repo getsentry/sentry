@@ -8,6 +8,7 @@ sentry.models.team
 from __future__ import absolute_import, print_function
 
 import warnings
+from collections import defaultdict
 
 from django.conf import settings
 from django.db import connections, IntegrityError, models, router, transaction
@@ -38,10 +39,12 @@ class TeamManager(BoundManager):
         """
         Returns a list of all teams a user has some level of access to.
         """
+        from sentry.auth.superuser import is_active_superuser
         from sentry.models import (
             OrganizationMemberTeam,
             Project,
             ProjectStatus,
+            ProjectTeam,
             OrganizationMember,
         )
 
@@ -50,7 +53,7 @@ class TeamManager(BoundManager):
 
         base_team_qs = self.filter(organization=organization, status=TeamStatus.VISIBLE)
 
-        if env.request and env.request.is_superuser() or settings.SENTRY_PUBLIC:
+        if env.request and is_active_superuser(env.request) or settings.SENTRY_PUBLIC:
             team_list = list(base_team_qs)
         else:
             try:
@@ -81,20 +84,27 @@ class TeamManager(BoundManager):
         if with_projects:
             project_list = sorted(
                 Project.objects.filter(
-                    team__in=team_list,
+                    teams__in=team_list,
                     status=ProjectStatus.VISIBLE,
                 ),
                 key=lambda x: x.name.lower()
             )
+
+            teams_by_project = defaultdict(set)
+            for project_id, team_id in ProjectTeam.objects.filter(
+                project__in=project_list,
+                team__in=team_list,
+            ).values_list('project_id', 'team_id'):
+                teams_by_project[project_id].add(team_id)
+
             projects_by_team = {t.id: [] for t in team_list}
             for project in project_list:
-                projects_by_team[project.team_id].append(project)
+                for team_id in teams_by_project[project.id]:
+                    projects_by_team[team_id].append(project)
 
             # these kinds of queries make people sad :(
             for idx, team in enumerate(results):
                 team_projects = projects_by_team[team.id]
-                for project in team_projects:
-                    project.team = team
                 results[idx] = (team, team_projects)
 
         return results
@@ -187,7 +197,7 @@ class Team(Model):
         """
         from sentry.models import (
             OrganizationAccessRequest, OrganizationMember, OrganizationMemberTeam, Project,
-            ProjectTeam, ReleaseProject
+            ProjectTeam, ReleaseProject, ReleaseProjectEnvironment
         )
 
         try:
@@ -205,7 +215,7 @@ class Team(Model):
 
         project_ids = list(
             Project.objects.filter(
-                team=self,
+                teams=self,
             ).exclude(
                 organization=organization,
             ).values_list('id', flat=True)
@@ -215,11 +225,13 @@ class Team(Model):
         ReleaseProject.objects.filter(
             project_id__in=project_ids,
         ).delete()
+        ReleaseProjectEnvironment.objects.filter(
+            project_id__in=project_ids,
+        ).delete()
 
         Project.objects.filter(
             id__in=project_ids,
         ).update(
-            team=new_team,
             organization=organization,
         )
 

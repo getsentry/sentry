@@ -12,10 +12,10 @@ class ProjectMemberIndexTest(APITestCase):
         user_3 = self.create_user('baz@localhost', username='baz')
         org = self.create_organization(owner=user_1)
         team = self.create_team(organization=org, slug='baz')
-        project_1 = self.create_project(team=team, slug='foo')
-        self.create_project(team=team, slug='bar')
-        self.create_member(organization=org, user=user_2, teams=[project_1.team])
-        self.create_member(organization=org, user=user_3, teams=[project_1.team])
+        project_1 = self.create_project(teams=[team], slug='foo')
+        self.create_project(teams=[team], slug='bar')
+        self.create_member(organization=org, user=user_2, teams=[team])
+        self.create_member(organization=org, user=user_3, teams=[team])
 
         self.login_as(user=user_2)
 

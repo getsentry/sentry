@@ -194,7 +194,7 @@ class RegistrationForm(forms.ModelForm):
     subscribe = forms.BooleanField(
         label=_('Subscribe to product updates newsletter'),
         required=False,
-        initial=True,
+        initial=False,
     )
 
     def __init__(self, *args, **kwargs):
@@ -233,7 +233,11 @@ class RegistrationForm(forms.ModelForm):
 
 
 class RecoverPasswordForm(forms.Form):
-    user = forms.CharField(label=_('Username or email'))
+    user = forms.CharField(
+        label=_('Account'),
+        max_length=128,
+        widget=forms.TextInput(attrs={'placeholder': _('username or email')}),
+    )
 
     def clean_user(self):
         value = (self.cleaned_data.get('user') or '').strip()
@@ -312,6 +316,11 @@ class AccountSettingsForm(forms.Form):
         required=False,
         # help_text=password_validation.password_validators_help_text_html(),
     )
+    verify_new_password = forms.CharField(
+        label=_('Verify new password'),
+        widget=forms.PasswordInput(),
+        required=False,
+    )
     password = forms.CharField(
         label=_('Current password'),
         widget=forms.PasswordInput(),
@@ -336,6 +345,7 @@ class AccountSettingsForm(forms.Form):
                     needs_password = False
 
             del self.fields['new_password']
+            del self.fields['verify_new_password']
 
         # don't show username field if its the same as their email address
         if self.user.email == self.user.username:
@@ -388,6 +398,19 @@ class AccountSettingsForm(forms.Form):
         ):
             raise forms.ValidationError('You must confirm your current password to make changes.')
         return value
+
+    def clean_verify_new_password(self):
+        new_password = self.cleaned_data.get('new_password')
+
+        if new_password:
+            verify_new_password = self.cleaned_data.get('verify_new_password')
+            if verify_new_password is None:
+                raise forms.ValidationError('You must verify your new password.')
+
+            if new_password != verify_new_password:
+                raise forms.ValidationError('Your new password and verify new password must match.')
+
+            return verify_new_password
 
     def clean_new_password(self):
         new_password = self.cleaned_data.get('new_password')
@@ -585,13 +608,18 @@ class NotificationSettingsForm(forms.Form):
         required=False,
     )
 
-    workflow_notifications = forms.BooleanField(
-        label=_('Automatically subscribe to workflow notifications for new projects'),
-        help_text=_(
-            "When enabled, you'll automatically subscribe to workflow notifications when you create or join a project."
-        ),
+    workflow_notifications = forms.ChoiceField(
+        label=_('Preferred workflow subscription level for new projects'),
+        choices=[
+            (UserOptionValue.all_conversations, "Receive workflow updates for all issues."),
+            (UserOptionValue.participating_only,
+             "Receive workflow updates only for issues that I am participating in or have subscribed to."),
+            (UserOptionValue.no_conversations, "Never receive workflow updates."),
+        ],
+        help_text=_("This will be automatically set as your subscription preference when you create or join a project. It has no effect on existing projects."),
         required=False,
     )
+
     self_notifications = forms.BooleanField(
         label=_('Receive notifications about my own activity'),
         help_text=_(
@@ -625,12 +653,11 @@ class NotificationSettingsForm(forms.Form):
             ) == '1'
         )
 
-        self.fields['workflow_notifications'].initial = (
-            UserOption.objects.get_value(
-                user=self.user,
-                key='workflow:notifications',
-                default=UserOptionValue.all_conversations,
-            ) == UserOptionValue.all_conversations
+        self.fields['workflow_notifications'].initial = UserOption.objects.get_value(
+            user=self.user,
+            key='workflow:notifications',
+            default=UserOptionValue.all_conversations,
+            project=None,
         )
 
         self.fields['self_notifications'].initial = UserOption.objects.get_value(
@@ -669,24 +696,33 @@ class NotificationSettingsForm(forms.Form):
             value='1' if self.cleaned_data['self_assign_issue'] else '0',
         )
 
-        if self.cleaned_data.get('workflow_notifications') is True:
-            UserOption.objects.set_value(
+        workflow_notifications_value = self.cleaned_data.get('workflow_notifications')
+        if not workflow_notifications_value:
+            UserOption.objects.unset_value(
                 user=self.user,
                 key='workflow:notifications',
-                value=UserOptionValue.all_conversations,
+                project=None,
             )
         else:
             UserOption.objects.set_value(
                 user=self.user,
                 key='workflow:notifications',
-                value=UserOptionValue.participating_only,
+                value=workflow_notifications_value,
+                project=None,
             )
 
 
 class ProjectEmailOptionsForm(forms.Form):
     alert = forms.BooleanField(required=False)
-    workflow = forms.BooleanField(required=False)
-    email = forms.ChoiceField(label="", choices=(), required=False, widget=forms.Select())
+    workflow = forms.ChoiceField(
+        choices=[
+            (UserOptionValue.no_conversations, 'Nothing'),
+            (UserOptionValue.participating_only, 'Participating'),
+            (UserOptionValue.all_conversations, 'Everything'),
+        ],
+    )
+    email = forms.ChoiceField(label="", choices=(), required=False,
+                              widget=forms.Select())
 
     def __init__(self, project, user, *args, **kwargs):
         self.project = project
@@ -695,7 +731,6 @@ class ProjectEmailOptionsForm(forms.Form):
         super(ProjectEmailOptionsForm, self).__init__(*args, **kwargs)
 
         has_alerts = project.is_user_subscribed_to_mail_alerts(user)
-        has_workflow = project.is_user_subscribed_to_workflow(user)
 
         # This allows users who have entered an alert_email value or have specified an email
         # for notifications to keep their settings
@@ -709,7 +744,17 @@ class ProjectEmailOptionsForm(forms.Form):
         self.fields['email'].choices = choices
 
         self.fields['alert'].initial = has_alerts
-        self.fields['workflow'].initial = has_workflow
+        self.fields['workflow'].initial = UserOption.objects.get_value(
+            user=self.user,
+            project=self.project,
+            key='workflow:notifications',
+            default=UserOption.objects.get_value(
+                user=self.user,
+                project=None,
+                key='workflow:notifications',
+                default=UserOptionValue.all_conversations,
+            ),
+        )
         self.fields['email'].initial = specified_email or alert_email or user.email
 
     def save(self):
@@ -723,8 +768,7 @@ class ProjectEmailOptionsForm(forms.Form):
         UserOption.objects.set_value(
             user=self.user,
             key='workflow:notifications',
-            value=UserOptionValue.all_conversations
-            if self.cleaned_data['workflow'] else UserOptionValue.participating_only,
+            value=self.cleaned_data['workflow'],
             project=self.project,
         )
 

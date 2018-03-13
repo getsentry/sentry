@@ -1,7 +1,7 @@
 // Jest Snapshot v1, https://goo.gl/fbAQLP
 
 exports[`AdminSettings render() renders 1`] = `
-<DocumentTitle
+<SideEffect(DocumentTitle)
   title="Sentry"
 >
   <div>
@@ -13,7 +13,9 @@ exports[`AdminSettings render() renders 1`] = `
       apiMethod="PUT"
       cancelLabel="Cancel"
       className="form-stacked"
+      errorMessage="Unable to save your changes. Please ensure all fields are valid and try again."
       footerClass="form-actions align-right"
+      hideErrors={false}
       initialData={
         Object {
           "api.rate-limit.org-create": 25,
@@ -29,6 +31,7 @@ exports[`AdminSettings render() renders 1`] = `
         }
       }
       requireChanges={true}
+      resetOnError={false}
       submitDisabled={false}
       submitLabel="Save Changes"
     >
@@ -41,6 +44,7 @@ exports[`AdminSettings render() renders 1`] = `
         disabledReason="This setting is defined in config.yml and may not be changed via the web UI."
         help="The root web address which is used to communicate with the Sentry backend."
         hideErrorMessage={false}
+        key="system.url-prefix"
         label="Root URL"
         name="system.url-prefix"
         placeholder="https://sentry.example.com"
@@ -52,6 +56,7 @@ exports[`AdminSettings render() renders 1`] = `
         disabledReason="This setting is defined in config.yml and may not be changed via the web UI."
         help="The technical contact for this Sentry installation."
         hideErrorMessage={false}
+        key="system.admin-email"
         label="Admin Email"
         name="system.admin-email"
         placeholder="admin@example.com"
@@ -63,6 +68,7 @@ exports[`AdminSettings render() renders 1`] = `
         disabledReason="This setting is defined in config.yml and may not be changed via the web UI."
         help="The support contact for this Sentry installation."
         hideErrorMessage={false}
+        key="system.support-email"
         label="Support Email"
         name="system.support-email"
         placeholder="support@example.com"
@@ -74,6 +80,7 @@ exports[`AdminSettings render() renders 1`] = `
         disabledReason="This setting is defined in config.yml and may not be changed via the web UI."
         help="The security contact for this Sentry installation."
         hideErrorMessage={false}
+        key="system.security-email"
         label="Security Email"
         name="system.security-email"
         placeholder="security@example.com"
@@ -84,6 +91,7 @@ exports[`AdminSettings render() renders 1`] = `
         disabledReason="This setting is defined in config.yml and may not be changed via the web UI."
         help="The maximum number of events the system should accept per minute. A value of 0 will disable the default rate limit."
         hideErrorMessage={false}
+        key="system.rate-limit"
         label="Rate Limit"
         name="system.rate-limit"
         placeholder="e.g. 500"
@@ -98,6 +106,7 @@ exports[`AdminSettings render() renders 1`] = `
         disabledReason="This setting is defined in config.yml and may not be changed via the web UI."
         help="Allow anyone to create an account and access this Sentry installation."
         hideErrorMessage={false}
+        key="auth.allow-registration"
         label="Allow Registration"
         name="auth.allow-registration"
         required={true}
@@ -107,6 +116,7 @@ exports[`AdminSettings render() renders 1`] = `
         disabledReason="This setting is defined in config.yml and may not be changed via the web UI."
         help="The maximum number of times an authentication attempt may be made by a single IP address in a 60 second window."
         hideErrorMessage={false}
+        key="auth.ip-rate-limit"
         label="IP Rate Limit"
         name="auth.ip-rate-limit"
         placeholder="e.g. 10"
@@ -117,6 +127,7 @@ exports[`AdminSettings render() renders 1`] = `
         disabledReason="This setting is defined in config.yml and may not be changed via the web UI."
         help="The maximum number of times an authentication attempt may be made against a single account in a 60 second window."
         hideErrorMessage={false}
+        key="auth.user-rate-limit"
         label="User Rate Limit"
         name="auth.user-rate-limit"
         placeholder="e.g. 10"
@@ -127,6 +138,7 @@ exports[`AdminSettings render() renders 1`] = `
         disabledReason="This setting is defined in config.yml and may not be changed via the web UI."
         help="The maximum number of organizations which may be created by a single account in a one hour window."
         hideErrorMessage={false}
+        key="api.rate-limit.org-create"
         label="Organization Creation Rate Limit"
         name="api.rate-limit.org-create"
         placeholder="e.g. 5"
@@ -156,11 +168,12 @@ exports[`AdminSettings render() renders 1`] = `
           </span>
         }
         hideErrorMessage={false}
+        key="beacon.anonymous"
         label="Anonymize Beacon"
         name="beacon.anonymous"
         required={false}
       />
     </ApiForm>
   </div>
-</DocumentTitle>
+</SideEffect(DocumentTitle)>
 `;

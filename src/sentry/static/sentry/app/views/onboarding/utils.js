@@ -1,8 +1,9 @@
 // import {platforms} from '../../../../../integration-docs/_platforms.json';
 // eslint-disable-next-line import/extensions
 import {platforms} from 'integration-docs-platforms';
+import {t} from '../../locale';
 
-const Popular = [
+const popular = [
   'javascript',
   'javascript-react',
   'python-django',
@@ -19,22 +20,22 @@ const Popular = [
   'ruby',
   'node',
   'cocoa',
-  'javascript-angular'
+  'javascript-angular',
 ];
 
-const Frontend = [
+const frontend = [
   'javascript',
   'javascript-react',
   'javascript-angular',
   'javascript-angularjs',
   'javascript-backbone',
   'javascript-ember',
-  'javascript-vue'
+  'javascript-vue',
 ];
 
-const Mobile = ['objc', 'swift', 'java-android', 'cocoa'];
+const mobile = ['objc', 'swift', 'java-android', 'cocoa', 'cordova'];
 
-const Backend = [
+const backend = [
   'go',
   'go-http',
   'java-appengine',
@@ -64,15 +65,15 @@ const Backend = [
   'ruby',
   'ruby-rails',
   'ruby-rack',
-  'exilir'
+  'elixir',
 ];
 
-const categoryLists = {
-  Popular,
-  Frontend,
-  Mobile,
-  Backend
-};
+const categoryList = [
+  {id: 'popular', name: t('Popular'), platforms: popular},
+  {id: 'frontend', name: t('Frontend'), platforms: frontend},
+  {id: 'mobile', name: t('Mobile'), platforms: mobile},
+  {id: 'backend', name: t('Backend'), platforms: backend},
+];
 
 const additional = platforms.concat({
   integrations: [
@@ -80,11 +81,11 @@ const additional = platforms.concat({
       link: 'https://docs.getsentry.com/hosted/clients/',
       type: 'language',
       id: 'other',
-      name: 'Other'
-    }
+      name: t('Other'),
+    },
   ],
   id: 'other',
-  name: 'Other'
+  name: t('Other'),
 });
 
 const flattenedPlatforms = [].concat(
@@ -99,9 +100,9 @@ const flattenedPlatforms = [].concat(
 const onboardingSteps = {organization: 0, project: 1, configure: 2};
 
 const stepDescriptions = {
-  organization: 'Create an organization in Sentry',
-  project: 'Tell us about your project',
-  configure: 'Configure your application and send an event'
+  organization: t('Create an organization in Sentry'),
+  project: t('Tell us about your project'),
+  configure: t('Configure your application and send an event'),
 };
 
 function getPlatformName(platform) {
@@ -113,6 +114,6 @@ export {
   onboardingSteps,
   stepDescriptions,
   flattenedPlatforms,
-  categoryLists,
-  getPlatformName
+  categoryList,
+  getPlatformName,
 };

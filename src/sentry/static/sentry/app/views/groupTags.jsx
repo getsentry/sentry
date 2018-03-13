@@ -1,5 +1,7 @@
 import React from 'react';
+import createReactClass from 'create-react-class';
 import {Link} from 'react-router';
+import SentryTypes from '../proptypes';
 import ApiMixin from '../mixins/apiMixin';
 import Count from '../components/count';
 import GroupState from '../mixins/groupState';
@@ -7,15 +9,23 @@ import LoadingError from '../components/loadingError';
 import LoadingIndicator from '../components/loadingIndicator';
 import {percent, deviceNameMapper} from '../utils';
 import {t} from '../locale';
+import withEnvironment from '../utils/withEnvironment';
 
-const GroupTags = React.createClass({
+const GroupTags = createReactClass({
+  displayName: 'GroupTags',
+
+  propTypes: {
+    environment: SentryTypes.Environment,
+  },
+
   mixins: [ApiMixin, GroupState],
 
   getInitialState() {
     return {
       tagList: null,
       loading: true,
-      error: false
+      error: false,
+      environment: this.props.environment,
     };
   },
 
@@ -23,34 +33,40 @@ const GroupTags = React.createClass({
     this.fetchData();
   },
 
+  componentWillReceiveProps(nextProps) {
+    if (nextProps.environment !== this.props.environment) {
+      this.setState({environment: nextProps.environment}, this.fetchData);
+    }
+  },
+
   fetchData() {
     this.setState({
       loading: true,
-      error: false
+      error: false,
     });
+
+    const query = {};
+    if (this.state.environment) {
+      query.environment = this.state.environment.name;
+    }
 
     // TODO(dcramer): each tag should be a separate query as the tags endpoint
     // is not performant
     this.api.request('/issues/' + this.getGroup().id + '/tags/', {
+      query,
       success: data => {
-        if (!this.isMounted()) {
-          return;
-        }
         this.setState({
           tagList: data,
           error: false,
-          loading: false
+          loading: false,
         });
       },
       error: error => {
-        if (!this.isMounted()) {
-          return;
-        }
         this.setState({
           error: true,
-          loading: false
+          loading: false,
         });
-      }
+      },
     });
   },
 
@@ -81,8 +97,9 @@ const GroupTags = React.createClass({
                 className="tag-bar"
                 to={{
                   pathname: `/${orgId}/${projectId}/issues/${groupId}/events/`,
-                  query: {query: tag.key + ':' + '"' + tagValue.value + '"'}
-                }}>
+                  query: {query: tag.key + ':' + '"' + tagValue.value + '"'},
+                }}
+              >
                 <span className="tag-bar-background" style={{width: pct + '%'}} />
                 <span className="tag-bar-label">{deviceNameMapper(tagValue.name)}</span>
                 <span className="tag-bar-count">
@@ -100,7 +117,8 @@ const GroupTags = React.createClass({
                 <span className="pull-right">
                   <Link
                     className="btn btn-default btn-sm"
-                    to={`/${orgId}/${projectId}/issues/${groupId}/tags/${tag.key}/`}>
+                    to={`/${orgId}/${projectId}/issues/${groupId}/tags/${tag.key}/`}
+                  >
                     {t('More Details')}
                   </Link>
                 </span>
@@ -127,7 +145,7 @@ const GroupTags = React.createClass({
         </div>
       </div>
     );
-  }
+  },
 });
 
-export default GroupTags;
+export default withEnvironment(GroupTags);

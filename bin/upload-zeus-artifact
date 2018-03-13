@@ -1,9 +1,0 @@
-#!/bin/bash -eu
-
-if [[ -e $1 ]]; then
-    curl $ZEUS_HOOK_BASE/builds/$TRAVIS_BUILD_NUMBER/jobs/$TRAVIS_JOB_NUMBER/artifacts \
-        -X POST \
-        -F "file=@$1"
-else
-    (>&2 echo "[WARN] File not found: $1")
-fi

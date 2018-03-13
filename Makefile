@@ -1,5 +1,3 @@
-CPUS ?= $(shell sysctl -n hw.ncpu 2> /dev/null || echo 1)
-MAKEFLAGS += --jobs=$(CPUS)
 NPM_ROOT = ./node_modules
 STATIC_DIR = src/sentry/static/sentry
 
@@ -22,9 +20,6 @@ install-yarn:
 	@hash yarn 2> /dev/null || (echo 'Cannot continue with JavaScript dependencies. Please install yarn before proceeding. For more information refer to https://yarnpkg.com/lang/en/docs/install/'; echo 'If you are on a mac run:'; echo '  brew install yarn'; exit 1)
 	# Use NODE_ENV=development so that yarn installs both dependencies + devDependencies
 	NODE_ENV=development yarn install --pure-lockfile
-	# Fix phantomjs-prebuilt not installed via yarn
-	# See: https://github.com/karma-runner/karma-phantomjs-launcher/issues/120#issuecomment-262634703
-	node ./node_modules/phantomjs-prebuilt/install.js
 
 install-brew:
 	@hash brew 2> /dev/null && brew bundle || (echo '! Homebrew not found, skipping system dependencies.')
@@ -39,7 +34,6 @@ install-python-base:
 	$(PIP) install "setuptools>=0.9.8" "pip>=8.0.0"
 	# order matters here, base package must install first
 	$(PIP) install -e .
-	$(PIP) install ujson
 	$(PIP) install "file://`pwd`#egg=sentry[dev]"
 
 install-python-develop:
@@ -128,9 +122,14 @@ test-cli:
 
 test-js:
 	@echo "--> Building static assets"
-	@${NPM_ROOT}/.bin/webpack
+	@${NPM_ROOT}/.bin/webpack --profile --json > webpack-stats.json
 	@echo "--> Running JavaScript tests"
 	@npm run test-ci
+	@echo ""
+
+# builds and creates percy snapshots
+test-styleguide:
+	@echo "--> Building and snapshotting styleguide"
 	@npm run snapshot
 	@echo ""
 
@@ -158,12 +157,18 @@ lint: lint-python lint-js
 
 lint-python:
 	@echo "--> Linting python"
-	bin/lint --python
+	bash -eo pipefail -c "bin/lint --python --parseable | tee flake8.pycodestyle.log"
 	@echo ""
 
 lint-js:
 	@echo "--> Linting javascript"
-	bin/lint --js
+	bash -eo pipefail -c "bin/lint --js --parseable | tee eslint.checkstyle.xml"
+	@echo ""
+
+scan-python:
+	@echo "--> Running Python vulnerability scanner"
+	python -m pip install safety
+	bin/scan
 	@echo ""
 
 coverage: develop
@@ -178,7 +183,7 @@ extract-api-docs:
 	cd api-docs; python generator.py
 
 
-.PHONY: develop dev-postgres dev-docs setup-git build clean locale update-transifex update-submodules test testloop test-cli test-js test-python test-acceptance lint lint-python lint-js coverage publish
+.PHONY: develop dev-postgres dev-docs setup-git build clean locale update-transifex update-submodules test testloop test-cli test-js test-styleguide test-python test-acceptance lint lint-python lint-js coverage publish scan-python
 
 
 ############################
@@ -201,8 +206,6 @@ travis-noop:
 
 .PHONY: travis-upgrade-pip travis-setup-cassandra travis-install-python travis-noop
 
-travis-install-danger:
-	bundle install
 travis-install-sqlite: travis-install-python
 travis-install-postgres: travis-install-python dev-postgres
 	psql -c 'create database sentry;' -U postgres
@@ -210,6 +213,12 @@ travis-install-mysql: travis-install-python
 	pip install mysqlclient
 	echo 'create database sentry;' | mysql -uroot
 travis-install-acceptance: install-yarn travis-install-postgres
+	wget -N http://chromedriver.storage.googleapis.com/$(shell curl https://chromedriver.storage.googleapis.com/LATEST_RELEASE)/chromedriver_linux64.zip -P ~/
+	unzip ~/chromedriver_linux64.zip -d ~/
+	rm ~/chromedriver_linux64.zip
+	chmod +x ~/chromedriver
+	mkdir -p ~/.bin
+	mv ~/chromedriver ~/.bin/
 travis-install-network: travis-install-postgres
 travis-install-js:
 	$(MAKE) travis-upgrade-pip
@@ -221,10 +230,9 @@ travis-install-dist:
 travis-install-django-18: travis-install-postgres
 	pip install "Django>=1.8,<1.9"
 
-.PHONY: travis-install-danger travis-install-sqlite travis-install-postgres travis-install-js travis-install-cli travis-install-dist
+.PHONY: travis-install-sqlite travis-install-postgres travis-install-js travis-install-cli travis-install-dist
 
 # Lint steps
-travis-lint-danger: travis-noop
 travis-lint-sqlite: lint-python
 travis-lint-postgres: lint-python
 travis-lint-mysql: lint-python
@@ -235,21 +243,35 @@ travis-lint-cli: travis-noop
 travis-lint-dist: travis-noop
 travis-lint-django-18: travis-lint-postgres
 
-.PHONY: travis-lint-danger travis-lint-sqlite travis-lint-postgres travis-lint-mysql travis-lint-js travis-lint-cli travis-lint-dist
+.PHONY: travis-lint-sqlite travis-lint-postgres travis-lint-mysql travis-lint-js travis-lint-cli travis-lint-dist
 
 # Test steps
-travis-test-danger:
-	bundle exec danger
 travis-test-sqlite: test-python
 travis-test-postgres: test-python
 travis-test-mysql: test-python
 travis-test-acceptance: test-acceptance
 travis-test-network: test-network
-travis-test-js: test-js
+travis-test-js:
+	$(MAKE) test-js
+	$(MAKE) test-styleguide
 travis-test-cli: test-cli
 travis-test-dist:
 	SENTRY_BUILD=$(TRAVIS_COMMIT) SENTRY_LIGHT_BUILD=0 python setup.py sdist bdist_wheel
 	@ls -lh dist/
 travis-test-django-18: travis-test-postgres
 
-.PHONY: travis-test-danger travis-test-sqlite travis-test-postgres travis-test-mysql travis-test-js travis-test-cli travis-test-dist
+.PHONY: travis-test-sqlite travis-test-postgres travis-test-mysql travis-test-js travis-test-cli travis-test-dist
+
+
+# Scan steps
+travis-scan-sqlite: scan-python
+travis-scan-postgres: scan-python
+travis-scan-mysql: scan-python
+travis-scan-acceptance: travis-noop
+travis-scan-network: travis-noop
+travis-scan-js: travis-noop
+travis-scan-cli: travis-noop
+travis-scan-dist: travis-noop
+travis-scan-django-18: travis-noop
+
+.PHONY: travis-scan-sqlite travis-scan-postgres travis-scan-mysql travis-scan-acceptance travis-scan-network travis-scan-js travis-scan-cli travis-scan-dist travis-scan-django-18

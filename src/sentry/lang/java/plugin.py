@@ -3,7 +3,7 @@ from __future__ import absolute_import
 import six
 import uuid
 
-from libsourcemap import ProguardView
+from symbolic import ProguardMappingView
 from sentry.plugins import Plugin2
 from sentry.stacktraces import StacktraceProcessor
 from sentry.models import ProjectDSymFile, EventError
@@ -52,7 +52,7 @@ class JavaStacktraceProcessor(StacktraceProcessor):
             if dsym_path is None:
                 error_type = EventError.PROGUARD_MISSING_MAPPING
             else:
-                view = ProguardView.from_path(dsym_path)
+                view = ProguardMappingView.from_path(dsym_path)
                 if not view.has_line_info:
                     error_type = EventError.PROGUARD_MISSING_LINENO
                 else:
@@ -64,7 +64,7 @@ class JavaStacktraceProcessor(StacktraceProcessor):
             self.data.setdefault('errors',
                                  []).append({
                                      'type': error_type,
-                                     'mapping_uuid': image_uuid,
+                                     'mapping_uuid': six.text_type(image_uuid),
                                  })
             report_processing_issue(
                 self.data,
@@ -72,9 +72,11 @@ class JavaStacktraceProcessor(StacktraceProcessor):
                 object='mapping:%s' % image_uuid,
                 type=error_type,
                 data={
-                    'mapping_uuid': image_uuid,
+                    'mapping_uuid': six.text_type(image_uuid),
                 }
             )
+
+        return True
 
     def process_frame(self, processable_frame, processing_task):
         new_module = None

@@ -29,7 +29,6 @@ from sentry import options
 from sentry.api.serializers import serialize as serialize_func
 from sentry.models import Organization
 from sentry.utils import json
-from sentry.utils.javascript import to_json
 from sentry.utils.strings import soft_break as _soft_break
 from sentry.utils.strings import soft_hyphenate, to_unicode, truncatechars
 from six.moves import range
@@ -47,7 +46,10 @@ register = template.Library()
 truncatechars = register.filter(stringfilter(truncatechars))
 truncatechars.is_safe = True
 
-register.filter(to_json)
+
+@register.filter
+def to_json(obj, request=None):
+    return json.dumps_htmlsafe(obj)
 
 
 @register.filter
@@ -63,10 +65,58 @@ def multiply(x, y):
     return coerce(x) * coerce(y)
 
 
-@register.simple_tag
-def absolute_uri(path='', *args):
-    from sentry.utils.http import absolute_uri
-    return absolute_uri(path.format(*args))
+class AbsoluteUriNode(template.Node):
+    def __init__(self, args, target_var):
+        self.args = args
+        self.target_var = target_var
+
+    def render(self, context):
+        from sentry.utils.http import absolute_uri
+
+        # Attempt to resolve all arguments into actual variables.
+        # This converts a value such as `"foo"` into the string `foo`
+        # and will look up a value such as `foo` from the context as
+        # the variable `foo`. If the variable does not exist, silently
+        # resolve as an empty string, which matches the behavior
+        # `SimpleTagNode`
+        args = []
+        for arg in self.args:
+            try:
+                arg = template.Variable(arg).resolve(context)
+            except template.VariableDoesNotExist:
+                arg = ''
+            args.append(arg)
+
+        # No args is just fine
+        if not args:
+            rv = ''
+        # If there's only 1 argument, there's nothing to format
+        elif len(args) == 1:
+            rv = args[0]
+        else:
+            rv = args[0].format(*args[1:])
+
+        rv = absolute_uri(rv)
+
+        # We're doing an `as foo` and we want to assign the result
+        # to a variable instead of actually returning.
+        if self.target_var is not None:
+            context[self.target_var] = rv
+            rv = ''
+
+        return rv
+
+
+@register.tag
+def absolute_uri(parser, token):
+    bits = token.split_contents()[1:]
+    # Check if the last two bits are `as {var}`
+    if len(bits) >= 2 and bits[-2] == 'as':
+        target_var = bits[-1]
+        bits = bits[:-2]
+    else:
+        target_var = None
+    return AbsoluteUriNode(bits, target_var)
 
 
 @register.simple_tag
@@ -198,7 +248,7 @@ def timesince(value, now=None):
         return _('just now')
     if value == _('1 day'):
         return _('yesterday')
-    return value + _(' ago')
+    return _('%s ago') % value
 
 
 @register.filter

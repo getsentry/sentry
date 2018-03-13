@@ -18,12 +18,16 @@ from django.utils import dateformat
 from django.utils.encoding import force_text
 from django.utils.safestring import mark_safe
 
-from sentry import options
+from sentry import features, options
+from sentry.models import ProjectOwnership, User
+
 from sentry.digests.utilities import get_digest_metadata
 from sentry.plugins import register
 from sentry.plugins.base.structs import Notification
 from sentry.plugins.bases.notify import NotificationPlugin
+from sentry.utils import metrics
 from sentry.utils.cache import cache
+from sentry.utils.committers import get_event_file_committers
 from sentry.utils.email import MessageBuilder, group_id_to_email
 from sentry.utils.http import absolute_uri
 from sentry.utils.linksign import generate_signed_link
@@ -111,16 +115,63 @@ class MailPlugin(NotificationPlugin):
 
         return super(MailPlugin, self).should_notify(group, event)
 
-    def get_send_to(self, project):
+    def get_send_to(self, project, event=None):
         """
         Returns a list of user IDs for the users that should receive
         notifications for the provided project.
 
         This result may come from cached data.
         """
-        if not (project and project.team):
+        if not (project and project.teams.exists()):
             logger.debug('Tried to send notification to invalid project: %r', project)
             return []
+
+        if event:
+            owners, _ = ProjectOwnership.get_owners(project.id, event.data)
+            if owners != ProjectOwnership.Everyone:
+                if not owners:
+                    metrics.incr(
+                        'features.owners.send_to',
+                        tags={
+                            'organization': project.organization_id,
+                            'outcome': 'empty',
+                        },
+                        skip_internal=True,
+                    )
+                    return []
+
+                metrics.incr(
+                    'features.owners.send_to',
+                    tags={
+                        'organization': project.organization_id,
+                        'outcome': 'match',
+                    },
+                    skip_internal=True,
+                )
+                send_to_list = []
+                teams_to_resolve = []
+                for owner in owners:
+                    if owner.type == User:
+                        send_to_list.append(owner.id)
+                    else:
+                        teams_to_resolve.append(owner.id)
+
+                # get all users in teams
+                if teams_to_resolve:
+                    send_to_list += User.objects.filter(
+                        is_active=True,
+                        sentry_orgmember_set__organizationmemberteam__team__id__in=teams_to_resolve,
+                    ).values_list('id', flat=True)
+                return send_to_list
+            else:
+                metrics.incr(
+                    'features.owners.send_to',
+                    tags={
+                        'organization': project.organization_id,
+                        'outcome': 'everyone',
+                    },
+                    skip_internal=True,
+                )
 
         cache_key = '%s:send_to:%s' % (self.get_conf_key(), project.pk)
         send_to_list = cache.get(cache_key)
@@ -140,7 +191,10 @@ class MailPlugin(NotificationPlugin):
         )
 
     def notify(self, notification):
+        from sentry.models import Commit, Release
+
         event = notification.event
+
         group = event.group
         project = group.project
         org = group.organization
@@ -154,10 +208,30 @@ class MailPlugin(NotificationPlugin):
 
         rules = []
         for rule in notification.rules:
-            rule_link = reverse('sentry-edit-project-rule', args=[org.slug, project.slug, rule.id])
+            rule_link = '/%s/%s/settings/alerts/rules/%s/' % (org.slug, project.slug, rule.id)
+
             rules.append((rule.label, rule_link))
 
         enhanced_privacy = org.flags.enhanced_privacy
+
+        # lets identify possibly suspect commits and owners
+        commits = {}
+        if features.has('organizations:suggested-commits', org):
+            try:
+                committers = get_event_file_committers(project, event)
+            except (Commit.DoesNotExist, Release.DoesNotExist):
+                pass
+            except Exception as exc:
+                logging.exception(six.text_type(exc))
+            else:
+                for committer in committers:
+                    for commit in committer['commits']:
+                        if commit['id'] not in commits:
+                            commit_data = commit.copy()
+                            commit_data['shortId'] = commit_data['id'][:7]
+                            commit_data['author'] = committer['author']
+                            commit_data['subject'] = commit_data['message'].split('\n', 1)[0]
+                            commits[commit['id']] = commit_data
 
         context = {
             'project_label': project.get_full_name(),
@@ -166,6 +240,7 @@ class MailPlugin(NotificationPlugin):
             'link': link,
             'rules': rules,
             'enhanced_privacy': enhanced_privacy,
+            'commits': sorted(commits.values(), key=lambda x: x['score'], reverse=True),
         }
 
         # if the organization has enabled enhanced privacy controls we dont send
@@ -187,12 +262,11 @@ class MailPlugin(NotificationPlugin):
         headers = {
             'X-Sentry-Logger': group.logger,
             'X-Sentry-Logger-Level': group.get_level_display(),
-            'X-Sentry-Team': project.team.name,
-            'X-Sentry-Project': project.name,
+            'X-Sentry-Project': project.slug,
             'X-Sentry-Reply-To': group_id_to_email(group.id),
         }
 
-        for user_id in self.get_send_to(project):
+        for user_id in self.get_send_to(project=project, event=event):
             self.add_unsubscribe_link(context, user_id, project)
             self._send_mail(
                 subject=subject,
@@ -206,9 +280,9 @@ class MailPlugin(NotificationPlugin):
                 send_to=[user_id],
             )
 
-    def get_digest_subject(self, project, counts, date):
-        return u'[{project}] {count} new {noun} since {date}'.format(
-            project=project.get_full_name(),
+    def get_digest_subject(self, group, counts, date):
+        return u'{short_id} - {count} new {noun} since {date}'.format(
+            short_id=group.qualified_short_id,
             count=len(counts),
             noun='alert' if len(counts) == 1 else 'alerts',
             date=dateformat.format(date, 'N j, Y, P e'),
@@ -240,7 +314,12 @@ class MailPlugin(NotificationPlugin):
             'counts': counts,
         }
 
-        subject = self.get_digest_subject(project, counts, start)
+        headers = {
+            'X-Sentry-Project': project.slug,
+        }
+
+        group = six.next(iter(counts))
+        subject = self.get_digest_subject(group, counts, start)
 
         for user_id in self.get_send_to(project):
             self.add_unsubscribe_link(context, user_id, project)
@@ -250,6 +329,7 @@ class MailPlugin(NotificationPlugin):
                 html_template='sentry/emails/digests/body.html',
                 project=project,
                 reference=project,
+                headers=headers,
                 type='notify.digest',
                 context=context,
                 send_to=[user_id],
@@ -267,6 +347,81 @@ class MailPlugin(NotificationPlugin):
 
         email = email_cls(activity)
         email.send()
+
+    def handle_user_report(self, payload, project, **kwargs):
+        from sentry.models import Group, GroupSubscription, GroupSubscriptionReason
+
+        group = Group.objects.get(id=payload['report']['issue']['id'])
+
+        participants = GroupSubscription.objects.get_participants(group=group)
+
+        if not participants:
+            return
+
+        context = {
+            'project': project,
+            'project_link': absolute_uri('/{}/{}/'.format(
+                project.organization.slug,
+                project.slug,
+            )),
+            'issue_link': absolute_uri('/{}/{}/issues/{}/'.format(
+                project.organization.slug,
+                project.slug,
+                payload['report']['issue']['id'],
+            )),
+            # TODO(dcramer): we dont have permalinks to feedback yet
+            'link': absolute_uri('/{}/{}/issues/{}/feedback/'.format(
+                project.organization.slug,
+                project.slug,
+                payload['report']['issue']['id'],
+            )),
+            'group': group,
+            'report': payload['report'],
+        }
+
+        subject_prefix = self.get_option('subject_prefix', project) or self._subject_prefix()
+        subject_prefix = force_text(subject_prefix)
+        subject = force_text(u'{}{} - New Feedback from {}'.format(
+            subject_prefix,
+            group.qualified_short_id,
+            payload['report']['name'],
+        ))
+
+        headers = {
+            'X-Sentry-Project': project.slug,
+        }
+
+        # TODO(dcramer): this is copypasta'd from activity notifications
+        # and while it'd be nice to re-use all of that, they are currently
+        # coupled to <Activity> instances which makes this tough
+        for user, reason in participants.items():
+            context.update({
+                'reason': GroupSubscriptionReason.descriptions.get(
+                    reason,
+                    "are subscribed to this issue",
+                ),
+                'unsubscribe_link': generate_signed_link(
+                    user.id,
+                    'sentry-account-email-unsubscribe-issue',
+                    kwargs={'issue_id': group.id},
+                ),
+            })
+
+            msg = MessageBuilder(
+                subject=subject,
+                template='sentry/emails/activity/new-user-feedback.txt',
+                html_template='sentry/emails/activity/new-user-feedback.html',
+                headers=headers,
+                type='notify.user-report',
+                context=context,
+                reference=group,
+            )
+            msg.add_users([user.id], project=project)
+            msg.send_async()
+
+    def handle_signal(self, name, payload, **kwargs):
+        if name == 'user-reports.created':
+            self.handle_user_report(payload, **kwargs)
 
 
 # Legacy compatibility

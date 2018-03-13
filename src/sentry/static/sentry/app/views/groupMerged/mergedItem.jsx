@@ -1,5 +1,6 @@
 import PropTypes from 'prop-types';
 import React from 'react';
+import createReactClass from 'create-react-class';
 import Reflux from 'reflux';
 import classNames from 'classnames';
 
@@ -12,7 +13,9 @@ import SpreadLayout from '../../components/spreadLayout';
 
 import '../../../less/components/mergedItem.less';
 
-const MergedItem = React.createClass({
+const MergedItem = createReactClass({
+  displayName: 'MergedItem',
+
   propTypes: {
     orgId: PropTypes.string.isRequired,
     projectId: PropTypes.string.isRequired,
@@ -23,8 +26,8 @@ const MergedItem = React.createClass({
       groupID: PropTypes.string,
       type: PropTypes.oneOf(['error', 'csp', 'default']),
       dateCreated: PropTypes.string,
-      platform: PropTypes.string
-    })
+      platform: PropTypes.string,
+    }),
   },
 
   mixins: [Reflux.listenTo(GroupingStore, 'onGroupingChange')],
@@ -33,7 +36,7 @@ const MergedItem = React.createClass({
     return {
       collapsed: false,
       checked: false,
-      busy: false
+      busy: false,
     };
   },
 
@@ -48,7 +51,7 @@ const MergedItem = React.createClass({
       if (stateForId[key] === this.state[key]) return;
 
       this.setState({
-        [key]: stateForId[key]
+        [key]: stateForId[key],
       });
     });
   },
@@ -77,7 +80,7 @@ const MergedItem = React.createClass({
     let checkboxDisabled = disabled || this.state.disabled;
     let cx = classNames('merged-group', {
       expanded: !this.state.collapsed,
-      busy: this.state.busy
+      busy: this.state.busy,
     });
 
     // `event` can be null if last event w/ fingerprint is not within retention period
@@ -97,7 +100,8 @@ const MergedItem = React.createClass({
             <label
               onClick={this.handleLabelClick}
               htmlFor={fingerprint}
-              className="truncate fingerprint">
+              className="truncate fingerprint"
+            >
               {fingerprint}
             </label>
           </FlowLayout>
@@ -105,19 +109,19 @@ const MergedItem = React.createClass({
           <div>
             <span />
             <span className="merged-collapse" onClick={this.handleToggleEvents}>
-              {this.state.collapsed
-                ? <i className="icon-arrow-down" />
-                : <i className="icon-arrow-up" />}
+              {this.state.collapsed ? (
+                <i className="icon-arrow-down" />
+              ) : (
+                <i className="icon-arrow-up" />
+              )}
             </span>
           </div>
         </SpreadLayout>
 
-        {!this.state.collapsed &&
+        {!this.state.collapsed && (
           <div className="merged-events-list event-list">
-
-            {event &&
+            {event && (
               <SpreadLayout className="event-details" responsive>
-
                 <FlowLayout>
                   <EventOrGroupHeader
                     orgId={orgId}
@@ -127,12 +131,13 @@ const MergedItem = React.createClass({
                     hideLevel
                   />
                 </FlowLayout>
-
-              </SpreadLayout>}
-          </div>}
+              </SpreadLayout>
+            )}
+          </div>
+        )}
       </div>
     );
-  }
+  },
 });
 
 export default MergedItem;

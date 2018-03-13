@@ -1,51 +1,116 @@
+import $ from 'jquery';
+import {browserHistory} from 'react-router';
 import PropTypes from 'prop-types';
 import React from 'react';
-import ReactDOM from 'react-dom';
-import $ from 'jquery';
-import ApiMixin from '../../mixins/apiMixin';
-import IndicatorStore from '../../stores/indicatorStore';
-import SelectInput from '../../components/selectInput';
-import {t, tct} from '../../locale';
+import createReactClass from 'create-react-class';
+import styled from 'react-emotion';
 
+import {Select2Field} from '../../components/forms';
+import {
+  addErrorMessage,
+  addSuccessMessage,
+  addMessage,
+} from '../../actionCreators/indicator';
+import {t} from '../../locale';
+import ApiMixin from '../../mixins/apiMixin';
+import EnvironmentStore from '../../stores/environmentStore';
+import LoadingIndicator from '../../components/loadingIndicator';
+import Panel from '../settings/components/panel';
+import PanelBody from '../settings/components/panelBody';
+import PanelHeader from '../settings/components/panelHeader';
 import RuleNodeList from './ruleNodeList';
 
-const RuleEditor = React.createClass({
+const ALL_ENVIRONMENTS_KEY = '__all_environments__';
+
+const FREQUENCY_CHOICES = [
+  ['5', t('5 minutes')],
+  ['10', t('10 minutes')],
+  ['30', t('30 minutes')],
+  ['60', t('60 minutes')],
+  ['180', t('3 hours')],
+  ['720', t('12 hours')],
+  ['1440', t('24 hours')],
+  ['10080', t('one week')],
+  ['43200', t('30 days')],
+];
+
+const ACTION_MATCH_CHOICES = [['all', t('all')], ['any', t('any')], ['none', t('none')]];
+
+const AlertRuleRow = styled('h6')`
+  display: flex;
+  align-items: center;
+`;
+
+const RuleEditor = createReactClass({
+  displayName: 'RuleEditor',
+
   propTypes: {
     actions: PropTypes.array.isRequired,
     conditions: PropTypes.array.isRequired,
-    rule: PropTypes.object.isRequired,
     project: PropTypes.object.isRequired,
-    organization: PropTypes.object.isRequired
+    organization: PropTypes.object.isRequired,
   },
 
   mixins: [ApiMixin],
 
   getInitialState() {
     return {
+      rule: null,
       loading: false,
-      error: null
+      error: null,
     };
+  },
+
+  componentDidMount() {
+    this.fetchRule();
   },
 
   componentDidUpdate() {
     if (this.state.error) {
-      $(document.body).scrollTop($(ReactDOM.findDOMNode(this.refs.form)).offset().top);
+      $(document.body).scrollTop($(this.formNode).offset().top);
+    }
+  },
+
+  fetchRule() {
+    let {ruleId, projectId, orgId} = this.props.params;
+
+    if (ruleId) {
+      let endpoint = `/projects/${orgId}/${projectId}/rules/${ruleId}/`;
+      this.api.request(endpoint, {
+        success: rule => {
+          this.setState({
+            rule,
+          });
+        },
+      });
+    } else {
+      let defaultRule = {
+        actionMatch: 'all',
+        actions: [],
+        conditions: [],
+        name: '',
+        frequency: 30,
+      };
+
+      this.setState({rule: defaultRule});
     }
   },
 
   serializeNode(node) {
     let result = {};
-    $(node).find('input, select').each((_, el) => {
-      if (el.name) {
-        result[el.name] = $(el).val();
-      }
-    });
+    $(node)
+      .find('input, select')
+      .each((_, el) => {
+        if (el.name) {
+          result[el.name] = $(el).val();
+        }
+      });
     return result;
   },
 
   onSubmit(e) {
     e.preventDefault();
-    let form = $(ReactDOM.findDOMNode(this.refs.form));
+    let form = $(this.formNode);
     let conditions = [];
     form.find('.rule-condition-list .rule-form').each((_, el) => {
       conditions.push(this.serializeNode(el));
@@ -54,17 +119,10 @@ const RuleEditor = React.createClass({
     form.find('.rule-action-list .rule-form').each((_, el) => {
       actions.push(this.serializeNode(el));
     });
-    let actionMatch = $(ReactDOM.findDOMNode(this.refs.actionMatch)).val();
-    let frequency = $(ReactDOM.findDOMNode(this.refs.frequency)).val();
-    let name = $(ReactDOM.findDOMNode(this.refs.name)).val();
-    let data = {
-      actionMatch,
-      actions,
-      conditions,
-      frequency,
-      name
-    };
-    let rule = this.props.rule;
+
+    let data = {...this.state.rule, actions, conditions};
+
+    let rule = this.state.rule;
     let project = this.props.project;
     let org = this.props.organization;
     let endpoint = `/projects/${org.slug}/${project.slug}/rules/`;
@@ -72,22 +130,25 @@ const RuleEditor = React.createClass({
       endpoint += rule.id + '/';
     }
 
-    let loadingIndicator = IndicatorStore.add('Saving...');
+    addMessage(t('Saving...'));
+
     this.api.request(endpoint, {
       method: rule.id ? 'PUT' : 'POST',
       data,
-      success: () => {
-        window.location.href = '../';
+      success: resp => {
+        this.setState({error: null, loading: false, rule: resp});
+
+        browserHistory.replace(`/${org.slug}/${project.slug}/settings/alerts/rules/`);
+
+        addSuccessMessage(rule.id ? t('Updated alert rule') : t('Created alert rule'));
       },
       error: response => {
         this.setState({
           error: response.responseJSON || {__all__: 'Unknown error'},
-          loading: false
+          loading: false,
         });
+        addErrorMessage(t('An error occurred'));
       },
-      complete: () => {
-        IndicatorStore.remove(loadingIndicator);
-      }
     });
   },
 
@@ -97,120 +158,137 @@ const RuleEditor = React.createClass({
     return !!error[field];
   },
 
+  handleEnvironmentChange(val) {
+    // If 'All Environments' is selected the value should be null
+    if (val === ALL_ENVIRONMENTS_KEY) {
+      this.handleChange('environment', null);
+    } else {
+      this.handleChange('environment', val);
+    }
+  },
+
+  handleChange(prop, val) {
+    this.setState(state => {
+      const rule = {...state.rule};
+      rule[prop] = val;
+      return {rule};
+    });
+  },
+
   render() {
-    let rule = this.props.rule;
-    let {loading, error} = this.state;
-    let {actionMatch, actions, conditions, frequency, name} = rule;
+    const activeEnvs = EnvironmentStore.getActive() || [];
+    const environmentChoices = [
+      [ALL_ENVIRONMENTS_KEY, t('All Environments')],
+      ...activeEnvs.map(env => [env.name, env.displayName]),
+    ];
+
+    if (!this.state.rule) return <LoadingIndicator />;
+
+    const {rule, loading, error} = this.state;
+    const {actionMatch, actions, conditions, frequency, name} = rule;
+
+    const environment =
+      rule.environment === null ? ALL_ENVIRONMENTS_KEY : rule.environment;
 
     return (
-      <form onSubmit={this.onSubmit} ref="form">
-        <div className="box rule-detail">
-          <div className="box-header">
-            <h3>
-              {rule.id ? 'Edit Alert Rule' : 'New Alert Rule'}
-            </h3>
-          </div>
-          <div className="box-content with-padding">
-            {error &&
+      <form onSubmit={this.onSubmit} ref={node => (this.formNode = node)}>
+        <Panel className="rule-detail">
+          <PanelHeader>{rule.id ? 'Edit Alert Rule' : 'New Alert Rule'}</PanelHeader>
+          <PanelBody disablePadding={false}>
+            {error && (
               <div className="alert alert-block alert-error">
                 <p>
                   {t(
                     'There was an error saving your changes. Make sure all fields are valid and try again.'
                   )}
                 </p>
-              </div>}
+              </div>
+            )}
             <h6>{t('Rule name')}:</h6>
             <div className="control-group">
               <input
-                ref="name"
                 type="text"
                 className="form-control"
                 defaultValue={name}
                 required={true}
                 placeholder={t('My Rule Name')}
+                onChange={e => this.handleChange('name', e.target.value)}
               />
             </div>
 
             <hr />
 
             <div className="node-match-selector">
-              <h6>
+              <AlertRuleRow>
                 {t(
                   'Every time %s of these conditions are met:',
-                  <SelectInput
-                    ref="actionMatch"
+                  <Select2Field
                     className={this.hasError('actionMatch') ? ' error' : ''}
+                    style={{marginBottom: 0, marginLeft: 5, marginRight: 5}}
+                    name="actionMatch"
                     value={actionMatch}
-                    style={{width: 80}}
-                    required={true}>
-                    <option value="all">{t('all')}</option>
-                    <option value="any">{t('any')}</option>
-                    <option value="none">{t('none')}</option>
-                  </SelectInput>
+                    required={true}
+                    choices={ACTION_MATCH_CHOICES}
+                    onChange={val => this.handleChange('actionMatch', val)}
+                  />
                 )}
-              </h6>
+              </AlertRuleRow>
             </div>
 
-            {this.hasError('conditions') &&
-              <p className="error">
-                {t(
-                  'Ensure at least one condition is enabled and all required fields are filled in.'
-                )}
-              </p>}
+            {this.hasError('conditions') && (
+              <p className="error">{this.state.error.conditions[0]}</p>
+            )}
 
             <RuleNodeList
               nodes={this.props.conditions}
               initialItems={conditions}
               className="rule-condition-list"
-              onChange={this.onConditionsChange}
+            />
+
+            <hr />
+
+            <h6>{t('In this environment')}:</h6>
+            <Select2Field
+              className={this.hasError('environment') ? ' error' : ''}
+              style={{marginBottom: 0, marginLeft: 5, marginRight: 5}}
+              name="environment"
+              value={environment}
+              required={true}
+              choices={environmentChoices}
+              onChange={val => this.handleEnvironmentChange(val)}
             />
 
             <hr />
 
             <h6>{t('Take these actions:')}</h6>
 
-            {this.hasError('actions') &&
-              <p className="error">
-                {t(
-                  'Ensure at least one action is enabled and all required fields are filled in.'
-                )}
-              </p>}
+            {this.hasError('actions') && (
+              <p className="error">{this.state.error.actions[0]}</p>
+            )}
 
             <RuleNodeList
               nodes={this.props.actions}
               initialItems={actions}
               className="rule-action-list"
-              onChange={this.onActionsChange}
             />
 
             <hr />
 
             <div className="node-frequency-selector">
-              <h6>
-                {tct(
-                  'Perform these actions at most once every [frequency] for an issue.',
-                  {
-                    frequency: (
-                      <SelectInput
-                        ref="frequency"
-                        className={this.hasError('frequency') ? ' error' : ''}
-                        value={frequency}
-                        style={{width: 150}}
-                        required={true}>
-                        <option value="5">{t('5 minutes')}</option>
-                        <option value="10">{t('10 minutes')}</option>
-                        <option value="30">{t('30 minutes')}</option>
-                        <option value="60">{t('60 minutes')}</option>
-                        <option value="180">{t('3 hours')}</option>
-                        <option value="720">{t('12 hours')}</option>
-                        <option value="1440">{t('24 hours')}</option>
-                        <option value="10080">{t('one week')}</option>
-                        <option value="43200">{t('30 days')}</option>
-                      </SelectInput>
-                    )
-                  }
+              <AlertRuleRow>
+                {t(
+                  'Perform these actions at most once every %s for an issue.',
+                  <Select2Field
+                    name="frequency"
+                    className={this.hasError('frequency') ? ' error' : ''}
+                    value={frequency}
+                    style={{marginBottom: 0, marginLeft: 5, marginRight: 5, width: 140}}
+                    required={true}
+                    choices={FREQUENCY_CHOICES}
+                    onChange={val => this.handleChange('frequency', val)}
+                  />
                 )}
-              </h6>
+              </AlertRuleRow>
             </div>
 
             <div className="actions">
@@ -218,11 +296,11 @@ const RuleEditor = React.createClass({
                 {t('Save Rule')}
               </button>
             </div>
-          </div>
-        </div>
+          </PanelBody>
+        </Panel>
       </form>
     );
-  }
+  },
 });
 
 export default RuleEditor;

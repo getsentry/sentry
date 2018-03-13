@@ -4,8 +4,8 @@ import Modal from 'react-bootstrap/lib/Modal';
 import {Select2Field} from './forms';
 import {t} from '../locale';
 
-export default React.createClass({
-  propTypes: {
+export default class CustomIgnoreCountModal extends React.Component {
+  static propTypes = {
     onSelected: PropTypes.func,
     onCanceled: PropTypes.func,
     show: PropTypes.bool,
@@ -13,26 +13,27 @@ export default React.createClass({
     countLabel: PropTypes.string.isRequired,
     countName: PropTypes.string.isRequired,
     windowName: PropTypes.string.isRequired,
-    windowChoices: PropTypes.array.isRequired
-  },
+    windowChoices: PropTypes.array.isRequired,
+  };
 
-  getInitialState() {
-    return {
+  constructor(...args) {
+    super(...args);
+    this.state = {
       count: 100,
-      window: ''
+      window: '',
     };
-  },
+  }
 
-  onSubmit() {
+  onSubmit = () => {
     this.props.onSelected({
       [this.props.countName]: this.state.count,
-      [this.props.windowName]: this.state.window
+      [this.props.windowName]: this.state.window,
     });
-  },
+  };
 
-  onChange(name, value) {
+  onChange = (name, value) => {
     this.setState({[name]: value});
-  },
+  };
 
   render() {
     let {count, window} = this.state;
@@ -44,9 +45,7 @@ export default React.createClass({
         <div className="modal-body">
           <form className="m-b-1">
             <div className="control-group">
-              <h6 className="nav-header">
-                {this.props.countLabel}
-              </h6>
+              <h6 className="nav-header">{this.props.countLabel}</h6>
               <input
                 className="form-control"
                 type="number"
@@ -58,15 +57,11 @@ export default React.createClass({
               />
             </div>
             <div className="control-group m-b-1">
-              <h6 className="nav-header">
-                {t('Time window')}
-              </h6>
+              <h6 className="nav-header">{t('Time window')}</h6>
               <Select2Field
-                className="form-control"
                 value={window}
                 name="window"
                 onChange={v => this.onChange('window', v)}
-                style={{padding: '3px 10px'}}
                 choices={[['', ' '], ...this.props.windowChoices]}
                 placeholder={t('e.g. per hour')}
                 allowClear={true}
@@ -81,7 +76,8 @@ export default React.createClass({
           <button
             type="button"
             className="btn btn-default"
-            onClick={this.props.onCanceled}>
+            onClick={this.props.onCanceled}
+          >
             {t('Cancel')}
           </button>
           <button type="button" className="btn btn-primary" onClick={this.onSubmit}>
@@ -91,4 +87,4 @@ export default React.createClass({
       </Modal>
     );
   }
-});
+}

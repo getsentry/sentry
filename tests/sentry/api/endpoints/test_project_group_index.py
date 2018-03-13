@@ -13,7 +13,7 @@ from sentry import tagstore
 from sentry.models import (
     Activity, EventMapping, Group, GroupAssignee, GroupBookmark, GroupHash, GroupResolution,
     GroupSeen, GroupSnooze, GroupStatus, GroupSubscription,
-    GroupTombstone, Release, UserOption
+    GroupTombstone, Release, UserOption, GroupShare,
 )
 from sentry.models.event import Event
 from sentry.testutils import APITestCase
@@ -153,6 +153,17 @@ class GroupListTest(APITestCase):
         response = self.client.get('{}?statsPeriod=48h'.format(self.path), format='json')
         assert response.status_code == 400
 
+    def test_environment(self):
+        self.create_event(tags={'environment': 'production'})
+
+        self.login_as(user=self.user)
+
+        response = self.client.get(self.path + '?environment=production', format='json')
+        assert response.status_code == 200
+
+        response = self.client.get(self.path + '?environment=garbage', format='json')
+        assert response.status_code == 200
+
     def test_auto_resolved(self):
         project = self.project
         project.update_option('sentry:resolve_age', 1)
@@ -248,11 +259,13 @@ class GroupListTest(APITestCase):
         group = self.create_group(checksum='a' * 32, project=project)
         group2 = self.create_group(checksum='b' * 32, project=project2)
         tagstore.create_group_tag_value(
-            project_id=project.id, group_id=group.id, key='sentry:release', value=release.version
+            project_id=project.id, group_id=group.id, environment_id=None,
+            key='sentry:release', value=release.version
         )
 
         tagstore.create_group_tag_value(
-            project_id=project2.id, group_id=group2.id, key='sentry:release', value=release.version
+            project_id=project2.id, group_id=group2.id, environment_id=None,
+            key='sentry:release', value=release.version
         )
 
         url = '%s?query=%s' % (self.path, quote('release:"%s"' % release.version))
@@ -414,6 +427,7 @@ class GroupUpdateTest(APITestCase):
 
         assert response.status_code == 200, response.data
         assert response.data['assignedTo']['id'] == six.text_type(user.id)
+        assert response.data['assignedTo']['type'] == 'user'
         assert response.data['status'] == 'resolved'
 
         assert GroupAssignee.objects.filter(group=group, user=user).exists()
@@ -454,6 +468,7 @@ class GroupUpdateTest(APITestCase):
         assert response.data['status'] == 'resolved'
         assert response.data['statusDetails']['inNextRelease']
         assert response.data['assignedTo']['id'] == six.text_type(self.user.id)
+        assert response.data['assignedTo']['type'] == 'user'
 
         group = Group.objects.get(id=group.id)
         assert group.status == GroupStatus.RESOLVED
@@ -923,6 +938,7 @@ class GroupUpdateTest(APITestCase):
         tagstore.create_group_tag_key(
             group.project_id,
             group.id,
+            None,
             'sentry:user',
             values_seen=100,
         )
@@ -1058,8 +1074,8 @@ class GroupUpdateTest(APITestCase):
         ).exists()
 
     def test_set_public(self):
-        group1 = self.create_group(checksum='a' * 32, is_public=False)
-        group2 = self.create_group(checksum='b' * 32, is_public=False)
+        group1 = self.create_group(checksum='a' * 32)
+        group2 = self.create_group(checksum='b' * 32)
 
         self.login_as(user=self.user)
         url = '{url}?id={group1.id}&id={group2.id}'.format(
@@ -1073,19 +1089,26 @@ class GroupUpdateTest(APITestCase):
             }, format='json'
         )
         assert response.status_code == 200
-        assert response.data == {
-            'isPublic': True,
-        }
+        assert response.data['isPublic'] is True
+        assert 'shareId' in response.data
 
         new_group1 = Group.objects.get(id=group1.id)
-        assert new_group1.is_public
+        assert bool(new_group1.get_share_id())
 
         new_group2 = Group.objects.get(id=group2.id)
-        assert new_group2.is_public
+        assert bool(new_group2.get_share_id())
 
     def test_set_private(self):
-        group1 = self.create_group(checksum='a' * 32, is_public=True)
-        group2 = self.create_group(checksum='b' * 32, is_public=True)
+        group1 = self.create_group(checksum='a' * 32)
+        group2 = self.create_group(checksum='b' * 32)
+
+        # Manually mark them as shared
+        for g in group1, group2:
+            GroupShare.objects.create(
+                project_id=g.project_id,
+                group=g,
+            )
+            assert bool(g.get_share_id())
 
         self.login_as(user=self.user)
         url = '{url}?id={group1.id}&id={group2.id}'.format(
@@ -1104,10 +1127,10 @@ class GroupUpdateTest(APITestCase):
         }
 
         new_group1 = Group.objects.get(id=group1.id)
-        assert not new_group1.is_public
+        assert not bool(new_group1.get_share_id())
 
         new_group2 = Group.objects.get(id=group2.id)
-        assert not new_group2.is_public
+        assert not bool(new_group2.get_share_id())
 
     def test_set_has_seen(self):
         group1 = self.create_group(checksum='a' * 32, status=GroupStatus.RESOLVED)
@@ -1211,7 +1234,7 @@ class GroupUpdateTest(APITestCase):
 
         assert response.status_code == 200
         assert response.data['assignedTo']['id'] == six.text_type(user.id)
-
+        assert response.data['assignedTo']['type'] == 'user'
         assert GroupAssignee.objects.filter(group=group1, user=user).exists()
 
         assert not GroupAssignee.objects.filter(group=group2, user=user).exists()
@@ -1258,6 +1281,51 @@ class GroupUpdateTest(APITestCase):
 
         assert response.status_code == 400, response.content
 
+    def test_assign_team(self):
+        self.login_as(user=self.user)
+
+        group = self.create_group()
+        other_member = self.create_user('bar@example.com')
+        team = self.create_team(
+            organization=group.project.organization, members=[
+                self.user, other_member])
+
+        group.project.add_team(team)
+
+        url = '{url}?id={group.id}'.format(
+            url=self.path,
+            group=group,
+        )
+        response = self.client.put(
+            url, data={
+                'assignedTo': u'team:{}'.format(team.id),
+            }
+        )
+
+        assert response.status_code == 200
+        assert response.data['assignedTo']['id'] == six.text_type(team.id)
+        assert response.data['assignedTo']['type'] == 'team'
+        assert GroupAssignee.objects.filter(group=group, team=team).exists()
+
+        assert Activity.objects.filter(
+            group=group,
+            type=Activity.ASSIGNED,
+        ).count() == 1
+
+        assert GroupSubscription.objects.filter(
+            group=group,
+            is_active=True,
+        ).count() == 2
+
+        response = self.client.put(
+            url, data={
+                'assignedTo': '',
+            }, format='json'
+        )
+
+        assert response.status_code == 200, response.content
+        assert response.data['assignedTo'] is None
+
     def test_discard(self):
         group1 = self.create_group(checksum='a' * 32, is_public=True)
         group2 = self.create_group(checksum='b' * 32, is_public=True)
@@ -1274,7 +1342,7 @@ class GroupUpdateTest(APITestCase):
             group1=group1,
         )
         with self.tasks():
-            with self.feature('projects:custom-filters', True):
+            with self.feature('projects:discard-groups'):
                 response = self.client.put(
                     url, data={
                         'discard': True,

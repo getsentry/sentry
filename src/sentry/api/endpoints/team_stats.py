@@ -4,9 +4,10 @@ from rest_framework.response import Response
 from six.moves import range
 
 from sentry import tsdb
-from sentry.api.base import DocSection, StatsMixin
+from sentry.api.base import DocSection, EnvironmentMixin, StatsMixin
 from sentry.api.bases.team import TeamEndpoint
-from sentry.models import Project
+from sentry.api.exceptions import ResourceDoesNotExist
+from sentry.models import Environment, Project
 from sentry.utils.apidocs import scenario, attach_scenarios
 
 
@@ -17,7 +18,7 @@ def retrieve_event_counts_team(runner):
     )
 
 
-class TeamStatsEndpoint(TeamEndpoint, StatsMixin):
+class TeamStatsEndpoint(TeamEndpoint, EnvironmentMixin, StatsMixin):
     doc_section = DocSection.TEAMS
 
     @attach_scenarios([retrieve_event_counts_team])
@@ -50,6 +51,14 @@ class TeamStatsEndpoint(TeamEndpoint, StatsMixin):
                                    values.
         :auth: required
         """
+        try:
+            environment_id = self._get_environment_id_from_request(
+                request,
+                team.organization_id,
+            )
+        except Environment.DoesNotExist:
+            raise ResourceDoesNotExist
+
         projects = Project.objects.get_for_user(
             team=team,
             user=request.user,
@@ -62,7 +71,7 @@ class TeamStatsEndpoint(TeamEndpoint, StatsMixin):
             tsdb.get_range(
                 model=tsdb.models.project,
                 keys=[p.id for p in projects],
-                **self._parse_args(request)
+                **self._parse_args(request, environment_id)
             ).values()
         )
 

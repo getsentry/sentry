@@ -1,6 +1,7 @@
 from __future__ import absolute_import, division, print_function
 
 from datetime import timedelta
+import functools
 import logging
 from uuid import uuid4
 
@@ -10,19 +11,20 @@ from django.utils import timezone
 from rest_framework import serializers
 from rest_framework.response import Response
 
-from sentry import features, search, tagstore
-from sentry.api.base import DocSection
+from sentry import features, search
+from sentry.api.base import DocSection, EnvironmentMixin
 from sentry.api.bases.project import ProjectEndpoint, ProjectEventPermission
-from sentry.api.fields import UserField
+from sentry.api.fields import ActorField, Actor
 from sentry.api.serializers import serialize
+from sentry.api.serializers.models.actor import ActorSerializer
 from sentry.api.serializers.models.group import (
     SUBSCRIPTION_REASON_MAP, StreamGroupSerializer)
 from sentry.constants import DEFAULT_SORT_OPTION
 from sentry.db.models.query import create_or_update
 from sentry.models import (
-    Activity, EventMapping, Group, GroupAssignee, GroupBookmark, GroupHash, GroupResolution,
-    GroupSeen, GroupSnooze, GroupStatus, GroupSubscription, GroupSubscriptionReason, GroupTombstone,
-    Release, TOMBSTONE_FIELDS_FROM_GROUP, UserOption
+    Activity, Environment, Group, GroupAssignee, GroupBookmark, GroupHash, GroupResolution,
+    GroupSeen, GroupShare, GroupSnooze, GroupStatus, GroupSubscription, GroupSubscriptionReason,
+    GroupTombstone, Release, TOMBSTONE_FIELDS_FROM_GROUP, UserOption, User, Team
 )
 from sentry.models.event import Event
 from sentry.models.group import looks_like_short_id
@@ -32,7 +34,7 @@ from sentry.signals import advanced_search, issue_resolved_in_release
 from sentry.tasks.deletion import delete_group
 from sentry.tasks.merge import merge_group
 from sentry.utils.apidocs import attach_scenarios, scenario
-from sentry.utils.cursors import Cursor
+from sentry.utils.cursors import Cursor, CursorResult
 from sentry.utils.functional import extract_lazy_object
 
 delete_logger = logging.getLogger('sentry.deletions.api')
@@ -95,11 +97,11 @@ class StatusDetailsValidator(serializers.Serializer):
     inRelease = serializers.CharField()
     ignoreDuration = serializers.IntegerField()
     ignoreCount = serializers.IntegerField()
-    # in hours, max of one week
-    ignoreWindow = serializers.IntegerField(max_value=7 * 24)
+    # in minutes, max of one week
+    ignoreWindow = serializers.IntegerField(max_value=7 * 24 * 60)
     ignoreUserCount = serializers.IntegerField()
-    # in hours, max of one week
-    ignoreUserWindow = serializers.IntegerField(max_value=7 * 24)
+    # in minutes, max of one week
+    ignoreUserWindow = serializers.IntegerField(max_value=7 * 24 * 60)
 
     def validate_inRelease(self, attrs, source):
         value = attrs[source]
@@ -109,7 +111,9 @@ class StatusDetailsValidator(serializers.Serializer):
                 attrs[source] = Release.objects.filter(
                     projects=project,
                     organization_id=project.organization_id,
-                ).order_by('-date_added')[0]
+                ).extra(select={
+                    'sort': 'COALESCE(date_released, date_added)',
+                }).order_by('-sort')[0]
             except IndexError:
                 raise serializers.ValidationError(
                     'No release data present in the system to form a basis for \'Next Release\''
@@ -151,21 +155,28 @@ class GroupValidator(serializers.Serializer):
     discard = serializers.BooleanField()
     ignoreDuration = serializers.IntegerField()
     ignoreCount = serializers.IntegerField()
-    # in hours, max of one week
-    ignoreWindow = serializers.IntegerField(max_value=7 * 24)
+    # in minutes, max of one week
+    ignoreWindow = serializers.IntegerField(max_value=7 * 24 * 60)
     ignoreUserCount = serializers.IntegerField()
-    # in hours, max of one week
-    ignoreUserWindow = serializers.IntegerField(max_value=7 * 24)
-    assignedTo = UserField()
+    # in minutes, max of one week
+    ignoreUserWindow = serializers.IntegerField(max_value=7 * 24 * 60)
+    assignedTo = ActorField()
 
     # TODO(dcramer): remove in 9.0
     snoozeDuration = serializers.IntegerField()
 
     def validate_assignedTo(self, attrs, source):
         value = attrs[source]
-        if value and not self.context['project'].member_set.filter(user=value).exists():
+        if value and value.type is User and not self.context['project'].member_set.filter(
+                user_id=value.id).exists():
             raise serializers.ValidationError(
                 'Cannot assign to non-team member')
+
+        if value and value.type is Team and not self.context['project'].teams.filter(
+                id=value.id).exists():
+            raise serializers.ValidationError(
+                'Cannot assign to a team without access to the project')
+
         return attrs
 
     def validate(self, attrs):
@@ -176,7 +187,7 @@ class GroupValidator(serializers.Serializer):
         return attrs
 
 
-class ProjectGroupIndexEndpoint(ProjectEndpoint):
+class ProjectGroupIndexEndpoint(ProjectEndpoint, EnvironmentMixin):
     doc_section = DocSection.EVENTS
 
     permission_classes = (ProjectEventPermission, )
@@ -184,32 +195,8 @@ class ProjectGroupIndexEndpoint(ProjectEndpoint):
     def _build_query_params_from_request(self, request, project):
         query_kwargs = {
             'project': project,
+            'sort_by': request.GET.get('sort', DEFAULT_SORT_OPTION),
         }
-
-        if request.GET.get('status'):
-            try:
-                query_kwargs['status'] = STATUS_CHOICES[request.GET['status']]
-            except KeyError:
-                raise ValidationError('invalid status')
-
-        if request.user.is_authenticated() and request.GET.get('bookmarks'):
-            query_kwargs['bookmarked_by'] = request.user
-
-        if request.user.is_authenticated() and request.GET.get('assigned'):
-            query_kwargs['assigned_to'] = request.user
-
-        sort_by = request.GET.get('sort')
-        if sort_by is None:
-            sort_by = DEFAULT_SORT_OPTION
-
-        query_kwargs['sort_by'] = sort_by
-
-        tags = {}
-        for tag_key in (tk.key for tk in tagstore.get_tag_keys(project.id)):
-            if request.GET.get(tag_key):
-                tags[tag_key] = request.GET[tag_key]
-        if tags:
-            query_kwargs['tags'] = tags
 
         limit = request.GET.get('limit')
         if limit:
@@ -235,6 +222,27 @@ class ProjectGroupIndexEndpoint(ProjectEndpoint):
 
         return query_kwargs
 
+    def _search(self, request, project, extra_query_kwargs=None):
+        query_kwargs = self._build_query_params_from_request(request, project)
+
+        if extra_query_kwargs is not None:
+            assert 'environment' not in extra_query_kwargs
+            query_kwargs.update(extra_query_kwargs)
+
+        try:
+            query_kwargs['environment'] = self._get_environment_from_request(
+                request,
+                project.organization_id,
+            )
+        except Environment.DoesNotExist:
+            # XXX: The 1000 magic number for `max_hits` is an abstraction leak
+            # from `sentry.api.paginator.BasePaginator.get_result`.
+            result = CursorResult([], None, None, hits=0, max_hits=1000)
+        else:
+            result = search.query(**query_kwargs)
+
+        return result, query_kwargs
+
     def _subscribe_and_assign_issue(self, acting_user, group, result):
         if acting_user:
             GroupSubscription.objects.subscribe(
@@ -246,11 +254,8 @@ class ProjectGroupIndexEndpoint(ProjectEndpoint):
                 user=acting_user, key='self_assign_issue', default='0'
             )
             if self_assign_issue == '1' and not group.assignee_set.exists():
-                result['assignedTo'] = extract_lazy_object(acting_user)
+                result['assignedTo'] = Actor(type=User, id=extract_lazy_object(acting_user).id)
 
-    # bookmarks=0/1
-    # status=<x>
-    # <tag>=<value>
     # statsPeriod=24h
     @attach_scenarios([list_project_issues_scenario])
     def get(self, request, project):
@@ -296,22 +301,23 @@ class ProjectGroupIndexEndpoint(ProjectEndpoint):
             # disable stats
             stats_period = None
 
-        query = request.GET.get('query', '').strip()
+        serializer = functools.partial(
+            StreamGroupSerializer,
+            environment_func=self._get_environment_func(request, project.organization_id),
+            stats_period=stats_period,
+        )
 
+        query = request.GET.get('query', '').strip()
         if query:
             matching_group = None
             matching_event = None
             if len(query) == 32:
                 # check to see if we've got an event ID
                 try:
-                    mapping = EventMapping.objects.get(
-                        project_id=project.id,
-                        event_id=query,
-                    )
-                except EventMapping.DoesNotExist:
+                    matching_group = Group.objects.from_event_id(project, query)
+                except Group.DoesNotExist:
                     pass
                 else:
-                    matching_group = Group.objects.get(id=mapping.group_id)
                     try:
                         matching_event = Event.objects.get(
                             event_id=query, project_id=project.id)
@@ -333,11 +339,8 @@ class ProjectGroupIndexEndpoint(ProjectEndpoint):
             if matching_group is not None:
                 response = Response(
                     serialize(
-                        [matching_group], request.user,
-                        StreamGroupSerializer(
-                            stats_period=stats_period,
-                            matching_event_id=getattr(
-                                matching_event, 'id', None)
+                        [matching_group], request.user, serializer(
+                            matching_event_id=getattr(matching_event, 'id', None),
                         )
                     )
                 )
@@ -345,18 +348,13 @@ class ProjectGroupIndexEndpoint(ProjectEndpoint):
                 return response
 
         try:
-            query_kwargs = self._build_query_params_from_request(
-                request, project)
+            cursor_result, query_kwargs = self._search(request, project, {'count_hits': True})
         except ValidationError as exc:
             return Response({'detail': six.text_type(exc)}, status=400)
 
-        cursor_result = search.query(count_hits=True, **query_kwargs)
-
         results = list(cursor_result)
 
-        context = serialize(
-            results, request.user, StreamGroupSerializer(
-                stats_period=stats_period))
+        context = serialize(results, request.user, serializer())
 
         # HACK: remove auto resolved entries
         if query_kwargs.get('status') == GroupStatus.UNRESOLVED:
@@ -406,12 +404,12 @@ class ProjectGroupIndexEndpoint(ProjectEndpoint):
         :pparam string project_slug: the slug of the project the issues
                                      belong to.
         :param string status: the new status for the issues.  Valid values
-                              are ``"resolved"``, ``resolvedInNextRelease``,
+                              are ``"resolved"``, ``"resolvedInNextRelease"``,
                               ``"unresolved"``, and ``"ignored"``.
         :param int ignoreDuration: the number of minutes to ignore this issue.
         :param boolean isPublic: sets the issue to public or private.
         :param boolean merge: allows to merge or unmerge different issues.
-        :param string assignedTo: the username of the user that should be
+        :param string assignedTo: the actor id (or username) of the user or team that should be
                                   assigned to this issue.
         :param boolean hasSeen: in case this API call is invoked with a user
                                 context this allows changing of the flag
@@ -446,20 +444,15 @@ class ProjectGroupIndexEndpoint(ProjectEndpoint):
 
         if not group_ids:
             try:
-                query_kwargs = self._build_query_params_from_request(
-                    request, project)
+                # bulk mutations are limited to 1000 items
+                # TODO(dcramer): it'd be nice to support more than this, but its
+                # a bit too complicated right now
+                cursor_result, _ = self._search(request, project, {
+                    'limit': 1000,
+                    'paginator_options': {'max_limit': 1000},
+                })
             except ValidationError as exc:
                 return Response({'detail': six.text_type(exc)}, status=400)
-
-            # bulk mutations are limited to 1000 items
-            # TODO(dcramer): it'd be nice to support more than this, but its
-            # a bit too complicated right now
-            limit = 1000
-            query_kwargs['limit'] = limit
-
-            # the paginator has a default max_limit of 100, which must be overwritten.
-            cursor_result = search.query(
-                paginator_options={'max_limit': limit}, **query_kwargs)
 
             group_list = list(cursor_result)
             group_ids = [g.id for g in group_list]
@@ -473,7 +466,7 @@ class ProjectGroupIndexEndpoint(ProjectEndpoint):
         discard = result.get('discard')
         if discard:
 
-            if not features.has('projects:custom-filters', project, actor=request.user):
+            if not features.has('projects:discard-groups', project, actor=request.user):
                 return Response({'detail': ['You do not have that feature enabled']}, status=400)
 
             group_list = list(queryset)
@@ -512,7 +505,9 @@ class ProjectGroupIndexEndpoint(ProjectEndpoint):
                 release = Release.objects.filter(
                     projects=project,
                     organization_id=project.organization_id,
-                ).order_by('-date_added')[0]
+                ).extra(select={
+                    'sort': 'COALESCE(date_released, date_added)',
+                }).order_by('-sort')[0]
                 activity_type = Activity.SET_RESOLVED_IN_RELEASE
                 activity_data = {
                     # no version yet
@@ -718,18 +713,14 @@ class ProjectGroupIndexEndpoint(ProjectEndpoint):
                         activity.send_notification()
 
         if 'assignedTo' in result:
-            if result['assignedTo']:
+            assigned_actor = result['assignedTo']
+            if assigned_actor:
                 for group in group_list:
-                    GroupAssignee.objects.assign(
-                        group, result['assignedTo'], acting_user)
+                    resolved_actor = assigned_actor.resolve()
 
-                    if 'isSubscribed' not in result or result['assignedTo'] != request.user:
-                        GroupSubscription.objects.subscribe(
-                            group=group,
-                            user=result['assignedTo'],
-                            reason=GroupSubscriptionReason.assigned,
-                        )
-                result['assignedTo'] = serialize(result['assignedTo'])
+                    GroupAssignee.objects.assign(group, resolved_actor, acting_user)
+                result['assignedTo'] = serialize(
+                    assigned_actor.resolve(), acting_user, ActorSerializer())
             else:
                 for group in group_list:
                     GroupAssignee.objects.deassign(group, acting_user)
@@ -799,30 +790,35 @@ class ProjectGroupIndexEndpoint(ProjectEndpoint):
                 ),
             }
 
+        if 'isPublic' in result:
+            # We always want to delete an existing share, because triggering
+            # an isPublic=True even when it's already public, should trigger
+            # regenerating.
+            for group in group_list:
+                if GroupShare.objects.filter(group=group).delete():
+                    result['shareId'] = None
+                    Activity.objects.create(
+                        project=group.project,
+                        group=group,
+                        type=Activity.SET_PRIVATE,
+                        user=acting_user,
+                    )
+
         if result.get('isPublic'):
-            queryset.update(is_public=True)
             for group in group_list:
-                if group.is_public:
-                    continue
-                group.is_public = True
-                Activity.objects.create(
+                share, created = GroupShare.objects.get_or_create(
                     project=group.project,
                     group=group,
-                    type=Activity.SET_PUBLIC,
                     user=acting_user,
                 )
-        elif result.get('isPublic') is False:
-            queryset.update(is_public=False)
-            for group in group_list:
-                if not group.is_public:
-                    continue
-                group.is_public = False
-                Activity.objects.create(
-                    project=group.project,
-                    group=group,
-                    type=Activity.SET_PRIVATE,
-                    user=acting_user,
-                )
+                if created:
+                    result['shareId'] = share.uuid
+                    Activity.objects.create(
+                        project=group.project,
+                        group=group,
+                        type=Activity.SET_PUBLIC,
+                        user=acting_user,
+                    )
 
         # XXX(dcramer): this feels a bit shady like it should be its own
         # endpoint

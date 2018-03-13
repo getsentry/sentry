@@ -13,6 +13,7 @@ from django.utils import timezone
 from sentry.db.models import (
     Model, BoundedPositiveIntegerField, FlexibleForeignKey, GzippedDictField, sane_repr
 )
+from sentry.utils.strings import truncatechars
 
 
 class AuditLogEntryEvent(object):
@@ -61,6 +62,14 @@ class AuditLogEntryEvent(object):
     RULE_ADD = 80
     RULE_EDIT = 81
     RULE_REMOVE = 82
+
+    SET_ONDEMAND = 90
+
+    SERVICEHOOK_ADD = 100
+    SERVICEHOOK_EDIT = 101
+    SERVICEHOOK_REMOVE = 102
+    SERVICEHOOK_ENABLE = 103
+    SERVICEHOOK_DISABLE = 104
 
 
 class AuditLogEntry(Model):
@@ -117,6 +126,12 @@ class AuditLogEntry(Model):
             (AuditLogEntryEvent.RULE_ADD, 'rule.create'),
             (AuditLogEntryEvent.RULE_EDIT, 'rule.edit'),
             (AuditLogEntryEvent.RULE_REMOVE, 'rule.remove'),
+            (AuditLogEntryEvent.SET_ONDEMAND, 'ondemand.edit'),
+            (AuditLogEntryEvent.SERVICEHOOK_ADD, 'serivcehook.create'),
+            (AuditLogEntryEvent.SERVICEHOOK_EDIT, 'serivcehook.edit'),
+            (AuditLogEntryEvent.SERVICEHOOK_REMOVE, 'serivcehook.remove'),
+            (AuditLogEntryEvent.SERVICEHOOK_ENABLE, 'serivcehook.enable'),
+            (AuditLogEntryEvent.SERVICEHOOK_DISABLE, 'serivcehook.disable'),
         )
     )
     ip_address = models.GenericIPAddressField(null=True, unpack_ipv4=True)
@@ -182,7 +197,8 @@ class AuditLogEntry(Model):
         elif self.event == AuditLogEntryEvent.ORG_ADD:
             return 'created the organization'
         elif self.event == AuditLogEntryEvent.ORG_EDIT:
-            return 'edited the organization'
+            return 'edited the organization setting(s): ' + (', '.join(u'{} {}'.format(k, v)
+                                                                       for k, v in self.data.items()))
         elif self.event == AuditLogEntryEvent.ORG_REMOVE:
             return 'removed the organization'
         elif self.event == AuditLogEntryEvent.ORG_RESTORE:
@@ -242,5 +258,19 @@ class AuditLogEntry(Model):
             return 'edited rule "%s"' % (self.data['label'], )
         elif self.event == AuditLogEntryEvent.RULE_REMOVE:
             return 'removed rule "%s"' % (self.data['label'], )
+
+        elif self.event == AuditLogEntryEvent.SET_ONDEMAND:
+            return 'changed on-demand max spend to $%d' % (self.data['ondemand'] / 100, )
+
+        elif self.event == AuditLogEntryEvent.SERVICEHOOK_ADD:
+            return 'added a service hook for "%s"' % (truncatechars(self.data['url'], 64), )
+        elif self.event == AuditLogEntryEvent.SERVICEHOOK_EDIT:
+            return 'edited the service hook for "%s"' % (truncatechars(self.data['url'], 64), )
+        elif self.event == AuditLogEntryEvent.SERVICEHOOK_REMOVE:
+            return 'removed the service hook for "%s"' % (truncatechars(self.data['url'], 64), )
+        elif self.event == AuditLogEntryEvent.SERVICEHOOK_ENABLE:
+            return 'enabled theservice hook for "%s"' % (truncatechars(self.data['url'], 64), )
+        elif self.event == AuditLogEntryEvent.SERVICEHOOK_DISABLE:
+            return 'disabled the service hook for "%s"' % (truncatechars(self.data['url'], 64), )
 
         return ''

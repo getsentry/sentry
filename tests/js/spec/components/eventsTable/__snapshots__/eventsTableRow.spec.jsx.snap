@@ -3,6 +3,7 @@
 exports[`EventsTableRow renders 1`] = `
 <tr
   className="events-table-row"
+  key="904"
 >
   <td>
     <h5

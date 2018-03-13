@@ -13,11 +13,13 @@ class GroupTagKeySerializerTest(TestCase):
         project = self.create_project()
         tagkey = tagstore.create_tag_key(
             project_id=project.id,
+            environment_id=self.environment.id,
             key='key'
         )
         grouptagkey = tagstore.create_group_tag_key(
             project_id=project.id,
             group_id=self.create_group(project=project).id,
+            environment_id=self.environment.id,
             key=tagkey.key
         )
 

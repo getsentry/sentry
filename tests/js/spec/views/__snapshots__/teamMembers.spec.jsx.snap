@@ -1,0 +1,164 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`TeamMembers render() renders 1`] = `
+<Panel>
+  <PanelHeader
+    disablePadding={true}
+    hasButtons={true}
+  >
+    <StyledHeaderContainer>
+      <div>
+        Members
+      </div>
+      <div
+        style={
+          Object {
+            "textTransform": "none",
+          }
+        }
+      >
+        <DropdownAutoComplete
+          action={
+            <Button
+              disabled={false}
+              priority="primary"
+              to="/settings/organization/org-slug/members/new/"
+            >
+              Add New Organization Member
+            </Button>
+          }
+          isOpen={false}
+          items={Array []}
+          onSelect={[Function]}
+        />
+      </div>
+    </StyledHeaderContainer>
+  </PanelHeader>
+  <StyledMemberContainer
+    key="0"
+  >
+    <UserBadge
+      orgId="org-slug"
+      user={
+        Object {
+          "email": "",
+          "flags": Object {
+            "sso:linked": false,
+          },
+          "id": "1",
+          "name": "",
+          "pending": false,
+          "roleName": "",
+          "user": Object {
+            "email": "sentry1@test.com",
+            "has2fa": false,
+            "id": "1",
+            "name": "Sentry 1 Name",
+            "username": "Sentry 1 Username",
+          },
+        }
+      }
+    />
+    <Button
+      disabled={false}
+      onClick={[Function]}
+      size="small"
+    >
+      <InlineSvg
+        size="1.25em"
+        src="icon-circle-subtract"
+        style={
+          Object {
+            "marginRight": "0.5em",
+          }
+        }
+      />
+      Remove
+    </Button>
+  </StyledMemberContainer>
+  <StyledMemberContainer
+    key="1"
+  >
+    <UserBadge
+      orgId="org-slug"
+      user={
+        Object {
+          "email": "",
+          "flags": Object {
+            "sso:linked": false,
+          },
+          "id": "2",
+          "name": "",
+          "pending": false,
+          "roleName": "",
+          "user": Object {
+            "email": "sentry2@test.com",
+            "has2fa": true,
+            "id": "2",
+            "name": "Sentry 2 Name",
+            "username": "Sentry 2 Username",
+          },
+        }
+      }
+    />
+    <Button
+      disabled={false}
+      onClick={[Function]}
+      size="small"
+    >
+      <InlineSvg
+        size="1.25em"
+        src="icon-circle-subtract"
+        style={
+          Object {
+            "marginRight": "0.5em",
+          }
+        }
+      />
+      Remove
+    </Button>
+  </StyledMemberContainer>
+  <StyledMemberContainer
+    key="2"
+  >
+    <UserBadge
+      orgId="org-slug"
+      user={
+        Object {
+          "email": "",
+          "flags": Object {
+            "sso:linked": true,
+          },
+          "id": "3",
+          "name": "",
+          "pending": false,
+          "roleName": "",
+          "user": Object {
+            "email": "sentry3@test.com",
+            "has2fa": true,
+            "id": "3",
+            "name": "Sentry 3 Name",
+            "username": "Sentry 3 Username",
+          },
+        }
+      }
+    />
+    <Button
+      disabled={false}
+      onClick={[Function]}
+      size="small"
+    >
+      <InlineSvg
+        size="1.25em"
+        src="icon-circle-subtract"
+        style={
+          Object {
+            "marginRight": "0.5em",
+          }
+        }
+      />
+      Remove
+    </Button>
+  </StyledMemberContainer>
+</Panel>
+`;

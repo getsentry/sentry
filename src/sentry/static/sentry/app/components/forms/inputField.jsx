@@ -7,7 +7,7 @@ import FormField from './formField';
 export default class InputField extends FormField {
   static propTypes = {
     ...FormField.propTypes,
-    placeholder: PropTypes.string
+    placeholder: PropTypes.string,
   };
 
   // XXX(dcramer): this comes from TooltipMixin
@@ -44,6 +44,7 @@ export default class InputField extends FormField {
         onChange={this.onChange}
         disabled={this.props.disabled}
         ref="input"
+        name={this.props.name}
         required={this.props.required}
         value={this.state.value}
         style={this.props.inputStyle}

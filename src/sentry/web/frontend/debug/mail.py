@@ -34,6 +34,8 @@ from sentry.utils.samples import load_data
 from sentry.web.decorators import login_required
 from sentry.web.helpers import render_to_response, render_to_string
 
+from six.moves import xrange
+
 logger = logging.getLogger(__name__)
 
 loremipsum = Generator()
@@ -170,16 +172,9 @@ class ActivityMailDebugView(View):
             slug='organization',
             name='My Company',
         )
-        team = Team(
-            id=1,
-            slug='team',
-            name='My Team',
-            organization=org,
-        )
         project = Project(
             id=1,
             organization=org,
-            team=team,
             slug='project',
             name='My Project',
         )
@@ -220,17 +215,10 @@ def alert(request):
         slug='example',
         name='Example',
     )
-    team = Team(
-        id=1,
-        slug='example',
-        name='Example',
-        organization=org,
-    )
     project = Project(
         id=1,
         slug='example',
         name='Example',
-        team=team,
         organization=org,
     )
 
@@ -267,24 +255,27 @@ def alert(request):
         html_template='sentry/emails/error.html',
         text_template='sentry/emails/error.txt',
         context={
-            'rule':
-            rule,
-            'group':
-            group,
-            'event':
-            event,
-            'link':
-            'http://example.com/link',
-            'interfaces':
-            interface_list,
-            'tags':
-            event.get_tags(),
-            'project_label':
-            project.name,
+            'rule': rule,
+            'group': group,
+            'event': event,
+            'link': 'http://example.com/link',
+            'interfaces': interface_list,
+            'tags': event.get_tags(),
+            'project_label': project.slug,
             'tags': [
                 ('logger', 'javascript'), ('environment', 'prod'), ('level', 'error'),
                 ('device', 'Other')
-            ]
+            ],
+            'commits': [{
+                # TODO(dcramer): change to use serializer
+                "repository": {"status": "active", "name": "Example Repo", "url": "https://github.com/example/example", "dateCreated": "2018-02-28T23:39:22.402Z", "provider": {"id": "github", "name": "GitHub"}, "id": "1"},
+                "score": 2,
+                "subject": "feat: Do something to raven/base.py",
+                "message": "feat: Do something to raven/base.py\naptent vivamus vehicula tempus volutpat hac tortor",
+                "id": "1b17483ffc4a10609e7921ee21a8567bfe0ed006",
+                "shortId": "1b17483",
+                "author": {"username": "dcramer@gmail.com", "isManaged": False, "lastActive": "2018-03-01T18:25:28.149Z", "id": "1", "isActive": True, "has2fa": False, "name": "dcramer@gmail.com", "avatarUrl": "https://secure.gravatar.com/avatar/51567a4f786cd8a2c41c513b592de9f9?s=32&d=mm", "dateJoined": "2018-02-27T22:04:32.847Z", "emails": [{"is_verified": False, "id": "1", "email": "dcramer@gmail.com"}], "avatar": {"avatarUuid": None, "avatarType": "letter_avatar"}, "lastLogin": "2018-02-27T22:04:32.847Z", "email": "dcramer@gmail.com"}
+            }],
         },
     ).render(request)
 
@@ -300,18 +291,10 @@ def digest(request):
         name='Example Organization',
     )
 
-    team = Team(
-        id=1,
-        slug='example',
-        name='Example Team',
-        organization=org,
-    )
-
     project = Project(
         id=1,
         slug='example',
         name='Example Project',
-        team=team,
         organization=org,
     )
 
@@ -417,13 +400,6 @@ def report(request):
         name='Example',
     )
 
-    team = Team(
-        id=1,
-        slug='example',
-        name='Example',
-        organization=organization,
-    )
-
     projects = []
     for i in xrange(0, random.randint(1, 8)):
         name = ' '.join(random.sample(loremipsum.words, random.randint(1, 4)))
@@ -431,7 +407,6 @@ def report(request):
             Project(
                 id=i,
                 organization=organization,
-                team=team,
                 slug=slugify(name),
                 name=name,
                 date_added=start - timedelta(days=random.randint(0, 120)),

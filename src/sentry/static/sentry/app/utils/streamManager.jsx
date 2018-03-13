@@ -36,9 +36,12 @@ class StreamManager {
   }
 
   getAllItems() {
-    return this.store.getAllItems().slice().sort((a, b) => {
-      return this.idList.indexOf(a.id) - this.idList.indexOf(b.id);
-    });
+    return this.store
+      .getAllItems()
+      .slice()
+      .sort((a, b) => {
+        return this.idList.indexOf(a.id) - this.idList.indexOf(b.id);
+      });
   }
 
   unshift(items = []) {

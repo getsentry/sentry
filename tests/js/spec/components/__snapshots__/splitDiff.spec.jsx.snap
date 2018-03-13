@@ -5,7 +5,9 @@ exports[`SplitDiff renders 1`] = `
   className="split-diff"
 >
   <tbody>
-    <tr>
+    <tr
+      key="0"
+    >
       <td
         className="split-view-cell removed-row"
       >
@@ -14,6 +16,7 @@ exports[`SplitDiff renders 1`] = `
         >
           <span
             className="split-view-word removed"
+            key="0"
           >
             restaurant
           </span>
@@ -34,6 +37,7 @@ exports[`SplitDiff renders 1`] = `
         >
           <span
             className="split-view-word added"
+            key="0"
           >
             aura
           </span>
@@ -49,7 +53,9 @@ exports[`SplitDiff renders with newlines 1`] = `
   className="split-diff"
 >
   <tbody>
-    <tr>
+    <tr
+      key="0"
+    >
       <td
         className="split-view-cell removed-row"
       >
@@ -58,6 +64,7 @@ exports[`SplitDiff renders with newlines 1`] = `
         >
           <span
             className="split-view-word removed"
+            key="0"
           >
             this is my restaurant
           </span>
@@ -78,13 +85,16 @@ exports[`SplitDiff renders with newlines 1`] = `
         >
           <span
             className="split-view-word added"
+            key="0"
           >
             aura
           </span>
         </div>
       </td>
     </tr>
-    <tr>
+    <tr
+      key="1"
+    >
       <td
         className="split-view-cell removed-row"
       >
@@ -93,6 +103,7 @@ exports[`SplitDiff renders with newlines 1`] = `
         >
           <span
             className="split-view-word removed"
+            key="0"
           >
                 and restaurant
           </span>
@@ -113,13 +124,16 @@ exports[`SplitDiff renders with newlines 1`] = `
         >
           <span
             className="split-view-word added"
+            key="0"
           >
                 and your aura
           </span>
         </div>
       </td>
     </tr>
-    <tr>
+    <tr
+      key="2"
+    >
       <td
         className="split-view-cell"
       >
@@ -128,6 +142,7 @@ exports[`SplitDiff renders with newlines 1`] = `
         >
           <span
             className="split-view-word"
+            key="0"
           >
                 common
           </span>
@@ -148,6 +163,7 @@ exports[`SplitDiff renders with newlines 1`] = `
         >
           <span
             className="split-view-word"
+            key="0"
           >
                 common
           </span>

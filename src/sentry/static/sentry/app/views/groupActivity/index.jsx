@@ -1,10 +1,14 @@
 import PropTypes from 'prop-types';
 import React from 'react';
 
+import createReactClass from 'create-react-class';
+
 import ApiMixin from '../../mixins/apiMixin';
 import GroupState from '../../mixins/groupState';
 
-import {CommitLink} from '../../views/releases/releaseCommits';
+import PullRequestLink from '../../views/releases/pullRequestLink';
+
+import CommitLink from '../../components/commitLink';
 import Duration from '../../components/duration';
 import Avatar from '../../components/avatar';
 import TimeSince from '../../components/timeSince';
@@ -14,15 +18,18 @@ import NoteInput from '../../components/activity/noteInput';
 
 import ConfigStore from '../../stores/configStore';
 import GroupStore from '../../stores/groupStore';
+import TeamStore from '../../stores/teamStore';
 import IndicatorStore from '../../stores/indicatorStore';
 import MemberListStore from '../../stores/memberListStore';
 
 import {t, tct, tn} from '../../locale';
 
-const GroupActivity = React.createClass({
+const GroupActivity = createReactClass({
+  displayName: 'GroupActivity',
+
   // TODO(dcramer): only re-render on group/activity change
   propTypes: {
-    group: PropTypes.object
+    group: PropTypes.object,
   },
 
   mixins: [GroupState, ApiMixin],
@@ -38,7 +45,7 @@ const GroupActivity = React.createClass({
         return t('%s marked this issue as resolved', author);
       case 'set_resolved_by_age':
         return t('%(author)s marked this issue as resolved due to inactivity', {
-          author
+          author,
         });
       case 'set_resolved_in_release':
         return data.version
@@ -46,7 +53,7 @@ const GroupActivity = React.createClass({
               author,
               version: (
                 <Version version={data.version} orgId={orgId} projectId={projectId} />
-              )
+              ),
             })
           : t('%s marked this issue as resolved in the upcoming release', author);
       case 'set_resolved_in_commit':
@@ -58,7 +65,18 @@ const GroupActivity = React.createClass({
               commitId={data.commit.id}
               repository={data.commit.repository}
             />
-          )
+          ),
+        });
+      case 'set_resolved_in_pull_request':
+        return t('%(author)s marked this issue as fixed in %(version)s', {
+          author,
+          version: (
+            <PullRequestLink
+              inline={true}
+              pullRequest={data.pullRequest}
+              repository={data.pullRequest.repository}
+            />
+          ),
         });
       case 'set_unresolved':
         return t('%s marked this issue as unresolved', author);
@@ -66,7 +84,7 @@ const GroupActivity = React.createClass({
         if (data.ignoreDuration) {
           return t('%(author)s ignored this issue for %(duration)s', {
             author,
-            duration: <Duration seconds={data.ignoreDuration * 60} />
+            duration: <Duration seconds={data.ignoreDuration * 60} />,
           });
         } else if (data.ignoreCount && data.ignoreWindow) {
           return tct(
@@ -74,13 +92,13 @@ const GroupActivity = React.createClass({
             {
               author,
               count: data.ignoreCount,
-              duration: <Duration seconds={data.ignoreWindow * 3600} />
+              duration: <Duration seconds={data.ignoreWindow * 60} />,
             }
           );
         } else if (data.ignoreCount) {
           return tct('[author] ignored this issue until it happens [count] time(s)', {
             author,
-            count: data.ignoreCount
+            count: data.ignoreCount,
           });
         } else if (data.ignoreUserCount && data.ignoreUserWindow) {
           return tct(
@@ -88,13 +106,13 @@ const GroupActivity = React.createClass({
             {
               author,
               count: data.ignoreUserCount,
-              duration: <Duration seconds={data.ignoreUserWindow * 3600} />
+              duration: <Duration seconds={data.ignoreUserWindow * 60} />,
             }
           );
         } else if (data.ignoreUserCount) {
           return tct('[author] ignored this issue until it affects [count] user(s)', {
             author,
-            count: data.ignoreUserCount
+            count: data.ignoreUserCount,
           });
         }
         return t('%s ignored this issue', author);
@@ -108,14 +126,14 @@ const GroupActivity = React.createClass({
               author,
               version: (
                 <Version version={data.version} orgId={orgId} projectId={projectId} />
-              )
+              ),
             })
           : t('%s marked this issue as a regression', author);
       case 'create_issue':
         return t('%(author)s created an issue on %(provider)s titled %(title)s', {
           author,
           provider: data.provider,
-          title: <a href={data.location}>{data.title}</a>
+          title: <a href={data.location}>{data.title}</a>,
         });
       case 'unmerge_source':
         return tn(
@@ -123,11 +141,13 @@ const GroupActivity = React.createClass({
           '%2$s migrated %1$d fingerprints to %3$s',
           data.fingerprints.length,
           author,
-          data.destination
-            ? <a href={`/${orgId}/${projectId}/issues/${data.destination.id}`}>
-                {data.destination.shortId}
-              </a>
-            : t('a group')
+          data.destination ? (
+            <a href={`/${orgId}/${projectId}/issues/${data.destination.id}`}>
+              {data.destination.shortId}
+            </a>
+          ) : (
+            t('a group')
+          )
         );
       case 'unmerge_destination':
         return tn(
@@ -135,15 +155,23 @@ const GroupActivity = React.createClass({
           '%2$s migrated %1$d fingerprints from %3$s',
           data.fingerprints.length,
           author,
-          data.source
-            ? <a href={`/${orgId}/${projectId}/issues/${data.source.id}`}>
-                {data.source.shortId}
-              </a>
-            : t('a group')
+          data.source ? (
+            <a href={`/${orgId}/${projectId}/issues/${data.source.id}`}>
+              {data.source.shortId}
+            </a>
+          ) : (
+            t('a group')
+          )
         );
       case 'first_seen':
         return t('%s first saw this issue', author);
       case 'assigned':
+        if (data.assigneeType == 'team') {
+          return t('%(author)s assigned this event to the %(assignee)s Team', {
+            author,
+            assignee: TeamStore.getById(data.assignee).name,
+          });
+        }
         let assignee;
         if (item.user && data.assignee === item.user.id) {
           assignee = 'themselves';
@@ -153,7 +181,7 @@ const GroupActivity = React.createClass({
           if (assignee && assignee.email) {
             return t('%(author)s assigned this event to %(assignee)s', {
               author,
-              assignee: assignee.email
+              assignee: assignee.email,
             });
           } else {
             return t('%s assigned this event to an unknown user', author);
@@ -194,7 +222,7 @@ const GroupActivity = React.createClass({
       },
       complete: () => {
         IndicatorStore.remove(loadingIndicator);
-      }
+      },
     });
   },
 
@@ -204,13 +232,17 @@ const GroupActivity = React.createClass({
     let memberList = MemberListStore.getAll();
 
     let children = group.activity.map((item, itemIdx) => {
-      let avatar = item.user
-        ? <Avatar user={item.user} size={64} className="avatar" />
-        : <div className="avatar sentry"><span className="icon-sentry-logo" /></div>;
+      let avatar = item.user ? (
+        <Avatar user={item.user} size={64} className="avatar" />
+      ) : (
+        <div className="avatar sentry">
+          <span className="icon-sentry-logo" />
+        </div>
+      );
 
       let author = {
         name: item.user ? item.user.name : 'Sentry',
-        avatar
+        avatar,
       };
 
       if (item.type === 'note') {
@@ -218,7 +250,7 @@ const GroupActivity = React.createClass({
           <NoteContainer
             group={group}
             item={item}
-            key={itemIdx}
+            key={'note' + itemIdx}
             author={author}
             onDelete={this.onNoteDelete}
             sessionUser={me}
@@ -262,7 +294,7 @@ const GroupActivity = React.createClass({
         </div>
       </div>
     );
-  }
+  },
 });
 
 export default GroupActivity;

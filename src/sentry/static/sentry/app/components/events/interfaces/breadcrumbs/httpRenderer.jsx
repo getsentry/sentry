@@ -4,14 +4,14 @@ import React from 'react';
 import CrumbTable from './crumbTable';
 import SummaryLine from './summaryLine';
 
-const HttpRenderer = React.createClass({
-  propTypes: {
-    crumb: PropTypes.object.isRequired
-  },
+class HttpRenderer extends React.Component {
+  static propTypes = {
+    crumb: PropTypes.object.isRequired,
+  };
 
-  renderUrl(url) {
+  renderUrl = url => {
     return url.match(/^https?:\/\//) ? <a href={url}>{url}</a> : <em>{url}</em>;
-  },
+  };
 
   render() {
     let {crumb} = this.props;
@@ -32,6 +32,6 @@ const HttpRenderer = React.createClass({
       <CrumbTable title="HTTP Request" summary={summary} kvData={extra} {...this.props} />
     );
   }
-});
+}
 
 export default HttpRenderer;

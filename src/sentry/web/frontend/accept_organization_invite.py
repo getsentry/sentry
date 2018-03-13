@@ -6,7 +6,7 @@ from django.core.urlresolvers import reverse
 from django.utils.crypto import constant_time_compare
 from django.utils.translation import ugettext_lazy as _
 
-from sentry.models import (AuditLogEntryEvent, OrganizationMember, Project)
+from sentry.models import AuditLogEntryEvent, OrganizationMember, Project
 from sentry.signals import member_joined
 from sentry.utils import auth
 from sentry.web.frontend.base import BaseView
@@ -62,7 +62,7 @@ class AcceptOrganizationInviteView(BaseView):
         qs = Project.objects.filter(
             organization=organization,
         )
-        project_list = list(qs.select_related('team')[:25])
+        project_list = list(qs[:25])
         project_count = qs.count()
 
         context = {

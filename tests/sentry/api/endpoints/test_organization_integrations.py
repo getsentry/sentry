@@ -17,7 +17,7 @@ class OrganizationIntegrationsListTest(APITestCase):
         integration.add_organization(org.id)
         path = '/api/0/organizations/{}/integrations/'.format(org.slug)
 
-        with self.feature('organizations:integrations-v3', True):
+        with self.feature('organizations:integrations-v3'):
             response = self.client.get(path, format='json')
 
         assert response.status_code == 200, response.content

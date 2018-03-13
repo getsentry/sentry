@@ -1,12 +1,20 @@
-import PropTypes from 'prop-types';
-import React from 'react';
 import {isEqual} from 'lodash';
+import PropTypes from 'prop-types';
+import Raven from 'raven-js';
+import React from 'react';
 
+import {Client} from '../api';
+import {t, tct} from '../locale';
+import ExternalLink from './externalLink';
+import LoadingError from './loadingError';
 import LoadingIndicator from '../components/loadingIndicator';
 import RouteError from './../views/routeError';
-import {Client} from '../api';
 
 class AsyncComponent extends React.Component {
+  static contextTypes = {
+    router: PropTypes.object,
+  };
+
   constructor(props, context) {
     super(props, context);
 
@@ -21,8 +29,21 @@ class AsyncComponent extends React.Component {
     this.fetchData();
   }
 
-  componentWillReceiveProps(nextProps) {
-    if (!isEqual(this.props.params, nextProps.params)) {
+  componentWillReceiveProps(nextProps, nextContext) {
+    const isRouterInContext = !!this.context.router;
+
+    const currentLocation = isRouterInContext
+      ? this.context.router.location
+      : this.props.location;
+    const nextLocation = isRouterInContext
+      ? nextContext.router.location
+      : nextProps.location;
+
+    // re-fetch data when router params change
+    if (
+      !isEqual(this.props.params, nextProps.params) ||
+      currentLocation.search !== nextLocation.search
+    ) {
       this.remountComponent();
     }
   }
@@ -39,7 +60,7 @@ class AsyncComponent extends React.Component {
       loading: true,
       // is there an error loading ANY data?
       error: false,
-      errors: {}
+      errors: {},
     };
     endpoints.forEach(([stateKey, endpoint]) => {
       state[stateKey] = null;
@@ -47,64 +68,85 @@ class AsyncComponent extends React.Component {
     return state;
   }
 
-  remountComponent() {
+  remountComponent = () => {
     this.setState(this.getDefaultState(), this.fetchData);
-  }
+  };
 
-  // TODO(dcramer): we'd like to support multiple initial api requests
-  fetchData() {
+  fetchData = () => {
     let endpoints = this.getEndpoints();
+
     if (!endpoints.length) {
       this.setState({
         loading: false,
-        error: false
+        error: false,
       });
       return;
     }
+
     // TODO(dcramer): this should cancel any existing API requests
     this.setState({
       loading: true,
       error: false,
-      remainingRequests: endpoints.length
+      remainingRequests: endpoints.length,
     });
-    endpoints.forEach(([stateKey, endpoint, params]) => {
+
+    endpoints.forEach(([stateKey, endpoint, params, options]) => {
+      options = options || {};
+      let locationQuery = (this.props.location && this.props.location.query) || {};
+      let paramsQuery = (params && params.query) || {};
+      // If paginate option then pass entire `query` object to API call
+      // It should only be expecting `query.cursor` for pagination
+      let query = options.paginate && {...locationQuery, ...paramsQuery};
+
       this.api.request(endpoint, {
         method: 'GET',
-        params,
+        ...params,
+        query,
         success: (data, _, jqXHR) => {
           this.setState(prevState => {
             return {
               [stateKey]: data,
+              // TODO(billy): This currently fails if this request is retried by SudoModal
+              [`${stateKey}PageLinks`]: jqXHR && jqXHR.getResponseHeader('Link'),
               remainingRequests: prevState.remainingRequests - 1,
-              loading: prevState.remainingRequests > 1
+              loading: prevState.remainingRequests > 1,
             };
           });
         },
         error: error => {
+          // Allow endpoints to fail
+          if (options.allowError && options.allowError(error)) {
+            error = null;
+          }
+
           this.setState(prevState => {
             return {
               [stateKey]: null,
               errors: {
                 ...prevState.errors,
-                [stateKey]: error
+                [stateKey]: error,
               },
               remainingRequests: prevState.remainingRequests - 1,
               loading: prevState.remainingRequests > 1,
-              error: true
+              error: prevState.error || !!error,
             };
           });
-        }
+        },
       });
     });
-  }
+  };
 
   // DEPRECATED: use getEndpoints()
   getEndpointParams() {
+    // eslint-disable-next-line no-console
+    console.warn('getEndpointParams is deprecated');
     return {};
   }
 
   // DEPRECATED: use getEndpoints()
   getEndpoint() {
+    // eslint-disable-next-line no-console
+    console.warn('getEndpoint is deprecated');
     return null;
   }
 
@@ -126,6 +168,39 @@ class AsyncComponent extends React.Component {
   }
 
   renderError(error) {
+    let unauthorizedErrors = Object.keys(this.state.errors).find(endpointName => {
+      let result = this.state.errors[endpointName];
+      // 401s are captured by SudaModal, but may be passed back to AsyncComponent if they close the modal without identifying
+      return result && result.status === 401;
+    });
+
+    // Look through endpoint results to see if we had any 403s, means their role can not access resource
+    let permissionErrors = Object.keys(this.state.errors).find(endpointName => {
+      let result = this.state.errors[endpointName];
+      return result && result.status === 403;
+    });
+
+    if (unauthorizedErrors) {
+      return (
+        <LoadingError message={t('You are not authorized to access this resource.')} />
+      );
+    }
+
+    if (permissionErrors) {
+      // TODO(billy): Refactor this into a new PermissionDenied component
+      Raven.captureException(new Error('Permission Denied'), {});
+      return (
+        <LoadingError
+          message={tct(
+            'Your role does not have the necessary permissions to access this resource, please read more about [link:organizational roles]',
+            {
+              link: <ExternalLink href="https://docs.sentry.io/learn/membership/" />,
+            }
+          )}
+        />
+      );
+    }
+
     return <RouteError error={error} component={this} onRetry={this.remountComponent} />;
   }
 
@@ -133,8 +208,8 @@ class AsyncComponent extends React.Component {
     return this.state.loading
       ? this.renderLoading()
       : this.state.error
-          ? this.renderError(new Error('Unable to load all required endpoints'))
-          : this.renderBody();
+        ? this.renderError(new Error('Unable to load all required endpoints'))
+        : this.renderBody();
   }
 
   render() {
@@ -148,19 +223,16 @@ AsyncComponent.errorHandler = (component, fn) => {
       return fn(...args);
     } catch (err) {
       /*eslint no-console:0*/
+      console.error(err);
       setTimeout(() => {
         throw err;
       });
       component.setState({
-        error: err
+        error: err,
       });
       return null;
     }
   };
-};
-
-AsyncComponent.contextTypes = {
-  router: PropTypes.object.isRequired
 };
 
 export default AsyncComponent;

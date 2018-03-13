@@ -1,8 +1,8 @@
 {% load i18n %}{% autoescape off %}#!/bin/bash
 set -eu
 SIGN=$'\033[2m>\033[0m'
-DOWNLOAD_VERSION=1.8.0
-MIN_VERSION=1.8.0
+DOWNLOAD_VERSION=1.30.0
+MIN_VERSION=1.30.0
 MIN_INT_VERSION=`echo $MIN_VERSION|awk -F. '{ printf("%04d%04d%04d\n", $1, $2, $3) }'`
 
 {% if not token %}
@@ -58,6 +58,6 @@ export SENTRY_PROJECT="{{ project.slug }}"
 echo
 echo $'\033[32mSuccessfully found all symbols!\033[0m'
 {% else %}
-echo 'There are currently no missing debug symbols for {{ project.team.name }}/{{ project.name }}'
+echo 'There are currently no missing debug symbols for ``{{ project.slug }}``'
 {% endif %}
 {% endautoescape %}

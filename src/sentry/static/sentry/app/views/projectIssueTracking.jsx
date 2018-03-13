@@ -1,27 +1,69 @@
-import PropTypes from 'prop-types';
 import React from 'react';
-import PluginConfig from '../components/pluginConfig';
 
-const ProjectIssueTracking = React.createClass({
-  propTypes: {
-    organization: PropTypes.object.isRequired,
-    project: PropTypes.object.isRequired,
-    dataList: PropTypes.array.isRequired
-  },
+import {fetchPlugins} from '../actionCreators/plugins';
+import {t} from '../locale';
+import LoadingIndicator from '../components/loadingIndicator';
+import PluginList from '../components/pluginList';
+import SentryTypes from '../proptypes';
+import SettingsPageHeader from './settings/components/settingsPageHeader';
+import TextBlock from './settings/components/text/textBlock';
+import withPlugins from '../utils/withPlugins';
+
+class ProjectIssueTracking extends React.Component {
+  static contextTypes = {
+    organization: SentryTypes.Organization,
+    project: SentryTypes.Project,
+  };
+
+  static propTypes = {
+    plugins: SentryTypes.PluginsStore,
+  };
+
+  componentDidMount() {
+    let {projectId, orgId} = this.props.params || {};
+    fetchPlugins({projectId, orgId});
+  }
 
   render() {
-    if (!this.props.dataList.length) {
-      return null;
+    let {organization, project} = this.context;
+    let {loading, plugins} = this.props.plugins || {};
+
+    if (loading || !project || !plugins) {
+      return <LoadingIndicator />;
     }
 
-    return (
-      <div>
-        {this.props.dataList.map(data => {
-          return <PluginConfig data={data} {...this.props} key={data.id} />;
-        })}
-      </div>
-    );
-  }
-});
+    let issueTrackingPlugins = plugins.filter(function(plugin) {
+      return plugin.type === 'issue-tracking' && plugin.hasConfiguration;
+    });
 
-export default ProjectIssueTracking;
+    if (issueTrackingPlugins.length) {
+      return (
+        <div className="ref-issue-tracking-settings">
+          <SettingsPageHeader title={t('Issue Tracking')} />
+          <TextBlock>
+            Enabling Issue Tracking will let you quickly create tasks within your existing
+            tools. You'll find the new action on an issue's details page. Once you create
+            an issue, you'll find a helpful annotation and link to the task in your
+            project management tool.
+          </TextBlock>
+          <PluginList
+            organization={organization}
+            project={project}
+            pluginList={issueTrackingPlugins}
+          />
+        </div>
+      );
+    } else {
+      return (
+        <div className="alert alert-info alert-block">
+          <p>
+            There are no issue tracker integrations available. Ask your Sentry team about
+            integrating with your favorite project management tools.
+          </p>
+        </div>
+      );
+    }
+  }
+}
+
+export default withPlugins(ProjectIssueTracking);

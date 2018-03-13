@@ -15,11 +15,11 @@ describe('BooleanField', function() {
         context: {
           form: {
             data: {
-              fieldName: true
+              fieldName: true,
             },
-            errors: {}
-          }
-        }
+            errors: {},
+          },
+        },
       });
       expect(wrapper).toMatchSnapshot();
     });

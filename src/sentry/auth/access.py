@@ -7,7 +7,8 @@ import warnings
 from django.conf import settings
 
 from sentry import roles
-from sentry.models import AuthIdentity, AuthProvider, OrganizationMember
+from sentry.auth.superuser import is_active_superuser
+from sentry.models import AuthIdentity, AuthProvider, OrganizationMember, UserPermission
 
 
 def _sso_params(member):
@@ -62,6 +63,12 @@ class BaseAccess(object):
     # teams with valid membership
     memberships = ()
     scopes = frozenset()
+    permissions = frozenset()
+
+    def has_permission(self, permission):
+        if not self.is_active:
+            return False
+        return permission in self.permissions
 
     def has_scope(self, scope):
         if not self.is_active:
@@ -93,10 +100,13 @@ class Access(BaseAccess):
     # TODO(dcramer): this is still a little gross, and ideally backend access
     # would be based on the same scopes as API access so theres clarity in
     # what things mean
-    def __init__(self, scopes, is_active, teams, memberships, sso_is_valid, requires_sso):
+    def __init__(self, scopes, is_active, teams, memberships,
+                 sso_is_valid, requires_sso, permissions=None):
         self.teams = teams
         self.memberships = memberships
         self.scopes = scopes
+        if permissions is not None:
+            self.permissions = permissions
 
         self.is_active = is_active
         self.sso_is_valid = sso_is_valid
@@ -107,7 +117,7 @@ def from_request(request, organization, scopes=None):
     if not organization:
         return DEFAULT
 
-    if request.is_superuser():
+    if is_active_superuser(request):
         # we special case superuser so that if they're a member of the org
         # they must still follow SSO checks, but they gain global access
         try:
@@ -128,6 +138,7 @@ def from_request(request, organization, scopes=None):
             memberships=team_list,
             sso_is_valid=sso_is_valid,
             requires_sso=requires_sso,
+            permissions=UserPermission.for_user(request.user.id),
         )
     return from_user(request.user, organization, scopes=scopes)
 
@@ -176,6 +187,7 @@ def from_member(member, scopes=None):
         scopes=scopes,
         memberships=team_memberships,
         teams=team_access,
+        permissions=UserPermission.for_user(member.user_id),
     )
 
 
@@ -186,6 +198,7 @@ class NoAccess(BaseAccess):
     teams = ()
     memberships = ()
     scopes = frozenset()
+    permissions = frozenset()
 
 
 DEFAULT = NoAccess()

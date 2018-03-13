@@ -2,7 +2,7 @@ import Raven from 'raven-js';
 
 export function logException(ex, context) {
   Raven.captureException(ex, {
-    extra: context
+    extra: context,
   });
   /*eslint no-console:0*/
   window.console && console.error && console.error(ex);
@@ -15,7 +15,7 @@ export function logAjaxError(error, context) {
 
   let message = `HTTP ${error.status}: ${errorString}`;
   Raven.captureMessage(message, {
-    extra: context
+    extra: context,
   });
   /*eslint no-console:0*/
   window.console && console.error && console.error(message);

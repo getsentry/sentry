@@ -11,13 +11,13 @@ import {t} from '../../locale';
 import Pills from '../pills';
 import Pill from '../pill';
 
-const EventTags = React.createClass({
-  propTypes: {
+class EventTags extends React.Component {
+  static propTypes = {
     group: SentryTypes.Group.isRequired,
     event: SentryTypes.Event.isRequired,
     orgId: PropTypes.string.isRequired,
-    projectId: PropTypes.string.isRequired
-  },
+    projectId: PropTypes.string.isRequired,
+  };
 
   render() {
     let tags = this.props.event.tags;
@@ -30,7 +30,8 @@ const EventTags = React.createClass({
         event={this.props.event}
         title={t('Tags')}
         type="tags"
-        className="p-b-1">
+        className="p-b-1"
+      >
         <Pills className="no-margin">
           {tags.map(tag => {
             return (
@@ -38,14 +39,16 @@ const EventTags = React.createClass({
                 <Link
                   to={{
                     pathname: `/${orgId}/${projectId}/`,
-                    query: {query: `${tag.key}:"${tag.value}"`}
-                  }}>
+                    query: {query: `${tag.key}:"${tag.value}"`},
+                  }}
+                >
                   {deviceNameMapper(tag.value)}
                 </Link>
-                {isUrl(tag.value) &&
+                {isUrl(tag.value) && (
                   <a href={tag.value} className="external-icon">
                     <em className="icon-open" />
-                  </a>}
+                  </a>
+                )}
               </Pill>
             );
           })}
@@ -53,6 +56,6 @@ const EventTags = React.createClass({
       </EventDataSection>
     );
   }
-});
+}
 
 export default EventTags;

@@ -29,7 +29,7 @@ class HomeTest(TestCase):
     def test_shows_no_access(self):
         self.login_as(self.user)
 
-        with self.feature('organizations:create', False):
+        with self.feature({'organizations:create': False}):
             resp = self.client.get(self.path)
 
         assert resp.status_code == 403

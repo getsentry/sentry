@@ -8,6 +8,14 @@ from sentry.models import Team, TeamStatus
 from .organization import OrganizationPermission
 
 
+def has_team_permission(request, team, scope_map):
+    if not (request.user and request.user.is_authenticated()) and request.auth:
+        return request.auth.organization_id == team.organization.id
+
+    allowed_scopes = set(scope_map.get(request.method, []))
+    return any(request.access.has_team_scope(team, s) for s in allowed_scopes)
+
+
 class TeamPermission(OrganizationPermission):
     scope_map = {
         'GET': ['team:read', 'team:write', 'team:admin'],
@@ -22,11 +30,7 @@ class TeamPermission(OrganizationPermission):
         if not result:
             return result
 
-        if not (request.user and request.user.is_authenticated()) and request.auth:
-            return request.auth.organization_id == team.organization.id
-
-        allowed_scopes = set(self.scope_map.get(request.method, []))
-        return any(request.access.has_team_scope(team, s) for s in allowed_scopes)
+        return has_team_permission(request, team, self.scope_map)
 
 
 class TeamEndpoint(Endpoint):

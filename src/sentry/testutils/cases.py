@@ -9,9 +9,9 @@ sentry.testutils.cases
 from __future__ import absolute_import
 
 __all__ = (
-    'TestCase', 'TransactionTestCase', 'APITestCase', 'AuthProviderTestCase', 'RuleTestCase',
+    'TestCase', 'TransactionTestCase', 'APITestCase', 'TwoFactorAPITestCase', 'AuthProviderTestCase', 'RuleTestCase',
     'PermissionTestCase', 'PluginTestCase', 'CliTestCase', 'AcceptanceTestCase',
-    'IntegrationTestCase',
+    'IntegrationTestCase', 'UserReportEnvironmentTestCase',
 )
 
 import base64
@@ -20,6 +20,7 @@ import os.path
 import pytest
 import six
 import types
+import logging
 
 from click.testing import CliRunner
 from contextlib import contextmanager
@@ -27,6 +28,7 @@ from datetime import datetime
 from django.conf import settings
 from django.contrib.auth import login
 from django.contrib.auth.models import AnonymousUser
+from django.core import signing
 from django.core.cache import cache
 from django.core.urlresolvers import reverse
 from django.http import HttpRequest
@@ -41,8 +43,13 @@ from six.moves.urllib.parse import urlencode
 
 from sentry import auth
 from sentry.auth.providers.dummy import DummyProvider
+from sentry.auth.superuser import (
+    Superuser, COOKIE_SALT as SU_COOKIE_SALT, COOKIE_NAME as SU_COOKIE_NAME
+)
 from sentry.constants import MODULE_ROOT
-from sentry.models import GroupMeta, ProjectOption
+from sentry.models import (
+    GroupMeta, ProjectOption, DeletedOrganization, Environment, GroupStatus, Organization, TotpInterface, UserReport
+)
 from sentry.plugins import plugins
 from sentry.rules import EventState
 from sentry.utils import json, tenants
@@ -79,12 +86,12 @@ class BaseTestCase(Fixtures, Exam):
     def tasks(self):
         return TaskRunner()
 
-    def feature(self, name, active=True):
+    def feature(self, names):
         """
-        >>> with self.feature('feature:name')
+        >>> with self.feature({'feature:name': True})
         >>>     # ...
         """
-        return Feature(name, active)
+        return Feature(names)
 
     def auth_provider(self, name, cls):
         """
@@ -108,13 +115,24 @@ class BaseTestCase(Fixtures, Exam):
         self.client.cookies[session_cookie] = self.session.session_key
         self.client.cookies[session_cookie].update(cookie_data)
 
-    def make_request(self, user=None):
+    def make_request(self, user=None, auth=None, method=None):
         request = HttpRequest()
+        if method:
+            request.method = method
+        request.META['REMOTE_ADDR'] = '127.0.0.1'
+        request.META['SERVER_NAME'] = 'testserver'
+        request.META['SERVER_PORT'] = 80
+        # order matters here, session -> user -> other things
         request.session = self.session
+        request.auth = auth
         request.user = user or AnonymousUser()
+        request.superuser = Superuser(request)
+        request.is_superuser = lambda: request.superuser.is_active
         return request
 
-    def login_as(self, user, organization_id=None):
+    # TODO(dcramer): we want to make the default behavior be ``superuser=False``
+    # but for compatibility reasons we need to update other projects first
+    def login_as(self, user, organization_id=None, superuser=False):
         user.backend = settings.AUTHENTICATION_BACKENDS[0]
 
         request = self.make_request()
@@ -122,7 +140,19 @@ class BaseTestCase(Fixtures, Exam):
         request.user = user
         if organization_id:
             request.session[SSO_SESSION_KEY] = six.text_type(organization_id)
-
+        # logging in implicitly binds superuser, but for test cases we
+        # want that action to be explicit to avoid accidentally testing
+        # superuser-only code
+        if not superuser:
+            # XXX(dcramer): we're calling the internal method to avoid logging
+            request.superuser._set_logged_out()
+        elif request.user.is_superuser and superuser:
+            request.superuser.set_logged_in(request.user)
+            # XXX(dcramer): awful hack to ensure future attempts to instantiate
+            # the Superuser object are successful
+            self.client.cookies[SU_COOKIE_NAME] = signing.get_cookie_signer(
+                salt=SU_COOKIE_NAME + SU_COOKIE_SALT,
+            ).sign(request.superuser.token)
         # Save the session values.
         self.save_session()
 
@@ -264,6 +294,23 @@ class BaseTestCase(Fixtures, Exam):
     _postWithSignature = _postWithHeader
     _postWithNewSignature = _postWithHeader
 
+    def assert_valid_deleted_log(self, deleted_log, original_object):
+        assert deleted_log is not None
+        assert original_object.name == deleted_log.name
+
+        assert deleted_log.name == original_object.name
+        assert deleted_log.slug == original_object.slug
+
+        if not isinstance(deleted_log, DeletedOrganization):
+            assert deleted_log.organization_id == original_object.organization.id
+            assert deleted_log.organization_name == original_object.organization.name
+            assert deleted_log.organization_slug == original_object.organization.slug
+
+        # Truncating datetime for mysql compatibility
+        assert deleted_log.date_created.replace(
+            microsecond=0) == original_object.date_added.replace(microsecond=0)
+        assert deleted_log.date_deleted >= deleted_log.date_created
+
 
 class TestCase(BaseTestCase, TestCase):
     pass
@@ -275,6 +322,120 @@ class TransactionTestCase(BaseTestCase, TransactionTestCase):
 
 class APITestCase(BaseTestCase, BaseAPITestCase):
     pass
+
+
+class TwoFactorAPITestCase(APITestCase):
+    @fixture
+    def path_2fa(self):
+        return reverse('sentry-account-settings-2fa')
+
+    def enable_org_2fa(self, organization):
+        organization.flags.require_2fa = True
+        organization.save()
+
+    def api_enable_org_2fa(self, organization, user):
+        self.login_as(user)
+        url = reverse('sentry-api-0-organization-details', kwargs={
+            'organization_slug': organization.slug
+        })
+        return self.client.put(url, data={'require2FA': True})
+
+    def api_disable_org_2fa(self, organization, user):
+        url = reverse('sentry-api-0-organization-details', kwargs={
+            'organization_slug': organization.slug,
+        })
+        return self.client.put(url, data={'require2FA': False})
+
+    def assert_can_enable_org_2fa(self, organization, user, status_code=200):
+        self.__helper_enable_organization_2fa(organization, user, status_code)
+
+    def assert_cannot_enable_org_2fa(self, organization, user, status_code):
+        self.__helper_enable_organization_2fa(organization, user, status_code)
+
+    def __helper_enable_organization_2fa(self, organization, user, status_code):
+        response = self.api_enable_org_2fa(organization, user)
+        assert response.status_code == status_code, response.content
+        organization = Organization.objects.get(id=organization.id)
+
+        if status_code >= 200 and status_code < 300:
+            assert organization.flags.require_2fa
+        else:
+            assert not organization.flags.require_2fa
+
+    def add_2fa_users_to_org(self, organization, num_of_users=10, num_with_2fa=5):
+        non_compliant_members = []
+        for num in range(0, num_of_users):
+            user = self.create_user('foo_%s@example.com' % num)
+            self.create_member(organization=organization, user=user)
+            if num_with_2fa:
+                TotpInterface().enroll(user)
+                num_with_2fa -= 1
+            else:
+                non_compliant_members.append(user.email)
+        return non_compliant_members
+
+
+class UserReportEnvironmentTestCase(APITestCase):
+    def setUp(self):
+
+        self.project = self.create_project()
+        self.env1 = self.create_environment(self.project, 'production')
+        self.env2 = self.create_environment(self.project, 'staging')
+
+        self.group = self.create_group(project=self.project, status=GroupStatus.UNRESOLVED)
+
+        self.env1_events = self.create_events_for_environment(self.group, self.env1, 5)
+        self.env2_events = self.create_events_for_environment(self.group, self.env2, 5)
+
+        self.env1_userreports = self.create_user_report_for_events(
+            self.project, self.group, self.env1_events, self.env1)
+        self.env2_userreports = self.create_user_report_for_events(
+            self.project, self.group, self.env2_events, self.env2)
+
+    def make_event(self, **kwargs):
+        result = {
+            'event_id': 'a' * 32,
+            'message': 'foo',
+            'timestamp': 1403007314.570599,
+            'level': logging.ERROR,
+            'logger': 'default',
+            'tags': [],
+        }
+        result.update(kwargs)
+        return result
+
+    def create_environment(self, project, name):
+        env = Environment.objects.create(
+            project_id=project.id,
+            organization_id=project.organization_id,
+            name=name,
+        )
+        env.add_project(project)
+        return env
+
+    def create_events_for_environment(self, group, environment, num_events):
+        return [self.create_event(group=group, tags={
+            'environment': environment.name}) for __i in range(num_events)]
+
+    def create_user_report_for_events(self, project, group, events, environment):
+        reports = []
+        for i, event in enumerate(events):
+            reports.append(UserReport.objects.create(
+                group=group,
+                project=project,
+                event_id=event.event_id,
+                name='foo%d' % i,
+                email='bar%d@example.com' % i,
+                comments='It Broke!!!',
+                environment=environment,
+            ))
+        return reports
+
+    def assert_same_userreports(self, response_data, userreports):
+        assert sorted(int(r.get('id')) for r in response_data) == sorted(
+            r.id for r in userreports)
+        assert sorted(r.get('eventID') for r in response_data) == sorted(
+            r.event_id for r in userreports)
 
 
 class AuthProviderTestCase(TestCase):
@@ -295,16 +456,15 @@ class RuleTestCase(TestCase):
     def get_event(self):
         return self.event
 
-    def get_rule(self, data=None):
-        return self.rule_cls(
-            project=self.project,
-            data=data or {},
-        )
+    def get_rule(self, **kwargs):
+        kwargs.setdefault('project', self.project)
+        kwargs.setdefault('data', {})
+        return self.rule_cls(**kwargs)
 
     def get_state(self, **kwargs):
         kwargs.setdefault('is_new', True)
         kwargs.setdefault('is_regression', True)
-        kwargs.setdefault('is_sample', True)
+        kwargs.setdefault('is_new_group_environment', True)
         return EventState(**kwargs)
 
     def assertPasses(self, rule, event=None, **kwargs):
@@ -330,20 +490,20 @@ class PermissionTestCase(TestCase):
         )
         self.team = self.create_team(organization=self.organization)
 
-    def assert_can_access(self, user, path, method='GET'):
+    def assert_can_access(self, user, path, method='GET', **kwargs):
         self.login_as(user)
-        resp = getattr(self.client, method.lower())(path)
+        resp = getattr(self.client, method.lower())(path, **kwargs)
         assert resp.status_code >= 200 and resp.status_code < 300
 
-    def assert_cannot_access(self, user, path, method='GET'):
+    def assert_cannot_access(self, user, path, method='GET', **kwargs):
         self.login_as(user)
-        resp = getattr(self.client, method.lower())(path)
+        resp = getattr(self.client, method.lower())(path, **kwargs)
         assert resp.status_code >= 300
 
-    def assert_member_can_access(self, path):
-        return self.assert_role_can_access(path, 'member')
+    def assert_member_can_access(self, path, **kwargs):
+        return self.assert_role_can_access(path, 'member', **kwargs)
 
-    def assert_teamless_member_can_access(self, path):
+    def assert_teamless_member_can_access(self, path, **kwargs):
         user = self.create_user(is_superuser=False)
         self.create_member(
             user=user,
@@ -352,15 +512,15 @@ class PermissionTestCase(TestCase):
             teams=[],
         )
 
-        self.assert_can_access(user, path)
+        self.assert_can_access(user, path, **kwargs)
 
-    def assert_member_cannot_access(self, path):
-        return self.assert_role_cannot_access(path, 'member')
+    def assert_member_cannot_access(self, path, **kwargs):
+        return self.assert_role_cannot_access(path, 'member', **kwargs)
 
-    def assert_manager_cannot_access(self, path):
-        return self.assert_role_cannot_access(path, 'manager')
+    def assert_manager_cannot_access(self, path, **kwargs):
+        return self.assert_role_cannot_access(path, 'manager', **kwargs)
 
-    def assert_teamless_member_cannot_access(self, path):
+    def assert_teamless_member_cannot_access(self, path, **kwargs):
         user = self.create_user(is_superuser=False)
         self.create_member(
             user=user,
@@ -369,12 +529,12 @@ class PermissionTestCase(TestCase):
             teams=[],
         )
 
-        self.assert_cannot_access(user, path)
+        self.assert_cannot_access(user, path, **kwargs)
 
-    def assert_team_admin_can_access(self, path):
-        return self.assert_role_can_access(path, 'owner')
+    def assert_team_admin_can_access(self, path, **kwargs):
+        return self.assert_role_can_access(path, 'owner', **kwargs)
 
-    def assert_teamless_admin_can_access(self, path):
+    def assert_teamless_admin_can_access(self, path, **kwargs):
         user = self.create_user(is_superuser=False)
         self.create_member(
             user=user,
@@ -383,12 +543,12 @@ class PermissionTestCase(TestCase):
             teams=[],
         )
 
-        self.assert_can_access(user, path)
+        self.assert_can_access(user, path, **kwargs)
 
-    def assert_team_admin_cannot_access(self, path):
-        return self.assert_role_cannot_access(path, 'admin')
+    def assert_team_admin_cannot_access(self, path, **kwargs):
+        return self.assert_role_cannot_access(path, 'admin', **kwargs)
 
-    def assert_teamless_admin_cannot_access(self, path):
+    def assert_teamless_admin_cannot_access(self, path, **kwargs):
         user = self.create_user(is_superuser=False)
         self.create_member(
             user=user,
@@ -397,33 +557,22 @@ class PermissionTestCase(TestCase):
             teams=[],
         )
 
-        self.assert_cannot_access(user, path)
+        self.assert_cannot_access(user, path, **kwargs)
 
-    def assert_team_owner_can_access(self, path):
-        return self.assert_role_can_access(path, 'owner')
+    def assert_team_owner_can_access(self, path, **kwargs):
+        return self.assert_role_can_access(path, 'owner', **kwargs)
 
-    def assert_owner_can_access(self, path):
-        return self.assert_role_can_access(path, 'owner')
+    def assert_owner_can_access(self, path, **kwargs):
+        return self.assert_role_can_access(path, 'owner', **kwargs)
 
-    def assert_owner_cannot_access(self, path):
-        return self.assert_role_cannot_access(path, 'owner')
+    def assert_owner_cannot_access(self, path, **kwargs):
+        return self.assert_role_cannot_access(path, 'owner', **kwargs)
 
-    def assert_non_member_cannot_access(self, path):
+    def assert_non_member_cannot_access(self, path, **kwargs):
         user = self.create_user(is_superuser=False)
-        self.assert_cannot_access(user, path)
+        self.assert_cannot_access(user, path, **kwargs)
 
-    def assert_role_can_access(self, path, role):
-        user = self.create_user(is_superuser=False)
-        self.create_member(
-            user=user,
-            organization=self.organization,
-            role=role,
-            teams=[self.team],
-        )
-
-        self.assert_can_access(user, path)
-
-    def assert_role_cannot_access(self, path, role):
+    def assert_role_can_access(self, path, role, **kwargs):
         user = self.create_user(is_superuser=False)
         self.create_member(
             user=user,
@@ -432,7 +581,18 @@ class PermissionTestCase(TestCase):
             teams=[self.team],
         )
 
-        self.assert_cannot_access(user, path)
+        self.assert_can_access(user, path, **kwargs)
+
+    def assert_role_cannot_access(self, path, role, **kwargs):
+        user = self.create_user(is_superuser=False)
+        self.create_member(
+            user=user,
+            organization=self.organization,
+            role=role,
+            teams=[self.team],
+        )
+
+        self.assert_cannot_access(user, path, **kwargs)
 
 
 class PluginTestCase(TestCase):
@@ -506,21 +666,23 @@ class IntegrationTestCase(TestCase):
     provider = None
 
     def setUp(self):
-        from sentry.integrations.helper import PipelineHelper
+        from sentry.integrations.pipeline import IntegrationPipeline
 
         super(IntegrationTestCase, self).setUp()
 
         self.organization = self.create_organization(name='foo', owner=self.user)
         self.login_as(self.user)
-        self.path = '/extensions/{}/setup/'.format(self.provider.id)
+        self.path = '/extensions/{}/setup/'.format(self.provider.key)
         self.request = self.make_request(self.user)
         # XXX(dcramer): this is a bit of a hack, but it helps contain this test
-        self.helper = PipelineHelper.initialize(
+        self.pipeline = IntegrationPipeline(
             request=self.request,
             organization=self.organization,
-            provider_id=self.provider.id,
-            dialog=True,
+            provider_key=self.provider.key,
         )
+
+        self.pipeline.initialize()
+
         self.save_session()
 
         feature = Feature('organizations:integrations-v3')

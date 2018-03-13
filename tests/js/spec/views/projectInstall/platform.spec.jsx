@@ -5,14 +5,16 @@ import {Client} from 'app/api';
 import ProjectInstallPlatform from 'app/views/projectInstall/platform';
 
 describe('ProjectInstallPlatform', function() {
-  beforeEach(function() {
-    this.sandbox = sinon.sandbox.create();
+  let sandbox;
 
-    this.stubbedApiRequest = this.sandbox.stub(Client.prototype, 'request');
+  beforeEach(function() {
+    sandbox = sinon.sandbox.create();
+
+    this.stubbedApiRequest = sandbox.stub(Client.prototype, 'request');
   });
 
   afterEach(function() {
-    this.sandbox.restore();
+    sandbox.restore();
   });
 
   describe('render()', function() {
@@ -26,9 +28,9 @@ describe('ProjectInstallPlatform', function() {
             integrations: [
               {
                 id: 'csharp',
-                type: 'language'
-              }
-            ]
+                type: 'language',
+              },
+            ],
           },
           {
             id: 'node',
@@ -36,28 +38,28 @@ describe('ProjectInstallPlatform', function() {
             integrations: [
               {
                 id: 'node',
-                type: 'language'
+                type: 'language',
               },
               {
                 id: 'node-connect',
-                type: 'framework'
-              }
-            ]
-          }
-        ]
-      }
+                type: 'framework',
+              },
+            ],
+          },
+        ],
+      },
     };
 
     it('should render NotFound if no matching integration/platform', function() {
       let props = {
         ...baseProps,
         params: {
-          platform: 'lua'
-        }
+          platform: 'lua',
+        },
       };
 
       let wrapper = shallow(<ProjectInstallPlatform {...props} />, {
-        organization: {id: '1337'}
+        organization: {id: '1337'},
       });
 
       expect(wrapper.find('NotFound')).toHaveLength(1);
@@ -67,12 +69,12 @@ describe('ProjectInstallPlatform', function() {
       let props = {
         ...baseProps,
         params: {
-          platform: 'node-connect'
-        }
+          platform: 'node-connect',
+        },
       };
 
       let wrapper = shallow(<ProjectInstallPlatform {...props} />, {
-        organization: {id: '1337'}
+        organization: {id: '1337'},
       });
 
       expect(wrapper.find('LoadingIndicator')).toHaveLength(1);

@@ -1,6 +1,8 @@
 import PropTypes from 'prop-types';
 import React from 'react';
 
+import createReactClass from 'create-react-class';
+
 import LoadingIndicator from '../components/loadingIndicator';
 import LoadingError from '../components/loadingError';
 import Avatar from '../components/avatar';
@@ -10,11 +12,11 @@ import ApiMixin from '../mixins/apiMixin';
 
 import {t} from '../locale';
 
-const CommitBar = React.createClass({
-  propTypes: {
+class CommitBar extends React.Component {
+  static propTypes = {
     totalCommits: PropTypes.number.isRequired,
-    authorCommits: PropTypes.number.isRequired
-  },
+    authorCommits: PropTypes.number.isRequired,
+  };
 
   render() {
     let barStyle = {};
@@ -22,32 +24,36 @@ const CommitBar = React.createClass({
 
     return <div className="commit-bar" style={barStyle} />;
   }
-});
+}
 
-const CommitAuthorStats = React.createClass({
+const CommitAuthorStats = createReactClass({
+  displayName: 'CommitAuthorStats',
+
   propTypes: {
     orgId: PropTypes.string.isRequired,
     projectId: PropTypes.string.isRequired,
-    version: PropTypes.string.isRequired
+    version: PropTypes.string.isRequired,
   },
 
   mixins: [
     ApiMixin,
     TooltipMixin({
-      selector: '.tip'
-    })
+      selector: '.tip',
+    }),
   ],
 
   getInitialState() {
     return {
       loading: true,
-      error: false
+      error: false,
     };
   },
 
   componentDidMount() {
     let {orgId, projectId, version} = this.props;
-    let path = `/projects/${orgId}/${projectId}/releases/${encodeURIComponent(version)}/commits/`;
+    let path = `/projects/${orgId}/${projectId}/releases/${encodeURIComponent(
+      version
+    )}/commits/`;
     this.api.request(path, {
       method: 'GET',
       success: (data, _, jqXHR) => {
@@ -55,15 +61,15 @@ const CommitAuthorStats = React.createClass({
           error: false,
           loading: false,
           commitList: data,
-          pageLinks: jqXHR.getResponseHeader('Link')
+          pageLinks: jqXHR.getResponseHeader('Link'),
         });
       },
       error: () => {
         this.setState({
           error: true,
-          loading: false
+          loading: false,
         });
-      }
+      },
     });
   },
 
@@ -90,7 +96,7 @@ const CommitAuthorStats = React.createClass({
       if (!_commitAuthors.hasOwnProperty(author.email)) {
         _commitAuthors[author.email] = {
           commitCount: 1,
-          author
+          author,
         };
       } else {
         _commitAuthors[author.email].commitCount += 1;
@@ -115,12 +121,14 @@ const CommitAuthorStats = React.createClass({
             return (
               <li
                 key={i}
-                className="list-group-item list-group-item-sm list-group-avatar">
+                className="list-group-item list-group-item-sm list-group-avatar"
+              >
                 <div className="row row-flex row-center-vertically">
                   <div className="col-sm-8">
                     <span
                       className="avatar-grid-item m-b-0 tip"
-                      title={author.name + ' ' + author.email}>
+                      title={author.name + ' ' + author.email}
+                    >
                       <Avatar user={author} size={32} />
                     </span>
                     <CommitBar
@@ -128,9 +136,7 @@ const CommitAuthorStats = React.createClass({
                       authorCommits={commitCount}
                     />
                   </div>
-                  <div className="col-sm-4 align-right">
-                    {commitCount}
-                  </div>
+                  <div className="col-sm-4 align-right">{commitCount}</div>
                 </div>
               </li>
             );
@@ -138,7 +144,7 @@ const CommitAuthorStats = React.createClass({
         </ul>
       </div>
     );
-  }
+  },
 });
 
 export default CommitAuthorStats;

@@ -15,11 +15,11 @@ export default function ExternalLink({href, ...otherProps}) {
 ExternalLink.propTypes = {
   href: PropTypes.string.isRequired,
   target: PropTypes.string,
-  rel: PropTypes.string
+  rel: PropTypes.string,
 };
 
 // Should we allow these to be overridden?
 ExternalLink.defaultProps = {
   target: '_blank',
-  rel: 'noreferrer noopener'
+  rel: 'noreferrer noopener',
 };

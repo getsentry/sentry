@@ -128,7 +128,6 @@ class TeamDetailsEndpoint(TeamEndpoint):
                     'object_id': team.id,
                     'transaction_id': transaction_id,
                 },
-                countdown=3600,
             )
 
             self.create_audit_entry(

@@ -1,5 +1,7 @@
 import React from 'react';
 
+import createReactClass from 'create-react-class';
+
 import {Link} from 'react-router';
 
 import ApiMixin from '../../mixins/apiMixin';
@@ -9,7 +11,8 @@ import OrganizationState from '../../mixins/organizationState';
 
 import {t} from '../../locale';
 
-const EventsPerHour = React.createClass({
+const EventsPerHour = createReactClass({
+  displayName: 'EventsPerHour',
   mixins: [ApiMixin, OrganizationState],
 
   getInitialState() {
@@ -21,7 +24,7 @@ const EventsPerHour = React.createClass({
       formattedData: null,
       querySince: since,
       queryUntil: until,
-      error: false
+      error: false,
     };
   },
 
@@ -38,7 +41,7 @@ const EventsPerHour = React.createClass({
     let query = {
       since: this.state.querySince,
       until: this.state.queryUntil,
-      resolution: '1h'
+      resolution: '1h',
     };
 
     $.when
@@ -49,7 +52,7 @@ const EventsPerHour = React.createClass({
           this.api.request(statEndpoint, {
             query: Object.assign({stat}, query),
             success: deferred.resolve.bind(deferred),
-            error: deferred.reject.bind(deferred)
+            error: deferred.reject.bind(deferred),
           });
           return deferred;
         })
@@ -62,7 +65,7 @@ const EventsPerHour = React.createClass({
           }
           this.setState({
             rawOrgData,
-            formattedData: this.formatData(rawOrgData)
+            formattedData: this.formatData(rawOrgData),
           });
         }.bind(this)
       )
@@ -83,7 +86,7 @@ const EventsPerHour = React.createClass({
         data: rawData[stat].map(([x, y]) => {
           return {x, y};
         }),
-        label: stat
+        label: stat,
       };
     });
   },
@@ -112,7 +115,7 @@ const EventsPerHour = React.createClass({
         />
       </div>
     );
-  }
+  },
 });
 
 export default EventsPerHour;

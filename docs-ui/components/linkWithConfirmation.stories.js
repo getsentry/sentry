@@ -12,7 +12,8 @@ storiesOf('Links/LinkWithConfirmation', module).add(
       <LinkWithConfirmation
         message="Message"
         title="Titlte"
-        onConfirm={action('confirmed')}>
+        onConfirm={action('confirmed')}
+      >
         Link With Confirmation
       </LinkWithConfirmation>
     </div>
@@ -26,7 +27,8 @@ storiesOf('Confirm/LinkWithConfirmation', module).add(
       <LinkWithConfirmation
         message="Message"
         title="Titlte"
-        onConfirm={action('confirmed')}>
+        onConfirm={action('confirmed')}
+      >
         Link With Confirmation
       </LinkWithConfirmation>
     </div>

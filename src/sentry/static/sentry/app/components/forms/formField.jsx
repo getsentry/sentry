@@ -1,9 +1,16 @@
 import classNames from 'classnames';
 import PropTypes from 'prop-types';
 import React from 'react';
+import styled from 'react-emotion';
 import idx from 'idx';
 
 import {defined} from '../../utils';
+import InlineSvg from '../inlineSvg';
+
+const StyledInlineSvg = styled(InlineSvg)`
+  display: block;
+  color: ${p => p.theme.gray3};
+`;
 
 export default class FormField extends React.PureComponent {
   static propTypes = {
@@ -12,7 +19,11 @@ export default class FormField extends React.PureComponent {
     style: PropTypes.object,
 
     label: PropTypes.string,
+
+    // This is actually used but eslint doesn't parse it correctly
+    // eslint-disable-next-line react/no-unused-prop-types
     defaultValue: PropTypes.any,
+
     disabled: PropTypes.bool,
     disabledReason: PropTypes.string,
     help: PropTypes.oneOfType([PropTypes.string, PropTypes.element]),
@@ -22,34 +33,39 @@ export default class FormField extends React.PureComponent {
     // the following should only be used without form context
     onChange: PropTypes.func,
     error: PropTypes.string,
-    value: PropTypes.any
+    value: PropTypes.any,
   };
 
   static defaultProps = {
     hideErrorMessage: false,
     disabled: false,
-    required: false
+    required: false,
   };
 
   static contextTypes = {
-    form: PropTypes.object
+    form: PropTypes.object,
   };
 
   constructor(props, context) {
     super(props, context);
     this.state = {
-      value: this.getValue(props, context)
+      error: null,
+      value: this.getValue(props, context),
     };
   }
 
   componentDidMount() {}
 
   componentWillReceiveProps(nextProps, nextContext) {
-    if (
-      this.props.value !== nextProps.value ||
-      (!defined(this.context.form) && defined(nextContext.form))
-    ) {
-      this.setValue(this.getValue(nextProps, nextContext));
+    let newError = this.getError(nextProps, nextContext);
+    if (newError != this.state.error) {
+      this.setState({error: newError});
+    }
+    if (this.props.value !== nextProps.value || defined(nextContext.form)) {
+      let newValue = this.getValue(nextProps, nextContext);
+      if (newValue !== this.state.value) {
+        this.setValue(newValue);
+      }
     }
   }
 
@@ -62,9 +78,9 @@ export default class FormField extends React.PureComponent {
       return props.value;
     }
     if (form && form.data.hasOwnProperty(props.name)) {
-      return form.data[props.name];
+      return defined(form.data[props.name]) ? form.data[props.name] : '';
     }
-    return props.defaultValue || '';
+    return defined(props.defaultValue) ? props.defaultValue : '';
   }
 
   getError(props, context) {
@@ -93,7 +109,7 @@ export default class FormField extends React.PureComponent {
     let form = (this.context || {}).form;
     this.setState(
       {
-        value
+        value,
       },
       () => {
         this.props.onChange && this.props.onChange(this.coerceValue(this.state.value));
@@ -115,28 +131,30 @@ export default class FormField extends React.PureComponent {
       disabledReason,
       hideErrorMessage,
       help,
-      style
+      style,
     } = this.props;
-    let error = this.getError();
+    let {error} = this.state;
     let cx = classNames(className, this.getClassName(), {
       'has-error': !!error,
-      required
+      required,
     });
     let shouldShowErrorMessage = error && !hideErrorMessage;
 
     return (
       <div style={style} className={cx}>
         <div className="controls">
-          {label &&
+          {label && (
             <label htmlFor={this.getId()} className="control-label">
               {label}
-            </label>}
+            </label>
+          )}
           {this.getField()}
           {disabled &&
-            disabledReason &&
-            <span className="disabled-indicator tip" title={disabledReason}>
-              <span className="icon-question" />
-            </span>}
+            disabledReason && (
+              <span className="disabled-indicator tip" title={disabledReason}>
+                <StyledInlineSvg src="icon-circle-question" size="18px" />
+              </span>
+            )}
           {defined(help) && <p className="help-block">{help}</p>}
           {shouldShowErrorMessage && <p className="error">{error}</p>}
         </div>

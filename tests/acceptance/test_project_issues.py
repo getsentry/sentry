@@ -13,9 +13,10 @@ class ProjectIssuesTest(AcceptanceTestCase):
         self.team = self.create_team(organization=self.org, name='Mariachi Band')
         self.project = self.create_project(
             organization=self.org,
-            team=self.team,
+            teams=[self.team],
             name='Bengal',
         )
+        self.environment = self.create_environment(name="staging")
         self.login_as(self.user)
         self.path = '/{}/{}/'.format(self.org.slug, self.project.slug)
 

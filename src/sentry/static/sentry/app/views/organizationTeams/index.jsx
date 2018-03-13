@@ -1,32 +1,47 @@
+import PropTypes from 'prop-types';
 import React from 'react';
+import createReactClass from 'create-react-class';
 import Reflux from 'reflux';
 
-import {t} from '../../locale';
+import {loadStats} from '../../actionCreators/projects';
+import {sortArray} from '../../utils';
 import ApiMixin from '../../mixins/apiMixin';
-import ListLink from '../../components/listLink';
-import OrganizationHomeContainer from '../../components/organizations/homeContainer';
+import LoadingIndicator from '../../components/loadingIndicator';
 import OrganizationState from '../../mixins/organizationState';
 import TeamStore from '../../stores/teamStore';
-import {sortArray} from '../../utils';
+import getSettingsComponent from '../../utils/getSettingsComponent';
 
-import ExpandedTeamList from './expandedTeamList';
-import OrganizationStatOverview from './organizationStatOverview';
-import {loadStats} from '../../actionCreators/projects';
+const OrganizationTeams = createReactClass({
+  displayName: 'OrganizationTeams',
 
-const OrganizationTeams = React.createClass({
+  propTypes: {
+    routes: PropTypes.arrayOf(PropTypes.object),
+  },
+
   mixins: [ApiMixin, OrganizationState, Reflux.listenTo(TeamStore, 'onTeamListChange')],
 
   getInitialState() {
     return {
+      Component: null,
       teamList: sortArray(TeamStore.getAll(), function(o) {
-        return o.name;
+        return o && o.name;
       }),
-      projectStats: {}
+      projectStats: {},
     };
   },
 
-  componentWillMount() {
+  componentDidMount() {
     this.fetchStats();
+
+    getSettingsComponent(
+      () =>
+        import(/* webpackChunkName: "organizationTeamsView" */ '../settings/team/organizationTeamsView'),
+      () =>
+        import(/* webpackChunkName: "organizationTeamsView.old" */ './organizationTeamsView'),
+      this.props.routes
+    ).then(Component => {
+      this.setState({Component});
+    });
   },
 
   fetchStats() {
@@ -35,8 +50,8 @@ const OrganizationTeams = React.createClass({
       query: {
         since: new Date().getTime() / 1000 - 3600 * 24,
         stat: 'generated',
-        group: 'project'
-      }
+        group: 'project',
+      },
     });
   },
 
@@ -46,12 +61,13 @@ const OrganizationTeams = React.createClass({
     this.setState({
       teamList: sortArray(newTeamList, function(o) {
         return o.name;
-      })
+      }),
     });
   },
 
   render() {
     if (!this.context.organization) return null;
+    if (!this.state.Component) return <LoadingIndicator />;
 
     let access = this.getAccess();
     let features = this.getFeatures();
@@ -61,45 +77,16 @@ const OrganizationTeams = React.createClass({
     let activeTeams = this.state.teamList.filter(team => team.isMember);
 
     return (
-      <OrganizationHomeContainer>
-        <div className="row">
-          <div className="col-md-9">
-            <div className="team-list">
-              <ul className="nav nav-tabs border-bottom">
-                <ListLink to={`/organizations/${org.slug}/teams/`}>
-                  {t('Your Teams')}
-                </ListLink>
-                <ListLink to={`/organizations/${org.slug}/all-teams/`}>
-                  {t('All Teams')}
-                  {' '}
-                  <span className="badge badge-soft">{allTeams.length}</span>
-                </ListLink>
-              </ul>
-              {this.props.children /* should be AllTeamsList */
-                ? React.cloneElement(this.props.children, {
-                    organization: org,
-                    teamList: allTeams,
-                    access,
-                    openMembership: features.has('open-membership') ||
-                      access.has('org:write')
-                  })
-                : <ExpandedTeamList
-                    organization={org}
-                    teamList={activeTeams}
-                    projectStats={this.state.projectStats}
-                    hasTeams={allTeams.length !== 0}
-                    access={access}
-                  />}
-            </div>
-          </div>
-          <OrganizationStatOverview
-            orgId={this.props.params.orgId}
-            className="col-md-3 stats-column"
-          />
-        </div>
-      </OrganizationHomeContainer>
+      <this.state.Component
+        {...this.props}
+        access={access}
+        features={features}
+        organization={org}
+        allTeams={allTeams}
+        activeTeams={activeTeams}
+      />
     );
-  }
+  },
 });
 
 export default OrganizationTeams;

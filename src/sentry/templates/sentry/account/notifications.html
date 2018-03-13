@@ -64,19 +64,20 @@
 
         <h4>{% trans "Workflow" %}</h4>
 
-        <p>{% blocktrans %}Workflow notifications are separate from alerts and are generated for issue updates, such as:{% endblocktrans %}</p>
-
-        <ul>
-          <li>{% trans "Assignment" %}</li>
-          <li>{% trans "Comments" %}</li>
-          <li>{% trans "Regressions" %}</li>
-          <li>{% trans "Resolution" %}</li>
-        </ul>
-
+        <p>
+          {% blocktrans %}
+            Workflow notifications are separate from alerts and are generated
+            for issue updates, such as changes in issue assignment, changes to
+            resolution status (including regressions), and comments.
+          {% endblocktrans %}
+        </p>
         <p>
           {% blocktrans %}
             When workflow notifications are enabled for a project, you'll
             receive an email when your teammates perform any of these actions.
+            You'll be automatically added as a participant on an issue by
+            taking one of the actions listed above. You may subscribe (or
+            unsubscribe) from individual issues on their respective pages.
           {% endblocktrans %}
         </p>
 
@@ -85,16 +86,6 @@
         {{ settings_form.self_assign_issue|as_crispy_field }}
 
         {{ settings_form.self_notifications|as_crispy_field }}
-
-        <p>
-          {% blocktrans %}
-            You'll always receive notifications from issues that you're
-            subscribed to. You may subscribe (or unsubscribe) from individual
-            issues on their respective pages. You'll be automatically
-            subscribed when participating on an issue by taking one of the
-            actions listed above.
-          {% endblocktrans %}
-        </p>
 
         <hr />
 
@@ -150,7 +141,7 @@
                               <a data-toggle="alert">Alerts</a>
                             </th>
                             <th style="width:50px;text-align:center">
-                              <a data-toggle="workflow">Workflow</a>
+                              {% trans "Workflow" %}
                             </th>
                         </tr>
                     </thead>
@@ -217,7 +208,6 @@
   }
 
   setupChecker('alert');
-  setupChecker('workflow');
 });
 </script>
 {% endblock %}

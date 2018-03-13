@@ -11,11 +11,14 @@ exports[`CustomResolutionModal render() renders correctly 1`] = `
   keyboard={true}
   manager={
     ModalManager {
+      "add": [Function],
       "containers": Array [],
       "data": Array [],
       "handleContainerOverflow": true,
       "hideSiblingNodes": true,
+      "isTopModal": [Function],
       "modals": Array [],
+      "remove": [Function],
     }
   }
   onHide={[Function]}

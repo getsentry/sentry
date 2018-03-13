@@ -4,7 +4,7 @@ exports[`OnboardingWizard render() should render NotFound if no matching organiz
 <div
   className="onboarding-container"
 >
-  <DocumentTitle
+  <SideEffect(DocumentTitle)
     title="Sentry"
   />
   <div
@@ -39,9 +39,13 @@ exports[`OnboardingWizard render() should render and respond to click events 1`]
   <div
     className="onboarding-container"
   >
-    <DocumentTitle
+    <SideEffect(DocumentTitle)
       title="Sentry"
-    />
+    >
+      <DocumentTitle
+        title="Sentry"
+      />
+    </SideEffect(DocumentTitle)>
     <div
       className="step-container"
     >
@@ -69,6 +73,7 @@ exports[`OnboardingWizard render() should render and respond to click events 1`]
           >
             <div
               className="node done"
+              key="0"
             >
               <span
                 className="node done"
@@ -77,6 +82,7 @@ exports[`OnboardingWizard render() should render and respond to click events 1`]
             </div>
             <div
               className="node active"
+              key="1"
             >
               <span
                 className="node active"
@@ -85,6 +91,7 @@ exports[`OnboardingWizard render() should render and respond to click events 1`]
             </div>
             <div
               className="node"
+              key="2"
             >
               <span
                 className="node"
@@ -111,10 +118,10 @@ exports[`OnboardingWizard render() should render and respond to click events 1`]
       <div>
         <OnboardingProject
           name=""
-          next={[Function]}
+          next={[MockFunction]}
           platform=""
-          setName={[Function]}
-          setPlatform={[Function]}
+          setName={[MockFunction]}
+          setPlatform={[MockFunction]}
           setTeam={[Function]}
           team=""
           teams={Array []}
@@ -127,10 +134,10 @@ exports[`OnboardingWizard render() should render and respond to click events 1`]
             </h4>
             <PlatformPicker
               name=""
-              next={[Function]}
+              next={[MockFunction]}
               platform=""
-              setName={[Function]}
-              setPlatform={[Function]}
+              setName={[MockFunction]}
+              setPlatform={[MockFunction]}
               setTeam={[Function]}
               showOther={true}
               team=""
@@ -170,6 +177,7 @@ exports[`OnboardingWizard render() should render and respond to click events 1`]
                     activeClassName="active"
                     index={false}
                     isActive={[Function]}
+                    key="popular"
                     onClick={[Function]}
                     to=""
                   >
@@ -195,6 +203,7 @@ exports[`OnboardingWizard render() should render and respond to click events 1`]
                     activeClassName="active"
                     index={false}
                     isActive={[Function]}
+                    key="frontend"
                     onClick={[Function]}
                     to=""
                   >
@@ -220,6 +229,7 @@ exports[`OnboardingWizard render() should render and respond to click events 1`]
                     activeClassName="active"
                     index={false}
                     isActive={[Function]}
+                    key="mobile"
                     onClick={[Function]}
                     to=""
                   >
@@ -245,6 +255,7 @@ exports[`OnboardingWizard render() should render and respond to click events 1`]
                     activeClassName="active"
                     index={false}
                     isActive={[Function]}
+                    key="backend"
                     onClick={[Function]}
                     to=""
                   >
@@ -270,6 +281,7 @@ exports[`OnboardingWizard render() should render and respond to click events 1`]
                     activeClassName="active"
                     index={false}
                     isActive={[Function]}
+                    key="all"
                     onClick={[Function]}
                     to=""
                   >
@@ -297,6 +309,7 @@ exports[`OnboardingWizard render() should render and respond to click events 1`]
                 >
                   <PlatformCard
                     className=""
+                    key="csharp"
                     onClick={[Function]}
                     platform="csharp"
                   >
@@ -327,6 +340,7 @@ exports[`OnboardingWizard render() should render and respond to click events 1`]
                   </PlatformCard>
                   <PlatformCard
                     className=""
+                    key="java"
                     onClick={[Function]}
                     platform="java"
                   >
@@ -357,6 +371,7 @@ exports[`OnboardingWizard render() should render and respond to click events 1`]
                   </PlatformCard>
                   <PlatformCard
                     className=""
+                    key="javascript-angular"
                     onClick={[Function]}
                     platform="javascript-angular"
                   >
@@ -387,6 +402,7 @@ exports[`OnboardingWizard render() should render and respond to click events 1`]
                   </PlatformCard>
                   <PlatformCard
                     className=""
+                    key="javascript"
                     onClick={[Function]}
                     platform="javascript"
                   >
@@ -417,6 +433,7 @@ exports[`OnboardingWizard render() should render and respond to click events 1`]
                   </PlatformCard>
                   <PlatformCard
                     className=""
+                    key="javascript-react"
                     onClick={[Function]}
                     platform="javascript-react"
                   >
@@ -447,6 +464,7 @@ exports[`OnboardingWizard render() should render and respond to click events 1`]
                   </PlatformCard>
                   <PlatformCard
                     className=""
+                    key="node-express"
                     onClick={[Function]}
                     platform="node-express"
                   >
@@ -477,6 +495,7 @@ exports[`OnboardingWizard render() should render and respond to click events 1`]
                   </PlatformCard>
                   <PlatformCard
                     className=""
+                    key="node"
                     onClick={[Function]}
                     platform="node"
                   >
@@ -507,6 +526,7 @@ exports[`OnboardingWizard render() should render and respond to click events 1`]
                   </PlatformCard>
                   <PlatformCard
                     className=""
+                    key="php-laravel"
                     onClick={[Function]}
                     platform="php-laravel"
                   >
@@ -537,6 +557,7 @@ exports[`OnboardingWizard render() should render and respond to click events 1`]
                   </PlatformCard>
                   <PlatformCard
                     className=""
+                    key="php"
                     onClick={[Function]}
                     platform="php"
                   >
@@ -567,6 +588,7 @@ exports[`OnboardingWizard render() should render and respond to click events 1`]
                   </PlatformCard>
                   <PlatformCard
                     className=""
+                    key="php-symfony2"
                     onClick={[Function]}
                     platform="php-symfony2"
                   >
@@ -597,6 +619,7 @@ exports[`OnboardingWizard render() should render and respond to click events 1`]
                   </PlatformCard>
                   <PlatformCard
                     className=""
+                    key="python-django"
                     onClick={[Function]}
                     platform="python-django"
                   >
@@ -627,6 +650,7 @@ exports[`OnboardingWizard render() should render and respond to click events 1`]
                   </PlatformCard>
                   <PlatformCard
                     className=""
+                    key="python-flask"
                     onClick={[Function]}
                     platform="python-flask"
                   >
@@ -657,6 +681,7 @@ exports[`OnboardingWizard render() should render and respond to click events 1`]
                   </PlatformCard>
                   <PlatformCard
                     className=""
+                    key="python"
                     onClick={[Function]}
                     platform="python"
                   >
@@ -687,6 +712,7 @@ exports[`OnboardingWizard render() should render and respond to click events 1`]
                   </PlatformCard>
                   <PlatformCard
                     className=""
+                    key="cocoa"
                     onClick={[Function]}
                     platform="cocoa"
                   >
@@ -717,6 +743,7 @@ exports[`OnboardingWizard render() should render and respond to click events 1`]
                   </PlatformCard>
                   <PlatformCard
                     className=""
+                    key="ruby-rails"
                     onClick={[Function]}
                     platform="ruby-rails"
                   >
@@ -747,6 +774,7 @@ exports[`OnboardingWizard render() should render and respond to click events 1`]
                   </PlatformCard>
                   <PlatformCard
                     className=""
+                    key="ruby"
                     onClick={[Function]}
                     platform="ruby"
                   >
@@ -814,7 +842,7 @@ exports[`OnboardingWizard render() should render and respond to click events 1`]
               </div>
               <div>
                 <button
-                  className="btn btn-primary submit-new-team"
+                  className="btn btn-primary new-project-submit"
                   onClick={[Function]}
                 >
                   Create Project
@@ -849,9 +877,13 @@ exports[`OnboardingWizard render() should render and respond to click events 2`]
   <div
     className="onboarding-container"
   >
-    <DocumentTitle
+    <SideEffect(DocumentTitle)
       title="Sentry"
-    />
+    >
+      <DocumentTitle
+        title="Sentry"
+      />
+    </SideEffect(DocumentTitle)>
     <div
       className="step-container"
     >
@@ -879,6 +911,7 @@ exports[`OnboardingWizard render() should render and respond to click events 2`]
           >
             <div
               className="node done"
+              key="0"
             >
               <span
                 className="node done"
@@ -887,6 +920,7 @@ exports[`OnboardingWizard render() should render and respond to click events 2`]
             </div>
             <div
               className="node active"
+              key="1"
             >
               <span
                 className="node active"
@@ -895,6 +929,7 @@ exports[`OnboardingWizard render() should render and respond to click events 2`]
             </div>
             <div
               className="node"
+              key="2"
             >
               <span
                 className="node"
@@ -921,10 +956,18 @@ exports[`OnboardingWizard render() should render and respond to click events 2`]
       <div>
         <OnboardingProject
           name=""
-          next={[Function]}
+          next={[MockFunction]}
           platform=""
-          setName={[Function]}
-          setPlatform={[Function]}
+          setName={[MockFunction]}
+          setPlatform={
+            [MockFunction] {
+              "calls": Array [
+                Array [
+                  "csharp",
+                ],
+              ],
+            }
+          }
           setTeam={[Function]}
           team=""
           teams={Array []}
@@ -937,10 +980,18 @@ exports[`OnboardingWizard render() should render and respond to click events 2`]
             </h4>
             <PlatformPicker
               name=""
-              next={[Function]}
+              next={[MockFunction]}
               platform=""
-              setName={[Function]}
-              setPlatform={[Function]}
+              setName={[MockFunction]}
+              setPlatform={
+                [MockFunction] {
+                  "calls": Array [
+                    Array [
+                      "csharp",
+                    ],
+                  ],
+                }
+              }
               setTeam={[Function]}
               showOther={true}
               team=""
@@ -980,6 +1031,7 @@ exports[`OnboardingWizard render() should render and respond to click events 2`]
                     activeClassName="active"
                     index={false}
                     isActive={[Function]}
+                    key="popular"
                     onClick={[Function]}
                     to=""
                   >
@@ -1005,6 +1057,7 @@ exports[`OnboardingWizard render() should render and respond to click events 2`]
                     activeClassName="active"
                     index={false}
                     isActive={[Function]}
+                    key="frontend"
                     onClick={[Function]}
                     to=""
                   >
@@ -1030,6 +1083,7 @@ exports[`OnboardingWizard render() should render and respond to click events 2`]
                     activeClassName="active"
                     index={false}
                     isActive={[Function]}
+                    key="mobile"
                     onClick={[Function]}
                     to=""
                   >
@@ -1055,6 +1109,7 @@ exports[`OnboardingWizard render() should render and respond to click events 2`]
                     activeClassName="active"
                     index={false}
                     isActive={[Function]}
+                    key="backend"
                     onClick={[Function]}
                     to=""
                   >
@@ -1080,6 +1135,7 @@ exports[`OnboardingWizard render() should render and respond to click events 2`]
                     activeClassName="active"
                     index={false}
                     isActive={[Function]}
+                    key="all"
                     onClick={[Function]}
                     to=""
                   >
@@ -1107,6 +1163,7 @@ exports[`OnboardingWizard render() should render and respond to click events 2`]
                 >
                   <PlatformCard
                     className=""
+                    key="csharp"
                     onClick={[Function]}
                     platform="csharp"
                   >
@@ -1137,6 +1194,7 @@ exports[`OnboardingWizard render() should render and respond to click events 2`]
                   </PlatformCard>
                   <PlatformCard
                     className=""
+                    key="java"
                     onClick={[Function]}
                     platform="java"
                   >
@@ -1167,6 +1225,7 @@ exports[`OnboardingWizard render() should render and respond to click events 2`]
                   </PlatformCard>
                   <PlatformCard
                     className=""
+                    key="javascript-angular"
                     onClick={[Function]}
                     platform="javascript-angular"
                   >
@@ -1197,6 +1256,7 @@ exports[`OnboardingWizard render() should render and respond to click events 2`]
                   </PlatformCard>
                   <PlatformCard
                     className=""
+                    key="javascript"
                     onClick={[Function]}
                     platform="javascript"
                   >
@@ -1227,6 +1287,7 @@ exports[`OnboardingWizard render() should render and respond to click events 2`]
                   </PlatformCard>
                   <PlatformCard
                     className=""
+                    key="javascript-react"
                     onClick={[Function]}
                     platform="javascript-react"
                   >
@@ -1257,6 +1318,7 @@ exports[`OnboardingWizard render() should render and respond to click events 2`]
                   </PlatformCard>
                   <PlatformCard
                     className=""
+                    key="node-express"
                     onClick={[Function]}
                     platform="node-express"
                   >
@@ -1287,6 +1349,7 @@ exports[`OnboardingWizard render() should render and respond to click events 2`]
                   </PlatformCard>
                   <PlatformCard
                     className=""
+                    key="node"
                     onClick={[Function]}
                     platform="node"
                   >
@@ -1317,6 +1380,7 @@ exports[`OnboardingWizard render() should render and respond to click events 2`]
                   </PlatformCard>
                   <PlatformCard
                     className=""
+                    key="php-laravel"
                     onClick={[Function]}
                     platform="php-laravel"
                   >
@@ -1347,6 +1411,7 @@ exports[`OnboardingWizard render() should render and respond to click events 2`]
                   </PlatformCard>
                   <PlatformCard
                     className=""
+                    key="php"
                     onClick={[Function]}
                     platform="php"
                   >
@@ -1377,6 +1442,7 @@ exports[`OnboardingWizard render() should render and respond to click events 2`]
                   </PlatformCard>
                   <PlatformCard
                     className=""
+                    key="php-symfony2"
                     onClick={[Function]}
                     platform="php-symfony2"
                   >
@@ -1407,6 +1473,7 @@ exports[`OnboardingWizard render() should render and respond to click events 2`]
                   </PlatformCard>
                   <PlatformCard
                     className=""
+                    key="python-django"
                     onClick={[Function]}
                     platform="python-django"
                   >
@@ -1437,6 +1504,7 @@ exports[`OnboardingWizard render() should render and respond to click events 2`]
                   </PlatformCard>
                   <PlatformCard
                     className=""
+                    key="python-flask"
                     onClick={[Function]}
                     platform="python-flask"
                   >
@@ -1467,6 +1535,7 @@ exports[`OnboardingWizard render() should render and respond to click events 2`]
                   </PlatformCard>
                   <PlatformCard
                     className=""
+                    key="python"
                     onClick={[Function]}
                     platform="python"
                   >
@@ -1497,6 +1566,7 @@ exports[`OnboardingWizard render() should render and respond to click events 2`]
                   </PlatformCard>
                   <PlatformCard
                     className=""
+                    key="cocoa"
                     onClick={[Function]}
                     platform="cocoa"
                   >
@@ -1527,6 +1597,7 @@ exports[`OnboardingWizard render() should render and respond to click events 2`]
                   </PlatformCard>
                   <PlatformCard
                     className=""
+                    key="ruby-rails"
                     onClick={[Function]}
                     platform="ruby-rails"
                   >
@@ -1557,6 +1628,7 @@ exports[`OnboardingWizard render() should render and respond to click events 2`]
                   </PlatformCard>
                   <PlatformCard
                     className=""
+                    key="ruby"
                     onClick={[Function]}
                     platform="ruby"
                   >
@@ -1624,7 +1696,7 @@ exports[`OnboardingWizard render() should render and respond to click events 2`]
               </div>
               <div>
                 <button
-                  className="btn btn-primary submit-new-team"
+                  className="btn btn-primary new-project-submit"
                   onClick={[Function]}
                 >
                   Create Project

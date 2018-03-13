@@ -11,7 +11,7 @@ from django.http import HttpResponseRedirect
 from django.utils import timezone
 from django.utils.translation import ugettext_lazy as _
 
-from sentry import roles, options
+from sentry import features, roles, options
 from sentry.web.frontend.base import ProjectView
 from sentry.utils.email import MessageBuilder
 from sentry.utils.http import absolute_uri
@@ -36,7 +36,7 @@ class TransferProjectView(ProjectView):
             return TransferProjectForm(request.POST)
         return TransferProjectForm()
 
-    def handle(self, request, organization, team, project):
+    def handle(self, request, organization, project):
         form = self.get_form(request)
 
         if form.is_valid():
@@ -60,10 +60,16 @@ class TransferProjectView(ProjectView):
                 project_id=project.id,
                 user_id=owner.user_id,
                 transaction_id=transaction_id)
+
+            is_internal = features.has(
+                'organizations:internal-catchall',
+                organization,
+                actor=request.user,
+            )
             context = {
                 'email': email,
                 'from_org': organization.name,
-                'project_name': project.name,
+                'project_name': project.slug if is_internal else project.name,
                 'request_time': timezone.now(),
                 'url':
                 absolute_uri('/accept-transfer/') + '?' + urlencode({'data': url_data}),
@@ -90,11 +96,11 @@ class TransferProjectView(ProjectView):
             messages.add_message(
                 request, messages.SUCCESS,
                 _(u'A request was sent to move project %r to a different organization') %
-                (project.name.encode('utf-8'), )
+                ((project.slug if is_internal else project.name).encode('utf-8'), )
             )
 
             return HttpResponseRedirect(
-                reverse('sentry-organization-home', args=[team.organization.slug])
+                reverse('sentry-organization-home', args=[organization.slug])
             )
 
         context = {

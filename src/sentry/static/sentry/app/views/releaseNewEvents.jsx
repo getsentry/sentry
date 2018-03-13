@@ -4,10 +4,10 @@ import {Link} from 'react-router';
 import GroupList from '../components/groupList';
 import {t} from '../locale';
 
-const ReleaseNewEvents = React.createClass({
-  contextTypes: {
-    release: PropTypes.object
-  },
+class ReleaseNewEvents extends React.Component {
+  static contextTypes = {
+    release: PropTypes.object,
+  };
 
   render() {
     let {orgId, projectId} = this.props.params;
@@ -17,8 +17,9 @@ const ReleaseNewEvents = React.createClass({
           <Link
             to={{
               pathname: `/${orgId}/${projectId}/`,
-              query: {query: 'first-release:' + this.context.release.version}
-            }}>
+              query: {query: 'first-release:' + this.context.release.version},
+            }}
+          >
             <span className="icon icon-open" />
             {t('View new events seen in this release in the stream')}
           </Link>
@@ -33,6 +34,6 @@ const ReleaseNewEvents = React.createClass({
       </div>
     );
   }
-});
+}
 
 export default ReleaseNewEvents;

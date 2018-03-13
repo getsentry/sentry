@@ -3,57 +3,59 @@ import {shallow} from 'enzyme';
 import {browserHistory} from 'react-router';
 
 import {Client} from 'app/api';
-import ProjectReleases from 'app/views/projectReleases';
+import {ProjectReleases} from 'app/views/projectReleases';
 import SearchBar from 'app/views/stream/searchBar';
 import Pagination from 'app/components/pagination';
 
 import stubReactComponents from '../../helpers/stubReactComponent';
 
 describe('ProjectReleases', function() {
+  let sandbox;
+  let props;
+  let projectReleases;
+
   beforeEach(function() {
-    this.sandbox = sinon.sandbox.create();
+    sandbox = sinon.sandbox.create();
 
-    this.sandbox.stub(Client.prototype, 'request');
-    stubReactComponents(this.sandbox, [SearchBar, Pagination]);
-    this.sandbox.stub(browserHistory, 'pushState');
+    sandbox.stub(Client.prototype, 'request');
+    stubReactComponents(sandbox, [SearchBar, Pagination]);
+    sandbox.stub(browserHistory, 'push');
 
-    this.props = {
+    props = {
       setProjectNavSection: function() {},
       params: {orgId: '123', projectId: '456'},
-      location: {query: {per_page: 0, query: 'derp'}}
+      location: {query: {per_page: 0, query: 'derp'}},
     };
-    this.projectReleases = shallow(<ProjectReleases {...this.props} />);
+    projectReleases = shallow(<ProjectReleases {...props} />);
   });
 
   afterEach(function() {
-    this.sandbox.restore();
+    sandbox.restore();
   });
 
   describe('fetchData()', function() {
     it('should call releases endpoint', function() {
-      expect(Client.prototype.request.args[0][0]).toEqual(
-        '/projects/123/456/releases/?per_page=20&query=derp'
+      expect(Client.prototype.request.args[0][1]).toEqual(
+        expect.objectContaining({
+          query: {per_page: 20, query: 'derp'},
+        })
       );
     });
   });
 
   describe('getInitialState()', function() {
     it('should take query state from query string', function() {
-      expect(this.projectReleases.state('query')).toEqual('derp');
+      expect(projectReleases.state('query')).toEqual('derp');
     });
   });
 
   describe('onSearch', function() {
     it('should change query string with new search parameter', function() {
-      let projectReleases = this.projectReleases;
-
       projectReleases.instance().onSearch('searchquery');
 
-      expect(browserHistory.pushState.calledOnce).toBeTruthy();
-      expect(browserHistory.pushState.args[0]).toEqual([
-        null,
-        '/123/456/releases/',
-        {query: 'searchquery'}
+      expect(browserHistory.push.calledOnce).toBeTruthy();
+      expect(browserHistory.push.args[0]).toEqual([
+        {pathname: '/123/456/releases/', query: {query: 'searchquery'}},
       ]);
     });
   });
@@ -62,22 +64,20 @@ describe('ProjectReleases', function() {
 
   describe('componentWillReceiveProps()', function() {
     it('should update state with latest query pulled from query string', function() {
-      let projectReleases = this.projectReleases.instance();
-
-      let setState = this.sandbox.stub(projectReleases, 'setState');
+      let setState = sandbox.stub(projectReleases.instance(), 'setState');
 
       let newProps = {
-        ...this.props,
+        ...props,
         location: {
           search: '?query=newquery',
-          query: {query: 'newquery'}
-        }
+          query: {query: 'newquery'},
+        },
       };
-      projectReleases.componentWillReceiveProps(newProps);
+      projectReleases.instance().componentWillReceiveProps(newProps);
 
       expect(setState.calledOnce).toBeTruthy();
       expect(setState.getCall(0).args[0]).toEqual({
-        query: 'newquery'
+        query: 'newquery',
       });
     });
   });

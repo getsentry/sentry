@@ -11,35 +11,36 @@ import Version from './version';
 import {Select2FieldAutocomplete} from './forms';
 import {t} from '../locale';
 
-export default React.createClass({
-  propTypes: {
+export default class CustomResolutionModal extends React.Component {
+  static propTypes = {
     onSelected: PropTypes.func.isRequired,
     onCanceled: PropTypes.func.isRequired,
     orgId: PropTypes.string.isRequired,
     projectId: PropTypes.string.isRequired,
-    show: PropTypes.bool
-  },
+    show: PropTypes.bool,
+  };
 
-  getInitialState() {
-    return {version: ''};
-  },
+  constructor(...args) {
+    super(...args);
+    this.state = {version: ''};
+  }
 
   componentDidUpdate(prevProps, prevState) {
     if (!prevProps.show && this.props.show) {
       // XXX(cramer): this is incorrect but idgaf
       jQuery('.modal').attr('tabindex', null);
     }
-  },
+  }
 
-  onSubmit() {
+  onSubmit = () => {
     this.props.onSelected({
-      inRelease: this.state.version
+      inRelease: this.state.version,
     });
-  },
+  };
 
-  onChange(value) {
+  onChange = value => {
     this.setState({version: value});
-  },
+  };
 
   render() {
     let {orgId, projectId} = this.props;
@@ -48,12 +49,12 @@ export default React.createClass({
     return (
       <Modal show={this.props.show} animation={false} onHide={this.props.onCanceled}>
         <div className="modal-header">
-          <h4>Resolved In</h4>
+          <h4>{t('Resolved In')}</h4>
         </div>
         <div className="modal-body">
           <form className="m-b-1">
             <div className="control-group m-b-1">
-              <h6 className="nav-header">Version</h6>
+              <h6 className="nav-header">{t('Version')}</h6>
               <Select2FieldAutocomplete
                 name="version"
                 onChange={v => this.onChange(v)}
@@ -74,7 +75,9 @@ export default React.createClass({
                         <Version version={release.version} anchor={false} />
                       </strong>
                       <br />
-                      <small>Created <TimeSince date={release.dateCreated} /></small>
+                      <small>
+                        Created <TimeSince date={release.dateCreated} />
+                      </small>
                     </div>
                   );
                 }}
@@ -88,7 +91,8 @@ export default React.createClass({
           <button
             type="button"
             className="btn btn-default"
-            onClick={this.props.onCanceled}>
+            onClick={this.props.onCanceled}
+          >
             {t('Cancel')}
           </button>
           <button type="button" className="btn btn-primary" onClick={this.onSubmit}>
@@ -98,4 +102,4 @@ export default React.createClass({
       </Modal>
     );
   }
-});
+}

@@ -10,11 +10,9 @@ from __future__ import absolute_import, print_function
 import logging
 import math
 import re
-import six
 import time
 import warnings
 
-from base64 import b16decode, b16encode
 from datetime import timedelta
 from django.core.urlresolvers import reverse
 from django.db import models
@@ -128,7 +126,39 @@ class GroupManager(ProjectBoundManager):
                 }
             )
 
-    def add_tags(self, group, tags):
+    def from_event_id(self, project, event_id):
+        """
+        Resolves the 32 character event_id string into
+        a Group for which it is found.
+        """
+        from sentry.models import EventMapping, Event
+        group_id = None
+
+        # Look up event_id in both Event and EventMapping,
+        # and bail when it matches one of them, prioritizing
+        # Event since it contains more history.
+        for model in Event, EventMapping:
+            try:
+                group_id = model.objects.filter(
+                    project_id=project.id,
+                    event_id=event_id,
+                ).values_list('group_id', flat=True)[0]
+
+                # It's possible that group_id is NULL
+                if group_id is not None:
+                    break
+            except IndexError:
+                pass
+
+        if group_id is None:
+            # Raise a Group.DoesNotExist here since it makes
+            # more logical sense since this is intending to resolve
+            # a Group.
+            raise Group.DoesNotExist()
+
+        return Group.objects.get(id=group_id)
+
+    def add_tags(self, group, environment, tags):
         project_id = group.project_id
         date = group.last_seen
 
@@ -138,12 +168,12 @@ class GroupManager(ProjectBoundManager):
             else:
                 key, value, data = tag_item
 
-            tagstore.incr_tag_value_times_seen(project_id, key, value, {
+            tagstore.incr_tag_value_times_seen(project_id, environment.id, key, value, extra={
                 'last_seen': date,
                 'data': data,
             })
 
-            tagstore.incr_group_tag_value_times_seen(group.id, key, value, {
+            tagstore.incr_group_tag_value_times_seen(project_id, group.id, environment.id, key, value, extra={
                 'project_id': project_id,
                 'last_seen': date,
             })
@@ -189,6 +219,7 @@ class Group(ProjectBoundMixin, Model):
     time_spent_total = BoundedIntegerField(default=0)
     time_spent_count = BoundedIntegerField(default=0)
     score = BoundedIntegerField(default=0)
+    # deprecated, do not use. GroupShare has superseded
     is_public = models.NullBooleanField(default=False, null=True)
     data = GzippedDictField(blank=True, null=True)
     short_id = BoundedBigIntegerField(null=True)
@@ -272,21 +303,26 @@ class Group(ProjectBoundMixin, Model):
         return status
 
     def get_share_id(self):
-        return b16encode(('{}.{}'.format(self.project_id,
-                                         self.id)).encode('utf-8')).lower().decode('utf-8')
+        from sentry.models import GroupShare
+        try:
+            return GroupShare.objects.filter(
+                group_id=self.id,
+            ).values_list('uuid', flat=True)[0]
+        except IndexError:
+            # Otherwise it has not been shared yet.
+            return None
 
     @classmethod
     def from_share_id(cls, share_id):
-        if not share_id:
+        if not share_id or len(share_id) != 32:
             raise cls.DoesNotExist
-        try:
-            project_id, group_id = b16decode(
-                share_id.upper()).decode('utf-8').split('.')
-        except (ValueError, TypeError):
-            raise cls.DoesNotExist
-        if not (project_id.isdigit() and group_id.isdigit()):
-            raise cls.DoesNotExist
-        return cls.objects.get(project=project_id, id=group_id)
+
+        from sentry.models import GroupShare
+        return cls.objects.get(
+            id=GroupShare.objects.filter(
+                uuid=share_id,
+            ).values_list('group_id'),
+        )
 
     def get_score(self):
         return int(math.log(self.times_seen) * 600 +
@@ -325,29 +361,14 @@ class Group(ProjectBoundMixin, Model):
                 self._oldest_event = None
         return self._oldest_event
 
-    def get_tags(self):
-        if not hasattr(self, '_tag_cache'):
-            group_tags = [gtk.key for gtk in tagstore.get_group_tag_keys(self.id)]
-
-            results = []
-            for key in group_tags:
-                results.append({
-                    'key': key,
-                    'label': tagstore.get_tag_key_label(key),
-                })
-
-            self._tag_cache = sorted(results, key=lambda x: x['label'])
-
-        return self._tag_cache
-
     def get_first_release(self):
         if self.first_release_id is None:
-            return tagstore.get_first_release(self.id)
+            return tagstore.get_first_release(self.project_id, self.id)
 
         return self.first_release.version
 
     def get_last_release(self):
-        return tagstore.get_last_release(self.id)
+        return tagstore.get_last_release(self.project_id, self.id)
 
     def get_event_type(self):
         """
@@ -388,17 +409,9 @@ class Group(ProjectBoundMixin, Model):
         warnings.warn('Group.message_short is deprecated, use Group.title', DeprecationWarning)
         return self.title
 
-    def has_two_part_message(self):
-        warnings.warn('Group.has_two_part_message is no longer used', DeprecationWarning)
-        return False
-
     @property
     def organization(self):
         return self.project.organization
-
-    @property
-    def team(self):
-        return self.project.team
 
     @property
     def checksum(self):
@@ -406,11 +419,11 @@ class Group(ProjectBoundMixin, Model):
         return ''
 
     def get_email_subject(self):
-        return '[%s] %s: %s' % (
-            self.project.get_full_name().encode('utf-8'),
-            six.text_type(self.get_level_display()).upper().encode('utf-8'),
+        return '%s - %s' % (
+            self.qualified_short_id.encode('utf-8'),
             self.title.encode('utf-8')
         )
 
     def count_users_seen(self):
-        return tagstore.get_group_values_seen(self.id, 'sentry:user')[self.id]
+        return tagstore.get_groups_user_counts(
+            self.project_id, [self.id], environment_id=None)[self.id]

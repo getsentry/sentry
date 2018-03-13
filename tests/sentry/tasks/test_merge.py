@@ -4,8 +4,9 @@ from collections import defaultdict
 from mock import patch
 
 from sentry import tagstore
+from sentry.tagstore.models import GroupTagValue
 from sentry.tasks.merge import merge_group, rehash_group_events
-from sentry.models import Event, Group, GroupMeta, GroupRedirect
+from sentry.models import Event, Group, GroupMeta, GroupRedirect, UserReport
 from sentry.similarity import _make_index_backend
 from sentry.testutils import TestCase
 from sentry.utils import redis
@@ -103,6 +104,7 @@ class MergeGroupTest(TestCase):
             tagstore.create_group_tag_key(
                 project_id=project.id,
                 group_id=group.id,
+                environment_id=self.environment.id,
                 key=key,
                 values_seen=values_seen,
             )
@@ -111,6 +113,7 @@ class MergeGroupTest(TestCase):
             tagstore.create_group_tag_value(
                 project_id=project.id,
                 group_id=group.id,
+                environment_id=self.environment.id,
                 key=key,
                 value=value,
                 times_seen=times_seen,
@@ -120,15 +123,26 @@ class MergeGroupTest(TestCase):
             merge_group(other.id, target.id)
 
         assert not Group.objects.filter(id=other.id).exists()
-        assert len(tagstore.get_group_tag_keys(other.id)) == 0
-        assert len(tagstore.get_group_tag_values(other.id)) == 0
+        assert len(
+            tagstore.get_group_tag_keys(
+                other.project_id,
+                other.id,
+                environment_id=self.environment.id)) == 0
+        assert len(
+            GroupTagValue.objects.filter(
+                project_id=other.project_id,
+                group_id=other.id,
+            )) == 0
 
         for key, values_seen in output_group_tag_keys.items():
-            assert tagstore.get_group_tag_key(target.id, key).values_seen == values_seen
+            assert tagstore.get_group_tag_key(
+                target.project_id, target.id, environment_id=self.environment.id, key=key).values_seen == values_seen
 
         for (key, value), times_seen in output_group_tag_values.items():
             assert tagstore.get_group_tag_value(
+                project_id=target.project_id,
                 group_id=target.id,
+                environment_id=self.environment.id,
                 key=key,
                 value=value,
             ).times_seen == times_seen
@@ -178,6 +192,21 @@ class MergeGroupTest(TestCase):
         assert not GroupMeta.objects.get_value(group1, 'other:tid')
         assert GroupMeta.objects.get_value(group2, 'github:tid') == '134'
         assert GroupMeta.objects.get_value(group2, 'other:tid') == 'abc'
+
+    def test_user_report_merge(self):
+        project1 = self.create_project()
+        group1 = self.create_group(project1)
+        event1 = self.create_event('a' * 32, group=group1, data={'foo': 'bar'})
+        project2 = self.create_project()
+        group2 = self.create_group(project2)
+        ur = UserReport.objects.create(project=project1, group=group1, event_id=event1.event_id)
+
+        with self.tasks():
+            merge_group(group1.id, group2.id)
+
+        assert not Group.objects.filter(id=group1.id).exists()
+
+        assert UserReport.objects.get(id=ur.id).group_id == group2.id
 
 
 class RehashGroupEventsTest(TestCase):

@@ -2,7 +2,7 @@
 
 from __future__ import absolute_import
 
-from sentry.models import OrganizationMember, OrganizationMemberTeam, Project
+from sentry.models import Environment, OrganizationMember, OrganizationMemberTeam, Project, Release, ReleaseProject, ReleaseProjectEnvironment, Rule
 from sentry.testutils import TestCase
 from sentry.utils import tenants
 
@@ -12,7 +12,7 @@ class ProjectTest(TestCase):
         user = self.create_user()
         org = self.create_organization(owner=user)
         team = self.create_team(organization=org)
-        project = self.create_project(team=team)
+        project = self.create_project(teams=[team])
         member = OrganizationMember.objects.get(
             user=user,
             organization=org,
@@ -28,7 +28,7 @@ class ProjectTest(TestCase):
         user = self.create_user()
         org = self.create_organization(owner=user)
         team = self.create_team(organization=org)
-        project = self.create_project(team=team)
+        project = self.create_project(teams=[team])
         OrganizationMember.objects.get(
             user=user,
             organization=org,
@@ -57,25 +57,39 @@ class ProjectTest(TestCase):
     def test_transfer_to(self):
         from_org = self.create_organization()
         from_team = self.create_team(organization=from_org)
-        project = self.create_project(team=from_team)
         to_org = self.create_organization()
         to_team = self.create_team(organization=to_org)
+
+        project = self.create_project(teams=[from_team])
+
+        rule = Rule.objects.create(
+            project=project,
+            environment_id=Environment.get_or_create(project, 'production').id,
+            label='Golden Rule',
+            data={},
+        )
 
         project.transfer_to(to_team)
 
         project = Project.objects.unrestricted_unsafe().get(id=project.id)
 
-        assert project.team_id == to_team.id
+        assert project.teams.count() == 1
+        assert project.teams.first() == to_team
         assert project.organization_id == to_org.id
+
+        updated_rule = project.rule_set.get(label='Golden Rule')
+        assert updated_rule.id == rule.id
+        assert updated_rule.environment_id != rule.environment_id
+        assert updated_rule.environment_id == Environment.get_or_create(project, 'production').id
 
     def test_transfer_to_slug_collision(self):
         from_org = self.create_organization()
         from_team = self.create_team(organization=from_org)
-        project = self.create_project(team=from_team, slug='matt')
+        project = self.create_project(teams=[from_team], slug='matt')
         to_org = self.create_organization()
         to_team = self.create_team(organization=to_org)
         # conflicting project slug
-        self.create_project(team=to_team, slug='matt')
+        self.create_project(teams=[to_team], slug='matt')
 
         assert Project.objects.unrestricted_unsafe().filter(organization=to_org).count() == 1
 
@@ -83,8 +97,54 @@ class ProjectTest(TestCase):
 
         project = Project.objects.unrestricted_unsafe().get(id=project.id)
 
-        assert project.team_id == to_team.id
+        assert project.teams.count() == 1
+        assert project.teams.first() == to_team
         assert project.organization_id == to_org.id
         assert project.slug != 'matt'
         assert Project.objects.unrestricted_unsafe().filter(organization=to_org).count() == 2
         assert Project.objects.unrestricted_unsafe().filter(organization=from_org).count() == 0
+
+    def test_transfer_to_releases(self):
+        from_org = self.create_organization()
+        from_team = self.create_team(organization=from_org)
+        to_org = self.create_organization()
+        to_team = self.create_team(organization=to_org)
+
+        project = self.create_project(teams=[from_team])
+
+        environment = Environment.get_or_create(project, 'production')
+        release = Release.get_or_create(project=project, version='1.0')
+
+        ReleaseProjectEnvironment.objects.create(
+            project=project,
+            release=release,
+            environment=environment,
+        )
+
+        assert ReleaseProjectEnvironment.objects.filter(
+            project=project,
+            release=release,
+            environment=environment,
+        ).exists()
+        assert ReleaseProject.objects.filter(
+            project=project,
+            release=release,
+        ).exists()
+
+        project.transfer_to(to_team)
+
+        project = Project.objects.get(id=project.id)
+
+        assert project.teams.count() == 1
+        assert project.teams.first() == to_team
+        assert project.organization_id == to_org.id
+
+        assert not ReleaseProjectEnvironment.objects.filter(
+            project=project,
+            release=release,
+            environment=environment,
+        ).exists()
+        assert not ReleaseProject.objects.filter(
+            project=project,
+            release=release,
+        ).exists()

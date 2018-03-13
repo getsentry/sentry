@@ -16,7 +16,7 @@ class DashboardTest(AcceptanceTestCase):
         self.team = self.create_team(organization=self.org, name='Mariachi Band')
         self.project = self.create_project(
             organization=self.org,
-            team=self.team,
+            teams=[self.team],
             name='Bengal',
         )
         self.create_member(
@@ -35,5 +35,6 @@ class DashboardTest(AcceptanceTestCase):
         # so we bank on the core container and the activity container being
         # enough of a check
         self.browser.wait_until('.organization-home')
+        self.browser.wait_until('.dashboard-barchart')
         self.browser.wait_until_not('.loading-indicator')
         self.browser.snapshot('organization dashboard')

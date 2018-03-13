@@ -11,9 +11,9 @@ from sentry.testutils import APITestCase
 class TeamProjectIndexTest(APITestCase):
     def test_simple(self):
         self.login_as(user=self.user)
-        team = self.create_team(slug='baz')
-        project_1 = self.create_project(team=team, slug='fiz')
-        project_2 = self.create_project(team=team, slug='buzz')
+        team = self.create_team(members=[self.user])
+        project_1 = self.create_project(teams=[team], slug='fiz')
+        project_2 = self.create_project(teams=[team], slug='buzz')
 
         url = reverse(
             'sentry-api-0-team-project-index',
@@ -36,7 +36,7 @@ class TeamProjectIndexTest(APITestCase):
 class TeamProjectCreateTest(APITestCase):
     def test_simple(self):
         self.login_as(user=self.user)
-        team = self.create_team(slug='baz')
+        team = self.create_team(members=[self.user])
         url = reverse(
             'sentry-api-0-team-project-index',
             kwargs={
@@ -54,7 +54,6 @@ class TeamProjectCreateTest(APITestCase):
         project = Project.objects.get(id=resp.data['id'])
         assert project.name == 'hello world'
         assert project.slug == 'foobar'
-        assert project.team == team
         assert project.teams.first() == team
 
         resp = self.client.post(

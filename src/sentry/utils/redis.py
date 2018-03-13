@@ -106,7 +106,11 @@ class _RedisCluster(object):
         # Redis cluster does not wait to attempt to connect. We'd prefer to not
         # make TCP connections on boot. Wrap the client in a lazy proxy object.
         def cluster_factory():
-            return RetryingStrictRedisCluster(startup_nodes=hosts, decode_responses=True)
+            return RetryingStrictRedisCluster(
+                startup_nodes=hosts,
+                decode_responses=True,
+                skip_full_coverage_check=True,
+            )
 
         return SimpleLazyObject(cluster_factory)
 

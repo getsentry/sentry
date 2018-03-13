@@ -21,7 +21,10 @@ class OrganizationIntegrationsEndpoint(OrganizationEndpoint):
 
     def get(self, request, organization):
         if not self.has_feature(request, organization):
-            return self.respond({'detail': ['You do not have that feature enabled']}, status=400)
+            return self.respond({
+                'error_type': 'unavailable_feature',
+                'detail': ['You do not have that feature enabled']
+            }, status=403)
 
         return self.paginate(
             queryset=Integration.objects.filter(organizations=organization),

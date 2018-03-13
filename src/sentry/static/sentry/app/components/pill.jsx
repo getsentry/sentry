@@ -2,14 +2,14 @@ import PropTypes from 'prop-types';
 import React from 'react';
 import classNames from 'classnames';
 
-const Pill = React.createClass({
-  propTypes: {
+class Pill extends React.Component {
+  static propTypes = {
     className: PropTypes.string,
     name: PropTypes.string,
-    value: PropTypes.any
-  },
+    value: PropTypes.any,
+  };
 
-  renderValue() {
+  renderValue = () => {
     const {value} = this.props;
     if (value === undefined) {
       return [null, null];
@@ -26,7 +26,7 @@ const Pill = React.createClass({
       renderedValue = value.toString();
     }
     return [extraClass, renderedValue];
-  },
+  };
 
   render() {
     const {name, children, className, ...props} = this.props;
@@ -35,10 +35,13 @@ const Pill = React.createClass({
     return (
       <li className={classNames(className, extraClass)} {...props}>
         <span className="key">{name}</span>
-        <span className="value">{renderedValue}{children}</span>
+        <span className="value">
+          {renderedValue}
+          {children}
+        </span>
       </li>
     );
   }
-});
+}
 
 export default Pill;

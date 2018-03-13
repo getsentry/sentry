@@ -1,4 +1,4 @@
-{{ name }} is requesting access to {{ team.name }}.
+{{ name }} is requesting access to #{{ team.slug }}.
 
 You can accept or decline this request in via the pending requests panel:
 

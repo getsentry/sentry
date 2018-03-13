@@ -56,9 +56,13 @@ class DjangoSearchBackend(SearchBackend):
         times_seen_upper=None,
         times_seen_upper_inclusive=True,
         cursor=None,
-        limit=None
+        limit=None,
+        environment=None,
     ):
-        from sentry.models import Event, Group, GroupSubscription, GroupStatus
+        from sentry.models import Event, Group, GroupSubscription, GroupStatus, OrganizationMember
+
+        if tags is None:
+            tags = {}
 
         engine = get_db_engine('default')
 
@@ -88,9 +92,20 @@ class DjangoSearchBackend(SearchBackend):
             )
 
         if assigned_to:
+            teams = []
+            try:
+                member = OrganizationMember.objects.get(
+                    user=assigned_to,
+                    organization_id=project.organization_id,
+                )
+            except OrganizationMember.DoesNotExist:
+                pass
+            else:
+                teams = member.get_teams()
+
             queryset = queryset.filter(
-                assignee_set__project=project,
-                assignee_set__user=assigned_to,
+                Q(assignee_set__user=assigned_to, assignee_set__project=project) |
+                Q(assignee_set__team__in=teams)
             )
         elif unassigned in (True, False):
             queryset = queryset.filter(
@@ -114,8 +129,20 @@ class DjangoSearchBackend(SearchBackend):
                 first_release__version=first_release,
             )
 
+        if environment is not None:
+            # XXX: This overwrites the ``environment`` tag, if present, to
+            # ensure that the result set is limited to groups that have been
+            # seen in this environment (there is no way to search for groups
+            # that match multiple values of a single tag without changes to the
+            # tagstore API.)
+            tags['environment'] = environment.name
+
         if tags:
-            matches = tagstore.get_tags_for_search_filter(project.id, tags)
+            matches = tagstore.get_group_ids_for_search_filter(
+                project.id,
+                environment.id if environment is not None else None,
+                tags,
+            )
             if not matches:
                 return queryset.none()
             queryset = queryset.filter(

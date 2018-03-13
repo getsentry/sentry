@@ -5,9 +5,8 @@ import six
 
 from sentry.models import (
     Commit,
-    GroupCommitResolution,
+    GroupLink,
     GroupResolution,
-    Release,
     ReleaseCommit,
     Repository,
 )
@@ -16,223 +15,187 @@ from sentry.testutils import APITestCase
 
 
 class IssuesResolvedInReleaseEndpointTest(APITestCase):
+    def setUp(self):
+        super(IssuesResolvedInReleaseEndpointTest, self).setUp()
+        self.user = self.create_user()
+        self.org = self.create_organization()
+        self.team = self.create_team(organization=self.org)
+        self.create_member(organization=self.org, user=self.user, teams=[self.team])
+        self.project = self.create_project(
+            teams=[self.team],
+        )
+        self.release = self.create_release(
+            project=self.project,
+        )
+        self.group = self.create_group(project=self.project)
+        self.login_as(self.user)
+
+        self.path = reverse(
+            'sentry-api-0-release-resolved',
+            kwargs={
+                'organization_slug': self.project.organization.slug,
+                'project_slug': self.project.slug,
+                'version': self.release.version,
+            }
+        )
+
     def test_shows_issues_from_groupresolution(self):
         """
         tests that the endpoint will correctly retrieve issues resolved
         in a release from the GroupResolution model
         """
-        user = self.create_user('foo@example.com', is_superuser=True)
-        project = self.create_project(
-            name='foo',
-        )
-        self.login_as(user)
-        release = Release.objects.create(
-            organization_id=project.organization_id,
-            version='1',
-        )
-        release.add_project(project)
-        group = self.create_group(project=project)
         GroupResolution.objects.create(
-            group=group,
-            release=release,
+            group=self.group,
+            release=self.release,
             type=GroupResolution.Type.in_release,
         )
-        url = reverse(
-            'sentry-api-0-release-resolved',
-            kwargs={
-                'organization_slug': project.organization.slug,
-                'project_slug': project.slug,
-                'version': release.version,
-            }
-        )
-
-        response = self.client.get(url)
+        response = self.client.get(self.path)
 
         assert response.status_code == 200, response.content
         assert len(response.data) == 1
-        assert response.data[0]['id'] == six.text_type(group.id)
+        assert response.data[0]['id'] == six.text_type(self.group.id)
 
-    def test_shows_issues_from_groupcommitresolution(self):
+    def test_shows_issues_from_grouplink(self):
         """
         tests that the endpoint will correctly retrieve issues resolved
-        in a release from the GroupCommitResolution model
+        in a release from the GroupLink model
         """
-        user = self.create_user('foo@example.com', is_superuser=True)
-        project = self.create_project(
-            name='foo',
-        )
-        self.login_as(user)
-        release = Release.objects.create(
-            organization_id=project.organization_id,
-            version='1',
-        )
-        release.add_project(project)
-        group = self.create_group(project=project)
         repo = Repository.objects.create(
-            organization_id=project.organization_id,
-            name=project.name,
+            organization_id=self.org.id,
+            name=self.project.name,
         )
         commit = Commit.objects.create(
-            organization_id=project.organization_id,
+            organization_id=self.org.id,
             repository_id=repo.id,
             key='a' * 40,
         )
         commit2 = Commit.objects.create(
-            organization_id=project.organization_id,
+            organization_id=self.org.id,
             repository_id=repo.id,
             key='b' * 40,
         )
         ReleaseCommit.objects.create(
-            organization_id=project.organization_id,
-            release=release,
+            organization_id=self.org.id,
+            release=self.release,
             commit=commit,
             order=1,
         )
         ReleaseCommit.objects.create(
-            organization_id=project.organization_id,
-            release=release,
+            organization_id=self.org.id,
+            release=self.release,
             commit=commit2,
             order=0,
         )
-        GroupCommitResolution.objects.create(group_id=group.id, commit_id=commit.id)
-        url = reverse(
-            'sentry-api-0-release-resolved',
-            kwargs={
-                'organization_slug': project.organization.slug,
-                'project_slug': project.slug,
-                'version': release.version,
-            }
+        GroupLink.objects.create(
+            group_id=self.group.id,
+            project_id=self.group.project_id,
+            linked_type=GroupLink.LinkedType.commit,
+            relationship=GroupLink.Relationship.resolves,
+            linked_id=commit.id,
         )
-
-        response = self.client.get(url)
+        response = self.client.get(self.path)
 
         assert response.status_code == 200, response.content
         assert len(response.data) == 1
-        assert response.data[0]['id'] == six.text_type(group.id)
+        assert response.data[0]['id'] == six.text_type(self.group.id)
 
     def test_does_not_return_duplicate_groups(self):
         """
         tests that the endpoint will correctly retrieve issues resolved
-        in a release from the GroupCommitResolution and GroupResolution model
+        in a release from the GroupLink and GroupResolution model
         but will not return the groups twice if they appear in both
         """
-        user = self.create_user('foo@example.com', is_superuser=True)
-        project = self.create_project(
-            name='foo',
-        )
-        self.login_as(user)
-        release = Release.objects.create(
-            organization_id=project.organization_id,
-            version='1',
-        )
-        release.add_project(project)
-        group = self.create_group(project=project)
         repo = Repository.objects.create(
-            organization_id=project.organization_id,
-            name=project.name,
+            organization_id=self.org.id,
+            name=self.project.name,
         )
         commit = Commit.objects.create(
-            organization_id=project.organization_id,
+            organization_id=self.org.id,
             repository_id=repo.id,
             key='a' * 40,
         )
         commit2 = Commit.objects.create(
-            organization_id=project.organization_id,
+            organization_id=self.org.id,
             repository_id=repo.id,
             key='b' * 40,
         )
         ReleaseCommit.objects.create(
-            organization_id=project.organization_id,
-            release=release,
+            organization_id=self.org.id,
+            release=self.release,
             commit=commit,
             order=1,
         )
         ReleaseCommit.objects.create(
-            organization_id=project.organization_id,
-            release=release,
+            organization_id=self.org.id,
+            release=self.release,
             commit=commit2,
             order=0,
         )
-        GroupCommitResolution.objects.create(group_id=group.id, commit_id=commit.id)
+        GroupLink.objects.create(
+            group_id=self.group.id,
+            project_id=self.group.project_id,
+            linked_type=GroupLink.LinkedType.commit,
+            relationship=GroupLink.Relationship.resolves,
+            linked_id=commit.id,
+        )
         GroupResolution.objects.create(
-            group=group,
-            release=release,
+            group=self.group,
+            release=self.release,
             type=GroupResolution.Type.in_release,
         )
-        url = reverse(
-            'sentry-api-0-release-resolved',
-            kwargs={
-                'organization_slug': project.organization.slug,
-                'project_slug': project.slug,
-                'version': release.version,
-            }
-        )
 
-        response = self.client.get(url)
+        response = self.client.get(self.path)
 
         assert response.status_code == 200, response.content
         assert len(response.data) == 1
-        assert response.data[0]['id'] == six.text_type(group.id)
+        assert response.data[0]['id'] == six.text_type(self.group.id)
 
     def test_return_groups_from_both_types(self):
         """
         tests that the endpoint will correctly retrieve issues resolved
-        in a release from both the GroupCommitResolution and GroupResolution model
+        in a release from both the GroupLink and GroupResolution model
         """
-        user = self.create_user('foo@example.com', is_superuser=True)
-        project = self.create_project(
-            name='foo',
-        )
-        self.login_as(user)
-        release = Release.objects.create(
-            organization_id=project.organization_id,
-            version='1',
-        )
-        release.add_project(project)
-        group = self.create_group(project=project)
-        group2 = self.create_group(project=project)
+        group2 = self.create_group(project=self.project)
         repo = Repository.objects.create(
-            organization_id=project.organization_id,
-            name=project.name,
+            organization_id=self.org.id,
+            name=self.project.name,
         )
         commit = Commit.objects.create(
-            organization_id=project.organization_id,
+            organization_id=self.org.id,
             repository_id=repo.id,
             key='a' * 40,
         )
         commit2 = Commit.objects.create(
-            organization_id=project.organization_id,
+            organization_id=self.org.id,
             repository_id=repo.id,
             key='b' * 40,
         )
         ReleaseCommit.objects.create(
-            organization_id=project.organization_id,
-            release=release,
+            organization_id=self.org.id,
+            release=self.release,
             commit=commit,
             order=1,
         )
         ReleaseCommit.objects.create(
-            organization_id=project.organization_id,
-            release=release,
+            organization_id=self.org.id,
+            release=self.release,
             commit=commit2,
             order=0,
         )
-        GroupCommitResolution.objects.create(group_id=group.id, commit_id=commit.id)
+        GroupLink.objects.create(
+            group_id=self.group.id,
+            project_id=self.group.project_id,
+            linked_type=GroupLink.LinkedType.commit,
+            relationship=GroupLink.Relationship.resolves,
+            linked_id=commit.id,
+        )
         GroupResolution.objects.create(
             group=group2,
-            release=release,
+            release=self.release,
             type=GroupResolution.Type.in_release,
         )
-        url = reverse(
-            'sentry-api-0-release-resolved',
-            kwargs={
-                'organization_slug': project.organization.slug,
-                'project_slug': project.slug,
-                'version': release.version,
-            }
-        )
 
-        response = self.client.get(url)
+        response = self.client.get(self.path)
 
         assert response.status_code == 200, response.content
         assert len(response.data) == 2

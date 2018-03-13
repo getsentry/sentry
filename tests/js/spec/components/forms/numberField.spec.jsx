@@ -27,18 +27,20 @@ describe('NumberField', function() {
         context: {
           form: {
             data: {
-              fieldName: 5
+              fieldName: 5,
             },
-            errors: {}
-          }
-        }
+            errors: {},
+          },
+        },
       });
       expect(wrapper).toMatchSnapshot();
     });
 
     it('doesnt save `NaN` when new value is empty string', function() {
       let wrapper = mount(
-        <Form onSubmit={() => {}}><NumberField name="fieldName" defaultValue="2" /></Form>
+        <Form onSubmit={() => {}}>
+          <NumberField name="fieldName" defaultValue="2" />
+        </Form>
       );
       wrapper.find('input').simulate('change', {target: {value: ''}});
       expect(wrapper.state('data').fieldName).toBe('');

@@ -1,5 +1,6 @@
 import PropTypes from 'prop-types';
 import React from 'react';
+import createReactClass from 'create-react-class';
 import Reflux from 'reflux';
 import {Link} from 'react-router';
 import {Sparklines, SparklinesLine} from 'react-sparklines';
@@ -9,6 +10,7 @@ import {loadStats} from '../actionCreators/projects';
 
 import GroupStore from '../stores/groupStore';
 import HookStore from '../stores/hookStore';
+import ProjectStore from '../stores/projectsStore';
 import TeamStore from '../stores/teamStore';
 
 import ActivityFeed from '../components/activity/feed';
@@ -17,30 +19,30 @@ import IssueList from '../components/issueList';
 import OrganizationHomeContainer from '../components/organizations/homeContainer';
 import OrganizationState from '../mixins/organizationState';
 
-import {t} from '../locale';
+import {t, tct} from '../locale';
 import {sortArray} from '../utils';
 
-const AssignedIssues = React.createClass({
-  propTypes: {
+class AssignedIssues extends React.Component {
+  static propTypes = {
     statsPeriod: PropTypes.string,
-    pageSize: PropTypes.number
-  },
+    pageSize: PropTypes.number,
+  };
 
-  getEndpoint() {
+  getEndpoint = () => {
     return `/organizations/${this.props.params.orgId}/members/me/issues/assigned/?`;
-  },
+  };
 
-  getViewMoreLink() {
+  getViewMoreLink = () => {
     return `/organizations/${this.props.params.orgId}/issues/assigned/`;
-  },
+  };
 
-  renderEmpty() {
+  renderEmpty = () => {
     return <div className="box empty">{t('No issues have been assigned to you.')}</div>;
-  },
+  };
 
-  refresh() {
+  refresh = () => {
     this.refs.issueList.remountComponent();
-  },
+  };
 
   render() {
     return (
@@ -52,7 +54,8 @@ const AssignedIssues = React.createClass({
           <a
             className="btn btn-sm btn-default"
             style={{marginLeft: 5}}
-            onClick={this.refresh}>
+            onClick={this.refresh}
+          >
             <span className="icon icon-refresh" />
           </a>
         </div>
@@ -62,7 +65,7 @@ const AssignedIssues = React.createClass({
           query={{
             statsPeriod: this.props.statsPeriod,
             per_page: this.props.pageSize,
-            status: 'unresolved'
+            status: 'unresolved',
           }}
           pagination={false}
           renderEmpty={this.renderEmpty}
@@ -72,29 +75,29 @@ const AssignedIssues = React.createClass({
       </div>
     );
   }
-});
+}
 
-const NewIssues = React.createClass({
-  propTypes: {
+class NewIssues extends React.Component {
+  static propTypes = {
     statsPeriod: PropTypes.string,
-    pageSize: PropTypes.number
-  },
+    pageSize: PropTypes.number,
+  };
 
-  getEndpoint() {
+  getEndpoint = () => {
     return `/organizations/${this.props.params.orgId}/issues/new/`;
-  },
+  };
 
-  renderEmpty() {
+  renderEmpty = () => {
     return (
       <div className="box empty">
         {t('No new issues have been seen in the last week.')}
       </div>
     );
-  },
+  };
 
-  refresh() {
+  refresh = () => {
     this.refs.issueList.remountComponent();
-  },
+  };
 
   render() {
     return (
@@ -103,7 +106,8 @@ const NewIssues = React.createClass({
           <a
             className="btn btn-sm btn-default"
             style={{marginLeft: 5}}
-            onClick={this.refresh}>
+            onClick={this.refresh}
+          >
             <span className="icon icon-refresh" />
           </a>
         </div>
@@ -113,7 +117,7 @@ const NewIssues = React.createClass({
           query={{
             statsPeriod: this.props.statsPeriod,
             per_page: this.props.pageSize,
-            status: 'unresolved'
+            status: 'unresolved',
           }}
           pagination={false}
           renderEmpty={this.renderEmpty}
@@ -123,7 +127,7 @@ const NewIssues = React.createClass({
       </div>
     );
   }
-});
+}
 
 function ProjectSparkline(props) {
   let values = props.data.map(tuple => tuple[1]);
@@ -138,31 +142,39 @@ function ProjectSparkline(props) {
   );
 }
 ProjectSparkline.propTypes = {
-  data: PropTypes.array.isRequired
+  data: PropTypes.array.isRequired,
 };
 
-const ProjectList = React.createClass({
+const ProjectListOld = createReactClass({
+  displayName: 'ProjectListOld',
+
   propTypes: {
     teams: PropTypes.array,
-    maxProjects: PropTypes.number
+    maxProjects: PropTypes.number,
   },
 
   mixins: [OrganizationState],
 
   getDefaultProps() {
     return {
-      maxProjects: 8
+      maxProjects: 8,
     };
   },
 
   render() {
     let org = this.getOrganization();
     let {maxProjects} = this.props;
+    // prevent duplicate projects. this is fixed correctly in the new
+    // version of ProjectList below
+    let includedProjects = new Set();
     let projects = [];
     this.props.teams.forEach(team => {
       if (team.isMember) {
         team.projects.forEach(project => {
-          projects.push({...project, teamName: team.name});
+          if (!includedProjects.has(project.id)) {
+            projects.push({...project, teamName: team.name});
+            includedProjects.add(project.id);
+          }
         });
       }
     });
@@ -187,17 +199,16 @@ const ProjectList = React.createClass({
     return (
       <div className="organization-dashboard-projects">
         <Link className="btn-sidebar-header" to={`/organizations/${org.slug}/teams/`}>
-          View All
+          {t('View All')}
         </Link>
-        <h6 className="nav-header">Projects</h6>
-        {bookmarkedProjects.length === 0 &&
+        <h6 className="nav-header">{t('Projects')}</h6>
+        {bookmarkedProjects.length === 0 && (
           <div className="alert alert-info" style={{marginBottom: 10}}>
-            Bookmark your most used
-            {' '}
-            <Link to={`/organizations/${org.slug}/teams/`}>projects</Link>
-            {' '}
-            to have them appear here.
-          </div>}
+            {tct('Bookmark your most used [projects:projects] to have them appear here', {
+              projects: <Link to={`/organizations/${org.slug}/teams/`} />,
+            })}
+          </div>
+        )}
         <ul className="nav nav-stacked">
           {projects.map(project => {
             return (
@@ -207,8 +218,9 @@ const ProjectList = React.createClass({
                 </div>
                 <Link to={`/${org.slug}/${project.slug}/`}>
                   <h4>
-                    {project.isBookmarked &&
-                      <span className="bookmark icon-star-solid" />}
+                    {project.isBookmarked && (
+                      <span className="bookmark icon-star-solid" />
+                    )}
                     {project.name}
                   </h4>
                   <h5>{project.teamName}</h5>
@@ -219,35 +231,120 @@ const ProjectList = React.createClass({
         </ul>
       </div>
     );
-  }
+  },
 });
 
-const Activity = React.createClass({
-  getEndpoint() {
-    return `/organizations/${this.props.params.orgId}/activity/`;
+export const ProjectList = createReactClass({
+  displayName: 'ProjectList',
+
+  propTypes: {
+    projects: PropTypes.array,
+    maxProjects: PropTypes.number,
   },
 
-  refresh() {
-    this.refs.activityFeed.remountComponent();
+  mixins: [OrganizationState],
+
+  getDefaultProps() {
+    return {
+      maxProjects: 8,
+    };
   },
+
+  render() {
+    let org = this.getOrganization();
+    let {maxProjects} = this.props;
+
+    let projects = this.props.projects.filter(p => {
+      return p.isMember;
+    });
+    projects = sortArray(projects, item => {
+      return [!item.isBookmarked, item.name];
+    });
+
+    // project list is
+    // a) all bookmarked projects
+    // b) if bookmarked projcets < maxProjects, then fill with sorted projects until maxProjects
+
+    let bookmarkedProjects = projects.filter(p => p.isBookmarked);
+    if (bookmarkedProjects.length < maxProjects) {
+      projects = bookmarkedProjects.concat(
+        projects.slice(bookmarkedProjects.length, maxProjects)
+      );
+    } else {
+      projects = bookmarkedProjects;
+    }
+
+    return (
+      <div className="organization-dashboard-projects">
+        <Link className="btn-sidebar-header" to={`/organizations/${org.slug}/teams/`}>
+          {t('View All')}
+        </Link>
+        <h6 className="nav-header">{t('Projects')}</h6>
+        {bookmarkedProjects.length === 0 && (
+          <div className="alert alert-info" style={{marginBottom: 10}}>
+            {tct('Bookmark your most used [projects:projects] to have them appear here', {
+              projects: <Link to={`/organizations/${org.slug}/teams/`} />,
+            })}
+          </div>
+        )}
+        <ul className="nav nav-stacked">
+          {projects.map(project => {
+            return (
+              <li key={project.id} style={{clear: 'both'}}>
+                <div className="pull-right sparkline">
+                  {project.stats && <ProjectSparkline data={project.stats} />}
+                </div>
+                <Link to={`/${org.slug}/${project.slug}/`}>
+                  <h4 style={{margin: '25px 0px'}}>
+                    {project.isBookmarked && (
+                      <span className="bookmark icon-star-solid" />
+                    )}
+                    {project.slug}
+                  </h4>
+                </Link>
+              </li>
+            );
+          })}
+        </ul>
+      </div>
+    );
+  },
+});
+
+class Activity extends React.Component {
+  getEndpoint = () => {
+    return `/organizations/${this.props.params.orgId}/activity/`;
+  };
+
+  refresh = () => {
+    this.refs.activityFeed.remountComponent();
+  };
+
+  getViewMoreLink() {
+    return `/organizations/${this.props.params.orgId}/activity/`;
+  }
 
   render() {
     return (
       <div>
         <div className="pull-right">
+          <Link className="btn btn-sm btn-default" to={this.getViewMoreLink()}>
+            {t('View more')}
+          </Link>
           <a
             className="btn btn-sm btn-default"
             style={{marginLeft: 5}}
-            onClick={this.refresh}>
+            onClick={this.refresh}
+          >
             <span className="icon icon-refresh" />
           </a>
         </div>
-        <h4>Recent activity</h4>
+        <h4>{t('Recent activity')}</h4>
         <ActivityFeed
           ref="activityFeed"
           endpoint={this.getEndpoint()}
           query={{
-            per_page: 10
+            per_page: 10,
           }}
           pagination={false}
           {...this.props}
@@ -255,15 +352,21 @@ const Activity = React.createClass({
       </div>
     );
   }
-});
+}
 
-const OrganizationDashboard = React.createClass({
-  mixins: [ApiMixin, Reflux.listenTo(TeamStore, 'onTeamListChange')],
+const OrganizationDashboard = createReactClass({
+  displayName: 'OrganizationDashboard',
+  mixins: [
+    ApiMixin,
+    Reflux.listenTo(TeamStore, 'onTeamListChange'),
+    Reflux.listenTo(ProjectStore, 'onProjectListChange'),
+    OrganizationState,
+  ],
 
   getDefaultProps() {
     return {
       statsPeriod: '24h',
-      pageSize: 5
+      pageSize: 5,
     };
   },
 
@@ -271,13 +374,14 @@ const OrganizationDashboard = React.createClass({
     // Allow injection via getsentry et all
     let hooks = HookStore.get('organization:dashboard:secondary-column').map(cb => {
       return cb({
-        params: this.props.params
+        params: this.props.params,
       });
     });
 
     return {
       teams: TeamStore.getAll(),
-      hooks
+      projects: ProjectStore.getAll(),
+      hooks,
     };
   },
 
@@ -287,8 +391,8 @@ const OrganizationDashboard = React.createClass({
       query: {
         since: new Date().getTime() / 1000 - 3600 * 24,
         stat: 'generated',
-        group: 'project'
-      }
+        group: 'project',
+      },
     });
   },
 
@@ -298,11 +402,20 @@ const OrganizationDashboard = React.createClass({
 
   onTeamListChange() {
     this.setState({
-      teams: TeamStore.getAll()
+      teams: TeamStore.getAll(),
+    });
+  },
+
+  onProjectListChange() {
+    this.setState({
+      projects: ProjectStore.getAll(),
     });
   },
 
   render() {
+    let org = this.getOrganization();
+    let features = new Set(org.features);
+
     return (
       <OrganizationHomeContainer>
         <div className="row">
@@ -314,12 +427,16 @@ const OrganizationDashboard = React.createClass({
           <div className="col-md-4">
             {this.state.hooks}
             <EventsPerHour {...this.props} />
-            <ProjectList {...this.props} teams={this.state.teams} />
+            {features.has('internal-catchall') ? (
+              <ProjectList {...this.props} projects={this.state.projects} />
+            ) : (
+              <ProjectListOld {...this.props} teams={this.state.teams} />
+            )}
           </div>
         </div>
       </OrganizationHomeContainer>
     );
-  }
+  },
 });
 
 export default OrganizationDashboard;

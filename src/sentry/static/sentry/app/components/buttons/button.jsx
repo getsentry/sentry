@@ -1,15 +1,25 @@
+import {Flex, Box} from 'grid-emotion';
 import {Link} from 'react-router';
 import PropTypes from 'prop-types';
 import React from 'react';
+import styled from 'react-emotion';
 import classNames from 'classnames';
 
-import FlowLayout from '../flowLayout';
-
+import InlineSvg from '../inlineSvg';
 import '../../../less/components/button.less';
 
-const Button = React.createClass({
-  propTypes: {
-    priority: PropTypes.oneOf(['primary', 'danger']),
+const Icon = styled(Box)`
+  margin-right: ${p => (p.size === 'small' ? '6px' : '8px')};
+  margin-left: -2px;
+`;
+
+const StyledInlineSvg = styled(InlineSvg)`
+  display: block;
+`;
+
+class Button extends React.Component {
+  static propTypes = {
+    priority: PropTypes.oneOf(['primary', 'danger', 'link']),
     size: PropTypes.oneOf(['small', 'xsmall', 'large']),
     disabled: PropTypes.bool,
     busy: PropTypes.bool,
@@ -21,21 +31,21 @@ const Button = React.createClass({
      * Use this prop if button should use a normal (non-react-router) link
      */
     href: PropTypes.string,
+    icon: PropTypes.string,
     /**
      * Tooltip text
      */
     title: PropTypes.string,
-    onClick: PropTypes.func
-  },
+    borderless: PropTypes.bool,
+    onClick: PropTypes.func,
+  };
 
-  getDefaultProps() {
-    return {
-      disabled: false
-    };
-  },
+  static defaultProps = {
+    disabled: false,
+  };
 
   // Intercept onClick and propagate
-  handleClick(...args) {
+  handleClick = (...args) => {
     let {disabled, busy, onClick} = this.props;
 
     // Don't allow clicks when disabled or busy
@@ -44,7 +54,13 @@ const Button = React.createClass({
     if (typeof onClick !== 'function') return;
 
     onClick(...args);
-  },
+  };
+
+  getUrl = () => {
+    let {disabled, to, href} = this.props;
+    if (disabled) return null;
+    return to || href;
+  };
 
   render() {
     let {
@@ -57,6 +73,8 @@ const Button = React.createClass({
       disabled,
       busy,
       title,
+      borderless,
+      icon,
 
       // destructure from `buttonProps`
       // not necessary, but just in case someone re-orders props
@@ -67,27 +85,31 @@ const Button = React.createClass({
 
     let isPrimary = priority === 'primary' && !disabled;
     let isDanger = priority === 'danger' && !disabled;
+    let isLink = priority === 'link';
 
     let cx = classNames(className, 'button', {
       tip: !!title,
+      'button-no-border': borderless,
       'button-primary': isPrimary,
       'button-danger': isDanger,
-      'button-default': !isPrimary && !isDanger,
+      'button-link': isLink && !isPrimary && !isDanger,
+      'button-default': !isLink && !isPrimary && !isDanger,
       'button-sm': size === 'small',
       'button-xs': size === 'xsmall',
       'button-lg': size === 'large',
       'button-busy': busy,
-      'button-disabled': disabled
+      'button-disabled': disabled,
     });
 
-    // This container is useless now, but leaves room for when we need to add
-    // components (i.e. icons, busy indicator, etc)
     let childContainer = (
-      <FlowLayout truncate={false}>
-        <span className="button-label">
-          {children}
-        </span>
-      </FlowLayout>
+      <Flex align="center" className="button-label">
+        {icon && (
+          <Icon size={size}>
+            <StyledInlineSvg src={icon} size={size === 'small' ? '12px' : '16px'} />
+          </Icon>
+        )}
+        {children}
+      </Flex>
     );
 
     // Buttons come in 3 flavors: Link, anchor, and regular buttons. Let's
@@ -102,22 +124,22 @@ const Button = React.createClass({
       onClick: this.handleClick,
       className: cx,
       role: 'button',
-      children: childContainer
+      children: childContainer,
     };
 
     // Handle react-router Links
     if (to) {
-      return <Link to={to} {...componentProps} />;
+      return <Link to={this.getUrl()} {...componentProps} />;
     }
 
     // Handle traditional links
     if (href) {
-      return <a href={href} {...componentProps} />;
+      return <a href={this.getUrl()} {...componentProps} />;
     }
 
     // Otherwise, fall back to basic button element
     return <button {...componentProps} />;
   }
-});
+}
 
 export default Button;

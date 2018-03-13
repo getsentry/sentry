@@ -57,9 +57,9 @@ class User(Interface):
         if not isinstance(extra_data, dict):
             extra_data = {}
 
-        ident = trim(data.pop('id', None), 128)
+        ident = data.pop('id', None)
         if ident:
-            ident = six.text_type(ident)
+            ident = trim(six.text_type(ident), 128)
         try:
             email = trim(validate_email(data.pop('email', None), False), MAX_EMAIL_FIELD_LENGTH)
         except ValueError:
@@ -106,7 +106,7 @@ class User(Interface):
     def get_path(self):
         return 'sentry.interfaces.User'
 
-    def get_hash(self, is_processed_data=True):
+    def get_hash(self):
         return []
 
     def get_display_name(self):

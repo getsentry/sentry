@@ -5,14 +5,17 @@ import GroupActions from 'app/actions/groupActions';
 jest.unmock('app/api');
 
 describe('api', function() {
-  beforeEach(function() {
-    this.sandbox = sinon.sandbox.create();
+  let sandbox;
+  let api;
 
-    this.api = new Client();
+  beforeEach(function() {
+    sandbox = sinon.sandbox.create();
+
+    api = new Client();
   });
 
   afterEach(function() {
-    this.sandbox.restore();
+    sandbox.restore();
   });
 
   describe('paramsToQueryArgs()', function() {
@@ -20,7 +23,7 @@ describe('api', function() {
       expect(
         paramsToQueryArgs({
           itemIds: [1, 2, 3],
-          query: 'is:unresolved' // itemIds takes precedence
+          query: 'is:unresolved', // itemIds takes precedence
         })
       ).toEqual({id: [1, 2, 3]});
     });
@@ -29,7 +32,7 @@ describe('api', function() {
       expect(
         paramsToQueryArgs({
           query: 'is:unresolved',
-          foo: 'bar'
+          foo: 'bar',
         })
       ).toEqual({query: 'is:unresolved'});
     });
@@ -38,7 +41,7 @@ describe('api', function() {
       expect(
         paramsToQueryArgs({
           foo: 'bar',
-          bar: 'baz' // paramsToQueryArgs ignores these
+          bar: 'baz', // paramsToQueryArgs ignores these
         })
       ).toBeUndefined();
     });
@@ -46,24 +49,24 @@ describe('api', function() {
 
   describe('Client', function() {
     beforeEach(function() {
-      this.sandbox.stub($, 'ajax');
+      sandbox.stub($, 'ajax');
     });
 
     describe('cancel()', function() {
       it('should abort any open XHR requests', function() {
         let req1 = new Request({
-          abort: sinon.stub()
+          abort: sinon.stub(),
         });
         let req2 = new Request({
-          abort: sinon.stub()
+          abort: sinon.stub(),
         });
 
-        this.api.activeRequests = {
+        api.activeRequests = {
           1: req1,
-          2: req2
+          2: req2,
         };
 
-        this.api.clear();
+        api.clear();
 
         expect(req1.xhr.abort.calledOnce).toBeTruthy();
         expect(req2.xhr.abort.calledOnce).toBeTruthy();
@@ -71,37 +74,68 @@ describe('api', function() {
     });
   });
 
+  it('handles error callback', function() {
+    sandbox.stub(api, 'wrapCallback', (id, func) => func);
+    let errorCb = jest.fn();
+    let args = ['test', true, 1];
+    api.handleRequestError(
+      {
+        id: 'test',
+        path: 'test',
+        requestOptions: {error: errorCb},
+      },
+      ...args
+    );
+
+    expect(errorCb).toHaveBeenCalledWith(...args);
+    api.wrapCallback.restore();
+  });
+
+  it('handles undefined error callback', function() {
+    expect(() =>
+      api.handleRequestError(
+        {
+          id: 'test',
+          path: 'test',
+          requestOptions: {},
+        },
+        {},
+        {}
+      )
+    ).not.toThrow();
+  });
+
   describe('bulkUpdate()', function() {
     beforeEach(function() {
-      this.sandbox.stub(this.api, '_wrapRequest');
-      this.sandbox.stub(GroupActions, 'update'); // stub GroupActions.update call from api.update
+      sandbox.stub(api, '_wrapRequest');
+      sandbox.stub(GroupActions, 'update'); // stub GroupActions.update call from api.update
     });
 
     it('should use itemIds as query if provided', function() {
-      this.api.bulkUpdate({
+      api.bulkUpdate({
         orgId: '1337',
         projectId: '1337',
         itemIds: [1, 2, 3],
         data: {status: 'unresolved'},
-        query: 'is:resolved'
+        query: 'is:resolved',
       });
 
-      expect(this.api._wrapRequest.calledOnce).toBeTruthy();
-      let requestArgs = this.api._wrapRequest.getCall(0).args[1];
+      expect(api._wrapRequest.calledOnce).toBeTruthy();
+      let requestArgs = api._wrapRequest.getCall(0).args[1];
       expect(requestArgs.query).toEqual({id: [1, 2, 3]});
     });
 
     it('should use query as query if itemIds are absent', function() {
-      this.api.bulkUpdate({
+      api.bulkUpdate({
         orgId: '1337',
         projectId: '1337',
         itemIds: null,
         data: {status: 'unresolved'},
-        query: 'is:resolved'
+        query: 'is:resolved',
       });
 
-      expect(this.api._wrapRequest.calledOnce).toBeTruthy();
-      let requestArgs = this.api._wrapRequest.getCall(0).args[1];
+      expect(api._wrapRequest.calledOnce).toBeTruthy();
+      let requestArgs = api._wrapRequest.getCall(0).args[1];
       expect(requestArgs.query).toEqual({query: 'is:resolved'});
     });
   });
@@ -110,35 +144,35 @@ describe('api', function() {
     // TODO: this is totally copypasta from the test above. We need to refactor
     //       these API methods/tests.
     beforeEach(function() {
-      this.sandbox.stub(this.api, '_wrapRequest');
-      this.sandbox.stub(GroupActions, 'merge'); // stub GroupActions.merge call from api.merge
+      sandbox.stub(api, '_wrapRequest');
+      sandbox.stub(GroupActions, 'merge'); // stub GroupActions.merge call from api.merge
     });
 
     it('should use itemIds as query if provided', function() {
-      this.api.merge({
+      api.merge({
         orgId: '1337',
         projectId: '1337',
         itemIds: [1, 2, 3],
         data: {status: 'unresolved'},
-        query: 'is:resolved'
+        query: 'is:resolved',
       });
 
-      expect(this.api._wrapRequest.calledOnce).toBeTruthy();
-      let requestArgs = this.api._wrapRequest.getCall(0).args[1];
+      expect(api._wrapRequest.calledOnce).toBeTruthy();
+      let requestArgs = api._wrapRequest.getCall(0).args[1];
       expect(requestArgs.query).toEqual({id: [1, 2, 3]});
     });
 
     it('should use query as query if itemIds are absent', function() {
-      this.api.merge({
+      api.merge({
         orgId: '1337',
         projectId: '1337',
         itemIds: null,
         data: {status: 'unresolved'},
-        query: 'is:resolved'
+        query: 'is:resolved',
       });
 
-      expect(this.api._wrapRequest.calledOnce).toBeTruthy();
-      let requestArgs = this.api._wrapRequest.getCall(0).args[1];
+      expect(api._wrapRequest.calledOnce).toBeTruthy();
+      let requestArgs = api._wrapRequest.getCall(0).args[1];
       expect(requestArgs.query).toEqual({query: 'is:resolved'});
     });
   });

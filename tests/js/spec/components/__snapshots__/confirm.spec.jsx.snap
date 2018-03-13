@@ -1,7 +1,7 @@
 // Jest Snapshot v1, https://goo.gl/fbAQLP
 
 exports[`Confirm renders 1`] = `
-<span>
+<React.Fragment>
   <button
     onClick={[Function]}
   >
@@ -17,11 +17,14 @@ exports[`Confirm renders 1`] = `
     keyboard={true}
     manager={
       ModalManager {
+        "add": [Function],
         "containers": Array [],
         "data": Array [],
         "handleContainerOverflow": true,
         "hideSiblingNodes": true,
+        "isTopModal": [Function],
         "modals": Array [],
+        "remove": [Function],
       }
     }
     onHide={[Function]}
@@ -61,5 +64,5 @@ exports[`Confirm renders 1`] = `
       </Button>
     </div>
   </Modal>
-</span>
+</React.Fragment>
 `;

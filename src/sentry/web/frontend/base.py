@@ -13,11 +13,13 @@ from sudo.views import redirect_to_sudo
 
 from sentry import roles
 from sentry.auth import access
+from sentry.auth.superuser import is_active_superuser
 from sentry.models import (
-    AuditLogEntry, Organization, OrganizationMember, OrganizationStatus, Project, ProjectStatus,
+    Authenticator, Organization, OrganizationMember, OrganizationStatus, Project, ProjectStatus,
     Team, TeamStatus
 )
 from sentry.utils import auth
+from sentry.utils.audit import create_audit_entry
 from sentry.web.helpers import render_to_response
 from sentry.api.serializers import serialize
 
@@ -54,7 +56,7 @@ class OrganizationMixin(object):
             organization_slug = request.session.get('activeorg')
 
         if organization_slug is not None:
-            if request.is_superuser():
+            if is_active_superuser(request):
                 try:
                     active_organization = Organization.objects.get_from_cache(
                         slug=organization_slug,
@@ -103,6 +105,9 @@ class OrganizationMixin(object):
             user=user,
             organization=organization,
         ).exists()
+
+    def is_not_2fa_compliant(self, user, organization):
+        return organization.flags.require_2fa and not Authenticator.objects.user_has_2fa(user)
 
     def get_active_team(self, request, organization, team_slug):
         """
@@ -206,6 +211,10 @@ class BaseView(View, OrganizationMixin):
         if not self.has_permission(request, *args, **kwargs):
             return self.handle_permission_required(request, *args, **kwargs)
 
+        if 'organization' in kwargs and self.is_not_2fa_compliant(
+                request.user, kwargs['organization']):
+            return self.handle_not_2fa_compliant(request, *args, **kwargs)
+
         self.request = request
         self.default_context = self.get_context_data(request, *args, **kwargs)
 
@@ -250,8 +259,15 @@ class BaseView(View, OrganizationMixin):
         redirect_uri = self.get_no_permission_url(request, *args, **kwargs)
         return self.redirect(redirect_uri)
 
+    def handle_not_2fa_compliant(self, request, *args, **kwargs):
+        redirect_uri = self.get_not_2fa_compliant_url(request, *args, **kwargs)
+        return self.redirect(redirect_uri)
+
     def get_no_permission_url(request, *args, **kwargs):
         return reverse('sentry-login')
+
+    def get_not_2fa_compliant_url(self, request, *args, **kwargs):
+        return reverse('sentry-account-settings-2fa')
 
     def get_context_data(self, request, **kwargs):
         context = csrf(request)
@@ -275,32 +291,7 @@ class BaseView(View, OrganizationMixin):
         )
 
     def create_audit_entry(self, request, transaction_id=None, **kwargs):
-        entry = AuditLogEntry(
-            actor=request.user if request.user.is_authenticated() else None,
-            # TODO(jtcunning): assert that REMOTE_ADDR is a real IP.
-            ip_address=request.META['REMOTE_ADDR'],
-            **kwargs
-        )
-
-        # Only create a real AuditLogEntry record if we are passing an event type
-        # otherwise, we want to still log to our actual logging
-        if entry.event is not None:
-            entry.save()
-
-        extra = {
-            'ip_address': entry.ip_address,
-            'organization_id': entry.organization_id,
-            'object_id': entry.target_object,
-            'entry_id': entry.id,
-            'actor_label': entry.actor_label
-        }
-
-        if transaction_id is not None:
-            extra['transaction_id'] = transaction_id
-
-        audit_logger.info(entry.get_event_display(), extra=extra)
-
-        return entry
+        return create_audit_entry(request, transaction_id, audit_logger, **kwargs)
 
 
 class OrganizationView(BaseView):
@@ -410,7 +401,7 @@ class OrganizationView(BaseView):
         can_admin = request.access.has_scope('member:admin')
 
         allowed_roles = []
-        if can_admin and not request.is_superuser():
+        if can_admin and not is_active_superuser(request):
             acting_member = OrganizationMember.objects.get(
                 user=request.user,
                 organization=organization,
@@ -423,7 +414,7 @@ class OrganizationView(BaseView):
                     if r.priority <= roles.get(acting_member.role).priority
                 ]
                 can_admin = bool(allowed_roles)
-        elif request.is_superuser():
+        elif is_active_superuser(request):
             allowed_roles = roles.get_all()
         return (can_admin, allowed_roles, )
 
@@ -483,40 +474,40 @@ class TeamView(OrganizationView):
         return (args, kwargs)
 
 
-class ProjectView(TeamView):
+class ProjectView(OrganizationView):
     """
     Any view acting on behalf of a project should inherit from this base and the
-    matching URL pattern must pass 'team_slug' as well as 'project_slug'.
+    matching URL pattern must pass 'org_slug' as well as 'project_slug'.
 
     Three keyword arguments are added to the resulting dispatch:
 
     - organization
-    - team
     - project
     """
 
-    def get_context_data(self, request, organization, team, project, **kwargs):
-        context = super(ProjectView, self).get_context_data(request, organization, team)
+    def get_context_data(self, request, organization, project, **kwargs):
+        context = super(ProjectView, self).get_context_data(request, organization)
         context['project'] = project
         context['processing_issues'] = serialize(project).get('processingIssues', 0)
         return context
 
-    def has_permission(self, request, organization, team, project, *args, **kwargs):
+    def has_permission(self, request, organization, project, *args, **kwargs):
         if project is None:
             return False
-        if team is None:
-            return False
-        rv = super(ProjectView, self).has_permission(request, organization, team)
+        rv = super(ProjectView, self).has_permission(request, organization)
         if not rv:
             return rv
+
+        teams = list(project.teams.all())
+
         if self.required_scope:
-            if not request.access.has_team_scope(team, self.required_scope):
+            if not any(request.access.has_team_scope(team, self.required_scope) for team in teams):
                 logger.info(
                     'User %s does not have %s permission to access project %s', request.user,
                     self.required_scope, project
                 )
                 return False
-        elif not request.access.has_team(team):
+        elif not any(request.access.has_team(team) for team in teams):
             logger.info('User %s does not have access to project %s', request.user, project)
             return False
         return True
@@ -536,13 +527,7 @@ class ProjectView(TeamView):
         else:
             active_project = None
 
-        if active_project:
-            active_team = active_project.team
-        else:
-            active_team = None
-
         kwargs['project'] = active_project
-        kwargs['team'] = active_team
         kwargs['organization'] = active_organization
 
         return (args, kwargs)

@@ -74,7 +74,7 @@ const EventStore = Reflux.createStore({
 
   getAllItems() {
     return this.items;
-  }
+  },
 });
 
 export default EventStore;

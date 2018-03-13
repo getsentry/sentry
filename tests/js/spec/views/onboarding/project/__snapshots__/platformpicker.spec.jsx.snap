@@ -35,6 +35,7 @@ exports[`PlatformPicker render() should only render Mobile platforms under Mobil
       activeClassName="active"
       index={false}
       isActive={[Function]}
+      key="popular"
       onClick={[Function]}
       to=""
     >
@@ -44,6 +45,7 @@ exports[`PlatformPicker render() should only render Mobile platforms under Mobil
       activeClassName="active"
       index={false}
       isActive={[Function]}
+      key="frontend"
       onClick={[Function]}
       to=""
     >
@@ -53,6 +55,7 @@ exports[`PlatformPicker render() should only render Mobile platforms under Mobil
       activeClassName="active"
       index={false}
       isActive={[Function]}
+      key="mobile"
       onClick={[Function]}
       to=""
     >
@@ -62,6 +65,7 @@ exports[`PlatformPicker render() should only render Mobile platforms under Mobil
       activeClassName="active"
       index={false}
       isActive={[Function]}
+      key="backend"
       onClick={[Function]}
       to=""
     >
@@ -71,6 +75,7 @@ exports[`PlatformPicker render() should only render Mobile platforms under Mobil
       activeClassName="active"
       index={false}
       isActive={[Function]}
+      key="all"
       onClick={[Function]}
       to=""
     >
@@ -82,21 +87,31 @@ exports[`PlatformPicker render() should only render Mobile platforms under Mobil
   >
     <PlatformCard
       className=""
+      key="cordova"
+      onClick={[Function]}
+      platform="cordova"
+    />
+    <PlatformCard
+      className=""
+      key="java-android"
       onClick={[Function]}
       platform="java-android"
     />
     <PlatformCard
       className=""
+      key="objc"
       onClick={[Function]}
       platform="objc"
     />
     <PlatformCard
       className=""
+      key="cocoa"
       onClick={[Function]}
       platform="cocoa"
     />
     <PlatformCard
       className=""
+      key="swift"
       onClick={[Function]}
       platform="swift"
     />
@@ -139,6 +154,7 @@ exports[`PlatformPicker render() should render renderPlatformList with Python wh
       activeClassName="active"
       index={false}
       isActive={[Function]}
+      key="popular"
       onClick={[Function]}
       to=""
     >
@@ -148,6 +164,7 @@ exports[`PlatformPicker render() should render renderPlatformList with Python wh
       activeClassName="active"
       index={false}
       isActive={[Function]}
+      key="frontend"
       onClick={[Function]}
       to=""
     >
@@ -157,6 +174,7 @@ exports[`PlatformPicker render() should render renderPlatformList with Python wh
       activeClassName="active"
       index={false}
       isActive={[Function]}
+      key="mobile"
       onClick={[Function]}
       to=""
     >
@@ -166,6 +184,7 @@ exports[`PlatformPicker render() should render renderPlatformList with Python wh
       activeClassName="active"
       index={false}
       isActive={[Function]}
+      key="backend"
       onClick={[Function]}
       to=""
     >
@@ -175,6 +194,7 @@ exports[`PlatformPicker render() should render renderPlatformList with Python wh
       activeClassName="active"
       index={false}
       isActive={[Function]}
+      key="all"
       onClick={[Function]}
       to=""
     >
@@ -186,46 +206,55 @@ exports[`PlatformPicker render() should render renderPlatformList with Python wh
   >
     <PlatformCard
       className=""
+      key="python-bottle"
       onClick={[Function]}
       platform="python-bottle"
     />
     <PlatformCard
       className=""
+      key="python-celery"
       onClick={[Function]}
       platform="python-celery"
     />
     <PlatformCard
       className=""
+      key="python-django"
       onClick={[Function]}
       platform="python-django"
     />
     <PlatformCard
       className=""
+      key="python-flask"
       onClick={[Function]}
       platform="python-flask"
     />
     <PlatformCard
       className=""
+      key="python-pylons"
       onClick={[Function]}
       platform="python-pylons"
     />
     <PlatformCard
       className=""
+      key="python-pyramid"
       onClick={[Function]}
       platform="python-pyramid"
     />
     <PlatformCard
       className=""
+      key="python"
       onClick={[Function]}
       platform="python"
     />
     <PlatformCard
       className=""
+      key="python-rq"
       onClick={[Function]}
       platform="python-rq"
     />
     <PlatformCard
       className=""
+      key="python-tornado"
       onClick={[Function]}
       platform="python-tornado"
     />
@@ -268,6 +297,7 @@ exports[`PlatformPicker render() should render renderPlatformList with community
       activeClassName="active"
       index={false}
       isActive={[Function]}
+      key="popular"
       onClick={[Function]}
       to=""
     >
@@ -277,6 +307,7 @@ exports[`PlatformPicker render() should render renderPlatformList with community
       activeClassName="active"
       index={false}
       isActive={[Function]}
+      key="frontend"
       onClick={[Function]}
       to=""
     >
@@ -286,6 +317,7 @@ exports[`PlatformPicker render() should render renderPlatformList with community
       activeClassName="active"
       index={false}
       isActive={[Function]}
+      key="mobile"
       onClick={[Function]}
       to=""
     >
@@ -295,6 +327,7 @@ exports[`PlatformPicker render() should render renderPlatformList with community
       activeClassName="active"
       index={false}
       isActive={[Function]}
+      key="backend"
       onClick={[Function]}
       to=""
     >
@@ -304,6 +337,7 @@ exports[`PlatformPicker render() should render renderPlatformList with community
       activeClassName="active"
       index={false}
       isActive={[Function]}
+      key="all"
       onClick={[Function]}
       to=""
     >
@@ -312,7 +346,7 @@ exports[`PlatformPicker render() should render renderPlatformList with community
   </ul>
   <p>
     Not finding your platform? There's a rich ecosystem of community supported SDKs as well (including Perl, CFML, Clojure, and ActionScript).
-     Try searching for Sentry clients or contacting support.
+ Try searching for Sentry clients or contacting support.
   </p>
 </div>
 `;
@@ -362,6 +396,7 @@ exports[`PlatformPicker render() should update State.tab onClick when particular
         activeClassName="active"
         index={false}
         isActive={[Function]}
+        key="popular"
         onClick={[Function]}
         to=""
       >
@@ -387,6 +422,7 @@ exports[`PlatformPicker render() should update State.tab onClick when particular
         activeClassName="active"
         index={false}
         isActive={[Function]}
+        key="frontend"
         onClick={[Function]}
         to=""
       >
@@ -412,6 +448,7 @@ exports[`PlatformPicker render() should update State.tab onClick when particular
         activeClassName="active"
         index={false}
         isActive={[Function]}
+        key="mobile"
         onClick={[Function]}
         to=""
       >
@@ -437,6 +474,7 @@ exports[`PlatformPicker render() should update State.tab onClick when particular
         activeClassName="active"
         index={false}
         isActive={[Function]}
+        key="backend"
         onClick={[Function]}
         to=""
       >
@@ -462,6 +500,7 @@ exports[`PlatformPicker render() should update State.tab onClick when particular
         activeClassName="active"
         index={false}
         isActive={[Function]}
+        key="all"
         onClick={[Function]}
         to=""
       >
@@ -489,6 +528,7 @@ exports[`PlatformPicker render() should update State.tab onClick when particular
     >
       <PlatformCard
         className=""
+        key="csharp"
         onClick={[Function]}
         platform="csharp"
       >
@@ -519,6 +559,38 @@ exports[`PlatformPicker render() should update State.tab onClick when particular
       </PlatformCard>
       <PlatformCard
         className=""
+        key="cordova"
+        onClick={[Function]}
+        platform="cordova"
+      >
+        <span
+          className="platform-card"
+          onClick={[Function]}
+        >
+          <PlatformiconTile
+            className=""
+            onClick={[Function]}
+            platform="cordova"
+          >
+            <li
+              className="platform-tile list-unstyled cordova cordova "
+              onClick={[Function]}
+            >
+              <span
+                className="platformicon platformicon-cordova"
+              />
+            </li>
+          </PlatformiconTile>
+          <h5>
+             
+            Cordova
+             
+          </h5>
+        </span>
+      </PlatformCard>
+      <PlatformCard
+        className=""
+        key="elixir"
         onClick={[Function]}
         platform="elixir"
       >
@@ -549,6 +621,7 @@ exports[`PlatformPicker render() should update State.tab onClick when particular
       </PlatformCard>
       <PlatformCard
         className=""
+        key="go"
         onClick={[Function]}
         platform="go"
       >
@@ -579,6 +652,7 @@ exports[`PlatformPicker render() should update State.tab onClick when particular
       </PlatformCard>
       <PlatformCard
         className=""
+        key="go-http"
         onClick={[Function]}
         platform="go-http"
       >
@@ -609,6 +683,7 @@ exports[`PlatformPicker render() should update State.tab onClick when particular
       </PlatformCard>
       <PlatformCard
         className=""
+        key="java-android"
         onClick={[Function]}
         platform="java-android"
       >
@@ -639,6 +714,7 @@ exports[`PlatformPicker render() should update State.tab onClick when particular
       </PlatformCard>
       <PlatformCard
         className=""
+        key="java-appengine"
         onClick={[Function]}
         platform="java-appengine"
       >
@@ -669,6 +745,7 @@ exports[`PlatformPicker render() should update State.tab onClick when particular
       </PlatformCard>
       <PlatformCard
         className=""
+        key="java"
         onClick={[Function]}
         platform="java"
       >
@@ -699,6 +776,7 @@ exports[`PlatformPicker render() should update State.tab onClick when particular
       </PlatformCard>
       <PlatformCard
         className=""
+        key="java-log4j"
         onClick={[Function]}
         platform="java-log4j"
       >
@@ -729,6 +807,7 @@ exports[`PlatformPicker render() should update State.tab onClick when particular
       </PlatformCard>
       <PlatformCard
         className=""
+        key="java-log4j2"
         onClick={[Function]}
         platform="java-log4j2"
       >
@@ -759,6 +838,7 @@ exports[`PlatformPicker render() should update State.tab onClick when particular
       </PlatformCard>
       <PlatformCard
         className=""
+        key="java-logback"
         onClick={[Function]}
         platform="java-logback"
       >
@@ -789,6 +869,7 @@ exports[`PlatformPicker render() should update State.tab onClick when particular
       </PlatformCard>
       <PlatformCard
         className=""
+        key="java-logging"
         onClick={[Function]}
         platform="java-logging"
       >
@@ -819,6 +900,7 @@ exports[`PlatformPicker render() should update State.tab onClick when particular
       </PlatformCard>
       <PlatformCard
         className=""
+        key="javascript-angular"
         onClick={[Function]}
         platform="javascript-angular"
       >
@@ -849,6 +931,7 @@ exports[`PlatformPicker render() should update State.tab onClick when particular
       </PlatformCard>
       <PlatformCard
         className=""
+        key="javascript-angularjs"
         onClick={[Function]}
         platform="javascript-angularjs"
       >
@@ -879,6 +962,7 @@ exports[`PlatformPicker render() should update State.tab onClick when particular
       </PlatformCard>
       <PlatformCard
         className=""
+        key="javascript-backbone"
         onClick={[Function]}
         platform="javascript-backbone"
       >
@@ -909,6 +993,7 @@ exports[`PlatformPicker render() should update State.tab onClick when particular
       </PlatformCard>
       <PlatformCard
         className=""
+        key="javascript-ember"
         onClick={[Function]}
         platform="javascript-ember"
       >
@@ -939,6 +1024,7 @@ exports[`PlatformPicker render() should update State.tab onClick when particular
       </PlatformCard>
       <PlatformCard
         className=""
+        key="javascript"
         onClick={[Function]}
         platform="javascript"
       >
@@ -969,6 +1055,7 @@ exports[`PlatformPicker render() should update State.tab onClick when particular
       </PlatformCard>
       <PlatformCard
         className=""
+        key="javascript-react"
         onClick={[Function]}
         platform="javascript-react"
       >
@@ -999,6 +1086,7 @@ exports[`PlatformPicker render() should update State.tab onClick when particular
       </PlatformCard>
       <PlatformCard
         className=""
+        key="javascript-vue"
         onClick={[Function]}
         platform="javascript-vue"
       >
@@ -1029,6 +1117,7 @@ exports[`PlatformPicker render() should update State.tab onClick when particular
       </PlatformCard>
       <PlatformCard
         className=""
+        key="node-connect"
         onClick={[Function]}
         platform="node-connect"
       >
@@ -1059,6 +1148,7 @@ exports[`PlatformPicker render() should update State.tab onClick when particular
       </PlatformCard>
       <PlatformCard
         className=""
+        key="node-express"
         onClick={[Function]}
         platform="node-express"
       >
@@ -1089,6 +1179,7 @@ exports[`PlatformPicker render() should update State.tab onClick when particular
       </PlatformCard>
       <PlatformCard
         className=""
+        key="node-koa"
         onClick={[Function]}
         platform="node-koa"
       >
@@ -1119,6 +1210,7 @@ exports[`PlatformPicker render() should update State.tab onClick when particular
       </PlatformCard>
       <PlatformCard
         className=""
+        key="node"
         onClick={[Function]}
         platform="node"
       >
@@ -1149,6 +1241,7 @@ exports[`PlatformPicker render() should update State.tab onClick when particular
       </PlatformCard>
       <PlatformCard
         className=""
+        key="objc"
         onClick={[Function]}
         platform="objc"
       >
@@ -1179,6 +1272,7 @@ exports[`PlatformPicker render() should update State.tab onClick when particular
       </PlatformCard>
       <PlatformCard
         className=""
+        key="php-laravel"
         onClick={[Function]}
         platform="php-laravel"
       >
@@ -1209,6 +1303,7 @@ exports[`PlatformPicker render() should update State.tab onClick when particular
       </PlatformCard>
       <PlatformCard
         className=""
+        key="php-monolog"
         onClick={[Function]}
         platform="php-monolog"
       >
@@ -1239,6 +1334,7 @@ exports[`PlatformPicker render() should update State.tab onClick when particular
       </PlatformCard>
       <PlatformCard
         className=""
+        key="php"
         onClick={[Function]}
         platform="php"
       >
@@ -1269,6 +1365,7 @@ exports[`PlatformPicker render() should update State.tab onClick when particular
       </PlatformCard>
       <PlatformCard
         className=""
+        key="php-symfony2"
         onClick={[Function]}
         platform="php-symfony2"
       >
@@ -1299,6 +1396,7 @@ exports[`PlatformPicker render() should update State.tab onClick when particular
       </PlatformCard>
       <PlatformCard
         className=""
+        key="python-bottle"
         onClick={[Function]}
         platform="python-bottle"
       >
@@ -1329,6 +1427,7 @@ exports[`PlatformPicker render() should update State.tab onClick when particular
       </PlatformCard>
       <PlatformCard
         className=""
+        key="python-celery"
         onClick={[Function]}
         platform="python-celery"
       >
@@ -1359,6 +1458,7 @@ exports[`PlatformPicker render() should update State.tab onClick when particular
       </PlatformCard>
       <PlatformCard
         className=""
+        key="python-django"
         onClick={[Function]}
         platform="python-django"
       >
@@ -1389,6 +1489,7 @@ exports[`PlatformPicker render() should update State.tab onClick when particular
       </PlatformCard>
       <PlatformCard
         className=""
+        key="python-flask"
         onClick={[Function]}
         platform="python-flask"
       >
@@ -1419,6 +1520,7 @@ exports[`PlatformPicker render() should update State.tab onClick when particular
       </PlatformCard>
       <PlatformCard
         className=""
+        key="python-pylons"
         onClick={[Function]}
         platform="python-pylons"
       >
@@ -1449,6 +1551,7 @@ exports[`PlatformPicker render() should update State.tab onClick when particular
       </PlatformCard>
       <PlatformCard
         className=""
+        key="python-pyramid"
         onClick={[Function]}
         platform="python-pyramid"
       >
@@ -1479,6 +1582,7 @@ exports[`PlatformPicker render() should update State.tab onClick when particular
       </PlatformCard>
       <PlatformCard
         className=""
+        key="python"
         onClick={[Function]}
         platform="python"
       >
@@ -1509,6 +1613,7 @@ exports[`PlatformPicker render() should update State.tab onClick when particular
       </PlatformCard>
       <PlatformCard
         className=""
+        key="python-rq"
         onClick={[Function]}
         platform="python-rq"
       >
@@ -1539,6 +1644,7 @@ exports[`PlatformPicker render() should update State.tab onClick when particular
       </PlatformCard>
       <PlatformCard
         className=""
+        key="python-tornado"
         onClick={[Function]}
         platform="python-tornado"
       >
@@ -1569,6 +1675,7 @@ exports[`PlatformPicker render() should update State.tab onClick when particular
       </PlatformCard>
       <PlatformCard
         className=""
+        key="cocoa"
         onClick={[Function]}
         platform="cocoa"
       >
@@ -1599,6 +1706,7 @@ exports[`PlatformPicker render() should update State.tab onClick when particular
       </PlatformCard>
       <PlatformCard
         className=""
+        key="ruby-rack"
         onClick={[Function]}
         platform="ruby-rack"
       >
@@ -1629,6 +1737,7 @@ exports[`PlatformPicker render() should update State.tab onClick when particular
       </PlatformCard>
       <PlatformCard
         className=""
+        key="ruby-rails"
         onClick={[Function]}
         platform="ruby-rails"
       >
@@ -1659,6 +1768,7 @@ exports[`PlatformPicker render() should update State.tab onClick when particular
       </PlatformCard>
       <PlatformCard
         className=""
+        key="ruby"
         onClick={[Function]}
         platform="ruby"
       >
@@ -1689,6 +1799,7 @@ exports[`PlatformPicker render() should update State.tab onClick when particular
       </PlatformCard>
       <PlatformCard
         className=""
+        key="swift"
         onClick={[Function]}
         platform="swift"
       >
@@ -1719,6 +1830,7 @@ exports[`PlatformPicker render() should update State.tab onClick when particular
       </PlatformCard>
       <PlatformCard
         className=""
+        key="mock"
         onClick={[Function]}
         platform="mock"
       >
@@ -1749,6 +1861,7 @@ exports[`PlatformPicker render() should update State.tab onClick when particular
       </PlatformCard>
       <PlatformCard
         className=""
+        key="other"
         onClick={[Function]}
         platform="other"
       >

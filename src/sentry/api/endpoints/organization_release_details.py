@@ -16,6 +16,7 @@ from sentry.api.serializers.rest_framework import (
 )
 from sentry.models import Activity, Group, Release, ReleaseFile
 from sentry.utils.apidocs import scenario, attach_scenarios
+from sentry.constants import VERSION_LENGTH
 
 ERR_RELEASE_REFERENCED = "This release is referenced by active issues and cannot be removed."
 
@@ -42,7 +43,7 @@ def update_organization_release_scenario(runner):
 
 
 class ReleaseSerializer(serializers.Serializer):
-    ref = serializers.CharField(max_length=64, required=False)
+    ref = serializers.CharField(max_length=VERSION_LENGTH, required=False)
     url = serializers.URLField(required=False)
     dateReleased = serializers.DateTimeField(required=False)
     commits = ListField(child=CommitSerializer(), required=False, allow_null=False)
@@ -181,7 +182,7 @@ class OrganizationReleaseDetailsEndpoint(OrganizationReleasesBaseEndpoint):
                 Activity.objects.create(
                     type=Activity.RELEASE,
                     project=project,
-                    ident=release.version,
+                    ident=Activity.get_version_ident(release.version),
                     data={'version': release.version},
                     datetime=release.date_released,
                 )

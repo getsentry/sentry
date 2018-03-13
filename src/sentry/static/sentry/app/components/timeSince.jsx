@@ -1,64 +1,58 @@
 import PropTypes from 'prop-types';
 import React from 'react';
-import moment from 'moment';
+import moment from 'moment-timezone';
 import _ from 'lodash';
-import PureRenderMixin from 'react-addons-pure-render-mixin';
 
 import ConfigStore from '../stores/configStore';
 import {t} from '../locale';
 
-const TimeSince = React.createClass({
-  propTypes: {
+class TimeSince extends React.PureComponent {
+  static propTypes = {
     date: PropTypes.any.isRequired,
-    suffix: PropTypes.string
-  },
+    suffix: PropTypes.string,
+  };
 
-  mixins: [PureRenderMixin],
-
-  statics: {
-    getDateObj(date) {
-      if (_.isString(date) || _.isNumber(date)) {
-        date = new Date(date);
-      }
-      return date;
+  static getDateObj(date) {
+    if (_.isString(date) || _.isNumber(date)) {
+      date = new Date(date);
     }
-  },
+    return date;
+  }
 
-  getDefaultProps() {
-    return {
-      suffix: 'ago'
-    };
-  },
+  static defaultProps = {
+    suffix: 'ago',
+  };
 
-  getInitialState() {
-    return {
-      relative: this.getRelativeDate()
+  constructor(props) {
+    super(props);
+    this.state = {
+      relative: this.getRelativeDate(),
     };
-  },
+  }
 
   componentDidMount() {
     this.setRelativeDateTicker();
-  },
+  }
 
   componentWillUnmount() {
     if (this.ticker) {
       clearTimeout(this.ticker);
       this.ticker = null;
     }
-  },
+  }
 
-  setRelativeDateTicker() {
+  setRelativeDateTicker = () => {
     const ONE_MINUTE_IN_MS = 60000;
 
     this.ticker = setTimeout(() => {
       this.setState({
-        relative: this.getRelativeDate()
+        relative: this.getRelativeDate(),
       });
       this.setRelativeDateTicker();
     }, ONE_MINUTE_IN_MS);
-  },
+  };
 
-  getRelativeDate() {
+  getRelativeDate = () => {
     let date = TimeSince.getDateObj(this.props.date);
     if (!this.props.suffix) {
       return moment(date).fromNow(true);
@@ -69,23 +63,23 @@ const TimeSince = React.createClass({
     } else {
       throw new Error('Unsupported time format suffix');
     }
-  },
+  };
 
   render() {
     let date = TimeSince.getDateObj(this.props.date);
     let user = ConfigStore.get('user');
     let options = user ? user.options : {};
     let format = options.clock24Hours ? 'MMMM D YYYY HH:mm:ss z' : 'LLL z';
-
     return (
       <time
         dateTime={date.toISOString()}
-        title={moment(date).format(format)}
-        className={this.props.className}>
+        title={moment.tz(date, options.timezone).format(format)}
+        className={this.props.className}
+      >
         {this.state.relative}
       </time>
     );
   }
-});
+}
 
 export default TimeSince;

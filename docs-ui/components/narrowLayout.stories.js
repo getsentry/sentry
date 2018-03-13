@@ -7,9 +7,5 @@ import NarrowLayout from 'sentry-ui/narrowLayout';
 
 storiesOf('NarrowLayout', module).add(
   'default',
-  withInfo('A narrow layout')(() => (
-    <NarrowLayout>
-      Narrow Layout
-    </NarrowLayout>
-  ))
+  withInfo('A narrow layout')(() => <NarrowLayout>Narrow Layout</NarrowLayout>)
 );

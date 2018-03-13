@@ -6,11 +6,12 @@ from rest_framework import serializers
 from rest_framework.response import Response
 from uuid import uuid4
 
-from sentry.api.base import DocSection
+from sentry.api.base import DocSection, EnvironmentMixin
 from sentry.api.bases.project import ProjectEndpoint
 from sentry.api.serializers import serialize, ProjectUserReportSerializer
 from sentry.api.paginator import DateTimePaginator
-from sentry.models import (Event, EventMapping, EventUser, Group, GroupStatus, UserReport)
+from sentry.models import (Environment, Event, EventUser, Group, GroupStatus, UserReport)
+from sentry.signals import user_feedback_received
 from sentry.utils.apidocs import scenario, attach_scenarios
 
 
@@ -35,7 +36,7 @@ class UserReportSerializer(serializers.ModelSerializer):
         fields = ('name', 'email', 'comments', 'event_id')
 
 
-class ProjectUserReportsEndpoint(ProjectEndpoint):
+class ProjectUserReportsEndpoint(ProjectEndpoint, EnvironmentMixin):
     doc_section = DocSection.PROJECTS
 
     def get(self, request, project):
@@ -49,24 +50,39 @@ class ProjectUserReportsEndpoint(ProjectEndpoint):
         :pparam string project_slug: the slug of the project.
         :auth: required
         """
-        queryset = UserReport.objects.filter(
-            project=project,
-            group__isnull=False,
-        ).select_related('group')
-
-        status = request.GET.get('status', 'unresolved')
-        if status == 'unresolved':
-            queryset = queryset.filter(
-                group__status=GroupStatus.UNRESOLVED,
+        try:
+            environment = self._get_environment_from_request(
+                request,
+                project.organization_id,
             )
-        elif status:
-            return Response({'status': 'Invalid status choice'}, status=400)
+        except Environment.DoesNotExist:
+            queryset = UserReport.objects.none()
+        else:
+            queryset = UserReport.objects.filter(
+                project=project,
+                group__isnull=False,
+            ).select_related('group')
+            if environment is not None:
+                queryset = queryset.filter(
+                    environment=environment,
+                )
+
+            status = request.GET.get('status', 'unresolved')
+            if status == 'unresolved':
+                queryset = queryset.filter(
+                    group__status=GroupStatus.UNRESOLVED,
+                )
+            elif status:
+                return Response({'status': 'Invalid status choice'}, status=400)
 
         return self.paginate(
             request=request,
             queryset=queryset,
             order_by='-date_added',
-            on_results=lambda x: serialize(x, request.user, ProjectUserReportSerializer()),
+            on_results=lambda x: serialize(x, request.user, ProjectUserReportSerializer(
+                environment_func=self._get_environment_func(
+                    request, project.organization_id)
+            )),
             paginator_cls=DateTimePaginator,
         )
 
@@ -102,15 +118,16 @@ class ProjectUserReportsEndpoint(ProjectEndpoint):
             report.event_user_id = euser.id
 
         try:
-            mapping = EventMapping.objects.get(
-                event_id=report.event_id,
-                project_id=project.id,
-            )
-        except EventMapping.DoesNotExist:
-            # XXX(dcramer): the system should fill this in later
-            pass
+            event = Event.objects.filter(project_id=project.id,
+                                         event_id=report.event_id).select_related('group')[0]
+        except IndexError:
+            try:
+                report.group = Group.objects.from_event_id(project, report.event_id)
+            except Group.DoesNotExist:
+                pass
         else:
-            report.group = Group.objects.get(id=mapping.group_id)
+            report.environment = event.get_environment()
+            report.group = event.group
 
         try:
             with transaction.atomic():
@@ -136,7 +153,16 @@ class ProjectUserReportsEndpoint(ProjectEndpoint):
             )
             report = existing_report
 
-        return Response(serialize(report, request.user, ProjectUserReportSerializer()))
+        else:
+            if report.group:
+                report.notify()
+
+        user_feedback_received.send(project=report.project, group=report.group, sender=self)
+
+        return Response(serialize(report, request.user, ProjectUserReportSerializer(
+            environment_func=self._get_environment_func(
+                request, project.organization_id)
+        )))
 
     def find_event_user(self, report):
         try:

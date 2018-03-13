@@ -1,4 +1,5 @@
-import React, {PropTypes} from 'react';
+import PropTypes from 'prop-types';
+import React from 'react';
 import classNames from 'classnames';
 import {diffChars, diffWords, diffLines} from 'diff';
 
@@ -7,25 +8,19 @@ import '../../less/components/splitDiff.less';
 const diffFnMap = {
   chars: diffChars,
   words: diffWords,
-  lines: diffLines
+  lines: diffLines,
 };
 
-const SplitDiff = React.createClass({
-  propTypes: {
+class SplitDiff extends React.Component {
+  static propTypes = {
     base: PropTypes.string,
     target: PropTypes.string,
-    type: PropTypes.oneOf(['lines', 'words', 'chars'])
-  },
+    type: PropTypes.oneOf(['lines', 'words', 'chars']),
+  };
 
-  getDefaultProps() {
-    return {
-      type: 'lines'
-    };
-  },
-
-  getInitialState() {
-    return {};
-  },
+  static defaultProps = {
+    type: 'lines',
+  };
 
   render() {
     let {className, type, base, target} = this.props;
@@ -36,9 +31,10 @@ const SplitDiff = React.createClass({
 
     let baseLines = base.split('\n');
     let targetLines = target.split('\n');
-    let [largerArray] = baseLines.length > targetLines.length
-      ? [baseLines, targetLines]
-      : [targetLines, baseLines];
+    let [largerArray] =
+      baseLines.length > targetLines.length
+        ? [baseLines, targetLines]
+        : [targetLines, baseLines];
     let results = largerArray.map((line, index) =>
       diffFn(baseLines[index] || '', targetLines[index] || '', {newlineIsToken: true})
     );
@@ -52,19 +48,20 @@ const SplitDiff = React.createClass({
 
             return (
               <tr key={j}>
-
                 <td
                   className={classNames('split-view-cell', {
-                    'removed-row': highlightRemoved
-                  })}>
+                    'removed-row': highlightRemoved,
+                  })}
+                >
                   <div className="split-diff-row">
                     {line.filter(result => !result.added).map((result, i) => {
                       return (
                         <span
                           key={i}
                           className={classNames('split-view-word', {
-                            removed: result.removed
-                          })}>
+                            removed: result.removed,
+                          })}
+                        >
                           {result.value}
                         </span>
                       );
@@ -76,16 +73,18 @@ const SplitDiff = React.createClass({
 
                 <td
                   className={classNames('split-view-cell', {
-                    'added-row': highlightAdded
-                  })}>
+                    'added-row': highlightAdded,
+                  })}
+                >
                   <div className="split-diff-row">
                     {line.filter(result => !result.removed).map((result, i) => {
                       return (
                         <span
                           key={i}
                           className={classNames('split-view-word', {
-                            added: result.added
-                          })}>
+                            added: result.added,
+                          })}
+                        >
                           {result.value}
                         </span>
                       );
@@ -95,12 +94,10 @@ const SplitDiff = React.createClass({
               </tr>
             );
           })}
-
         </tbody>
-
       </table>
     );
   }
-});
+}
 
 export default SplitDiff;

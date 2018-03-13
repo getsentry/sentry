@@ -1,144 +1,121 @@
+import {Flex} from 'grid-emotion';
 import PropTypes from 'prop-types';
 import React from 'react';
+import createReactClass from 'create-react-class';
+import styled from 'react-emotion';
 
+import {t} from '../locale';
 import ApiMixin from '../mixins/apiMixin';
+import Button from '../components/buttons/button';
+import Confirm from '../components/confirm';
 import IndicatorStore from '../stores/indicatorStore';
 import LoadingError from '../components/loadingError';
 import LoadingIndicator from '../components/loadingIndicator';
-import Confirm from '../components/confirm';
-import {t} from '../locale';
-import OrganizationState from '../mixins/organizationState';
+import Panel from './settings/components/panel';
+import PanelBody from './settings/components/panelBody';
+import PanelHeader from './settings/components/panelHeader';
+import PanelItem from './settings/components/panelItem';
+import SettingsPageHeader from './settings/components/settingsPageHeader';
+import SentryTypes from '../proptypes';
 
-const SavedSearchRow = React.createClass({
-  propTypes: {
-    orgId: PropTypes.string.isRequired,
-    projectId: PropTypes.string.isRequired,
+const InputColumn = props => <Flex flex="1" justify="center" {...props} />;
+
+const SearchTitle = styled.div`
+  font-size: 18px;
+  margin-bottom: 5px;
+`;
+
+class SavedSearchRow extends React.Component {
+  static propTypes = {
     data: PropTypes.object.isRequired,
-    access: PropTypes.object.isRequired,
+    canModify: PropTypes.bool.isRequired,
     onDefault: PropTypes.func.isRequired,
     onUserDefault: PropTypes.func.isRequired,
-    onRemove: PropTypes.func.isRequired
+    onRemove: PropTypes.func.isRequired,
+  };
+
+  handleRemove = () => {
+    let {data, onRemove} = this.props;
+    onRemove({data});
+  };
+
+  handleDefault = () => {
+    let {data, onDefault} = this.props;
+    onDefault({
+      data,
+      isDefault: true,
+    });
+  };
+
+  handleUserDefault = () => {
+    let {data, onUserDefault} = this.props;
+    onUserDefault({
+      data,
+      isUserDefault: true,
+    });
+  };
+
+  render() {
+    let {data, canModify} = this.props;
+
+    return (
+      <PanelItem p={0} py={2} align="center">
+        <Flex flex="1" px={2} direction="column">
+          <SearchTitle>{data.name}</SearchTitle>
+          <code>{data.query}</code>
+        </Flex>
+        <Flex flex="1">
+          <InputColumn>
+            <input
+              type="radio"
+              name="userDefault"
+              checked={data.isUserDefault}
+              onChange={this.handleUserDefault}
+            />
+          </InputColumn>
+
+          {canModify && (
+            <InputColumn>
+              <input
+                type="radio"
+                name="default"
+                checked={data.isDefault}
+                onChange={this.handleDefault}
+              />
+            </InputColumn>
+          )}
+
+          {canModify && (
+            <InputColumn>
+              <Confirm
+                message={t('Are you sure you want to remove this?')}
+                onConfirm={this.handleRemove}
+              >
+                <Button size="small">
+                  <span className="icon icon-trash" />
+                </Button>
+              </Confirm>
+            </InputColumn>
+          )}
+        </Flex>
+      </PanelItem>
+    );
+  }
+}
+
+const ProjectSavedSearches = createReactClass({
+  displayName: 'ProjectSavedSearches',
+  contextTypes: {
+    organization: SentryTypes.Organization,
   },
 
   mixins: [ApiMixin],
 
   getInitialState() {
     return {
-      loading: false,
-      error: false
-    };
-  },
-
-  handleRemove() {
-    if (this.state.loading) return;
-
-    let loadingIndicator = IndicatorStore.add(t('Saving changes..'));
-    let {orgId, projectId, data} = this.props;
-    this.api.request(`/projects/${orgId}/${projectId}/searches/${data.id}/`, {
-      method: 'DELETE',
-      success: (d, _, jqXHR) => {
-        this.props.onRemove();
-        IndicatorStore.remove(loadingIndicator);
-      },
-      error: () => {
-        this.setState({
-          error: true,
-          loading: false
-        });
-        IndicatorStore.remove(loadingIndicator);
-      }
-    });
-  },
-
-  handleUpdate(params, cb) {
-    if (this.state.loading) return;
-    let loadingIndicator = IndicatorStore.add(t('Saving changes..'));
-    let {orgId, projectId, data} = this.props;
-    this.api.request(`/projects/${orgId}/${projectId}/searches/${data.id}/`, {
-      method: 'PUT',
-      data: params,
-      success: (d, _, jqXHR) => {
-        IndicatorStore.remove(loadingIndicator);
-        cb();
-      },
-      error: () => {
-        this.setState({
-          error: true,
-          loading: false
-        });
-        IndicatorStore.remove(loadingIndicator);
-      }
-    });
-  },
-
-  handleDefault() {
-    this.handleUpdate(
-      {
-        isDefault: true
-      },
-      this.props.onDefault
-    );
-  },
-
-  handleUserDefault() {
-    this.handleUpdate(
-      {
-        isUserDefault: true
-      },
-      this.props.onUserDefault
-    );
-  },
-
-  render() {
-    let data = this.props.data;
-    return (
-      <tr>
-        <td>
-          <h5 style={{marginBottom: 5}}>{data.name}</h5>
-          <code>{data.query}</code>
-        </td>
-        <td style={{textAlign: 'center'}}>
-          <input
-            type="radio"
-            name="userDefault"
-            checked={data.isUserDefault}
-            onChange={this.handleUserDefault}
-          />
-        </td>
-        {this.props.access.has('project:write') &&
-          <td style={{textAlign: 'center'}}>
-            <input
-              type="radio"
-              name="default"
-              checked={data.isDefault}
-              onChange={this.handleDefault}
-            />
-          </td>}
-        {this.props.access.has('project:write') &&
-          <td style={{textAlign: 'right'}}>
-
-            <Confirm
-              message={t('Are you sure you want to remove this?')}
-              onConfirm={this.handleRemove}
-              disabled={this.state.loading}>
-              <a className="btn btn-sm btn-default">
-                <span className="icon icon-trash" /> &nbsp;{t('Remove')}
-              </a>
-            </Confirm>
-          </td>}
-      </tr>
-    );
-  }
-});
-
-const ProjectSavedSearches = React.createClass({
-  mixins: [ApiMixin, OrganizationState],
-
-  getInitialState() {
-    return {
       loading: true,
       error: false,
-      savedSearchList: []
+      savedSearchList: [],
     };
   },
 
@@ -154,45 +131,80 @@ const ProjectSavedSearches = React.createClass({
           error: false,
           loading: false,
           savedSearchList: data,
-          pageLinks: jqXHR.getResponseHeader('Link')
+          pageLinks: jqXHR.getResponseHeader('Link'),
         });
       },
       error: () => {
         this.setState({
           error: true,
-          loading: false
+          loading: false,
+        });
+      },
+    });
+  },
+
+  handleUpdate(params) {
+    let {orgId, projectId} = this.props.params;
+    let loadingIndicator = IndicatorStore.add(t('Saving changes..'));
+    let {data, isDefault, isUserDefault} = params;
+    let key = typeof isDefault !== 'undefined' ? 'isDefault' : 'isUserDefault';
+    let {savedSearchList} = this.state;
+    let newSearchList = savedSearchList.map(search => ({
+      ...search,
+      [key]: data.id === search.id,
+    }));
+
+    this.setState(
+      {
+        savedSearchList: newSearchList,
+      },
+      () => {
+        this.api.request(`/projects/${orgId}/${projectId}/searches/${data.id}/`, {
+          method: 'PUT',
+          data: {
+            isDefault,
+            isUserDefault,
+          },
+          error: () => {
+            this.setState({
+              savedSearchList,
+            });
+            IndicatorStore.addError(t('Error updating search'));
+          },
+          complete: () => {
+            IndicatorStore.remove(loadingIndicator);
+          },
         });
       }
-    });
+    );
   },
 
-  handleRemovedSearch(data) {
-    let savedSearchList = this.state.savedSearchList;
-    this.setState({
-      savedSearchList: savedSearchList.filter(search => {
-        return search.id !== data.id;
-      })
+  handleRemovedSearch(params) {
+    let {orgId, projectId} = this.props.params;
+    let loadingIndicator = IndicatorStore.add(t('Saving changes..'));
+    let {data} = params;
+    let {savedSearchList} = this.state;
+    let newSearchList = savedSearchList.filter(search => {
+      return search.id !== data.id;
     });
-  },
 
-  handleDefaultSearch(data) {
-    let savedSearchList = this.state.savedSearchList;
-    savedSearchList.forEach(search => {
-      search.isDefault = data.id === search.id;
-    });
-    this.setState({
-      savedSearchList
-    });
-  },
-
-  handleUserDefaultSearch(data) {
-    let savedSearchList = this.state.savedSearchList;
-    savedSearchList.forEach(search => {
-      search.isUserDefault = data.id === search.id;
-    });
-    this.setState({
-      savedSearchList
-    });
+    this.setState(
+      {
+        savedSearchList: newSearchList,
+      },
+      () => {
+        this.api.request(`/projects/${orgId}/${projectId}/searches/${data.id}/`, {
+          method: 'DELETE',
+          error: () => {
+            this.setState({
+              savedSearchList,
+            });
+            IndicatorStore.addError(t('Error removing search'));
+          },
+          complete: () => IndicatorStore.remove(loadingIndicator),
+        });
+      }
+    );
   },
 
   renderBody() {
@@ -208,9 +220,9 @@ const ProjectSavedSearches = React.createClass({
 
   renderLoading() {
     return (
-      <div className="box">
+      <Panel>
         <LoadingIndicator />
-      </div>
+      </Panel>
     );
   },
 
@@ -225,49 +237,56 @@ const ProjectSavedSearches = React.createClass({
 
   renderResults() {
     let {orgId, projectId} = this.props.params;
-    let access = this.getAccess();
+    let {organization} = this.context;
+    let access = organization && new Set(organization.access);
+    let canModify = (organization && access.has('project:write')) || false;
+
     return (
-      <div className="panel panel-default horizontal-scroll">
-        <table className="table">
-          <thead>
-            <tr>
-              <th>Search</th>
-              <th style={{textAlign: 'center', width: 140}}>My Default</th>
-              {access.has('project:write') &&
-                <th style={{textAlign: 'center', width: 140}}>Team Default</th>}
-              {access.has('project:write') && <th style={{width: 120}} />}
-            </tr>
-          </thead>
-          <tbody>
-            {this.state.savedSearchList.map(search => {
-              return (
-                <SavedSearchRow
-                  access={access}
-                  key={search.id}
-                  orgId={orgId}
-                  projectId={projectId}
-                  data={search}
-                  onUserDefault={this.handleUserDefaultSearch.bind(this, search)}
-                  onDefault={this.handleDefaultSearch.bind(this, search)}
-                  onRemove={this.handleRemovedSearch.bind(this, search)}
-                />
-              );
-            })}
-          </tbody>
-        </table>
-      </div>
+      <Panel>
+        <PanelHeader disablePadding>
+          <Flex>
+            <Flex flex="1" px={2}>
+              {t('Search')}
+            </Flex>
+            <Flex flex="1">
+              <InputColumn>{t('My Default')}</InputColumn>
+              {canModify && <InputColumn>{t('Team Default')}</InputColumn>}
+              {canModify && <InputColumn>{t('Remove')}</InputColumn>}
+            </Flex>
+          </Flex>
+        </PanelHeader>
+
+        <PanelBody>
+          {this.state.savedSearchList.map(search => {
+            return (
+              <SavedSearchRow
+                access={access}
+                key={search.id}
+                canModify={canModify}
+                orgId={orgId}
+                projectId={projectId}
+                data={search}
+                onUserDefault={this.handleUpdate}
+                onDefault={this.handleUpdate}
+                onRemove={this.handleRemovedSearch}
+              />
+            );
+          })}
+        </PanelBody>
+      </Panel>
     );
   },
 
   render() {
-    // TODO(dcramer): localize when language is final
     return (
       <div>
-        <h2>{t('Saved Searches')}</h2>
+        <SettingsPageHeader title={t('Saved Searches')} />
+
         {this.renderBody()}
       </div>
     );
-  }
+  },
 });
 
 export default ProjectSavedSearches;
+export {SavedSearchRow};

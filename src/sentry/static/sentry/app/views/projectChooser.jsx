@@ -1,4 +1,5 @@
 import React from 'react';
+import createReactClass from 'create-react-class';
 import {browserHistory} from 'react-router';
 import $ from 'jquery';
 import {t} from '../locale';
@@ -6,7 +7,8 @@ import {t} from '../locale';
 import OrganizationState from '../mixins/organizationState';
 import TodoList from '../components/onboardingWizard/todos';
 
-const ProjectChooser = React.createClass({
+const ProjectChooser = createReactClass({
+  displayName: 'ProjectChooser',
   mixins: [OrganizationState],
 
   componentWillMount() {
@@ -40,6 +42,7 @@ const ProjectChooser = React.createClass({
     let task = TodoList.TASKS.filter(
       task_inst => task_inst.task == this.props.location.query.task
     )[0];
+    let features = new Set(org.features);
 
     // Expect onboarding=1 and task=<task id> parameters and task.featureLocation == 'project'
     // TODO throw up report dialog if not true
@@ -54,7 +57,7 @@ const ProjectChooser = React.createClass({
             <td>
               <h4>
                 <a href={`/${org.slug}/${project.slug}/${task.location}`}>
-                  {project.name}
+                  {features.has('internal-catchall') ? project.slug : project.name}
                 </a>
               </h4>
             </td>
@@ -66,13 +69,11 @@ const ProjectChooser = React.createClass({
         <div className="box" key={i}>
           <div key={team.id}>
             <div className="box-header" key={team.id}>
-              <h2>{team.name}</h2>
+              <h2>{features.has('internal-catchall') ? `#${team.slug}` : team.name}</h2>
             </div>
             <div className="box-content">
               <table className="table">
-                <tbody>
-                  {projectList}
-                </tbody>
+                <tbody>{projectList}</tbody>
               </table>
             </div>
           </div>
@@ -83,12 +84,10 @@ const ProjectChooser = React.createClass({
     return (
       <div className="container">
         <h3>{t('Choose a project')}</h3>
-        <div className="team-list">
-          {teamProjectList}
-        </div>
+        <div className="team-list">{teamProjectList}</div>
       </div>
     );
-  }
+  },
 });
 
 export default ProjectChooser;

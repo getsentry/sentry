@@ -11,22 +11,20 @@ const scoreComponents = {
   'exception:message:character-shingles': t('Exception Message'),
   'exception:stacktrace:application-chunks': t('Application Code'),
   'exception:stacktrace:pairs': t('Stacktrace Frames'),
-  'message:message:character-shingles': t('Log Message')
+  'message:message:character-shingles': t('Log Message'),
 };
 
 // classnames that map to colors to css
 const scoreClassNames = ['low', 'low', 'low-med', 'med', 'med-high', 'high'];
 
-const SimilarScoreCard = React.createClass({
-  propTypes: {
-    scoreList: PropTypes.arrayOf(PropTypes.array)
-  },
+class SimilarScoreCard extends React.Component {
+  static propTypes = {
+    scoreList: PropTypes.arrayOf(PropTypes.array),
+  };
 
-  getDefaultProps() {
-    return {
-      scoreList: []
-    };
-  },
+  static defaultProps = {
+    scoreList: [],
+  };
 
   render() {
     let {className, scoreList} = this.props;
@@ -40,9 +38,7 @@ const SimilarScoreCard = React.createClass({
       <div className={cx}>
         {scoreList.map(([key, score]) => (
           <SpreadLayout className="similar-score-card-row" key={key}>
-            <div>
-              {scoreComponents[key]}
-            </div>
+            <div>{scoreComponents[key]}</div>
 
             <div
               className={classNames(
@@ -55,6 +51,6 @@ const SimilarScoreCard = React.createClass({
       </div>
     );
   }
-});
+}
 
 export default SimilarScoreCard;

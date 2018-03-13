@@ -1,0 +1,149 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`ProjectTeamsSettings render() renders 1`] = `
+<SideEffect(DocumentTitle)
+  title="Ownership - Sentry"
+>
+  <div>
+    <SettingsPageHeading
+      title="Issue Ownership"
+    />
+    <div
+      className="alert alert-block alert-info"
+    >
+      Psst! This feature is still a work-in-progress. Thanks for being an early
+          adopter!
+    </div>
+    <Panel>
+      <PanelHeader>
+        Ownership Rules
+      </PanelHeader>
+      <PanelBody
+        direction="column"
+        disablePadding={false}
+        flex={false}
+      >
+        <p>
+          To configure automated issue ownership in Sentry, you'll need to define rules here. 
+        </p>
+        <p>
+          Rules follow the pattern type:glob owner, owner
+        </p>
+        <p>
+          Owners can be team identifiers starting with #, or user emails (use @ to input from list)
+        </p>
+        Examples:
+        <CodeBlock>
+          path:src/sentry/pipeline/* person@sentry.io #platform
+          
+
+          url:http://sentry.io/settings/* #workflow
+        </CodeBlock>
+        <OwnerInput
+          initialText="url:src @dummy@example.com"
+          organization={
+            Object {
+              "access": Array [
+                "org:read",
+                "org:write",
+                "org:admin",
+                "project:read",
+                "project:write",
+                "project:admin",
+                "team:read",
+                "team:write",
+                "team:admin",
+              ],
+              "features": Array [],
+              "id": "3",
+              "name": "Organization Name",
+              "onboardingTasks": Array [],
+              "projects": Array [],
+              "slug": "org-slug",
+              "status": Object {
+                "id": "active",
+                "name": "active",
+              },
+              "teams": Array [],
+            }
+          }
+          params={
+            Object {
+              "orgId": "org-slug",
+              "projectId": "project-slug",
+            }
+          }
+          project={
+            Object {
+              "allowedDomains": Array [
+                "example.com",
+                "https://example.com",
+              ],
+              "dataScrubber": false,
+              "dataScrubberDefaults": false,
+              "digestsMaxDelay": 60,
+              "digestsMinDelay": 5,
+              "id": "2",
+              "name": "Project Name",
+              "resolveAge": 48,
+              "safeFields": Array [
+                "business-email",
+                "company",
+              ],
+              "scrapeJavaScript": true,
+              "scrubIPAddresses": false,
+              "securityToken": "security-token",
+              "securityTokenHeader": "x-security-header",
+              "sensitiveFields": Array [
+                "creditcard",
+                "ssn",
+              ],
+              "slug": "project-slug",
+              "subjectTemplate": "[$project] \${tag:level}: $title",
+              "verifySSL": true,
+            }
+          }
+        />
+      </PanelBody>
+    </Panel>
+    <Form
+      allowUndo={false}
+      apiEndpoint="/projects/org-slug/project-slug/ownership/"
+      apiMethod="PUT"
+      cancelLabel="Cancel"
+      className="form-stacked"
+      footerClass="form-actions align-right"
+      hideFooter={true}
+      initialData={
+        Object {
+          "fallthrough": "false",
+        }
+      }
+      onSubmitError={[Function]}
+      onSubmitSuccess={[Function]}
+      requireChanges={false}
+      saveOnBlur={true}
+      submitDisabled={false}
+      submitLabel="Save Changes"
+    >
+      <JsonForm
+        additionalFieldProps={Object {}}
+        forms={
+          Array [
+            Object {
+              "fields": Array [
+                Object {
+                  "label": "Default Owner is everyone",
+                  "name": "fallthrough",
+                  "type": "boolean",
+                },
+              ],
+              "title": "Default Ownership",
+            },
+          ]
+        }
+      />
+    </Form>
+  </div>
+</SideEffect(DocumentTitle)>
+`;

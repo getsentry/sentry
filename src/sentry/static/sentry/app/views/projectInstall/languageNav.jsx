@@ -1,21 +1,22 @@
 import PropTypes from 'prop-types';
 import React from 'react';
 
-const LanguageNav = React.createClass({
-  propTypes: {
+class LanguageNav extends React.Component {
+  static propTypes = {
     name: PropTypes.string.isRequired,
-    active: PropTypes.bool
-  },
+    active: PropTypes.bool,
+  };
 
-  getInitialState() {
-    return {
-      isVisible: this.props.active || false
+  constructor(...args) {
+    super(...args);
+    this.state = {
+      isVisible: this.props.active || false,
     };
-  },
+  }
 
-  toggle() {
+  toggle = () => {
     this.setState({isVisible: !this.state.isVisible});
-  },
+  };
 
   render() {
     let {isVisible} = this.state;
@@ -25,23 +26,26 @@ const LanguageNav = React.createClass({
           <li className="list-group-item list-group-header">
             <a onClick={this.toggle} style={{display: 'block'}}>
               <span className="pull-right">
-                {isVisible
-                  ? <span className="icon-minus" />
-                  : <span className="icon-plus" />}
+                {isVisible ? (
+                  <span className="icon-minus" />
+                ) : (
+                  <span className="icon-plus" />
+                )}
               </span>
               <strong>{this.props.name}</strong>
             </a>
           </li>
           <span
             style={{
-              display: isVisible ? 'block' : 'none'
-            }}>
+              display: isVisible ? 'block' : 'none',
+            }}
+          >
             {this.props.children}
           </span>
         </ul>
       </div>
     );
   }
-});
+}
 
 export default LanguageNav;

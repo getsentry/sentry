@@ -17,6 +17,7 @@ from django.utils import timezone
 from django.utils.translation import ugettext_lazy as _
 
 from sentry.db.models import BaseManager, BaseModel, BoundedAutoField
+from sentry.models import LostPasswordHash
 from sentry.utils.http import absolute_uri
 
 audit_logger = logging.getLogger('sentry.audit.user')
@@ -138,6 +139,11 @@ class User(BaseModel, AbstractBaseUser):
     def get_short_name(self):
         return self.username
 
+    def get_salutation_name(self):
+        name = self.name or self.username.split('@', 1)[0].split('.', 1)[0]
+        first_name = name.split(' ', 1)[0]
+        return first_name.capitalize()
+
     def get_avatar_type(self):
         avatar = self.avatar.first()
         if avatar:
@@ -183,8 +189,8 @@ class User(BaseModel, AbstractBaseUser):
         from sentry import roles
         from sentry.models import (
             Activity, AuditLogEntry, AuthIdentity, Authenticator, GroupAssignee, GroupBookmark, GroupSeen,
-            GroupSubscription, OrganizationMember, OrganizationMemberTeam, UserAvatar, UserEmail,
-            UserOption
+            GroupShare, GroupSubscription, OrganizationMember, OrganizationMemberTeam, UserAvatar,
+            UserEmail, UserOption,
         )
 
         audit_logger.info(
@@ -220,8 +226,8 @@ class User(BaseModel, AbstractBaseUser):
                     pass
 
         model_list = (
-            Authenticator, GroupAssignee, GroupBookmark, GroupSeen, GroupSubscription, UserAvatar, UserEmail,
-            UserOption
+            Authenticator, GroupAssignee, GroupBookmark, GroupSeen, GroupShare,
+            GroupSubscription, UserAvatar, UserEmail, UserOption,
         )
 
         for model in model_list:
@@ -273,3 +279,6 @@ class User(BaseModel, AbstractBaseUser):
                 user=self,
             ).values('organization'),
         )
+
+    def clear_lost_passwords(self):
+        LostPasswordHash.objects.filter(user=self).delete()

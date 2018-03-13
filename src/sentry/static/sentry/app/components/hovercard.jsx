@@ -2,30 +2,31 @@ import PropTypes from 'prop-types';
 import React from 'react';
 import classNames from 'classnames';
 
-const Hovercard = React.createClass({
-  propTypes: {
+class Hovercard extends React.Component {
+  static propTypes = {
     className: PropTypes.string,
     containerClassName: PropTypes.string,
     header: PropTypes.node,
-    body: PropTypes.node
-  },
+    body: PropTypes.node,
+  };
 
-  getInitialState() {
-    return {
-      visible: false
+  constructor(...args) {
+    super(...args);
+    this.state = {
+      visible: false,
     };
-  },
+  }
 
-  handleToggleHovercard() {
+  handleToggleHovercard = () => {
     let {header, body} = this.props;
 
     // Don't toggle hovercard if both of these are null
     if (!header && !body) return;
 
     this.setState({
-      visible: !this.state.visible
+      visible: !this.state.visible,
     });
-  },
+  };
 
   render() {
     let {containerClassName, className, header, body} = this.props;
@@ -38,23 +39,19 @@ const Hovercard = React.createClass({
       <span
         className={containerCx}
         onMouseEnter={this.handleToggleHovercard}
-        onMouseLeave={this.handleToggleHovercard}>
+        onMouseLeave={this.handleToggleHovercard}
+      >
         {this.props.children}
-        {visible &&
+        {visible && (
           <div className={cx}>
             <div className="hovercard-hoverlap" />
-            {header &&
-              <div className="hovercard-header">
-                {header}
-              </div>}
-            {body &&
-              <div className="hovercard-body">
-                {body}
-              </div>}
-          </div>}
+            {header && <div className="hovercard-header">{header}</div>}
+            {body && <div className="hovercard-body">{body}</div>}
+          </div>
+        )}
       </span>
     );
   }
-});
+}
 
 export default Hovercard;

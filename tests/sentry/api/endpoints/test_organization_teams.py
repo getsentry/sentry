@@ -52,6 +52,7 @@ class OrganizationTeamsCreateTest(APITestCase):
         self.login_as(user=self.user)
         resp = self.client.post(self.path)
         assert resp.status_code == 400
+        assert 'Name or slug is required' in resp.content
 
     def test_valid_params(self):
         self.login_as(user=self.user)
@@ -90,6 +91,19 @@ class OrganizationTeamsCreateTest(APITestCase):
         assert resp.status_code == 201, resp.content
         team = Team.objects.unrestricted_unsafe().get(id=resp.data['id'])
         assert team.slug == 'hello-world'
+
+    def test_without_name(self):
+        self.login_as(user=self.user)
+
+        resp = self.client.post(
+            self.path, data={
+                'slug': 'example-slug',
+            }
+        )
+        assert resp.status_code == 201, resp.content
+        team = Team.objects.get(id=resp.data['id'])
+        assert team.slug == 'example-slug'
+        assert team.name == 'example-slug'
 
     def test_duplicate(self):
         self.login_as(user=self.user)

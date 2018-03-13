@@ -325,14 +325,22 @@ class S3Boto3Storage(Storage):
         # urllib/requests libraries read. See https://github.com/boto/boto3/issues/338
         # and http://docs.python-requests.org/en/latest/user/advanced/#proxies
         if self._connection is None:
+
+            # If this is running on an ec2 instance, allow boto to connect using an IAM role
+            # instead of explicitly provided an access key and secret
+            # http://boto3.readthedocs.io/en/latest/guide/configuration.html#iam-role
+            kwargs = {}
+            if self.access_key and self.secret_key:
+                kwargs['aws_access_key_id'] = self.access_key
+                kwargs['aws_secret_access_key'] = self.secret_key
+
             self._connection = self.connection_class(
                 self.connection_service_name,
-                aws_access_key_id=self.access_key,
-                aws_secret_access_key=self.secret_key,
                 region_name=self.region_name,
                 use_ssl=self.use_ssl,
                 endpoint_url=self.endpoint_url,
-                config=self.config
+                config=self.config,
+                **kwargs
             )
         return self._connection
 

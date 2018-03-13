@@ -7,8 +7,9 @@ from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.permissions import ScopedPermission
 from sentry.app import raven
 from sentry.auth import access
+from sentry.auth.superuser import is_active_superuser
 from sentry.models import (
-    ApiKey, Organization, OrganizationMemberTeam, OrganizationStatus, Project, ReleaseProject, Team
+    ApiKey, Authenticator, Organization, OrganizationMemberTeam, Project, ProjectTeam, ReleaseProject, Team
 )
 from sentry.utils import auth
 
@@ -20,6 +21,9 @@ class OrganizationPermission(ScopedPermission):
         'PUT': ['org:write', 'org:admin'],
         'DELETE': ['org:admin'],
     }
+
+    def is_not_2fa_compliant(self, user, organization):
+        return organization.flags.require_2fa and not Authenticator.objects.user_has_2fa(user)
 
     def needs_sso(self, request, organization):
         # XXX(dcramer): this is very similar to the server-rendered views
@@ -56,16 +60,30 @@ class OrganizationPermission(ScopedPermission):
                         'user_id': request.user.id,
                     }
                 )
-            elif request.user.is_authenticated() and self.needs_sso(request, organization):
+            elif request.user.is_authenticated():
                 # session auth needs to confirm various permissions
-                logger.info(
-                    'access.must-sso',
-                    extra={
-                        'organization_id': organization.id,
-                        'user_id': request.user.id,
-                    }
-                )
-                raise NotAuthenticated(detail='Must login via SSO')
+                if self.needs_sso(request, organization):
+
+                    logger.info(
+                        'access.must-sso',
+                        extra={
+                            'organization_id': organization.id,
+                            'user_id': request.user.id,
+                        }
+                    )
+                    raise NotAuthenticated(detail='Must login via SSO')
+
+                if self.is_not_2fa_compliant(
+                        request.user, organization):
+                    logger.info(
+                        'access.not-2fa-compliant',
+                        extra={
+                            'organization_id': organization.id,
+                            'user_id': request.user.id,
+                        }
+                    )
+                    raise NotAuthenticated(
+                        detail='Organization requires two-factor authentication to be enabled')
 
         allowed_scopes = set(self.scope_map.get(request.method, []))
         return any(request.access.has_scope(s) for s in allowed_scopes)
@@ -92,9 +110,18 @@ class OrganizationIntegrationsPermission(OrganizationPermission):
     }
 
 
-class OrganizationApiKeysPermission(OrganizationPermission):
+class OrganizationAdminPermission(OrganizationPermission):
     scope_map = {
         'GET': ['org:admin'],
+        'POST': ['org:admin'],
+        'PUT': ['org:admin'],
+        'DELETE': ['org:admin'],
+    }
+
+
+class OrganizationAuthProviderPermission(OrganizationPermission):
+    scope_map = {
+        'GET': ['org:read'],
         'POST': ['org:admin'],
         'PUT': ['org:admin'],
         'DELETE': ['org:admin'],
@@ -110,9 +137,6 @@ class OrganizationEndpoint(Endpoint):
                 slug=organization_slug,
             )
         except Organization.DoesNotExist:
-            raise ResourceDoesNotExist
-
-        if organization.status != OrganizationStatus.VISIBLE:
             raise ResourceDoesNotExist
 
         self.check_object_permissions(request, organization)
@@ -139,7 +163,7 @@ class OrganizationReleasesBaseEndpoint(OrganizationEndpoint):
         if not (has_valid_api_key or request.user.is_authenticated()):
             return []
 
-        if has_valid_api_key or request.is_superuser() or organization.flags.allow_joinleave:
+        if has_valid_api_key or is_active_superuser(request) or organization.flags.allow_joinleave:
             allowed_teams = Team.objects.filter(organization=organization).values_list(
                 'id', flat=True
             )
@@ -150,7 +174,12 @@ class OrganizationReleasesBaseEndpoint(OrganizationEndpoint):
             ).values_list(
                 'team_id', flat=True
             )
-        return Project.objects.filter(team_id__in=allowed_teams)
+
+        return Project.objects.filter(
+            id__in=ProjectTeam.objects.filter(
+                team_id__in=allowed_teams,
+            ).values_list('project_id', flat=True)
+        )
 
     def has_release_permission(self, request, organization, release):
         return ReleaseProject.objects.filter(

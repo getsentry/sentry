@@ -127,14 +127,6 @@ class Event(Model):
         warnings.warn('Event.message_short is deprecated, use Event.title', DeprecationWarning)
         return self.title
 
-    def has_two_part_message(self):
-        warnings.warn('Event.has_two_part_message is no longer used', DeprecationWarning)
-        return False
-
-    @property
-    def team(self):
-        return self.project.team
-
     @property
     def organization(self):
         return self.project.organization
@@ -200,6 +192,8 @@ class Event(Model):
         data['time_spent'] = self.time_spent
         data['tags'] = self.get_tags()
         for k, v in sorted(six.iteritems(self.data)):
+            if k == 'sdk':
+                v = {v_k: v_v for v_k, v_v in six.iteritems(v) if v_k != 'client_ip'}
             data[k] = v
         return data
 
@@ -264,6 +258,17 @@ class Event(Model):
             128,
         ).encode('utf-8')
 
+    def get_environment(self):
+        from sentry.models import Environment
+
+        if not hasattr(self, '_environment_cache'):
+            self._environment_cache = Environment.objects.get(
+                organization_id=self.project.organization_id,
+                name=Environment.get_name_or_default(self.get_tag('environment')),
+            )
+
+        return self._environment_cache
+
 
 class EventSubjectTemplate(string.Template):
     idpattern = r'(tag:)?[_a-z][_a-z0-9]*'
@@ -290,6 +295,8 @@ class EventSubjectTemplateData(object):
             return self.event.project.get_full_name()
         elif name == 'projectID':
             return self.event.project.slug
+        elif name == 'shortID':
+            return self.event.group.qualified_short_id
         elif name == 'orgID':
             return self.event.organization.slug
         elif name == 'title':
@@ -297,4 +304,4 @@ class EventSubjectTemplateData(object):
         raise KeyError
 
 
-DEFAULT_SUBJECT_TEMPLATE = EventSubjectTemplate('[$project] ${tag:level}: $title')
+DEFAULT_SUBJECT_TEMPLATE = EventSubjectTemplate('$shortID - $title')

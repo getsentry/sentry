@@ -1,14 +1,17 @@
 from __future__ import absolute_import
 
+from sentry import roles
 from sentry.api.base import Endpoint
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.app import raven
-from sentry.models import Project, ProjectStatus
+from sentry.auth.superuser import is_active_superuser
+from sentry.models import OrganizationMember, Project, ProjectStatus
 
-from .team import TeamPermission
+from .organization import OrganizationPermission
+from .team import has_team_permission
 
 
-class ProjectPermission(TeamPermission):
+class ProjectPermission(OrganizationPermission):
     scope_map = {
         'GET': ['project:read', 'project:write', 'project:admin'],
         'POST': ['project:write', 'project:admin'],
@@ -17,7 +20,32 @@ class ProjectPermission(TeamPermission):
     }
 
     def has_object_permission(self, request, view, project):
-        return super(ProjectPermission, self).has_object_permission(request, view, project.team)
+        result = super(ProjectPermission,
+                       self).has_object_permission(request, view, project.organization)
+
+        if not result:
+            return result
+
+        if project.teams.exists():
+            return any(
+                has_team_permission(request, team, self.scope_map) for team in project.teams.all()
+            )
+        elif request.user.is_authenticated():
+            # this is only for team-less projects
+            if is_active_superuser(request):
+                return True
+            try:
+                role = OrganizationMember.objects.filter(
+                    organization=project.organization,
+                    user=request.user,
+                ).values_list('role', flat=True).get()
+            except OrganizationMember.DoesNotExist:
+                # this should probably never happen?
+                return False
+
+            return roles.get(role).is_global
+
+        return False
 
 
 class StrictProjectPermission(ProjectPermission):
@@ -74,14 +102,12 @@ class ProjectEndpoint(Endpoint):
             project = Project.objects.filter(
                 organization__slug=organization_slug,
                 slug=project_slug,
-            ).select_related('organization', 'team').get()
+            ).select_related('organization').prefetch_related('teams').get()
         except Project.DoesNotExist:
             raise ResourceDoesNotExist
 
         if project.status != ProjectStatus.VISIBLE:
             raise ResourceDoesNotExist
-
-        project.team.organization = project.organization
 
         self.check_object_permissions(request, project)
 

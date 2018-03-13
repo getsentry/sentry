@@ -38,8 +38,13 @@ class OrganizationTeamsPermission(OrganizationPermission):
 
 
 class TeamSerializer(serializers.Serializer):
-    name = serializers.CharField(max_length=200, required=True)
+    name = serializers.CharField(max_length=200, required=False)
     slug = serializers.RegexField(r'^[a-z0-9_\-]+$', max_length=50, required=False)
+
+    def validate(self, attrs):
+        if not (attrs.get('name') or attrs.get('slug')):
+            raise serializers.ValidationError('Name or slug is required')
+        return attrs
 
 
 class OrganizationTeamsEndpoint(OrganizationEndpoint):
@@ -97,7 +102,7 @@ class OrganizationTeamsEndpoint(OrganizationEndpoint):
             try:
                 with transaction.atomic():
                     team = Team.objects.create(
-                        name=result['name'],
+                        name=result.get('name') or result['slug'],
                         slug=result.get('slug'),
                         organization=organization,
                     )

@@ -14,14 +14,16 @@ from sentry.models import (
     UserAvatar,
     UserOption,
     UserEmail,
+    UserPermission,
 )
+from sentry.auth.superuser import is_active_superuser
 from sentry.utils.avatar import get_gravatar_url
 
 
 @register(User)
 class UserSerializer(Serializer):
     def _get_identities(self, item_list, user):
-        if not (env.request and env.request.is_superuser()):
+        if not (env.request and is_active_superuser(env.request)):
             item_list = [x for x in item_list if x == user]
 
         queryset = AuthIdentity.objects.filter(
@@ -83,12 +85,6 @@ class UserSerializer(Serializer):
                 )
             }
             stacktrace_order = int(options.get('stacktrace_order', -1) or -1)
-            if stacktrace_order == -1:
-                stacktrace_order = 'default'
-            elif stacktrace_order == 2:
-                stacktrace_order = 'newestFirst'
-            elif stacktrace_order == 1:
-                stacktrace_order = 'newestLast'
 
             d['options'] = {
                 'language': options.get('language') or 'en',
@@ -97,6 +93,8 @@ class UserSerializer(Serializer):
                 'clock24Hours': options.get('clock_24_hours') or False,
                 'seenReleaseBroadcast': options.get('seen_release_broadcast'),
             }
+
+            d['permissions'] = list(UserPermission.for_user(obj.id))
 
         if attrs.get('avatar'):
             avatar = {

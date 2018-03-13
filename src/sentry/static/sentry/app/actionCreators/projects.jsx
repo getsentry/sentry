@@ -1,3 +1,5 @@
+import {addErrorMessage, addSuccessMessage} from './indicator';
+import {tct} from '../locale';
 import ProjectActions from '../actions/projectActions';
 
 export function update(api, params) {
@@ -12,7 +14,7 @@ export function update(api, params) {
     },
     error: data => {
       ProjectActions.updateError(data);
-    }
+    },
   });
 }
 
@@ -27,6 +29,58 @@ export function loadStats(api, params) {
     },
     error: data => {
       ProjectActions.loadStatsError(data);
-    }
+    },
   });
+}
+
+export function setActiveProject(project) {
+  ProjectActions.setActive(project);
+}
+
+export function removeProject(api, orgId, project) {
+  let endpoint = `/projects/${orgId}/${project.slug}/`;
+
+  ProjectActions.removeProject(project);
+  return api
+    .requestPromise(endpoint, {
+      method: 'DELETE',
+    })
+    .then(
+      () => {
+        ProjectActions.removeProjectSuccess(project);
+        addSuccessMessage(
+          tct('[project] was successfully removed', {project: project.slug})
+        );
+      },
+      err => {
+        ProjectActions.removeProjectError(project);
+        addErrorMessage(tct('Error removing [project]', {project: project.slug}));
+        throw err;
+      }
+    );
+}
+
+export function transferProject(api, orgId, project, email) {
+  let endpoint = `/projects/${orgId}/${project.slug}/transfer/`;
+
+  return api
+    .requestPromise(endpoint, {
+      method: 'POST',
+      data: {
+        email,
+      },
+    })
+    .then(
+      () => {
+        addSuccessMessage(
+          tct('A request was sent to move [project] to a different organization', {
+            project: project.slug,
+          })
+        );
+      },
+      err => {
+        addErrorMessage(tct('Error transferring [project]', {project: project.slug}));
+        throw err;
+      }
+    );
 }

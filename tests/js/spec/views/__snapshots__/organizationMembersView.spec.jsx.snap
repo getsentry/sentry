@@ -1,0 +1,2632 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`OrganizationMembersView No Require Link does not have 2fa warning if user has 2fa 1`] = `
+.glamor-17 {
+  font-size: 14px;
+  box-shadow: inset 0 -1px 0;
+  margin: -20px 0 30px;
+}
+
+.glamor-13 {
+  box-sizing: border-box;
+  display: -webkit-box;
+  display: -webkit-flex;
+  display: -ms-flexbox;
+  display: flex;
+  -webkit-align-items: center;
+  -webkit-box-align: center;
+  -ms-flex-align: center;
+  align-items: center;
+}
+
+.glamor-0 {
+  font-size: 20px;
+  font-weight: bold;
+  margin: 20px 0;
+  -webkit-flex: 1;
+  -ms-flex: 1;
+  flex: 1;
+}
+
+.glamor-9 {
+  box-sizing: border-box;
+  margin-right: 6px;
+  margin-left: -2px;
+}
+
+.glamor-5 {
+  display: block;
+}
+
+.glamor-3 {
+  vertical-align: middle;
+  display: block;
+}
+
+.glamor-106 {
+  background: #fff;
+  border: 1px solid;
+  margin-bottom: NaNpx;
+  position: relative;
+}
+
+.glamor-36 {
+  border-bottom: 1px solid;
+  border-radius: 0 0;
+  text-transform: uppercase;
+  font-size: 13px;
+  line-height: 1;
+  padding: 15px 0;
+}
+
+.glamor-32 {
+  font-size: inherit;
+  text-transform: inherit;
+  margin: 0;
+}
+
+.glamor-30 {
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  margin-bottom: 20px;
+  font-size: inherit;
+  text-transform: inherit;
+  margin: 0;
+}
+
+.glamor-19 {
+  box-sizing: border-box;
+  padding-left: 16px;
+  padding-right: 16px;
+  -webkit-flex: 1;
+  -ms-flex: 1;
+  flex: 1;
+}
+
+.glamor-21 {
+  box-sizing: border-box;
+  width: 180px;
+  padding-left: 16px;
+  padding-right: 16px;
+}
+
+.glamor-23 {
+  box-sizing: border-box;
+  width: 140px;
+  padding-left: 16px;
+  padding-right: 16px;
+}
+
+.glamor-58 {
+  box-sizing: border-box;
+  padding: 0px;
+  padding-top: 16px;
+  padding-bottom: 16px;
+  display: -webkit-box;
+  display: -webkit-flex;
+  display: -ms-flexbox;
+  display: flex;
+  -webkit-align-items: center;
+  -webkit-box-align: center;
+  -ms-flex-align: center;
+  align-items: center;
+  border-bottom: 1px solid;
+}
+
+.glamor-58:last-child {
+  border: 0;
+}
+
+.glamor-40 {
+  box-sizing: border-box;
+  padding-left: 16px;
+}
+
+.glamor-48 {
+  box-sizing: border-box;
+  padding-left: 8px;
+  padding-right: 16px;
+  -webkit-flex: 1;
+  -ms-flex: 1;
+  flex: 1;
+}
+
+.glamor-42 {
+  font-size: 16px;
+}
+
+.glamor-46 {
+  font-size: 14px;
+}
+
+<OrganizationMembersView
+  canAddMembers={false}
+  canRemoveMembers={false}
+  currentUser={
+    Object {
+      "email": "",
+      "flags": Object {
+        "sso:linked": false,
+      },
+      "id": "2",
+      "name": "",
+      "pending": false,
+      "roleName": "",
+      "user": Object {
+        "email": "sentry2@test.com",
+        "has2fa": true,
+        "id": "2",
+        "name": "Sentry 2 Name",
+        "username": "Sentry 2 Username",
+      },
+    }
+  }
+  memberCanLeave={false}
+  onLeave={[Function]}
+  onRemove={[Function]}
+  onSendInvite={[Function]}
+  orgId="org-slug"
+  orgName="Organization Name"
+  params={
+    Object {
+      "orgId": "org-id",
+    }
+  }
+  requireLink={false}
+  routes={Array []}
+  status=""
+>
+  <SideEffect(DocumentTitle)
+    title="Organization Name Members"
+  >
+    <DocumentTitle
+      title="Organization Name Members"
+    >
+      <div>
+        <SettingsPageHeading
+          action={
+            <Button
+              disabled={false}
+              icon="icon-circle-add"
+              priority="primary"
+              size="small"
+              title={undefined}
+              to="new"
+            >
+              Invite Member
+            </Button>
+          }
+          title="Members"
+        >
+          <Wrapper>
+            <div
+              className="glamor-17 glamor-18"
+            >
+              <Flex
+                align="center"
+              >
+                <Base
+                  align="center"
+                  className="glamor-13"
+                >
+                  <div
+                    className="glamor-13"
+                    is={null}
+                  >
+                    <Title>
+                      <div
+                        className="glamor-0 glamor-1"
+                      >
+                        Members
+                      </div>
+                    </Title>
+                    <div>
+                      <Button
+                        disabled={false}
+                        icon="icon-circle-add"
+                        priority="primary"
+                        size="small"
+                        to="new"
+                      >
+                        <Link
+                          className="button button-primary button-sm"
+                          disabled={false}
+                          onClick={[Function]}
+                          onlyActiveOnIndex={false}
+                          role="button"
+                          style={Object {}}
+                          to="new"
+                        >
+                          <a
+                            className="button button-primary button-sm"
+                            disabled={false}
+                            onClick={[Function]}
+                            role="button"
+                            style={Object {}}
+                          >
+                            <Flex
+                              align="center"
+                              className="button-label"
+                            >
+                              <Base
+                                align="center"
+                                className="button-label glamor-13"
+                              >
+                                <div
+                                  className="button-label glamor-13"
+                                  is={null}
+                                >
+                                  <Icon
+                                    size="small"
+                                  >
+                                    <Base
+                                      className="glamor-9 glamor-10"
+                                      size="small"
+                                    >
+                                      <div
+                                        className="glamor-9 glamor-10"
+                                        is={null}
+                                        size="small"
+                                      >
+                                        <StyledInlineSvg
+                                          size="12px"
+                                          src="icon-circle-add"
+                                        >
+                                          <InlineSvg
+                                            className="glamor-5 glamor-2"
+                                            size="12px"
+                                            src="icon-circle-add"
+                                          >
+                                            <StyledSvg
+                                              className="glamor-5 glamor-2"
+                                              height="12px"
+                                              style={Object {}}
+                                              viewBox={Object {}}
+                                              width="12px"
+                                            >
+                                              <svg
+                                                className="glamor-2 glamor-3 glamor-4"
+                                                height="12px"
+                                                style={Object {}}
+                                                viewBox={Object {}}
+                                                width="12px"
+                                              >
+                                                <use
+                                                  href="#test"
+                                                  xlinkHref="#test"
+                                                />
+                                              </svg>
+                                            </StyledSvg>
+                                          </InlineSvg>
+                                        </StyledInlineSvg>
+                                      </div>
+                                    </Base>
+                                  </Icon>
+                                  Invite Member
+                                </div>
+                              </Base>
+                            </Flex>
+                          </a>
+                        </Link>
+                      </Button>
+                    </div>
+                  </div>
+                </Base>
+              </Flex>
+            </div>
+          </Wrapper>
+        </SettingsPageHeading>
+        <OrganizationAccessRequests
+          accessRequestBusy={Map {}}
+          onApprove={[Function]}
+          onDeny={[Function]}
+          requestList={Array []}
+        />
+        <Panel>
+          <div
+            className="glamor-106 glamor-107"
+          >
+            <PanelHeader
+              disablePadding={true}
+            >
+              <StyledPanelHeader
+                disablePadding={true}
+              >
+                <Component
+                  className="glamor-36 glamor-37"
+                  disablePadding={true}
+                >
+                  <div
+                    className="glamor-36 glamor-37"
+                  >
+                    <StyledPanelHeading>
+                      <Component
+                        className="glamor-32 glamor-29"
+                      >
+                        <PanelHeading
+                          className="glamor-32 glamor-29"
+                        >
+                          <div
+                            className="glamor-29 glamor-30 glamor-31"
+                          >
+                            <Flex
+                              align="center"
+                            >
+                              <Base
+                                align="center"
+                                className="glamor-13"
+                              >
+                                <div
+                                  className="glamor-13"
+                                  is={null}
+                                >
+                                  <Box
+                                    flex="1"
+                                    px={2}
+                                  >
+                                    <Base
+                                      className="glamor-19"
+                                      flex="1"
+                                      px={2}
+                                    >
+                                      <div
+                                        className="glamor-19"
+                                        is={null}
+                                      >
+                                        Member
+                                      </div>
+                                    </Base>
+                                  </Box>
+                                  <Box
+                                    px={2}
+                                    w={180}
+                                  >
+                                    <Base
+                                      className="glamor-21"
+                                      px={2}
+                                      w={180}
+                                    >
+                                      <div
+                                        className="glamor-21"
+                                        is={null}
+                                      >
+                                        Status
+                                      </div>
+                                    </Base>
+                                  </Box>
+                                  <Box
+                                    px={2}
+                                    w={140}
+                                  >
+                                    <Base
+                                      className="glamor-23"
+                                      px={2}
+                                      w={140}
+                                    >
+                                      <div
+                                        className="glamor-23"
+                                        is={null}
+                                      >
+                                        Role
+                                      </div>
+                                    </Base>
+                                  </Box>
+                                  <Box
+                                    px={2}
+                                    w={140}
+                                  >
+                                    <Base
+                                      className="glamor-23"
+                                      px={2}
+                                      w={140}
+                                    >
+                                      <div
+                                        className="glamor-23"
+                                        is={null}
+                                      >
+                                        Actions
+                                      </div>
+                                    </Base>
+                                  </Box>
+                                </div>
+                              </Base>
+                            </Flex>
+                          </div>
+                        </PanelHeading>
+                      </Component>
+                    </StyledPanelHeading>
+                  </div>
+                </Component>
+              </StyledPanelHeader>
+            </PanelHeader>
+            <PanelBody
+              direction="column"
+              disablePadding={true}
+              flex={false}
+            >
+              <div
+                className=""
+              >
+                <OrganizationMemberRow
+                  canAddMembers={true}
+                  canRemoveMembers={false}
+                  currentUser={
+                    Object {
+                      "email": "",
+                      "flags": Object {
+                        "sso:linked": false,
+                      },
+                      "id": "2",
+                      "name": "",
+                      "pending": false,
+                      "roleName": "",
+                      "user": Object {
+                        "email": "sentry2@test.com",
+                        "has2fa": true,
+                        "id": "2",
+                        "name": "Sentry 2 Name",
+                        "username": "Sentry 2 Username",
+                      },
+                    }
+                  }
+                  key="1"
+                  member={
+                    Object {
+                      "email": "",
+                      "flags": Object {
+                        "sso:linked": false,
+                      },
+                      "id": "1",
+                      "name": "",
+                      "pending": false,
+                      "roleName": "",
+                      "user": Object {
+                        "email": "sentry1@test.com",
+                        "has2fa": false,
+                        "id": "1",
+                        "name": "Sentry 1 Name",
+                        "username": "Sentry 1 Username",
+                      },
+                    }
+                  }
+                  memberCanLeave={false}
+                  onLeave={[Function]}
+                  onRemove={[Function]}
+                  onSendInvite={[Function]}
+                  orgId="org-id"
+                  orgName="Organization Name"
+                  params={
+                    Object {
+                      "orgId": "org-id",
+                    }
+                  }
+                  requireLink={false}
+                  routes={Array []}
+                >
+                  <PanelItem
+                    align="center"
+                    p={0}
+                    py={2}
+                  >
+                    <StyledPanelItem
+                      align="center"
+                      p={0}
+                      py={2}
+                    >
+                      <Base
+                        align="center"
+                        className="glamor-58 glamor-59"
+                        p={0}
+                        py={2}
+                      >
+                        <div
+                          className="glamor-58 glamor-59"
+                          is={null}
+                        >
+                          <Box
+                            pl={2}
+                          >
+                            <Base
+                              className="glamor-40"
+                              pl={2}
+                            >
+                              <div
+                                className="glamor-40"
+                                is={null}
+                              >
+                                <Avatar
+                                  className="avatar"
+                                  gravatar={true}
+                                  hasTooltip={false}
+                                  size={64}
+                                  style={
+                                    Object {
+                                      "height": 32,
+                                      "width": 32,
+                                    }
+                                  }
+                                  user={
+                                    Object {
+                                      "email": "sentry1@test.com",
+                                      "has2fa": false,
+                                      "id": "1",
+                                      "name": "Sentry 1 Name",
+                                      "username": "Sentry 1 Username",
+                                    }
+                                  }
+                                >
+                                  <Tooltip
+                                    disabled={true}
+                                    title="Sentry 1 Name (sentry1@test.com)"
+                                  >
+                                    <span
+                                      className="avatar"
+                                      style={
+                                        Object {
+                                          "height": 32,
+                                          "width": 32,
+                                        }
+                                      }
+                                    >
+                                      <img
+                                        onError={[Function]}
+                                        onLoad={[Function]}
+                                        src="undefined/avatar/c68ca8af553301ae11c5607b8bb672b4?s=64&d=blank"
+                                      />
+                                    </span>
+                                  </Tooltip>
+                                </Avatar>
+                              </div>
+                            </Base>
+                          </Box>
+                          <Box
+                            flex="1"
+                            pl={1}
+                            pr={2}
+                          >
+                            <Base
+                              className="glamor-48"
+                              flex="1"
+                              pl={1}
+                              pr={2}
+                            >
+                              <div
+                                className="glamor-48"
+                                is={null}
+                              >
+                                <h5
+                                  style={
+                                    Object {
+                                      "margin": "0 0 3px",
+                                    }
+                                  }
+                                >
+                                  <UserName
+                                    to="1"
+                                  >
+                                    <Link
+                                      className="glamor-42 glamor-43"
+                                      to="1"
+                                    >
+                                      <a
+                                        className="glamor-42 glamor-43"
+                                        href="1"
+                                      />
+                                    </Link>
+                                  </UserName>
+                                </h5>
+                                <Email>
+                                  <div
+                                    className="glamor-46 glamor-47"
+                                  />
+                                </Email>
+                              </div>
+                            </Base>
+                          </Box>
+                          <Box
+                            px={2}
+                            w={180}
+                          >
+                            <Base
+                              className="glamor-21"
+                              px={2}
+                              w={180}
+                            >
+                              <div
+                                className="glamor-21"
+                                is={null}
+                              >
+                                <div>
+                                  <Tooltip
+                                    title="Two-factor auth not enabled"
+                                  >
+                                    <span
+                                      className="tip icon-exclamation"
+                                      style={
+                                        Object {
+                                          "color": "#B64236",
+                                        }
+                                      }
+                                      title="Two-factor auth not enabled"
+                                    />
+                                  </Tooltip>
+                                </div>
+                              </div>
+                            </Base>
+                          </Box>
+                          <Box
+                            px={2}
+                            w={140}
+                          >
+                            <Base
+                              className="glamor-23"
+                              px={2}
+                              w={140}
+                            >
+                              <div
+                                className="glamor-23"
+                                is={null}
+                              />
+                            </Base>
+                          </Box>
+                          <Box
+                            px={2}
+                            w={140}
+                          >
+                            <Base
+                              className="glamor-23"
+                              px={2}
+                              w={140}
+                            >
+                              <div
+                                className="glamor-23"
+                                is={null}
+                              >
+                                <Button
+                                  disabled={true}
+                                  size="small"
+                                  title="You cannot leave the organization as you are the only owner."
+                                >
+                                  <button
+                                    className="button tip button-default button-sm button-disabled"
+                                    disabled={true}
+                                    onClick={[Function]}
+                                    role="button"
+                                  >
+                                    <Flex
+                                      align="center"
+                                      className="button-label"
+                                    >
+                                      <Base
+                                        align="center"
+                                        className="button-label glamor-13"
+                                      >
+                                        <div
+                                          className="button-label glamor-13"
+                                          is={null}
+                                        >
+                                          <span
+                                            className="icon icon-exit"
+                                          />
+                                           
+                                          Leave
+                                        </div>
+                                      </Base>
+                                    </Flex>
+                                  </button>
+                                </Button>
+                              </div>
+                            </Base>
+                          </Box>
+                        </div>
+                      </Base>
+                    </StyledPanelItem>
+                  </PanelItem>
+                </OrganizationMemberRow>
+                <OrganizationMemberRow
+                  canAddMembers={true}
+                  canRemoveMembers={false}
+                  currentUser={
+                    Object {
+                      "email": "",
+                      "flags": Object {
+                        "sso:linked": false,
+                      },
+                      "id": "2",
+                      "name": "",
+                      "pending": false,
+                      "roleName": "",
+                      "user": Object {
+                        "email": "sentry2@test.com",
+                        "has2fa": true,
+                        "id": "2",
+                        "name": "Sentry 2 Name",
+                        "username": "Sentry 2 Username",
+                      },
+                    }
+                  }
+                  key="2"
+                  member={
+                    Object {
+                      "email": "",
+                      "flags": Object {
+                        "sso:linked": false,
+                      },
+                      "id": "2",
+                      "name": "",
+                      "pending": false,
+                      "roleName": "",
+                      "user": Object {
+                        "email": "sentry2@test.com",
+                        "has2fa": true,
+                        "id": "2",
+                        "name": "Sentry 2 Name",
+                        "username": "Sentry 2 Username",
+                      },
+                    }
+                  }
+                  memberCanLeave={false}
+                  onLeave={[Function]}
+                  onRemove={[Function]}
+                  onSendInvite={[Function]}
+                  orgId="org-id"
+                  orgName="Organization Name"
+                  params={
+                    Object {
+                      "orgId": "org-id",
+                    }
+                  }
+                  requireLink={false}
+                  routes={Array []}
+                >
+                  <PanelItem
+                    align="center"
+                    p={0}
+                    py={2}
+                  >
+                    <StyledPanelItem
+                      align="center"
+                      p={0}
+                      py={2}
+                    >
+                      <Base
+                        align="center"
+                        className="glamor-58 glamor-59"
+                        p={0}
+                        py={2}
+                      >
+                        <div
+                          className="glamor-58 glamor-59"
+                          is={null}
+                        >
+                          <Box
+                            pl={2}
+                          >
+                            <Base
+                              className="glamor-40"
+                              pl={2}
+                            >
+                              <div
+                                className="glamor-40"
+                                is={null}
+                              >
+                                <Avatar
+                                  className="avatar"
+                                  gravatar={true}
+                                  hasTooltip={false}
+                                  size={64}
+                                  style={
+                                    Object {
+                                      "height": 32,
+                                      "width": 32,
+                                    }
+                                  }
+                                  user={
+                                    Object {
+                                      "email": "sentry2@test.com",
+                                      "has2fa": true,
+                                      "id": "2",
+                                      "name": "Sentry 2 Name",
+                                      "username": "Sentry 2 Username",
+                                    }
+                                  }
+                                >
+                                  <Tooltip
+                                    disabled={true}
+                                    title="Sentry 2 Name (sentry2@test.com)"
+                                  >
+                                    <span
+                                      className="avatar"
+                                      style={
+                                        Object {
+                                          "height": 32,
+                                          "width": 32,
+                                        }
+                                      }
+                                    >
+                                      <img
+                                        onError={[Function]}
+                                        onLoad={[Function]}
+                                        src="undefined/avatar/4eca4e68b0a900e542fdf17e57d04dcd?s=64&d=blank"
+                                      />
+                                    </span>
+                                  </Tooltip>
+                                </Avatar>
+                              </div>
+                            </Base>
+                          </Box>
+                          <Box
+                            flex="1"
+                            pl={1}
+                            pr={2}
+                          >
+                            <Base
+                              className="glamor-48"
+                              flex="1"
+                              pl={1}
+                              pr={2}
+                            >
+                              <div
+                                className="glamor-48"
+                                is={null}
+                              >
+                                <h5
+                                  style={
+                                    Object {
+                                      "margin": "0 0 3px",
+                                    }
+                                  }
+                                >
+                                  <UserName
+                                    to="2"
+                                  >
+                                    <Link
+                                      className="glamor-42 glamor-43"
+                                      to="2"
+                                    >
+                                      <a
+                                        className="glamor-42 glamor-43"
+                                        href="2"
+                                      />
+                                    </Link>
+                                  </UserName>
+                                </h5>
+                                <Email>
+                                  <div
+                                    className="glamor-46 glamor-47"
+                                  />
+                                </Email>
+                              </div>
+                            </Base>
+                          </Box>
+                          <Box
+                            px={2}
+                            w={180}
+                          >
+                            <Base
+                              className="glamor-21"
+                              px={2}
+                              w={180}
+                            >
+                              <div
+                                className="glamor-21"
+                                is={null}
+                              >
+                                <div>
+                                  <span
+                                    className="icon-check"
+                                    style={
+                                      Object {
+                                        "color": "green",
+                                      }
+                                    }
+                                  />
+                                </div>
+                              </div>
+                            </Base>
+                          </Box>
+                          <Box
+                            px={2}
+                            w={140}
+                          >
+                            <Base
+                              className="glamor-23"
+                              px={2}
+                              w={140}
+                            >
+                              <div
+                                className="glamor-23"
+                                is={null}
+                              />
+                            </Base>
+                          </Box>
+                          <Box
+                            px={2}
+                            w={140}
+                          >
+                            <Base
+                              className="glamor-23"
+                              px={2}
+                              w={140}
+                            >
+                              <div
+                                className="glamor-23"
+                                is={null}
+                              >
+                                <Button
+                                  disabled={true}
+                                  size="small"
+                                  title="You cannot leave the organization as you are the only owner."
+                                >
+                                  <button
+                                    className="button tip button-default button-sm button-disabled"
+                                    disabled={true}
+                                    onClick={[Function]}
+                                    role="button"
+                                  >
+                                    <Flex
+                                      align="center"
+                                      className="button-label"
+                                    >
+                                      <Base
+                                        align="center"
+                                        className="button-label glamor-13"
+                                      >
+                                        <div
+                                          className="button-label glamor-13"
+                                          is={null}
+                                        >
+                                          <span
+                                            className="icon icon-exit"
+                                          />
+                                           
+                                          Leave
+                                        </div>
+                                      </Base>
+                                    </Flex>
+                                  </button>
+                                </Button>
+                              </div>
+                            </Base>
+                          </Box>
+                        </div>
+                      </Base>
+                    </StyledPanelItem>
+                  </PanelItem>
+                </OrganizationMemberRow>
+                <OrganizationMemberRow
+                  canAddMembers={true}
+                  canRemoveMembers={false}
+                  currentUser={
+                    Object {
+                      "email": "",
+                      "flags": Object {
+                        "sso:linked": false,
+                      },
+                      "id": "2",
+                      "name": "",
+                      "pending": false,
+                      "roleName": "",
+                      "user": Object {
+                        "email": "sentry2@test.com",
+                        "has2fa": true,
+                        "id": "2",
+                        "name": "Sentry 2 Name",
+                        "username": "Sentry 2 Username",
+                      },
+                    }
+                  }
+                  key="3"
+                  member={
+                    Object {
+                      "email": "",
+                      "flags": Object {
+                        "sso:linked": true,
+                      },
+                      "id": "3",
+                      "name": "",
+                      "pending": false,
+                      "roleName": "",
+                      "user": Object {
+                        "email": "sentry3@test.com",
+                        "has2fa": true,
+                        "id": "3",
+                        "name": "Sentry 3 Name",
+                        "username": "Sentry 3 Username",
+                      },
+                    }
+                  }
+                  memberCanLeave={false}
+                  onLeave={[Function]}
+                  onRemove={[Function]}
+                  onSendInvite={[Function]}
+                  orgId="org-id"
+                  orgName="Organization Name"
+                  params={
+                    Object {
+                      "orgId": "org-id",
+                    }
+                  }
+                  requireLink={false}
+                  routes={Array []}
+                >
+                  <PanelItem
+                    align="center"
+                    p={0}
+                    py={2}
+                  >
+                    <StyledPanelItem
+                      align="center"
+                      p={0}
+                      py={2}
+                    >
+                      <Base
+                        align="center"
+                        className="glamor-58 glamor-59"
+                        p={0}
+                        py={2}
+                      >
+                        <div
+                          className="glamor-58 glamor-59"
+                          is={null}
+                        >
+                          <Box
+                            pl={2}
+                          >
+                            <Base
+                              className="glamor-40"
+                              pl={2}
+                            >
+                              <div
+                                className="glamor-40"
+                                is={null}
+                              >
+                                <Avatar
+                                  className="avatar"
+                                  gravatar={true}
+                                  hasTooltip={false}
+                                  size={64}
+                                  style={
+                                    Object {
+                                      "height": 32,
+                                      "width": 32,
+                                    }
+                                  }
+                                  user={
+                                    Object {
+                                      "email": "sentry3@test.com",
+                                      "has2fa": true,
+                                      "id": "3",
+                                      "name": "Sentry 3 Name",
+                                      "username": "Sentry 3 Username",
+                                    }
+                                  }
+                                >
+                                  <Tooltip
+                                    disabled={true}
+                                    title="Sentry 3 Name (sentry3@test.com)"
+                                  >
+                                    <span
+                                      className="avatar"
+                                      style={
+                                        Object {
+                                          "height": 32,
+                                          "width": 32,
+                                        }
+                                      }
+                                    >
+                                      <img
+                                        onError={[Function]}
+                                        onLoad={[Function]}
+                                        src="undefined/avatar/40d78e2a4587a53a171944ffe71ee3d4?s=64&d=blank"
+                                      />
+                                    </span>
+                                  </Tooltip>
+                                </Avatar>
+                              </div>
+                            </Base>
+                          </Box>
+                          <Box
+                            flex="1"
+                            pl={1}
+                            pr={2}
+                          >
+                            <Base
+                              className="glamor-48"
+                              flex="1"
+                              pl={1}
+                              pr={2}
+                            >
+                              <div
+                                className="glamor-48"
+                                is={null}
+                              >
+                                <h5
+                                  style={
+                                    Object {
+                                      "margin": "0 0 3px",
+                                    }
+                                  }
+                                >
+                                  <UserName
+                                    to="3"
+                                  >
+                                    <Link
+                                      className="glamor-42 glamor-43"
+                                      to="3"
+                                    >
+                                      <a
+                                        className="glamor-42 glamor-43"
+                                        href="3"
+                                      />
+                                    </Link>
+                                  </UserName>
+                                </h5>
+                                <Email>
+                                  <div
+                                    className="glamor-46 glamor-47"
+                                  />
+                                </Email>
+                              </div>
+                            </Base>
+                          </Box>
+                          <Box
+                            px={2}
+                            w={180}
+                          >
+                            <Base
+                              className="glamor-21"
+                              px={2}
+                              w={180}
+                            >
+                              <div
+                                className="glamor-21"
+                                is={null}
+                              >
+                                <div>
+                                  <span
+                                    className="icon-check"
+                                    style={
+                                      Object {
+                                        "color": "green",
+                                      }
+                                    }
+                                  />
+                                </div>
+                              </div>
+                            </Base>
+                          </Box>
+                          <Box
+                            px={2}
+                            w={140}
+                          >
+                            <Base
+                              className="glamor-23"
+                              px={2}
+                              w={140}
+                            >
+                              <div
+                                className="glamor-23"
+                                is={null}
+                              />
+                            </Base>
+                          </Box>
+                          <Box
+                            px={2}
+                            w={140}
+                          >
+                            <Base
+                              className="glamor-23"
+                              px={2}
+                              w={140}
+                            >
+                              <div
+                                className="glamor-23"
+                                is={null}
+                              >
+                                <Button
+                                  disabled={true}
+                                  size="small"
+                                  title="You cannot leave the organization as you are the only owner."
+                                >
+                                  <button
+                                    className="button tip button-default button-sm button-disabled"
+                                    disabled={true}
+                                    onClick={[Function]}
+                                    role="button"
+                                  >
+                                    <Flex
+                                      align="center"
+                                      className="button-label"
+                                    >
+                                      <Base
+                                        align="center"
+                                        className="button-label glamor-13"
+                                      >
+                                        <div
+                                          className="button-label glamor-13"
+                                          is={null}
+                                        >
+                                          <span
+                                            className="icon icon-exit"
+                                          />
+                                           
+                                          Leave
+                                        </div>
+                                      </Base>
+                                    </Flex>
+                                  </button>
+                                </Button>
+                              </div>
+                            </Base>
+                          </Box>
+                        </div>
+                      </Base>
+                    </StyledPanelItem>
+                  </PanelItem>
+                </OrganizationMemberRow>
+              </div>
+            </PanelBody>
+          </div>
+        </Panel>
+        <Pagination
+          onCursor={[Function]}
+        />
+      </div>
+    </DocumentTitle>
+  </SideEffect(DocumentTitle)>
+</OrganizationMembersView>
+`;
+
+exports[`OrganizationMembersView Require Link does not have 2fa warning if user has 2fa 1`] = `
+.glamor-17 {
+  font-size: 14px;
+  box-shadow: inset 0 -1px 0;
+  margin: -20px 0 30px;
+}
+
+.glamor-13 {
+  box-sizing: border-box;
+  display: -webkit-box;
+  display: -webkit-flex;
+  display: -ms-flexbox;
+  display: flex;
+  -webkit-align-items: center;
+  -webkit-box-align: center;
+  -ms-flex-align: center;
+  align-items: center;
+}
+
+.glamor-0 {
+  font-size: 20px;
+  font-weight: bold;
+  margin: 20px 0;
+  -webkit-flex: 1;
+  -ms-flex: 1;
+  flex: 1;
+}
+
+.glamor-9 {
+  box-sizing: border-box;
+  margin-right: 6px;
+  margin-left: -2px;
+}
+
+.glamor-5 {
+  display: block;
+}
+
+.glamor-3 {
+  vertical-align: middle;
+  display: block;
+}
+
+.glamor-110 {
+  background: #fff;
+  border: 1px solid;
+  margin-bottom: NaNpx;
+  position: relative;
+}
+
+.glamor-36 {
+  border-bottom: 1px solid;
+  border-radius: 0 0;
+  text-transform: uppercase;
+  font-size: 13px;
+  line-height: 1;
+  padding: 15px 0;
+}
+
+.glamor-32 {
+  font-size: inherit;
+  text-transform: inherit;
+  margin: 0;
+}
+
+.glamor-30 {
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  margin-bottom: 20px;
+  font-size: inherit;
+  text-transform: inherit;
+  margin: 0;
+}
+
+.glamor-19 {
+  box-sizing: border-box;
+  padding-left: 16px;
+  padding-right: 16px;
+  -webkit-flex: 1;
+  -ms-flex: 1;
+  flex: 1;
+}
+
+.glamor-21 {
+  box-sizing: border-box;
+  width: 180px;
+  padding-left: 16px;
+  padding-right: 16px;
+}
+
+.glamor-23 {
+  box-sizing: border-box;
+  width: 140px;
+  padding-left: 16px;
+  padding-right: 16px;
+}
+
+.glamor-60 {
+  box-sizing: border-box;
+  padding: 0px;
+  padding-top: 16px;
+  padding-bottom: 16px;
+  display: -webkit-box;
+  display: -webkit-flex;
+  display: -ms-flexbox;
+  display: flex;
+  -webkit-align-items: center;
+  -webkit-box-align: center;
+  -ms-flex-align: center;
+  align-items: center;
+  border-bottom: 1px solid;
+}
+
+.glamor-60:last-child {
+  border: 0;
+}
+
+.glamor-40 {
+  box-sizing: border-box;
+  padding-left: 16px;
+}
+
+.glamor-48 {
+  box-sizing: border-box;
+  padding-left: 8px;
+  padding-right: 16px;
+  -webkit-flex: 1;
+  -ms-flex: 1;
+  flex: 1;
+}
+
+.glamor-42 {
+  font-size: 16px;
+}
+
+.glamor-46 {
+  font-size: 14px;
+}
+
+<OrganizationMembersView
+  canAddMembers={false}
+  canRemoveMembers={false}
+  currentUser={
+    Object {
+      "email": "",
+      "flags": Object {
+        "sso:linked": false,
+      },
+      "id": "2",
+      "name": "",
+      "pending": false,
+      "roleName": "",
+      "user": Object {
+        "email": "sentry2@test.com",
+        "has2fa": true,
+        "id": "2",
+        "name": "Sentry 2 Name",
+        "username": "Sentry 2 Username",
+      },
+    }
+  }
+  memberCanLeave={false}
+  onLeave={[Function]}
+  onRemove={[Function]}
+  onSendInvite={[Function]}
+  orgId="org-slug"
+  orgName="Organization Name"
+  params={
+    Object {
+      "orgId": "org-id",
+    }
+  }
+  requireLink={false}
+  routes={Array []}
+  status=""
+>
+  <SideEffect(DocumentTitle)
+    title="Organization Name Members"
+  >
+    <DocumentTitle
+      title="Organization Name Members"
+    >
+      <div>
+        <SettingsPageHeading
+          action={
+            <Button
+              disabled={false}
+              icon="icon-circle-add"
+              priority="primary"
+              size="small"
+              title={undefined}
+              to="new"
+            >
+              Invite Member
+            </Button>
+          }
+          title="Members"
+        >
+          <Wrapper>
+            <div
+              className="glamor-17 glamor-18"
+            >
+              <Flex
+                align="center"
+              >
+                <Base
+                  align="center"
+                  className="glamor-13"
+                >
+                  <div
+                    className="glamor-13"
+                    is={null}
+                  >
+                    <Title>
+                      <div
+                        className="glamor-0 glamor-1"
+                      >
+                        Members
+                      </div>
+                    </Title>
+                    <div>
+                      <Button
+                        disabled={false}
+                        icon="icon-circle-add"
+                        priority="primary"
+                        size="small"
+                        to="new"
+                      >
+                        <Link
+                          className="button button-primary button-sm"
+                          disabled={false}
+                          onClick={[Function]}
+                          onlyActiveOnIndex={false}
+                          role="button"
+                          style={Object {}}
+                          to="new"
+                        >
+                          <a
+                            className="button button-primary button-sm"
+                            disabled={false}
+                            onClick={[Function]}
+                            role="button"
+                            style={Object {}}
+                          >
+                            <Flex
+                              align="center"
+                              className="button-label"
+                            >
+                              <Base
+                                align="center"
+                                className="button-label glamor-13"
+                              >
+                                <div
+                                  className="button-label glamor-13"
+                                  is={null}
+                                >
+                                  <Icon
+                                    size="small"
+                                  >
+                                    <Base
+                                      className="glamor-9 glamor-10"
+                                      size="small"
+                                    >
+                                      <div
+                                        className="glamor-9 glamor-10"
+                                        is={null}
+                                        size="small"
+                                      >
+                                        <StyledInlineSvg
+                                          size="12px"
+                                          src="icon-circle-add"
+                                        >
+                                          <InlineSvg
+                                            className="glamor-5 glamor-2"
+                                            size="12px"
+                                            src="icon-circle-add"
+                                          >
+                                            <StyledSvg
+                                              className="glamor-5 glamor-2"
+                                              height="12px"
+                                              style={Object {}}
+                                              viewBox={Object {}}
+                                              width="12px"
+                                            >
+                                              <svg
+                                                className="glamor-2 glamor-3 glamor-4"
+                                                height="12px"
+                                                style={Object {}}
+                                                viewBox={Object {}}
+                                                width="12px"
+                                              >
+                                                <use
+                                                  href="#test"
+                                                  xlinkHref="#test"
+                                                />
+                                              </svg>
+                                            </StyledSvg>
+                                          </InlineSvg>
+                                        </StyledInlineSvg>
+                                      </div>
+                                    </Base>
+                                  </Icon>
+                                  Invite Member
+                                </div>
+                              </Base>
+                            </Flex>
+                          </a>
+                        </Link>
+                      </Button>
+                    </div>
+                  </div>
+                </Base>
+              </Flex>
+            </div>
+          </Wrapper>
+        </SettingsPageHeading>
+        <OrganizationAccessRequests
+          accessRequestBusy={Map {}}
+          onApprove={[Function]}
+          onDeny={[Function]}
+          requestList={Array []}
+        />
+        <Panel>
+          <div
+            className="glamor-110 glamor-111"
+          >
+            <PanelHeader
+              disablePadding={true}
+            >
+              <StyledPanelHeader
+                disablePadding={true}
+              >
+                <Component
+                  className="glamor-36 glamor-37"
+                  disablePadding={true}
+                >
+                  <div
+                    className="glamor-36 glamor-37"
+                  >
+                    <StyledPanelHeading>
+                      <Component
+                        className="glamor-32 glamor-29"
+                      >
+                        <PanelHeading
+                          className="glamor-32 glamor-29"
+                        >
+                          <div
+                            className="glamor-29 glamor-30 glamor-31"
+                          >
+                            <Flex
+                              align="center"
+                            >
+                              <Base
+                                align="center"
+                                className="glamor-13"
+                              >
+                                <div
+                                  className="glamor-13"
+                                  is={null}
+                                >
+                                  <Box
+                                    flex="1"
+                                    px={2}
+                                  >
+                                    <Base
+                                      className="glamor-19"
+                                      flex="1"
+                                      px={2}
+                                    >
+                                      <div
+                                        className="glamor-19"
+                                        is={null}
+                                      >
+                                        Member
+                                      </div>
+                                    </Base>
+                                  </Box>
+                                  <Box
+                                    px={2}
+                                    w={180}
+                                  >
+                                    <Base
+                                      className="glamor-21"
+                                      px={2}
+                                      w={180}
+                                    >
+                                      <div
+                                        className="glamor-21"
+                                        is={null}
+                                      >
+                                        Status
+                                      </div>
+                                    </Base>
+                                  </Box>
+                                  <Box
+                                    px={2}
+                                    w={140}
+                                  >
+                                    <Base
+                                      className="glamor-23"
+                                      px={2}
+                                      w={140}
+                                    >
+                                      <div
+                                        className="glamor-23"
+                                        is={null}
+                                      >
+                                        Role
+                                      </div>
+                                    </Base>
+                                  </Box>
+                                  <Box
+                                    px={2}
+                                    w={140}
+                                  >
+                                    <Base
+                                      className="glamor-23"
+                                      px={2}
+                                      w={140}
+                                    >
+                                      <div
+                                        className="glamor-23"
+                                        is={null}
+                                      >
+                                        Actions
+                                      </div>
+                                    </Base>
+                                  </Box>
+                                </div>
+                              </Base>
+                            </Flex>
+                          </div>
+                        </PanelHeading>
+                      </Component>
+                    </StyledPanelHeading>
+                  </div>
+                </Component>
+              </StyledPanelHeader>
+            </PanelHeader>
+            <PanelBody
+              direction="column"
+              disablePadding={true}
+              flex={false}
+            >
+              <div
+                className=""
+              >
+                <OrganizationMemberRow
+                  canAddMembers={true}
+                  canRemoveMembers={false}
+                  currentUser={
+                    Object {
+                      "email": "",
+                      "flags": Object {
+                        "sso:linked": false,
+                      },
+                      "id": "2",
+                      "name": "",
+                      "pending": false,
+                      "roleName": "",
+                      "user": Object {
+                        "email": "sentry2@test.com",
+                        "has2fa": true,
+                        "id": "2",
+                        "name": "Sentry 2 Name",
+                        "username": "Sentry 2 Username",
+                      },
+                    }
+                  }
+                  key="1"
+                  member={
+                    Object {
+                      "email": "",
+                      "flags": Object {
+                        "sso:linked": false,
+                      },
+                      "id": "1",
+                      "name": "",
+                      "pending": false,
+                      "roleName": "",
+                      "user": Object {
+                        "email": "sentry1@test.com",
+                        "has2fa": false,
+                        "id": "1",
+                        "name": "Sentry 1 Name",
+                        "username": "Sentry 1 Username",
+                      },
+                    }
+                  }
+                  memberCanLeave={false}
+                  onLeave={[Function]}
+                  onRemove={[Function]}
+                  onSendInvite={[Function]}
+                  orgId="org-id"
+                  orgName="Organization Name"
+                  params={
+                    Object {
+                      "orgId": "org-id",
+                    }
+                  }
+                  requireLink={true}
+                  routes={Array []}
+                >
+                  <PanelItem
+                    align="center"
+                    p={0}
+                    py={2}
+                  >
+                    <StyledPanelItem
+                      align="center"
+                      p={0}
+                      py={2}
+                    >
+                      <Base
+                        align="center"
+                        className="glamor-60 glamor-61"
+                        p={0}
+                        py={2}
+                      >
+                        <div
+                          className="glamor-60 glamor-61"
+                          is={null}
+                        >
+                          <Box
+                            pl={2}
+                          >
+                            <Base
+                              className="glamor-40"
+                              pl={2}
+                            >
+                              <div
+                                className="glamor-40"
+                                is={null}
+                              >
+                                <Avatar
+                                  className="avatar"
+                                  gravatar={true}
+                                  hasTooltip={false}
+                                  size={64}
+                                  style={
+                                    Object {
+                                      "height": 32,
+                                      "width": 32,
+                                    }
+                                  }
+                                  user={
+                                    Object {
+                                      "email": "sentry1@test.com",
+                                      "has2fa": false,
+                                      "id": "1",
+                                      "name": "Sentry 1 Name",
+                                      "username": "Sentry 1 Username",
+                                    }
+                                  }
+                                >
+                                  <Tooltip
+                                    disabled={true}
+                                    title="Sentry 1 Name (sentry1@test.com)"
+                                  >
+                                    <span
+                                      className="avatar"
+                                      style={
+                                        Object {
+                                          "height": 32,
+                                          "width": 32,
+                                        }
+                                      }
+                                    >
+                                      <img
+                                        onError={[Function]}
+                                        onLoad={[Function]}
+                                        src="undefined/avatar/c68ca8af553301ae11c5607b8bb672b4?s=64&d=blank"
+                                      />
+                                    </span>
+                                  </Tooltip>
+                                </Avatar>
+                              </div>
+                            </Base>
+                          </Box>
+                          <Box
+                            flex="1"
+                            pl={1}
+                            pr={2}
+                          >
+                            <Base
+                              className="glamor-48"
+                              flex="1"
+                              pl={1}
+                              pr={2}
+                            >
+                              <div
+                                className="glamor-48"
+                                is={null}
+                              >
+                                <h5
+                                  style={
+                                    Object {
+                                      "margin": "0 0 3px",
+                                    }
+                                  }
+                                >
+                                  <UserName
+                                    to="1"
+                                  >
+                                    <Link
+                                      className="glamor-42 glamor-43"
+                                      to="1"
+                                    >
+                                      <a
+                                        className="glamor-42 glamor-43"
+                                        href="1"
+                                      />
+                                    </Link>
+                                  </UserName>
+                                </h5>
+                                <Email>
+                                  <div
+                                    className="glamor-46 glamor-47"
+                                  />
+                                </Email>
+                              </div>
+                            </Base>
+                          </Box>
+                          <Box
+                            px={2}
+                            w={180}
+                          >
+                            <Base
+                              className="glamor-21"
+                              px={2}
+                              w={180}
+                            >
+                              <div
+                                className="glamor-21"
+                                is={null}
+                              >
+                                <div>
+                                  <div>
+                                    <strong>
+                                      Missing SSO Link
+                                    </strong>
+                                  </div>
+                                  <Button
+                                    disabled={false}
+                                    onClick={[Function]}
+                                    priority="primary"
+                                    size="xsmall"
+                                    style={
+                                      Object {
+                                        "marginTop": 2,
+                                        "padding": "0 4px",
+                                      }
+                                    }
+                                  >
+                                    <button
+                                      className="button button-primary button-xs"
+                                      disabled={false}
+                                      onClick={[Function]}
+                                      role="button"
+                                      style={
+                                        Object {
+                                          "marginTop": 2,
+                                          "padding": "0 4px",
+                                        }
+                                      }
+                                    >
+                                      <Flex
+                                        align="center"
+                                        className="button-label"
+                                      >
+                                        <Base
+                                          align="center"
+                                          className="button-label glamor-13"
+                                        >
+                                          <div
+                                            className="button-label glamor-13"
+                                            is={null}
+                                          >
+                                            Resend invite
+                                          </div>
+                                        </Base>
+                                      </Flex>
+                                    </button>
+                                  </Button>
+                                </div>
+                              </div>
+                            </Base>
+                          </Box>
+                          <Box
+                            px={2}
+                            w={140}
+                          >
+                            <Base
+                              className="glamor-23"
+                              px={2}
+                              w={140}
+                            >
+                              <div
+                                className="glamor-23"
+                                is={null}
+                              />
+                            </Base>
+                          </Box>
+                          <Box
+                            px={2}
+                            w={140}
+                          >
+                            <Base
+                              className="glamor-23"
+                              px={2}
+                              w={140}
+                            >
+                              <div
+                                className="glamor-23"
+                                is={null}
+                              >
+                                <Button
+                                  disabled={true}
+                                  size="small"
+                                  title="You cannot leave the organization as you are the only owner."
+                                >
+                                  <button
+                                    className="button tip button-default button-sm button-disabled"
+                                    disabled={true}
+                                    onClick={[Function]}
+                                    role="button"
+                                  >
+                                    <Flex
+                                      align="center"
+                                      className="button-label"
+                                    >
+                                      <Base
+                                        align="center"
+                                        className="button-label glamor-13"
+                                      >
+                                        <div
+                                          className="button-label glamor-13"
+                                          is={null}
+                                        >
+                                          <span
+                                            className="icon icon-exit"
+                                          />
+                                           
+                                          Leave
+                                        </div>
+                                      </Base>
+                                    </Flex>
+                                  </button>
+                                </Button>
+                              </div>
+                            </Base>
+                          </Box>
+                        </div>
+                      </Base>
+                    </StyledPanelItem>
+                  </PanelItem>
+                </OrganizationMemberRow>
+                <OrganizationMemberRow
+                  canAddMembers={true}
+                  canRemoveMembers={false}
+                  currentUser={
+                    Object {
+                      "email": "",
+                      "flags": Object {
+                        "sso:linked": false,
+                      },
+                      "id": "2",
+                      "name": "",
+                      "pending": false,
+                      "roleName": "",
+                      "user": Object {
+                        "email": "sentry2@test.com",
+                        "has2fa": true,
+                        "id": "2",
+                        "name": "Sentry 2 Name",
+                        "username": "Sentry 2 Username",
+                      },
+                    }
+                  }
+                  key="2"
+                  member={
+                    Object {
+                      "email": "",
+                      "flags": Object {
+                        "sso:linked": false,
+                      },
+                      "id": "2",
+                      "name": "",
+                      "pending": false,
+                      "roleName": "",
+                      "user": Object {
+                        "email": "sentry2@test.com",
+                        "has2fa": true,
+                        "id": "2",
+                        "name": "Sentry 2 Name",
+                        "username": "Sentry 2 Username",
+                      },
+                    }
+                  }
+                  memberCanLeave={false}
+                  onLeave={[Function]}
+                  onRemove={[Function]}
+                  onSendInvite={[Function]}
+                  orgId="org-id"
+                  orgName="Organization Name"
+                  params={
+                    Object {
+                      "orgId": "org-id",
+                    }
+                  }
+                  requireLink={true}
+                  routes={Array []}
+                >
+                  <PanelItem
+                    align="center"
+                    p={0}
+                    py={2}
+                  >
+                    <StyledPanelItem
+                      align="center"
+                      p={0}
+                      py={2}
+                    >
+                      <Base
+                        align="center"
+                        className="glamor-60 glamor-61"
+                        p={0}
+                        py={2}
+                      >
+                        <div
+                          className="glamor-60 glamor-61"
+                          is={null}
+                        >
+                          <Box
+                            pl={2}
+                          >
+                            <Base
+                              className="glamor-40"
+                              pl={2}
+                            >
+                              <div
+                                className="glamor-40"
+                                is={null}
+                              >
+                                <Avatar
+                                  className="avatar"
+                                  gravatar={true}
+                                  hasTooltip={false}
+                                  size={64}
+                                  style={
+                                    Object {
+                                      "height": 32,
+                                      "width": 32,
+                                    }
+                                  }
+                                  user={
+                                    Object {
+                                      "email": "sentry2@test.com",
+                                      "has2fa": true,
+                                      "id": "2",
+                                      "name": "Sentry 2 Name",
+                                      "username": "Sentry 2 Username",
+                                    }
+                                  }
+                                >
+                                  <Tooltip
+                                    disabled={true}
+                                    title="Sentry 2 Name (sentry2@test.com)"
+                                  >
+                                    <span
+                                      className="avatar"
+                                      style={
+                                        Object {
+                                          "height": 32,
+                                          "width": 32,
+                                        }
+                                      }
+                                    >
+                                      <img
+                                        onError={[Function]}
+                                        onLoad={[Function]}
+                                        src="undefined/avatar/4eca4e68b0a900e542fdf17e57d04dcd?s=64&d=blank"
+                                      />
+                                    </span>
+                                  </Tooltip>
+                                </Avatar>
+                              </div>
+                            </Base>
+                          </Box>
+                          <Box
+                            flex="1"
+                            pl={1}
+                            pr={2}
+                          >
+                            <Base
+                              className="glamor-48"
+                              flex="1"
+                              pl={1}
+                              pr={2}
+                            >
+                              <div
+                                className="glamor-48"
+                                is={null}
+                              >
+                                <h5
+                                  style={
+                                    Object {
+                                      "margin": "0 0 3px",
+                                    }
+                                  }
+                                >
+                                  <UserName
+                                    to="2"
+                                  >
+                                    <Link
+                                      className="glamor-42 glamor-43"
+                                      to="2"
+                                    >
+                                      <a
+                                        className="glamor-42 glamor-43"
+                                        href="2"
+                                      />
+                                    </Link>
+                                  </UserName>
+                                </h5>
+                                <Email>
+                                  <div
+                                    className="glamor-46 glamor-47"
+                                  />
+                                </Email>
+                              </div>
+                            </Base>
+                          </Box>
+                          <Box
+                            px={2}
+                            w={180}
+                          >
+                            <Base
+                              className="glamor-21"
+                              px={2}
+                              w={180}
+                            >
+                              <div
+                                className="glamor-21"
+                                is={null}
+                              >
+                                <div>
+                                  <div>
+                                    <strong>
+                                      Missing SSO Link
+                                    </strong>
+                                  </div>
+                                  <Button
+                                    disabled={false}
+                                    onClick={[Function]}
+                                    priority="primary"
+                                    size="xsmall"
+                                    style={
+                                      Object {
+                                        "marginTop": 2,
+                                        "padding": "0 4px",
+                                      }
+                                    }
+                                  >
+                                    <button
+                                      className="button button-primary button-xs"
+                                      disabled={false}
+                                      onClick={[Function]}
+                                      role="button"
+                                      style={
+                                        Object {
+                                          "marginTop": 2,
+                                          "padding": "0 4px",
+                                        }
+                                      }
+                                    >
+                                      <Flex
+                                        align="center"
+                                        className="button-label"
+                                      >
+                                        <Base
+                                          align="center"
+                                          className="button-label glamor-13"
+                                        >
+                                          <div
+                                            className="button-label glamor-13"
+                                            is={null}
+                                          >
+                                            Resend invite
+                                          </div>
+                                        </Base>
+                                      </Flex>
+                                    </button>
+                                  </Button>
+                                </div>
+                              </div>
+                            </Base>
+                          </Box>
+                          <Box
+                            px={2}
+                            w={140}
+                          >
+                            <Base
+                              className="glamor-23"
+                              px={2}
+                              w={140}
+                            >
+                              <div
+                                className="glamor-23"
+                                is={null}
+                              />
+                            </Base>
+                          </Box>
+                          <Box
+                            px={2}
+                            w={140}
+                          >
+                            <Base
+                              className="glamor-23"
+                              px={2}
+                              w={140}
+                            >
+                              <div
+                                className="glamor-23"
+                                is={null}
+                              >
+                                <Button
+                                  disabled={true}
+                                  size="small"
+                                  title="You cannot leave the organization as you are the only owner."
+                                >
+                                  <button
+                                    className="button tip button-default button-sm button-disabled"
+                                    disabled={true}
+                                    onClick={[Function]}
+                                    role="button"
+                                  >
+                                    <Flex
+                                      align="center"
+                                      className="button-label"
+                                    >
+                                      <Base
+                                        align="center"
+                                        className="button-label glamor-13"
+                                      >
+                                        <div
+                                          className="button-label glamor-13"
+                                          is={null}
+                                        >
+                                          <span
+                                            className="icon icon-exit"
+                                          />
+                                           
+                                          Leave
+                                        </div>
+                                      </Base>
+                                    </Flex>
+                                  </button>
+                                </Button>
+                              </div>
+                            </Base>
+                          </Box>
+                        </div>
+                      </Base>
+                    </StyledPanelItem>
+                  </PanelItem>
+                </OrganizationMemberRow>
+                <OrganizationMemberRow
+                  canAddMembers={true}
+                  canRemoveMembers={false}
+                  currentUser={
+                    Object {
+                      "email": "",
+                      "flags": Object {
+                        "sso:linked": false,
+                      },
+                      "id": "2",
+                      "name": "",
+                      "pending": false,
+                      "roleName": "",
+                      "user": Object {
+                        "email": "sentry2@test.com",
+                        "has2fa": true,
+                        "id": "2",
+                        "name": "Sentry 2 Name",
+                        "username": "Sentry 2 Username",
+                      },
+                    }
+                  }
+                  key="3"
+                  member={
+                    Object {
+                      "email": "",
+                      "flags": Object {
+                        "sso:linked": true,
+                      },
+                      "id": "3",
+                      "name": "",
+                      "pending": false,
+                      "roleName": "",
+                      "user": Object {
+                        "email": "sentry3@test.com",
+                        "has2fa": true,
+                        "id": "3",
+                        "name": "Sentry 3 Name",
+                        "username": "Sentry 3 Username",
+                      },
+                    }
+                  }
+                  memberCanLeave={false}
+                  onLeave={[Function]}
+                  onRemove={[Function]}
+                  onSendInvite={[Function]}
+                  orgId="org-id"
+                  orgName="Organization Name"
+                  params={
+                    Object {
+                      "orgId": "org-id",
+                    }
+                  }
+                  requireLink={true}
+                  routes={Array []}
+                >
+                  <PanelItem
+                    align="center"
+                    p={0}
+                    py={2}
+                  >
+                    <StyledPanelItem
+                      align="center"
+                      p={0}
+                      py={2}
+                    >
+                      <Base
+                        align="center"
+                        className="glamor-60 glamor-61"
+                        p={0}
+                        py={2}
+                      >
+                        <div
+                          className="glamor-60 glamor-61"
+                          is={null}
+                        >
+                          <Box
+                            pl={2}
+                          >
+                            <Base
+                              className="glamor-40"
+                              pl={2}
+                            >
+                              <div
+                                className="glamor-40"
+                                is={null}
+                              >
+                                <Avatar
+                                  className="avatar"
+                                  gravatar={true}
+                                  hasTooltip={false}
+                                  size={64}
+                                  style={
+                                    Object {
+                                      "height": 32,
+                                      "width": 32,
+                                    }
+                                  }
+                                  user={
+                                    Object {
+                                      "email": "sentry3@test.com",
+                                      "has2fa": true,
+                                      "id": "3",
+                                      "name": "Sentry 3 Name",
+                                      "username": "Sentry 3 Username",
+                                    }
+                                  }
+                                >
+                                  <Tooltip
+                                    disabled={true}
+                                    title="Sentry 3 Name (sentry3@test.com)"
+                                  >
+                                    <span
+                                      className="avatar"
+                                      style={
+                                        Object {
+                                          "height": 32,
+                                          "width": 32,
+                                        }
+                                      }
+                                    >
+                                      <img
+                                        onError={[Function]}
+                                        onLoad={[Function]}
+                                        src="undefined/avatar/40d78e2a4587a53a171944ffe71ee3d4?s=64&d=blank"
+                                      />
+                                    </span>
+                                  </Tooltip>
+                                </Avatar>
+                              </div>
+                            </Base>
+                          </Box>
+                          <Box
+                            flex="1"
+                            pl={1}
+                            pr={2}
+                          >
+                            <Base
+                              className="glamor-48"
+                              flex="1"
+                              pl={1}
+                              pr={2}
+                            >
+                              <div
+                                className="glamor-48"
+                                is={null}
+                              >
+                                <h5
+                                  style={
+                                    Object {
+                                      "margin": "0 0 3px",
+                                    }
+                                  }
+                                >
+                                  <UserName
+                                    to="3"
+                                  >
+                                    <Link
+                                      className="glamor-42 glamor-43"
+                                      to="3"
+                                    >
+                                      <a
+                                        className="glamor-42 glamor-43"
+                                        href="3"
+                                      />
+                                    </Link>
+                                  </UserName>
+                                </h5>
+                                <Email>
+                                  <div
+                                    className="glamor-46 glamor-47"
+                                  />
+                                </Email>
+                              </div>
+                            </Base>
+                          </Box>
+                          <Box
+                            px={2}
+                            w={180}
+                          >
+                            <Base
+                              className="glamor-21"
+                              px={2}
+                              w={180}
+                            >
+                              <div
+                                className="glamor-21"
+                                is={null}
+                              >
+                                <div>
+                                  <span
+                                    className="icon-check"
+                                    style={
+                                      Object {
+                                        "color": "green",
+                                      }
+                                    }
+                                  />
+                                </div>
+                              </div>
+                            </Base>
+                          </Box>
+                          <Box
+                            px={2}
+                            w={140}
+                          >
+                            <Base
+                              className="glamor-23"
+                              px={2}
+                              w={140}
+                            >
+                              <div
+                                className="glamor-23"
+                                is={null}
+                              />
+                            </Base>
+                          </Box>
+                          <Box
+                            px={2}
+                            w={140}
+                          >
+                            <Base
+                              className="glamor-23"
+                              px={2}
+                              w={140}
+                            >
+                              <div
+                                className="glamor-23"
+                                is={null}
+                              >
+                                <Button
+                                  disabled={true}
+                                  size="small"
+                                  title="You cannot leave the organization as you are the only owner."
+                                >
+                                  <button
+                                    className="button tip button-default button-sm button-disabled"
+                                    disabled={true}
+                                    onClick={[Function]}
+                                    role="button"
+                                  >
+                                    <Flex
+                                      align="center"
+                                      className="button-label"
+                                    >
+                                      <Base
+                                        align="center"
+                                        className="button-label glamor-13"
+                                      >
+                                        <div
+                                          className="button-label glamor-13"
+                                          is={null}
+                                        >
+                                          <span
+                                            className="icon icon-exit"
+                                          />
+                                           
+                                          Leave
+                                        </div>
+                                      </Base>
+                                    </Flex>
+                                  </button>
+                                </Button>
+                              </div>
+                            </Base>
+                          </Box>
+                        </div>
+                      </Base>
+                    </StyledPanelItem>
+                  </PanelItem>
+                </OrganizationMemberRow>
+              </div>
+            </PanelBody>
+          </div>
+        </Panel>
+        <Pagination
+          onCursor={[Function]}
+        />
+      </div>
+    </DocumentTitle>
+  </SideEffect(DocumentTitle)>
+</OrganizationMembersView>
+`;

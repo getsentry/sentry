@@ -3,36 +3,36 @@ import React from 'react';
 import classnames from 'classnames';
 
 import ListLink from '../../../components/listLink';
-import {flattenedPlatforms, categoryLists} from '../utils';
+import {flattenedPlatforms, categoryList} from '../utils';
 import PlatformCard from './platformCard';
 import {t} from '../../../locale';
 
-const categoryList = Object.keys(categoryLists).concat('All');
+const allCategories = categoryList.concat({id: 'all', name: t('All')});
 
-const PlatformPicker = React.createClass({
-  propTypes: {
+class PlatformPicker extends React.Component {
+  static propTypes = {
     setPlatform: PropTypes.func.isRequired,
     platform: PropTypes.string,
-    showOther: PropTypes.bool
-  },
+    showOther: PropTypes.bool,
+  };
 
-  getDefaultProps() {
-    return {showOther: true};
-  },
+  static defaultProps = {showOther: true};
 
-  getInitialState() {
-    return {
-      tab: categoryList[0],
-      filter: (this.props.platform || '').split('-')[0]
+  constructor(...args) {
+    super(...args);
+    this.state = {
+      tab: allCategories[0].id,
+      filter: (this.props.platform || '').split('-')[0],
     };
-  },
+  }
 
-  renderPlatformList() {
+  renderPlatformList = () => {
     let {tab} = this.state;
+    const currentCategory = categoryList.find(({id}) => id === tab);
 
-    const tabSubset = flattenedPlatforms.filter(
-      platform => tab === 'All' || categoryLists[tab].includes(platform.id)
-    );
+    const tabSubset = flattenedPlatforms.filter(platform => {
+      return tab === 'all' || currentCategory.platforms.includes(platform.id);
+    });
 
     let subsetMatch = ({id}) => id.includes(this.state.filter.toLowerCase());
 
@@ -63,7 +63,7 @@ const PlatformPicker = React.createClass({
             <PlatformCard
               platform={platform.id}
               className={classnames({
-                selected: this.props.platform === platform.id
+                selected: this.props.platform === platform.id,
               })}
               key={platform.id}
               onClick={() => {
@@ -74,7 +74,7 @@ const PlatformPicker = React.createClass({
         })}
       </ul>
     );
-  },
+  };
 
   render() {
     let {filter} = this.state;
@@ -88,23 +88,24 @@ const PlatformPicker = React.createClass({
                 type="text"
                 value={this.state.filter}
                 className="platform-filter"
-                label="Filter"
+                label={t('Filter')}
                 placeholder="Filter"
                 onChange={e => this.setState({filter: e.target.value})}
               />
             </div>
           </li>
-          {categoryList.map(categoryName => {
+          {allCategories.map(({id, name}) => {
             return (
               <ListLink
-                key={categoryName}
+                key={id}
                 onClick={e => {
-                  this.setState({tab: categoryName, filter: ''});
+                  this.setState({tab: id, filter: ''});
                   e.preventDefault();
                 }}
                 to={''}
-                isActive={() => categoryName === (filter ? 'All' : this.state.tab)}>
-                {categoryName}
+                isActive={() => id === (filter ? 'all' : this.state.tab)}
+              >
+                {name}
               </ListLink>
             );
           })}
@@ -113,6 +114,6 @@ const PlatformPicker = React.createClass({
       </div>
     );
   }
-});
+}
 
 export default PlatformPicker;

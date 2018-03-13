@@ -1,11 +1,11 @@
 import PropTypes from 'prop-types';
 import React from 'react';
 
-const Badge = React.createClass({
-  propTypes: {
+class Badge extends React.Component {
+  static propTypes = {
     text: PropTypes.string,
-    isNew: PropTypes.bool
-  },
+    isNew: PropTypes.bool,
+  };
 
   render() {
     let className = 'badge';
@@ -14,6 +14,6 @@ const Badge = React.createClass({
     }
     return <span className={className}>{this.props.text}</span>;
   }
-});
+}
 
 export default Badge;

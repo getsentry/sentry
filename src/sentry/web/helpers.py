@@ -16,7 +16,6 @@ from django.template import loader, RequestContext, Context
 
 from sentry.api.serializers.base import serialize
 from sentry.auth import access
-from sentry.constants import EVENTS_PER_PAGE
 from sentry.models import Team
 from sentry.utils.auth import get_login_url  # NOQA: backwards compatibility
 
@@ -28,7 +27,6 @@ def get_default_context(request, existing_context=None, team=None):
     from sentry.plugins import plugins
 
     context = {
-        'EVENTS_PER_PAGE': EVENTS_PER_PAGE,
         'CSRF_COOKIE_NAME': settings.CSRF_COOKIE_NAME,
         'URL_PREFIX': options.get('system.url-prefix'),
         'SINGLE_ORGANIZATION': settings.SENTRY_SINGLE_ORGANIZATION,

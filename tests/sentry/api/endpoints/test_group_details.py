@@ -1,5 +1,6 @@
 from __future__ import absolute_import, print_function
 
+import mock
 import six
 
 from datetime import timedelta
@@ -7,7 +8,7 @@ from django.utils import timezone
 
 from sentry import tagstore
 from sentry.models import (
-    Activity, Group, GroupHash, GroupAssignee, GroupBookmark, GroupResolution, GroupSeen,
+    Activity, Environment, Group, GroupHash, GroupAssignee, GroupBookmark, GroupResolution, GroupSeen,
     GroupSnooze, GroupSubscription, GroupStatus, GroupTombstone, Release
 )
 from sentry.testutils import APITestCase
@@ -38,6 +39,7 @@ class GroupDetailsTest(APITestCase):
         tagstore.create_group_tag_value(
             group_id=group.id,
             project_id=group.project_id,
+            environment_id=self.environment.id,
             key='sentry:release',
             value=release.version,
         )
@@ -76,6 +78,32 @@ class GroupDetailsTest(APITestCase):
         url = '/api/0/issues/{}/'.format(group3.id)
         response = self.client.get(url, format='json')
         assert response.status_code == 404
+
+    def test_environment(self):
+        group = self.create_group()
+        self.login_as(user=self.user)
+
+        environment = Environment.get_or_create(group.project, 'production')
+
+        url = '/api/0/issues/{}/'.format(group.id)
+
+        from sentry.api.endpoints.group_details import tsdb
+
+        with mock.patch(
+                'sentry.api.endpoints.group_details.tsdb.get_range',
+                side_effect=tsdb.get_range) as get_range:
+            response = self.client.get(url, {'environment': 'production'}, format='json')
+            assert response.status_code == 200
+            assert get_range.call_count == 2
+            for args, kwargs in get_range.call_args_list:
+                assert kwargs['environment_id'] == environment.id
+
+        with mock.patch(
+                'sentry.api.endpoints.group_details.tsdb.make_series',
+                side_effect=tsdb.make_series) as make_series:
+            response = self.client.get(url, {'environment': 'invalid'}, format='json')
+            assert response.status_code == 200
+            assert make_series.call_count == 2
 
 
 class GroupUpdateTest(APITestCase):
@@ -192,7 +220,7 @@ class GroupUpdateTest(APITestCase):
             is_active=True,
         ).exists()
 
-    def test_assign(self):
+    def test_assign_username(self):
         self.login_as(user=self.user)
 
         group = self.create_group()
@@ -237,6 +265,111 @@ class GroupUpdateTest(APITestCase):
 
         assert not GroupAssignee.objects.filter(group=group, user=self.user).exists()
 
+    def test_assign_id(self):
+        self.login_as(user=self.user)
+
+        group = self.create_group()
+
+        url = '/api/0/issues/{}/'.format(group.id)
+
+        response = self.client.put(
+            url, data={
+                'assignedTo': self.user.id,
+            }, format='json'
+        )
+
+        assert response.status_code == 200, response.content
+
+        assert GroupAssignee.objects.filter(group=group, user=self.user).exists()
+
+        assert Activity.objects.filter(
+            group=group,
+            user=self.user,
+            type=Activity.ASSIGNED,
+        ).count() == 1
+
+        response = self.client.put(url, format='json')
+
+        assert response.status_code == 200, response.content
+
+        assert GroupAssignee.objects.filter(group=group, user=self.user).exists()
+
+        assert GroupSubscription.objects.filter(
+            user=self.user,
+            group=group,
+            is_active=True,
+        ).exists()
+
+        response = self.client.put(
+            url, data={
+                'assignedTo': '',
+            }, format='json'
+        )
+
+        assert response.status_code == 200, response.content
+
+        assert not GroupAssignee.objects.filter(group=group, user=self.user).exists()
+
+    def test_assign_team(self):
+        self.login_as(user=self.user)
+
+        group = self.create_group()
+        team = self.create_team(organization=group.project.organization, members=[self.user])
+        group.project.add_team(team)
+
+        url = '/api/0/issues/{}/'.format(group.id)
+
+        response = self.client.put(
+            url, data={
+                'assignedTo': u'team:{}'.format(team.id),
+            }, format='json'
+        )
+
+        assert response.status_code == 200, response.content
+
+        assert GroupAssignee.objects.filter(group=group, team=team).exists()
+
+        assert Activity.objects.filter(
+            group=group,
+            type=Activity.ASSIGNED,
+        ).count() == 1
+
+        assert GroupSubscription.objects.filter(
+            user=self.user,
+            group=group,
+            is_active=True,
+        ).exists()
+
+        response = self.client.put(
+            url, data={
+                'assignedTo': '',
+            }, format='json'
+        )
+
+        assert response.status_code == 200, response.content
+
+        assert Activity.objects.filter(
+            group=group,
+        ).count() == 2
+
+        assert not GroupAssignee.objects.filter(group=group, team=team).exists()
+
+    def test_assign_unavailable_team(self):
+        self.login_as(user=self.user)
+
+        group = self.create_group()
+        team = self.create_team(organization=group.project.organization, members=[self.user])
+
+        url = '/api/0/issues/{}/'.format(group.id)
+
+        response = self.client.put(
+            url, data={
+                'assignedTo': u'team:{}'.format(team.id),
+            }, format='json'
+        )
+
+        assert response.status_code == 400, response.content
+
     def test_mark_seen(self):
         self.login_as(user=self.user)
 
@@ -266,7 +399,7 @@ class GroupUpdateTest(APITestCase):
 
     def test_mark_seen_as_non_member(self):
         user = self.create_user('foo@example.com', is_superuser=True)
-        self.login_as(user=user)
+        self.login_as(user=user, superuser=True)
 
         group = self.create_group()
 
@@ -325,7 +458,7 @@ class GroupUpdateTest(APITestCase):
         url = '/api/0/issues/{}/'.format(group.id)
 
         with self.tasks():
-            with self.feature('projects:custom-filters', True):
+            with self.feature('projects:discard-groups'):
                 resp = self.client.put(
                     url, data={
                         'discard': True,

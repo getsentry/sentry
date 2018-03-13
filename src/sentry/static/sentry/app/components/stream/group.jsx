@@ -1,6 +1,7 @@
 import jQuery from 'jquery';
 import PropTypes from 'prop-types';
 import React from 'react';
+import createReactClass from 'create-react-class';
 import Reflux from 'reflux';
 
 import AssigneeSelector from '../assigneeSelector';
@@ -15,13 +16,15 @@ import EventOrGroupExtraDetails from '../eventOrGroupExtraDetails';
 
 import {valueIsEqual} from '../../utils';
 
-const StreamGroup = React.createClass({
+const StreamGroup = createReactClass({
+  displayName: 'StreamGroup',
+
   propTypes: {
     id: PropTypes.string.isRequired,
     orgId: PropTypes.string.isRequired,
     projectId: PropTypes.string.isRequired,
     statsPeriod: PropTypes.string.isRequired,
-    canSelect: PropTypes.bool
+    canSelect: PropTypes.bool,
   },
 
   mixins: [Reflux.listenTo(GroupStore, 'onGroupChange'), ProjectState],
@@ -30,20 +33,20 @@ const StreamGroup = React.createClass({
     return {
       canSelect: true,
       id: '',
-      statsPeriod: '24h'
+      statsPeriod: '24h',
     };
   },
 
   getInitialState() {
     return {
-      data: GroupStore.get(this.props.id)
+      data: GroupStore.get(this.props.id),
     };
   },
 
   componentWillReceiveProps(nextProps) {
     if (nextProps.id != this.props.id) {
       this.setState({
-        data: GroupStore.get(this.props.id)
+        data: GroupStore.get(this.props.id),
       });
     }
   },
@@ -65,7 +68,7 @@ const StreamGroup = React.createClass({
     let id = this.props.id;
     let data = GroupStore.get(id);
     this.setState({
-      data
+      data,
     });
   },
 
@@ -103,10 +106,11 @@ const StreamGroup = React.createClass({
     return (
       <li className={className} onClick={this.toggleSelect}>
         <div className="col-md-7 col-xs-8 event-details">
-          {this.props.canSelect &&
+          {this.props.canSelect && (
             <div className="checkbox">
               <GroupCheckBox id={data.id} />
-            </div>}
+            </div>
+          )}
           <EventOrGroupHeader data={data} orgId={orgId} projectId={projectId} />
           <EventOrGroupExtraDetails
             group
@@ -130,6 +134,6 @@ const StreamGroup = React.createClass({
         </div>
       </li>
     );
-  }
+  },
 });
 export default StreamGroup;

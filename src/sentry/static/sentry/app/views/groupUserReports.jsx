@@ -1,16 +1,22 @@
-import $ from 'jquery';
 import React from 'react';
+import createReactClass from 'create-react-class';
 import {Link} from 'react-router';
+import SentryTypes from '../proptypes';
 import ApiMixin from '../mixins/apiMixin';
-import Avatar from '../components/avatar';
 import GroupState from '../mixins/groupState';
+import EventUserReport from '../components/events/userReport';
 import LoadingError from '../components/loadingError';
 import LoadingIndicator from '../components/loadingIndicator';
-import TimeSince from '../components/timeSince';
-import utils from '../utils';
 import {t} from '../locale';
+import withEnvironment from '../utils/withEnvironment';
 
-const GroupUserReports = React.createClass({
+const GroupUserReports = createReactClass({
+  displayName: 'GroupUserReports',
+
+  propTypes: {
+    environment: SentryTypes.Environment,
+  },
+
   mixins: [ApiMixin, GroupState],
 
   getInitialState() {
@@ -18,7 +24,7 @@ const GroupUserReports = React.createClass({
       loading: true,
       error: false,
       reportList: [],
-      pageLinks: ''
+      pageLinks: '',
     };
   },
 
@@ -27,35 +33,42 @@ const GroupUserReports = React.createClass({
   },
 
   componentDidUpdate(prevProps) {
-    if (prevProps.location.search !== this.props.location.search) {
+    if (
+      prevProps.location.search !== this.props.location.search ||
+      prevProps.environment !== this.props.environment
+    ) {
       this.fetchData();
     }
   },
 
   fetchData() {
-    let queryParams = this.props.params;
-    let querystring = $.param(queryParams);
+    const queryParams = {...this.props.params};
+
+    if (this.props.environment) {
+      queryParams.environment = this.props.environment.name;
+    }
 
     this.setState({
       loading: true,
-      error: false
+      error: false,
     });
 
-    this.api.request('/issues/' + this.getGroup().id + '/user-reports/?' + querystring, {
+    this.api.request(`/issues/${this.getGroup().id}/user-reports/`, {
+      query: queryParams,
       success: (data, _, jqXHR) => {
         this.setState({
           error: false,
           loading: false,
           reportList: data,
-          pageLinks: jqXHR.getResponseHeader('Link')
+          pageLinks: jqXHR.getResponseHeader('Link'),
         });
       },
       error: error => {
         this.setState({
           error: true,
-          loading: false
+          loading: false,
         });
-      }
+      },
     });
   },
 
@@ -66,36 +79,30 @@ const GroupUserReports = React.createClass({
   },
 
   render() {
+    let {reportList} = this.state;
+    let {projectId, orgId, groupId} = this.props.params;
+
     if (this.state.loading) {
       return <LoadingIndicator />;
     } else if (this.state.error) {
       return <LoadingError onRetry={this.fetchData} />;
     }
 
-    let children = this.state.reportList.map((item, itemIdx) => {
-      let body = utils.nl2br(utils.urlize(utils.escape(item.comments)));
-
-      return (
-        <li className="activity-note" key={itemIdx}>
-          <Avatar user={item} size={64} className="avatar" />
-          <div className="activity-bubble">
-            <TimeSince date={item.dateCreated} />
-            <div className="activity-author">{item.name} <small>{item.email}</small></div>
-            <p dangerouslySetInnerHTML={{__html: body}} />
-          </div>
-        </li>
-      );
-    });
-
-    if (children.length) {
+    if (reportList.length) {
       return (
         <div className="row">
           <div className="col-md-9">
-            <div className="activity-container">
-              <ul className="activity">
-                {children}
-              </ul>
-            </div>
+            {reportList.map((item, idx) => {
+              return (
+                <EventUserReport
+                  key={idx}
+                  report={item}
+                  projectId={projectId}
+                  orgId={orgId}
+                  issueId={groupId}
+                />
+              );
+            })}
           </div>
         </div>
       );
@@ -103,7 +110,7 @@ const GroupUserReports = React.createClass({
     return (
       <div className="box empty-stream">
         <span className="icon icon-exclamation" />
-        <p>{t('No user reports have been collected for this event.')}</p>
+        <p>{t('No user reports have been collected.')}</p>
         <p>
           <Link to={this.getUserReportsUrl()}>
             {t('Learn how to integrate User Feedback')}
@@ -111,7 +118,7 @@ const GroupUserReports = React.createClass({
         </p>
       </div>
     );
-  }
+  },
 });
 
-export default GroupUserReports;
+export default withEnvironment(GroupUserReports);

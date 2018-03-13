@@ -96,6 +96,16 @@ class EnableProjectPluginTest(APITestCase):
         test_configuration.assert_called_once_with(project)
         assert response.status_code == 200, (response.status_code, response.content)
 
+        # Reset the plugin
+        response = self.client.post(url, {'reset': True})
+        test_configuration.assert_called_once_with(project)
+        assert response.status_code == 200, (response.status_code, response.content)
+
+        configs = response.data.get('config')
+
+        for config in configs:
+            assert config.get('value') is None
+
 
 class DisableProjectPluginTest(APITestCase):
     def test_simple(self):

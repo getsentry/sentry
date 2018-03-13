@@ -122,7 +122,8 @@ export const intcomma = function(x) {
 
 export function getQueryParams() {
   let hashes, hash;
-  let vars = {}, href = window.location.href;
+  let vars = {},
+    href = window.location.href;
 
   if (href.indexOf('?') == -1) return vars;
 
@@ -149,7 +150,8 @@ export function getQueryParams() {
 
 export function sortArray(arr, score_fn) {
   arr.sort((a, b) => {
-    let a_score = score_fn(a), b_score = score_fn(b);
+    let a_score = score_fn(a),
+      b_score = score_fn(b);
 
     for (let i = 0; i < a_score.length; i++) {
       if (a_score[i] > b_score[i]) {
@@ -196,7 +198,10 @@ export function isUrl(str) {
 }
 
 export function escape(str) {
-  return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  return str
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;');
 }
 
 export function percent(value, totalValue, precise) {
@@ -258,8 +263,27 @@ export function parseRepo(repo) {
  * eliminating empty lines
  */
 export function extractMultilineFields(value) {
-  return value.split('\n').map(f => trim(f)).filter(f => f !== '');
+  return value
+    .split('\n')
+    .map(f => trim(f))
+    .filter(f => f !== '');
 }
+
+function projectDisplayCompare(a, b) {
+  if (a.isBookmarked !== b.isBookmarked) {
+    return a.isBookmarked ? -1 : 1;
+  }
+  return a.id < b.id;
+}
+
+// Sort a list of projects by bookmarkedness, then by id
+export function sortProjects(projects) {
+  return projects.sort(projectDisplayCompare);
+}
+
+//build actorIds
+export const buildUserId = id => `user:${id}`;
+export const buildTeamId = id => `team:${id}`;
 
 // re-export under utils
 export {parseLinkHeader, deviceNameMapper, Collection, PendingChangeQueue, CursorPoller};
@@ -285,6 +309,8 @@ export default {
   modelsEqual,
   valueIsEqual,
   parseLinkHeader,
+  buildUserId,
+  buildTeamId,
 
   // external imports
   deviceNameMapper,
@@ -292,5 +318,5 @@ export default {
   Collection,
   PendingChangeQueue,
   StreamManager,
-  CursorPoller
+  CursorPoller,
 };

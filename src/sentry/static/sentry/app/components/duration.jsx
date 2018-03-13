@@ -1,12 +1,12 @@
 import PropTypes from 'prop-types';
 import React from 'react';
 
-const Duration = React.createClass({
-  propTypes: {
-    seconds: PropTypes.number.isRequired
-  },
+class Duration extends React.Component {
+  static propTypes = {
+    seconds: PropTypes.number.isRequired,
+  };
 
-  getDuration() {
+  getDuration = () => {
     let value = Math.abs(this.props.seconds * 1000);
     let result = '';
 
@@ -32,11 +32,11 @@ const Duration = React.createClass({
     }
 
     return result;
-  },
+  };
 
   render() {
     return <span className={this.props.className}>{this.getDuration()}</span>;
   }
-});
+}
 
 export default Duration;

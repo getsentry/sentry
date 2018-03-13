@@ -21,7 +21,7 @@ from .utils import ExpressionNode, resolve_expression_node
 __all__ = ('update', 'create_or_update')
 
 
-def update(self, using=None, **kwargs):
+def update(self, using=None, unconstrained_unsafe=False, **kwargs):
     """
     Updates specified attributes on the current instance.
     """
@@ -33,7 +33,10 @@ def update(self, using=None, **kwargs):
         if getattr(field, 'auto_now', False) and field.name not in kwargs:
             kwargs[field.name] = field.pre_save(self, False)
 
-    affected = self.__class__._base_manager.using(using).filter(pk=self.pk).update(**kwargs)
+    objects = self.__class__._base_manager.using(using).filter(pk=self.pk)
+    if unconstrained_unsafe:
+        objects = objects.unconstrained_unsafe()
+    affected = objects.update(**kwargs)
     for k, v in six.iteritems(kwargs):
         if isinstance(v, ExpressionNode):
             v = resolve_expression_node(self, v)
@@ -54,7 +57,7 @@ def update(self, using=None, **kwargs):
 update.alters_data = True
 
 
-def create_or_update(model, using=None, **kwargs):
+def create_or_update(model, using=None, unconstrained_unsafe=False, **kwargs):
     """
     Similar to get_or_create, either updates a row or creates it.
     only values args are used for update
@@ -74,6 +77,8 @@ def create_or_update(model, using=None, **kwargs):
         using = router.db_for_write(model)
 
     objects = model.objects.using(using)
+    if unconstrained_unsafe:
+        objects = objects.unconstrained_unsafe()
 
     affected = objects.filter(**kwargs).update(**values)
     if affected:

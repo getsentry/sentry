@@ -1,115 +1,18 @@
-import PropTypes from 'prop-types';
 import React from 'react';
 
+import {t} from '../locale';
+import AlertLink from '../components/alertLink';
 import AsyncView from './asyncView';
 import Button from '../components/buttons/button';
+import Form from './settings/components/forms/form';
+import JsonForm from './settings/components/forms/jsonForm';
 import ListLink from '../components/listLink';
+import PanelAlert from './settings/components/panelAlert';
 import PluginList from '../components/pluginList';
-import {ApiForm, RangeField, TextField} from '../components/forms';
-import {t, tct} from '../locale';
-import SpreadLayout from '../components/spreadLayout';
-
-class DigestSettings extends React.Component {
-  static propTypes = {
-    orgId: PropTypes.string.isRequired,
-    projectId: PropTypes.string.isRequired,
-    initialData: PropTypes.object.isRequired,
-    onSave: PropTypes.func.isRequired
-  };
-
-  render() {
-    let {orgId, projectId, initialData, onSave} = this.props;
-    return (
-      <div className="box">
-        <div className="box-header">
-          <h3>{t('Digests')}</h3>
-        </div>
-        <div className="box-content with-padding">
-          <p>
-            {t(
-              'Sentry will automatically digest alerts sent ' +
-                'by some services to avoid flooding your inbox ' +
-                'with individual issue notifications. To control ' +
-                'how frequently notifications are delivered, use ' +
-                'the sliders below.'
-            )}
-          </p>
-          <ApiForm
-            onSubmitSuccess={onSave}
-            apiMethod="PUT"
-            apiEndpoint={`/projects/${orgId}/${projectId}/`}
-            initialData={initialData}
-            requireChanges={true}>
-            <div className="row">
-              <div className="col-md-6">
-                <RangeField
-                  min={60}
-                  max={3600}
-                  step={60}
-                  defaultValue={300}
-                  label={t('Minimum delivery interval')}
-                  help={t('Notifications will be delivered at most this often.')}
-                  name="digestsMinDelay"
-                  formatLabel={RangeField.formatMinutes}
-                />
-              </div>
-              <div className="col-md-6">
-                <RangeField
-                  min={60}
-                  max={3600}
-                  step={60}
-                  defaultValue={3600}
-                  label={t('Maximum delivery interval')}
-                  help={t('Notifications will be delivered at least this often.')}
-                  name="digestsMaxDelay"
-                  formatLabel={RangeField.formatMinutes}
-                />
-              </div>
-            </div>
-          </ApiForm>
-        </div>
-      </div>
-    );
-  }
-}
-
-class GeneralSettings extends React.Component {
-  static propTypes = {
-    orgId: PropTypes.string.isRequired,
-    projectId: PropTypes.string.isRequired,
-    initialData: PropTypes.object,
-    onSave: PropTypes.func.isRequired
-  };
-
-  render() {
-    let {orgId, projectId, initialData, onSave} = this.props;
-    return (
-      <div className="box">
-        <div className="box-header">
-          <h3>{t('Email Settings')}</h3>
-        </div>
-
-        <div className="box-content with-padding">
-          <ApiForm
-            onSubmitSuccess={onSave}
-            apiMethod="PUT"
-            apiEndpoint={`/projects/${orgId}/${projectId}/`}
-            initialData={initialData}
-            requireChanges={true}>
-            <TextField
-              name="subjectTemplate"
-              label={t('Subject template')}
-              required={false}
-              help={t(
-                'The email subject to use (excluding the prefix) for individual alerts. Usable variables include: $project, $title, and ${tag:key}, such as ${tag:environment} or ${tag:release}.'
-              )}
-            />
-          </ApiForm>
-        </div>
-      </div>
-    );
-  }
-}
+import SentryTypes from '../proptypes';
+import SettingsPageHeader from './settings/components/settingsPageHeader';
+import {fields} from '../data/forms/projectAlerts';
+import recreateRoute from '../utils/recreateRoute';
 
 export default class ProjectAlertSettings extends AsyncView {
   static propTypes = {
@@ -117,59 +20,41 @@ export default class ProjectAlertSettings extends AsyncView {
     // these are not declared as required of issues with cloned elements
     // not initially defining them (though they are bound before) ever
     // rendered
-    organization: PropTypes.object,
-    project: PropTypes.object
+    organization: SentryTypes.Organization,
+    project: SentryTypes.Project,
   };
 
   getEndpoints() {
     let {orgId, projectId} = this.props.params;
     return [
       ['project', `/projects/${orgId}/${projectId}/`],
-      ['pluginList', `/projects/${orgId}/${projectId}/plugins/`]
+      ['pluginList', `/projects/${orgId}/${projectId}/plugins/`],
     ];
   }
 
-  onDigestsChange = data => {
-    // TODO(dcramer): propagate this in a more correct way
-    this.setState({
-      project: {
-        ...this.state.project,
-        ...data
-      }
-    });
-  };
+  handleSaveSuccess = () => {};
 
-  onGeneralChange = data => {
-    // TODO(dcramer): propagate this in a more correct way
-    this.setState({
-      project: {
-        ...this.state.project,
-        ...data
-      }
-    });
-  };
-
-  onEnablePlugin = plugin => {
+  handleEnablePlugin = plugin => {
     this.setState({
       pluginList: this.state.pluginList.map(p => {
         if (p.id !== plugin.id) return p;
         return {
           ...plugin,
-          enabled: true
+          enabled: true,
         };
-      })
+      }),
     });
   };
 
-  onDisablePlugin = plugin => {
+  handleDisablePlugin = plugin => {
     this.setState({
       pluginList: this.state.pluginList.map(p => {
         if (p.id !== plugin.id) return p;
         return {
           ...plugin,
-          enabled: false
+          enabled: false,
         };
-      })
+      }),
     });
   };
 
@@ -180,65 +65,75 @@ export default class ProjectAlertSettings extends AsyncView {
   renderBody() {
     let {orgId, projectId} = this.props.params;
     let {organization} = this.props;
+
     return (
       <div>
-        <SpreadLayout style={{marginBottom: 20}}>
-          <h2 style={{margin: 0}}>{t('Alerts')}</h2>
-          <Button
-            href={`/${orgId}/${projectId}/settings/alerts/rules/new/`}
-            priority="primary"
-            size="small"
-            className="pull-right">
-            <span className="icon-plus" />
-            {t('New Alert Rule')}
-          </Button>
-        </SpreadLayout>
-
-        <ul className="nav nav-tabs" style={{borderBottom: '1px solid #ddd'}}>
-          <ListLink to={`/${orgId}/${projectId}/settings/alerts/`} index={true}>
-            {t('Settings')}
-          </ListLink>
-          <ListLink to={`/${orgId}/${projectId}/settings/alerts/rules/`}>
-            {t('Rules')}
-          </ListLink>
-        </ul>
-
-        <div className="alert alert-block alert-info">
-          {tct(
-            "These settings cover rule-based alerts. If you're " +
-              'looking to change which notifications you receive ' +
-              'you may do so from your [link:account settings].',
-            {
-              link: <a href="/account/settings/notifications/" />
-            }
+        <SettingsPageHeader
+          title={t('Alerts')}
+          action={
+            <Button
+              to={recreateRoute('rules/new/', this.props)}
+              priority="primary"
+              size="small"
+              icon="icon-circle-add"
+            >
+              {t('New Alert Rule')}
+            </Button>
+          }
+          tabs={
+            <ul className="nav nav-tabs" style={{borderBottom: '1px solid #ddd'}}>
+              <ListLink to={recreateRoute('', this.props)} index={true}>
+                {t('Settings')}
+              </ListLink>
+              <ListLink to={recreateRoute('rules/', this.props)}>{t('Rules')}</ListLink>
+            </ul>
+          }
+        />
+        {/* TODO(ckj): change 'href' to 'to' when new settings is launched #NEW-SETTINGS */}
+        <AlertLink href={'/account/settings/notifications/'} icon="icon-mail">
+          {t(
+            'Looking to fine-tune your personal notification preferences? Visit your Account Settings'
           )}
-        </div>
+        </AlertLink>
 
-        <GeneralSettings
-          orgId={orgId}
-          projectId={projectId}
+        <Form
+          saveOnBlur
+          allowUndo
           initialData={{
-            subjectTemplate: this.state.project.subjectTemplate
-          }}
-          onSave={this.onGeneralChange}
-        />
-
-        <DigestSettings
-          orgId={orgId}
-          projectId={projectId}
-          initialData={{
+            subjectTemplate: this.state.project.subjectTemplate,
             digestsMinDelay: this.state.project.digestsMinDelay,
-            digestsMaxDelay: this.state.project.digestsMaxDelay
+            digestsMaxDelay: this.state.project.digestsMaxDelay,
           }}
-          onSave={this.onDigestsChange}
-        />
+          apiMethod="PUT"
+          apiEndpoint={`/projects/${orgId}/${projectId}/`}
+        >
+          <JsonForm title={t('Email Settings')} fields={[fields.subjectTemplate]} />
+
+          <JsonForm
+            title={t('Digests')}
+            fields={[fields.digestsMinDelay, fields.digestsMaxDelay]}
+            renderHeader={() => (
+              <PanelAlert m={0} mb={0} type="info" icon="icon-circle-exclamation">
+                {t(
+                  'Sentry will automatically digest alerts sent ' +
+                    'by some services to avoid flooding your inbox ' +
+                    'with individual issue notifications. To control ' +
+                    'how frequently notifications are delivered, use ' +
+                    'the sliders below.'
+                )}
+              </PanelAlert>
+            )}
+          />
+        </Form>
 
         <PluginList
           organization={organization}
           project={this.state.project}
-          pluginList={this.state.pluginList.filter(p => p.type === 'notification')}
-          onEnablePlugin={this.onEnablePlugin}
-          onDisablePlugin={this.onDisablePlugin}
+          pluginList={this.state.pluginList.filter(
+            p => p.type === 'notification' && p.hasConfiguration
+          )}
+          onEnablePlugin={this.handleEnablePlugin}
+          onDisablePlugin={this.handleDisablePlugin}
         />
       </div>
     );

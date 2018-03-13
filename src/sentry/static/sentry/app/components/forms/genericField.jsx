@@ -20,18 +20,19 @@ export default class GenericField extends React.Component {
     formData: PropTypes.object,
     formErrors: PropTypes.object,
     formState: PropTypes.string.isRequired,
-    onChange: PropTypes.func
+    onChange: PropTypes.func,
   };
 
   static defaultProps = {
     formData: {},
-    formErrors: {}
+    formErrors: {},
   };
 
   render() {
     let config = this.props.config;
     let required = defined(config.required) ? config.required : true;
-    let props = Object.assign(Object.assign({}, config), {
+    let props = {
+      ...config,
       value: this.props.formData[config.name],
       onChange: this.props.onChange,
       label: config.label + (required ? '*' : ''),
@@ -42,10 +43,11 @@ export default class GenericField extends React.Component {
       disabled: config.readonly,
       key: config.name,
       formState: this.props.formState,
-      help: defined(config.help) && config.help !== ''
-        ? <span dangerouslySetInnerHTML={{__html: config.help}} />
-        : null
-    });
+      help:
+        defined(config.help) && config.help !== '' ? (
+          <span dangerouslySetInnerHTML={{__html: config.help}} />
+        ) : null,
+    };
 
     switch (config.type) {
       case 'secret':

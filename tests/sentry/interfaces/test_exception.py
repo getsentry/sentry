@@ -341,10 +341,10 @@ class SingleExceptionTest(TestCase):
         assert not result.stacktrace
 
     def test_coerces_object_value_to_string(self):
-        result = SingleException.to_python(dict(
-            type='ValueError',
-            value={'unauthorized': True},
-        ))
+        result = SingleException.to_python({
+            'type': 'ValueError',
+            'value': {'unauthorized': True},
+        })
         assert result.value == '{"unauthorized":true}'
 
     def test_handles_type_in_value(self):
@@ -359,6 +359,20 @@ class SingleExceptionTest(TestCase):
         ))
         assert result.type == 'ValueError'
         assert result.value == 'unauthorized'
+
+    def test_value_serialization_idempotent(self):
+        result = SingleException.to_python({
+            'type': None,
+            'value': {'unauthorized': True},
+        }).to_json()
+
+        assert result['type'] is None
+        assert result['value'] == '{"unauthorized":true}'
+
+        # Don't re-split a json-serialized value on the colon
+        result = SingleException.to_python(result).to_json()
+        assert result['type'] is None
+        assert result['value'] == '{"unauthorized":true}'
 
 
 class SlimExceptionDataTest(TestCase):

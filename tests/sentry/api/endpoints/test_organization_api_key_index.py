@@ -42,7 +42,7 @@ class OrganizationApiKeyIndex(APITestCase):
 
         assert resp.status_code == 403
 
-    def test_admin_can_access(self):
+    def test_superuser_can_access(self):
         self.login_as(user=self.user)
         organization = self.create_organization(name='foo', owner=self.user)
 
@@ -58,7 +58,7 @@ class OrganizationApiKeyIndex(APITestCase):
             args=[organization.slug]
         )
 
-        self.login_as(admin_user)
+        self.login_as(admin_user, superuser=True)
 
         resp = self.client.get(path)
 

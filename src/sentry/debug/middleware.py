@@ -9,6 +9,9 @@ from django.utils.encoding import force_text
 from django.utils.html import escape
 from six.moves import _thread as thread
 
+from sentry.auth.superuser import is_active_superuser
+
+
 WRAPPER = """
 <!DOCTYPE html>
 <html>
@@ -42,9 +45,14 @@ class DebugMiddleware(object):
     _body_regexp = re.compile(re.escape('</body>'), flags=re.IGNORECASE)
 
     def show_toolbar_for_request(self, request):
+        # This avoids touching user session, which means we avoid
+        # setting `Vary: Cookie` as a response header which will
+        # break HTTP caching entirely.
+        if request.path_info.startswith(settings.ANONYMOUS_STATIC_PREFIXES):
+            return
         if not settings.SENTRY_DEBUGGER:
             return False
-        if not request.is_superuser():
+        if not is_active_superuser(request):
             return False
         if 'text/html' not in request.META.get('HTTP_ACCEPT', '*/*'):
             return False

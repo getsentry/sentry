@@ -405,67 +405,69 @@ exports[`Issues Similar View renders with mocked data 1`] = `
                                 onConfirm={[Function]}
                                 priority="primary"
                               >
-                                <span>
-                                  <a
-                                    className="btn btn-sm btn-default disabled"
-                                    disabled={true}
-                                    onClick={[Function]}
-                                    title="Merging 0 issues"
-                                  >
-                                    Merge
-                                     (
-                                    0
-                                    )
-                                  </a>
+                                <a
+                                  className="btn btn-sm btn-default disabled"
+                                  disabled={true}
+                                  onClick={[Function]}
+                                  title="Merging 0 issues"
+                                >
+                                  Merge
+                                   (
+                                  0
+                                  )
+                                </a>
+                                <Modal
+                                  animation={false}
+                                  autoFocus={true}
+                                  backdrop={true}
+                                  bsClass="modal"
+                                  dialogComponentClass={[Function]}
+                                  enforceFocus={true}
+                                  keyboard={true}
+                                  manager={
+                                    ModalManager {
+                                      "add": [Function],
+                                      "containers": Array [],
+                                      "data": Array [],
+                                      "handleContainerOverflow": true,
+                                      "hideSiblingNodes": true,
+                                      "isTopModal": [Function],
+                                      "modals": Array [],
+                                      "remove": [Function],
+                                    }
+                                  }
+                                  onHide={[Function]}
+                                  renderBackdrop={[Function]}
+                                  restoreFocus={true}
+                                  show={false}
+                                >
                                   <Modal
-                                    animation={false}
                                     autoFocus={true}
                                     backdrop={true}
-                                    bsClass="modal"
-                                    dialogComponentClass={[Function]}
+                                    backdropClassName="modal-backdrop"
+                                    containerClassName="modal-open"
                                     enforceFocus={true}
                                     keyboard={true}
                                     manager={
                                       ModalManager {
+                                        "add": [Function],
                                         "containers": Array [],
                                         "data": Array [],
                                         "handleContainerOverflow": true,
                                         "hideSiblingNodes": true,
+                                        "isTopModal": [Function],
                                         "modals": Array [],
+                                        "remove": [Function],
                                       }
                                     }
+                                    onEntering={[Function]}
+                                    onExited={[Function]}
                                     onHide={[Function]}
                                     renderBackdrop={[Function]}
                                     restoreFocus={true}
                                     show={false}
-                                  >
-                                    <Modal
-                                      autoFocus={true}
-                                      backdrop={true}
-                                      backdropClassName="modal-backdrop"
-                                      backdropTransitionTimeout={150}
-                                      containerClassName="modal-open"
-                                      dialogTransitionTimeout={300}
-                                      enforceFocus={true}
-                                      keyboard={true}
-                                      manager={
-                                        ModalManager {
-                                          "containers": Array [],
-                                          "data": Array [],
-                                          "handleContainerOverflow": true,
-                                          "hideSiblingNodes": true,
-                                          "modals": Array [],
-                                        }
-                                      }
-                                      onEntering={[Function]}
-                                      onExited={[Function]}
-                                      onHide={[Function]}
-                                      renderBackdrop={[Function]}
-                                      restoreFocus={true}
-                                      show={false}
-                                    />
-                                  </Modal>
-                                </span>
+                                  />
+                                </Modal>
                               </Confirm>
                             </LinkWithConfirmation>
                           </div>
@@ -555,6 +557,7 @@ exports[`Issues Similar View renders with mocked data 1`] = `
                 "userCount": 3,
               }
             }
+            key="271"
             orgId="orgId"
             projectId="projectId"
             score={
@@ -812,7 +815,9 @@ exports[`Issues Similar View renders with mocked data 1`] = `
                                       onClick={[Function]}
                                     >
                                       <AutoSelectText>
-                                        <div>
+                                        <div
+                                          onClick={[Function]}
+                                        >
                                           INTERNAL-4G
                                         </div>
                                       </AutoSelectText>
@@ -892,6 +897,7 @@ exports[`Issues Similar View renders with mocked data 1`] = `
                   </count>
                   <div
                     className="similar-score-column"
+                    key="exception"
                   >
                     <Hovercard
                       body={
@@ -931,6 +937,7 @@ exports[`Issues Similar View renders with mocked data 1`] = `
                           >
                             <div
                               className="score-bar-bar med-high"
+                              key="0"
                               style={
                                 Object {
                                   "height": undefined,
@@ -940,6 +947,7 @@ exports[`Issues Similar View renders with mocked data 1`] = `
                             />
                             <div
                               className="score-bar-bar med-high"
+                              key="1"
                               style={
                                 Object {
                                   "height": undefined,
@@ -949,6 +957,7 @@ exports[`Issues Similar View renders with mocked data 1`] = `
                             />
                             <div
                               className="score-bar-bar med-high"
+                              key="2"
                               style={
                                 Object {
                                   "height": undefined,
@@ -958,6 +967,7 @@ exports[`Issues Similar View renders with mocked data 1`] = `
                             />
                             <div
                               className="score-bar-bar med-high"
+                              key="3"
                               style={
                                 Object {
                                   "height": undefined,
@@ -967,6 +977,7 @@ exports[`Issues Similar View renders with mocked data 1`] = `
                             />
                             <div
                               className="score-bar-bar empty"
+                              key="empty-0"
                               style={
                                 Object {
                                   "height": undefined,
@@ -981,6 +992,7 @@ exports[`Issues Similar View renders with mocked data 1`] = `
                   </div>
                   <div
                     className="similar-score-column"
+                    key="message"
                   >
                     <Hovercard
                       body={0}
@@ -1009,6 +1021,7 @@ exports[`Issues Similar View renders with mocked data 1`] = `
                           >
                             <div
                               className="score-bar-bar empty"
+                              key="empty-0"
                               style={
                                 Object {
                                   "height": undefined,
@@ -1018,6 +1031,7 @@ exports[`Issues Similar View renders with mocked data 1`] = `
                             />
                             <div
                               className="score-bar-bar empty"
+                              key="empty-1"
                               style={
                                 Object {
                                   "height": undefined,
@@ -1027,6 +1041,7 @@ exports[`Issues Similar View renders with mocked data 1`] = `
                             />
                             <div
                               className="score-bar-bar empty"
+                              key="empty-2"
                               style={
                                 Object {
                                   "height": undefined,
@@ -1036,6 +1051,7 @@ exports[`Issues Similar View renders with mocked data 1`] = `
                             />
                             <div
                               className="score-bar-bar empty"
+                              key="empty-3"
                               style={
                                 Object {
                                   "height": undefined,
@@ -1045,6 +1061,7 @@ exports[`Issues Similar View renders with mocked data 1`] = `
                             />
                             <div
                               className="score-bar-bar empty"
+                              key="empty-4"
                               style={
                                 Object {
                                   "height": undefined,
@@ -1074,7 +1091,7 @@ exports[`Issues Similar View renders with mocked data 1`] = `
             </button>
           </div>
         </div>
-        <pagination
+        <Pagination
           onCursor={[Function]}
         />
       </div>
@@ -1472,67 +1489,69 @@ exports[`Issues Similar View renders with mocked data 2`] = `
                                 onConfirm={[Function]}
                                 priority="primary"
                               >
-                                <span>
-                                  <a
-                                    className="btn btn-sm btn-default disabled"
-                                    disabled={true}
-                                    onClick={[Function]}
-                                    title="Merging 0 issues"
-                                  >
-                                    Merge
-                                     (
-                                    0
-                                    )
-                                  </a>
+                                <a
+                                  className="btn btn-sm btn-default disabled"
+                                  disabled={true}
+                                  onClick={[Function]}
+                                  title="Merging 0 issues"
+                                >
+                                  Merge
+                                   (
+                                  0
+                                  )
+                                </a>
+                                <Modal
+                                  animation={false}
+                                  autoFocus={true}
+                                  backdrop={true}
+                                  bsClass="modal"
+                                  dialogComponentClass={[Function]}
+                                  enforceFocus={true}
+                                  keyboard={true}
+                                  manager={
+                                    ModalManager {
+                                      "add": [Function],
+                                      "containers": Array [],
+                                      "data": Array [],
+                                      "handleContainerOverflow": true,
+                                      "hideSiblingNodes": true,
+                                      "isTopModal": [Function],
+                                      "modals": Array [],
+                                      "remove": [Function],
+                                    }
+                                  }
+                                  onHide={[Function]}
+                                  renderBackdrop={[Function]}
+                                  restoreFocus={true}
+                                  show={false}
+                                >
                                   <Modal
-                                    animation={false}
                                     autoFocus={true}
                                     backdrop={true}
-                                    bsClass="modal"
-                                    dialogComponentClass={[Function]}
+                                    backdropClassName="modal-backdrop"
+                                    containerClassName="modal-open"
                                     enforceFocus={true}
                                     keyboard={true}
                                     manager={
                                       ModalManager {
+                                        "add": [Function],
                                         "containers": Array [],
                                         "data": Array [],
                                         "handleContainerOverflow": true,
                                         "hideSiblingNodes": true,
+                                        "isTopModal": [Function],
                                         "modals": Array [],
+                                        "remove": [Function],
                                       }
                                     }
+                                    onEntering={[Function]}
+                                    onExited={[Function]}
                                     onHide={[Function]}
                                     renderBackdrop={[Function]}
                                     restoreFocus={true}
                                     show={false}
-                                  >
-                                    <Modal
-                                      autoFocus={true}
-                                      backdrop={true}
-                                      backdropClassName="modal-backdrop"
-                                      backdropTransitionTimeout={150}
-                                      containerClassName="modal-open"
-                                      dialogTransitionTimeout={300}
-                                      enforceFocus={true}
-                                      keyboard={true}
-                                      manager={
-                                        ModalManager {
-                                          "containers": Array [],
-                                          "data": Array [],
-                                          "handleContainerOverflow": true,
-                                          "hideSiblingNodes": true,
-                                          "modals": Array [],
-                                        }
-                                      }
-                                      onEntering={[Function]}
-                                      onExited={[Function]}
-                                      onHide={[Function]}
-                                      renderBackdrop={[Function]}
-                                      restoreFocus={true}
-                                      show={false}
-                                    />
-                                  </Modal>
-                                </span>
+                                  />
+                                </Modal>
                               </Confirm>
                             </LinkWithConfirmation>
                           </div>
@@ -1622,6 +1641,7 @@ exports[`Issues Similar View renders with mocked data 2`] = `
                 "userCount": 3,
               }
             }
+            key="271"
             orgId="orgId"
             projectId="projectId"
             score={
@@ -1879,7 +1899,9 @@ exports[`Issues Similar View renders with mocked data 2`] = `
                                       onClick={[Function]}
                                     >
                                       <AutoSelectText>
-                                        <div>
+                                        <div
+                                          onClick={[Function]}
+                                        >
                                           INTERNAL-4G
                                         </div>
                                       </AutoSelectText>
@@ -1959,6 +1981,7 @@ exports[`Issues Similar View renders with mocked data 2`] = `
                   </count>
                   <div
                     className="similar-score-column"
+                    key="exception"
                   >
                     <Hovercard
                       body={
@@ -1998,6 +2021,7 @@ exports[`Issues Similar View renders with mocked data 2`] = `
                           >
                             <div
                               className="score-bar-bar med-high"
+                              key="0"
                               style={
                                 Object {
                                   "height": undefined,
@@ -2007,6 +2031,7 @@ exports[`Issues Similar View renders with mocked data 2`] = `
                             />
                             <div
                               className="score-bar-bar med-high"
+                              key="1"
                               style={
                                 Object {
                                   "height": undefined,
@@ -2016,6 +2041,7 @@ exports[`Issues Similar View renders with mocked data 2`] = `
                             />
                             <div
                               className="score-bar-bar med-high"
+                              key="2"
                               style={
                                 Object {
                                   "height": undefined,
@@ -2025,6 +2051,7 @@ exports[`Issues Similar View renders with mocked data 2`] = `
                             />
                             <div
                               className="score-bar-bar med-high"
+                              key="3"
                               style={
                                 Object {
                                   "height": undefined,
@@ -2034,6 +2061,7 @@ exports[`Issues Similar View renders with mocked data 2`] = `
                             />
                             <div
                               className="score-bar-bar empty"
+                              key="empty-0"
                               style={
                                 Object {
                                   "height": undefined,
@@ -2048,6 +2076,7 @@ exports[`Issues Similar View renders with mocked data 2`] = `
                   </div>
                   <div
                     className="similar-score-column"
+                    key="message"
                   >
                     <Hovercard
                       body={0}
@@ -2076,6 +2105,7 @@ exports[`Issues Similar View renders with mocked data 2`] = `
                           >
                             <div
                               className="score-bar-bar empty"
+                              key="empty-0"
                               style={
                                 Object {
                                   "height": undefined,
@@ -2085,6 +2115,7 @@ exports[`Issues Similar View renders with mocked data 2`] = `
                             />
                             <div
                               className="score-bar-bar empty"
+                              key="empty-1"
                               style={
                                 Object {
                                   "height": undefined,
@@ -2094,6 +2125,7 @@ exports[`Issues Similar View renders with mocked data 2`] = `
                             />
                             <div
                               className="score-bar-bar empty"
+                              key="empty-2"
                               style={
                                 Object {
                                   "height": undefined,
@@ -2103,6 +2135,7 @@ exports[`Issues Similar View renders with mocked data 2`] = `
                             />
                             <div
                               className="score-bar-bar empty"
+                              key="empty-3"
                               style={
                                 Object {
                                   "height": undefined,
@@ -2112,6 +2145,7 @@ exports[`Issues Similar View renders with mocked data 2`] = `
                             />
                             <div
                               className="score-bar-bar empty"
+                              key="empty-4"
                               style={
                                 Object {
                                   "height": undefined,
@@ -2141,7 +2175,7 @@ exports[`Issues Similar View renders with mocked data 2`] = `
             </button>
           </div>
         </div>
-        <pagination
+        <Pagination
           onCursor={[Function]}
         />
       </div>

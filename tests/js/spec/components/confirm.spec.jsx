@@ -1,5 +1,5 @@
 import React from 'react';
-import {shallow} from 'enzyme';
+import {shallow, mount} from 'enzyme';
 import Confirm from 'app/components/confirm';
 
 describe('Confirm', function() {
@@ -23,7 +23,6 @@ describe('Confirm', function() {
 
     wrapper.find('button').simulate('click');
 
-    wrapper.update();
     expect(wrapper.find('Modal').prop('show')).toBe(true);
   });
 
@@ -35,14 +34,16 @@ describe('Confirm', function() {
       </Confirm>
     );
 
-    wrapper.find('button').simulate('click').simulate('click');
-    wrapper.update();
+    let button = wrapper.find('button');
+
+    button.simulate('click');
+    button.simulate('click');
     expect(wrapper.find('Modal').prop('show')).toBe(false);
   });
 
   it('clicks Confirm in modal and calls `onConfirm` callback', function() {
     let mock = jest.fn();
-    let wrapper = shallow(
+    let wrapper = mount(
       <Confirm message="Are you sure?" onConfirm={mock}>
         <button>Confirm?</button>
       </Confirm>
@@ -54,31 +55,18 @@ describe('Confirm', function() {
     wrapper.update();
 
     // Click "Confirm" button, should be last button
-    wrapper.find('Modal').find('Button').last().simulate('click');
-    wrapper.update();
+    wrapper
+      .find('Button')
+      .last()
+      .simulate('click');
 
-    expect(wrapper.find('Modal').prop('show')).toBe(false);
+    expect(
+      wrapper
+        .find('Modal')
+        .first()
+        .prop('show')
+    ).toBe(false);
     expect(mock).toHaveBeenCalled();
-  });
-
-  it('clicks Confirm in modal and calls `onConfirm` callback', function() {
-    let mock = jest.fn();
-    let wrapper = shallow(
-      <Confirm message="Are you sure?" onConfirm={mock}>
-        <button>Confirm?</button>
-      </Confirm>
-    );
-
-    expect(mock).not.toHaveBeenCalled();
-
-    wrapper.find('button').simulate('click');
-    wrapper.update();
-
-    // Click "Confirm" button, should be last button
-    wrapper.find('Modal').find('Button').last().simulate('click').simulate('click');
-    wrapper.update();
-
-    expect(wrapper.find('Modal').prop('show')).toBe(false);
     expect(mock.mock.calls).toHaveLength(1);
   });
 });

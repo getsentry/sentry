@@ -4,63 +4,66 @@ import $ from 'jquery';
 import MD5 from 'crypto-js/md5';
 import ConfigStore from '../stores/configStore';
 import UserLetterAvatar from '../components/userLetterAvatar';
+import {userDisplayName} from '../utils/formatters';
+import Tooltip from './tooltip';
 
-const Avatar = React.createClass({
-  propTypes: {
+class Avatar extends React.Component {
+  static propTypes = {
     user: PropTypes.object,
     size: PropTypes.number,
     default: PropTypes.string,
     title: PropTypes.string,
-    gravatar: PropTypes.bool
-  },
+    gravatar: PropTypes.bool,
+    hasTooltip: PropTypes.bool,
+  };
 
-  getDefaultProps() {
-    return {
-      className: 'avatar',
-      size: 64,
-      gravatar: true
-    };
-  },
+  static defaultProps = {
+    className: 'avatar',
+    size: 64,
+    gravatar: true,
+    hasTooltip: false,
+  };
 
-  getInitialState() {
-    return {
+  constructor(...args) {
+    super(...args);
+    this.state = {
       showBackupAvatar: false,
-      loadError: false
+      loadError: false,
     };
-  },
+  }
 
-  buildGravatarUrl() {
+  buildGravatarUrl = () => {
     let url = ConfigStore.getConfig().gravatarBaseUrl + '/avatar/';
 
     url += MD5(this.props.user.email.toLowerCase());
 
     let query = {
       s: this.props.size || undefined,
-      d: this.props.default || 'blank'
+      d: this.props.default || 'blank',
     };
 
     url += '?' + $.param(query);
 
     return url;
-  },
+  };
 
-  buildProfileUrl() {
+  buildProfileUrl = () => {
     let url = '/avatar/' + this.props.user.avatar.avatarUuid + '/';
     if (this.props.size) {
       url += '?' + $.param({s: this.props.size});
     }
     return url;
-  },
+  };
 
-  onLoad() {
+  onLoad = () => {
     this.setState({showBackupAvatar: true});
-  },
+  };
 
-  onError() {
+  onError = () => {
     this.setState({showBackupAvatar: true, loadError: true});
-  },
+  };
 
-  renderImg() {
+  renderImg = () => {
     if (this.state.loadError) {
       return null;
     }
@@ -74,7 +77,7 @@ const Avatar = React.createClass({
     let props = {
       title: this.props.title,
       onError: this.onError,
-      onLoad: this.onLoad
+      onLoad: this.onLoad,
     };
     if (user.options && user.options.avatarType) {
       avatarType = user.options.avatarType;
@@ -86,21 +89,23 @@ const Avatar = React.createClass({
     } else {
       return <UserLetterAvatar user={user} />;
     }
-  },
+  };
 
   render() {
-    let user = this.props.user;
+    let {user, hasTooltip} = this.props;
     if (!user) {
       return null;
     }
 
     return (
-      <span className={this.props.className}>
-        {this.state.showBackupAvatar && <UserLetterAvatar user={user} />}
-        {this.renderImg()}
-      </span>
+      <Tooltip title={userDisplayName(user)} disabled={!hasTooltip}>
+        <span className={this.props.className} style={this.props.style}>
+          {this.state.showBackupAvatar && <UserLetterAvatar user={user} />}
+          {this.renderImg()}
+        </span>
+      </Tooltip>
     );
   }
-});
+}
 
 export default Avatar;

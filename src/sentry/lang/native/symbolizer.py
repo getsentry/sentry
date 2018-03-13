@@ -3,7 +3,7 @@ from __future__ import absolute_import
 import re
 import six
 
-from symbolic import SymbolicError, ObjectLookup, Symbol, parse_addr
+from symbolic import SymbolicError, ObjectLookup, LineInfo, parse_addr
 
 from sentry.utils.safe import trim
 from sentry.utils.compat import implements_to_string
@@ -31,8 +31,15 @@ _support_framework = re.compile(
 SIM_PATH = '/Developer/CoreSimulator/Devices/'
 SIM_APP_PATH = '/Containers/Bundle/Application/'
 MAC_OS_PATH = '.app/Contents/'
+LINUX_SYS_PATHS = (
+    '/lib/',
+    '/usr/lib/',
+    'linux-gate.so',
+)
+WINDOWS_SYS_PATH = re.compile(r'^[a-z]:\\windows', re.IGNORECASE)
 
-_internal_function_re = re.compile(r'(kscm_|kscrash_|KSCrash |SentryClient |RNSentry )')
+_internal_function_re = re.compile(
+    r'(kscm_|kscrash_|KSCrash |SentryClient |RNSentry )')
 
 KNOWN_GARBAGE_SYMBOLS = set([
     '_mh_execute_header',
@@ -78,7 +85,7 @@ class SymbolicationFailed(Exception):
 
     def get_data(self):
         """Returns the event data."""
-        rv = {'message': self.message}
+        rv = {'message': self.message, 'type': self.type}
         if self.image_path is not None:
             rv['image_path'] = self.image_path
         if self.image_uuid is not None:
@@ -105,16 +112,16 @@ class Symbolizer(object):
     """
 
     def __init__(self, project, object_lookup, referenced_images,
-                 arch=None, on_dsym_file_referenced=None):
+                 on_dsym_file_referenced=None):
         if not isinstance(object_lookup, ObjectLookup):
             object_lookup = ObjectLookup(object_lookup)
         self.object_lookup = object_lookup
 
-        self.symcaches = ProjectDSymFile.dsymcache.get_symcaches(
-            project, referenced_images,
-            on_dsym_file_referenced=on_dsym_file_referenced)
-
-        self.arch = arch
+        self.symcaches, self.symcaches_conversion_errors = \
+            ProjectDSymFile.dsymcache.get_symcaches(
+                project, referenced_images,
+                on_dsym_file_referenced=on_dsym_file_referenced,
+                with_conversion_errors=True)
 
     def _process_frame(self, sym, obj, package=None, addr_off=0):
         frame = {
@@ -139,16 +146,25 @@ class Symbolizer(object):
         return frame
 
     def is_image_from_app_bundle(self, obj, sdk_info=None):
-        fn = obj.name
-        if not fn:
+        obj_path = obj.name
+        if not obj_path:
             return False
-        is_mac_platform = (sdk_info is not None and sdk_info['sdk_name'].lower() == 'macos')
-        if not (
-            fn.startswith(APP_BUNDLE_PATHS) or (SIM_PATH in fn and SIM_APP_PATH in fn) or
-            (is_mac_platform and MAC_OS_PATH in fn)
-        ):
-            return False
-        return True
+
+        if obj_path.startswith(APP_BUNDLE_PATHS):
+            return True
+
+        if SIM_PATH in obj_path and SIM_APP_PATH in obj_path:
+            return True
+
+        sdk_name = sdk_info['sdk_name'].lower() if sdk_info else ''
+        if sdk_name == 'macos' and MAC_OS_PATH in obj_path:
+            return True
+        if sdk_name == 'linux' and not obj_path.startswith(LINUX_SYS_PATHS):
+            return True
+        if sdk_name == 'windows' and not WINDOWS_SYS_PATH.match(obj_path):
+            return True
+
+        return False
 
     def _is_support_framework(self, obj):
         """True if the frame is from a framework that is known and app
@@ -204,6 +220,14 @@ class Symbolizer(object):
     def _symbolize_app_frame(self, instruction_addr, obj, sdk_info=None):
         symcache = self.symcaches.get(obj.uuid)
         if symcache is None:
+            # In case we know what error happened on symcache conversion
+            # we can report it to the user now.
+            if obj.uuid in self.symcaches_conversion_errors:
+                raise SymbolicationFailed(
+                    message=self.symcaches_conversion_errors[obj.uuid],
+                    type=EventError.NATIVE_BAD_DSYM,
+                    obj=obj
+                )
             if self._is_optional_dsym(obj, sdk_info=sdk_info):
                 type = EventError.NATIVE_MISSING_OPTIONALLY_BUNDLED_DSYM
             else:
@@ -222,7 +246,8 @@ class Symbolizer(object):
             # errors.
             if self._is_optional_dsym(obj, sdk_info=sdk_info):
                 return []
-            raise SymbolicationFailed(type=EventError.NATIVE_MISSING_SYMBOL, obj=obj)
+            raise SymbolicationFailed(
+                type=EventError.NATIVE_MISSING_SYMBOL, obj=obj)
         return [self._process_frame(s, obj, addr_off=obj.addr) for s in reversed(rv)]
 
     def _convert_symbolserver_match(self, instruction_addr, symbolserver_match, obj):
@@ -235,22 +260,16 @@ class Symbolizer(object):
             symbol = symbol[1:]
 
         return [
-            self._process_frame(Symbol(
+            self._process_frame(LineInfo(
                 sym_addr=parse_addr(symbolserver_match['addr']),
                 instr_addr=parse_addr(instruction_addr),
                 line=None,
+                lang=None,
                 symbol=symbol,
             ), obj, package=symbolserver_match['object_name'])
         ]
 
     def symbolize_frame(self, instruction_addr, sdk_info=None, symbolserver_match=None):
-        # If we do not have a CPU name we fail.  We currently only support
-        # a single cpu architecture.
-        if self.arch is None:
-            raise SymbolicationFailed(
-                type=EventError.NATIVE_INTERNAL_FAILURE, message='Found multiple architectures.'
-            )
-
         obj = self.object_lookup.find_object(instruction_addr)
         if obj is None:
             raise SymbolicationFailed(type=EventError.NATIVE_UNKNOWN_IMAGE)

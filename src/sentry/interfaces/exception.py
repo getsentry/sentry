@@ -10,14 +10,18 @@ from __future__ import absolute_import
 
 __all__ = ('Exception', )
 
+import re
 import six
 
 from django.conf import settings
 
 from sentry.interfaces.base import Interface, InterfaceValidationError
+from sentry.interfaces.schemas import validate_and_default_interface
 from sentry.interfaces.stacktrace import Stacktrace, slim_frame_data
 from sentry.utils import json
 from sentry.utils.safe import trim
+
+_type_value_re = re.compile('^(\w+):(.*)$')
 
 
 class SingleException(Interface):
@@ -40,9 +44,14 @@ class SingleException(Interface):
     >>> }
     """
     score = 2000
+    path = 'sentry.interfaces.Exception'
 
     @classmethod
     def to_python(cls, data, slim_frames=True):
+        is_valid, errors = validate_and_default_interface(data, cls.path)
+        if not is_valid:
+            raise InterfaceValidationError("Invalid exception")
+
         if not (data.get('type') or data.get('value')):
             raise InterfaceValidationError("No 'type' or 'value' present")
 
@@ -64,10 +73,11 @@ class SingleException(Interface):
         type = data.get('type')
         value = data.get('value')
         if isinstance(value, six.string_types):
-            if type is None and ':' in value.split(' ', 1)[0]:
-                type, value = value.split(':', 1)
-                # in case of TypeError: foo (no space)
-                value = value.strip()
+            if type is None:
+                m = _type_value_re.match(value)
+                if m:
+                    type = m.group(1)
+                    value = m.group(2).strip()
         elif value is not None:
             value = json.dumps(value)
 
@@ -75,8 +85,6 @@ class SingleException(Interface):
 
         mechanism = data.get('mechanism')
         if mechanism is not None:
-            if not isinstance(mechanism, dict):
-                raise InterfaceValidationError('Bad value for mechanism')
             mechanism = trim(data.get('mechanism'), 4096)
             mechanism.setdefault('type', 'generic')
 
@@ -138,15 +146,12 @@ class SingleException(Interface):
         return 'exception'
 
     def get_path(self):
-        return 'sentry.interfaces.Exception'
+        return self.path
 
-    def get_hash(self, platform=None, is_processed_data=True):
+    def get_hash(self, platform=None):
         output = None
         if self.stacktrace:
-            output = self.stacktrace.get_hash(
-                platform=platform,
-                is_processed_data=is_processed_data,
-            )
+            output = self.stacktrace.get_hash(platform=platform)
             if output and self.type:
                 output.append(self.type)
         if not output:
@@ -249,7 +254,7 @@ class Exception(Interface):
 
         return [system_hash, app_hash]
 
-    def get_hash(self, platform=None, system_frames=True, is_processed_data=True):
+    def get_hash(self, platform=None, system_frames=True):
         # optimize around the fact that some exceptions might have stacktraces
         # while others may not and we ALWAYS want stacktraces over values
         output = []
@@ -259,7 +264,6 @@ class Exception(Interface):
             stack_hash = value.stacktrace.get_hash(
                 platform=platform,
                 system_frames=system_frames,
-                is_processed_data=is_processed_data,
             )
             if stack_hash:
                 output.extend(stack_hash)
@@ -267,9 +271,7 @@ class Exception(Interface):
 
         if not output:
             for value in self.values:
-                output.extend(
-                    value.get_hash(platform=platform, is_processed_data=is_processed_data)
-                )
+                output.extend(value.get_hash(platform=platform))
 
         return output
 

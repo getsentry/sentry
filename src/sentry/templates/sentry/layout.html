@@ -77,9 +77,9 @@
         <div id="blk_sidebar"></div>
         <script>
         $(function(){
-          var SidebarWrapper = React.createClass({
+          var SidebarWrapper = createReactClass({
             propTypes: {
-              organization: React.PropTypes.any.isRequired
+              organization: PropTypes.any.isRequired
             },
             getChildContext: function () {
               return {
@@ -92,7 +92,7 @@
             }
           });
           SidebarWrapper.childContextTypes = {
-            organization: React.PropTypes.any
+            organization: PropTypes.any
           };
           ReactDOM.render(React.createFactory(SidebarWrapper)({
             organization: {% serialize_detailed_org organization %},

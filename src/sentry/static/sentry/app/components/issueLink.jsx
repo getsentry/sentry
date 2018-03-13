@@ -1,5 +1,6 @@
 import PropTypes from 'prop-types';
 import React from 'react';
+import createReactClass from 'create-react-class';
 import {Link} from 'react-router';
 
 import ApiMixin from '../mixins/apiMixin';
@@ -7,31 +8,33 @@ import Count from './count';
 import EventOrGroupTitle from './eventOrGroupTitle';
 import TimeSince from './timeSince';
 
-export default React.createClass({
+export default createReactClass({
+  displayName: 'issueLink',
+
   propTypes: {
     orgId: PropTypes.string.isRequired,
     projectId: PropTypes.string.isRequired,
     issue: PropTypes.object.isRequired,
-    card: PropTypes.bool
+    card: PropTypes.bool,
   },
 
   mixins: [ApiMixin],
 
   getDefaultProps() {
     return {
-      card: true
+      card: true,
     };
   },
 
   getInitialState() {
     return {
-      visible: false
+      visible: false,
     };
   },
 
   toggleHovercard() {
     this.setState({
-      visible: !this.state.visible
+      visible: !this.state.visible,
     });
   },
 
@@ -78,16 +81,18 @@ export default React.createClass({
               <div className="event-message">
                 <span className="error-level">{issue.level}</span>
                 {message && <span className="message">{message}</span>}
-                {issue.logger &&
+                {issue.logger && (
                   <span className="event-annotation">
                     <Link
                       to={{
                         pathname: `/${orgId}/${projectId}/`,
-                        query: {query: 'logger:' + issue.logger}
-                      }}>
+                        query: {query: 'logger:' + issue.logger},
+                      }}
+                    >
                       {issue.logger}
                     </Link>
-                  </span>}
+                  </span>
+                )}
                 {issue.annotations.map((annotation, i) => {
                   return (
                     <span
@@ -139,16 +144,18 @@ export default React.createClass({
       <span
         onMouseEnter={this.toggleHovercard}
         onMouseLeave={this.toggleHovercard}
-        style={{position: 'relative'}}>
+        style={{position: 'relative'}}
+      >
         <Link to={`/${orgId}/${projectId}/issues/${issue.id}/`}>
           {this.props.children}
         </Link>
-        {visible &&
+        {visible && (
           <div className="hovercard">
             <div className="hovercard-hoverlap" />
             {this.renderBody()}
-          </div>}
+          </div>
+        )}
       </span>
     );
-  }
+  },
 });

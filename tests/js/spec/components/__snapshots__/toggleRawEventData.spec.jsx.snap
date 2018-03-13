@@ -19,6 +19,10 @@ exports[`EventDataSection renders formatted 1`] = `
     <h3>
       Additional Data
     </h3>
+    <GuideAnchor
+      target="extra"
+      type="text"
+    />
     <div
       className="btn-group pull-right"
     >
@@ -61,6 +65,10 @@ exports[`EventDataSection renders raw 1`] = `
     <h3>
       Additional Data
     </h3>
+    <GuideAnchor
+      target="extra"
+      type="text"
+    />
     <div
       className="btn-group pull-right"
     >
@@ -89,7 +97,9 @@ exports[`KeyValueList renders formatted 1`] = `
   className="table key-value"
 >
   <tbody>
-    <tr>
+    <tr
+      key="andthis"
+    >
       <td
         className="key"
       >
@@ -103,7 +113,9 @@ exports[`KeyValueList renders formatted 1`] = `
         />
       </td>
     </tr>
-    <tr>
+    <tr
+      key="plussomeotherstuff"
+    >
       <td
         className="key"
       >
@@ -117,7 +129,9 @@ exports[`KeyValueList renders formatted 1`] = `
         />
       </td>
     </tr>
-    <tr>
+    <tr
+      key="somestuff"
+    >
       <td
         className="key"
       >
@@ -144,7 +158,9 @@ exports[`KeyValueList renders raw 1`] = `
   className="table key-value"
 >
   <tbody>
-    <tr>
+    <tr
+      key="andthis"
+    >
       <td
         className="key"
       >
@@ -158,7 +174,9 @@ exports[`KeyValueList renders raw 1`] = `
         />
       </td>
     </tr>
-    <tr>
+    <tr
+      key="plussomeotherstuff"
+    >
       <td
         className="key"
       >
@@ -172,7 +190,9 @@ exports[`KeyValueList renders raw 1`] = `
         />
       </td>
     </tr>
-    <tr>
+    <tr
+      key="somestuff"
+    >
       <td
         className="key"
       >

@@ -15,6 +15,10 @@ if (!WEBPACK_DEV_PORT || !WEBPACK_DEV_PROXY || !SENTRY_DEVSERVER_PORT) {
 }
 
 const createProxy = function(proxy, req, res, port, cb) {
+  if (res.headersSent) {
+    return;
+  }
+
   proxy.web(req, res, {target: 'http://localhost:' + port}, function(e, r) {
     cb && cb(e, r);
     if (e) {
@@ -43,4 +47,9 @@ const server = http.createServer(function(req, res) {
     console.log('Proxy target not responding');
   }
 });
+
+server.on('error', function() {
+  console.log('devproxy error', arguments);
+});
+
 server.listen(WEBPACK_DEV_PROXY);

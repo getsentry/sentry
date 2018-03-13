@@ -62,6 +62,7 @@ class UnrestrictedTenant(object):
     organization_ids = ALL
     team_ids = ALL
     project_ids = ALL
+    user_id = None
 
     def __repr__(self):
         return '<{}>'.format(type(self).__name__)
@@ -116,6 +117,7 @@ def set_current_tenant(tenant):
     """
     logger.info('tenant.bind', extra={
         'user_id': tenant.user_id,
+        'organization_ids': tenant.organization_ids,
     })
     env.tenant = tenant
 

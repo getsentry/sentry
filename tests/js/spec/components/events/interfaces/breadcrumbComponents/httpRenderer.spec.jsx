@@ -12,8 +12,8 @@ describe('HttpRenderer', function() {
               method: 'POST',
               url: 'http://example.com/foo',
               // status_code 0 is possible via broken client-side XHR; should still render as '[0]'
-              status_code: 0
-            }
+              status_code: 0,
+            },
           }}
         />
       );
@@ -22,9 +22,12 @@ describe('HttpRenderer', function() {
 
       let summaryLineWrapper = shallow(summaryLine);
       expect(summaryLineWrapper.find('strong').text()).toEqual('POST ');
-      expect(summaryLineWrapper.find('a').text().trim()).toEqual(
-        'http://example.com/foo'
-      );
+      expect(
+        summaryLineWrapper
+          .find('a')
+          .text()
+          .trim()
+      ).toEqual('http://example.com/foo');
       expect(summaryLineWrapper.find('span').text()).toEqual(' [0]');
     });
 
@@ -33,7 +36,7 @@ describe('HttpRenderer', function() {
         <HttpRenderer
           crumb={{
             category: 'xhr',
-            type: 'http'
+            type: 'http',
           }}
         />
       );

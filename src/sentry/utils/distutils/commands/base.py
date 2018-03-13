@@ -138,7 +138,7 @@ class BaseBuildCommand(Command):
         if node_version[2] is not None:
             log.info('using node ({0}) and yarn ({2})'.format(*node_version))
             self._run_command(
-                ['yarn', 'install', '--production', '--pure-lockfile', '--ignore-optional']
+                ['yarn', 'install', '--production', '--pure-lockfile']
             )
         else:
             log.info('using node ({0}) and npm ({1})'.format(*node_version))

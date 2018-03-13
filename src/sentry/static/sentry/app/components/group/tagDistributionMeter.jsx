@@ -1,5 +1,6 @@
 import PropTypes from 'prop-types';
 import React from 'react';
+import createReactClass from 'create-react-class';
 import {Link} from 'react-router';
 import ApiMixin from '../../mixins/apiMixin';
 import SentryTypes from '../../proptypes';
@@ -7,13 +8,15 @@ import TooltipMixin from '../../mixins/tooltip';
 import {escape, percent, deviceNameMapper} from '../../utils';
 import {t} from '../../locale';
 
-const TagDistributionMeter = React.createClass({
+const TagDistributionMeter = createReactClass({
+  displayName: 'TagDistributionMeter',
+
   propTypes: {
     group: SentryTypes.Group.isRequired,
     tag: PropTypes.string.isRequired,
     name: PropTypes.string,
     orgId: PropTypes.string.isRequired,
-    projectId: PropTypes.string.isRequired
+    projectId: PropTypes.string.isRequired,
   },
 
   mixins: [
@@ -21,15 +24,15 @@ const TagDistributionMeter = React.createClass({
     TooltipMixin({
       html: true,
       selector: '.segment',
-      container: 'body'
-    })
+      container: 'body',
+    }),
   ],
 
   getInitialState() {
     return {
       loading: true,
       error: false,
-      data: null
+      data: null,
     };
   },
 
@@ -56,7 +59,7 @@ const TagDistributionMeter = React.createClass({
 
     this.setState({
       loading: true,
-      error: false
+      error: false,
     });
 
     this.api.request(url, {
@@ -64,15 +67,15 @@ const TagDistributionMeter = React.createClass({
         this.setState({
           data,
           error: false,
-          loading: false
+          loading: false,
         });
       },
       error: () => {
         this.setState({
           error: true,
-          loading: false
+          loading: false,
         });
-      }
+      },
     });
   },
 
@@ -109,14 +112,16 @@ const TagDistributionMeter = React.createClass({
               key={value.id}
               className={className}
               style={{width: pct + '%'}}
-              to={`/${orgId}/${projectId}/issues/${this.props.group.id}/tags/${this.props.tag}/`}
+              to={`/${orgId}/${projectId}/issues/${this.props.group.id}/tags/${this.props
+                .tag}/`}
               title={
                 '<div class="truncate">' +
-                  escape(deviceNameMapper(value.name)) +
-                  '</div>' +
-                  pctLabel +
-                  '%'
-              }>
+                escape(deviceNameMapper(value.name) || '') +
+                '</div>' +
+                pctLabel +
+                '%'
+              }
+            >
               <span className="tag-description">
                 <span className="tag-percentage">{pctLabel}%</span>
                 <span className="tag-label">{deviceNameMapper(value.name)}</span>
@@ -124,18 +129,21 @@ const TagDistributionMeter = React.createClass({
             </Link>
           );
         })}
-        {hasOther &&
+        {hasOther && (
           <Link
             key="other"
             className="segment segment-9"
             style={{width: otherPct + '%'}}
-            to={`/${orgId}/${projectId}/issues/${this.props.group.id}/tags/${this.props.tag}/`}
-            title={'Other<br/>' + otherPctLabel + '%'}>
+            to={`/${orgId}/${projectId}/issues/${this.props.group.id}/tags/${this.props
+              .tag}/`}
+            title={'Other<br/>' + otherPctLabel + '%'}
+          >
             <span className="tag-description">
               <span className="tag-percentage">{otherPctLabel}%</span>
               <span className="tag-label">{t('Other')}</span>
             </span>
-          </Link>}
+          </Link>
+        )}
       </div>
     );
   },
@@ -151,11 +159,13 @@ const TagDistributionMeter = React.createClass({
   render() {
     return (
       <div className="distribution-graph">
-        <h6><span>{this.props.tag}</span></h6>
+        <h6>
+          <span>{this.props.tag}</span>
+        </h6>
         {this.renderBody()}
       </div>
     );
-  }
+  },
 });
 
 export default TagDistributionMeter;

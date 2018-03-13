@@ -73,7 +73,7 @@ class TeamProjectIndexEndpoint(TeamEndpoint):
         else:
             # TODO(dcramer): status should be selectable
             results = list(Project.objects.filter(
-                team=team,
+                teams=team,
                 status=ProjectStatus.VISIBLE,
             ))
 
@@ -107,7 +107,6 @@ class TeamProjectIndexEndpoint(TeamEndpoint):
                         name=result['name'],
                         slug=result.get('slug'),
                         organization=team.organization,
-                        team=team,
                         platform=result.get('platform')
                     )
             except IntegrityError:

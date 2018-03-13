@@ -173,10 +173,16 @@ class SentryRemoteTest(TestCase):
 
         assert instance.message == 'hello'
 
-        assert tagstore.get_tag_key(self.project.id, 'foo') is not None
-        assert tagstore.get_tag_value(self.project.id, 'foo', 'bar') is not None
-        assert tagstore.get_group_tag_key(instance.group_id, 'foo') is not None
-        assert tagstore.get_group_tag_value(instance.group_id, 'foo', 'bar') is not None
+        assert tagstore.get_tag_key(self.project.id, None, 'foo') is not None
+        assert tagstore.get_tag_value(self.project.id, None, 'foo', 'bar') is not None
+        assert tagstore.get_group_tag_key(
+            self.project.id, instance.group_id, None, 'foo') is not None
+        assert tagstore.get_group_tag_value(
+            instance.project_id,
+            instance.group_id,
+            None,
+            'foo',
+            'bar') is not None
 
     def test_timestamp(self):
         timestamp = timezone.now().replace(
@@ -477,7 +483,7 @@ class CspReportTest(TestCase):
 
     def assertReportRejected(self, input):
         resp = self._postCspWithHeader(input)
-        assert resp.status_code == 403, resp.content
+        assert resp.status_code in (400, 403), resp.content
 
     def test_chrome_blocked_asset(self):
         self.assertReportCreated(*get_fixtures('chrome_blocked_asset'))

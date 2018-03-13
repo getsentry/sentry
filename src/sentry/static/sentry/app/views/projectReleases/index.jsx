@@ -1,30 +1,31 @@
-import jQuery from 'jquery';
 import PropTypes from 'prop-types';
 import React from 'react';
+import createReactClass from 'create-react-class';
 import {browserHistory} from 'react-router';
 
+import SentryTypes from '../../proptypes';
 import ApiMixin from '../../mixins/apiMixin';
 import LoadingError from '../../components/loadingError';
 import LoadingIndicator from '../../components/loadingIndicator';
 import Pagination from '../../components/pagination';
 import SearchBar from '../../components/searchBar';
-import {t} from '../../locale';
+import {t, tct} from '../../locale';
 
 import ReleaseList from './releaseList';
 
-const ProjectReleases = React.createClass({
+import withEnvironment from '../../utils/withEnvironment';
+
+const DEFAULT_QUERY = '';
+
+const ProjectReleases = createReactClass({
+  displayName: 'ProjectReleases',
+
   propTypes: {
-    defaultQuery: PropTypes.string,
-    setProjectNavSection: PropTypes.func
+    setProjectNavSection: PropTypes.func,
+    environment: SentryTypes.Environment,
   },
 
   mixins: [ApiMixin],
-
-  getDefaultProps() {
-    return {
-      defaultQuery: ''
-    };
-  },
 
   getInitialState() {
     let queryParams = this.props.location.query;
@@ -33,8 +34,9 @@ const ProjectReleases = React.createClass({
       releaseList: [],
       loading: true,
       error: false,
-      query: queryParams.query || this.props.defaultQuery,
-      pageLinks: ''
+      query: queryParams.query || DEFAULT_QUERY,
+      pageLinks: '',
+      environment: this.props.environment,
     };
   },
 
@@ -48,10 +50,14 @@ const ProjectReleases = React.createClass({
       let queryParams = nextProps.location.query;
       this.setState(
         {
-          query: queryParams.query
+          query: queryParams.query,
         },
         this.fetchData
       );
+    }
+
+    if (nextProps.environment !== this.props.environment) {
+      this.setState({environment: nextProps.environment}, this.fetchData);
     }
   },
 
@@ -60,49 +66,49 @@ const ProjectReleases = React.createClass({
     if (query !== '') targetQueryParams.query = query;
 
     let {orgId, projectId} = this.props.params;
-    browserHistory.pushState(null, `/${orgId}/${projectId}/releases/`, targetQueryParams);
+    browserHistory.push({
+      pathname: `/${orgId}/${projectId}/releases/`,
+      query: targetQueryParams,
+    });
   },
 
   fetchData() {
     this.setState({
       loading: true,
-      error: false
+      error: false,
     });
 
-    this.api.request(this.getProjectReleasesEndpoint(), {
+    const {orgId, projectId} = this.props.params;
+
+    const url = `/projects/${orgId}/${projectId}/releases/`;
+
+    const query = {
+      ...this.props.location.query,
+      per_page: 20,
+      query: this.state.query,
+    };
+
+    if (this.state.environment) {
+      query.environment = this.state.environment.name;
+    }
+
+    this.api.request(url, {
+      query,
       success: (data, _, jqXHR) => {
         this.setState({
           error: false,
           loading: false,
           releaseList: data,
-          pageLinks: jqXHR.getResponseHeader('Link')
+          pageLinks: jqXHR.getResponseHeader('Link'),
         });
       },
       error: () => {
         this.setState({
           error: true,
-          loading: false
+          loading: false,
         });
-      }
+      },
     });
-  },
-
-  getProjectReleasesEndpoint() {
-    let params = this.props.params;
-    let queryParams = {
-      ...this.props.location.query,
-      per_page: 20,
-      query: this.state.query
-    };
-
-    return (
-      '/projects/' +
-      params.orgId +
-      '/' +
-      params.projectId +
-      '/releases/?' +
-      jQuery.param(queryParams)
-    );
   },
 
   getReleaseTrackingUrl() {
@@ -126,7 +132,7 @@ const ProjectReleases = React.createClass({
           releaseList={this.state.releaseList}
         />
       );
-    else if (this.state.query && this.state.query !== this.props.defaultQuery)
+    else if (this.state.query && this.state.query !== DEFAULT_QUERY)
       body = this.renderNoQueryResults();
     else body = this.renderEmpty();
 
@@ -147,10 +153,17 @@ const ProjectReleases = React.createClass({
   },
 
   renderEmpty() {
+    const {environment} = this.state;
+    const message = environment
+      ? tct("There don't seem to be any releases in your [env] environment yet", {
+          env: environment.displayName,
+        })
+      : t("There don't seem to be any releases yet.");
+
     return (
       <div className="empty-stream">
         <span className="icon icon-exclamation" />
-        <p>{t("There don't seem to be any releases yet.")}</p>
+        <p>{message}</p>
         <p>
           <a href={this.getReleaseTrackingUrl()}>
             {t('Learn how to integrate Release Tracking')}
@@ -170,7 +183,7 @@ const ProjectReleases = React.createClass({
           <div className="col-sm-5 release-search">
             <SearchBar
               defaultQuery=""
-              placeholder={t('Search for a release.')}
+              placeholder={t('Search for a release')}
               query={this.state.query}
               onSearch={this.onSearch}
             />
@@ -180,12 +193,8 @@ const ProjectReleases = React.createClass({
           <div className="panel-heading panel-heading-bold">
             <div className="row">
               <div className="col-sm-8 col-xs-7">{t('Version')}</div>
-              <div className="col-sm-2 col-xs-3">
-                {t('New Issues')}
-              </div>
-              <div className="col-sm-2 col-xs-2">
-                {t('Last Event')}
-              </div>
+              <div className="col-sm-2 col-xs-3">{t('New Issues')}</div>
+              <div className="col-sm-2 col-xs-2">{t('Last Event')}</div>
             </div>
           </div>
           {this.renderStreamBody()}
@@ -193,7 +202,8 @@ const ProjectReleases = React.createClass({
         <Pagination pageLinks={this.state.pageLinks} />
       </div>
     );
-  }
+  },
 });
 
-export default ProjectReleases;
+export {ProjectReleases}; // For tests
+export default withEnvironment(ProjectReleases);

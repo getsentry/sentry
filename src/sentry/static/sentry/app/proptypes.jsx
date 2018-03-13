@@ -6,7 +6,7 @@ export const Metadata = PropTypes.shape({
   directive: PropTypes.string,
   type: PropTypes.string,
   title: PropTypes.string,
-  uri: PropTypes.string
+  uri: PropTypes.string,
 });
 
 /**
@@ -14,7 +14,7 @@ export const Metadata = PropTypes.shape({
  *
  */
 export const User = PropTypes.shape({
-  id: PropTypes.string.isRequired
+  id: PropTypes.string.isRequired,
 });
 
 /**
@@ -27,7 +27,7 @@ export const Member = PropTypes.shape({
   name: PropTypes.string.isRequired,
   roleName: PropTypes.string.isRequired,
   pending: PropTypes.bool,
-  user: User
+  user: User,
 });
 
 export const Group = PropTypes.shape({
@@ -49,7 +49,7 @@ export const Group = PropTypes.shape({
   permalink: PropTypes.string,
   project: PropTypes.shape({
     name: PropTypes.string,
-    slug: PropTypes.string
+    slug: PropTypes.string,
   }),
   shareId: PropTypes.string,
   shortId: PropTypes.string,
@@ -57,7 +57,7 @@ export const Group = PropTypes.shape({
   statusDetails: PropTypes.object,
   title: PropTypes.string,
   type: PropTypes.oneOf(['error', 'csp', 'default']),
-  userCount: PropTypes.number
+  userCount: PropTypes.number,
 });
 
 export const Event = PropTypes.shape({
@@ -69,14 +69,14 @@ export const Event = PropTypes.shape({
   entries: PropTypes.arrayOf(
     PropTypes.shape({
       data: PropTypes.object,
-      type: PropTypes.string
+      type: PropTypes.string,
     })
   ),
   errors: PropTypes.arrayOf(
     PropTypes.shape({
       data: PropTypes.object,
       message: PropTypes.string,
-      type: PropTypes.string
+      type: PropTypes.string,
     })
   ),
   eventID: PropTypes.string,
@@ -91,41 +91,128 @@ export const Event = PropTypes.shape({
   tags: PropTypes.arrayOf(
     PropTypes.shape({
       key: PropTypes.string,
-      value: PropTypes.string
+      value: PropTypes.string,
     })
   ),
   type: PropTypes.oneOf(['error', 'csp', 'default']),
-  user: PropTypes.object
+  user: PropTypes.object,
 });
 
 export const Tag = PropTypes.shape({
   id: PropTypes.string.isRequired,
   key: PropTypes.string.isRequired,
   name: PropTypes.string.isRequired,
-  uniqueValues: PropTypes.number
+  uniqueValues: PropTypes.number,
+});
+
+export const Actor = PropTypes.shape({
+  type: PropTypes.oneOf(['user', 'team']),
+  id: PropTypes.string.isRequired,
+  name: PropTypes.string.isRequired,
+});
+
+export const Project = PropTypes.shape({
+  id: PropTypes.string.isRequired,
+  name: PropTypes.string.isRequired,
+  slug: PropTypes.string.isRequired,
+  callSign: PropTypes.string,
+  color: PropTypes.string,
+  dateCreated: PropTypes.string,
+  features: PropTypes.arrayOf(PropTypes.string),
+  firstEvent: PropTypes.oneOfType([PropTypes.string, PropTypes.bool]),
+  isBookmarked: PropTypes.bool,
+  isPublic: PropTypes.bool,
+  platform: PropTypes.string,
+  stats: PropTypes.arrayOf(PropTypes.arrayOf(PropTypes.number)),
+  status: PropTypes.string,
+});
+
+export const NavigationObject = PropTypes.shape({
+  name: PropTypes.string,
+  items: PropTypes.arrayOf(
+    PropTypes.shape({
+      path: PropTypes.string.isRequired,
+      title: PropTypes.string.isRequired,
+      /**
+       * Function that is given an object with
+       * `access`, `features`
+       *
+       * Return true to show nav item, false to hide
+       */
+      show: PropTypes.oneOfType([PropTypes.func, PropTypes.bool]),
+
+      /**
+       * Function that is given an object with
+       * `access`, `features`, `organization`
+       *
+       * Return number to show in badge
+       */
+      badge: PropTypes.func,
+    })
+  ),
+});
+
+export const Environment = PropTypes.shape({
+  id: PropTypes.string.isRequired,
+  name: PropTypes.string.isRequired,
+});
+
+export const Plugin = {
+  assets: PropTypes.array,
+  author: PropTypes.shape({
+    url: PropTypes.string,
+    name: PropTypes.string,
+  }),
+  canDisable: PropTypes.bool,
+  contexts: PropTypes.array,
+  doc: PropTypes.string,
+  enabled: PropTypes.bool,
+  hasConfiguration: PropTypes.bool,
+  id: PropTypes.string,
+  isTestable: PropTypes.bool,
+  metadata: PropTypes.object,
+  name: PropTypes.string,
+  shortName: PropTypes.string,
+  slug: PropTypes.string,
+  status: PropTypes.string,
+  type: PropTypes.string,
+  version: PropTypes.string,
+};
+
+export const PluginShape = PropTypes.shape(Plugin);
+
+export const PluginsStore = PropTypes.shape({
+  loading: PropTypes.bool,
+  plugins: PropTypes.arrayOf(PluginShape),
+  error: PropTypes.object,
+  pageLinks: PropTypes.any,
 });
 
 let SentryTypes = {
   AnyModel: PropTypes.shape({
-    id: PropTypes.string.isRequired
+    id: PropTypes.string.isRequired,
   }),
+  Actor,
   Group,
+  Environment,
   Event,
   Organization: PropTypes.shape({
-    id: PropTypes.string.isRequired
+    id: PropTypes.string.isRequired,
   }),
   Tag,
-  Project: PropTypes.shape({
-    id: PropTypes.string.isRequired
-  }),
+  Project,
   TagKey: PropTypes.shape({
-    key: PropTypes.string.isRequired
+    key: PropTypes.string.isRequired,
   }),
   Team: PropTypes.shape({
-    id: PropTypes.string.isRequired
+    id: PropTypes.string.isRequired,
   }),
+  NavigationObject,
   Member,
-  User
+  Plugin,
+  PluginShape,
+  PluginsStore,
+  User,
 };
 
 export default SentryTypes;

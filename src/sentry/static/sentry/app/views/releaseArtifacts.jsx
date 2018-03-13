@@ -1,6 +1,8 @@
 import PropTypes from 'prop-types';
 import React from 'react';
 
+import createReactClass from 'create-react-class';
+
 import ApiMixin from '../mixins/apiMixin';
 import OrganizationState from '../mixins/organizationState';
 import TooltipMixin from '../mixins/tooltip';
@@ -13,9 +15,11 @@ import LinkWithConfirmation from '../components/linkWithConfirmation';
 
 import {t} from '../locale';
 
-const ReleaseArtifacts = React.createClass({
+const ReleaseArtifacts = createReactClass({
+  displayName: 'ReleaseArtifacts',
+
   contextTypes: {
-    release: PropTypes.object
+    release: PropTypes.object,
   },
 
   mixins: [
@@ -23,8 +27,8 @@ const ReleaseArtifacts = React.createClass({
     OrganizationState,
     TooltipMixin({
       selector: '.tip',
-      trigger: 'hover'
-    })
+      trigger: 'hover',
+    }),
   ],
 
   getInitialState() {
@@ -32,7 +36,7 @@ const ReleaseArtifacts = React.createClass({
       loading: true,
       error: false,
       fileList: [],
-      pageLinks: null
+      pageLinks: null,
     };
   },
 
@@ -48,13 +52,15 @@ const ReleaseArtifacts = React.createClass({
 
   getFilesEndpoint() {
     let params = this.props.params;
-    return `/projects/${params.orgId}/${params.projectId}/releases/${encodeURIComponent(params.version)}/files/`;
+    return `/projects/${params.orgId}/${params.projectId}/releases/${encodeURIComponent(
+      params.version
+    )}/files/`;
   },
 
   fetchData() {
     this.setState({
       loading: true,
-      error: false
+      error: false,
     });
 
     this.api.request(this.getFilesEndpoint(), {
@@ -65,16 +71,16 @@ const ReleaseArtifacts = React.createClass({
           error: false,
           loading: false,
           fileList: data,
-          pageLinks: jqXHR.getResponseHeader('Link')
+          pageLinks: jqXHR.getResponseHeader('Link'),
         });
         this.attachTooltips();
       },
       error: () => {
         this.setState({
           error: true,
-          loading: false
+          loading: false,
         });
-      }
+      },
     });
   },
 
@@ -89,21 +95,21 @@ const ReleaseArtifacts = React.createClass({
         });
 
         this.setState({
-          fileList
+          fileList,
         });
 
         IndicatorStore.add(t('Artifact removed.'), 'success', {
-          duration: 4000
+          duration: 4000,
         });
       },
       error: () => {
         IndicatorStore.add(t('Unable to remove artifact. Please try again.'), 'error', {
-          duration: 4000
+          duration: 4000,
         });
       },
       complete: () => {
         IndicatorStore.remove(loadingIndicator);
-      }
+      },
     });
   },
 
@@ -147,29 +153,33 @@ const ReleaseArtifacts = React.createClass({
                       <FileSize bytes={file.size} />
                     </div>
                     <div className="col-lg-2 col-sm-2 align-right list-group-actions">
-                      {access.has('project:write')
-                        ? <a
-                            href={
-                              this.api.baseUrl +
-                                this.getFilesEndpoint() +
-                                `${file.id}/?download=1`
-                            }
-                            className="btn btn-sm btn-default">
-                            <span className="icon icon-open" />
-                          </a>
-                        : <div
-                            className="btn btn-sm btn-default disabled tip"
-                            title={t(
-                              'You do not have the required permission to download this artifact.'
-                            )}>
-                            <span className="icon icon-open" />
-                          </div>}
+                      {access.has('project:write') ? (
+                        <a
+                          href={
+                            this.api.baseUrl +
+                            this.getFilesEndpoint() +
+                            `${file.id}/?download=1`
+                          }
+                          className="btn btn-sm btn-default"
+                        >
+                          <span className="icon icon-open" />
+                        </a>
+                      ) : (
+                        <div
+                          className="btn btn-sm btn-default disabled tip"
+                          title={t(
+                            'You do not have the required permission to download this artifact.'
+                          )}
+                        >
+                          <span className="icon icon-open" />
+                        </div>
+                      )}
                       <LinkWithConfirmation
                         className="btn btn-sm btn-default"
                         title={t('Delete artifact')}
                         message={t('Are you sure you want to remove this artifact?')}
-                        onConfirm={this.handleRemove.bind(this, file.id)}>
-
+                        onConfirm={this.handleRemove.bind(this, file.id)}
+                      >
                         <span className="icon icon-trash" />
                       </LinkWithConfirmation>
                     </div>
@@ -182,7 +192,7 @@ const ReleaseArtifacts = React.createClass({
         <Pagination pageLinks={this.state.pageLinks} />
       </div>
     );
-  }
+  },
 });
 
 export default ReleaseArtifacts;

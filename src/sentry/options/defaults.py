@@ -34,6 +34,8 @@ register('system.secret-key', flags=FLAG_NOSTORE)
 register('system.url-prefix', ttl=60, grace=3600, flags=FLAG_REQUIRED | FLAG_PRIORITIZE_DISK)
 register('system.root-api-key', flags=FLAG_PRIORITIZE_DISK)
 register('system.logging-format', default=LoggingFormat.HUMAN, flags=FLAG_NOSTORE)
+# This is used for the chunk upload endpoint
+register('system.upload-url-prefix', flags=FLAG_PRIORITIZE_DISK)
 
 # Redis
 register(
@@ -110,3 +112,6 @@ register('analytics.backend', default='noop', flags=FLAG_NOSTORE)
 register('analytics.options', default={}, flags=FLAG_NOSTORE)
 
 register('cloudflare.secret-key', default='')
+
+# Tagstore
+register('tagstore.multi-sampling', default=0.0)

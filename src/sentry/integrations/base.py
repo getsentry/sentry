@@ -1,16 +1,29 @@
 from __future__ import absolute_import
 
-__all__ = ['Integration']
+__all__ = ['Integration', 'IntegrationMetadata']
 
 import logging
+from collections import namedtuple
+
+from sentry.utils.pipeline import PipelineProvider
 
 
-class Integration(object):
+IntegrationMetadata = namedtuple('IntegrationMetadata', [
+    'description',  # A markdown description of the integration
+    'author',       # The integration author's name
+    'issue_url',    # URL where issues should be opened
+    'source_url',   # URL to view the source
+    'aspects',      # A map of integration specific 'aspects' to the aspect config.
+])
+
+
+class Integration(PipelineProvider):
     """
     An integration describes a third party that can be registered within Sentry.
 
-    The core behavior is simply how to add the integration (the authentication
-    pipeline), and what kind of configuration is stored.
+    The core behavior is simply how to add the integration (the setup
+    pipeline), which will likely use a nested pipeline for identity
+    authentication, and what kind of configuration is stored.
 
     This is similar to Sentry's legacy 'plugin' information, except that an
     integration is lives as an instance in the database, and the ``Integration``
@@ -19,10 +32,14 @@ class Integration(object):
     """
 
     # a unique identifier (e.g. 'slack')
-    id = None
+    key = None
 
     # a human readable name (e.g. 'Slack')
     name = None
+
+    # an IntegrationMetadata object, used to provider extra details in the
+    # configuration interface of the integration.
+    metadata = None
 
     # configuration for the setup dialog
     setup_dialog_config = {
@@ -31,14 +48,14 @@ class Integration(object):
     }
 
     def get_logger(self):
-        return logging.getLogger('sentry.integration.%s' % (self.get_id(), ))
+        return logging.getLogger('sentry.integration.%s' % (self.key, ))
 
-    def get_pipeline(self):
+    def get_pipeline_views(self):
         """
         Return a list of ``View`` instances describing this integration's
         configuration pipeline.
 
-        >>> def get_pipeline(self):
+        >>> def get_pipeline_views(self):
         >>>    return []
         """
         raise NotImplementedError
@@ -97,5 +114,5 @@ class Integration(object):
         Executed once Sentry has been initialized at runtime.
 
         >>> def setup(self):
-        >>>     bindings.add('repository.provider', GitHubRepositoryProvider, id='github')
+        >>>     bindings.add('repository.provider', GitHubRepositoryProvider, key='github')
         """

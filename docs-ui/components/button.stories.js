@@ -45,27 +45,19 @@ storiesOf('Buttons', module)
     withInfo('Different buttons sizes')(() => (
       <div>
         <Item>
-          <Button size="xsmall">
-            Extra Small
-          </Button>
+          <Button size="xsmall">Extra Small</Button>
         </Item>
 
         <Item>
-          <Button size="small">
-            Small
-          </Button>
+          <Button size="small">Small</Button>
         </Item>
 
         <Item>
-          <Button>
-            Normal
-          </Button>
+          <Button>Normal</Button>
         </Item>
 
         <Item>
-          <Button size="large">
-            Large
-          </Button>
+          <Button size="large">Large</Button>
         </Item>
       </div>
     ))
@@ -78,7 +70,8 @@ storiesOf('Buttons', module)
           <Button
             busy={boolean('Extra Small Busy', true)}
             priority="primary"
-            size="xsmall">
+            size="xsmall"
+          >
             Extra Small
           </Button>
         </Item>
@@ -106,7 +99,21 @@ storiesOf('Buttons', module)
             Disabled Button
           </Button>
         </Item>
-
+      </div>
+    ))
+  )
+  .add(
+    'icons',
+    withInfo('Buttons with Icons')(() => (
+      <div style={{display: 'flex', alignItems: 'center'}}>
+        <Item>
+          <Button icon="icon-github">View on GitHub</Button>
+        </Item>
+        <Item>
+          <Button size="small" icon="icon-github">
+            View on GitHub
+          </Button>
+        </Item>
       </div>
     ))
   );

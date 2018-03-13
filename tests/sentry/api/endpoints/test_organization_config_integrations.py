@@ -16,7 +16,7 @@ class OrganizationConfigIntegrationsTest(APITestCase):
 
         assert response.status_code == 200, response.content
         assert len(response.data['providers']) > 0
-        provider = [r for r in response.data['providers'] if r['id'] == 'example']
+        provider = [r for r in response.data['providers'] if r['key'] == 'example']
         assert len(provider) == 1
         provider = provider[0]
         assert provider['name'] == 'Example'

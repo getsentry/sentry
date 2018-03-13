@@ -18,6 +18,7 @@ from sentry.tasks.reports import (
 )
 from sentry.testutils.cases import TestCase
 from sentry.utils.dates import to_datetime, to_timestamp
+from six.moves import xrange
 
 
 @pytest.yield_fixture(scope="module")
@@ -271,7 +272,7 @@ class ReportTestCase(TestCase):
 
         project = self.create_project(
             organization=self.organization,
-            team=self.team,
+            teams=[self.team],
             date_added=now - timedelta(days=90),
         )
 
@@ -281,7 +282,7 @@ class ReportTestCase(TestCase):
             now - timedelta(days=1),
         )
 
-        member_set = set(project.team.member_set.all())
+        member_set = set(project.teams.first().member_set.all())
 
         with self.tasks(), \
                 mock.patch.object(tsdb, 'get_earliest_timestamp') as get_earliest_timestamp:

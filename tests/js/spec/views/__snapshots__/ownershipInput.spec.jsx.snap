@@ -1,0 +1,405 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`ProjectTeamsSettings render() renders 1`] = `
+.glamor-0 {
+  box-sizing: border-box;
+  display: -webkit-box;
+  display: -webkit-flex;
+  display: -ms-flexbox;
+  display: flex;
+  -webkit-align-items: center;
+  -webkit-box-align: center;
+  -ms-flex-align: center;
+  align-items: center;
+}
+
+<OwnerInput
+  initialText="url:src @dummy@example.com"
+  organization={
+    Object {
+      "access": Array [
+        "org:read",
+        "org:write",
+        "org:admin",
+        "project:read",
+        "project:write",
+        "project:admin",
+        "team:read",
+        "team:write",
+        "team:admin",
+      ],
+      "features": Array [],
+      "id": "3",
+      "name": "Organization Name",
+      "onboardingTasks": Array [],
+      "projects": Array [],
+      "slug": "org-slug",
+      "status": Object {
+        "id": "active",
+        "name": "active",
+      },
+      "teams": Array [],
+    }
+  }
+  params={
+    Object {
+      "orgId": "org-slug",
+      "projectId": "project-slug",
+    }
+  }
+  project={
+    Object {
+      "allowedDomains": Array [
+        "example.com",
+        "https://example.com",
+      ],
+      "dataScrubber": false,
+      "dataScrubberDefaults": false,
+      "digestsMaxDelay": 60,
+      "digestsMinDelay": 5,
+      "id": "2",
+      "name": "Project Name",
+      "resolveAge": 48,
+      "safeFields": Array [
+        "business-email",
+        "company",
+      ],
+      "scrapeJavaScript": true,
+      "scrubIPAddresses": false,
+      "securityToken": "security-token",
+      "securityTokenHeader": "x-security-header",
+      "sensitiveFields": Array [
+        "creditcard",
+        "ssn",
+      ],
+      "slug": "project-slug",
+      "subjectTemplate": "[$project] \${tag:level}: $title",
+      "verifySSL": true,
+    }
+  }
+>
+  <div
+    onKeyDown={[Function]}
+    style={
+      Object {
+        "position": "relative",
+      }
+    }
+  >
+    <withDefaultStyle(MentionsInput)
+      autoCapitalize="off"
+      autoComplete="off"
+      autoCorrect="off"
+      autoFocus={true}
+      displayTransform={[Function]}
+      markup="**[sentry.strip:__type__]__display__**"
+      onChange={[Function]}
+      placeholder="#example usage
+
+path:src/sentry/pipeline/* person@sentry.io #platform
+
+url:http://sentry.io/settings/* #workflow"
+      required={true}
+      spellCheck="false"
+      style={
+        Object {
+          "&multiLine": Object {
+            "control": Object {
+              "fontFamily": "Monaco, Consolas, \\"Courier New\\", monospace",
+            },
+            "highlighter": Object {
+              "padding": 20,
+            },
+            "input": Object {
+              "border": "1 solid",
+              "minHeight": 140,
+              "outline": 0,
+              "overflow": "auto",
+              "padding": "5px 5px 0",
+            },
+          },
+          "&singleLine": Object {
+            "control": Object {
+              "display": "inline-block",
+              "width": 130,
+            },
+            "highlighter": Object {
+              "border": "2px inset transparent",
+              "padding": 1,
+            },
+            "input": Object {
+              "border": "2px inset",
+              "padding": 1,
+            },
+          },
+          "control": Object {
+            "backgroundColor": "#fff",
+            "fontSize": 15,
+            "fontWeight": "normal",
+          },
+          "input": Object {
+            "fontFamily": "Monaco, Consolas, \\"Courier New\\", monospace",
+            "margin": 0,
+            "whiteSpace": "pre-wrap",
+            "wordBreak": "break-all",
+          },
+          "suggestions": Object {
+            "item": Object {
+              "&focused": Object {
+                "backgroundColor": "#f8f6f9",
+              },
+              "borderBottom": "1px solid rgba(0,0,0,0.15)",
+              "padding": "5px 15px",
+            },
+            "list": Object {
+              "backgroundColor": "white",
+              "border": "1px solid rgba(0,0,0,0.15)",
+              "fontSize": 15,
+              "maxHeight": 150,
+              "overflow": "auto",
+            },
+          },
+        }
+      }
+      value="url:src @dummy@example.com"
+    >
+      <MentionsInput
+        autoCapitalize="off"
+        autoComplete="off"
+        autoCorrect="off"
+        autoFocus={true}
+        displayTransform={[Function]}
+        markup="**[sentry.strip:__type__]__display__**"
+        onBlur={[Function]}
+        onChange={[Function]}
+        onKeyDown={[Function]}
+        onSelect={[Function]}
+        placeholder="#example usage
+
+path:src/sentry/pipeline/* person@sentry.io #platform
+
+url:http://sentry.io/settings/* #workflow"
+        required={true}
+        singleLine={false}
+        spellCheck="false"
+        style={[Function]}
+        value="url:src @dummy@example.com"
+      >
+        <div
+          style={
+            Object {
+              "overflowY": "visible",
+              "position": "relative",
+            }
+          }
+        >
+          <div
+            style={
+              Object {
+                "backgroundColor": "#fff",
+                "fontFamily": "Monaco, Consolas, \\"Courier New\\", monospace",
+                "fontSize": 15,
+                "fontWeight": "normal",
+              }
+            }
+          >
+            <withDefaultStyle(Highlighter)
+              displayTransform={[Function]}
+              inputStyle={
+                Object {
+                  "backgroundColor": "transparent",
+                  "border": "1 solid",
+                  "bottom": 0,
+                  "boxSizing": "border-box",
+                  "display": "block",
+                  "fontFamily": "Monaco, Consolas, \\"Courier New\\", monospace",
+                  "height": "100%",
+                  "margin": 0,
+                  "minHeight": 140,
+                  "outline": 0,
+                  "overflow": "auto",
+                  "padding": "5px 5px 0",
+                  "position": "absolute",
+                  "resize": "none",
+                  "top": 0,
+                  "whiteSpace": "pre-wrap",
+                  "width": "100%",
+                  "wordBreak": "break-all",
+                }
+              }
+              markup="**[sentry.strip:__type__]__display__**"
+              onCaretPositionChange={[Function]}
+              selection={
+                Object {
+                  "end": null,
+                  "start": null,
+                }
+              }
+              singleLine={false}
+              style={[Function]}
+              value="url:src @dummy@example.com"
+            >
+              <Highlighter
+                displayTransform={[Function]}
+                inputStyle={
+                  Object {
+                    "backgroundColor": "transparent",
+                    "border": "1 solid",
+                    "bottom": 0,
+                    "boxSizing": "border-box",
+                    "display": "block",
+                    "fontFamily": "Monaco, Consolas, \\"Courier New\\", monospace",
+                    "height": "100%",
+                    "margin": 0,
+                    "minHeight": 140,
+                    "outline": 0,
+                    "overflow": "auto",
+                    "padding": "5px 5px 0",
+                    "position": "absolute",
+                    "resize": "none",
+                    "top": 0,
+                    "whiteSpace": "pre-wrap",
+                    "width": "100%",
+                    "wordBreak": "break-all",
+                  }
+                }
+                markup="**[sentry.strip:__type__]__display__**"
+                onCaretPositionChange={[Function]}
+                selection={
+                  Object {
+                    "end": null,
+                    "start": null,
+                  }
+                }
+                singleLine={false}
+                style={[Function]}
+                value="url:src @dummy@example.com"
+              >
+                <div
+                  style={
+                    Object {
+                      "backgroundColor": "transparent",
+                      "border": "1 solid",
+                      "bottom": 0,
+                      "boxSizing": "border-box",
+                      "color": "transparent",
+                      "display": "block",
+                      "fontFamily": "Monaco, Consolas, \\"Courier New\\", monospace",
+                      "height": "100%",
+                      "margin": 0,
+                      "minHeight": 140,
+                      "outline": 0,
+                      "overflow": "hidden",
+                      "padding": 20,
+                      "position": "relative",
+                      "resize": "none",
+                      "top": 0,
+                      "whiteSpace": "pre-wrap",
+                      "width": "inherit",
+                      "wordBreak": "break-all",
+                      "wordWrap": "break-word",
+                    }
+                  }
+                >
+                  <span
+                    key="0"
+                    style={
+                      Object {
+                        "visibility": "hidden",
+                      }
+                    }
+                  >
+                    url:src @dummy@example.com
+                  </span>
+                   
+                </div>
+              </Highlighter>
+            </withDefaultStyle(Highlighter)>
+            <textarea
+              autoCapitalize="off"
+              autoComplete="off"
+              autoCorrect="off"
+              autoFocus={true}
+              onBlur={[Function]}
+              onChange={[Function]}
+              onCompositionEnd={[Function]}
+              onCompositionStart={[Function]}
+              onKeyDown={[Function]}
+              onSelect={[Function]}
+              placeholder="#example usage
+
+path:src/sentry/pipeline/* person@sentry.io #platform
+
+url:http://sentry.io/settings/* #workflow"
+              required={true}
+              spellCheck="false"
+              style={
+                Object {
+                  "backgroundColor": "transparent",
+                  "border": "1 solid",
+                  "bottom": 0,
+                  "boxSizing": "border-box",
+                  "display": "block",
+                  "fontFamily": "Monaco, Consolas, \\"Courier New\\", monospace",
+                  "height": "100%",
+                  "margin": 0,
+                  "minHeight": 140,
+                  "outline": 0,
+                  "overflow": "auto",
+                  "padding": "5px 5px 0",
+                  "position": "absolute",
+                  "resize": "none",
+                  "top": 0,
+                  "whiteSpace": "pre-wrap",
+                  "width": "100%",
+                  "wordBreak": "break-all",
+                }
+              }
+              value="url:src @dummy@example.com"
+            />
+          </div>
+        </div>
+      </MentionsInput>
+    </withDefaultStyle(MentionsInput)>
+    <div
+      style={
+        Object {
+          "paddingTop": "10px",
+          "textAlign": "end",
+        }
+      }
+    >
+      <Button
+        disabled={false}
+        onClick={[Function]}
+        priority="primary"
+        size="small"
+      >
+        <button
+          className="button button-primary button-sm"
+          disabled={false}
+          onClick={[Function]}
+          role="button"
+        >
+          <Flex
+            align="center"
+            className="button-label"
+          >
+            <Base
+              align="center"
+              className="button-label glamor-0"
+            >
+              <div
+                className="button-label glamor-0"
+                is={null}
+              >
+                Save Changes
+              </div>
+            </Base>
+          </Flex>
+        </button>
+      </Button>
+    </div>
+  </div>
+</OwnerInput>
+`;
