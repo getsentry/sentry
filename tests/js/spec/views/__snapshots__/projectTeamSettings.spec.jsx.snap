@@ -19,9 +19,13 @@ exports[`ProjectTeamsSettings render() renders 1`] = `
             </Button>
           }
 <<<<<<< HEAD
+<<<<<<< HEAD
           alignMenu="right"
 =======
           alignMenu="left"
+=======
+          alignMenu="right"
+>>>>>>> right is default alignment for dropdownAutocompleteMenu
           isOpen={false}
 >>>>>>> user badges for durpdown
           items={

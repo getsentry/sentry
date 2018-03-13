@@ -45,7 +45,6 @@ class DropdownAutoCompleteMenu extends React.Component {
 
   static defaultProps = {
     onSelect: () => {},
-    alignMenu: 'left',
   };
 
   filterItems = (items, inputValue) =>

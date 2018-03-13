@@ -200,11 +200,7 @@ const TeamMembers = createReactClass({
     };
 
     return (
-      <DropdownAutoComplete
-        items={[{items, group}]}
-        onSelect={this.addTeamMember}
-        alignMenu="right"
-      >
+      <DropdownAutoComplete items={[{items, group}]} onSelect={this.addTeamMember}>
         {({isOpen, selectedItem}) => (
           <DropdownButton isOpen={isOpen} size="xsmall">
             {t('Add Member')}
