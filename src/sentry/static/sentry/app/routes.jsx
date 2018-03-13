@@ -360,8 +360,8 @@ const projectSettingsRoutes = (
       name="Integration Details"
       component={errorHandler(ProjectPluginDetails)}
     />
-    // XXX(epurkhiser): This lives under project configurations for now until
-    // we've migrated enough integrations that it can live at the org level.
+    {/* XXX(epurkhiser): This lives under project configurations for now until
+        we've migrated enough integrations that it can live at the org level. */}
     <Route
       path="integrations/:providerKey/"
       name="Integration Configuration"
