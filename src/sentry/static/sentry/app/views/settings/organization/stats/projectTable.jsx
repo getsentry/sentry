@@ -70,7 +70,7 @@ class ProjectTable extends React.PureComponent {
               <tr key={item.id}>
                 <td>
                   <Link to={`/${org.slug}/${project.slug}/`}>
-                    {features.has('internal-catchall')
+                    {features.has('new-teams')
                       ? project.slug
                       : `${project.team.name} / ${project.name}`}
                   </Link>

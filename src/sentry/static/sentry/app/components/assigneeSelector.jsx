@@ -238,7 +238,7 @@ const AssigneeSelector = createReactClass({
     let org = this.context.organization;
     let features = new Set(org.features);
 
-    if (features.has('internal-catchall')) {
+    if (features.has('new-teams')) {
       teamNodes = AssigneeSelector.filterMembers(
         this.assignableTeams(),
         filter
@@ -311,7 +311,7 @@ const AssigneeSelector = createReactClass({
                     type="text"
                     className="form-control input-sm"
                     placeholder={
-                      features.has('internal-catchall')
+                      features.has('new-teams')
                         ? t('Filter teams and people')
                         : t('Filter members')
                     }

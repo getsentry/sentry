@@ -413,7 +413,7 @@ const OrganizationDashboard = createReactClass({
           <div className="col-md-4">
             {this.state.hooks}
             <EventsPerHour {...this.props} />
-            {features.has('internal-catchall') ? (
+            {features.has('new-teams') ? (
               <ProjectList {...this.props} projects={this.state.projects} />
             ) : (
               <ProjectListOld {...this.props} projects={this.state.projects} />
