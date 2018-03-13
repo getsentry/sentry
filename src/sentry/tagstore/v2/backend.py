@@ -283,8 +283,12 @@ class V2TagStorage(TagStorage):
         gtv.value = value
         return (gtv, created)
 
-    def create_event_tags(self, project_id, group_id, environment_id, event_id, tags):
+    def create_event_tags(self, project_id, group_id, environment_id,
+                          event_id, tags, date_added=None):
         assert environment_id is not None
+
+        if date_added is None:
+            date_added = timezone.now()
 
         tag_ids = []
         for key, value in tags:
@@ -292,8 +296,6 @@ class V2TagStorage(TagStorage):
             tagvalue, _ = self.get_or_create_tag_value(
                 project_id, environment_id, key, value, key_id=tagkey.id)
             tag_ids.append((tagkey.id, tagvalue.id))
-
-        date_added = timezone.now()
 
         try:
             # don't let a duplicate break the outer transaction

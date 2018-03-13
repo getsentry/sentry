@@ -193,15 +193,17 @@ class LegacyTagStorage(TagStorage):
         return GroupTagValue.objects.get_or_create(
             project_id=project_id, group_id=group_id, key=key, value=value, **kwargs)
 
-    def create_event_tags(self, project_id, group_id, environment_id, event_id, tags):
+    def create_event_tags(self, project_id, group_id, environment_id,
+                          event_id, tags, date_added=None):
+        if date_added is None:
+            date_added = timezone.now()
+
         tag_ids = []
         for key, value in tags:
             tagkey, _ = self.get_or_create_tag_key(project_id, environment_id, key)
             tagvalue, _ = self.get_or_create_tag_value(
                 project_id, environment_id, key, value)
             tag_ids.append((tagkey.id, tagvalue.id))
-
-        date_added = timezone.now()
 
         try:
             # don't let a duplicate break the outer transaction
