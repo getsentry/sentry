@@ -64,7 +64,7 @@ export function joinTeam(api, params, options) {
     method: 'POST',
     data: params.data,
     success: data => {
-      TeamActions.updateSuccess(id, params.teamId, data);
+      TeamActions.updateSuccess(params.teamId, data);
       doCallback(options, 'success', data);
     },
     error: error => {
@@ -84,7 +84,7 @@ export function leaveTeam(api, params, options) {
   return api.request(endpoint, {
     method: 'DELETE',
     success: data => {
-      TeamActions.updateSuccess(id, params.teamId, data);
+      TeamActions.updateSuccess(params.teamId, data);
       doCallback(options, 'success', data);
     },
     error: error => {
