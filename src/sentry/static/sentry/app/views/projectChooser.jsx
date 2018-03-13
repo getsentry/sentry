@@ -60,9 +60,7 @@ const ProjectChooser = createReactClass({
                       <td>
                         <h4>
                           <a href={`/${org.slug}/${project.slug}/${task.location}`}>
-                            {features.has('internal-catchall')
-                              ? project.slug
-                              : project.name}
+                            {features.has('new-teams') ? project.slug : project.name}
                           </a>
                         </h4>
                       </td>

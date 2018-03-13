@@ -61,15 +61,15 @@ class TransferProjectView(ProjectView):
                 user_id=owner.user_id,
                 transaction_id=transaction_id)
 
-            is_internal = features.has(
-                'organizations:internal-catchall',
+            has_new_teams = features.has(
+                'organizations:new-teams',
                 organization,
                 actor=request.user,
             )
             context = {
                 'email': email,
                 'from_org': organization.name,
-                'project_name': project.slug if is_internal else project.name,
+                'project_name': project.slug if has_new_teams else project.name,
                 'request_time': timezone.now(),
                 'url':
                 absolute_uri('/accept-transfer/') + '?' + urlencode({'data': url_data}),
@@ -96,7 +96,7 @@ class TransferProjectView(ProjectView):
             messages.add_message(
                 request, messages.SUCCESS,
                 _(u'A request was sent to move project %r to a different organization') %
-                ((project.slug if is_internal else project.name).encode('utf-8'), )
+                ((project.slug if has_new_teams else project.name).encode('utf-8'), )
             )
 
             return HttpResponseRedirect(

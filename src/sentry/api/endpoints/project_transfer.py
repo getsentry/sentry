@@ -76,15 +76,15 @@ class ProjectTransferEndpoint(ProjectEndpoint):
             user_id=owner.user_id,
             transaction_id=transaction_id)
 
-        is_internal = features.has(
-            'organizations:internal-catchall',
+        has_new_teams = features.has(
+            'organizations:new-teams',
             project.organization,
             actor=request.user,
         )
         context = {
             'email': email,
             'from_org': project.organization.name,
-            'project_name': project.slug if is_internal else project.name,
+            'project_name': project.slug if has_new_teams else project.name,
             'request_time': timezone.now(),
             'url':
             absolute_uri('/accept-transfer/') + '?' + urlencode({'data': url_data}),
