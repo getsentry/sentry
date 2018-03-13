@@ -5,7 +5,9 @@ import SentryTypes from '../../../proptypes';
 import {t} from '../../../locale';
 import AllTeamsList from './allTeamsList';
 import {getOrganizationState} from '../../../mixins/organizationState';
-import ListLink from '../../../components/listLink';
+import Panel from '../components/panel';
+import PanelHeader from '../components/panelHeader';
+import PanelBody from '../components/panelBody';
 import Button from '../../../components/buttons/button';
 import recreateRoute from '../../../utils/recreateRoute';
 import SettingsPageHeader from '../components/settingsPageHeader';
@@ -17,7 +19,6 @@ class OrganizationTeamsView extends React.Component {
     organization: SentryTypes.Organization,
     access: PropTypes.object,
     features: PropTypes.object,
-    route: PropTypes.object,
     routes: PropTypes.array,
     params: PropTypes.object,
   };
@@ -29,7 +30,6 @@ class OrganizationTeamsView extends React.Component {
       organization,
       access,
       features,
-      route,
       routes,
       params,
     } = this.props;
@@ -59,30 +59,38 @@ class OrganizationTeamsView extends React.Component {
     let teamRoute = routes.find(({path}) => path === 'teams/');
     let urlPrefix = recreateRoute(teamRoute, {routes, params, stepBack: -1});
 
-    let tabs = (
-      <ul className="nav nav-tabs border-bottom">
-        <ListLink to={`${urlPrefix}teams/your-teams/`}>{t('Your Teams')}</ListLink>
-        <ListLink to={`${urlPrefix}teams/all-teams/`}>
-          {t('All Teams')} <span className="badge badge-soft">{allTeams.length}</span>
-        </ListLink>
-      </ul>
-    );
+    let activeTeamIds = new Set(activeTeams.map(team => team.id));
+    let otherTeams = allTeams.filter(team => !activeTeamIds.has(team.id));
 
     return (
       <div className="team-list">
-        <SettingsPageHeader title={t('Teams')} tabs={tabs} action={action} />
-        <AllTeamsList
-          urlPrefix={urlPrefix}
-          organization={org}
-          teamList={route.allTeams ? allTeams : activeTeams}
-          access={access}
-          openMembership={
-            !!(
-              route.allTeams &&
-              (features.has('open-membership') || access.has('org:write'))
-            )
-          }
-        />
+        <SettingsPageHeader title={t('Teams')} action={action} />
+        <Panel>
+          <PanelHeader>{t('Your Teams')}</PanelHeader>
+          <PanelBody>
+            <AllTeamsList
+              urlPrefix={urlPrefix}
+              organization={org}
+              teamList={activeTeams}
+              access={access}
+              openMembership={false}
+            />
+          </PanelBody>
+        </Panel>
+        <Panel>
+          <PanelHeader>{t('Other Teams')}</PanelHeader>
+          <PanelBody>
+            <AllTeamsList
+              urlPrefix={urlPrefix}
+              organization={org}
+              teamList={otherTeams}
+              access={access}
+              openMembership={
+                !!(features.has('open-membership') || access.has('org:write'))
+              }
+            />
+          </PanelBody>
+        </Panel>
       </div>
     );
   }
