@@ -139,7 +139,7 @@ const HomeSidebar = createReactClass({
           </ListLink>
 
           {!features.has('internal-catchall') && (
-            <ListLink to={`${pathPrefix}/projects/`}>{t('Projects & Teams')}</ListLink>
+            <ListLink to={`${pathPrefix}/teams/`}>{t('Projects & Teams')}</ListLink>
           )}
 
           {features.has('internal-catchall') && (
