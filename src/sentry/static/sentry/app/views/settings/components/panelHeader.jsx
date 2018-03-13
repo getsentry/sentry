@@ -28,8 +28,6 @@ const StyledPanelHeading = styled(({lightText, isFlex, align, justify, ...props}
   font-size: inherit;
   text-transform: inherit;
   margin: 0;
-  ${p => (p.justify ? `justify-content: ${p.justify};` : '')};
-  ${p => (p.align ? `align-items: ${p.align};` : '')};
   ${getFlex};
   ${p => (p.lightText ? `color: ${p.theme.gray2}` : '')};
   ${p => (p.align ? `align-items: ${p.align};` : '')};
@@ -57,8 +55,6 @@ class PanelHeader extends React.Component {
 
 PanelHeader.propTypes = {
   isFlex: PropTypes.bool,
-  justify: PropTypes.string,
-  align: PropTypes.string,
   disablePadding: PropTypes.bool,
   hasButtons: PropTypes.bool,
   lightText: PropTypes.bool,
