@@ -116,7 +116,7 @@ const ExpandedTeamList = createReactClass({
               {t('Leave Team')}
             </TeamHeaderLink>
             {access.has('team:write') && (
-              <TeamHeaderLink to={`${this.urlPrefix()}teams/${team.slug}/settings/`}>
+              <TeamHeaderLink to={`${this.urlPrefix()}teams/${team.slug}/`}>
                 {t('Team Settings')}
               </TeamHeaderLink>
             )}
