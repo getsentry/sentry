@@ -293,7 +293,7 @@ const StyledCreateMemberLink = styled(Link)`
 `;
 
 const StyledMembersLabel = styled('div')`
-  font-size: 0.75em;
+  font-size: 0.875em;
   padding: 0.75em 0;
   text-transform: uppercase;
 `;
