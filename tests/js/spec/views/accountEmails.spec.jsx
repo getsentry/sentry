@@ -43,7 +43,7 @@ describe('AccountEmails', function() {
 
     // The first Button should be delete button for first secondary email (NOT primary)
     wrapper
-      .find('Button')
+      .find('RemoveButton')
       .at(1)
       .simulate('click');
 
@@ -76,7 +76,7 @@ describe('AccountEmails', function() {
 
     // The first Button should be delete button for first secondary email (NOT primary)
     wrapper
-      .find('Button')
+      .find('Button[children="Set as primary"]')
       .first()
       .simulate('click');
 
