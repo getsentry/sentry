@@ -120,7 +120,7 @@ const AllTeamsRow = createReactClass({
       <PanelItem p={0} align="center">
         <Box flex="1" p={2}>
           {access.has('team:write') ? (
-            <Link to={`${urlPrefix}teams/${team.slug}/settings/`}>{display}</Link>
+            <Link to={`${urlPrefix}teams/${team.slug}/`}>{display}</Link>
           ) : (
             display
           )}
