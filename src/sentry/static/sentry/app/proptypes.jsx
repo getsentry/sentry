@@ -115,7 +115,6 @@ export const Project = PropTypes.shape({
   id: PropTypes.string.isRequired,
   name: PropTypes.string.isRequired,
   slug: PropTypes.string.isRequired,
-  callSign: PropTypes.string,
   color: PropTypes.string,
   dateCreated: PropTypes.string,
   features: PropTypes.arrayOf(PropTypes.string),

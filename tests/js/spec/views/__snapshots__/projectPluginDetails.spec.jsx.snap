@@ -177,6 +177,7 @@ exports[`ProjectPluginDetails renders 1`] = `
       "dataScrubberDefaults": false,
       "digestsMaxDelay": 60,
       "digestsMinDelay": 5,
+      "features": Array [],
       "id": "2",
       "name": "Project Name",
       "resolveAge": 48,
@@ -194,6 +195,7 @@ exports[`ProjectPluginDetails renders 1`] = `
       ],
       "slug": "project-slug",
       "subjectTemplate": "[$project] \${tag:level}: $title",
+      "teams": Array [],
       "verifySSL": true,
     }
   }
@@ -256,6 +258,7 @@ exports[`ProjectPluginDetails renders 1`] = `
         "dataScrubberDefaults": false,
         "digestsMaxDelay": 60,
         "digestsMinDelay": 5,
+        "features": Array [],
         "id": "2",
         "name": "Project Name",
         "resolveAge": 48,
@@ -273,6 +276,7 @@ exports[`ProjectPluginDetails renders 1`] = `
         ],
         "slug": "project-slug",
         "subjectTemplate": "[$project] \${tag:level}: $title",
+        "teams": Array [],
         "verifySSL": true,
       }
     }
@@ -471,6 +475,7 @@ exports[`ProjectPluginDetails renders 1`] = `
                     "dataScrubberDefaults": false,
                     "digestsMaxDelay": 60,
                     "digestsMinDelay": 5,
+                    "features": Array [],
                     "id": "2",
                     "name": "Project Name",
                     "resolveAge": 48,
@@ -488,6 +493,7 @@ exports[`ProjectPluginDetails renders 1`] = `
                     ],
                     "slug": "project-slug",
                     "subjectTemplate": "[$project] \${tag:level}: $title",
+                    "teams": Array [],
                     "verifySSL": true,
                   }
                 }
@@ -675,6 +681,7 @@ exports[`ProjectPluginDetails renders 1`] = `
                                   "dataScrubberDefaults": false,
                                   "digestsMaxDelay": 60,
                                   "digestsMinDelay": 5,
+                                  "features": Array [],
                                   "id": "2",
                                   "name": "Project Name",
                                   "resolveAge": 48,
@@ -692,6 +699,7 @@ exports[`ProjectPluginDetails renders 1`] = `
                                   ],
                                   "slug": "project-slug",
                                   "subjectTemplate": "[$project] \${tag:level}: $title",
+                                  "teams": Array [],
                                   "verifySSL": true,
                                 }
                               }

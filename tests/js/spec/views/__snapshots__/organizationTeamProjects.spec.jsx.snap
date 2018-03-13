@@ -381,6 +381,7 @@ exports[`OrganizationTeamProjects Should render 1`] = `
                                 "dataScrubberDefaults": false,
                                 "digestsMaxDelay": 60,
                                 "digestsMinDelay": 5,
+                                "features": Array [],
                                 "id": "2",
                                 "name": "Project Name",
                                 "resolveAge": 48,
@@ -398,6 +399,13 @@ exports[`OrganizationTeamProjects Should render 1`] = `
                                 ],
                                 "slug": "project-slug",
                                 "subjectTemplate": "[$project] \${tag:level}: $title",
+                                "teams": Array [
+                                  Object {
+                                    "id": "1",
+                                    "name": "Team Name",
+                                    "slug": "team-slug",
+                                  },
+                                ],
                                 "verifySSL": true,
                               }
                             }
@@ -477,6 +485,7 @@ exports[`OrganizationTeamProjects Should render 1`] = `
                                           "dataScrubberDefaults": false,
                                           "digestsMaxDelay": 60,
                                           "digestsMinDelay": 5,
+                                          "features": Array [],
                                           "id": "2",
                                           "name": "Project Name",
                                           "resolveAge": 48,
@@ -494,6 +503,13 @@ exports[`OrganizationTeamProjects Should render 1`] = `
                                           ],
                                           "slug": "project-slug",
                                           "subjectTemplate": "[$project] \${tag:level}: $title",
+                                          "teams": Array [
+                                            Object {
+                                              "id": "1",
+                                              "name": "Team Name",
+                                              "slug": "team-slug",
+                                            },
+                                          ],
                                           "verifySSL": true,
                                         }
                                       }
@@ -536,6 +552,7 @@ exports[`OrganizationTeamProjects Should render 1`] = `
                                             "dataScrubberDefaults": false,
                                             "digestsMaxDelay": 60,
                                             "digestsMinDelay": 5,
+                                            "features": Array [],
                                             "id": "2",
                                             "name": "Project Name",
                                             "resolveAge": 48,
@@ -553,6 +570,13 @@ exports[`OrganizationTeamProjects Should render 1`] = `
                                             ],
                                             "slug": "project-slug",
                                             "subjectTemplate": "[$project] \${tag:level}: $title",
+                                            "teams": Array [
+                                              Object {
+                                                "id": "1",
+                                                "name": "Team Name",
+                                                "slug": "team-slug",
+                                              },
+                                            ],
                                             "verifySSL": true,
                                           }
                                         }
@@ -595,6 +619,7 @@ exports[`OrganizationTeamProjects Should render 1`] = `
                                               "dataScrubberDefaults": false,
                                               "digestsMaxDelay": 60,
                                               "digestsMinDelay": 5,
+                                              "features": Array [],
                                               "id": "2",
                                               "name": "Project Name",
                                               "resolveAge": 48,
@@ -612,6 +637,13 @@ exports[`OrganizationTeamProjects Should render 1`] = `
                                               ],
                                               "slug": "project-slug",
                                               "subjectTemplate": "[$project] \${tag:level}: $title",
+                                              "teams": Array [
+                                                Object {
+                                                  "id": "1",
+                                                  "name": "Team Name",
+                                                  "slug": "team-slug",
+                                                },
+                                              ],
                                               "verifySSL": true,
                                             }
                                           }

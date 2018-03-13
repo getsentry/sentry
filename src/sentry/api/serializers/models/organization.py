@@ -70,7 +70,7 @@ class DetailedOrganizationSerializer(OrganizationSerializer):
         from sentry import features
         from sentry.app import env
         from sentry.api.serializers.models.project import ProjectWithTeamSerializer
-        from sentry.api.serializers.models.team import TeamWithProjectsSerializer
+        from sentry.api.serializers.models.team import TeamSerializer
 
         team_list = list(Team.objects.filter(
             organization=obj,
@@ -165,8 +165,7 @@ class DetailedOrganizationSerializer(OrganizationSerializer):
             'safeFields': obj.get_option('sentry:safe_fields', None) or [],
             'scrubIPAddresses': bool(obj.get_option('sentry:require_scrub_ip_address', False)),
         })
-        # TODO(jess): make this the basic team serializer eventually?
-        context['teams'] = serialize(team_list, user, TeamWithProjectsSerializer())
+        context['teams'] = serialize(team_list, user, TeamSerializer())
         context['projects'] = serialize(project_list, user, ProjectWithTeamSerializer())
         if env.request:
             context['access'] = access.from_request(env.request, obj).scopes

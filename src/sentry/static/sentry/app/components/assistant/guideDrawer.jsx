@@ -28,9 +28,12 @@ export default class GuideDrawer extends React.Component {
         <div className="assistant-drawer-title">
           {this.props.guide.steps[this.props.step - 1].title}
         </div>
-        <div className="assistant-drawer-message">
-          {this.props.guide.steps[this.props.step - 1].message}
-        </div>
+        <div
+          className="assistant-drawer-message"
+          dangerouslySetInnerHTML={{
+            __html: this.props.guide.steps[this.props.step - 1].message,
+          }}
+        />
         <div>
           {this.props.step < this.props.guide.steps.length ? (
             <div>

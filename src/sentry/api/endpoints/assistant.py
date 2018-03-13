@@ -35,7 +35,7 @@ class AssistantEndpoint(Endpoint):
         """Return all the guides the user has not viewed or dismissed."""
         exclude_ids = set(AssistantActivity.objects.filter(
             user=request.user,
-        ).values_list('id', flat=True))
+        ).values_list('guide_id', flat=True))
         result = {k: v for k, v in GUIDES.items() if v['id'] not in exclude_ids}
 
         return Response(result)

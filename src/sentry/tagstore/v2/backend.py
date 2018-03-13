@@ -99,7 +99,10 @@ class V2TagStorage(TagStorage):
             def mark_deletion_in_progress(self, instance_list):
                 for instance in instance_list:
                     if instance.status != TagKeyStatus.DELETION_IN_PROGRESS:
-                        instance.update(status=TagKeyStatus.DELETION_IN_PROGRESS)
+                        TagKey.objects.filter(
+                            id=instance.id,
+                            project_id=instance.project_id,
+                        ).update(status=TagKeyStatus.DELETION_IN_PROGRESS)
 
         deletion_manager.register(TagKey, TagKeyDeletionTask)
 
@@ -280,8 +283,12 @@ class V2TagStorage(TagStorage):
         gtv.value = value
         return (gtv, created)
 
-    def create_event_tags(self, project_id, group_id, environment_id, event_id, tags):
+    def create_event_tags(self, project_id, group_id, environment_id,
+                          event_id, tags, date_added=None):
         assert environment_id is not None
+
+        if date_added is None:
+            date_added = timezone.now()
 
         tag_ids = []
         for key, value in tags:
@@ -289,8 +296,6 @@ class V2TagStorage(TagStorage):
             tagvalue, _ = self.get_or_create_tag_value(
                 project_id, environment_id, key, value, key_id=tagkey.id)
             tag_ids.append((tagkey.id, tagvalue.id))
-
-        date_added = timezone.now()
 
         try:
             # don't let a duplicate break the outer transaction
@@ -463,16 +468,26 @@ class V2TagStorage(TagStorage):
         return deleted
 
     def delete_all_group_tag_keys(self, project_id, group_id):
-        GroupTagKey.objects.filter(
-            project_id=project_id,
-            group_id=group_id,
-        ).delete()
+        using = router.db_for_read(GroupTagKey)
+        cursor = connections[using].cursor()
+        cursor.execute(
+            """
+            DELETE FROM tagstore_grouptagkey
+            WHERE project_id = %s
+              AND group_id = %s
+        """, [project_id, group_id]
+        )
 
     def delete_all_group_tag_values(self, project_id, group_id):
-        GroupTagValue.objects.filter(
-            project_id=project_id,
-            group_id=group_id,
-        ).delete()
+        using = router.db_for_read(GroupTagValue)
+        cursor = connections[using].cursor()
+        cursor.execute(
+            """
+            DELETE FROM tagstore_grouptagvalue
+            WHERE project_id = %s
+              AND group_id = %s
+        """, [project_id, group_id]
+        )
 
     def incr_tag_value_times_seen(self, project_id, environment_id,
                                   key, value, extra=None, count=1):
@@ -778,7 +793,10 @@ class V2TagStorage(TagStorage):
         )
 
         for instance in gtk_qs:
-            instance.update(
+            GroupTagKey.objects.filter(
+                id=instance.id,
+                project_id=project_id,
+            ).update(
                 values_seen=GroupTagValue.objects.filter(
                     project_id=instance.project_id,
                     group_id=instance.group_id,

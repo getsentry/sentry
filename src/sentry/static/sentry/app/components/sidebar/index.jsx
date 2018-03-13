@@ -10,7 +10,6 @@ import {load as loadIncidents} from '../../actionCreators/incidents';
 import Broadcasts from './broadcasts';
 import Incidents from './incidents';
 import UserNav from './userNav';
-import requiredAdminActions from '../requiredAdminActions';
 import OrganizationSelector from './organizationSelector';
 import SidebarPanel from '../sidebarPanel';
 import TodoList from '../onboardingWizard/todos';
@@ -69,16 +68,6 @@ class OnboardingStatus extends React.Component {
       </li>
     );
   }
-}
-
-function getFirstRequiredAdminAction(org) {
-  for (let key in requiredAdminActions) {
-    let action = requiredAdminActions[key];
-    if (action.requiresAction(org)) {
-      return action;
-    }
-  }
-  return null;
 }
 
 const Sidebar = createReactClass({
@@ -307,26 +296,6 @@ const Sidebar = createReactClass({
     );
   },
 
-  renderRequiredActions() {
-    // TODO: investigate if this is seriously deprecated
-    let org = this.getOrganization();
-    let requiredAction = org && getFirstRequiredAdminAction(org);
-
-    if (org && requiredAction !== null) {
-      let slugId = requiredAction.ID.toLowerCase().replace(/_/g, '-');
-      let url = `/organizations/${org.slug}/actions/${slugId}/`;
-      return (
-        <span className="admin-action-message">
-          <a href={url}>
-            {t('Required Action:')} {requiredAction.getActionLinkTitle()}
-          </a>
-        </span>
-      );
-    }
-
-    return null;
-  },
-
   render() {
     let org = this.getOrganization();
 
@@ -353,8 +322,6 @@ const Sidebar = createReactClass({
             </li>
           </ul>
         </div>
-
-        {this.renderRequiredActions()}
       </nav>
     );
   },

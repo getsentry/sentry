@@ -92,8 +92,8 @@ class GroupManager(ProjectBoundManager):
         match = _short_id_re.match(short_id.strip())
         if match is None:
             raise Group.DoesNotExist()
-        callsign, id = match.groups()
-        callsign = callsign.lower()
+        slug, id = match.groups()
+        slug = slug.lower()
         try:
             short_id = base32_decode(id)
             # We need to make sure the short id is not overflowing the
@@ -105,7 +105,7 @@ class GroupManager(ProjectBoundManager):
             raise Group.DoesNotExist()
         return Group.objects.get(
             project__organization=organization_id,
-            project__slug=callsign,
+            project__slug=slug,
             short_id=short_id,
         )
 

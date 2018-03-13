@@ -69,7 +69,6 @@ import ProjectDebugSymbols from './views/projectDebugSymbols';
 import ProjectDetails from './views/projectDetails';
 import ProjectDocsContext from './views/projectInstall/docsContext';
 import ProjectEvents from './views/projectEvents';
-import ProjectFilters from './views/projectFilters';
 import ProjectGeneralSettings from './views/projectGeneralSettings';
 import ProjectGettingStarted from './views/projectInstall/gettingStarted';
 import ProjectInstallOverview from './views/projectInstall/overview';
@@ -91,7 +90,6 @@ import ReleaseDetails from './views/releaseDetails';
 import ReleaseNewEvents from './views/releaseNewEvents';
 import ReleaseOverview from './views/releases/releaseOverview';
 import RouteNotFound from './views/routeNotFound';
-import SetCallsignsAction from './views/requiredAdminActions/setCallsigns';
 import SettingsProjectProvider from './views/settings/settingsProjectProvider';
 import SettingsWrapper from './views/settings/settingsWrapper';
 import SharedGroupDetails from './views/sharedGroupDetails';
@@ -331,8 +329,13 @@ const projectSettingsRoutes = (
     <Route
       path="filters/"
       name="Inbound Filters"
-      component={errorHandler(ProjectFilters)}
-    />
+      componentPromise={() =>
+        import(/* webpackChunkName: "ProjectFilters" */ './views/settings/project/projectFilters')}
+      component={errorHandler(LazyLoad)}
+    >
+      <IndexRedirect to="data-filters/" />
+      <Route path=":filterType/" />
+    </Route>
     <Route path="keys/" name="Client Keys" component={errorHandler(ProjectKeys)} />
     <Route
       path="keys/:keyId/"
@@ -474,7 +477,8 @@ function routes() {
       <Route path="settings/" component={errorHandler(OrganizationGeneralSettingsView)} />
 
       <Route name="Teams" path="teams/">
-        <IndexRedirect to="your-teams" />
+        <IndexRoute component={errorHandler(OrganizationTeams)} />
+
         <Route
           path="all-teams/"
           name="All Teams"
@@ -647,11 +651,6 @@ function routes() {
         <Route
           path="/organizations/:orgId/projects/choose/"
           component={errorHandler(ProjectChooser)}
-        />
-
-        <Route
-          path="/organizations/:orgId/actions/set-callsigns/"
-          component={errorHandler(SetCallsignsAction)}
         />
 
         <Route

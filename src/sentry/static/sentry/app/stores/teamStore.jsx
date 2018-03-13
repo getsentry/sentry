@@ -1,6 +1,5 @@
 import Reflux from 'reflux';
 import TeamActions from '../actions/teamActions';
-import ProjectsStore from './projectsStore';
 
 const TeamStore = Reflux.createStore({
   init() {
@@ -9,21 +8,13 @@ const TeamStore = Reflux.createStore({
 
     this.listenTo(TeamActions.updateSuccess, this.onUpdateSuccess);
     this.listenTo(TeamActions.fetchDetailsSuccess, this.onUpdateSuccess);
-    this.listenTo(ProjectsStore, this.onProject);
   },
 
   reset() {
     this.items = [];
-    // TODO(jess): this is not going to make sense/be accurate in sentry 9
-    this.projectMap = {}; // map of project ids => team ids
   },
 
   loadInitialData(items) {
-    items.forEach(item => {
-      item.projects.forEach(project => {
-        this.projectMap[project.id] = item.id;
-      });
-    });
     this.initialized = true;
     this.items = items;
     this.trigger(new Set(items.map(item => item.id)));
@@ -53,28 +44,6 @@ const TeamStore = Reflux.createStore({
     }
 
     this.trigger(new Set([itemId]));
-  },
-
-  onProject(projectIds) {
-    let teamsChanged = new Set();
-
-    projectIds.forEach((set, projectId) => {
-      let teamId = this.projectMap[projectId];
-      if (teamId === undefined) return;
-      let team = this.getById(teamId);
-      // TODO: make copy of project? right now just assigning reference
-      // to project form project store
-      let project = ProjectsStore.getById(projectId);
-      // so gross don't look, update projects in
-      // the team.projects list. this should be behavior
-      // we can completely deprecate after sentry 9
-      team.projects = team.projects.filter(p => {
-        return p.slug !== project.slug;
-      });
-      team.projects.push(project);
-      teamsChanged.add(team.id);
-    });
-    this.trigger(teamsChanged);
   },
 
   getById(id) {

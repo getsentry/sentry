@@ -5,6 +5,7 @@ __all__ = ['from_user', 'from_member', 'DEFAULT']
 import warnings
 
 from django.conf import settings
+from django.utils.functional import cached_property
 
 from sentry import roles
 from sentry.auth.superuser import is_active_superuser
@@ -140,6 +141,10 @@ def from_request(request, organization, scopes=None):
             requires_sso=requires_sso,
             permissions=UserPermission.for_user(request.user.id),
         )
+
+    if hasattr(request, 'auth') and not request.user.is_authenticated():
+        return from_auth(request.auth, scopes=scopes)
+
     return from_user(request.user, organization, scopes=scopes)
 
 
@@ -189,6 +194,44 @@ def from_member(member, scopes=None):
         teams=team_access,
         permissions=UserPermission.for_user(member.user_id),
     )
+
+
+def from_auth(auth, scopes=None):
+    return OrganizationGlobalAccess(auth.organization, scopes=scopes)
+
+
+class OrganizationGlobalAccess(BaseAccess):
+    requires_sso = False
+    sso_is_valid = True
+    is_active = True
+    memberships = ()
+    permissions = frozenset()
+
+    def __init__(self, organization, scopes=None):
+        if scopes:
+            self.scopes = scopes
+        self.organization = organization
+
+    @cached_property
+    def scopes(self):
+        return settings.SENTRY_SCOPES
+
+    @cached_property
+    def teams(self):
+        from sentry.models import Team
+        return list(Team.objects.filter(organization=self.organization))
+
+    def has_team_access(self, team):
+        return team.organization_id == self.organization.id
+
+    def has_team_membership(self, team):
+        return team.organization_id == self.organization.id
+
+    def has_team_scope(self, team, scope):
+        return team.organization_id == self.organization.id
+
+    def has_scope(self, scope):
+        return True
 
 
 class NoAccess(BaseAccess):

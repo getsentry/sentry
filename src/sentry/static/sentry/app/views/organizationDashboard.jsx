@@ -149,7 +149,7 @@ const ProjectListOld = createReactClass({
   displayName: 'ProjectListOld',
 
   propTypes: {
-    teams: PropTypes.array,
+    projects: PropTypes.array,
     maxProjects: PropTypes.number,
   },
 
@@ -163,21 +163,7 @@ const ProjectListOld = createReactClass({
 
   render() {
     let org = this.getOrganization();
-    let {maxProjects} = this.props;
-    // prevent duplicate projects. this is fixed correctly in the new
-    // version of ProjectList below
-    let includedProjects = new Set();
-    let projects = [];
-    this.props.teams.forEach(team => {
-      if (team.isMember) {
-        team.projects.forEach(project => {
-          if (!includedProjects.has(project.id)) {
-            projects.push({...project, teamName: team.name});
-            includedProjects.add(project.id);
-          }
-        });
-      }
-    });
+    let {maxProjects, projects} = this.props;
 
     projects = sortArray(projects, item => {
       return [!item.isBookmarked, item.teamName, item.name];
@@ -430,7 +416,7 @@ const OrganizationDashboard = createReactClass({
             {features.has('internal-catchall') ? (
               <ProjectList {...this.props} projects={this.state.projects} />
             ) : (
-              <ProjectListOld {...this.props} teams={this.state.teams} />
+              <ProjectListOld {...this.props} projects={this.state.projects} />
             )}
           </div>
         </div>

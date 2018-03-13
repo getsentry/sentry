@@ -11,7 +11,7 @@ import ApiMixin from '../../mixins/apiMixin';
 import OrganizationState from '../../mixins/organizationState';
 
 import GroupStore from '../../stores/groupStore';
-import TeamStore from '../../stores/teamStore';
+import ProjectsStore from '../../stores/projectsStore';
 import IndicatorStore from '../../stores/indicatorStore';
 import {logException} from '../../utils/logging';
 import localStorage from '../../utils/localStorage';
@@ -275,14 +275,13 @@ const NoteInput = createReactClass({
 
   mentionableTeams() {
     let {group} = this.props;
-
-    return _.uniqBy(TeamStore.getAll(), ({id}) => id)
-      .filter(({projects}) => !!projects.find(p => p.slug === group.project.slug))
-      .map(team => ({
-        id: buildTeamId(team.id),
-        display: `#${team.slug}`,
-        email: team.id,
-      }));
+    return (ProjectsStore.getAll().find(p => p.slug == group.project.slug) || {
+      teams: [],
+    }).teams.map(team => ({
+      id: buildTeamId(team.id),
+      display: `#${team.slug}`,
+      email: team.id,
+    }));
   },
 
   render() {

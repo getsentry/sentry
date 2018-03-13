@@ -9,7 +9,7 @@ from __future__ import absolute_import
 
 import six
 
-from django.db import models, router, transaction, DataError
+from django.db import models, router, transaction, DataError, connections
 from django.utils import timezone
 
 from sentry.api.serializers import Serializer, register
@@ -43,6 +43,17 @@ class GroupTagValue(Model):
         index_together = (('project_id', '_key', '_value', 'last_seen'), )
 
     __repr__ = sane_repr('project_id', 'group_id', '_key', '_value')
+
+    def delete_for_merge(self):
+        using = router.db_for_read(GroupTagValue)
+        cursor = connections[using].cursor()
+        cursor.execute(
+            """
+            DELETE FROM tagstore_grouptagvalue
+            WHERE project_id = %s
+              AND id = %s
+        """, [self.project_id, self.id]
+        )
 
     @property
     def key(self):
@@ -108,7 +119,11 @@ class GroupTagValue(Model):
                     _key_id=self._key_id,
                     _value_id=self._value_id,
                 )
-                new_obj.update(
+
+                GroupTagValue.objects.filter(
+                    id=new_obj.id,
+                    project_id=new_group.project_id,
+                ).update(
                     first_seen=min(new_obj.first_seen, self.first_seen),
                     last_seen=max(new_obj.last_seen, self.last_seen),
                     times_seen=new_obj.times_seen + self.times_seen,

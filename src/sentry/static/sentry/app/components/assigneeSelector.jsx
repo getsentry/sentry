@@ -15,7 +15,7 @@ import FlowLayout from './flowLayout';
 import MenuItem from './menuItem';
 import {assignToUser, assignToActor, clearAssignment} from '../actionCreators/group';
 import GroupStore from '../stores/groupStore';
-import TeamStore from '../stores/teamStore';
+import ProjectsStore from '../stores/projectsStore';
 import LoadingIndicator from '../components/loadingIndicator';
 import MemberListStore from '../stores/memberListStore';
 import ConfigStore from '../stores/configStore';
@@ -64,9 +64,8 @@ const AssigneeSelector = createReactClass({
 
   getInitialState() {
     let group = GroupStore.get(this.props.id);
-
     return {
-      assignedTo: group.assignedTo,
+      assignedTo: group && group.assignedTo,
       memberList: MemberListStore.loaded ? MemberListStore.getAll() : null,
       filter: '',
       isOpen: false,
@@ -79,8 +78,8 @@ const AssigneeSelector = createReactClass({
     if (nextProps.id != this.props.id || loading != this.state.loading) {
       let group = GroupStore.get(this.props.id);
       this.setState({
-        assignedTo: group.assignedTo,
         loading,
+        assignedTo: group && group.assignedTo,
       });
     }
   },
@@ -109,14 +108,14 @@ const AssigneeSelector = createReactClass({
   assignableTeams() {
     let group = GroupStore.get(this.props.id);
 
-    return TeamStore.getAll()
-      .filter(({projects}) => projects.some(p => p.slug === group.project.slug))
-      .map(team => ({
-        id: buildTeamId(team.id),
-        name: team.slug,
-        display: `#${team.slug}`,
-        team,
-      }));
+    return (ProjectsStore.getAll().find(p => p.slug == group.project.slug) || {
+      teams: [],
+    }).teams.map(team => ({
+      id: buildTeamId(team.id),
+      display: `#${team.slug}`,
+      email: team.id,
+      team,
+    }));
   },
 
   onGroupChange(itemIds) {
@@ -209,41 +208,35 @@ const AssigneeSelector = createReactClass({
     );
   },
 
-  render() {
-    let {loading, assignedTo, filter, memberList} = this.state;
-    let memberListLoading = this.state.memberList === null;
-
-    let className = classNames('assignee-selector anchor-right ', {
-      unassigned: !assignedTo,
-    });
-
+  renderMemberNodes() {
+    let {filter, memberList} = this.state;
     let members = AssigneeSelector.filterMembers(memberList, filter);
     members = AssigneeSelector.putSessionUserFirst(members);
 
-    let memberNodes =
-      members && members.length ? (
-        members.map(item => {
-          return (
-            <MenuItem
-              key={buildUserId(item.id)}
-              disabled={loading}
-              onSelect={this.assignToUser.bind(this, item)}
-            >
-              <Avatar user={item} className="avatar" size={48} />
-              {this.highlight(item.name || item.email, filter)}
-            </MenuItem>
-          );
-        })
-      ) : (
-        <li className="not-found">
-          <span>{t('No matching users found.')}</span>
-        </li>
-      );
+    return members && members.length ? (
+      members.map(item => {
+        return (
+          <MenuItem
+            key={buildUserId(item.id)}
+            onSelect={this.assignToUser.bind(this, item)}
+          >
+            <Avatar user={item} className="avatar" size={48} />
+            {this.highlight(item.name || item.email, filter)}
+          </MenuItem>
+        );
+      })
+    ) : (
+      <li className="not-found">
+        <span>{t('No matching users found.')}</span>
+      </li>
+    );
+  },
 
+  renderTeamNodes() {
+    let {filter} = this.state;
     let teamNodes = [];
     let org = this.context.organization;
     let features = new Set(org.features);
-    let access = new Set(org.access);
 
     if (features.has('internal-catchall')) {
       teamNodes = AssigneeSelector.filterMembers(
@@ -251,11 +244,7 @@ const AssigneeSelector = createReactClass({
         filter
       ).map(({id, display, team}) => {
         return (
-          <MenuItem
-            key={id}
-            disabled={loading}
-            onSelect={this.assignToTeam.bind(this, team)}
-          >
+          <MenuItem key={id} onSelect={this.assignToTeam.bind(this, team)}>
             <TeamAvatar team={team} className="avatar" size={48} />
             {this.highlight(display, filter)}
           </MenuItem>
@@ -265,28 +254,58 @@ const AssigneeSelector = createReactClass({
         teamNodes = [...teamNodes, <hr key="divider" style={{margin: 0}} />];
       }
     }
+    return teamNodes;
+  },
+
+  render() {
+    let {loading, assignedTo} = this.state;
+    let group = GroupStore.get(this.props.id);
+
+    let org = this.context.organization;
+    let features = new Set(org.features);
+    let access = new Set(org.access);
+
+    let assigneeListLoading = this.state.memberList === null || !group;
+
+    if (loading) {
+      return (
+        <div>
+          <div className="assignee-selector anchor-right">
+            <LoadingIndicator mini style={{marginRight: '10px'}} />
+          </div>
+        </div>
+      );
+    }
+
+    let className = classNames('assignee-selector anchor-right', {
+      unassigned: !assignedTo,
+    });
 
     return (
       <div>
         <div className={className}>
-          {loading ? (
-            <LoadingIndicator mini style={{float: 'left'}} />
-          ) : (
-            <DropdownLink
-              className="assignee-selector-toggle"
-              onOpen={this.onDropdownOpen}
-              onClose={this.onDropdownClose}
-              isOpen={this.state.isOpen}
-              alwaysRenderMenu={false}
-              title={
-                assignedTo ? (
-                  <ActorAvatar actor={assignedTo} className="avatar" size={48} />
-                ) : (
-                  <span className="icon-user" />
-                )
-              }
-            >
-              {!memberListLoading && (
+          <DropdownLink
+            className="assignee-selector-toggle"
+            onOpen={this.onDropdownOpen}
+            onClose={this.onDropdownClose}
+            isOpen={this.state.isOpen}
+            alwaysRenderMenu={false}
+            title={
+              assignedTo ? (
+                <ActorAvatar actor={assignedTo} className="avatar" size={48} />
+              ) : (
+                <span className="icon-user" />
+              )
+            }
+          >
+            {assigneeListLoading ? (
+              <li>
+                <FlowLayout center className="list-loading-container">
+                  <LoadingIndicator mini />
+                </FlowLayout>
+              </li>
+            ) : (
+              <React.Fragment>
                 <MenuItem noAnchor>
                   <input
                     type="text"
@@ -302,10 +321,8 @@ const AssigneeSelector = createReactClass({
                     onKeyUp={this.onFilterKeyUp}
                   />
                 </MenuItem>
-              )}
 
-              {!memberListLoading &&
-                assignedTo && (
+                {assignedTo && (
                   <MenuItem
                     className="clear-assignee"
                     disabled={!loading}
@@ -315,33 +332,24 @@ const AssigneeSelector = createReactClass({
                   </MenuItem>
                 )}
 
-              {!memberListLoading && (
                 <li>
-                  <ul>{[...teamNodes, ...memberNodes]}</ul>
+                  <ul>{[...this.renderTeamNodes(), ...this.renderMemberNodes()]}</ul>
                 </li>
-              )}
+              </React.Fragment>
+            )}
 
-              {ConfigStore.get('invitesEnabled') &&
-                access.has('org:write') && (
-                  <MenuItem
-                    className="invite-member"
-                    disabled={!loading}
-                    to={`/settings/organization/${this.context.organization
-                      .slug}/members/new/`}
-                  >
-                    <span className="icon-plus" /> {t('Invite Member')}
-                  </MenuItem>
-                )}
-
-              {memberListLoading && (
-                <li>
-                  <FlowLayout center className="list-loading-container">
-                    <LoadingIndicator mini />
-                  </FlowLayout>
-                </li>
+            {ConfigStore.get('invitesEnabled') &&
+              access.has('org:write') && (
+                <MenuItem
+                  className="invite-member"
+                  disabled={!loading}
+                  to={`/settings/organization/${this.context.organization
+                    .slug}/members/new/`}
+                >
+                  <span className="icon-plus" /> {t('Invite Member')}
+                </MenuItem>
               )}
-            </DropdownLink>
-          )}
+          </DropdownLink>
         </div>
       </div>
     );

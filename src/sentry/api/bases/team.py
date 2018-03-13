@@ -9,9 +9,6 @@ from .organization import OrganizationPermission
 
 
 def has_team_permission(request, team, scope_map):
-    if not (request.user and request.user.is_authenticated()) and request.auth:
-        return request.auth.organization_id == team.organization.id
-
     allowed_scopes = set(scope_map.get(request.method, []))
     return any(request.access.has_team_scope(team, s) for s in allowed_scopes)
 

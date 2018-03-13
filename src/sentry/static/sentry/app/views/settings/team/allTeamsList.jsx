@@ -4,8 +4,8 @@ import {Link} from 'react-router';
 
 import SentryTypes from '../../../proptypes';
 
-import Panel from '../components/panel';
 import AllTeamsRow from './allTeamsRow';
+import EmptyMessage from '../components/emptyMessage';
 import {tct} from '../../../locale';
 
 class AllTeamsList extends React.Component {
@@ -33,17 +33,18 @@ class AllTeamsList extends React.Component {
     });
 
     if (teamNodes.length !== 0) {
-      return <Panel>{teamNodes}</Panel>;
+      return teamNodes;
     }
 
     // TODO(jess): update this link to use url prefix when create team
     // has been moved to new settings
-    return tct(
-      "You don't have any teams for this organization yet. Get started by [link:creating your first team].",
-      {
-        root: <p />,
-        link: <Link to={`/organizations/${organization.slug}/teams/new/`} />,
-      }
+    return (
+      <EmptyMessage>
+        {tct('No teams here. You can always [link:create one].', {
+          root: <p />,
+          link: <Link to={`/organizations/${organization.slug}/teams/new/`} />,
+        })}
+      </EmptyMessage>
     );
   }
 }

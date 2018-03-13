@@ -4,7 +4,12 @@ exports[`GroupReleaseStats renders 1`] = `
 <GroupReleaseStats
   group={
     Object {
+      "assignedTo": null,
       "id": "1",
+      "project": Object {
+        "id": "2",
+        "slug": "project-slug",
+      },
       "stats": Object {
         "24h": Array [
           Array [
@@ -134,7 +139,12 @@ exports[`GroupReleaseStats renders 1`] = `
           }
           group={
             Object {
+              "assignedTo": null,
               "id": "1",
+              "project": Object {
+                "id": "2",
+                "slug": "project-slug",
+              },
               "stats": Object {
                 "24h": Array [
                   Array [
@@ -372,7 +382,12 @@ exports[`GroupReleaseStats renders 1`] = `
           }
           group={
             Object {
+              "assignedTo": null,
               "id": "1",
+              "project": Object {
+                "id": "2",
+                "slug": "project-slug",
+              },
               "stats": Object {
                 "24h": Array [
                   Array [
