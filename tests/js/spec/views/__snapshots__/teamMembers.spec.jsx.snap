@@ -29,7 +29,7 @@ exports[`TeamMembers render() renders 1`] = `
                     <StyledCreateMemberLink
                       to="/settings/organization/org-slug/members/new/"
                     >
-                      + Add Member
+                      Add Member
                     </StyledCreateMemberLink>
                   </StyledMembersLabel>,
                   "value": "members-label",

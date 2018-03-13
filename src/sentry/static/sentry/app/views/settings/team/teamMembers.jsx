@@ -185,11 +185,11 @@ const TeamMembers = createReactClass({
 
     let dropdownLabel = (
       <StyledMembersLabel>
-        Members
+        {t('Members')}
         <StyledCreateMemberLink
           to={`/settings/organization/${params.orgId}/members/new/`}
         >
-          + Add Member
+          {t('Add Member')}
         </StyledCreateMemberLink>
       </StyledMembersLabel>
     );
