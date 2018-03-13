@@ -81,9 +81,6 @@ class V2TagStorage(TagStorage):
 
         class TagKeyDeletionTask(ModelDeletionTask):
             def get_child_relations(self, instance):
-                # in bulk
-                model_list = (GroupTagValue, GroupTagKey, TagValue)
-
                 # required to deal with custom SQL queries and the ORM
                 # in `bulk_delete_objects`
                 key_id_field_name = 'key_id' if (db.is_postgres() or db.is_mysql()) else '_key_id'
@@ -92,8 +89,26 @@ class V2TagStorage(TagStorage):
                     ModelRelation(m, {
                         'project_id': instance.project_id,
                         key_id_field_name: instance.id,
-                    }) for m in model_list
+                    }) for m in (GroupTagKey, TagValue)
                 ]
+
+                # special case for GroupTagValue because it has no key field
+                if (db.is_postgres() or db.is_mysql()):
+                    relations += [
+                        ModelRelation(GroupTagValue, {
+                            'project_id': instance.project_id,
+                            'tagstore_grouptagvalue.value_id': 'tagstore_tagvalue.id',
+                            'tagstore_tagvalue.key_id': instance.id,
+                        })
+                    ]
+                else:
+                    relations += [
+                        ModelRelation(GroupTagValue, {
+                            'project_id': instance.project_id,
+                            '_value___key_id': instance.id,
+                        })
+                    ]
+
                 return relations
 
             def mark_deletion_in_progress(self, instance_list):
@@ -135,7 +150,7 @@ class V2TagStorage(TagStorage):
                         filters={
                             'project_id': instance.project_id,
                             'group_id': instance.group_id,
-                            '_key_id': instance._key_id,
+                            '_key_id': instance._value._key_id,
                         })
 
         post_save.connect(record_project_tag_count, sender=TagValue, weak=False)
@@ -252,7 +267,6 @@ class V2TagStorage(TagStorage):
         gtv = GroupTagValue.objects.create(
             project_id=project_id,
             group_id=group_id,
-            _key_id=tag_key.id,
             _value_id=tag_value.id,
             **kwargs
         )
@@ -274,7 +288,6 @@ class V2TagStorage(TagStorage):
         gtv, created = GroupTagValue.objects.get_or_create(
             project_id=project_id,
             group_id=group_id,
-            _key_id=tag_key.id,
             _value_id=tag_value.id,
             **kwargs
         )
@@ -308,7 +321,6 @@ class V2TagStorage(TagStorage):
                         project_id=project_id,
                         group_id=group_id,
                         event_id=event_id,
-                        key_id=key_id,
                         value_id=value_id,
                         date_added=date_added,
                     )
@@ -358,7 +370,7 @@ class V2TagStorage(TagStorage):
     def get_tag_value(self, project_id, environment_id, key, value):
         from sentry.tagstore.exceptions import TagValueNotFound
 
-        qs = TagValue.objects.select_related('_key').filter(
+        qs = TagValue.objects.filter(
             project_id=project_id,
             _key__key=key,
             value=value,
@@ -372,7 +384,7 @@ class V2TagStorage(TagStorage):
             raise TagValueNotFound
 
     def get_tag_values(self, project_id, environment_id, key):
-        qs = TagValue.objects.select_related('_key').filter(
+        qs = TagValue.objects.filter(
             project_id=project_id,
             _key__key=key,
         )
@@ -384,7 +396,7 @@ class V2TagStorage(TagStorage):
     def get_group_tag_key(self, project_id, group_id, environment_id, key):
         from sentry.tagstore.exceptions import GroupTagKeyNotFound
 
-        qs = GroupTagKey.objects.select_related('_key').filter(
+        qs = GroupTagKey.objects.filter(
             project_id=project_id,
             group_id=group_id,
             _key__key=key,
@@ -398,7 +410,7 @@ class V2TagStorage(TagStorage):
             raise GroupTagKeyNotFound
 
     def get_group_tag_keys(self, project_id, group_id, environment_id, limit=None):
-        qs = GroupTagKey.objects.select_related('_key').filter(
+        qs = GroupTagKey.objects.filter(
             group_id=group_id,
         )
 
@@ -426,9 +438,9 @@ class V2TagStorage(TagStorage):
         return value
 
     def get_group_tag_values(self, project_id, group_id, environment_id, key):
-        qs = GroupTagValue.objects.select_related('_key', '_value').filter(
+        qs = GroupTagValue.objects.filter(
             group_id=group_id,
-            _key__key=key,
+            _value___key__key=key,
         )
 
         qs = self._add_environment_filter(qs, environment_id)
@@ -436,10 +448,10 @@ class V2TagStorage(TagStorage):
         return list(qs)
 
     def get_group_list_tag_value(self, project_id, group_id_list, environment_id, key, value):
-        qs = GroupTagValue.objects.select_related('_key', '_value').filter(
+        qs = GroupTagValue.objects.filter(
             project_id=project_id,
             group_id__in=group_id_list,
-            _key__key=key,
+            _value___key__key=key,
             _value__value=value,
         )
 
@@ -519,7 +531,6 @@ class V2TagStorage(TagStorage):
                         filters={
                             'project_id': project_id,
                             'group_id': group_id,
-                            '_key_id': tagkey.id,
                             '_value_id': tagvalue.id,
                         },
                         extra=extra)
@@ -571,7 +582,7 @@ class V2TagStorage(TagStorage):
         kv_pairs = tag_lookups.pop()
         matches = list(
             EventTag.objects.filter(
-                reduce(or_, (Q(key_id=k, value_id=v)
+                reduce(or_, (Q(value___key_id=k, value_id=v)
                              for k, v in kv_pairs)),
                 project_id=project_id,
                 group_id=group_id,
@@ -583,7 +594,7 @@ class V2TagStorage(TagStorage):
         for kv_pairs in tag_lookups:
             matches = list(
                 EventTag.objects.filter(
-                    reduce(or_, (Q(key_id=k, value_id=v)
+                    reduce(or_, (Q(value___key_id=k, value_id=v)
                                  for k, v in kv_pairs)),
                     project_id=project_id,
                     group_id=group_id,
@@ -621,7 +632,8 @@ class V2TagStorage(TagStorage):
                     SELECT tagstore_grouptagvalue.times_seen as t
                     FROM tagstore_grouptagvalue
                     INNER JOIN tagstore_tagkey
-                    ON (tagstore_grouptagvalue.key_id = tagstore_tagkey.id)
+                    ON (tagstore_grouptagvalue.value_id = tagstore_tagvalue.id
+                        AND tagstore_tagvalue.key_id = tagstore_tagkey.id)
                     WHERE tagstore_grouptagvalue.group_id = %s
                     AND tagstore_tagkey.environment_id = %s
                     AND tagstore_tagkey.key = %s
@@ -635,7 +647,7 @@ class V2TagStorage(TagStorage):
         cutoff = timezone.now() - timedelta(days=7)
         qs = GroupTagValue.objects.filter(
             group_id=group_id,
-            _key__key=key,
+            _value___key__key=key,
             last_seen__gte=cutoff,
         )
         qs = self._add_environment_filter(qs, environment_id)
@@ -662,7 +674,8 @@ class V2TagStorage(TagStorage):
                            tagstore_grouptagvalue.first_seen
                     FROM tagstore_grouptagvalue
                     INNER JOIN tagstore_tagkey
-                    ON (tagstore_grouptagvalue.key_id = tagstore_tagkey.id)
+                    ON (tagstore_grouptagvalue.value_id = tagstore_tagvalue.id
+                        AND tagstore_tagvalue.key_id = tagstore_tagkey.id)
                     WHERE tagstore_grouptagvalue.group_id = %%s
                     AND tagstore_tagkey.environment_id = %%s
                     AND tagstore_tagkey.key = %%s
@@ -676,9 +689,9 @@ class V2TagStorage(TagStorage):
             )
 
         cutoff = timezone.now() - timedelta(days=7)
-        qs = GroupTagValue.objects.select_related('_key', '_value').filter(
+        qs = GroupTagValue.objects.filter(
             group_id=group_id,
-            _key__key=key,
+            _value___key__key=key,
             last_seen__gte=cutoff,
         )
         qs = self._add_environment_filter(qs, environment_id)
@@ -686,10 +699,10 @@ class V2TagStorage(TagStorage):
 
     def get_first_release(self, project_id, group_id):
         try:
-            first_release = GroupTagValue.objects.select_related('_value').filter(
+            first_release = GroupTagValue.objects.filter(
                 project_id=project_id,
                 group_id=group_id,
-                _key__key__in=('sentry:release', 'release'),
+                _value___key__key__in=('sentry:release', 'release'),
             ).order_by('first_seen')[0]
         except IndexError:
             return None
@@ -698,10 +711,10 @@ class V2TagStorage(TagStorage):
 
     def get_last_release(self, project_id, group_id):
         try:
-            last_release = GroupTagValue.objects.select_related('_value').filter(
+            last_release = GroupTagValue.objects.filter(
                 project_id=project_id,
                 group_id=group_id,
-                _key__key__in=('sentry:release', 'release'),
+                _value___key__key__in=('sentry:release', 'release'),
             ).order_by('-last_seen')[0]
         except IndexError:
             return None
@@ -709,7 +722,7 @@ class V2TagStorage(TagStorage):
         return last_release.value
 
     def get_release_tags(self, project_ids, environment_id, versions):
-        qs = TagValue.objects.select_related('_key').filter(
+        qs = TagValue.objects.filter(
             project_id__in=project_ids,
             _key__key='sentry:release',
             value__in=versions,
@@ -722,8 +735,8 @@ class V2TagStorage(TagStorage):
     def get_group_ids_for_users(self, project_ids, event_users, limit=100):
         return list(GroupTagValue.objects.filter(
             project_id__in=project_ids,
-            _key__environment_id=AGGREGATE_ENVIRONMENT_ID,
-            _key__key='sentry:user',
+            _value___key__environment_id=AGGREGATE_ENVIRONMENT_ID,
+            _value___key__key='sentry:user',
             _value__value__in=[eu.tag_value for eu in event_users],
         ).order_by('-last_seen').values_list('group_id', flat=True)[:limit])
 
@@ -733,10 +746,10 @@ class V2TagStorage(TagStorage):
             for eu in event_users
         ]
 
-        return list(GroupTagValue.objects.select_related('_value').filter(
+        return list(GroupTagValue.objects.filter(
             reduce(or_, tag_filters),
-            _key__environment_id=AGGREGATE_ENVIRONMENT_ID,
-            _key__key='sentry:user',
+            _value___key__environment_id=AGGREGATE_ENVIRONMENT_ID,
+            _value___key__key='sentry:user',
         ).order_by('-last_seen')[:limit])
 
     def get_group_ids_for_search_filter(
@@ -761,7 +774,7 @@ class V2TagStorage(TagStorage):
             elif v != ANY:
                 base_qs = GroupTagValue.objects.filter(
                     project_id=project_id,
-                    _key__key=k,
+                    _value___key__key=k,
                     _value__value=v,
                 )
                 base_qs = self._add_environment_filter(base_qs, environment_id)
@@ -769,7 +782,7 @@ class V2TagStorage(TagStorage):
             else:
                 base_qs = GroupTagValue.objects.filter(
                     project_id=project_id,
-                    _key__key=k,
+                    _value___key__key=k,
                 )
                 base_qs = self._add_environment_filter(base_qs, environment_id).distinct()
 
@@ -800,12 +813,12 @@ class V2TagStorage(TagStorage):
                 values_seen=GroupTagValue.objects.filter(
                     project_id=instance.project_id,
                     group_id=instance.group_id,
-                    _key_id=instance._key_id,
+                    _value___key_id=instance._key_id,
                 ).count(),
             )
 
     def get_tag_value_qs(self, project_id, environment_id, key, query=None):
-        qs = TagValue.objects.select_related('_key').filter(
+        qs = TagValue.objects.filter(
             project_id=project_id,
             _key__key=key,
         )
@@ -818,9 +831,9 @@ class V2TagStorage(TagStorage):
         return qs
 
     def get_group_tag_value_qs(self, project_id, group_id, environment_id, key, value=None):
-        qs = GroupTagValue.objects.select_related('_key', '_value').filter(
+        qs = GroupTagValue.objects.filter(
             project_id=project_id,
-            _key__key=key,
+            _value___key__key=key,
         )
 
         if isinstance(group_id, collections.Iterable):
@@ -849,7 +862,9 @@ class V2TagStorage(TagStorage):
             environment_id = AGGREGATE_ENVIRONMENT_ID
         if queryset.model == TagKey:
             return queryset.filter(environment_id=environment_id)
-        elif queryset.model in (TagValue, GroupTagKey, GroupTagValue):
+        elif queryset.model in (TagValue, GroupTagKey):
             return queryset.filter(_key__environment_id=environment_id)
+        elif queryset.model == GroupTagValue:
+            return queryset.filter(_value___key__environment_id=environment_id)
         else:
             raise ValueError("queryset of unsupported model '%s' provided" % queryset.model)

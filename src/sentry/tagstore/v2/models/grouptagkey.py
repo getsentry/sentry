@@ -17,6 +17,11 @@ from sentry.db.models import (
 )
 
 
+class GroupTagKeyManager(BaseManager):
+    def get_queryset(self):
+        return super(GroupTagKeyManager, self).get_queryset().select_related('_key')
+
+
 class GroupTagKey(Model):
     """
     Stores a unique tag key name for a group.
@@ -30,7 +35,7 @@ class GroupTagKey(Model):
     _key = FlexibleForeignKey('tagstore.TagKey', db_column='key_id')
     values_seen = BoundedPositiveIntegerField(default=0)
 
-    objects = BaseManager()
+    objects = GroupTagKeyManager()
 
     class Meta:
         app_label = 'tagstore'
@@ -87,7 +92,7 @@ class GroupTagKey(Model):
                     values_seen=GroupTagValue.objects.filter(
                         group_id=new_group.id,
                         project_id=new_group.project_id,
-                        _key_id=self._key_id,
+                        _value___key_id=self._key_id,
                     ).count()
                 )
         except DataError:

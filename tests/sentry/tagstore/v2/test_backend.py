@@ -312,8 +312,8 @@ class TagStorage(TestCase):
         assert GroupTagValue.objects.filter(
             project_id=self.proj1.id,
             group_id=self.proj1group1.id,
-            _key__environment_id=self.proj1env1.id,
-            _key_id=tk.id,
+            _value___key__environment_id=self.proj1env1.id,
+            _value___key_id=tk.id,
             _value_id=tv.id,
         ).count() == 1
         assert GroupTagValue.objects.all().count() == 1
@@ -337,9 +337,9 @@ class TagStorage(TestCase):
             assert EventTag.objects.get(
                 project_id=self.proj1.id,
                 group_id=self.proj1group1.id,
-                key__environment_id=self.proj1env1.id,
+                value___key__environment_id=self.proj1env1.id,
                 event_id=self.proj1group1event1.id,
-                key_id=k.id,
+                value___key_id=k.id,
                 value_id=v.id,
             ) is not None
 

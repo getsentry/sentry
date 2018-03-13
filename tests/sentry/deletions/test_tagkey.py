@@ -1,5 +1,7 @@
 from __future__ import absolute_import
 
+from django.conf import settings
+
 from sentry import tagstore
 from sentry.tagstore.models import EventTag
 from sentry.models import ScheduledDeletion
@@ -101,4 +103,7 @@ class DeleteTagKeyTest(TestCase):
         assert tagstore.get_group_tag_key(group2.project_id, group2.id, env2.id, key) is not None
         assert tagstore.get_group_tag_value(
             group2.project_id, group2.id, env2.id, key, value) is not None
-        assert EventTag.objects.filter(key_id=tk2.id).exists()
+        if settings.SENTRY_TAGSTORE.startswith('sentry.tagstore.v2'):
+            assert EventTag.objects.filter(value___key_id=tk2.id).exists()
+        else:
+            assert EventTag.objects.filter(key_id=tk2.id).exists()
