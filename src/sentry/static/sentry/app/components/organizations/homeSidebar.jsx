@@ -137,7 +137,15 @@ const HomeSidebar = createReactClass({
           >
             {t('Dashboard')}
           </ListLink>
-          <ListLink to={`${pathPrefix}/teams/`}>{t('Projects & Teams')}</ListLink>
+          {hasNewSettings ? (
+            <span>
+              <ListLink to={`${pathPrefix}/projects/`}>{t('Projects')}</ListLink>
+              <ListLink to={`${pathPrefix}/teams/`}>{t('Teams')}</ListLink>
+            </span>
+          ) : (
+            <ListLink to={`${pathPrefix}/teams/`}>{t('Projects & Teams')}</ListLink>
+          )}
+
           {access.has('org:read') && (
             <ListLink to={`${pathPrefix}/stats/`}>{t('Stats')}</ListLink>
           )}
