@@ -75,42 +75,11 @@ class V2TagStorage(TagStorage):
         super(V2TagStorage, self).setup_deletions(**kwargs)
 
         from sentry.deletions import default_manager as deletion_manager
-        from sentry.deletions.base import ModelRelation, ModelDeletionTask
+        from sentry.deletions.base import ModelDeletionTask
 
         # NOTE: EventTag is handled by cleanup
 
         class TagKeyDeletionTask(ModelDeletionTask):
-            def get_child_relations(self, instance):
-                # required to deal with custom SQL queries and the ORM
-                # in `bulk_delete_objects`
-                key_id_field_name = 'key_id' if (db.is_postgres() or db.is_mysql()) else '_key_id'
-
-                relations = [
-                    ModelRelation(m, {
-                        'project_id': instance.project_id,
-                        key_id_field_name: instance.id,
-                    }) for m in (GroupTagKey, TagValue)
-                ]
-
-                # special case for GroupTagValue because it has no key field
-                if (db.is_postgres() or db.is_mysql()):
-                    relations += [
-                        ModelRelation(GroupTagValue, {
-                            'project_id': instance.project_id,
-                            'tagstore_grouptagvalue.value_id': 'tagstore_tagvalue.id',
-                            'tagstore_tagvalue.key_id': instance.id,
-                        })
-                    ]
-                else:
-                    relations += [
-                        ModelRelation(GroupTagValue, {
-                            'project_id': instance.project_id,
-                            '_value___key_id': instance.id,
-                        })
-                    ]
-
-                return relations
-
             def mark_deletion_in_progress(self, instance_list):
                 for instance in instance_list:
                     if instance.status != TagKeyStatus.DELETION_IN_PROGRESS:
