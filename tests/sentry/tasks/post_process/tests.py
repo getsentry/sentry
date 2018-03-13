@@ -3,6 +3,7 @@
 from __future__ import absolute_import
 
 from datetime import timedelta
+from django.conf import settings
 from django.utils import timezone
 from mock import Mock, patch
 
@@ -236,9 +237,14 @@ class IndexEventTagsTest(TestCase):
                 tags=[('foo', 'bar'), ('biz', 'baz')],
             )
 
-        tags = list(EventTag.objects.filter(
-            event_id=event.id,
-        ).values_list('key_id', 'value_id'))
+        if settings.SENTRY_TAGSTORE.startswith('sentry.tagstore.v2'):
+            tags = [(et.value._key_id, et.value_id) for et in
+                    EventTag.objects.filter(event_id=event.id)]
+        else:
+            tags = list(EventTag.objects.filter(
+                event_id=event.id,
+            ).values_list('key_id', 'value_id'))
+
         assert len(tags) == 2
 
         tagkey = tagstore.get_tag_key(

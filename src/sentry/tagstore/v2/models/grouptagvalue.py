@@ -18,6 +18,12 @@ from sentry.db.models import (
 )
 
 
+class GroupTagValueManager(BaseManager):
+    def get_queryset(self):
+        return super(GroupTagValueManager, self)\
+            .get_queryset().select_related('_value', '_value___key')
+
+
 class GroupTagValue(Model):
     """
     Stores the total number of messages seen by a group matching
@@ -28,21 +34,20 @@ class GroupTagValue(Model):
     project_id = BoundedBigIntegerField(db_index=True)
     group_id = BoundedBigIntegerField(db_index=True)
     times_seen = BoundedPositiveIntegerField(default=0)
-    _key = FlexibleForeignKey('tagstore.TagKey', db_column='key_id')
     _value = FlexibleForeignKey('tagstore.TagValue', db_column='value_id')
     last_seen = models.DateTimeField(
         default=timezone.now, db_index=True, null=True)
     first_seen = models.DateTimeField(
         default=timezone.now, db_index=True, null=True)
 
-    objects = BaseManager()
+    objects = GroupTagValueManager()
 
     class Meta:
         app_label = 'tagstore'
-        unique_together = (('project_id', 'group_id', '_key', '_value'), )
-        index_together = (('project_id', '_key', '_value', 'last_seen'), )
+        unique_together = (('project_id', 'group_id', '_value'), )
+        index_together = (('project_id', '_value', 'last_seen'), )
 
-    __repr__ = sane_repr('project_id', 'group_id', '_key', '_value')
+    __repr__ = sane_repr('project_id', 'group_id', '_value')
 
     def delete_for_merge(self):
         using = router.db_for_read(GroupTagValue)
@@ -68,7 +73,7 @@ class GroupTagValue(Model):
 
         tk = TagKey.objects.filter(
             project_id=self.project_id,
-            id=self._key_id,
+            id=self._value._key_id,
         ).values_list('key', flat=True).get()
 
         # cache for future calls
@@ -116,7 +121,6 @@ class GroupTagValue(Model):
                 new_obj = GroupTagValue.objects.get(
                     group_id=new_group.id,
                     project_id=new_group.project_id,
-                    _key_id=self._key_id,
                     _value_id=self._value_id,
                 )
 
