@@ -97,21 +97,23 @@ GUIDES = {
 
     'event_issue': {
         'id': 3,
-        'cue': _('Click here to learn about issues and events'),
+        'cue': _('Learn about issues and events'),
         'required_targets': ['issues'],
         'steps': [
             {
-                'title': _('1. Events'),
+                'title': _('Events'),
                 'message': _(
-                    'When your application throws an error, that error is captured by Sentry as an event.'),
-                'target': 'issues',
+                    'When your application throws an error, that error is captured by Sentry as an event. '
+                    'The events tab at the top of this page will show you all errors related to this project.'),
+                'target': 'events',
             },
             {
-                'title': _('2. Issues'),
+                'title': _('Issues'),
                 'message': _(
                     'Individual events are then automatically rolled up and grouped into Issues with other similar events. '
-                    'A single issue can represent anywhere from one to thousands of individual events, depending on how many times a specific error is thrown'),
-                'target': 'events',
+                    'A single issue can represent anywhere from one to thousands of individual events, depending on how many '
+                    'times a specific error is thrown. '),
+                'target': 'issues',
             },
         ]
     },
