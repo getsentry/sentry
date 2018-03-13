@@ -845,6 +845,7 @@ class EventManager(object):
                 environment_id=environment.id,
                 event_id=event.id,
                 tags=tags,
+                date_added=event.datetime,
             )
 
         if event_user:
