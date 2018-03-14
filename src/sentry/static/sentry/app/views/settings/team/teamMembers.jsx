@@ -129,12 +129,12 @@ const TeamMembers = createReactClass({
       {
         orgId: params.orgId,
         teamId: params.teamId,
-        memberId: selection.memberId,
+        memberId: selection.value,
       },
       {
         success: () => {
           let orgMember = this.state.orgMemberList.find(member => {
-            return member.id === selection.memberId;
+            return member.id === selection.value;
           });
           this.setState({
             loading: false,
