@@ -4,7 +4,6 @@ import DocumentTitle from 'react-document-title';
 import PropTypes from 'prop-types';
 import React from 'react';
 import createReactClass from 'create-react-class';
-import idx from 'idx';
 
 import {
   BooleanField,
@@ -358,7 +357,7 @@ const KeySettings = createReactClass({
                       key="rateLimit.count"
                       name="rateLimit.count"
                       min={0}
-                      value={idx(formData, _ => _.rateLimit.count)}
+                      value={formData?.rateLimit?.count}
                       required={false}
                       error={rateLimitCountError}
                       placeholder={t('count')}
@@ -376,7 +375,7 @@ const KeySettings = createReactClass({
                       key="rateLimit.window"
                       name="rateLimit.window"
                       choices={this.getRateLimitWindows()}
-                      value={idx(formData, _ => _.rateLimit.window)}
+                      value={formData?.rateLimit?.window}
                       required={false}
                       error={rateLimitWindowError}
                       placeholder={t('window')}

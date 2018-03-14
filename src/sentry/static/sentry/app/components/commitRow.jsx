@@ -1,4 +1,3 @@
-import idx from 'idx';
 import PropTypes from 'prop-types';
 import React from 'react';
 
@@ -33,7 +32,7 @@ export default class CommitRow extends React.Component {
             <p>
               {tct('[author] committed [timeago]', {
                 author: (
-                  <strong>{idx(author, _ => _.name) || t('Unknown author')}</strong>
+                  <strong>{author?.name || t('Unknown author')}</strong>
                 ),
                 timeago: <TimeSince date={dateCreated} />,
               })}

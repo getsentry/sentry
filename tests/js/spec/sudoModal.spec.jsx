@@ -8,6 +8,8 @@ import {SudoModal} from 'app/components/modals/sudoModal';
 
 jest.mock('jquery');
 
+jest.mock('jquery');
+
 describe('Sudo Modal', function() {
   beforeEach(function() {
     ConfigStore.set('messages', []);
