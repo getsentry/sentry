@@ -17,7 +17,7 @@ class BreadcrumbDropdown extends React.Component {
   };
 
   static defaultProps = {
-    enterDelay: 200,
+    enterDelay: 0,
   };
 
   constructor(...args) {
