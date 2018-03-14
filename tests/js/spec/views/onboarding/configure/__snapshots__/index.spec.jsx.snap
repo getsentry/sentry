@@ -14,7 +14,7 @@ exports[`Configure should render correctly render() should redirect to if no mat
     >
       Configure your application
     </h2>
-    <ProjectContext
+    <withRouter(ProjectContext)
       orgId="testOrg"
       projectId="project-slug"
       style={
@@ -40,7 +40,7 @@ exports[`Configure should render correctly render() should redirect to if no mat
           }
         />
       </ProjectDocsContext>
-    </ProjectContext>
+    </withRouter(ProjectContext)>
     <Waiting
       hasEvent={false}
       skip={[Function]}
@@ -73,7 +73,7 @@ exports[`Configure should render correctly render() should render platform docs 
       >
         Configure your application
       </h2>
-      <ProjectContext
+      <withRouter(ProjectContext)
         orgId="testOrg"
         projectId="project-slug"
         style={
@@ -82,189 +82,213 @@ exports[`Configure should render correctly render() should render platform docs 
           }
         }
       >
-        <SideEffect(DocumentTitle)
-          title="Project Name"
+        <ProjectContext
+          location={Object {}}
+          orgId="testOrg"
+          projectId="project-slug"
+          router={
+            Object {
+              "createHref": [Function],
+              "go": [Function],
+              "goBack": [Function],
+              "goForward": [Function],
+              "isActive": [Function],
+              "location": Object {},
+              "push": [Function],
+              "replace": [Function],
+              "setRouteLeaveHook": [Function],
+            }
+          }
+          style={
+            Object {
+              "marginBottom": 30,
+            }
+          }
         >
-          <DocumentTitle
+          <SideEffect(DocumentTitle)
             title="Project Name"
           >
-            <ProjectDocsContext>
-              <ProjectInstallPlatform
-                linkPath={[Function]}
-                params={
-                  Object {
-                    "orgId": "testOrg",
-                    "platform": "node",
-                    "projectId": "project-slug",
+            <DocumentTitle
+              title="Project Name"
+            >
+              <ProjectDocsContext>
+                <ProjectInstallPlatform
+                  linkPath={[Function]}
+                  params={
+                    Object {
+                      "orgId": "testOrg",
+                      "platform": "node",
+                      "projectId": "project-slug",
+                    }
                   }
-                }
-                platformData={
-                  Object {
-                    "dsn": "https://9ed7cdc60:20e868d7b@sentry.io/300733",
-                    "dsnPublic": "https://9ed7cdc6581145bcb46044b77bd82aa0@sentry.io/300733",
-                    "platforms": Array [
-                      Object {
-                        "id": "javascript",
-                        "integrations": Array [
-                          Object {
-                            "id": "node",
-                            "link": "https://docs.getsentry.com/hosted/clients/csharp/",
-                            "name": "node",
-                            "type": "language",
-                          },
-                        ],
-                        "name": "js",
-                      },
-                    ],
+                  platformData={
+                    Object {
+                      "dsn": "https://9ed7cdc60:20e868d7b@sentry.io/300733",
+                      "dsnPublic": "https://9ed7cdc6581145bcb46044b77bd82aa0@sentry.io/300733",
+                      "platforms": Array [
+                        Object {
+                          "id": "javascript",
+                          "integrations": Array [
+                            Object {
+                              "id": "node",
+                              "link": "https://docs.getsentry.com/hosted/clients/csharp/",
+                              "name": "node",
+                              "type": "language",
+                            },
+                          ],
+                          "name": "js",
+                        },
+                      ],
+                    }
                   }
-                }
-              >
-                <div
-                  className="install row"
                 >
                   <div
-                    className="install-content col-md-10"
+                    className="install row"
                   >
                     <div
-                      className="box"
+                      className="install-content col-md-10"
                     >
                       <div
-                        className="box-header"
+                        className="box"
                       >
                         <div
-                          className="pull-right"
+                          className="box-header"
                         >
-                          <a
-                            className="btn btn-sm btn-default"
-                            href="https://docs.getsentry.com/hosted/clients/csharp/"
+                          <div
+                            className="pull-right"
                           >
-                            Full Documentation
-                          </a>
-                        </div>
-                        <h3>
-                          Configure node
-                        </h3>
-                      </div>
-                      <div
-                        className="box-content with-padding"
-                      >
-                        <p>
-                          <span
-                            key="8"
-                          >
-                            <span
-                              key="0"
-                            >
-                              
-             This is a quick getting started guide. For in-depth instructions
-             on integrating Sentry with 
-                            </span>
-                            <span
-                              key="2"
-                            >
-                              node
-                            </span>
-                            <span
-                              key="3"
-                            >
-                              , view
-             
-                            </span>
                             <a
+                              className="btn btn-sm btn-default"
                               href="https://docs.getsentry.com/hosted/clients/csharp/"
-                              key="5"
+                            >
+                              Full Documentation
+                            </a>
+                          </div>
+                          <h3>
+                            Configure node
+                          </h3>
+                        </div>
+                        <div
+                          className="box-content with-padding"
+                        >
+                          <p>
+                            <span
+                              key="8"
                             >
                               <span
-                                key="4"
+                                key="0"
                               >
-                                our complete documentation
+                                
+             This is a quick getting started guide. For in-depth instructions
+             on integrating Sentry with 
                               </span>
-                            </a>
-                            <span
-                              key="6"
-                            >
-                              .
+                              <span
+                                key="2"
+                              >
+                                node
+                              </span>
+                              <span
+                                key="3"
+                              >
+                                , view
+             
+                              </span>
+                              <a
+                                href="https://docs.getsentry.com/hosted/clients/csharp/"
+                                key="5"
+                              >
+                                <span
+                                  key="4"
+                                >
+                                  our complete documentation
+                                </span>
+                              </a>
+                              <span
+                                key="6"
+                              >
+                                .
             
+                              </span>
                             </span>
-                          </span>
-                        </p>
-                        <div
-                          dangerouslySetInnerHTML={
-                            Object {
-                              "__html": undefined,
+                          </p>
+                          <div
+                            dangerouslySetInnerHTML={
+                              Object {
+                                "__html": undefined,
+                              }
                             }
-                          }
-                        />
+                          />
+                        </div>
                       </div>
                     </div>
-                  </div>
-                  <div
-                    className="install-sidebar col-md-2"
-                  >
-                    <LanguageNav
-                      active={true}
-                      key="javascript"
-                      name="js"
+                    <div
+                      className="install-sidebar col-md-2"
                     >
-                      <div
-                        className="install-language-nav"
+                      <LanguageNav
+                        active={true}
+                        key="javascript"
+                        name="js"
                       >
-                        <ul
-                          className="list-group"
+                        <div
+                          className="install-language-nav"
                         >
-                          <li
-                            className="list-group-item list-group-header"
+                          <ul
+                            className="list-group"
                           >
-                            <a
-                              onClick={[Function]}
+                            <li
+                              className="list-group-item list-group-header"
+                            >
+                              <a
+                                onClick={[Function]}
+                                style={
+                                  Object {
+                                    "display": "block",
+                                  }
+                                }
+                              >
+                                <span
+                                  className="pull-right"
+                                >
+                                  <span
+                                    className="icon-minus"
+                                  />
+                                </span>
+                                <strong>
+                                  js
+                                </strong>
+                              </a>
+                            </li>
+                            <span
                               style={
                                 Object {
                                   "display": "block",
                                 }
                               }
                             >
-                              <span
-                                className="pull-right"
-                              >
-                                <span
-                                  className="icon-minus"
-                                />
-                              </span>
-                              <strong>
-                                js
-                              </strong>
-                            </a>
-                          </li>
-                          <span
-                            style={
-                              Object {
-                                "display": "block",
-                              }
-                            }
-                          >
-                            <Link
-                              className="list-group-item"
-                              key="node"
-                              to="/onboarding/testOrg/project-slug/configure/node/"
-                            >
-                              <a
+                              <Link
                                 className="list-group-item"
-                                href="/onboarding/testOrg/project-slug/configure/node/"
+                                key="node"
+                                to="/onboarding/testOrg/project-slug/configure/node/"
                               >
-                                node
-                              </a>
-                            </Link>
-                          </span>
-                        </ul>
-                      </div>
-                    </LanguageNav>
+                                <a
+                                  className="list-group-item"
+                                  href="/onboarding/testOrg/project-slug/configure/node/"
+                                >
+                                  node
+                                </a>
+                              </Link>
+                            </span>
+                          </ul>
+                        </div>
+                      </LanguageNav>
+                    </div>
                   </div>
-                </div>
-              </ProjectInstallPlatform>
-            </ProjectDocsContext>
-          </DocumentTitle>
-        </SideEffect(DocumentTitle)>
-      </ProjectContext>
+                </ProjectInstallPlatform>
+              </ProjectDocsContext>
+            </DocumentTitle>
+          </SideEffect(DocumentTitle)>
+        </ProjectContext>
+      </withRouter(ProjectContext)>
       <Waiting
         hasEvent={false}
         skip={[Function]}
@@ -319,7 +343,7 @@ exports[`Configure should render correctly render() shouldn't redirect for a fou
     >
       Configure your application
     </h2>
-    <ProjectContext
+    <withRouter(ProjectContext)
       orgId="testOrg"
       projectId="project-slug"
       style={
@@ -345,7 +369,7 @@ exports[`Configure should render correctly render() shouldn't redirect for a fou
           }
         />
       </ProjectDocsContext>
-    </ProjectContext>
+    </withRouter(ProjectContext)>
     <Waiting
       hasEvent={false}
       skip={[Function]}

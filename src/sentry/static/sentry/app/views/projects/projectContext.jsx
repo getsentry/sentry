@@ -3,6 +3,7 @@ import React from 'react';
 import createReactClass from 'create-react-class';
 import Reflux from 'reflux';
 import DocumentTitle from 'react-document-title';
+import {withRouter} from 'react-router';
 
 import ApiMixin from '../../mixins/apiMixin';
 
@@ -36,6 +37,7 @@ const ProjectContext = createReactClass({
   propTypes: {
     projectId: PropTypes.string,
     orgId: PropTypes.string,
+    location: PropTypes.object,
   },
 
   childContextTypes: {
@@ -131,7 +133,9 @@ const ProjectContext = createReactClass({
   },
 
   fetchData() {
-    let {orgId, projectId} = this.props;
+    let {orgId, projectId, location} = this.props;
+    let query = location.query || {};
+    let envName = query.environment;
     // we fetch core access/information from the global organization data
     let activeProject = this.identifyProject();
     let hasAccess = activeProject && activeProject.hasAccess;
@@ -164,6 +168,7 @@ const ProjectContext = createReactClass({
           });
         },
       });
+
       // TODO(dcramer): move member list to organization level
       this.api.request(this.getMemberListEndpoint(), {
         success: data => {
@@ -172,11 +177,9 @@ const ProjectContext = createReactClass({
       });
 
       this.api.request(this.getEnvironmentListEndpoint(), {
-        success: loadEnvironments,
-      });
-
-      this.setState({
-        loading: false,
+        success: envs => {
+          loadEnvironments(envs, envName);
+        },
       });
     } else if (activeProject && !activeProject.isMember) {
       this.setState({
@@ -247,4 +250,4 @@ const ProjectContext = createReactClass({
   },
 });
 
-export default ProjectContext;
+export default withRouter(ProjectContext);
