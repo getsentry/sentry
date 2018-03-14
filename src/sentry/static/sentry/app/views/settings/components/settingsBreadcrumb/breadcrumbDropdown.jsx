@@ -5,6 +5,8 @@ import Crumb from './crumb';
 import DropdownAutoCompleteMenu from '../../../../components/dropdownAutoCompleteMenu';
 import Divider from './divider';
 
+const EXIT_DELAY = 0;
+
 class BreadcrumbDropdown extends React.Component {
   static propTypes = {
     hasMenu: PropTypes.bool,
@@ -65,7 +67,7 @@ class BreadcrumbDropdown extends React.Component {
       clearTimeout(this.entering);
     }
 
-    this.leaving = setTimeout(() => this.close(), 200);
+    this.leaving = setTimeout(() => this.close(), EXIT_DELAY);
   };
 
   // Close immediately when actor is clicked clicked

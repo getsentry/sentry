@@ -5,7 +5,7 @@ import BreadcrumbDropdown from 'app/views/settings/components/settingsBreadcrumb
 
 jest.useFakeTimers();
 
-const CLOSE_DELAY = 200;
+const CLOSE_DELAY = 0;
 
 describe('Settings Breadcrumb Dropdown', function() {
   let wrapper;
@@ -32,7 +32,9 @@ describe('Settings Breadcrumb Dropdown', function() {
     expect(wrapper.find('StyledMenu')).toHaveLength(1);
 
     wrapper.find('Crumb').simulate('mouseLeave');
+    // wonder what happens when this arg is negative o_O
     jest.advanceTimersByTime(CLOSE_DELAY - 10);
+    wrapper.update();
     expect(wrapper.find('StyledMenu')).toHaveLength(1);
     jest.advanceTimersByTime(10);
     wrapper.update();
