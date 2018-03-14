@@ -43,8 +43,7 @@ class DropdownAutoCompleteMenu extends React.Component {
   filterItems = (items, inputValue) =>
     items.filter(item => {
       return (
-        [item.searchKey, item.label]
-          .join(' ')
+        (item.searchKey || `${item.value} ${item.label}`)
           .toLowerCase()
           .indexOf(inputValue.toLowerCase()) > -1
       );
