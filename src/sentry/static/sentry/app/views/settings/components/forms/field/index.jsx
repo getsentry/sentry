@@ -48,6 +48,11 @@ class Field extends React.Component {
     disabledReason: PropTypes.string,
 
     /**
+     * Hide ControlState component
+     */
+    hideControlState: PropTypes.bool,
+
+    /**
      * User-facing field name
      */
     label: PropTypes.node,
@@ -90,6 +95,7 @@ class Field extends React.Component {
       visible,
       disabled,
       disabledReason,
+      hideControlState,
       label,
       help,
       id,
@@ -118,6 +124,7 @@ class Field extends React.Component {
           alignRight={alignRight}
           disabled={isDisabled}
           disabledReason={disabledReason}
+          hideControlState={hideControlState}
         >
           {children}
         </FieldControl>
@@ -125,7 +132,11 @@ class Field extends React.Component {
     }
 
     return (
-      <FieldWrapper inline={inline} highlighted={highlighted}>
+      <FieldWrapper
+        inline={inline}
+        highlighted={highlighted}
+        hasControlState={!hideControlState}
+      >
         <FieldDescription inline={inline} htmlFor={id}>
           {label && (
             <FieldLabel>

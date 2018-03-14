@@ -187,6 +187,28 @@ export const PluginsStore = PropTypes.shape({
   pageLinks: PropTypes.any,
 });
 
+export const ProjectDsn = {
+  secret: PropTypes.string,
+  minidump: PropTypes.string,
+  public: PropTypes.string,
+  csp: PropTypes.string,
+};
+
+export const ProjectDsnShape = PropTypes.shape(ProjectDsn);
+
+export const ProjectKey = PropTypes.shape({
+  dsn: ProjectDsnShape,
+  public: PropTypes.string,
+  secret: PropTypes.string,
+  name: PropTypes.string,
+  rateLimit: PropTypes.number,
+  projectId: PropTypes.number,
+  dateCreated: PropTypes.string,
+  id: PropTypes.string,
+  isActive: PropTypes.bool,
+  label: PropTypes.string,
+});
+
 let SentryTypes = {
   AnyModel: PropTypes.shape({
     id: PropTypes.string.isRequired,
@@ -211,6 +233,7 @@ let SentryTypes = {
   Plugin,
   PluginShape,
   PluginsStore,
+  ProjectKey,
   User,
 };
 

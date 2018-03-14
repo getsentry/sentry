@@ -14,6 +14,7 @@ const StyledInput = styled(props => {
   return <input {...props} />;
 })`
   ${inputStyles};
+  background-color: ${p => p.theme.offWhite};
   border-right-width: 0;
   border-top-right-radius: 0;
   border-bottom-right-radius: 0;

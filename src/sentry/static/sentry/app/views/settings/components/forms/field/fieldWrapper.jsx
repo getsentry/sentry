@@ -19,8 +19,13 @@ const highlightedStyle = p =>
       `
     : '';
 
-const FieldWrapper = styled(({highlighted, inline, ...props}) => <Flex {...props} />)`
-  padding: 0.9em 0 0.9em 1.3em;
+/**
+ * `hasControlState` - adds padding to right if this is false
+ */
+const FieldWrapper = styled(({highlighted, inline, hasControlState, ...props}) => (
+  <Flex {...props} />
+))`
+  padding: 0.9em ${p => (p.hasControlState ? '0' : '1.3em')} 0.9em 1.3em;
   border-bottom: 1px solid ${p => p.theme.borderLight};
   transition: background 0.15s;
 
