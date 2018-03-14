@@ -6,6 +6,7 @@ exports[`ProjectTeamsSettings render() renders 1`] = `
 >
   <div>
     <SettingsPageHeading
+<<<<<<< HEAD
       action={
         <DropdownAutoComplete
           action={
@@ -41,13 +42,48 @@ exports[`ProjectTeamsSettings render() renders 1`] = `
           [Function]
         </DropdownAutoComplete>
       }
+=======
+>>>>>>> style projectTeams
       title="Teams"
     />
     <Panel>
       <PanelHeader
+        hasButtons={true}
         key="header"
       >
-        Team
+        <PanelHeaderContent>
+          <div>
+            Team
+          </div>
+          <div>
+            <DropdownAutoComplete
+              action={
+                <Button
+                  disabled={false}
+                  priority="primary"
+                  size="small"
+                  to="/organizations/org-slug/teams/new/"
+                >
+                  Create a new team
+                </Button>
+              }
+              alignMenu="right"
+              isOpen={false}
+              items={
+                Array [
+                  Object {
+                    "label": <TeamDropdownElement>
+                      #
+                      team-slug-2
+                    </TeamDropdownElement>,
+                    "value": "2",
+                  },
+                ]
+              }
+              onSelect={[Function]}
+            />
+          </div>
+        </PanelHeaderContent>
       </PanelHeader>
       <PanelBody
         direction="column"
