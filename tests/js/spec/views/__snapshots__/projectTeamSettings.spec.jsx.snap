@@ -6,44 +6,6 @@ exports[`ProjectTeamsSettings render() renders 1`] = `
 >
   <div>
     <SettingsPageHeading
-<<<<<<< HEAD
-      action={
-        <DropdownAutoComplete
-          action={
-            <Button
-              disabled={false}
-              priority="primary"
-              size="small"
-              to="/organizations/org-slug/teams/new/"
-            >
-              Create a new team
-            </Button>
-          }
-<<<<<<< HEAD
-<<<<<<< HEAD
-          alignMenu="right"
-=======
-          alignMenu="left"
-=======
-          alignMenu="right"
->>>>>>> right is default alignment for dropdownAutocompleteMenu
-          isOpen={false}
->>>>>>> user badges for durpdown
-          items={
-            Array [
-              Object {
-                "label": "#team-slug-2",
-                "value": "2",
-              },
-            ]
-          }
-          onSelect={[Function]}
-        >
-          [Function]
-        </DropdownAutoComplete>
-      }
-=======
->>>>>>> style projectTeams
       title="Teams"
     />
     <Panel>
@@ -68,7 +30,6 @@ exports[`ProjectTeamsSettings render() renders 1`] = `
                 </Button>
               }
               alignMenu="right"
-              isOpen={false}
               items={
                 Array [
                   Object {

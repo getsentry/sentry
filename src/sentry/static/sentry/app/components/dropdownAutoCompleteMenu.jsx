@@ -87,11 +87,12 @@ class DropdownAutoCompleteMenu extends React.Component {
       onSelect,
       children,
       items,
-      action,
       menuProps,
       alignMenu,
       style,
       css,
+      menuHeader,
+      menuFooter,
       ...props
     } = this.props;
 

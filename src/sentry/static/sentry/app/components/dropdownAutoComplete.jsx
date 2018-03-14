@@ -11,7 +11,6 @@ class DropdownAutoComplete extends React.Component {
 
   static defaultProps = {
     alignMenu: 'right',
-    isOpen: false,
   };
 
   render() {

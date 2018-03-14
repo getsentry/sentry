@@ -311,15 +311,4 @@ const StyledCreateMemberLink = styled(Link)`
   text-transform: none;
 `;
 
-const StyledMembersLabel = styled('div')`
-  font-size: 0.875em;
-  padding: 0.75em 0;
-  text-transform: uppercase;
-`;
-
-const StyledCreateMemberLink = styled(Link)`
-  float: right;
-  text-transform: none;
-`;
-
 export default TeamMembers;
