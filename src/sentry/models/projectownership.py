@@ -8,6 +8,7 @@ from django.utils import timezone
 from sentry.db.models import Model, sane_repr
 from sentry.db.models.fields import FlexibleForeignKey
 from sentry.ownership.grammar import load_schema
+import six
 
 
 class ProjectOwnership(Model):
@@ -65,6 +66,29 @@ class ProjectOwnership(Model):
         owners = cls.Everyone if ownership.fallthrough else []
         return owners, None
 
+    @classmethod
+    def get_all_actors(cls, project_id, events):
+        try:
+            ownership = cls.objects.get(project_id=project_id)
+        except cls.DoesNotExist:
+            return cls.Everyone
+
+        event_actors = {}
+        event_rules = build_event_rules(ownership, events)
+        for event, rules in six.iteritems(event_rules):
+            user_owners = []
+            team_owners = []
+            for rule in rules:
+                for owner in rule.owners:
+                    if owner.type == 'team':
+                        team_owners.append(owner)
+                    if owner.type == 'user':
+                        user_owners.append(owner)
+                user_actors = resolve_user_actors(user_owners, project_id) if user_owners else []
+                team_actors = resolve_team_actors(team_owners, project_id) if team_owners else []
+                event_actors[event] = user_actors + team_actors
+        return event_actors
+
 
 class UnknownActor(Exception):
     pass
@@ -99,3 +123,53 @@ def resolve_actor(owner, project_id):
         return Actor(team_id, Team)
 
     raise TypeError('Unknown actor type: %r' % owner.type)
+
+
+def build_event_rules(ownership, events):
+    event_rules = {}
+    if ownership.schema is not None:
+        rules = load_schema(ownership.schema)
+    else:
+        return ProjectOwnership.Everyone
+    for event in events:
+        event_rules[event] = [rule for rule in rules if rule.test(event.data)]
+    return event_rules
+
+
+def resolve_user_actors(user_owners, project_id):
+    from sentry.api.fields.actor import Actor
+    from sentry.models import User
+
+    users = User.objects.filter(
+        is_active=True,
+        sentry_orgmember_set__organizationmemberteam__team__projectteam__project_id=project_id,
+    ).values('id', 'email')
+
+    users_dict = {}
+    for user in users:
+        users_dict[user['email']] = user['id']
+
+    actors = []
+    for user in user_owners:
+        user_id = users_dict[user.identifier]
+        actors.append(Actor(user_id, User))
+    return actors
+
+
+def resolve_team_actors(team_owners, project_id):
+    from sentry.api.fields.actor import Actor
+    from sentry.models import Team
+
+    teams = Team.objects.filter(
+        projectteam__project_id=project_id,
+    ).values('id', 'slug')
+
+    teams_dict = {}
+    for team in teams:
+        teams_dict[team['slug']] = team['id']
+
+    actors = []
+    for team in team_owners:
+        team_id = teams_dict[team.identifier]
+        actors.append(Actor(team_id, Team))
+    return actors
