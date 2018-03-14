@@ -3,17 +3,18 @@ import React from 'react';
 import styled from 'react-emotion';
 import Avatar from './avatar';
 import Link from './link';
+import overflowEllipsis from '../styles/overflowEllipsis';
 
-const UserBadge = ({user, orgId}) => {
+const UserBadge = ({user, orgId, ...props}) => {
   return (
-    <StyledUserBadge>
+    <StyledUserBadge {...props}>
       <StyledAvatar user={user} size={80} className="avatar" />
-      <div>
+      <StyledNameAndEmail>
         <StyledLink to={`/settings/organization/${orgId}/members/${user.id}`}>
           {user.name || user.email}
         </StyledLink>
         <StyledEmail>{user.email}</StyledEmail>
-      </div>
+      </StyledNameAndEmail>
     </StyledUserBadge>
   );
 };
@@ -28,19 +29,28 @@ const StyledUserBadge = styled('div')`
   align-items: center;
 `;
 
+const StyledNameAndEmail = styled('div')`
+  flex-shrink: 1;
+  min-width: 0;
+  line-height: 1;
+`;
+
 const StyledEmail = styled('div')`
   font-size: 0.875em;
+  ${overflowEllipsis};
 `;
 
 const StyledLink = styled(Link)`
   font-weight: bold;
-  display: block;
   margin-bottom: 0.2em;
+  ${overflowEllipsis};
 `;
 
 const StyledAvatar = styled(props => <Avatar {...props} />)`
   width: 2em;
   height: 2em;
+  min-width: 2em;
+  min-height: 2em;
   margin-right: 0.5em;
 `;
 

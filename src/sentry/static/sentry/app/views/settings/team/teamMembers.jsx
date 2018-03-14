@@ -4,7 +4,9 @@ import styled from 'react-emotion';
 
 import ApiMixin from '../../../mixins/apiMixin';
 import UserBadge from '../../../components/userBadge';
+import UserListElement from '../../../components/userListElement';
 import Button from '../../../components/buttons/button';
+import Link from '../../../components/link';
 import DropdownAutoComplete from '../../../components/dropdownAutoComplete';
 import DropdownButton from '../../../components/dropdownButton';
 import IndicatorStore from '../../../stores/indicatorStore';
@@ -158,12 +160,14 @@ const TeamMembers = createReactClass({
 
     if (!access.has('org:write')) {
       return (
-        <a
-          className="btn btn-default btn-disabled tip pull-right"
+        <DropdownButton
+          disabled={true}
           title={t('You do not have enough permission to add new members')}
+          isOpen={false}
+          size="xsmall"
         >
-          <span className="icon-plus" /> {t('Add Member')}
-        </a>
+          {t('Add Member')}
+        </DropdownButton>
       );
     }
 
@@ -173,27 +177,33 @@ const TeamMembers = createReactClass({
       .filter(m => !existingMembers.has(m.id))
       .map(m => {
         return {
+          searchKey: `${m.name} ${m.email}`,
           value: m.id,
-          label: m.name || m.email,
+          label: <StyledUserListElement user={m} />,
         };
       });
 
+    let dropdownLabel = (
+      <StyledMembersLabel>
+        {t('Members')}
+        <StyledCreateMemberLink
+          to={`/settings/organization/${params.orgId}/members/new/`}
+        >
+          {t('Add Member')}
+        </StyledCreateMemberLink>
+      </StyledMembersLabel>
+    );
+
+    let group = {
+      label: dropdownLabel,
+      value: 'members-label',
+    };
+
     return (
-      <DropdownAutoComplete
-        items={items}
-        onSelect={this.addTeamMember}
-        action={
-          <Button
-            priority="primary"
-            to={`/settings/organization/${params.orgId}/members/new/`}
-          >
-            Add New Organization Member
-          </Button>
-        }
-      >
+      <DropdownAutoComplete items={[{items, group}]} onSelect={this.addTeamMember}>
         {({isOpen, selectedItem}) => (
-          <DropdownButton isOpen={isOpen}>
-            <span className="icon-plus" /> {t('Add Member')}
+          <DropdownButton isOpen={isOpen} size="xsmall">
+            {t('Add Member')}
           </DropdownButton>
         )}
       </DropdownAutoComplete>
@@ -257,6 +267,25 @@ const StyledMemberContainer = styled('div')`
   justify-content: space-between;
   padding: 1.25em 1em;
   border-bottom: 1px solid ${p => p.theme.borderLight};
+`;
+
+const StyledUserListElement = styled(UserListElement)`
+  width: 250px;
+  font-size: 0.875em;
+  &:hover {
+    cursor: pointer;
+  }
+`;
+
+const StyledMembersLabel = styled('div')`
+  font-size: 0.875em;
+  padding: 0.75em 0;
+  text-transform: uppercase;
+`;
+
+const StyledCreateMemberLink = styled(Link)`
+  float: right;
+  text-transform: none;
 `;
 
 export default TeamMembers;

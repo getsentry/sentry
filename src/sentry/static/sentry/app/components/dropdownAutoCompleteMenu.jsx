@@ -24,6 +24,7 @@ class DropdownAutoCompleteMenu extends React.Component {
             PropTypes.shape({
               value: PropTypes.string,
               label: PropTypes.node,
+              searchKey: PropTypes.string,
             })
           ),
         })
@@ -32,6 +33,7 @@ class DropdownAutoCompleteMenu extends React.Component {
     action: PropTypes.element,
     isOpen: PropTypes.bool,
     onSelect: PropTypes.func,
+    alignMenu: PropTypes.oneOf(['left', 'right']),
   };
 
   static defaultProps = {
@@ -41,8 +43,7 @@ class DropdownAutoCompleteMenu extends React.Component {
   filterItems = (items, inputValue) =>
     items.filter(item => {
       return (
-        [item.value, item.label]
-          .join(' ')
+        (item.searchKey || `${item.value} ${item.label}`)
           .toLowerCase()
           .indexOf(inputValue.toLowerCase()) > -1
       );
@@ -173,17 +174,28 @@ const StyledLabel = styled('div')`
   border-width: 1px 0;
 `;
 
-const StyledMenu = styled(({isOpen, ...props}) => <div {...props} />)`
+const StyledMenu = styled(({isOpen, alignMenu, ...props}) => <div {...props} />)`
   background: #fff;
   border: 1px solid ${p => p.theme.borderLight};
   border-radius: 0 ${p => p.theme.borderRadius} ${p => p.theme.borderRadius}
     ${p => p.theme.borderRadius};
   position: absolute;
   top: calc(100% - 1px);
-  left: 0;
   min-width: 250px;
-  font-size: 0.9em;
   z-index: 1;
+  max-height: 300px;
+  overflow-y: scroll;
+  right: 0;
+  border-radius: ${({theme}) =>
+    `${theme.borderRadius} 0 ${theme.borderRadius} ${theme.borderRadius}`};
+
+  ${({alignMenu, theme}) =>
+    alignMenu == 'left'
+      ? `
+    left: 0;
+    border-radius: 0 ${theme.borderRadius} ${theme.borderRadius} ${theme.borderRadius};
+  `
+      : ''};
 `;
 
 export default DropdownAutoCompleteMenu;
