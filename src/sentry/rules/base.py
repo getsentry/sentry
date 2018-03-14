@@ -75,8 +75,8 @@ class RuleBase(object):
     def is_enabled(self):
         return True
 
-    def get_option(self, key):
-        return self.data.get(key)
+    def get_option(self, key, default=None):
+        return self.data.get(key, default)
 
     def get_form_instance(self):
         if self.had_data:

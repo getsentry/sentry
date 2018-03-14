@@ -64,9 +64,11 @@ class SlackNotifyActionTest(RuleTestCase):
         rule = self.get_rule(data={
             'workspace': self.integration.id,
             'channel': '#my-channel',
+            'tags': 'one, two'
         })
 
-        assert rule.render_label() == 'Send a notification to the Slack Awesome Team workspace to #my-channel'
+        assert rule.render_label(
+        ) == 'Send a notification to the Awesome Team Slack workspace to #my-channel and include tags [one, two]'
 
     def test_render_label_without_integration(self):
         self.integration.delete()
@@ -74,16 +76,18 @@ class SlackNotifyActionTest(RuleTestCase):
         rule = self.get_rule(data={
             'workspace': self.integration.id,
             'channel': '#my-channel',
+            'tags': '',
         })
 
         label = rule.render_label()
-        assert label == 'Send a notification to the Slack [removed] workspace to #my-channel'
+        assert label == 'Send a notification to the [removed] Slack workspace to #my-channel and include tags []'
 
     @responses.activate
     def test_valid_channel_selected(self):
         rule = self.get_rule(data={
             'workspace': self.integration.id,
             'channel': '#my-channel',
+            'tags': '',
         })
 
         channels = {
@@ -110,6 +114,7 @@ class SlackNotifyActionTest(RuleTestCase):
         rule = self.get_rule(data={
             'workspace': self.integration.id,
             'channel': '@morty',
+            'tags': '',
         })
 
         channels = {
@@ -152,6 +157,7 @@ class SlackNotifyActionTest(RuleTestCase):
         rule = self.get_rule(data={
             'workspace': self.integration.id,
             'channel': '#my-channel',
+            'tags': '',
         })
 
         channels = {

@@ -23,6 +23,12 @@ class SlackNotifyServiceForm(forms.Form):
         attrs={'placeholder': 'i.e #critical'},
     ))
     channel_id = forms.HiddenInput()
+    tags = forms.CharField(required=False, widget=forms.TextInput(
+        attrs={
+            'placeholder': 'i.e environment,user,my_tag',
+            'style': 'width:200px',
+        },
+    ))
 
     def __init__(self, *args, **kwargs):
         # NOTE: Workspace maps directly to the integration ID
@@ -66,7 +72,7 @@ class SlackNotifyServiceForm(forms.Form):
 
 class SlackNotifyServiceAction(EventAction):
     form_cls = SlackNotifyServiceForm
-    label = u'Send a notification to the Slack {workspace} workspace to {channel}'
+    label = u'Send a notification to the {workspace} Slack workspace to {channel} and include tags {tags}'
 
     def is_enabled(self):
         return self.get_integrations().exists()
@@ -74,6 +80,7 @@ class SlackNotifyServiceAction(EventAction):
     def after(self, event, state):
         integration_id = self.get_option('workspace')
         channel = self.get_option('channel_id')
+        tags = set(self.get_tags_list())
 
         try:
             integration = Integration.objects.get(
@@ -87,7 +94,7 @@ class SlackNotifyServiceAction(EventAction):
 
         def send_notification(event, futures):
             rules = [f.rule for f in futures]
-            attachment = build_attachment(event.group, event=event, rules=rules)
+            attachment = build_attachment(event.group, event=event, tags=tags, rules=rules)
 
             payload = {
                 'token': integration.metadata['access_token'],
@@ -112,15 +119,21 @@ class SlackNotifyServiceAction(EventAction):
             integration_name = Integration.objects.get(
                 provider='slack',
                 organizations=self.project.organization,
-                id=self.data.get('workspace')
+                id=self.get_option('workspace')
             ).name
         except Integration.DoesNotExist:
             integration_name = '[removed]'
 
+        tags = self.get_tags_list()
+
         return self.label.format(
             workspace=integration_name,
-            channel=self.data['channel'],
+            channel=self.get_option('channel'),
+            tags=u'[{}]'.format(', '.join(tags)),
         )
+
+    def get_tags_list(self):
+        return [s.strip() for s in self.get_option('tags', '').split(',')]
 
     def get_integrations(self):
         return Integration.objects.filter(
