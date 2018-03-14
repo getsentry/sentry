@@ -289,6 +289,18 @@ class DjangoSearchBackendTest(TestCase):
         results = self.backend.query(self.project, assigned_to=other_user)
         assert set(results) == set([])
 
+        owner = self.create_user()
+        self.create_member(
+            organization=self.project.organization,
+            user=owner,
+            role='owner',
+            teams=[],
+        )
+
+        # test that owners don't see results for all teams
+        results = self.backend.query(self.project, assigned_to=owner)
+        assert set(results) == set([])
+
     def test_subscribed_by(self):
         results = self.backend.query(
             self.group1.project,
