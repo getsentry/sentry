@@ -1,15 +1,13 @@
 from __future__ import absolute_import
 
-from django.core.urlresolvers import reverse
-
 from sentry import analytics
 from sentry import http, options
 from sentry.api import client
 from sentry.api.base import Endpoint
 from sentry.models import Group, Integration, Project, IdentityProvider, Identity, ApiKey
 from sentry.utils import json
-from sentry.utils.http import absolute_uri
 
+from .link_identity import build_linking_url
 from .utils import build_attachment, logger
 
 LINK_IDENTITY_MESSAGE = "Looks like you haven't linked your Sentry account with your Slack identity yet! <{associate_url}|Link your identity now> to perform actions in Sentry through Slack."
@@ -111,7 +109,7 @@ class SlackActionEndpoint(Endpoint):
         payload = {
             'dialog': json.dumps(dialog),
             'trigger_id': data['trigger_id'],
-            'token': integration.metadata['bot_access_token'],
+            'token': integration.metadata['access_token'],
         }
 
         session = http.build_session()
@@ -216,10 +214,12 @@ class SlackActionEndpoint(Endpoint):
                 idp=IdentityProvider.objects.get(organization=group.organization),
             )
         except Identity.DoesNotExist:
-            associate_url = absolute_uri(reverse('sentry-account-associate-identity', kwargs={
-                'organization_slug': group.organization.slug,
-                'provider_key': 'slack',
-            }))
+            associate_url = build_linking_url(
+                integration,
+                group.organization,
+                user_id,
+                channel_id
+            )
 
             return self.respond({
                 'response_type': 'ephemeral',
