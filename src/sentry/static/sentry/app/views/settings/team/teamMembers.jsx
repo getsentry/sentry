@@ -183,7 +183,7 @@ const TeamMembers = createReactClass({
         };
       });
 
-    let dropdownLabel = (
+    let menuHeader = (
       <StyledMembersLabel>
         {t('Members')}
         <StyledCreateMemberLink
@@ -194,13 +194,12 @@ const TeamMembers = createReactClass({
       </StyledMembersLabel>
     );
 
-    let group = {
-      label: dropdownLabel,
-      value: 'members-label',
-    };
-
     return (
-      <DropdownAutoComplete items={[{items, group}]} onSelect={this.addTeamMember}>
+      <DropdownAutoComplete
+        items={items}
+        onSelect={this.addTeamMember}
+        menuHeader={menuHeader}
+      >
         {({isOpen, selectedItem}) => (
           <DropdownButton isOpen={isOpen} size="xsmall">
             {t('Add Member')}
@@ -278,6 +277,7 @@ const StyledUserListElement = styled(UserListElement)`
 `;
 
 const StyledMembersLabel = styled('div')`
+  width: 250px;
   font-size: 0.875em;
   padding: 0.75em 0;
   text-transform: uppercase;

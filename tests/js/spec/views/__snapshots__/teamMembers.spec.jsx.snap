@@ -47,23 +47,16 @@ exports[`TeamMembers render() renders 1`] = `
 =======
           alignMenu="right"
           isOpen={false}
-          items={
-            Array [
-              Object {
-                "group": Object {
-                  "label": <StyledMembersLabel>
-                    Members
-                    <StyledCreateMemberLink
-                      to="/settings/organization/org-slug/members/new/"
-                    >
-                      Add Member
-                    </StyledCreateMemberLink>
-                  </StyledMembersLabel>,
-                  "value": "members-label",
-                },
-                "items": Array [],
-              },
-            ]
+          items={Array []}
+          menuHeader={
+            <StyledMembersLabel>
+              Members
+              <StyledCreateMemberLink
+                to="/settings/organization/org-slug/members/new/"
+              >
+                Add Member
+              </StyledCreateMemberLink>
+            </StyledMembersLabel>
           }
 >>>>>>> add members button inside label as per designs
           onSelect={[Function]}
