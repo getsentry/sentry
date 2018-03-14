@@ -166,7 +166,6 @@ exports[`OrganizationTeamProjects Should render 1`] = `
                             >
                               <DropdownAutoComplete
                                 alignMenu="right"
-                                isOpen={false}
                                 items={
                                   Array [
                                     Object {
@@ -179,7 +178,6 @@ exports[`OrganizationTeamProjects Should render 1`] = `
                               >
                                 <DropdownAutoCompleteMenu
                                   alignMenu="right"
-                                  isOpen={false}
                                   items={
                                     Array [
                                       Object {
@@ -191,7 +189,7 @@ exports[`OrganizationTeamProjects Should render 1`] = `
                                   onSelect={[Function]}
                                 >
                                   <AutoComplete
-                                    isOpen={false}
+                                    alignMenu="right"
                                     itemToString={[Function]}
                                     onSelect={[Function]}
                                   >

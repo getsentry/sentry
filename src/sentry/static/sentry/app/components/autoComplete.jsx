@@ -30,6 +30,8 @@ class AutoComplete extends React.Component {
      */
     isOpen: PropTypes.bool,
     onSelect: PropTypes.func,
+    onOpen: PropTypes.func,
+    onClose: PropTypes.func,
   };
 
   static defaultProps = {
@@ -57,6 +59,14 @@ class AutoComplete extends React.Component {
     this.items.clear();
   }
 
+  isControlled = () => typeof this.props.isOpen !== 'undefined';
+
+  getOpenState = () => {
+    let {isOpen} = this.props;
+
+    return this.isControlled() ? isOpen : this.state.isOpen;
+  };
+
   /**
    * Resets `this.items` and `this.state.highlightedIndex`.
    * Should be called whenever `inputValue` changes.
@@ -74,9 +84,9 @@ class AutoComplete extends React.Component {
     // We force `isOpen: true` here because:
     // 1) it's possible to have menu closed but input with focus (i.e. hitting "Esc")
     // 2) you select an item, input still has focus, and then change input
+    this.openMenu();
     this.setState({
       inputValue: value,
-      isOpen: true,
     });
 
     callIfFunction(onChange, e);
@@ -169,7 +179,13 @@ class AutoComplete extends React.Component {
    *
    * This is exposed to render function
    */
-  openMenu = () => {
+  openMenu = (...args) => {
+    let {onOpen} = this.props;
+    if (this.isControlled() && typeof onOpen === 'function') {
+      onOpen(...args);
+      return;
+    }
+
     this.setState({
       isOpen: true,
     });
@@ -180,7 +196,13 @@ class AutoComplete extends React.Component {
    *
    * This is exposed to render function
    */
-  closeMenu = () => {
+  closeMenu = (...args) => {
+    let {onClose} = this.props;
+    if (this.isControlled() && typeof onClose === 'function') {
+      onClose(...args);
+      return;
+    }
+
     this.setState({
       isOpen: false,
     });
@@ -216,12 +238,10 @@ class AutoComplete extends React.Component {
 
   render() {
     let {children} = this.props;
+    let isOpen = this.getOpenState();
 
     return (
-      <DropdownMenu
-        isOpen={this.state.isOpen}
-        onClickOutside={() => this.setState({isOpen: false})}
-      >
+      <DropdownMenu isOpen={isOpen} onClickOutside={this.closeMenu}>
         {dropdownMenuProps =>
           children({
             ...dropdownMenuProps,
