@@ -4,6 +4,7 @@ from rest_framework import serializers, status
 from rest_framework.response import Response
 
 from sentry import features
+from sentry.relay import Config
 from sentry.api.base import DocSection
 from sentry.api.bases.project import ProjectEndpoint
 from sentry.api.exceptions import ResourceDoesNotExist
@@ -56,6 +57,10 @@ class ProjectKeyDetailsEndpoint(ProjectEndpoint):
             )
         except ProjectKey.DoesNotExist:
             raise ResourceDoesNotExist
+
+        import pprint;
+        config = Config(key.project, key)
+        pprint.pprint(config.render_javascript_file())
 
         return Response(serialize(key, request.user), status=200)
 

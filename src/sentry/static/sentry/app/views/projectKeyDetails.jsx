@@ -5,6 +5,7 @@ import PropTypes from 'prop-types';
 import React from 'react';
 import createReactClass from 'create-react-class';
 import idx from 'idx';
+import styled from 'react-emotion';
 
 import {
   BooleanField,
@@ -33,6 +34,11 @@ export const getRateLimitError = (obj, key) => {
 
   return !!obj.rateLimit.find(errorObj => errorObj[key] && errorObj[key].length);
 };
+
+const CodeBlock = styled.pre`
+  word-break: break-all;
+  white-space: pre-wrap;
+`;
 
 const KeyStats = createReactClass({
   displayName: 'KeyStats',
@@ -497,6 +503,21 @@ const KeySettings = createReactClass({
                 <AutoSelectText className="form-control disabled">
                   <DynamicWrapper value={data.projectId} fixed="<<projectId>>" />
                 </AutoSelectText>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div className="box">
+          <div className="box-header">
+            <h3>{t('CDN')}</h3>
+          </div>
+          <div className="box-content with-padding">
+            <p>{t('Include this script in your website to track javascript errors.')}</p>
+
+            <div className="form-group">
+              <div className="controls">
+                <CodeBlock>{"<script src='" + data.relay.url + "'></script>"}</CodeBlock>
               </div>
             </div>
           </div>

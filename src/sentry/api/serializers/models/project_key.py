@@ -2,12 +2,14 @@ from __future__ import absolute_import
 
 from sentry.api.serializers import Serializer, register
 from sentry.models import ProjectKey
+from sentry.relay import Config
 
 
 @register(ProjectKey)
 class ProjectKeySerializer(Serializer):
     def serialize(self, obj, attrs, user):
         name = obj.label or obj.public_key[:14]
+        config = Config(obj.project, obj)
         d = {
             'id': obj.public_key,
             'name': name,
@@ -26,6 +28,9 @@ class ProjectKeySerializer(Serializer):
                 'public': obj.dsn_public,
                 'csp': obj.csp_endpoint,
                 'minidump': obj.minidump_endpoint,
+            },
+            'relay': {
+                'url': config.get_cdn_url(),
             },
             'dateCreated': obj.date_added,
         }
