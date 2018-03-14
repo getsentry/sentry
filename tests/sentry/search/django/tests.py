@@ -2,9 +2,11 @@
 
 from __future__ import absolute_import
 
+from datetime import datetime, timedelta
+
 import pytest
 import pytz
-from datetime import datetime, timedelta
+from django.conf import settings
 
 from sentry import tagstore
 from sentry.event_manager import ScoreClause
@@ -15,20 +17,6 @@ from sentry.search.base import ANY
 from sentry.search.django.backend import DjangoSearchBackend
 from sentry.tagstore.v2.backend import AGGREGATE_ENVIRONMENT_ID
 from sentry.testutils import TestCase
-
-
-def xfail_if_legacy(reason):
-    def decorator(function):
-        from sentry.tagstore.legacy.backend import LegacyTagStorage
-        return pytest.mark.xfail(
-            isinstance(
-                tagstore.backend._wrapped,
-                LegacyTagStorage,
-            ),
-            reason=reason,
-            strict=True,
-        )(function)
-    return decorator
 
 
 class DjangoSearchBackendTest(TestCase):
@@ -603,7 +591,10 @@ class DjangoSearchBackendTest(TestCase):
         )
         assert set(results) == set([self.group1, self.group2])
 
-    @xfail_if_legacy('unsupported due to insufficient index')
+    @pytest.mark.xfail(
+        not settings.SENTRY_TAGSTORE.startswith('sentry.tagstore.v2'),
+        reason='unsupported on legacy backend due to insufficient index',
+    )
     def test_date_filter_with_environment(self):
         results = self.backend.query(
             self.project,
