@@ -13,13 +13,16 @@ class SlackIdentityProvider(OAuth2Provider):
     key = 'slack'
     name = 'Slack'
 
-    oauth_access_token_url = 'https://slack.com/api/oauth.access'
-    oauth_authorize_url = 'https://slack.com/oauth/authorize'
-
     oauth_scopes = (
         'identity.basic',
         'identity.email',
     )
+
+    def get_oauth_access_token_url(self):
+        return 'https://slack.com/api/oauth.access'
+
+    def get_oauth_authorize_url(self):
+        return 'https://slack.com/oauth/authorize'
 
     def get_oauth_client_id(self):
         return options.get('slack.client-id')

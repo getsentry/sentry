@@ -24,11 +24,17 @@ class OAuth2Provider(Provider):
     OAuth scopes are configured through the oauth_scopes class property,
     however may be overriden using the ``config['oauth_scopes']`` object.
     """
-    oauth_access_token_url = ''
-    oauth_authorize_url = ''
-    refresh_token_url = ''
 
     oauth_scopes = ()
+
+    def get_oauth_access_token_url(self):
+        raise NotImplementedError
+
+    def get_oauth_authorize_url(self):
+        raise NotImplementedError
+
+    def get_oauth_refresh_token_url(self):
+        raise NotImplementedError
 
     def get_oauth_client_id(self):
         raise NotImplementedError
@@ -42,12 +48,12 @@ class OAuth2Provider(Provider):
     def get_pipeline_views(self):
         return [
             OAuth2LoginView(
-                authorize_url=self.oauth_authorize_url,
+                authorize_url=self.get_oauth_authorize_url(),
                 client_id=self.get_oauth_client_id(),
                 scope=' '.join(self.get_oauth_scopes()),
             ),
             OAuth2CallbackView(
-                access_token_url=self.oauth_access_token_url,
+                access_token_url=self.get_oauth_access_token_url(),
                 client_id=self.get_oauth_client_id(),
                 client_secret=self.get_oauth_client_secret(),
             ),
