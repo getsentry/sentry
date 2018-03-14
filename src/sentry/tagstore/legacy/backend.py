@@ -630,6 +630,9 @@ class LegacyTagStorage(TagStorage):
 
         return queryset
 
+    def get_event_tag_qs(self, project_id, environment_id, key, value):
+        raise NotImplementedError  # there is no index that can appopriate satisfy this query
+
     def update_group_for_events(self, project_id, event_ids, destination_id):
         return EventTag.objects.filter(
             project_id=project_id,

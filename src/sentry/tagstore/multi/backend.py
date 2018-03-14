@@ -280,5 +280,8 @@ class MultiTagStorage(TagStorage):
     def get_group_tag_value_qs(self, *args, **kwargs):
         return self._call_one_backend('get_group_tag_value_qs', *args, **kwargs)
 
+    def get_event_tag_qs(self, *args, **kwargs):
+        return self._call_one_backend('get_event_tag_qs', *args, **kwargs)
+
     def update_group_for_events(self, *args, **kwargs):
         return self._call_all_backends('update_group_for_events', *args, **kwargs)

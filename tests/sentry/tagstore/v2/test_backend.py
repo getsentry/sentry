@@ -342,6 +342,14 @@ class TagStorage(TestCase):
                 key_id=k.id,
                 value_id=v.id,
             ) is not None
+            assert set(
+                self.ts.get_event_tag_qs(
+                    self.proj1.id,
+                    self.proj1env1.id,
+                    k.key,
+                    v.value,
+                ).values_list('group_id', flat=True)
+            ) == set([self.proj1group1.id])
 
     def test_delete_tag_key(self):
         tk1 = self.ts.create_tag_key(
