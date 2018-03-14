@@ -7,7 +7,7 @@ import GroupState from '../mixins/groupState';
 import EventUserReport from '../components/events/userReport';
 import LoadingError from '../components/loadingError';
 import LoadingIndicator from '../components/loadingIndicator';
-import {t} from '../locale';
+import {t, tct} from '../locale';
 import withEnvironment from '../utils/withEnvironment';
 
 const GroupUserReports = createReactClass({
@@ -107,10 +107,17 @@ const GroupUserReports = createReactClass({
         </div>
       );
     }
+
+    const emptyStateMessage = this.props.environment
+      ? tct('No user reports have been collected from your [env] environment.', {
+          env: this.props.environment.displayName,
+        })
+      : t('No user reports have been collected.');
+
     return (
       <div className="box empty-stream">
         <span className="icon icon-exclamation" />
-        <p>{t('No user reports have been collected.')}</p>
+        <p>{emptyStateMessage}</p>
         <p>
           <Link to={this.getUserReportsUrl()}>
             {t('Learn how to integrate User Feedback')}
