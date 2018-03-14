@@ -4,12 +4,14 @@ exports[`Helper renders cue 1`] = `
 <div
   className="assistant-container"
 >
-  <a
-    className="assistant-cue"
-    onClick={[Function]}
-  >
-    Need Help?
-  </a>
+  <div>
+    <a
+      className="assistant-cue"
+      onClick={[Function]}
+    >
+      Need Help?
+    </a>
+  </div>
 </div>
 `;
 
@@ -43,7 +45,8 @@ exports[`Helper renders guide drawer 1`] = `
           ],
         }
       }
-      onClose={[Function]}
+      onDismiss={[Function]}
+      onFinish={[Function]}
       step={1}
     />
   </div>

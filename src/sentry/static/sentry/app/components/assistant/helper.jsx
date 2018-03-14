@@ -2,7 +2,8 @@ import React from 'react';
 import Reflux from 'reflux';
 import createReactClass from 'create-react-class';
 import {t} from '../../locale';
-import {closeGuide, fetchGuides, nextStep} from '../../actionCreators/guides';
+
+import {dismiss, closeGuide, fetchGuides, nextStep} from '../../actionCreators/guides';
 import SupportDrawer from './supportDrawer';
 import GuideDrawer from './guideDrawer';
 import GuideStore from '../../stores/guideStore';
@@ -54,20 +55,23 @@ const AssistantHelper = createReactClass({
     });
   },
 
+  handleDismiss() {
+    dismiss(this.state.currentGuide.id);
+    closeGuide();
+  },
+
   render() {
-    const cueText = this.state.currentGuide
-      ? this.state.currentGuide.cue
-      : t('Need Help?');
     // isDrawerOpen and currentGuide/currentStep live in different places and are updated
     // non-atomically. So we need to guard against the inconsistent state of the drawer
     // being open and a guide being present, but currentStep not updated yet.
     // If this gets too complicated, it would be better to move isDrawerOpen into
     // GuideStore so we can update the state atomically in onGuideStateChange.
     let showDrawer = false;
-    if (
-      this.state.isDrawerOpen &&
-      (!this.state.currentGuide || this.state.currentStep > 0)
-    ) {
+    let {currentGuide, currentStep, isDrawerOpen} = this.state;
+    let isGuideCued = currentGuide !== null;
+
+    const cueText = isGuideCued ? currentGuide.cue : t('Need Help?');
+    if (isDrawerOpen && (!isGuideCued || currentStep > 0)) {
       showDrawer = true;
     }
 
@@ -75,20 +79,26 @@ const AssistantHelper = createReactClass({
       <div className="assistant-container">
         {showDrawer ? (
           <div className="assistant-drawer">
-            {this.state.currentGuide ? (
+            {currentGuide ? (
               <GuideDrawer
-                guide={this.state.currentGuide}
-                step={this.state.currentStep}
-                onClose={closeGuide}
+                guide={currentGuide}
+                step={currentStep}
+                onFinish={closeGuide}
+                onDismiss={this.handleDismiss}
               />
             ) : (
               <SupportDrawer onClose={this.handleSupportDrawerClose} />
             )}
           </div>
         ) : (
-          <a onClick={this.handleDrawerOpen} className="assistant-cue">
-            {cueText}
-          </a>
+          <div>
+            <a onClick={this.handleDrawerOpen} className="assistant-cue">
+              {cueText}
+            </a>
+            {isGuideCued && (
+              <a onClick={this.handleDismiss} className="icon-close assistant-cue" />
+            )}
+          </div>
         )}
       </div>
     );
