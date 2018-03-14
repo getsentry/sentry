@@ -166,7 +166,7 @@ const ProjectListOld = createReactClass({
     let {maxProjects, projects} = this.props;
 
     projects = sortArray(projects, item => {
-      return [!item.isBookmarked, item.teamName, item.name];
+      return [!item.isBookmarked, item.team && item.team.name, item.name];
     });
 
     // project list is
@@ -209,7 +209,7 @@ const ProjectListOld = createReactClass({
                     )}
                     {project.name}
                   </h4>
-                  <h5>{project.teamName}</h5>
+                  <h5>{project.team ? project.team.name : <span>&nbsp;</span>}</h5>
                 </Link>
               </li>
             );
