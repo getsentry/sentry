@@ -19,7 +19,6 @@ exports[`TeamMembers render() renders 1`] = `
       >
         <DropdownAutoComplete
           alignMenu="right"
-          isOpen={false}
           items={
             Array [
               Object {
