@@ -10,11 +10,7 @@ exports[`SuggestedOwners render() should not show owners committers without feat
       "message": "ApiException",
     }
   }
->
-  <div
-    className="m-b-1"
-  />
-</SuggestedOwners>
+/>
 `;
 
 exports[`SuggestedOwners render() should show owners when enable 1`] = `
@@ -49,9 +45,14 @@ exports[`SuggestedOwners render() should show owners when enable 1`] = `
       className="avatar-grid"
     >
       <span
-        className="avatar-grid-item tip"
+        className="avatar-grid-item"
         key="1:user"
         onClick={[Function]}
+        style={
+          Object {
+            "cursor": "pointer",
+          }
+        }
       >
         <Tooltip
           title="<div><div class=\\"tooltip-owners-name\\">Jane Doe</div><ul class=\\"tooltip-owners-commits\\">Assigned based on your Project&#x27;s Issue Ownership settings</ul><ul class=\\"tooltip-owners-commits\\">path matched: sentry/tagstore/*</ul></div>"

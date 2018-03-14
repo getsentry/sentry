@@ -100,6 +100,7 @@ const SuggestedOwners = createReactClass({
       <span
         key={author.id || author.email}
         className="avatar-grid-item"
+        style={{cursor: 'pointer'}}
         onClick={() => this.assignTo(author)}
       >
         <Tooltip
@@ -158,7 +159,8 @@ const SuggestedOwners = createReactClass({
     return (
       <span
         key={`${owner.id}:${owner.type}`}
-        className="avatar-grid-item tip"
+        className="avatar-grid-item"
+        style={{cursor: 'pointer'}}
         onClick={() => this.assignToActor(owner)}
       >
         <Tooltip
@@ -190,24 +192,20 @@ const SuggestedOwners = createReactClass({
     let {committers, owners} = this.state;
     let showOwners = new Set(this.getOrganization().features).has('internal-catchall');
 
-    if (owners.length == 0 && committers.length == 0) {
+    if (committers.length == 0 && (!showOwners || owners.length == 0)) {
       return null;
     }
 
     return (
       <div className="m-b-1">
-        {committers.length || (showOwners && owners.length) ? (
-          <React.Fragment>
-            <h6>
-              <span>{t('Suggested Assignees')}</span>
-              <small style={{background: '#FFFFFF'}}>{t('Click to assign')}</small>
-            </h6>
-            <div className="avatar-grid">
-              {committers.map(this.renderCommitter)}
-              {showOwners && owners.map(this.renderOwner)}
-            </div>
-          </React.Fragment>
-        ) : null}
+        <h6>
+          <span>{t('Suggested Assignees')}</span>
+          <small style={{background: '#FFFFFF'}}>{t('Click to assign')}</small>
+        </h6>
+        <div className="avatar-grid">
+          {committers.map(this.renderCommitter)}
+          {showOwners && owners.map(this.renderOwner)}
+        </div>
       </div>
     );
   },
