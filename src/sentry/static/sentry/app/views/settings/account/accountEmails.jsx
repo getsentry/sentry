@@ -3,6 +3,7 @@ import PropTypes from 'prop-types';
 import React from 'react';
 import styled from 'react-emotion';
 
+import {addErrorMessage} from '../../../actionCreators/indicator';
 import {t} from '../../../locale';
 import AlertLink from '../../../components/alertLink';
 import AsyncView from '../../asyncView';
@@ -13,8 +14,8 @@ import Panel from '../components/panel';
 import PanelBody from '../components/panelBody';
 import PanelHeader from '../components/panelHeader';
 import PanelItem from '../components/panelItem';
-import Tag from '../components/tag';
 import SettingsPageHeader from '../components/settingsPageHeader';
+import Tag from '../components/tag';
 import accountEmailsFields from '../../../data/forms/accountEmails';
 
 const ENDPOINT = '/users/me/emails/';
@@ -34,6 +35,7 @@ class EmailRow extends React.Component {
     isPrimary: PropTypes.bool,
     hideRemove: PropTypes.bool,
     onRemove: PropTypes.func,
+    onVerify: PropTypes.func,
     onSetPrimary: PropTypes.func,
   };
 
@@ -43,6 +45,10 @@ class EmailRow extends React.Component {
 
   handleRemove = e => {
     this.props.onRemove(this.props.email, e);
+  };
+
+  handleVerify = e => {
+    this.props.onVerify(this.props.email, e);
   };
 
   render() {
@@ -55,22 +61,27 @@ class EmailRow extends React.Component {
           {!isVerified && <Tag priority="warning">{t('Unverified')}</Tag>}
           {isPrimary && <Tag priority="success">{t('Primary')}</Tag>}
         </Flex>
-        {!isPrimary && (
-          <Button size="small" onClick={this.handleSetPrimary}>
-            {t('Set as primary')}
-          </Button>
-        )}
-        {!isPrimary &&
-          !hideRemove && (
-            <Flex>
-              <Box ml={1}>
-                <RemoveButton
-                  onClick={this.handleRemove}
-                  hidden={isPrimary || hideRemove}
-                />
-              </Box>
-            </Flex>
+        <Flex>
+          {!isPrimary &&
+            isVerified && (
+              <Button size="small" onClick={this.handleSetPrimary}>
+                {t('Set as primary')}
+              </Button>
+            )}
+          {!isVerified && (
+            <Button size="small" onClick={this.handleVerify}>
+              {t('Resend verification')}
+            </Button>
           )}
+          {!hideRemove && (
+            <Box ml={1}>
+              <RemoveButton
+                onClick={this.handleRemove}
+                hidden={isPrimary || hideRemove}
+              />
+            </Box>
+          )}
+        </Flex>
       </PanelItem>
     );
   }
@@ -90,29 +101,47 @@ class AccountEmails extends AsyncView {
     this.remountComponent();
   };
 
-  handleSetPrimary = email => {
+  handleError = err => {
+    this.remountComponent();
+
+    if (err && err.responseJSON && err.responseJSON.email) {
+      addErrorMessage(err.responseJSON.email);
+    }
+  };
+
+  createApiCall = (endpoint, requestParams) => {
     this.setState({loading: true, emails: []}, () => {
       this.api
-        .requestPromise(ENDPOINT, {
-          method: 'PUT',
-          data: {
-            email,
-          },
-        })
-        .then(this.remountComponent.bind(this));
+        .requestPromise(endpoint, requestParams)
+        .then(this.remountComponent.bind(this))
+        .catch(this.handleError);
+    });
+  };
+
+  handleSetPrimary = email => {
+    this.createApiCall(ENDPOINT, {
+      method: 'PUT',
+      data: {
+        email,
+      },
     });
   };
 
   handleRemove = email => {
-    this.setState({loading: true, emails: []}, () => {
-      this.api
-        .requestPromise(ENDPOINT, {
-          method: 'DELETE',
-          data: {
-            email,
-          },
-        })
-        .then(this.remountComponent.bind(this));
+    this.createApiCall(ENDPOINT, {
+      method: 'DELETE',
+      data: {
+        email,
+      },
+    });
+  };
+
+  handleVerify = email => {
+    this.createApiCall(`${ENDPOINT}confirm/`, {
+      method: 'POST',
+      data: {
+        email,
+      },
     });
   };
 
@@ -137,6 +166,7 @@ class AccountEmails extends AsyncView {
                     key={emailObj.email}
                     onSetPrimary={this.handleSetPrimary}
                     onRemove={this.handleRemove}
+                    onVerify={this.handleVerify}
                     {...emailObj}
                   />
                 );

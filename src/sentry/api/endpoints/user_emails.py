@@ -177,7 +177,7 @@ class UserEmailsEndpoint(UserEndpoint):
 
         if not new_email_obj.is_verified:
             return self.respond(
-                {'email': 'You must verified your email address before marking it as primary.'}, status=400)
+                {'email': 'You must verify your email address before marking it as primary.'}, status=400)
 
         # update notification settings for those set to primary email with new primary email
         alert_email = UserOption.objects.get_value(user=user, key='alert_email')
