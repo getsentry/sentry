@@ -7,8 +7,8 @@ import InlineSvg from './inlineSvg';
 const DropdownButton = ({isOpen, children, ...props}) => {
   return (
     <StyledButton isOpen={isOpen} {...props}>
-      <StyledChevronDown />
       {children}
+      <StyledChevronDown />
     </StyledButton>
   );
 };
@@ -20,7 +20,7 @@ DropdownButton.propTypes = {
 const StyledChevronDown = styled(props => (
   <InlineSvg src="icon-chevron-down" {...props} />
 ))`
-  margin-right: 0.5em;
+  margin-left: 0.33em;
 `;
 
 const StyledButton = styled(({isOpen, ...props}) => <Button {...props} />)`

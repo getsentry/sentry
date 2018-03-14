@@ -130,7 +130,8 @@ const TeamProjects = createReactClass({
       .map(p => {
         return {
           value: p.id,
-          label: p.slug,
+          searchKey: p.slug,
+          label: <ProjectListElement>{p.slug}</ProjectListElement>,
         };
       });
 
@@ -146,8 +147,7 @@ const TeamProjects = createReactClass({
                   onSelect={this.handleProjectSelected}
                 >
                   {({isOpen, selectedItem}) => (
-                    <DropdownButton isOpen={isOpen}>
-                      <span className="icon-plus" />
+                    <DropdownButton isOpen={isOpen} size="xsmall">
                       {t('Add Project')}
                     </DropdownButton>
                   )}
@@ -161,5 +161,12 @@ const TeamProjects = createReactClass({
     );
   },
 });
+
+const ProjectListElement = styled('div')`
+  padding: 0.5em 0.25em;
+  &:hover {
+    cursor: pointer;
+  }
+`;
 
 export default TeamProjects;
