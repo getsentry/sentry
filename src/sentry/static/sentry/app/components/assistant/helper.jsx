@@ -68,7 +68,7 @@ const AssistantHelper = createReactClass({
     // GuideStore so we can update the state atomically in onGuideStateChange.
     let showDrawer = false;
     let {currentGuide, currentStep, isDrawerOpen} = this.state;
-    let isGuideCued = currentGuide;
+    let isGuideCued = currentGuide !== null;
 
     const cueText = isGuideCued ? currentGuide.cue : t('Need Help?');
     if (isDrawerOpen && (!isGuideCued || currentStep > 0)) {
@@ -83,7 +83,7 @@ const AssistantHelper = createReactClass({
               <GuideDrawer
                 guide={currentGuide}
                 step={currentStep}
-                onClose={closeGuide}
+                onFinish={closeGuide}
                 onDismiss={this.handleDismiss}
               />
             ) : (

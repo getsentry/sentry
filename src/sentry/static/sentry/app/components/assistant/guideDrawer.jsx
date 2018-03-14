@@ -9,13 +9,13 @@ export default class GuideDrawer extends React.Component {
   static propTypes = {
     guide: PropTypes.object.isRequired,
     step: PropTypes.number.isRequired,
-    onClose: PropTypes.func.isRequired,
+    onFinish: PropTypes.func.isRequired,
     onDismiss: PropTypes.func.isRequired,
   };
 
   handleUseful = useful => {
     markUseful(this.props.guide.id, useful);
-    this.props.onClose();
+    this.props.onFinish();
   };
 
   render() {
