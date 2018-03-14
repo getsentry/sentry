@@ -2,24 +2,20 @@ import PropTypes from 'prop-types';
 import React from 'react';
 import Button from '../buttons/button';
 import {t} from '../../locale';
-import {dismiss, markUseful, nextStep} from '../../actionCreators/guides';
+import {markUseful, nextStep} from '../../actionCreators/guides';
 
 // GuideDrawer is what slides up when the user clicks on a guide cue.
 export default class GuideDrawer extends React.Component {
   static propTypes = {
     guide: PropTypes.object.isRequired,
     step: PropTypes.number.isRequired,
-    onClose: PropTypes.func.isRequired,
+    onFinish: PropTypes.func.isRequired,
+    onDismiss: PropTypes.func.isRequired,
   };
 
   handleUseful = useful => {
     markUseful(this.props.guide.id, useful);
-    this.props.onClose();
-  };
-
-  handleDismiss = () => {
-    dismiss(this.props.guide.id);
-    this.props.onClose();
+    this.props.onFinish();
   };
 
   render() {
@@ -38,7 +34,7 @@ export default class GuideDrawer extends React.Component {
           {this.props.step < this.props.guide.steps.length ? (
             <div>
               <Button onClick={nextStep}>{t('Next')} &rarr;</Button>
-              <Button onClick={this.handleDismiss}>{t('Dismiss')}</Button>
+              <Button onClick={this.props.onDismiss}>{t('Dismiss')}</Button>
             </div>
           ) : (
             <div>

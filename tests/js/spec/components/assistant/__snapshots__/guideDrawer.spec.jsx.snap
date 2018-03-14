@@ -26,7 +26,7 @@ exports[`GuideDrawer gets dismissed 1`] = `
       </Button>
       <Button
         disabled={false}
-        onClick={[Function]}
+        onClick={[MockFunction]}
       >
         Dismiss
       </Button>
