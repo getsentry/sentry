@@ -4,7 +4,7 @@ import {toTitleCase} from '../utils';
 import ProjectActions from '../actions/projectActions';
 import EnvironmentActions from '../actions/environmentActions';
 
-import {setDefaultEnvironment} from '../actionCreators/environments';
+import {setActiveEnvironment} from '../actionCreators/environments';
 
 const PRODUCTION_ENV_NAMES = new Set([
   'production',
@@ -28,11 +28,11 @@ const EnvironmentStore = Reflux.createStore({
     this.listenTo(ProjectActions.setActive, this.onSetActiveProject);
   },
 
-  loadInitialData(items) {
+  loadInitialData(items, activeEnvironmentName) {
     this.loadActiveData(items);
-
     // Update the default environment in the latest context store
-    setDefaultEnvironment(this.getDefault());
+    const activeEnvironment = this.getByName(activeEnvironmentName) || this.getDefault();
+    setActiveEnvironment(activeEnvironment);
   },
 
   loadHiddenData(items) {

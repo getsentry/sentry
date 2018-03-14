@@ -14,7 +14,7 @@ import {t, tct} from '../../locale';
 
 import ReleaseList from './releaseList';
 
-import withEnvironment from '../../utils/withEnvironment';
+import withEnvironmentInQueryString from '../../utils/withEnvironmentInQueryString';
 
 const DEFAULT_QUERY = '';
 
@@ -208,4 +208,4 @@ const ProjectReleases = createReactClass({
 });
 
 export {ProjectReleases}; // For tests
-export default withEnvironment(ProjectReleases);
+export default withEnvironmentInQueryString(ProjectReleases);

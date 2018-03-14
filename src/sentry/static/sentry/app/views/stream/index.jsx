@@ -7,7 +7,7 @@ import {omit} from 'lodash';
 import SentryTypes from '../../proptypes';
 import ProjectState from '../../mixins/projectState';
 import TagStore from '../../stores/tagStore';
-import withEnvironment from '../../utils/withEnvironment';
+import withEnvironmentInQueryString from '../../utils/withEnvironmentInQueryString';
 import Stream from './stream';
 import {fetchTags} from '../../actionCreators/tags';
 
@@ -65,4 +65,4 @@ const StreamContainer = createReactClass({
   },
 });
 
-export default withEnvironment(StreamContainer);
+export default withEnvironmentInQueryString(StreamContainer);

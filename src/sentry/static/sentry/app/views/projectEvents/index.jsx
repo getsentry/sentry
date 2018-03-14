@@ -11,6 +11,7 @@ import LoadingIndicator from '../../components/loadingIndicator';
 import Pagination from '../../components/pagination';
 import SearchBar from '../../components/searchBar';
 import {t} from '../../locale';
+import withEnvironmentInQueryString from '../../utils/withEnvironmentInQueryString';
 
 const ProjectEvents = createReactClass({
   displayName: 'ProjectEvents',
@@ -218,4 +219,4 @@ const ProjectEvents = createReactClass({
   },
 });
 
-export default ProjectEvents;
+export default withEnvironmentInQueryString(ProjectEvents);
