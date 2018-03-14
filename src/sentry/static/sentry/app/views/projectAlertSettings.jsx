@@ -113,7 +113,7 @@ export default class ProjectAlertSettings extends AsyncView {
             title={t('Digests')}
             fields={[fields.digestsMinDelay, fields.digestsMaxDelay]}
             renderHeader={() => (
-              <PanelAlert m={0} mb={0} type="info" icon="icon-circle-exclamation">
+              <PanelAlert type="info">
                 {t(
                   'Sentry will automatically digest alerts sent ' +
                     'by some services to avoid flooding your inbox ' +

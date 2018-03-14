@@ -7,9 +7,20 @@ import Alert from '../../../components/alert';
 
 // Margin bottom should probably be a different prop
 const StyledPanelAlert = styled(Alert)`
-  margin: ${p => `-${p.m * 2 + 1}px -${p.m * 2 + 1}px ${p.mb * 3}px`};
+  ${p =>
+    typeof p.m !== 'undefined'
+      ? `margin: -${p.m * p.theme.grid + 1}px -${p.m * p.theme.grid + 1}px;`
+      : ''};
+  ${p => (typeof p.mb !== 'undefined' ? `margin-bottom: ${p.mb * p.theme.grid};` : '')};
   border-radius: 0;
 `;
+
+const DEFAULT_ICONS = {
+  info: 'icon-circle-info',
+  error: 'icon-circle-close',
+  warning: 'icon-circle-exclamation',
+  success: 'icon-circle-success',
+};
 
 class PanelAlert extends React.Component {
   static propTypes = {
@@ -21,17 +32,20 @@ class PanelAlert extends React.Component {
      * margin-bottom
      */
     mb: PropTypes.number,
-    theme: PropTypes.object,
+    type: PropTypes.oneOf(['info', 'warning', 'success', 'error']),
+    icon: PropTypes.string,
   };
 
-  static defaultProps = {};
+  static defaultProps = {
+    m: 0,
+    mb: 0,
+  };
 
   render() {
-    let {m, mb, theme, ...props} = this.props;
-    let marginSize = typeof m !== 'undefined' ? m : theme.grid;
-    let marginBottom = typeof mb !== 'undefined' ? mb : theme.grid;
+    let {type, icon, ...props} = this.props;
+    let iconOrDefault = icon || DEFAULT_ICONS[type];
 
-    return <StyledPanelAlert {...props} m={marginSize} mb={marginBottom} />;
+    return <StyledPanelAlert {...props} icon={iconOrDefault} type={type} />;
   }
 }
 
