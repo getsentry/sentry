@@ -3,6 +3,7 @@ import React from 'react';
 import createReactClass from 'create-react-class';
 import {Link} from 'react-router';
 import jQuery from 'jquery';
+import SentryTypes from '../proptypes';
 import ApiMixin from '../mixins/apiMixin';
 import Avatar from '../components/avatar';
 import LoadingError from '../components/loadingError';
@@ -11,9 +12,14 @@ import Pagination from '../components/pagination';
 import TimeSince from '../components/timeSince';
 import {isUrl, percent, deviceNameMapper} from '../utils';
 import {t} from '../locale';
+import withEnvironment from '../utils/withEnvironment';
 
 const GroupTagValues = createReactClass({
   displayName: 'GroupTagValues',
+
+  propTypes: {
+    environment: SentryTypes.Environment,
+  },
   mixins: [ApiMixin],
 
   getInitialState() {
@@ -49,7 +55,14 @@ const GroupTagValues = createReactClass({
       error: false,
     });
 
+    const query = {};
+
+    if (this.props.environment) {
+      query.environment = this.props.environment.name;
+    }
+
     this.api.request(`/issues/${params.groupId}/tags/${params.tagKey}/`, {
+      query,
       success: data => {
         this.setState({
           tagKey: data,
@@ -172,4 +185,4 @@ const GroupTagValues = createReactClass({
   },
 });
 
-export default GroupTagValues;
+export default withEnvironment(GroupTagValues);
