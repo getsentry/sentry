@@ -35,8 +35,7 @@ class CommitSerializer(Serializer):
             if len(org_ids) == 1:
                 org_id = org_ids.pop()
             else:
-                org_id = None
-
+                raise NotImplementedError("Commits should be from a sinlge organization")
             users_by_author = get_users_for_commits(item_list, org_id, user)
         else:
             users_by_author = {}

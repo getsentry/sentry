@@ -99,7 +99,7 @@ def _get_commits_committer(commits, author_id):
     return result
 
 
-def _get_committers(annotated_frames, commits):
+def _get_committers(annotated_frames, commits, org_id):
     # extract the unique committers and return their serialized sentry accounts
     committers = defaultdict(int)
 
@@ -115,7 +115,7 @@ def _get_committers(annotated_frames, commits):
 
     # organize them by this heuristic (first frame is worth 5 points, second is worth 4, etc.)
     sorted_committers = sorted(committers, key=committers.get)
-    users_by_author = get_users_for_commits([c for c, _ in commits])
+    users_by_author = get_users_for_commits([c for c, _ in commits], org_id)
 
     user_dicts = [
         {
@@ -208,6 +208,6 @@ def get_event_file_committers(project, event, frame_limit=25):
         {match for match in commit_path_matches for match in commit_path_matches[match]}
     )
 
-    committers = _get_committers(annotated_frames, relevant_commits)
+    committers = _get_committers(annotated_frames, relevant_commits, project.organization_id)
     metrics.incr('feature.owners.has-committers', instance='hit' if committers else 'miss')
     return committers
