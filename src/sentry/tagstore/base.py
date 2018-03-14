@@ -80,6 +80,7 @@ class TagStorage(Service):
 
         'get_tag_value_qs',
         'get_group_tag_value_qs',
+        'get_event_tag_qs',
     )
 
     def setup_deletions(self, tagkey_model, tagvalue_model, grouptagkey_model,
@@ -356,6 +357,12 @@ class TagStorage(Service):
     def get_group_tag_value_qs(self, project_id, group_id, environment_id, key, value=None):
         """
         >>> get_group_tag_value_qs(1, 2, 3, 'environment')
+        """
+        raise NotImplementedError
+
+    def get_event_tag_qs(self, project_id, environment_id, key, value):
+        """
+        >>> get_event_tag_qs(1, 2, 'environment', 'prod')
         """
         raise NotImplementedError
 

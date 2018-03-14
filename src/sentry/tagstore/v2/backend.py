@@ -834,6 +834,17 @@ class V2TagStorage(TagStorage):
         qs = self._add_environment_filter(qs, environment_id)
         return qs
 
+    def get_event_tag_qs(self, project_id, environment_id, key, value):
+        qs = EventTag.objects.filter(
+            project_id=project_id,
+            key__key=key,
+            value__value=value,
+        )
+
+        qs = self._add_environment_filter(qs, environment_id)
+
+        return qs
+
     def update_group_for_events(self, project_id, event_ids, destination_id):
         return EventTag.objects.filter(
             project_id=project_id,
@@ -847,8 +858,11 @@ class V2TagStorage(TagStorage):
         """
         if environment_id is None:
             environment_id = AGGREGATE_ENVIRONMENT_ID
+
         if queryset.model == TagKey:
             return queryset.filter(environment_id=environment_id)
+        elif queryset.model in (EventTag,):
+            return queryset.filter(key__environment_id=environment_id)
         elif queryset.model in (TagValue, GroupTagKey, GroupTagValue):
             return queryset.filter(_key__environment_id=environment_id)
         else:
