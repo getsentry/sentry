@@ -37,7 +37,7 @@ class UserEmailsConfirmEndpoint(UserEndpoint):
     def post(self, request, user):
         """
         Sends a confirmation email to user
-        ``````````````````````````````
+        ``````````````````````````````````
 
         :auth required:
         """
