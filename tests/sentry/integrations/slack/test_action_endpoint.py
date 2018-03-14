@@ -2,7 +2,6 @@ from __future__ import absolute_import
 
 import responses
 
-from django.core.urlresolvers import reverse
 from six.moves.urllib.parse import parse_qs
 
 from sentry import options
@@ -13,8 +12,8 @@ from sentry.models import (
 )
 from sentry.testutils import APITestCase
 from sentry.utils import json
-from sentry.utils.http import absolute_uri
 from sentry.integrations.slack.action_endpoint import LINK_IDENTITY_MESSAGE
+from sentry.integrations.slack.link_identity import build_linking_url
 
 
 class BaseEventTest(APITestCase):
@@ -28,8 +27,7 @@ class BaseEventTest(APITestCase):
             provider='slack',
             external_id='TXXXXXXX1',
             metadata={
-                'access_token': 'xoxp-xxxxxxxxx-xxxxxxxxxx-xxxxxxxxxxxx',
-                'bot_access_token': 'xoxb-xxxxxxxxx-xxxxxxxxxx-xxxxxxxxxxxx',
+                'access_token': 'xoxa-xxxxxxxxx-xxxxxxxxxx-xxxxxxxxxxxx',
             }
         )
         OrganizationIntegration.objects.create(
@@ -106,10 +104,7 @@ class StatusActionTest(BaseEventTest):
             'domain': 'example',
         })
 
-        associate_url = absolute_uri(reverse('sentry-account-associate-identity', kwargs={
-            'organization_slug': self.org.slug,
-            'provider_key': 'slack',
-        }))
+        associate_url = build_linking_url(self.integration, self.org, 'invalid-id', 'C065W1189')
 
         assert resp.status_code == 200, resp.content
         assert resp.data['response_type'] == 'ephemeral'
@@ -269,7 +264,7 @@ class StatusActionTest(BaseEventTest):
         assert resp.content == ''
 
         data = parse_qs(responses.calls[0].request.body)
-        assert data['token'][0] == self.integration.metadata['bot_access_token']
+        assert data['token'][0] == self.integration.metadata['access_token']
         assert data['trigger_id'][0] == self.trigger_id
         assert 'dialog' in data
 
