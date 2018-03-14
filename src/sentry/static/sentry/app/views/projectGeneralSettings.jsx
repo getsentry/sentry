@@ -1,4 +1,3 @@
-import {Box} from 'grid-emotion';
 import PropTypes from 'prop-types';
 import React from 'react';
 
@@ -19,19 +18,15 @@ import TextBlock from './settings/components/text/textBlock';
 import TextField from './settings/components/forms/textField';
 import {fields} from '../data/forms/projectGeneralSettings';
 
-const noMargin = {marginBottom: 0};
-
 const AutoResolveFooter = () => (
-  <Box p={2} pb={0}>
-    <PanelAlert type="warning" icon="icon-circle-exclamation" css={noMargin}>
-      <strong>
-        {t(
-          'Note: Enabling auto resolve will immediately resolve anything that has ' +
-            'not been seen within this period of time. There is no undo!'
-        )}
-      </strong>
-    </PanelAlert>
-  </Box>
+  <PanelAlert type="warning">
+    <strong>
+      {t(
+        'Note: Enabling auto resolve will immediately resolve anything that has ' +
+          'not been seen within this period of time. There is no undo!'
+      )}
+    </strong>
+  </PanelAlert>
 );
 
 export default class ProjectGeneralSettings extends AsyncView {
@@ -288,27 +283,23 @@ export default class ProjectGeneralSettings extends AsyncView {
               fields.verifySSL,
             ]}
             renderHeader={() => (
-              <Box p={2} pb={0}>
-                <PanelAlert type="info" icon="icon-circle-exclamation" css={noMargin}>
-                  <TextBlock noMargin>
-                    {tct(
-                      'Configure origin URLs which Sentry should accept events from. This is used for communication with clients like [link].',
-                      {
-                        link: (
-                          <a href="https://github.com/getsentry/raven-js">raven-js</a>
-                        ),
-                      }
-                    )}{' '}
-                    {tct(
-                      'This will restrict requests based on the [Origin] and [Referer] headers.',
-                      {
-                        Origin: <code>Origin</code>,
-                        Referer: <code>Referer</code>,
-                      }
-                    )}
-                  </TextBlock>
-                </PanelAlert>
-              </Box>
+              <PanelAlert type="info">
+                <TextBlock noMargin>
+                  {tct(
+                    'Configure origin URLs which Sentry should accept events from. This is used for communication with clients like [link].',
+                    {
+                      link: <a href="https://github.com/getsentry/raven-js">raven-js</a>,
+                    }
+                  )}{' '}
+                  {tct(
+                    'This will restrict requests based on the [Origin] and [Referer] headers.',
+                    {
+                      Origin: <code>Origin</code>,
+                      Referer: <code>Referer</code>,
+                    }
+                  )}
+                </TextBlock>
+              </PanelAlert>
             )}
           />
         </Form>
