@@ -19,7 +19,7 @@ describe('GuideDrawer', function() {
     let mock = jest.fn();
     let mock2 = jest.fn();
     let wrapper = shallow(
-      <GuideDrawer guide={data} step={1} onClose={mock} onDismiss={mock2} />
+      <GuideDrawer guide={data} step={1} onFinish={mock} onDismiss={mock2} />
     );
     expect(wrapper).toMatchSnapshot();
     wrapper
@@ -33,7 +33,7 @@ describe('GuideDrawer', function() {
     let mock = jest.fn();
     let mock2 = jest.fn();
     let wrapper = shallow(
-      <GuideDrawer guide={data} step={2} onClose={mock} onDismiss={mock2} />
+      <GuideDrawer guide={data} step={2} onFinish={mock} onDismiss={mock2} />
     );
     expect(wrapper).toMatchSnapshot();
 

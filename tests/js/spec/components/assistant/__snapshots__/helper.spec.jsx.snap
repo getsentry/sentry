@@ -45,8 +45,8 @@ exports[`Helper renders guide drawer 1`] = `
           ],
         }
       }
-      onClose={[Function]}
       onDismiss={[Function]}
+      onFinish={[Function]}
       step={1}
     />
   </div>
