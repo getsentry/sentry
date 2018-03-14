@@ -4,7 +4,7 @@ import styled from 'react-emotion';
 
 import ApiMixin from '../../../mixins/apiMixin';
 import UserBadge from '../../../components/userBadge';
-import UserListElement from '../../../components/userListElement';
+import Avatar from '../../../components/avatar';
 import Button from '../../../components/buttons/button';
 import Link from '../../../components/link';
 import DropdownAutoComplete from '../../../components/dropdownAutoComplete';
@@ -19,6 +19,7 @@ import PanelHeader from '../components/panelHeader';
 import InlineSvg from '../../../components/inlineSvg';
 import EmptyMessage from '../components/emptyMessage';
 import {t} from '../../../locale';
+import overflowEllipsis from '../../../styles/overflowEllipsis';
 
 const TeamMembers = createReactClass({
   displayName: 'TeamMembers',
@@ -179,7 +180,12 @@ const TeamMembers = createReactClass({
         return {
           searchKey: `${m.name} ${m.email}`,
           value: m.id,
-          label: <StyledUserListElement user={m} />,
+          label: (
+            <StyledUserListElement>
+              <StyledAvatar user={m} size={24} className="avatar" />
+              <StyledNameOrEmail>{m.name || m.email}</StyledNameOrEmail>
+            </StyledUserListElement>
+          ),
         };
       });
 
@@ -268,12 +274,29 @@ const StyledMemberContainer = styled('div')`
   border-bottom: 1px solid ${p => p.theme.borderLight};
 `;
 
-const StyledUserListElement = styled(UserListElement)`
+const StyledUserListElement = styled('div')`
   width: 250px;
   font-size: 0.875em;
+  display: flex;
+  align-items: center;
+  padding: 0.25em 0;
   &:hover {
     cursor: pointer;
   }
+`;
+
+const StyledNameOrEmail = styled('div')`
+  flex-shrink: 1;
+  min-width: 0;
+  ${overflowEllipsis};
+`;
+
+const StyledAvatar = styled(props => <Avatar {...props} />)`
+  min-width: 1.75em;
+  min-height: 1.75em;
+  width: 1.5em;
+  height: 1.5em;
+  margin-right: 0.33em;
 `;
 
 const StyledMembersLabel = styled('div')`
