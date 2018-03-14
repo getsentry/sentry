@@ -97,7 +97,7 @@ const ProjectUserReports = createReactClass({
     });
 
     const query = this.state.environment
-      ? {environment: this.state.environment.urlRoutingName}
+      ? {environment: this.state.environment.name}
       : null;
 
     this.api.request(this.getEndpoint(), {
