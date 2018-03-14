@@ -11,7 +11,7 @@ jest.mock('jquery');
 
 describe('projectGeneralSettings', function() {
   let org = TestStubs.Organization();
-  let project = TestStubs.Project();
+  let project = TestStubs.ProjectDetails();
 
   beforeEach(function() {
     sinon.stub(window.location, 'assign');
