@@ -5,7 +5,7 @@ import ProjectUserFeedback from 'app/views/settings/project/projectUserFeedback'
 
 describe('ProjectUserFeedback', function() {
   let org = TestStubs.Organization();
-  let project = TestStubs.Project();
+  let project = TestStubs.ProjectDetails();
   let url = `/projects/${org.slug}/${project.slug}/`;
 
   beforeEach(function() {

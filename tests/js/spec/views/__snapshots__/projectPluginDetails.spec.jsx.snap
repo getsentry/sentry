@@ -169,34 +169,13 @@ exports[`ProjectPluginDetails renders 1`] = `
   }
   project={
     Object {
-      "allowedDomains": Array [
-        "example.com",
-        "https://example.com",
-      ],
-      "dataScrubber": false,
-      "dataScrubberDefaults": false,
-      "digestsMaxDelay": 60,
-      "digestsMinDelay": 5,
-      "features": Array [],
+      "hasAccess": true,
       "id": "2",
+      "isBookmarked": false,
+      "isMember": true,
       "name": "Project Name",
-      "resolveAge": 48,
-      "safeFields": Array [
-        "business-email",
-        "company",
-      ],
-      "scrapeJavaScript": true,
-      "scrubIPAddresses": false,
-      "securityToken": "security-token",
-      "securityTokenHeader": "x-security-header",
-      "sensitiveFields": Array [
-        "creditcard",
-        "ssn",
-      ],
       "slug": "project-slug",
-      "subjectTemplate": "[$project] \${tag:level}: $title",
       "teams": Array [],
-      "verifySSL": true,
     }
   }
 >
@@ -250,34 +229,13 @@ exports[`ProjectPluginDetails renders 1`] = `
     }
     project={
       Object {
-        "allowedDomains": Array [
-          "example.com",
-          "https://example.com",
-        ],
-        "dataScrubber": false,
-        "dataScrubberDefaults": false,
-        "digestsMaxDelay": 60,
-        "digestsMinDelay": 5,
-        "features": Array [],
+        "hasAccess": true,
         "id": "2",
+        "isBookmarked": false,
+        "isMember": true,
         "name": "Project Name",
-        "resolveAge": 48,
-        "safeFields": Array [
-          "business-email",
-          "company",
-        ],
-        "scrapeJavaScript": true,
-        "scrubIPAddresses": false,
-        "securityToken": "security-token",
-        "securityTokenHeader": "x-security-header",
-        "sensitiveFields": Array [
-          "creditcard",
-          "ssn",
-        ],
         "slug": "project-slug",
-        "subjectTemplate": "[$project] \${tag:level}: $title",
         "teams": Array [],
-        "verifySSL": true,
       }
     }
   >
@@ -467,34 +425,13 @@ exports[`ProjectPluginDetails renders 1`] = `
                 }
                 project={
                   Object {
-                    "allowedDomains": Array [
-                      "example.com",
-                      "https://example.com",
-                    ],
-                    "dataScrubber": false,
-                    "dataScrubberDefaults": false,
-                    "digestsMaxDelay": 60,
-                    "digestsMinDelay": 5,
-                    "features": Array [],
+                    "hasAccess": true,
                     "id": "2",
+                    "isBookmarked": false,
+                    "isMember": true,
                     "name": "Project Name",
-                    "resolveAge": 48,
-                    "safeFields": Array [
-                      "business-email",
-                      "company",
-                    ],
-                    "scrapeJavaScript": true,
-                    "scrubIPAddresses": false,
-                    "securityToken": "security-token",
-                    "securityTokenHeader": "x-security-header",
-                    "sensitiveFields": Array [
-                      "creditcard",
-                      "ssn",
-                    ],
                     "slug": "project-slug",
-                    "subjectTemplate": "[$project] \${tag:level}: $title",
                     "teams": Array [],
-                    "verifySSL": true,
                   }
                 }
               >
@@ -676,34 +613,13 @@ exports[`ProjectPluginDetails renders 1`] = `
                                 }
                                 project={
                                   Object {
-                                    "allowedDomains": Array [
-                                      "example.com",
-                                      "https://example.com",
-                                    ],
-                                    "dataScrubber": false,
-                                    "dataScrubberDefaults": false,
-                                    "digestsMaxDelay": 60,
-                                    "digestsMinDelay": 5,
-                                    "features": Array [],
+                                    "hasAccess": true,
                                     "id": "2",
+                                    "isBookmarked": false,
+                                    "isMember": true,
                                     "name": "Project Name",
-                                    "resolveAge": 48,
-                                    "safeFields": Array [
-                                      "business-email",
-                                      "company",
-                                    ],
-                                    "scrapeJavaScript": true,
-                                    "scrubIPAddresses": false,
-                                    "securityToken": "security-token",
-                                    "securityTokenHeader": "x-security-header",
-                                    "sensitiveFields": Array [
-                                      "creditcard",
-                                      "ssn",
-                                    ],
                                     "slug": "project-slug",
-                                    "subjectTemplate": "[$project] \${tag:level}: $title",
                                     "teams": Array [],
-                                    "verifySSL": true,
                                   }
                                 }
                               />

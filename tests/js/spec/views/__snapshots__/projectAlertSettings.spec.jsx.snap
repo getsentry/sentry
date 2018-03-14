@@ -159,7 +159,10 @@ exports[`ProjectAlertSettings render() renders 1`] = `
           "digestsMaxDelay": 60,
           "digestsMinDelay": 5,
           "features": Array [],
+          "hasAccess": true,
           "id": "2",
+          "isBookmarked": false,
+          "isMember": true,
           "name": "Project Name",
           "resolveAge": 48,
           "safeFields": Array [

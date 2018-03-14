@@ -603,6 +603,16 @@ window.TestStubs = {
       id: '2',
       slug: 'project-slug',
       name: 'Project Name',
+      hasAccess: true,
+      isMember: true,
+      isBookmarked: false,
+      teams: [],
+      ...params,
+    };
+  },
+
+  ProjectDetails: params => {
+    return TestStubs.Project({
       subjectTemplate: '[$project] ${tag:level}: $title',
       digestsMinDelay: 5,
       digestsMaxDelay: 60,
@@ -618,9 +628,8 @@ window.TestStubs = {
       securityTokenHeader: 'x-security-header',
       verifySSL: true,
       features: [],
-      teams: [],
       ...params,
-    };
+    });
   },
 
   ProjectAlertRule: () => {
