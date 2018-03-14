@@ -35,8 +35,8 @@ class SlackNotifyActionTest(RuleTestCase):
         event = self.get_event()
 
         rule = self.get_rule(data={
-            'team': self.integration.id,
-            'channel': 'my-channel',
+            'workspace': self.integration.id,
+            'channel': '#my-channel',
         })
 
         results = list(rule.after(event=event, state=self.get_state()))
@@ -62,28 +62,28 @@ class SlackNotifyActionTest(RuleTestCase):
 
     def test_render_label(self):
         rule = self.get_rule(data={
-            'team': self.integration.id,
-            'channel': 'my-channel',
+            'workspace': self.integration.id,
+            'channel': '#my-channel',
         })
 
-        assert rule.render_label() == 'Send a notification to the Slack Awesome Team team in #my-channel'
+        assert rule.render_label() == 'Send a notification to the Slack Awesome Team workspace to #my-channel'
 
     def test_render_label_without_integration(self):
         self.integration.delete()
 
         rule = self.get_rule(data={
-            'team': self.integration.id,
-            'channel': 'my-channel',
+            'workspace': self.integration.id,
+            'channel': '#my-channel',
         })
 
         label = rule.render_label()
-        assert label == 'Send a notification to the Slack [removed] team in #my-channel'
+        assert label == 'Send a notification to the Slack [removed] workspace to #my-channel'
 
     @responses.activate
     def test_valid_channel_selected(self):
         rule = self.get_rule(data={
-            'team': self.integration.id,
-            'channel': 'my-channel',
+            'workspace': self.integration.id,
+            'channel': '#my-channel',
         })
 
         channels = {
@@ -106,10 +106,52 @@ class SlackNotifyActionTest(RuleTestCase):
         assert form.is_valid()
 
     @responses.activate
+    def test_valid_member_selected(self):
+        rule = self.get_rule(data={
+            'workspace': self.integration.id,
+            'channel': '@morty',
+        })
+
+        channels = {
+            'ok': 'true',
+            'channels': [
+                {'name': 'my-channel', 'id': 'chan-id'},
+                {'name': 'other-chann', 'id': 'chan-id'},
+            ],
+        }
+
+        responses.add(
+            method=responses.GET,
+            url='https://slack.com/api/channels.list',
+            status=200,
+            content_type='application/json',
+            body=json.dumps(channels),
+        )
+
+        members = {
+            'ok': 'true',
+            'members': [
+                {'name': 'morty', 'id': 'morty-id'},
+                {'name': 'other-user', 'id': 'user-id'},
+            ],
+        }
+
+        responses.add(
+            method=responses.GET,
+            url='https://slack.com/api/users.list',
+            status=200,
+            content_type='application/json',
+            body=json.dumps(members),
+        )
+
+        form = rule.get_form_instance()
+        assert form.is_valid()
+
+    @responses.activate
     def test_invalid_channel_selected(self):
         rule = self.get_rule(data={
-            'team': self.integration.id,
-            'channel': 'my-channel',
+            'workspace': self.integration.id,
+            'channel': '#my-channel',
         })
 
         channels = {
@@ -123,6 +165,19 @@ class SlackNotifyActionTest(RuleTestCase):
             status=200,
             content_type='application/json',
             body=json.dumps(channels),
+        )
+
+        members = {
+            'ok': 'true',
+            'members': [{'name': 'other-member', 'id': 'member-id'}],
+        }
+
+        responses.add(
+            method=responses.GET,
+            url='https://slack.com/api/users.list',
+            status=200,
+            content_type='application/json',
+            body=json.dumps(members),
         )
 
         form = rule.get_form_instance()
