@@ -24,6 +24,7 @@ class DropdownAutoCompleteMenu extends React.Component {
             PropTypes.shape({
               value: PropTypes.string,
               label: PropTypes.node,
+              searchKey: PropTypes.string,
             })
           ),
         })
@@ -42,7 +43,7 @@ class DropdownAutoCompleteMenu extends React.Component {
   filterItems = (items, inputValue) =>
     items.filter(item => {
       return (
-        [item.value, item.label]
+        [item.searchKey, item.label]
           .join(' ')
           .toLowerCase()
           .indexOf(inputValue.toLowerCase()) > -1
