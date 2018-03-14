@@ -47,7 +47,7 @@ class TeamCrumb extends React.Component {
         route={route}
         items={teams.map(({slug}) => ({
           value: slug,
-          label: slug,
+          label: `#${slug}`,
         }))}
         {...props}
       />

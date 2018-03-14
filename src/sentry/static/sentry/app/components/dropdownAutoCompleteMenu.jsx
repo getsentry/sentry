@@ -34,6 +34,13 @@ class DropdownAutoCompleteMenu extends React.Component {
     isOpen: PropTypes.bool,
     onSelect: PropTypes.func,
     alignMenu: PropTypes.oneOf(['left', 'right']),
+
+    /**
+     * Props to pass to menu component
+     */
+    menuProps: PropTypes.object,
+    css: PropTypes.object,
+    style: PropTypes.object,
   };
 
   static defaultProps = {
@@ -76,14 +83,10 @@ class DropdownAutoCompleteMenu extends React.Component {
   };
 
   render() {
-    let {onSelect, children, items, action, ...props} = this.props;
+    let {onSelect, children, items, action, menuProps, style, css, ...props} = this.props;
 
     return (
-      <AutoComplete
-        itemToString={item => ''}
-        onSelect={onSelect}
-        isOpen={this.props.isOpen}
-      >
+      <AutoComplete itemToString={item => ''} onSelect={onSelect} {...props}>
         {({
           getActorProps,
           getRootProps,
@@ -106,7 +109,7 @@ class DropdownAutoCompleteMenu extends React.Component {
               })}
 
               {isOpen && (
-                <StyledMenu {...props} {...getMenuProps()}>
+                <StyledMenu style={style} css={css} {...getMenuProps(menuProps)}>
                   <StyledInputContainer>
                     <StyledInput autoFocus {...getInputProps()} />
                   </StyledInputContainer>
