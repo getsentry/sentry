@@ -13,7 +13,6 @@ class Avatar extends React.Component {
     user: PropTypes.object,
     size: PropTypes.number,
     default: PropTypes.string,
-    title: PropTypes.string,
     gravatar: PropTypes.bool,
     hasTooltip: PropTypes.bool,
   };
@@ -75,7 +74,6 @@ class Avatar extends React.Component {
       avatarType = user.email && this.props.gravatar ? 'gravatar' : 'letter_avatar';
     }
     let props = {
-      title: this.props.title,
       onError: this.onError,
       onLoad: this.onLoad,
     };
