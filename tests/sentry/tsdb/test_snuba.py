@@ -1,13 +1,11 @@
 from __future__ import absolute_import
 
-from datetime import datetime, timedelta
+from datetime import timedelta
 from dateutil.parser import parse as parse_datetime
-import pytz
 
 from sentry.testutils import TestCase
 from sentry.tsdb.base import TSDBModel
 from sentry.tsdb.snuba import SnubaTSDB
-from sentry.utils.dates import to_timestamp
 
 
 def has_shape(data, shape, allow_empty=False):
@@ -44,16 +42,14 @@ class SnubaTSDBTest(TestCase):
     def setUp(self):
         self.db = SnubaTSDB()
 
-    def test_simple(self):
-
-        now = datetime.utcnow().replace(tzinfo=pytz.UTC)
+    def test_result_shape(self):
+        """
+        Tests that the results from the different TSDB methods have the
+        expected format.
+        """
         now = parse_datetime('2018-03-09T01:00:00Z')
         project_id = 194503
         dts = [now + timedelta(hours=i) for i in range(4)]
-
-        def hour_floor(d):
-            t = int(to_timestamp(d))
-            return t - (t % 3600)
 
         results = self.db.get_most_frequent(TSDBModel.frequent_issues_by_project,
                                             [project_id], dts[0], dts[-1])
@@ -64,16 +60,19 @@ class SnubaTSDBTest(TestCase):
         assert has_shape(results, {1: [(1, {1: 1.0})]})
 
         items = {
-            project_id: (0, 1, 2)
+            project_id: (0, 1, 2)  # {project_id: (issue_id, issue_id, ...)}
         }
         results = self.db.get_frequency_series(TSDBModel.frequent_issues_by_project,
                                                items, dts[0], dts[-1])
         assert has_shape(results, {1: [(1, {1: 1})]})
 
+        results = self.db.get_frequency_totals(TSDBModel.frequent_issues_by_project,
+                                               items, dts[0], dts[-1])
+        assert has_shape(results, {1: {1: 1}})
+
         results = self.db.get_range(TSDBModel.project, [project_id], dts[0], dts[-1])
         assert has_shape(results, {1: [(1, 1)]})
         assert project_id in results
-        # assert len(results[project_id]) == len(dts)
 
         results = self.db.get_distinct_counts_series(TSDBModel.users_affected_by_project,
                                                      [project_id], dts[0], dts[-1])
@@ -82,3 +81,7 @@ class SnubaTSDBTest(TestCase):
         results = self.db.get_distinct_counts_totals(TSDBModel.users_affected_by_project,
                                                      [project_id], dts[0], dts[-1])
         assert has_shape(results, {1: 1})
+
+        results = self.db.get_distinct_counts_union(TSDBModel.users_affected_by_project,
+                                                    [project_id], dts[0], dts[-1])
+        assert has_shape(results, 1)

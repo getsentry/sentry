@@ -30,8 +30,6 @@ class SnubaTSDB(BaseTSDB):
         """
         Translates TSDB models into the required columns for querying snuba.
         Returns a tuple of (groupby_column, aggregateby_column)
-
-        Returns None if the model is not supported in snuba.
         """
         return {
             TSDBModel.project: ('project_id', None),
@@ -45,89 +43,105 @@ class SnubaTSDB(BaseTSDB):
             TSDBModel.frequent_issues_by_project: ('project_id', 'issue'),
         }.get(model, None)
 
-    def get_data(self, model, keys, start, end, rollup=None,
-                 environment_id=None, aggregation='count', group_time=False):
+    def normalize_keys(self, items):
+        """
+        Returns a normalized set of keys based on the various formats accepted
+        by TSDB methods. The input is either just a plain list of keys for the
+        top level or a `{level1_key: [level2_key, ...]}` dictionary.
+        """
+        if isinstance(items, list):
+            return (items, None)
+        elif isinstance(items, dict):
+            return (items.keys(), list(set.union(*(set(v) for v in items.values()))))
+        else:
+            return (None, None)
+
+    def get_data(self, model, keys, start, end, rollup=None, environment_id=None,
+                 aggregation='count', group_on_model=True, group_on_time=False):
         model_columns = self.model_columns(model)
 
         if model_columns is None:
-            return {}
+            return None
+
+        model_group, model_aggregate = model_columns
+
+        conditions = []
+        keys_map = dict(zip(model_columns, self.normalize_keys(keys)))
+        for keycol in keys_map:
+            if keycol is not None and keys_map[keycol] is not None:
+                conditions.append((keycol, 'IN', keys_map[keycol]))
+
+        groupby = []
+        if group_on_model and model_group is not None:
+            groupby.append(model_group)
+        if group_on_time:
+            groupby.append('time')
+        if aggregation == 'count' and model_aggregate is not None:
+            # Special case, because count has different semantics, we change:
+            # `COUNT(model_aggregate)` to `COUNT() GROUP BY model_aggregate`
+            groupby.append(model_aggregate)
+            model_aggregate = None
+
+        if environment_id is not None:
+            conditions.append(('environment', '=', get_environment_name(environment_id)))
+
+        # project_ids will be the set of projects either referenced
+        # directly as passed-in keys for project_id, or indrectly (eg the
+        # set of projects that are related to the passed-in set of issues)
+        project_ids = [get_project_ids(k, ids) for k, ids in six.iteritems(keys_map)]
+        project_ids = list(set.intersection(*[set(ids) for ids in project_ids if ids]))
+
+        # If the grouping, aggregation, or any of the conditions reference `issue`
+        # we need to fetch the issue definitions (issue -> fingerprint hashes)
+        references_issues = 'issue' in groupby + [model_aggregate] + [c[0] for c in conditions]
+        # TODO filter issues here to the ones actually referenced (or passed in)
+        issues = get_project_issues(project_ids) if references_issues else None
+
+        url = '{0}/query'.format(self.SNUBA)
+        request = {k: v for k, v in six.iteritems({
+            'from_date': start.isoformat(),
+            'to_date': end.isoformat(),
+            'conditions': conditions,
+            'groupby': groupby,
+            'project': project_ids,
+            'aggregation': aggregation,
+            'aggregateby': model_aggregate,
+            'granularity': rollup,
+            'issues': issues,
+        }) if v is not None}
+
+        response = requests.post(url, data=json.dumps(request))
+        # TODO handle error responses
+        response = json.loads(response.text)
+
+        # Validate and scrub response
+        expected_cols = groupby + ['aggregate']
+        assert all(c['name'] in expected_cols for c in response['meta'])
+        for d in response['data']:
+            if 'time' in d:
+                d['time'] = int(to_timestamp(parse_datetime(d['time'])))
+            if d['aggregate'] is None:
+                d['aggregate'] = 0
+
+        return self.nest_groups(response['data'], groupby)
+
+    def nest_groups(self, data, groups):
+        """
+        Build a nested mapping from the response rows. Each group column
+        gives a new level of nesting and the leaf result is the aggregate
+        """
+        if not groups:
+            return data[0]['aggregate'] if data else None
         else:
-            model_group, model_aggregate = model_columns
-
-            conditions = []
-            if isinstance(keys, list):
-                conditions.append((model_group, 'IN', keys))
-            elif isinstance(keys, dict) and model_aggregate is not None:
-                # Special case, if keys is a dict, treat its keys() as the set of
-                # allowed values for model_group, and the union of its values
-                # as the set of allowed keys for the model_aggregate
-                conditions.append((model_group, 'IN', keys.keys()))
-                aggregate_keys = list(set.union(*(set(v) for v in keys.values())))
-                conditions.append((model_aggregate, 'IN', aggregate_keys))
-                keys = keys.keys()
-
-            groupby = []
-            if model_group is not None:
-                groupby.append(model_group)
-            if group_time:
-                groupby.append('time')
-            if aggregation == 'count' and model_aggregate is not None:
-                # Special case, because count has different semantics, we change:
-                #    COUNT(model_aggregate)
-                # to:
-                #    COUNT() GROUP BY model_aggregate
-                groupby.append(model_aggregate)
-                model_aggregate = None
-
-            if environment_id is not None:
-                environment = 'fixme'  # TODO get environment name from id
-                conditions.append(('environment', '=', environment))
-
-            if model_group == 'project_id':
-                project_id = keys
-            else:
-                project_id = get_project(model_group, keys)
-
-            # If the grouping, aggregation, or any of the conditions reference `issue`
-            # we need to fetch the issue definitions (issue -> fingerprint hashes)
-            references_issues = 'issue' in groupby + [model_aggregate] + [c[0] for c in conditions]
-            issues = get_project_issues(project_id) if references_issues else None
-
-            url = '{0}/query'.format(self.SNUBA)
-            request = {k: v for k, v in six.iteritems({
-                'from_date': start.isoformat(),
-                'to_date': end.isoformat(),
-                'conditions': conditions,
-                'groupby': groupby,
-                'project': project_id,
-                'aggregation': aggregation,
-                'aggregateby': model_aggregate,
-                'granularity': rollup,
-                'issues': issues,
-            }) if v is not None}
-
-            response = requests.post(url, data=json.dumps(request))
-            response = json.loads(response.text)
-            expected_cols = groupby + ['aggregate']
-            assert all(c['name'] in expected_cols for c in response['meta'])
-
-            # Build a nested mapping from the response rows. Each group column
-            # gives a new level of nesting and the leaf result is the aggregate
-            result = {}
-            for d in response['data']:
-                if 'time' in d:
-                    d['time'] = int(to_timestamp(parse_datetime(d['time'])))
-                curr = result
-                for gc in groupby[:-1]:
-                    curr = curr.setdefault(d[gc], {})
-                gc = groupby[-1]
-                curr[d[gc]] = d['aggregate'] if d['aggregate'] is not None else 0
-
-            return result
+            g, rest = groups[0], groups[1:]
+            inter = {}
+            for d in data:
+                inter.setdefault(d[g], []).append(d)
+            return {k: self.nest_groups(v, rest) for k, v in six.iteritems(inter)}
 
     def get_range(self, model, keys, start, end, rollup=None, environment_id=None):
         result = self.get_data(model, keys, start, end, rollup, environment_id,
-                               aggregation='count', group_time=True)
+                               aggregation='count', group_on_time=True)
 
         # turn {group:{timestamp:count}} mapping into {group:[(timestamp, count), ...]}
         for k in result:
@@ -138,7 +152,7 @@ class SnubaTSDB(BaseTSDB):
     def get_distinct_counts_series(self, model, keys, start, end=None,
                                    rollup=None, environment_id=None):
         result = self.get_data(model, keys, start, end, rollup, environment_id,
-                               aggregation='uniq', group_time=True)
+                               aggregation='uniq', group_on_time=True)
 
         # turn timestamp:count mapping into timestamp-sorted list of tuples
         # convert
@@ -150,17 +164,18 @@ class SnubaTSDB(BaseTSDB):
     def get_distinct_counts_totals(self, model, keys, start, end=None,
                                    rollup=None, environment_id=None):
         return self.get_data(model, keys, start, end, rollup, environment_id,
-                             aggregation='uniq', group_time=False)
+                             aggregation='uniq')
 
     def get_distinct_counts_union(self, model, keys, start, end=None,
                                   rollup=None, environment_id=None):
-        pass
+        return self.get_data(model, keys, start, end, rollup, environment_id,
+                             aggregation='uniq', group_on_model=False)
 
     def get_most_frequent(self, model, keys, start, end=None,
                           rollup=None, limit=10, environment_id=None):
         aggregation = 'topK({})'.format(limit)
         result = self.get_data(model, keys, start, end, rollup, environment_id,
-                               aggregation=aggregation, group_time=False)
+                               aggregation=aggregation)
 
         # convert
         #    {group:[top1, ...]}
@@ -176,7 +191,7 @@ class SnubaTSDB(BaseTSDB):
                                  rollup=None, limit=10, environment_id=None):
         aggregation = 'topK({})'.format(limit)
         result = self.get_data(model, keys, start, end, rollup, environment_id,
-                               aggregation=aggregation, group_time=True)
+                               aggregation=aggregation, group_on_time=True)
 
         # convert
         #    {group:{timestamp:[top1, ...]}}
@@ -190,10 +205,10 @@ class SnubaTSDB(BaseTSDB):
 
         return result
 
-    def get_frequency_series(self, model, items, start, end=None, rollup=None, environment_id=None):
+    def get_frequency_series(self, model, items, start, end=None,
+                             rollup=None, environment_id=None, limit=10):
         result = self.get_data(model, items, start, end, rollup, environment_id,
-                               aggregation='count', group_time=True)
-
+                               aggregation='count', group_on_time=True)
         # convert
         #    {group:{timestamp:{agg:count}}}
         # into
@@ -201,7 +216,8 @@ class SnubaTSDB(BaseTSDB):
         return {k: result[k].items() for k in result}
 
     def get_frequency_totals(self, model, items, start, end=None, rollup=None, environment_id=None):
-        pass
+        return self.get_data(model, items, start, end, rollup, environment_id,
+                             aggregation='count')
 
     def get_optimal_rollup(self, start):
         """
@@ -216,7 +232,7 @@ class SnubaTSDB(BaseTSDB):
 # couples this tsdb implementation to django model code, but is currently
 # implemented here for simplicity.
 
-def get_environment(environment_id):
+def get_environment_name(environment_id):
     """
     Get an environment name from an id.
     """
@@ -235,8 +251,13 @@ def get_project_issues(project_ids):
     return list(result.items())
 
 
-def get_project(model, model_ids):
+def get_project_ids(model, model_ids):
     """
     Get the project_ids from a model that has a foreign key to project.
     """
-    return [1]
+    if model == "project_id":
+        return model_ids
+    else:
+        # TODO return the set of project_id foreign keys for the model
+        # objects
+        return []
