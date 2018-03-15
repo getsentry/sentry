@@ -518,9 +518,11 @@ const Stream = createReactClass({
   },
 
   transitionTo() {
-    let queryParams = {
-      ...this.props.location.query,
-    };
+    let queryParams = {};
+
+    if (this.props.location.query.environment) {
+      queryParams.environment = this.props.location.query.environment;
+    }
 
     if (!this.state.searchId) {
       queryParams.query = this.state.query;
