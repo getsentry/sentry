@@ -132,7 +132,7 @@ class RedisBuffer(Buffer):
             # If we're using shards, this one task fans out into
             # N subtasks instead.
             for i in range(self.pending_shards):
-                process_pending.delay(shard=i)
+                process_pending.apply_async(kwargs={'shard': i})
             # Explicitly also run over the unsharded buffer as well
             # to ease in transition. In practice, this should just be
             # super fast and is fine to do redundantly.
