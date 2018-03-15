@@ -227,14 +227,6 @@ class APIView(BaseView):
             project.organization = Organization.objects.get_from_cache(
                 id=project.organization_id)
 
-            if auth.version != '2.0' and \
-               origin is not None and not is_valid_origin(origin, project):
-                if project:
-                    tsdb.incr(
-                        tsdb.models.project_total_received_cors, project.id)
-                raise APIForbidden(
-                    'Missing required Origin or Referer header')
-
             response = super(APIView, self).dispatch(
                 request=request, project=project, auth=auth, helper=helper, key=key, **kwargs
             )
