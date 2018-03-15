@@ -26,6 +26,8 @@ def format_actor_option(actor):
     if isinstance(actor, Team):
         return {'text': actor.slug, 'value': u'team:{}'.format(actor.id)}
 
+    raise NotImplementedError
+
 
 def get_member_assignees(group):
     queryset = OrganizationMember.objects.filter(
@@ -92,6 +94,8 @@ def build_assigned_text(identity, assignee):
             assignee_text = u'<@{}>'.format(assignee_ident.external_id)
         except Identity.DoesNotExist:
             assignee_text = assigned_actor.get_display_name()
+    else:
+        raise NotImplementedError
 
     return u'*Issue assigned to {assignee_text} by <@{user_id}>*'.format(
         assignee_text=assignee_text,
