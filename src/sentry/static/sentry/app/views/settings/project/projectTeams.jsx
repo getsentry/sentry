@@ -1,7 +1,7 @@
-import {Box} from 'grid-emotion';
 import PropTypes from 'prop-types';
 import React from 'react';
 import createReactClass from 'create-react-class';
+import styled from 'react-emotion';
 
 import {
   addErrorMessage,
@@ -14,6 +14,7 @@ import ApiMixin from '../../../mixins/apiMixin';
 import AsyncView from '../../asyncView';
 import Button from '../../../components/buttons/button';
 import Confirm from '../../../components/confirm';
+import InlineSvg from '../../../components/inlineSvg';
 import DropdownAutoComplete from '../../../components/dropdownAutoComplete';
 import DropdownButton from '../../../components/dropdownButton';
 import EmptyMessage from '../components/emptyMessage';
@@ -72,40 +73,36 @@ const TeamRow = createReactClass({
     let {team, access, orgId} = this.props;
 
     return (
-      <PanelItem>
-        <Box flex="1">
-          <h5 style={{margin: '10px 0px'}}>
-            {access.has('team:write') ? (
-              <Link to={`/settings/organization/${orgId}/teams/${team.slug}`}>
-                #{team.slug}
-              </Link>
-            ) : (
-              `#${team.slug}`
-            )}
-          </h5>
-        </Box>
+      <StyledPanelItem>
+        <div>
+          {access.has('team:write') ? (
+            <Link to={`/settings/organization/${orgId}/teams/${team.slug}`}>
+              #{team.slug}
+            </Link>
+          ) : (
+            `#${team.slug}`
+          )}
+        </div>
         {this.props.access.has('project:write') && (
-          <Box pl={2}>
-            <Confirm
-              message={
-                this.props.teamCount === 1
-                  ? t(
-                      'This is the last team with access to this project. Removing it will mean ' +
-                        'only owners and managers will be able to access the project pages. Are ' +
-                        'you sure you want to remove this team?'
-                    )
-                  : t('Are you sure you want to remove this team?')
-              }
-              onConfirm={this.handleRemove}
-              disabled={this.state.loading}
-            >
-              <Button>
-                <span className="icon icon-trash" /> &nbsp;{t('Remove')}
-              </Button>
-            </Confirm>
-          </Box>
+          <Confirm
+            message={
+              this.props.teamCount === 1
+                ? t(
+                    'This is the last team with access to this project. Removing it will mean ' +
+                      'only owners and managers will be able to access the project pages. Are ' +
+                      'you sure you want to remove this team?'
+                  )
+                : t('Are you sure you want to remove this team?')
+            }
+            onConfirm={this.handleRemove}
+            disabled={this.state.loading}
+          >
+            <Button size="small">
+              <RemoveIcon /> Remove
+            </Button>
+          </Confirm>
         )}
-      </PanelItem>
+      </StyledPanelItem>
     );
   },
 });
@@ -162,6 +159,43 @@ class ProjectTeams extends AsyncView {
     });
   };
 
+  renderAddTeamButton() {
+    let {orgId} = this.props.params;
+    let projectTeams = new Set(this.state.projectTeams.map(team => team.slug));
+    let teamsToAdd = this.state.allTeams
+      .filter(team => {
+        return team.hasAccess && !projectTeams.has(team.slug);
+      })
+      .map(team => ({
+        value: team.id,
+        searchKey: team.slug,
+        label: <TeamDropdownElement>#{team.slug}</TeamDropdownElement>,
+      }));
+
+    let menuHeader = (
+      <StyledTeamsLabel>
+        {t('Teams')}
+        <StyledCreateTeamLink to={`/organizations/${orgId}/teams/new/`}>
+          {t('Create Team')}
+        </StyledCreateTeamLink>
+      </StyledTeamsLabel>
+    );
+
+    return (
+      <DropdownAutoComplete
+        items={teamsToAdd}
+        onSelect={this.handleAdd}
+        menuHeader={menuHeader}
+      >
+        {({isOpen, selectedItem}) => (
+          <DropdownButton isOpen={isOpen} size="xsmall">
+            {t('Add Team')}
+          </DropdownButton>
+        )}
+      </DropdownAutoComplete>
+    );
+  }
+
   renderEmpty() {
     return (
       <EmptyMessage>{t('There are no teams with access to this project.')}</EmptyMessage>
@@ -173,7 +207,12 @@ class ProjectTeams extends AsyncView {
     let access = new Set(this.props.organization.access);
 
     return [
-      <PanelHeader key={'header'}>{t('Team')}</PanelHeader>,
+      <PanelHeader key={'header'} hasButtons={true}>
+        <PanelHeaderContent>
+          <div>{t('Team')}</div>
+          <div>{this.renderAddTeamButton()}</div>
+        </PanelHeaderContent>
+      </PanelHeader>,
       <PanelBody key={'body'}>
         {this.state.projectTeams.map(team => {
           return (
@@ -193,49 +232,61 @@ class ProjectTeams extends AsyncView {
   }
 
   renderBody() {
-    let {orgId} = this.props.params;
     let body;
 
     if (this.state.projectTeams.length > 0) body = this.renderResults();
     else body = this.renderEmpty();
 
-    let projectTeams = new Set(this.state.projectTeams.map(team => team.slug));
-    let teamsToAdd = this.state.allTeams
-      .filter(team => {
-        return team.hasAccess && !projectTeams.has(team.slug);
-      })
-      .map(team => ({value: team.id, label: `#${team.slug}`}));
-
     return (
       <div>
-        <SettingsPageHeader
-          title={t('Teams')}
-          action={
-            <DropdownAutoComplete
-              items={teamsToAdd}
-              onSelect={this.handleAdd}
-              action={
-                <Button
-                  to={`/organizations/${orgId}/teams/new/`}
-                  priority="primary"
-                  size="small"
-                >
-                  {t('Create a new team')}
-                </Button>
-              }
-            >
-              {({isOpen, selectedItem}) => (
-                <DropdownButton isOpen={isOpen}>
-                  <span className="icon-plus" /> {t('Add Team')}
-                </DropdownButton>
-              )}
-            </DropdownAutoComplete>
-          }
-        />
+        <SettingsPageHeader title={t('Teams')} />
         <Panel>{body}</Panel>
       </div>
     );
   }
 }
+
+const RemoveIcon = styled(props => (
+  <InlineSvg {...props} src="icon-circle-subtract">
+    {t('Remove')}
+  </InlineSvg>
+))`
+  min-height: 1.25em;
+  min-width: 1.25em;
+  margin-right: 0.5em;
+`;
+
+const PanelHeaderContent = styled('div')`
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+`;
+
+const TeamDropdownElement = styled('div')`
+  padding: 0.5em 0.25em;
+  text-transform: none;
+
+  &:hover {
+    cursor: pointer;
+  }
+`;
+
+const StyledPanelItem = styled(PanelItem)`
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+`;
+
+const StyledTeamsLabel = styled('div')`
+  width: 250px;
+  font-size: 0.875em;
+  padding: 0.75em 0;
+  text-transform: uppercase;
+`;
+
+const StyledCreateTeamLink = styled(Link)`
+  float: right;
+  text-transform: none;
+`;
 
 export default ProjectTeams;
