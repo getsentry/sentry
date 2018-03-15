@@ -17,6 +17,7 @@ import ApiMixin from '../../mixins/apiMixin';
 
 import {t} from '../../locale';
 import SentryTypes from '../../proptypes';
+import OrganizationState from '../../mixins/organizationState';
 
 const ReleaseOverview = createReactClass({
   displayName: 'ReleaseOverview',
@@ -29,7 +30,7 @@ const ReleaseOverview = createReactClass({
     release: PropTypes.object,
   },
 
-  mixins: [ApiMixin],
+  mixins: [ApiMixin, OrganizationState],
 
   getInitialState() {
     return {
@@ -285,15 +286,20 @@ const ReleaseOverview = createReactClass({
               {!deploys.length
                 ? this.renderEmpty()
                 : deploys.map(deploy => {
-                    let query = encodeURIComponent(
-                      `environment:${deploy.environment} release:${version}`
-                    );
+                    let href = `/${orgId}/${projectId}/?query=release:${version}&environment=${deploy.environment}`;
+
+                    // TODO(lyn): Remove when environment feature switched on
+                    if (!this.getFeatures().has('environments')) {
+                      let query = encodeURIComponent(
+                        `environment:${deploy.environment} release:${version}`
+                      );
+                      href = `/${orgId}/${projectId}/?query=${query}`;
+                    }
+                    // End remove block
+
                     return (
                       <li key={deploy.id}>
-                        <a
-                          href={`/${orgId}/${projectId}/?query=${query}`}
-                          title={t('View in stream')}
-                        >
+                        <a href={href} title={t('View in stream')}>
                           <div className="row row-flex row-center-vertically">
                             <div className="col-xs-6">
                               <span
