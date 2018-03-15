@@ -889,7 +889,7 @@ class V2TagStorage(TagStorage):
     def get_event_tag_qs(self, project_id, environment_id, key, value):
         qs = EventTag.objects.filter(
             project_id=project_id,
-            key__key=key,
+            value___key__key=key,
             value__value=value,
         )
 
@@ -913,8 +913,8 @@ class V2TagStorage(TagStorage):
 
         if queryset.model == TagKey:
             return queryset.filter(environment_id=environment_id)
-        elif queryset.model in (EventTag,):
-            return queryset.filter(key__environment_id=environment_id)
+        elif queryset.model == EventTag:
+            return queryset.filter(value___key__environment_id=environment_id)
         elif queryset.model in (TagValue, GroupTagKey, GroupTagValue):
             return queryset.filter(_key__environment_id=environment_id)
         else:
