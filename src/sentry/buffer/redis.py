@@ -10,13 +10,14 @@ from __future__ import absolute_import
 import six
 
 from time import time
+from binascii import crc32
 
 from django.db import models
 from django.utils.encoding import force_bytes
 
 from sentry.buffer import Buffer
 from sentry.exceptions import InvalidConfiguration
-from sentry.tasks.process_buffer import process_incr
+from sentry.tasks.process_buffer import process_incr, process_pending
 from sentry.utils import metrics
 from sentry.utils.compat import pickle
 from sentry.utils.hashlib import md5_text
@@ -54,10 +55,11 @@ class PendingBuffer(object):
 class RedisBuffer(Buffer):
     key_expire = 60 * 60  # 1 hour
     pending_key = 'b:p'
-    incr_batch_size = 2
 
-    def __init__(self, **options):
+    def __init__(self, pending_shards=1, incr_batch_size=2, **options):
         self.cluster, options = get_cluster_from_options('SENTRY_BUFFER_OPTIONS', options)
+        self.pending_shards = pending_shards
+        self.incr_batch_size = incr_batch_size
 
     def validate(self):
         try:
@@ -82,6 +84,16 @@ class RedisBuffer(Buffer):
             ).hexdigest(),
         )
 
+    def _make_pending_key(self, shard=None):
+        if shard is None:
+            return self.pending_key
+        return '%s:%d' % (self.pending_key, shard)
+
+    def _make_pending_key_from_key(self, key):
+        if self.pending_shards == 1:
+            return self.pending_key
+        return self._make_pending_key(crc32(key) % self.pending_shards)
+
     def _make_lock_key(self, key):
         return 'l:%s' % (key, )
 
@@ -97,6 +109,7 @@ class RedisBuffer(Buffer):
         # TODO(dcramer): longer term we'd rather not have to serialize values
         # here (unless it's to JSON)
         key = self._make_key(model, filters)
+        pending_key = self._make_pending_key_from_key(key)
         # We can't use conn.map() due to wanting to support multiple pending
         # keys (one per Redis shard)
         conn = self.cluster.get_local_client_for_key(key)
@@ -111,12 +124,22 @@ class RedisBuffer(Buffer):
             for column, value in six.iteritems(extra):
                 pipe.hset(key, 'e+' + column, pickle.dumps(value))
         pipe.expire(key, self.key_expire)
-        pipe.zadd(self.pending_key, time(), key)
+        pipe.zadd(pending_key, time(), key)
         pipe.execute()
 
-    def process_pending(self):
+    def process_pending(self, shard=None):
+        if shard is None and self.pending_shards > 1:
+            # If we're using shards, this one task fans out into
+            # N subtasks instead.
+            for i in range(self.pending_shards):
+                process_pending.delay(shard=i)
+            # Explicitly also run over the unsharded buffer as well
+            # to ease in transition. In practice, this should just be
+            # super fast and is fine to do redundantly.
+
+        pending_key = self._make_pending_key(shard)
         client = self.cluster.get_routing_client()
-        lock_key = self._make_lock_key(self.pending_key)
+        lock_key = self._make_lock_key(pending_key)
         # prevent a stampede due to celerybeat + periodic task
         if not client.set(lock_key, '1', nx=True, ex=60):
             return
@@ -126,7 +149,7 @@ class RedisBuffer(Buffer):
         try:
             keycount = 0
             with self.cluster.all() as conn:
-                results = conn.zrange(self.pending_key, 0, -1)
+                results = conn.zrange(pending_key, 0, -1)
 
             with self.cluster.all() as conn:
                 for host_id, keys in six.iteritems(results.value):
@@ -141,7 +164,7 @@ class RedisBuffer(Buffer):
                                     'batch_keys': pending_buffer.flush(),
                                 }
                             )
-                    conn.target([host_id]).zrem(self.pending_key, *keys)
+                    conn.target([host_id]).zrem(pending_key, *keys)
 
             # queue up remainder of pending keys
             if not pending_buffer.empty():
@@ -173,11 +196,13 @@ class RedisBuffer(Buffer):
             self.logger.debug('buffer.revoked.locked', extra={'redis_key': key})
             return
 
+        pending_key = self._make_pending_key_from_key(key)
+
         try:
             conn = self.cluster.get_local_client_for_key(key)
             pipe = conn.pipeline()
             pipe.hgetall(key)
-            pipe.zrem(self.pending_key, key)
+            pipe.zrem(pending_key, key)
             pipe.delete(key)
             values = pipe.execute()[0]
 

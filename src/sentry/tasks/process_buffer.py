@@ -17,19 +17,25 @@ logger = logging.getLogger(__name__)
 
 
 @instrumented_task(name='sentry.tasks.process_buffer.process_pending')
-def process_pending():
+def process_pending(shard=None):
     """
     Process pending buffers.
     """
     from sentry import buffer
     from sentry.app import locks
 
-    lock = locks.get('buffer:process_pending', duration=60)
+    if shard is None:
+        lock_key = 'buffer:process_pending'
+    else:
+        lock_key = 'buffer:process_pending:%d' % shard
+
+    lock = locks.get(lock_key, duration=60)
+
     try:
         with lock.acquire():
-            buffer.process_pending()
+            buffer.process_pending(shard=shard)
     except UnableToAcquireLock as error:
-        logger.warning('process_pending.fail', extra={'error': error})
+        logger.warning('process_pending.fail', extra={'error': error, 'shard': shard})
 
 
 @instrumented_task(name='sentry.tasks.process_buffer.process_incr')
