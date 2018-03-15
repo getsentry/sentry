@@ -1,15 +1,12 @@
 import React from 'react';
-import createReactClass from 'create-react-class';
-import Reflux from 'reflux';
+import PropTypes from 'prop-types';
+import idx from 'idx';
 import {Box} from 'grid-emotion';
 
-import {loadStats} from '../../../../actionCreators/projects';
 import {t} from '../../../../locale';
-import ApiMixin from '../../../../mixins/apiMixin';
 import {getOrganizationState} from '../../../../mixins/organizationState';
 import OrganizationSettingsView from '../../../organizationSettingsView';
 import ProjectStatsGraph from './projectStatsGraph';
-import ProjectsStore from '../../../../stores/projectsStore';
 import SentryTypes from '../../../../proptypes';
 import {sortProjects} from '../../../../utils';
 import Panel from '../../components/panel';
@@ -20,19 +17,66 @@ import ProjectListItem from '../../../settings/components/settingsProjectItem';
 import SettingsPageHeader from '../../components/settingsPageHeader';
 import Button from '../../../../components/buttons/button';
 import EmptyMessage from '../../components/emptyMessage';
+import Pagination from '../../../../components/pagination';
 
-class OrganizationProjectsView extends OrganizationSettingsView {
+export default class OrganizationProjectsView extends OrganizationSettingsView {
   static contextTypes = {
+    router: PropTypes.object.isRequired,
     organization: SentryTypes.Organization,
   };
+
+  getEndpoints() {
+    let {orgId} = this.props.params;
+    return [
+      [
+        'projectList',
+        `/organizations/${orgId}/projects/`,
+        {
+          query: {
+            query: idx(this.props, _ => _.location.query.query),
+          },
+        },
+      ],
+      [
+        'projectStats',
+        `/organizations/${orgId}/stats/`,
+        {
+          query: {
+            since: new Date().getTime() / 1000 - 3600 * 24,
+            stat: 'generated',
+            group: 'project',
+          },
+        },
+      ],
+    ];
+  }
+
+  getDefaultState() {
+    return {
+      ...super.getDefaultState(),
+      searchQuery: idx(this.props, _ => _.location.query.query),
+    };
+  }
 
   getTitle() {
     let org = this.context.organization;
     return `${org.name} Projects`;
   }
 
+  onSearch = e => {
+    let {router} = this.context;
+    let {location} = this.props;
+    e.preventDefault();
+    router.push({
+      pathname: location.pathname,
+      query: {
+        query: this.state.searchQuery,
+      },
+    });
+  };
+
   renderBody() {
-    let {projects} = this.props;
+    let {projectList, projectListPageLinks, projectStats} = this.state;
     let {organization} = this.context;
     let canCreateProjects = getOrganizationState(this.context.organization)
       .getAccess()
@@ -59,9 +103,19 @@ class OrganizationProjectsView extends OrganizationSettingsView {
       <div>
         <SettingsPageHeader title="Projects" action={action} />
         <Panel className="table table-no-top-border m-b-0">
-          <PanelHeader>{t('Projects')}</PanelHeader>
+          <PanelHeader>
+            <form className="pull-right" onSubmit={this.onSearch}>
+              <input
+                value={this.state.searchQuery}
+                onChange={e => this.setState({searchQuery: e.target.value})}
+                className="search"
+                placeholder="search"
+              />
+            </form>
+            {t('Projects')}
+          </PanelHeader>
           <PanelBody css={{width: '100%'}}>
-            {sortProjects(projects).map((project, i) => (
+            {sortProjects(projectList).map((project, i) => (
               <PanelItem p={0} key={project.id} align="center">
                 <Box p={2} flex="1">
                   <ProjectListItem
@@ -70,7 +124,11 @@ class OrganizationProjectsView extends OrganizationSettingsView {
                   />
                 </Box>
                 <Box w={3 / 12} p={2}>
-                  <ProjectStatsGraph key={project.id} project={project} />
+                  <ProjectStatsGraph
+                    key={project.id}
+                    project={project}
+                    stats={projectStats[project.id]}
+                  />
                 </Box>
                 <Box p={2} align="right">
                   <Button size="small" to={`/${organization.slug}/${project.slug}/`}>
@@ -79,46 +137,15 @@ class OrganizationProjectsView extends OrganizationSettingsView {
                 </Box>
               </PanelItem>
             ))}
-            {projects.length === 0 && (
+            {projectList.length === 0 && (
               <EmptyMessage>{t('No projects found.')}</EmptyMessage>
             )}
           </PanelBody>
         </Panel>
+        {projectListPageLinks && (
+          <Pagination pageLinks={projectListPageLinks} {...this.props} />
+        )}
       </div>
     );
   }
 }
-
-const OrganizationProjectsViewContainer = createReactClass({
-  displayName: 'OrganizationProjectsViewContainer',
-  mixins: [ApiMixin, Reflux.listenTo(ProjectsStore, 'onProjectUpdate')],
-
-  getInitialState() {
-    return {
-      projects: ProjectsStore.getAll(),
-    };
-  },
-
-  componentDidMount() {
-    loadStats(this.api, {
-      orgId: this.props.params.orgId,
-      query: {
-        since: new Date().getTime() / 1000 - 3600 * 24,
-        stat: 'generated',
-        group: 'project',
-      },
-    });
-  },
-
-  onProjectUpdate() {
-    this.setState({
-      projects: ProjectsStore.getAll(),
-    });
-  },
-
-  render() {
-    return <OrganizationProjectsView {...this.props} projects={this.state.projects} />;
-  },
-});
-
-export default OrganizationProjectsViewContainer;

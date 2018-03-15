@@ -4,8 +4,9 @@ from django.db import IntegrityError, transaction
 from rest_framework import serializers, status
 from rest_framework.response import Response
 
-from sentry.api.base import DocSection
+from sentry.api.base import DocSection, EnvironmentMixin
 from sentry.api.bases.team import TeamEndpoint, TeamPermission
+from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers import serialize, ProjectSummarySerializer
 from sentry.models import Project, ProjectStatus, AuditLogEntryEvent
 from sentry.signals import project_created
@@ -53,7 +54,7 @@ class TeamProjectPermission(TeamPermission):
     }
 
 
-class TeamProjectIndexEndpoint(TeamEndpoint):
+class TeamProjectsEndpoint(TeamEndpoint, EnvironmentMixin):
     doc_section = DocSection.TEAMS
     permission_classes = (TeamProjectPermission, )
 
@@ -70,14 +71,13 @@ class TeamProjectIndexEndpoint(TeamEndpoint):
         :pparam string team_slug: the slug of the team to list the projects of.
         :auth: required
         """
-        if request.user.is_authenticated():
-            results = list(Project.objects.get_for_user(team=team, user=request.user))
+        if request.auth and hasattr(request.auth, 'project'):
+            queryset = Project.objects.filter(id=request.auth.project.id)
         else:
-            # TODO(dcramer): status should be selectable
-            results = list(Project.objects.filter(
+            queryset = Project.objects.filter(
                 teams=team,
                 status=ProjectStatus.VISIBLE,
-            ))
+            )
 
         stats_period = request.GET.get('statsPeriod')
         if stats_period not in (None, '', '24h', '14d', '30d'):
@@ -97,9 +97,19 @@ class TeamProjectIndexEndpoint(TeamEndpoint):
             # disable stats
             stats_period = None
 
-        return Response(serialize(results, request.user, ProjectSummarySerializer(
-            stats_period=stats_period,
-        )))
+        return self.paginate(
+            request=request,
+            queryset=queryset,
+            order_by='slug',
+            on_results=lambda x: serialize(x, request.user, ProjectSummarySerializer(
+                environment_id=self._get_environment_id_from_request(
+                    request,
+                    team.organization.id,
+                ),
+                stats_period=stats_period,
+            )),
+            paginator_cls=OffsetPaginator,
+        )
 
     @attach_scenarios([create_project_scenario])
     def post(self, request, team):

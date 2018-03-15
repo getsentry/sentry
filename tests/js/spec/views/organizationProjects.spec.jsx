@@ -2,24 +2,30 @@ import React from 'react';
 import {mount} from 'enzyme';
 
 import {Client} from 'app/api';
-import ProjectsStore from 'app/stores/projectsStore';
 import OrganizationProjectsViewContainer from 'app/views/settings/organization/projects/organizationProjectsView';
 
 describe('OrganizationProjectsView', function() {
   let org;
-  let getMock;
-  let putMock;
+  let project;
+  let projectsGetMock;
+  let statsGetMock;
+  let projectsPutMock;
+
   beforeEach(function() {
-    let project = TestStubs.Project();
-    ProjectsStore.loadInitialData([project]);
+    project = TestStubs.Project();
     org = TestStubs.Organization();
 
-    getMock = Client.addMockResponse({
+    projectsGetMock = Client.addMockResponse({
+      url: '/organizations/org-slug/projects/',
+      body: [project],
+    });
+
+    statsGetMock = Client.addMockResponse({
       url: '/organizations/org-slug/stats/',
       body: [[[], 1]],
     });
 
-    putMock = Client.addMockResponse({
+    projectsPutMock = Client.addMockResponse({
       method: 'PUT',
       url: '/projects/org-slug/project-slug/',
     });
@@ -39,13 +45,15 @@ describe('OrganizationProjectsView', function() {
 
       expect(wrapper.find('.project-name').text()).toBe('Project Name');
 
-      expect(getMock).toHaveBeenCalledTimes(1);
+      expect(projectsGetMock).toHaveBeenCalledTimes(1);
 
-      expect(putMock).toHaveBeenCalledTimes(0);
+      expect(statsGetMock).toHaveBeenCalledTimes(1);
+
+      expect(projectsPutMock).toHaveBeenCalledTimes(0);
 
       wrapper.find('.icon-star-outline').simulate('click');
       expect(wrapper.find('.icon-star-solid')).toBeTruthy();
-      expect(putMock).toHaveBeenCalledTimes(1);
+      expect(projectsPutMock).toHaveBeenCalledTimes(1);
     });
   });
 });

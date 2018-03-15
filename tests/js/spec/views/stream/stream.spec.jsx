@@ -15,8 +15,8 @@ import TagStore from 'app/stores/tagStore';
 jest.mock('app/stores/groupStore');
 
 const DEFAULT_LINKS_HEADER =
-  '<http://127.0.0.1:8000/api/0/projects/sentry/ludic-science/issues/?cursor=1443575731:0:1>; rel="previous"; results="false"; cursor="1443575731:0:1", ' +
-  '<http://127.0.0.1:8000/api/0/projects/sentry/ludic-science/issues/?cursor=1443575731:0:0>; rel="next"; results="true"; cursor="1443575731:0:0';
+  '<http://127.0.0.1:8000/api/0/projects/org-slug/project-slug/issues/?cursor=1443575731:0:1>; rel="previous"; results="false"; cursor="1443575731:0:1", ' +
+  '<http://127.0.0.1:8000/api/0/projects/org-slug/project-slug/issues/?cursor=1443575731:0:0>; rel="next"; results="true"; cursor="1443575731:0:0';
 
 describe('Stream', function() {
   let sandbox;
@@ -24,38 +24,50 @@ describe('Stream', function() {
   let wrapper;
   let props;
 
+  let organization;
+  let team;
+  let project;
+  let savedSearch;
+
   beforeEach(function() {
     sandbox = sinon.sandbox.create();
 
+    organization = TestStubs.Organization({
+      id: '1337',
+      slug: 'org-slug',
+    });
+    team = TestStubs.Team({
+      id: '2448',
+    });
+    project = TestStubs.ProjectDetails({
+      id: '3559',
+      name: 'Foo Project',
+      slug: 'project-slug',
+      firstEvent: true,
+    });
+    savedSearch = {id: '789', query: 'is:unresolved', name: 'test'};
+
     MockApiClient.addMockResponse({
-      url: '/projects/123/456/issues/',
+      url: '/projects/org-slug/project-slug/issues/',
       body: [TestStubs.Group()],
       headers: {
         Link: DEFAULT_LINKS_HEADER,
       },
     });
     MockApiClient.addMockResponse({
-      url: '/projects/123/456/searches/',
-      body: [{id: '789', query: 'is:unresolved', name: 'test'}],
+      url: '/projects/org-slug/project-slug/searches/',
+      body: [savedSearch],
     });
     MockApiClient.addMockResponse({
-      url: '/projects/123/456/processingissues/',
+      url: '/projects/org-slug/project-slug/processingissues/',
       method: 'GET',
     });
     sandbox.stub(browserHistory, 'push');
 
     context = {
-      project: {
-        id: '3559',
-        name: 'Foo Project',
-        slug: 'foo-project',
-        firstEvent: true,
-      },
-      organization: {
-        id: '1337',
-        slug: 'foo-org',
-      },
-      team: {id: '2448'},
+      project,
+      organization,
+      team,
     };
 
     TagStore.init();
@@ -63,7 +75,7 @@ describe('Stream', function() {
     props = {
       setProjectNavSection: function() {},
       location: {query: {query: 'is:unresolved'}, search: 'query=is:unresolved'},
-      params: {orgId: '123', projectId: '456'},
+      params: {orgId: organization.slug, projectId: project.slug},
       tags: TagStore.getAllTags(),
       tagsLoading: false,
     };
@@ -94,7 +106,7 @@ describe('Stream', function() {
 
         expect(
           CursorPoller.prototype.setEndpoint.calledWith(
-            'http://127.0.0.1:8000/api/0/projects/sentry/ludic-science/issues/?cursor=1443575731:0:1'
+            'http://127.0.0.1:8000/api/0/projects/org-slug/project-slug/issues/?cursor=1443575731:0:1'
           )
         ).toBe(true);
       });
@@ -110,11 +122,11 @@ describe('Stream', function() {
 
       it("should not enable the poller if the 'previous' link has results", function() {
         const pageLinks =
-          '<http://127.0.0.1:8000/api/0/projects/sentry/ludic-science/issues/?cursor=1443575731:0:1>; rel="previous"; results="true"; cursor="1443575731:0:1", ' +
-          '<http://127.0.0.1:8000/api/0/projects/sentry/ludic-science/issues/?cursor=1443575731:0:0>; rel="next"; results="true"; cursor="1443575731:0:0';
+          '<http://127.0.0.1:8000/api/0/projects/org-slug/project-slug/issues/?cursor=1443575731:0:1>; rel="previous"; results="true"; cursor="1443575731:0:1", ' +
+          '<http://127.0.0.1:8000/api/0/projects/org-slug/project-slug/issues/?cursor=1443575731:0:0>; rel="next"; results="true"; cursor="1443575731:0:0';
 
         MockApiClient.addMockResponse({
-          url: '/projects/123/456/issues/',
+          url: '/projects/org-slug/project-slug/issues/',
           body: [TestStubs.Group()],
           headers: {
             Link: pageLinks,
@@ -190,7 +202,7 @@ describe('Stream', function() {
     it('handles valid search id', function() {
       const streamProps = {
         setProjectNavSection: function() {},
-        params: {orgId: '123', projectId: '456', searchId: '789'},
+        params: {orgId: 'org-slug', projectId: 'project-slug', searchId: '789'},
         location: {query: {}, search: ''},
       };
       wrapper = shallow(<Stream {...streamProps} />, {
@@ -204,7 +216,7 @@ describe('Stream', function() {
     it('handles invalid search id', function() {
       const streamProps = {
         setProjectNavSection: function() {},
-        params: {orgId: '123', projectId: '456', searchId: 'invalid'},
+        params: {orgId: 'org-slug', projectId: 'project-slug', searchId: 'invalid'},
         location: {query: {}, search: ''},
       };
       wrapper = shallow(<Stream {...streamProps} />, {
@@ -222,9 +234,9 @@ describe('Stream', function() {
       };
 
       MockApiClient.addMockResponse({
-        url: '/projects/123/456/searches/',
+        url: '/projects/org-slug/project-slug/searches/',
         body: [
-          {id: '789', query: 'is:unresolved', name: 'test', isDefault: false},
+          {...savedSearch, isDefault: false},
           {
             id: 'default',
             query: 'is:unresolved assigned:me',
@@ -472,7 +484,7 @@ describe('Stream', function() {
       let streamProps = {
         ...props,
         location: {query: {sort: 'freq'}, search: 'sort=freq'},
-        params: {orgId: '123', projectId: '456', searchId: '789'},
+        params: {orgId: 'org-slug', projectId: 'project-slug', searchId: '789'},
       };
 
       let expected = {
@@ -506,7 +518,7 @@ describe('Stream', function() {
       let streamProps = {
         ...props,
         location: {query: {sort: 'freq'}, search: 'sort=freq'},
-        params: {orgId: '123', projectId: '456', searchId: '799'},
+        params: {orgId: 'org-slug', projectId: 'project-slug', searchId: '799'},
       };
 
       let expected = {
@@ -538,9 +550,9 @@ describe('Stream', function() {
       const nextProps = {
         ...props,
         location: {
-          pathname: '/123/456/searches/789/',
+          pathname: '/org-slug/project-slug/searches/789/',
         },
-        params: {orgId: '123', projectId: '456', searchId: '789'},
+        params: {orgId: 'org-slug', projectId: 'project-slug', searchId: '789'},
       };
 
       const stream = shallow(<Stream {...props} />, {
