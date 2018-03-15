@@ -107,12 +107,10 @@ const ReleaseOverview = createReactClass({
 
   getDeploys() {
     let {orgId, version} = this.props.params;
-    let query = this.props.environment ? {environment: this.props.environment.name} : {};
 
     let path = `/organizations/${orgId}/releases/${encodeURIComponent(version)}/deploys/`;
     this.api.request(path, {
       method: 'GET',
-      query,
       success: (data, _, jqXHR) => {
         this.setState({
           deploys: data,
