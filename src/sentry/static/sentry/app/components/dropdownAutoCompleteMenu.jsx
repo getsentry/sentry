@@ -30,10 +30,11 @@ class DropdownAutoCompleteMenu extends React.Component {
         })
       ),
     ]),
-    action: PropTypes.element,
     isOpen: PropTypes.bool,
     onSelect: PropTypes.func,
     alignMenu: PropTypes.oneOf(['left', 'right']),
+    menuFooter: PropTypes.element,
+    menuHeader: PropTypes.element,
 
     /**
      * Props to pass to menu component
@@ -87,11 +88,12 @@ class DropdownAutoCompleteMenu extends React.Component {
       onSelect,
       children,
       items,
-      action,
       menuProps,
       alignMenu,
       style,
       css,
+      menuHeader,
+      menuFooter,
       ...props
     } = this.props;
 
@@ -131,6 +133,7 @@ class DropdownAutoCompleteMenu extends React.Component {
                     <StyledInput autoFocus {...getInputProps()} />
                   </StyledInputContainer>
                   <div>
+                    {menuHeader && <StyledLabel>{menuHeader}</StyledLabel>}
                     {this.autoCompleteFilter(items, inputValue).map(
                       (item, index) =>
                         item.groupLabel ? (
@@ -146,7 +149,7 @@ class DropdownAutoCompleteMenu extends React.Component {
                           </AutoCompleteItem>
                         )
                     )}
-                    {action && <StyledActionContainer>{action}</StyledActionContainer>}
+                    {menuFooter && <StyledLabel>{menuFooter}</StyledLabel>}
                   </div>
                 </StyledMenu>
               )}
@@ -161,11 +164,6 @@ class DropdownAutoCompleteMenu extends React.Component {
 const AutoCompleteRoot = styled(({isOpen, ...props}) => <div {...props} />)`
   position: relative;
   display: inline-block;
-`;
-
-const StyledActionContainer = styled('div')`
-  text-align: center;
-  padding: 10px;
 `;
 
 const StyledInput = styled(Input)`

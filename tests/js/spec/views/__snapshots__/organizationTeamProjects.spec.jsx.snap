@@ -1,7 +1,7 @@
 // Jest Snapshot v1, https://goo.gl/fbAQLP
 
 exports[`OrganizationTeamProjects Should render 1`] = `
-.glamor-53 {
+.glamor-62 {
   background: #fff;
   border: 1px solid;
   margin-bottom: NaNpx;
@@ -72,15 +72,15 @@ exports[`OrganizationTeamProjects Should render 1`] = `
 }
 
 .glamor-3 {
-  margin-right: 0.5em;
+  margin-left: 0.33em;
 }
 
 .glamor-1 {
   vertical-align: middle;
-  margin-right: 0.5em;
+  margin-left: 0.33em;
 }
 
-.glamor-49 {
+.glamor-58 {
   box-sizing: border-box;
   padding: 0px;
   display: -webkit-box;
@@ -94,7 +94,7 @@ exports[`OrganizationTeamProjects Should render 1`] = `
   border-bottom: 1px solid;
 }
 
-.glamor-49:last-child {
+.glamor-58:last-child {
   border: 0;
 }
 
@@ -116,9 +116,22 @@ exports[`OrganizationTeamProjects Should render 1`] = `
   padding: 0;
 }
 
-.glamor-47 {
+.glamor-56 {
   box-sizing: border-box;
   padding: 16px;
+}
+
+.glamor-48 {
+  min-height: 1.25em;
+  min-width: 1.25em;
+  margin-right: 0.5em;
+}
+
+.glamor-46 {
+  vertical-align: middle;
+  min-height: 1.25em;
+  min-width: 1.25em;
+  margin-right: 0.5em;
 }
 
 <TeamProjects
@@ -133,7 +146,7 @@ exports[`OrganizationTeamProjects Should render 1`] = `
     <Panel>
       <StyledPanel>
         <div
-          className="glamor-53 glamor-54"
+          className="glamor-62 glamor-63"
         >
           <PanelHeader>
             <StyledPanelHeader>
@@ -170,7 +183,10 @@ exports[`OrganizationTeamProjects Should render 1`] = `
                                   items={
                                     Array [
                                       Object {
-                                        "label": "project-slug-2",
+                                        "label": <ProjectListElement>
+                                          project-slug-2
+                                        </ProjectListElement>,
+                                        "searchKey": "project-slug-2",
                                         "value": "3",
                                       },
                                     ]
@@ -182,7 +198,10 @@ exports[`OrganizationTeamProjects Should render 1`] = `
                                     items={
                                       Array [
                                         Object {
-                                          "label": "project-slug-2",
+                                          "label": <ProjectListElement>
+                                            project-slug-2
+                                          </ProjectListElement>,
+                                          "searchKey": "project-slug-2",
                                           "value": "3",
                                         },
                                       ]
@@ -213,20 +232,24 @@ exports[`OrganizationTeamProjects Should render 1`] = `
                                               >
                                                 <DropdownButton
                                                   isOpen={false}
+                                                  size="xsmall"
                                                 >
                                                   <StyledButton
                                                     isOpen={false}
+                                                    size="xsmall"
                                                   >
                                                     <Component
                                                       className="glamor-11 glamor-12"
                                                       isOpen={false}
+                                                      size="xsmall"
                                                     >
                                                       <Button
                                                         className="glamor-11 glamor-12"
                                                         disabled={false}
+                                                        size="xsmall"
                                                       >
                                                         <button
-                                                          className="glamor-11 glamor-12 button button-default"
+                                                          className="glamor-11 glamor-12 button button-default button-xs"
                                                           disabled={false}
                                                           onClick={[Function]}
                                                           role="button"
@@ -243,6 +266,7 @@ exports[`OrganizationTeamProjects Should render 1`] = `
                                                                 className="button-label glamor-9"
                                                                 is={null}
                                                               >
+                                                                Add Project
                                                                 <StyledChevronDown>
                                                                   <Component
                                                                     className="glamor-3 glamor-0"
@@ -274,10 +298,6 @@ exports[`OrganizationTeamProjects Should render 1`] = `
                                                                     </InlineSvg>
                                                                   </Component>
                                                                 </StyledChevronDown>
-                                                                <span
-                                                                  className="icon-plus"
-                                                                />
-                                                                Add Project
                                                               </div>
                                                             </Base>
                                                           </Flex>
@@ -324,11 +344,11 @@ exports[`OrganizationTeamProjects Should render 1`] = `
                 >
                   <Base
                     align="center"
-                    className="glamor-49 glamor-50"
+                    className="glamor-58 glamor-59"
                     p={0}
                   >
                     <div
-                      className="glamor-49 glamor-50"
+                      className="glamor-58 glamor-59"
                       is={null}
                     >
                       <Box
@@ -584,11 +604,11 @@ exports[`OrganizationTeamProjects Should render 1`] = `
                         p={2}
                       >
                         <Base
-                          className="glamor-47"
+                          className="glamor-56"
                           p={2}
                         >
                           <div
-                            className="glamor-47"
+                            className="glamor-56"
                             is={null}
                           >
                             <Button
@@ -614,6 +634,38 @@ exports[`OrganizationTeamProjects Should render 1`] = `
                                       className="button-label glamor-9"
                                       is={null}
                                     >
+                                      <RemoveIcon>
+                                        <Component
+                                          className="glamor-48 glamor-45"
+                                        >
+                                          <InlineSvg
+                                            className="glamor-48 glamor-45"
+                                            src="icon-circle-subtract"
+                                          >
+                                            <StyledSvg
+                                              className="glamor-48 glamor-45"
+                                              height="1em"
+                                              style={Object {}}
+                                              viewBox={Object {}}
+                                              width="1em"
+                                            >
+                                              <svg
+                                                className="glamor-45 glamor-46 glamor-2"
+                                                height="1em"
+                                                style={Object {}}
+                                                viewBox={Object {}}
+                                                width="1em"
+                                              >
+                                                <use
+                                                  href="#test"
+                                                  xlinkHref="#test"
+                                                />
+                                              </svg>
+                                            </StyledSvg>
+                                          </InlineSvg>
+                                        </Component>
+                                      </RemoveIcon>
+                                       
                                       Remove
                                     </div>
                                   </Base>
