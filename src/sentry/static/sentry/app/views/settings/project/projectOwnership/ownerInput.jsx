@@ -49,7 +49,7 @@ class OwnerInput extends React.Component {
       `/projects/${organization.slug}/${project.slug}/ownership/`,
       {
         method: 'PUT',
-        data: {raw: this.state.text},
+        data: {raw: this.state.text || ''},
       }
     );
 
@@ -59,7 +59,7 @@ class OwnerInput extends React.Component {
       })
       .catch(error => {
         this.setState({error: error.responseJSON});
-        addErrorMessage(t('Error updating ownership rules'));
+        addErrorMessage(t('Unable to save ownership rules changes'));
       });
 
     return request;
@@ -107,11 +107,10 @@ class OwnerInput extends React.Component {
           <MentionsInput
             style={OwnerInputStyle}
             placeholder={
-              '#example usage\n\npath:src/sentry/pipeline/* person@sentry.io #platform\n\nurl:http://sentry.io/settings/* #workflow'
+              '#example usage\n\npath:src/example/pipeline/* person@sentry.io #infrastructure\n\nurl:http://example.com/settings/* #product'
             }
             onChange={this.onChange.bind(this)}
             onBlur={this.onBlur}
-            onKeyDown={this.onKeyDown}
             value={text}
             required={true}
             autoFocus={true}
