@@ -680,10 +680,17 @@ const Stream = createReactClass({
   },
 
   renderEmpty() {
+    const {environment} = this.state;
+    const message = environment
+      ? tct('Sorry no events match your filters in the [env] environment.', {
+          env: environment.displayName,
+        })
+      : t('Sorry, no events match your filters.');
+
     return (
       <div className="box empty-stream">
         <span className="icon icon-exclamation" />
-        <p>{t('Sorry, no events match your filters.')}</p>
+        <p>{message}</p>
       </div>
     );
   },

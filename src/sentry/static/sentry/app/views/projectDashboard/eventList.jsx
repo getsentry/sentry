@@ -6,7 +6,7 @@ import SentryTypes from '../../proptypes';
 import ApiMixin from '../../mixins/apiMixin';
 import LoadingError from '../../components/loadingError';
 import LoadingIndicator from '../../components/loadingIndicator';
-import {t} from '../../locale';
+import {t, tct} from '../../locale';
 
 import EventNode from './eventNode';
 
@@ -107,9 +107,17 @@ const EventList = createReactClass({
   },
 
   render() {
-    let eventNodes = this.state.groupList.map(item => {
+    const eventNodes = this.state.groupList.map(item => {
       return <EventNode group={item} key={item.id} />;
     });
+
+    const {environment} = this.props;
+
+    const emptyStateMessage = environment
+      ? tct('No data available in the [env] environment.', {
+          env: environment.displayName,
+        })
+      : t('No data available.');
 
     return (
       <div className="box dashboard-widget">
@@ -133,7 +141,7 @@ const EventList = createReactClass({
             ) : eventNodes.length ? (
               <ul className="group-list group-list-small">{eventNodes}</ul>
             ) : (
-              <div className="group-list-empty">{t('No data available.')}</div>
+              <div className="group-list-empty">{emptyStateMessage}</div>
             )}
           </div>
         </div>
