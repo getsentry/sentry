@@ -209,8 +209,9 @@ const ProjectEvents = createReactClass({
           </div>
         </div>
         <div className="alert alert-block alert-info">
-          {t(`Psst! This feature is still a work-in-progress. Thanks for being an early
-          adopter!`)}
+          {t(
+            'This is a list of every event sent to this project. This feature is still a work-in-progress, so thanks for being an early adopter!'
+          )}
         </div>
         {this.renderStreamBody()}
         <Pagination pageLinks={this.state.pageLinks} />
