@@ -235,7 +235,7 @@ class ProjectWithTeamSerializer(ProjectSerializer):
 
 class ProjectSummarySerializer(ProjectWithTeamSerializer):
     def serialize(self, obj, attrs, user):
-        return {
+        context = {
             'team': attrs['teams'][0] if attrs['teams'] else None,
             'teams': attrs['teams'],
             'id': six.text_type(obj.id),
@@ -245,6 +245,9 @@ class ProjectSummarySerializer(ProjectWithTeamSerializer):
             'isMember': attrs['is_member'],
             'hasAccess': attrs['has_access'],
         }
+        if 'stats' in attrs:
+            context['stats'] = attrs['stats']
+        return context
 
 
 class DetailedProjectSerializer(ProjectWithTeamSerializer):
