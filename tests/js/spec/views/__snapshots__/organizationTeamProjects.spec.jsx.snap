@@ -189,7 +189,6 @@ exports[`OrganizationTeamProjects Should render 1`] = `
                                   onSelect={[Function]}
                                 >
                                   <AutoComplete
-                                    alignMenu="right"
                                     itemToString={[Function]}
                                     onSelect={[Function]}
                                   >

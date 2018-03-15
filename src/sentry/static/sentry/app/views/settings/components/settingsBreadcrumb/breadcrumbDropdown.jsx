@@ -84,6 +84,7 @@ class BreadcrumbDropdown extends React.Component {
     let {hasMenu, route, isLast, name, items, onSelect} = this.props;
     return (
       <DropdownAutoCompleteMenu
+        alignMenu="left"
         onOpen={this.handleMouseEnter}
         onClose={this.close}
         isOpen={this.state.isOpen}
