@@ -8,7 +8,9 @@ export function formatQueryString(qs) {
 // check for matching environments with the quotation marks first
 // to match the way tag searches are being done
 export function getQueryEnvironment(qs) {
-  const matchWithQuotes = qs.match(/environment:"([^\s]*)"/);
+  // A match with quotes will lazily match any characters within quotation marks
+  const matchWithQuotes = qs.match(/environment:"(.*?)"/);
+  // A match without quotes will match any non space character
   const matchWithoutQuotes = qs.match(/environment:([^\s]*)/);
 
   if (matchWithQuotes) {
