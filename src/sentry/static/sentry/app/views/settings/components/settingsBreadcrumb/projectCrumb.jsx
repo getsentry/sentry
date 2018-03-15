@@ -25,7 +25,7 @@ const ProjectName = styled.div`
 class ProjectCrumb extends React.Component {
   static propTypes = {
     organization: SentryTypes.Organization,
-    project: SentryTypes.Projects,
+    project: SentryTypes.Project,
     projects: PropTypes.array,
     routes: PropTypes.array,
     route: PropTypes.object,
