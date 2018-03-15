@@ -9,7 +9,7 @@ import LoadingError from '../components/loadingError';
 import LoadingIndicator from '../components/loadingIndicator';
 import {percent, deviceNameMapper} from '../utils';
 import {t} from '../locale';
-import withEnvironment from '../utils/withEnvironment';
+import withEnvironmentInQueryString from '../utils/withEnvironmentInQueryString';
 
 const GroupTags = createReactClass({
   displayName: 'GroupTags',
@@ -148,4 +148,4 @@ const GroupTags = createReactClass({
   },
 });
 
-export default withEnvironment(GroupTags);
+export default withEnvironmentInQueryString(GroupTags);
