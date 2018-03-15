@@ -1099,7 +1099,6 @@ exports[`AuditLogView renders 1`] = `
                                   >
                                     <div>
                                       <Avatar
-                                        className="avatar"
                                         gravatar={true}
                                         hasTooltip={false}
                                         size={64}
@@ -1418,7 +1417,6 @@ exports[`AuditLogView renders 1`] = `
                                   >
                                     <div>
                                       <Avatar
-                                        className="avatar"
                                         gravatar={true}
                                         hasTooltip={false}
                                         size={64}

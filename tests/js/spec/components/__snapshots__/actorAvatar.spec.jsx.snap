@@ -20,7 +20,6 @@ exports[`Avatar render() should show a gravatar when actor type is a team 1`] = 
 
 exports[`Avatar render() should show a gravatar when actor type is a user 1`] = `
 <Avatar
-  className="avatar"
   gravatar={true}
   hasTooltip={true}
   size={64}

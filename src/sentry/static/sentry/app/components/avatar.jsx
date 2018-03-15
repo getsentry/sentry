@@ -1,3 +1,4 @@
+import classNames from 'classnames';
 import PropTypes from 'prop-types';
 import React from 'react';
 import $ from 'jquery';
@@ -18,7 +19,6 @@ class Avatar extends React.Component {
   };
 
   static defaultProps = {
-    className: 'avatar',
     size: 64,
     gravatar: true,
     hasTooltip: false,
@@ -99,7 +99,10 @@ class Avatar extends React.Component {
 
     return (
       <Tooltip title={userDisplayName(user)} disabled={!hasTooltip}>
-        <span className={this.props.className} style={this.props.style}>
+        <span
+          className={classNames('avatar', this.props.className)}
+          style={this.props.style}
+        >
           {this.state.showBackupAvatar && <UserLetterAvatar user={user} />}
           {this.renderImg()}
         </span>

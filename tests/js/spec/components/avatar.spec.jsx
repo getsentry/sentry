@@ -20,6 +20,17 @@ describe('Avatar', function() {
   });
 
   describe('render()', function() {
+    it('has `avatar` className', function() {
+      let user = Object.assign({}, USER, {
+        avatar: {
+          avatarType: 'gravatar',
+          avatarUuid: '2d641b5d-8c74-44de-9cb6-fbd54701b35e',
+        },
+      });
+      let avatar = shallow(<Avatar user={user} />);
+      expect(avatar.find('.avatar')).toHaveLength(1);
+    });
+
     it('should show a gravatar when avatar type is gravatar', function() {
       let user = Object.assign({}, USER, {
         avatar: {
