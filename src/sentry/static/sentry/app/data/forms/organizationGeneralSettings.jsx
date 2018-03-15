@@ -4,7 +4,7 @@ import {extractMultilineFields} from '../../utils';
 import {t, tct} from '../../locale';
 
 // Export route to make these forms searchable by label/help
-export const route = '/settings/organization/:orgId/settings/';
+export const route = '/settings/:orgId/settings/';
 
 const formGroups = [
   {

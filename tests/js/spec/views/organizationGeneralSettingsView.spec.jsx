@@ -104,7 +104,7 @@ describe('OrganizationGeneralSettingsView', function() {
       setTimeout(() => {
         // Not sure why this needs to be async, but it does
         expect(browserHistory.replace).toHaveBeenCalledWith(
-          '/settings/organization/new-slug/settings/'
+          '/settings/new-slug/settings/'
         );
         done();
       });

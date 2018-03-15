@@ -1,6 +1,6 @@
 import {t} from '../../../locale';
 
-const pathPrefix = '/settings/organization/:orgId';
+const pathPrefix = '/settings/:orgId';
 
 const organizationNavigation = [
   {

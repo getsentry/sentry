@@ -96,7 +96,7 @@ class SettingsIndex extends React.Component {
     let isSuperuser = user.isSuperuser;
 
     let organizationSettingsUrl =
-      (organization && `/settings/organization/${organization.slug}/`) || '';
+      (organization && `/settings/${organization.slug}/`) || '';
 
     let supportLinkProps = isOnPremise
       ? {href: LINKS.FORUM}
@@ -123,7 +123,7 @@ class SettingsIndex extends React.Component {
                   <h3>{t('Quick links')}:</h3>
                   <ul>
                     <li>
-                      <HomeLink href="/settings/account/security/">
+                      <HomeLink to="/settings/account/security/">
                         {t('Change my password')}
                       </HomeLink>
                     </li>

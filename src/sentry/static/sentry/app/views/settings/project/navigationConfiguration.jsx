@@ -1,6 +1,6 @@
 import {t} from '../../../locale';
 
-const pathPrefix = '/settings/organization/:orgId/project/:projectId';
+const pathPrefix = '/settings/:orgId/:projectId';
 
 export default function getConfiguration({project}) {
   let plugins = ((project && project.plugins) || []).filter(plugin => plugin.enabled);
