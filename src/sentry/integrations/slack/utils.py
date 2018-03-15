@@ -5,35 +5,43 @@ import logging
 from django.db.models import Q
 from six.moves.urllib.parse import parse_qs, urlencode, urlparse, urlunparse
 
-from sentry.utils.dates import to_timestamp
+from sentry.api.fields.actor import Actor
 from sentry.utils import json
 from sentry.utils.assets import get_asset_url
+from sentry.utils.dates import to_timestamp
 from sentry.utils.http import absolute_uri
-from sentry.models import GroupStatus, GroupAssignee, OrganizationMember, User, Identity
+from sentry.models import (
+    GroupStatus, GroupAssignee, OrganizationMember, User, Identity, Team,
+)
 
 logger = logging.getLogger('sentry.integrations.slack')
-
-UNASSIGN_OPTION = {
-    'text': u':negative_squared_cross_mark: Unassign Issue',
-    'value': 'none',
-}
 
 # Attachment colors used for issues with no actions take
 NEW_ISSUE_COLOR = '#E03E2F'
 ACTIONED_ISSUE_COLOR = '#EDEEEF'
 
 
-def get_assignees(group):
+def format_actor_option(actor):
+    if isinstance(actor, User):
+        return {'text': actor.get_display_name(), 'value': u'user:{}'.format(actor.id)}
+    if isinstance(actor, Team):
+        return {'text': actor.slug, 'value': u'team:{}'.format(actor.id)}
+
+
+def get_member_assignees(group):
     queryset = OrganizationMember.objects.filter(
         Q(user__is_active=True) | Q(user__isnull=True),
         organization=group.organization,
         teams__in=group.project.teams.all(),
-    ).select_related('user')
+    ).distinct('user').select_related('user')
 
-    members = sorted(queryset, key=lambda x: x.user.get_display_name() if x.user_id else x.email)
-    members = filter(lambda m: m.user_id is not None, members)
+    members = sorted(queryset, key=lambda u: u.user.get_display_name())
 
-    return [{'text': x.user.get_display_name(), 'value': x.user.username} for x in members]
+    return [format_actor_option(u.user) for u in members]
+
+
+def get_team_assignees(group):
+    return [format_actor_option(u) for u in group.project.teams.all()]
 
 
 def add_notification_referrer_param(url, provider):
@@ -70,21 +78,21 @@ def build_attachment_text(group, event=None):
 
 
 def build_assigned_text(identity, assignee):
-    if assignee == 'none':
-        return u'*Issue unassigned by <@{user_id}>*'.format(
-            user_id=identity.external_id,
-        )
+    actor = Actor.from_actor_id(assignee)
 
     try:
-        assignee_user = User.objects.get(username=assignee)
-    except User.DoesNotExist:
+        assigned_actor = actor.resolve()
+    except actor.type.DoesNotExist:
         return
 
-    try:
-        assignee_ident = Identity.objects.get(user=assignee_user)
-        assignee_text = u'<@{}>'.format(assignee_ident.external_id)
-    except Identity.DoesNotExist:
-        assignee_text = assignee_user.get_display_name()
+    if actor.type == Team:
+        assignee_text = assigned_actor.slug
+    elif actor.type == User:
+        try:
+            assignee_ident = Identity.objects.get(user=assigned_actor)
+            assignee_text = u'<@{}>'.format(assignee_ident.external_id)
+        except Identity.DoesNotExist:
+            assignee_text = assigned_actor.get_display_name()
 
     return u'*Issue assigned to {assignee_text} by <@{user_id}>*'.format(
         assignee_text=assignee_text,
@@ -118,7 +126,9 @@ def build_action_text(identity, action):
 def build_attachment(group, event=None, tags=None, identity=None, actions=None, rules=None):
     # XXX(dcramer): options are limited to 100 choices, even when nested
     status = group.get_status()
-    assignees = get_assignees(group)
+
+    members = get_member_assignees(group)
+    teams = get_team_assignees(group)
 
     logo_url = absolute_uri(get_asset_url('sentry', 'images/sentry-email-avatar.png'))
     color = NEW_ISSUE_COLOR
@@ -129,14 +139,8 @@ def build_attachment(group, event=None, tags=None, identity=None, actions=None, 
         actions = []
 
     try:
-        assignee = GroupAssignee.objects.get(group=group).user
-        assignee = {
-            'text': assignee.get_display_name(),
-            'value': assignee.username,
-        }
-
-        # Add unassign option to the top of the list
-        assignees.insert(0, UNASSIGN_OPTION)
+        assignee = GroupAssignee.objects.get(group=group).assigned_actor()
+        assignee = format_actor_option(assignee)
     except GroupAssignee.DoesNotExist:
         assignee = None
 
@@ -167,6 +171,20 @@ def build_attachment(group, event=None, tags=None, identity=None, actions=None, 
             'value': 'unresolved',
         })
 
+    option_groups = []
+
+    if members:
+        option_groups.insert(0, {
+            'text': 'People',
+            'options': members,
+        })
+
+    if teams:
+        option_groups.insert(0, {
+            'text': 'Teams',
+            'options': teams,
+        })
+
     payload_actions = [
         resolve_button,
         ignore_button,
@@ -174,8 +192,8 @@ def build_attachment(group, event=None, tags=None, identity=None, actions=None, 
             'name': 'assign',
             'text': 'Select Assignee...',
             'type': 'select',
-            'options': assignees,
             'selected_options': [assignee],
+            'option_groups': option_groups,
         },
     ]
 
