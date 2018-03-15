@@ -172,19 +172,20 @@ class ProjectTeams extends AsyncView {
         label: <TeamDropdownElement>#{team.slug}</TeamDropdownElement>,
       }));
 
+    let menuHeader = (
+      <StyledTeamsLabel>
+        {t('Teams')}
+        <StyledCreateTeamLink to={`/organizations/${orgId}/teams/new/`}>
+          {t('Create Team')}
+        </StyledCreateTeamLink>
+      </StyledTeamsLabel>
+    );
+
     return (
       <DropdownAutoComplete
         items={teamsToAdd}
         onSelect={this.handleAdd}
-        action={
-          <Button
-            to={`/organizations/${orgId}/teams/new/`}
-            priority="primary"
-            size="small"
-          >
-            {t('Create a new team')}
-          </Button>
-        }
+        menuHeader={menuHeader}
       >
         {({isOpen, selectedItem}) => (
           <DropdownButton isOpen={isOpen} size="xsmall">
@@ -274,6 +275,18 @@ const StyledPanelItem = styled(PanelItem)`
   display: flex;
   align-items: center;
   justify-content: space-between;
+`;
+
+const StyledTeamsLabel = styled('div')`
+  width: 250px;
+  font-size: 0.875em;
+  padding: 0.75em 0;
+  text-transform: uppercase;
+`;
+
+const StyledCreateTeamLink = styled(Link)`
+  float: right;
+  text-transform: none;
 `;
 
 export default ProjectTeams;

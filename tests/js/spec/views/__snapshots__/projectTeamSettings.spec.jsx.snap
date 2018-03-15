@@ -19,16 +19,6 @@ exports[`ProjectTeamsSettings render() renders 1`] = `
           </div>
           <div>
             <DropdownAutoComplete
-              action={
-                <Button
-                  disabled={false}
-                  priority="primary"
-                  size="small"
-                  to="/organizations/org-slug/teams/new/"
-                >
-                  Create a new team
-                </Button>
-              }
               alignMenu="right"
               items={
                 Array [
@@ -41,6 +31,16 @@ exports[`ProjectTeamsSettings render() renders 1`] = `
                     "value": "2",
                   },
                 ]
+              }
+              menuHeader={
+                <StyledTeamsLabel>
+                  Teams
+                  <StyledCreateTeamLink
+                    to="/organizations/org-slug/teams/new/"
+                  >
+                    Create Team
+                  </StyledCreateTeamLink>
+                </StyledTeamsLabel>
               }
               onSelect={[Function]}
             />
