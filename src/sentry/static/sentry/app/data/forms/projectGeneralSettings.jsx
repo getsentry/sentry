@@ -4,7 +4,7 @@ import {t, tct, tn} from '../../locale';
 import getDynamicText from '../../utils/getDynamicText';
 
 // Export route to make these forms searchable by label/help
-export const route = '/settings/organization/:orgId/project/:projectId/settings/';
+export const route = '/settings/:orgId/:projectId/settings/';
 
 const getResolveAgeAllowedValues = () => {
   let i = 0;
