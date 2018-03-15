@@ -3,6 +3,8 @@ import PropTypes from 'prop-types';
 import React from 'react';
 import createReactClass from 'create-react-class';
 import Reflux from 'reflux';
+import styled from 'react-emotion';
+import {Flex, Box} from 'grid-emotion';
 
 import AssigneeSelector from '../assigneeSelector';
 import Count from '../count';
@@ -11,12 +13,14 @@ import GroupCheckBox from './groupCheckBox';
 import ProjectState from '../../mixins/projectState';
 import GroupStore from '../../stores/groupStore';
 import SelectedGroupStore from '../../stores/selectedGroupStore';
+import ShortId from '../shortId';
 import EventOrGroupHeader from '../eventOrGroupHeader';
 import EventOrGroupExtraDetails from '../eventOrGroupExtraDetails';
+import TimeSince from '../timeSince';
 
 import {valueIsEqual} from '../../utils';
 
-const StreamGroup = createReactClass({
+const StreamIssue = createReactClass({
   displayName: 'StreamGroup',
 
   propTypes: {
@@ -84,33 +88,19 @@ const StreamGroup = createReactClass({
     let data = this.state.data;
     let userCount = data.userCount;
 
-    let className = 'group row';
-    if (data.isBookmarked) {
-      className += ' isBookmarked';
-    }
-    if (data.hasSeen) {
-      className += ' hasSeen';
-    }
-    if (data.status === 'resolved') {
-      className += ' isResolved';
-    }
-    if (data.status === 'ignored') {
-      className += ' isIgnored';
-    }
-
-    className += ' type-' + data.type;
-    className += ' level-' + data.level;
-
     let {id, orgId, projectId} = this.props;
 
+    // Todo(ckj): Implement resolved and hasSeen state
+
     return (
-      <li className={className} onClick={this.toggleSelect}>
-        <div className="col-md-7 col-xs-8 event-details">
-          {this.props.canSelect && (
-            <div className="checkbox">
-              <GroupCheckBox id={data.id} />
-            </div>
-          )}
+      <Issue onClick={this.toggleSelect} py={1}>
+        <IssueLevel level={data.level} />
+        {this.props.canSelect && (
+          <IssueCheckbox ml={1}>
+            <GroupCheckBox id={data.id} />
+          </IssueCheckbox>
+        )}
+        <IssueSummary w={[8 / 12, 8 / 12, 6 / 12]} mx={1} flex="1">
           <EventOrGroupHeader data={data} orgId={orgId} projectId={projectId} />
           <EventOrGroupExtraDetails
             group
@@ -119,21 +109,108 @@ const StreamGroup = createReactClass({
             orgId={orgId}
             projectId={projectId}
           />
-        </div>
-        <div className="event-assignee col-md-1 hidden-sm hidden-xs">
-          <AssigneeSelector id={data.id} />
-        </div>
-        <div className="col-md-2 hidden-sm hidden-xs event-graph align-right">
+        </IssueSummary>
+        <Box w={160} mx={2}>
+          {data.shortId && <IssueShortId shortId={data.shortId} />}
+          {data.firstSeen && (
+            <IssueTimeSinceWrapper>
+              first seen <TimeSince date={data.firstSeen} suffix="ago" />
+            </IssueTimeSinceWrapper>
+          )}
+        </Box>
+        <Box w={120} mx={2}>
           <GroupChart id={data.id} statsPeriod={this.props.statsPeriod} data={data} />
-        </div>
-        <div className="col-md-1 col-xs-2 event-count align-right">
+        </Box>
+        <Box w={60} mx={2} className="align-right">
           <Count value={data.count} />
-        </div>
-        <div className="col-md-1 col-xs-2 event-users align-right">
+        </Box>
+        <Box w={60} mx={2} className="align-right">
           <Count value={userCount} />
-        </div>
-      </li>
+        </Box>
+        <Box w={70} mx={2}>
+          <StyledAssigneeSelector id={data.id} />
+        </Box>
+      </Issue>
     );
   },
 });
-export default StreamGroup;
+
+const Issue = styled(Flex)`
+  line-height: 1.1;
+  font-size: 16px;
+  position: relative;
+  align-items: center;
+  border-left: 1px solid ${p => p.theme.borderDark};
+  border-right: 1px solid ${p => p.theme.borderDark};
+  border-top: 1px solid ${p => p.theme.borderLight};
+  border-bottom: 1px solid ${p => p.theme.borderLight};
+  & + & {
+    margin-top: -1px;
+  }
+  &:first-child {
+    border-top-left-radius: 3px;
+    border-top-right-radius: 3px;
+    border-top: 1px solid ${p => p.theme.borderDark};
+  }
+  &:last-child {
+    border-bottom-left-radius: 3px;
+    border-bottom-right-radius: 3px;
+    border-bottom: 1px solid ${p => p.theme.borderDark};
+    box-shadow: 0 1px 0 rgba(0, 0, 0, 0.04);
+  }
+`;
+
+const IssueSummary = styled(Box)`
+  overflow: hidden;
+`;
+
+const IssueLevel = styled.div`
+  margin-left: -1px;
+  width: 9px;
+  height: 15px;
+  border-radius: 0 3px 3px 0;
+  align-self: flex-start;
+
+  background-color: ${p => {
+    switch (p.level) {
+      case 'sample':
+        return p.theme.purple;
+      case 'info':
+        return p.theme.blue;
+      case 'warning':
+        return p.theme.yellowOrange;
+      case 'error':
+        return p.theme.orange;
+      case 'fatal':
+        return p.theme.red;
+      default:
+        return p.theme.gray2;
+    }
+  }};
+`;
+
+const IssueCheckbox = styled(Box)`
+  align-self: flex-start;
+  & input[type='checkbox'] {
+    margin: 0;
+    display: block;
+  }
+`;
+
+const IssueTimeSinceWrapper = styled.span`
+  font-size: 12px;
+  color: ${p => p.theme.gray2};
+`;
+
+const IssueShortId = styled(ShortId)`
+  display: inline;
+  font-size: 15px;
+  margin-bottom: 4px;
+  }
+`;
+
+const StyledAssigneeSelector = styled(AssigneeSelector)`
+  color: ${p => p.theme.gray1};
+`;
+
+export default StreamIssue;
