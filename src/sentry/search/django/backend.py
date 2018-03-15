@@ -241,9 +241,14 @@ class DjangoSearchBackend(SearchBackend):
         # filter out groups which are beyond the retention period
         retention = quotas.get_event_retention(organization=project.organization)
         if retention:
-            group_queryset = group_queryset.filter(
-                last_seen__gte=timezone.now() - timedelta(days=retention)
-            )
+            retention_window_start = timezone.now() - timedelta(days=retention)
+            # TODO: This could be optimized when building querysets to identify
+            # criteria that are logically impossible (e.g. if the upper bound
+            # for last seen is before the retention window starts, no results
+            # exist.)
+            group_queryset = group_queryset.filter(last_seen__gte=retention_window_start)
+        else:
+            retention_window_start = None
 
         if environment is not None:
             if 'environment' in tags:
@@ -259,18 +264,20 @@ class DjangoSearchBackend(SearchBackend):
                 'date_to': ScalarCondition('date_added', 'lt'),
             })
             if any(key in parameters for key in event_queryset_builder.conditions.keys()):
+                event_queryset = event_queryset_builder.build(
+                    tagstore.get_event_tag_qs(
+                        project.id,
+                        environment.id,
+                        'environment',
+                        environment.name,
+                    ),
+                    parameters,
+                )
+                if retention_window_start is not None:
+                    event_queryset = event_queryset.filter(date_added__gte=retention_window_start)
+
                 group_queryset = group_queryset.filter(
-                    id__in=list(
-                        event_queryset_builder.build(
-                            tagstore.get_event_tag_qs(
-                                project.id,
-                                environment.id,
-                                'environment',
-                                environment.name,
-                            ),
-                            parameters,
-                        ).distinct().values_list('group_id', flat=True)[:1000],
-                    )
+                    id__in=list(event_queryset.distinct().values_list('group_id', flat=True)[:1000])
                 )
 
             group_queryset = QuerySetBuilder({
@@ -384,6 +391,10 @@ class DjangoSearchBackend(SearchBackend):
                 environment.name,
             )
 
+            if retention_window_start is not None:
+                group_tag_value_queryset = group_tag_value_queryset.filter(
+                    last_seen__gte=retention_window_start)
+
             candidates = dict(
                 QuerySetBuilder({
                     'age_from': ScalarCondition('first_seen', 'gt'),
@@ -406,6 +417,9 @@ class DjangoSearchBackend(SearchBackend):
             )
 
             if tags:
+                # TODO: `get_group_ids_for_search_filter` should be able to
+                # utilize the retention window start parameter for additional
+                # optimizations.
                 matches = tagstore.get_group_ids_for_search_filter(
                     project.id,
                     environment.id,
