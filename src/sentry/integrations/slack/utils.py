@@ -2,7 +2,6 @@ from __future__ import absolute_import
 
 import logging
 
-from django.db.models import Q
 from six.moves.urllib.parse import parse_qs, urlencode, urlparse, urlunparse
 
 from sentry.api.fields.actor import Actor
@@ -30,10 +29,10 @@ def format_actor_option(actor):
 
 def get_member_assignees(group):
     queryset = OrganizationMember.objects.filter(
-        Q(user__is_active=True) | Q(user__isnull=True),
+        user__is_active=True,
         organization=group.organization,
         teams__in=group.project.teams.all(),
-    ).distinct('user').select_related('user')
+    ).distinct().select_related('user')
 
     members = sorted(queryset, key=lambda u: u.user.get_display_name())
 
