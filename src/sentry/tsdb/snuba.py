@@ -26,49 +26,6 @@ class SnubaTSDB(BaseTSDB):
     def __init__(self, **options):
         super(SnubaTSDB, self).__init__(**options)
 
-    def query_snuba(self, start, end, rollup, groupby, conditions,
-                    project_id, aggregation, aggregateby):
-
-        conditions = conditions or []
-
-        # If the grouping, aggregation, or any of the conditions reference `issue`
-        # we need to fetch the issue definitions (hashes)
-        references_issues = 'issue' in [groupby, aggregateby] + [c[0] for c in conditions]
-        issues = get_project_issues(project_id) if references_issues else None
-
-        url = '{0}/query'.format(self.SNUBA)
-        request = {k: v for k, v in six.iteritems({
-            'from_date': start.isoformat(),
-            'to_date': end.isoformat(),
-            'conditions': conditions,
-            'groupby': groupby,
-            'project': project_id,
-            'aggregation': aggregation,
-            'aggregateby': aggregateby,
-            'granularity': rollup,
-            'issues': issues,
-        }) if v is not None}
-        response = requests.post(url, data=json.dumps(request))
-        response = json.loads(response.text)
-
-        # Response rows from snuba are grouped by the groupby column, and by time.
-        # Here we build a structure mapping distinct values of the groupby column
-        # to a series of (time, count) tuples.
-        result = {}
-        cols = [c['name'] for c in response['meta'] if c['name'] != groupby]
-        for d in response['data']:
-            if 'time' in d:
-                d['time'] = to_timestamp(parse_datetime(d['time']))
-            series = result.setdefault(d[groupby], [])
-            series.append(tuple(d[c] for c in cols))
-
-        # TODO fill in zero-buckets that are missing from the result
-
-        for k in result:
-            result[k] = sorted(result[k])
-
-        return result
-
     def model_columns(self, model):
         """
         Translates TSDB models into the required columns for querying snuba.
@@ -86,41 +43,165 @@ class SnubaTSDB(BaseTSDB):
             TSDBModel.frequent_environments_by_group: ('issue', 'environment'),
             TSDBModel.frequent_releases_by_group: ('issue', 'release'),
             TSDBModel.frequent_issues_by_project: ('project_id', 'issue'),
-        }.get(model, (None, None))
+        }.get(model, None)
 
     def get_data(self, model, keys, start, end, rollup=None,
-                 environment_id=None, aggregation='count'):
-        (groupcol, aggcol) = self.model_columns(model)
+                 environment_id=None, aggregation='count', group_time=False):
+        model_columns = self.model_columns(model)
 
-        if not groupcol:
+        if model_columns is None:
             return {}
         else:
-            conditions = [(groupcol, 'IN', keys)]
+            model_group, model_aggregate = model_columns
+
+            conditions = []
+            if isinstance(keys, list):
+                conditions.append((model_group, 'IN', keys))
+            elif isinstance(keys, dict) and model_aggregate is not None:
+                # Special case, if keys is a dict, treat its keys() as the set of
+                # allowed values for model_group, and the union of its values
+                # as the set of allowed keys for the model_aggregate
+                conditions.append((model_group, 'IN', keys.keys()))
+                aggregate_keys = list(set.union(*(set(v) for v in keys.values())))
+                conditions.append((model_aggregate, 'IN', aggregate_keys))
+                keys = keys.keys()
+
+            groupby = []
+            if model_group is not None:
+                groupby.append(model_group)
+            if group_time:
+                groupby.append('time')
+            if aggregation == 'count' and model_aggregate is not None:
+                # Special case, because count has different semantics, we change:
+                #    COUNT(model_aggregate)
+                # to:
+                #    COUNT() GROUP BY model_aggregate
+                groupby.append(model_aggregate)
+                model_aggregate = None
+
             if environment_id is not None:
                 environment = 'fixme'  # TODO get environment name from id
                 conditions.append(('environment', '=', environment))
-            if groupcol == 'project_id':
+
+            if model_group == 'project_id':
                 project_id = keys
             else:
-                project_id = get_project(groupcol, keys)
-            return self.query_snuba(
-                start, end, rollup, groupcol, conditions,
-                project_id, aggregation, aggcol
-            )
+                project_id = get_project(model_group, keys)
+
+            # If the grouping, aggregation, or any of the conditions reference `issue`
+            # we need to fetch the issue definitions (issue -> fingerprint hashes)
+            references_issues = 'issue' in groupby + [model_aggregate] + [c[0] for c in conditions]
+            issues = get_project_issues(project_id) if references_issues else None
+
+            url = '{0}/query'.format(self.SNUBA)
+            request = {k: v for k, v in six.iteritems({
+                'from_date': start.isoformat(),
+                'to_date': end.isoformat(),
+                'conditions': conditions,
+                'groupby': groupby,
+                'project': project_id,
+                'aggregation': aggregation,
+                'aggregateby': model_aggregate,
+                'granularity': rollup,
+                'issues': issues,
+            }) if v is not None}
+
+            response = requests.post(url, data=json.dumps(request))
+            response = json.loads(response.text)
+            expected_cols = groupby + ['aggregate']
+            assert all(c['name'] in expected_cols for c in response['meta'])
+
+            # Build a nested mapping from the response rows. Each group column
+            # gives a new level of nesting and the leaf result is the aggregate
+            result = {}
+            for d in response['data']:
+                if 'time' in d:
+                    d['time'] = int(to_timestamp(parse_datetime(d['time'])))
+                curr = result
+                for gc in groupby[:-1]:
+                    curr = curr.setdefault(d[gc], {})
+                gc = groupby[-1]
+                curr[d[gc]] = d['aggregate'] if d['aggregate'] is not None else 0
+
+            return result
 
     def get_range(self, model, keys, start, end, rollup=None, environment_id=None):
-        return self.get_data(model, keys, start, end, rollup, environment_id, aggregation='count')
+        result = self.get_data(model, keys, start, end, rollup, environment_id,
+                               aggregation='count', group_time=True)
+
+        # turn {group:{timestamp:count}} mapping into {group:[(timestamp, count), ...]}
+        for k in result:
+            result[k] = sorted(result[k].items())
+
+        return result
 
     def get_distinct_counts_series(self, model, keys, start, end=None,
                                    rollup=None, environment_id=None):
-        return self.get_data(model, keys, start, end, rollup, environment_id, aggregation='uniq')
+        result = self.get_data(model, keys, start, end, rollup, environment_id,
+                               aggregation='uniq', group_time=True)
+
+        # turn timestamp:count mapping into timestamp-sorted list of tuples
+        # convert
+        #    {group:{timestamp:count, ...}}
+        # into
+        #    {group: [(timestamp, count), ...]}
+        return {k: sorted(result[k].items()) for k in result}
+
+    def get_distinct_counts_totals(self, model, keys, start, end=None,
+                                   rollup=None, environment_id=None):
+        return self.get_data(model, keys, start, end, rollup, environment_id,
+                             aggregation='uniq', group_time=False)
+
+    def get_distinct_counts_union(self, model, keys, start, end=None,
+                                  rollup=None, environment_id=None):
+        pass
 
     def get_most_frequent(self, model, keys, start, end=None,
-                          rollup=None, limit=None, environment_id=None):
-        default_limit = 10
-        aggregation = 'topK({})'.format(limit or default_limit)
-        return self.get_data(model, keys, start, end, rollup,
-                             environment_id, aggregation=aggregation)
+                          rollup=None, limit=10, environment_id=None):
+        aggregation = 'topK({})'.format(limit)
+        result = self.get_data(model, keys, start, end, rollup, environment_id,
+                               aggregation=aggregation, group_time=False)
+
+        # convert
+        #    {group:[top1, ...]}
+        # into
+        #    {group: [(top1, score), ...]}
+        for k in result:
+            item_scores = [(v, float(i + 1)) for i, v in enumerate(reversed(result[k]))]
+            result[k] = list(reversed(item_scores))
+
+        return result
+
+    def get_most_frequent_series(self, model, keys, start, end=None,
+                                 rollup=None, limit=10, environment_id=None):
+        aggregation = 'topK({})'.format(limit)
+        result = self.get_data(model, keys, start, end, rollup, environment_id,
+                               aggregation=aggregation, group_time=True)
+
+        # convert
+        #    {group:{timestamp:[top1, ...]}}
+        # into
+        #    {group: [(timestamp, {top1: score, ...}), ...]}
+        for k in result:
+            result[k] = sorted([
+                (timestamp, {v: float(i + 1) for i, v in enumerate(reversed(topk))})
+                for (timestamp, topk) in result[k].items()
+            ])
+
+        return result
+
+    def get_frequency_series(self, model, items, start, end=None, rollup=None, environment_id=None):
+        result = self.get_data(model, items, start, end, rollup, environment_id,
+                               aggregation='count', group_time=True)
+
+        # convert
+        #    {group:{timestamp:{agg:count}}}
+        # into
+        #    {group: [(timestamp, {agg: count, ...}), ...]}
+        return {k: result[k].items() for k in result}
+
+    def get_frequency_totals(self, model, items, start, end=None, rollup=None, environment_id=None):
+        pass
 
     def get_optimal_rollup(self, start):
         """
