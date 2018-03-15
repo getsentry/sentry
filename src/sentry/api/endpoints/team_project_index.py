@@ -6,10 +6,12 @@ from rest_framework.response import Response
 
 from sentry.api.base import DocSection
 from sentry.api.bases.team import TeamEndpoint, TeamPermission
-from sentry.api.serializers import serialize
+from sentry.api.serializers import serialize, ProjectSummarySerializer
 from sentry.models import Project, ProjectStatus, AuditLogEntryEvent
 from sentry.signals import project_created
 from sentry.utils.apidocs import scenario, attach_scenarios
+
+ERR_INVALID_STATS_PERIOD = "Invalid stats_period. Valid choices are '', '24h', '14d', and '30d'"
 
 
 @scenario('ListTeamProjects')
@@ -77,7 +79,27 @@ class TeamProjectIndexEndpoint(TeamEndpoint):
                 status=ProjectStatus.VISIBLE,
             ))
 
-        return Response(serialize(results, request.user))
+        stats_period = request.GET.get('statsPeriod')
+        if stats_period not in (None, '', '24h', '14d', '30d'):
+            return Response(
+                {
+                    'error': {
+                        'params': {
+                            'stats_period': {
+                                'message': ERR_INVALID_STATS_PERIOD
+                            },
+                        },
+                    }
+                },
+                status=400
+            )
+        elif not stats_period:
+            # disable stats
+            stats_period = None
+
+        return Response(serialize(results, request.user, ProjectSummarySerializer(
+            stats_period=stats_period,
+        )))
 
     @attach_scenarios([create_project_scenario])
     def post(self, request, team):
