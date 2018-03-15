@@ -104,6 +104,13 @@ class RangeSlider extends React.Component {
     }
   };
 
+  handleBlur = e => {
+    let {onBlur} = this.props;
+    if (typeof onBlur !== 'function') return;
+
+    onBlur(e);
+  };
+
   render() {
     let {name, min, max, step, allowedValues, formatLabel} = this.props;
     let {sliderValue} = this.state;
@@ -133,8 +140,8 @@ class RangeSlider extends React.Component {
           step={step}
           onInput={this.handleInput}
           onChange={() => {}}
-          onMouseUp={e => this.props.onBlur(e)}
-          onKeyUp={e => this.props.onBlur(e)}
+          onMouseUp={this.handleBlur}
+          onKeyUp={this.handleBlur}
           value={sliderValue}
         />
       </div>

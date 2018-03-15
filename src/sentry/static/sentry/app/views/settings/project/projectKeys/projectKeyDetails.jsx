@@ -451,7 +451,7 @@ export default class ProjectKeyDetails extends AsyncView {
     let {organization, project} = this.context;
     let access = getOrganizationState(organization).getAccess();
     let features = new Set(project.features);
-    let hasRateLimitsEnabled = true || features.has('rate-limits') > -1;
+    let hasRateLimitsEnabled = features.has('rate-limits');
 
     return (
       <div className="ref-key-details">
