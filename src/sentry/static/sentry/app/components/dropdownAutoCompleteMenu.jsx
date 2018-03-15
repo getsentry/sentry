@@ -83,7 +83,17 @@ class DropdownAutoCompleteMenu extends React.Component {
   };
 
   render() {
-    let {onSelect, children, items, action, menuProps, style, css, ...props} = this.props;
+    let {
+      onSelect,
+      children,
+      items,
+      action,
+      menuProps,
+      alignMenu,
+      style,
+      css,
+      ...props
+    } = this.props;
 
     return (
       <AutoComplete itemToString={item => ''} onSelect={onSelect} {...props}>
@@ -109,7 +119,14 @@ class DropdownAutoCompleteMenu extends React.Component {
               })}
 
               {isOpen && (
-                <StyledMenu style={style} css={css} {...getMenuProps(menuProps)}>
+                <StyledMenu
+                  {...getMenuProps({
+                    ...menuProps,
+                    style,
+                    css,
+                    alignMenu,
+                  })}
+                >
                   <StyledInputContainer>
                     <StyledInput autoFocus {...getInputProps()} />
                   </StyledInputContainer>
@@ -193,7 +210,7 @@ const StyledMenu = styled(({isOpen, alignMenu, ...props}) => <div {...props} />)
     `${theme.borderRadius} 0 ${theme.borderRadius} ${theme.borderRadius}`};
 
   ${({alignMenu, theme}) =>
-    alignMenu == 'left'
+    alignMenu === 'left'
       ? `
     left: 0;
     border-radius: 0 ${theme.borderRadius} ${theme.borderRadius} ${theme.borderRadius};
