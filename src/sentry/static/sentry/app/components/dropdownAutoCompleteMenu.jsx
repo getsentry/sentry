@@ -33,14 +33,15 @@ class DropdownAutoCompleteMenu extends React.Component {
     isOpen: PropTypes.bool,
     onSelect: PropTypes.func,
     alignMenu: PropTypes.oneOf(['left', 'right']),
+    menuFooter: PropTypes.element,
+    menuHeader: PropTypes.element,
+
     /**
      * Props to pass to menu component
      */
     menuProps: PropTypes.object,
     css: PropTypes.object,
     style: PropTypes.object,
-    menuFooter: PropTypes.element,
-    menuHeader: PropTypes.element,
   };
 
   static defaultProps = {

@@ -18,6 +18,7 @@ import Panel from '../components/panel';
 import PanelItem from '../components/panelItem';
 import PanelHeader from '../components/panelHeader';
 import PanelBody from '../components/panelBody';
+import InlineSvg from '../../../components/inlineSvg';
 
 import {sortProjects} from '../../../utils';
 import {t} from '../../../locale';
@@ -105,7 +106,7 @@ const TeamProjects = createReactClass({
                 this.handleLinkProject(project, 'remove');
               }}
             >
-              {t('Remove')}
+              <RemoveIcon /> {t('Remove')}
             </Button>
           </Box>
         </PanelItem>
@@ -164,9 +165,20 @@ const TeamProjects = createReactClass({
 
 const ProjectListElement = styled('div')`
   padding: 0.5em 0.25em;
+
   &:hover {
     cursor: pointer;
   }
+`;
+
+const RemoveIcon = styled(props => (
+  <InlineSvg {...props} src="icon-circle-subtract">
+    {t('Remove')}
+  </InlineSvg>
+))`
+  min-height: 1.25em;
+  min-width: 1.25em;
+  margin-right: 0.5em;
 `;
 
 export default TeamProjects;

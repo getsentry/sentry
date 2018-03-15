@@ -168,6 +168,7 @@ class ProjectTeams extends AsyncView {
       })
       .map(team => ({
         value: team.id,
+        searchKey: team.slug,
         label: <TeamDropdownElement>#{team.slug}</TeamDropdownElement>,
       }));
 
@@ -273,7 +274,6 @@ const StyledPanelItem = styled(PanelItem)`
   display: flex;
   align-items: center;
   justify-content: space-between;
-  font-weight: bold;
 `;
 
 export default ProjectTeams;
