@@ -25,6 +25,7 @@ const StreamGroup = createReactClass({
     projectId: PropTypes.string.isRequired,
     statsPeriod: PropTypes.string.isRequired,
     canSelect: PropTypes.bool,
+    query: PropTypes.string,
   },
 
   mixins: [Reflux.listenTo(GroupStore, 'onGroupChange'), ProjectState],
@@ -111,7 +112,12 @@ const StreamGroup = createReactClass({
               <GroupCheckBox id={data.id} />
             </div>
           )}
-          <EventOrGroupHeader data={data} orgId={orgId} projectId={projectId} />
+          <EventOrGroupHeader
+            data={data}
+            orgId={orgId}
+            projectId={projectId}
+            query={this.props.query}
+          />
           <EventOrGroupExtraDetails
             group
             {...data}
