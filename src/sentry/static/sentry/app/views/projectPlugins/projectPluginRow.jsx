@@ -33,7 +33,7 @@ class ProjectPluginRow extends React.PureComponent {
     let configureUrl = recreateRoute(id, this.props);
     return (
       <Flex key={id} className={slug} flex="1" align="center">
-        <Flex flex="1">
+        <PluginInfo>
           <StyledPluginIcon size={48} pluginId={id} />
           <Flex justify="center" direction="column">
             <PluginName>
@@ -60,7 +60,7 @@ class ProjectPluginRow extends React.PureComponent {
               )}
             </div>
           </Flex>
-        </Flex>
+        </PluginInfo>
         <Switch size="lg" isActive={enabled} toggle={this.handleChange} />
       </Flex>
     );
@@ -69,9 +69,15 @@ class ProjectPluginRow extends React.PureComponent {
 
 export default ProjectPluginRow;
 
+// Includes icon, name, version, configure link
+const PluginInfo = styled.div`
+  display: flex;
+  flex: 1;
+  line-height: 24px;
+`;
+
 const PluginName = styled.div`
   font-size: 16px;
-  margin-bottom: 8px;
 `;
 
 const StyledPluginIcon = styled(PluginIcon)`

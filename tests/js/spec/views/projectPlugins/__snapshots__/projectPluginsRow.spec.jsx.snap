@@ -11,9 +11,7 @@ exports[`ProjectPluginRow renders 1`] = `
   flex="1"
   key="amazon-sqs"
 >
-  <Flex
-    flex="1"
-  >
+  <PluginInfo>
     <StyledPluginIcon
       pluginId="amazon-sqs"
       size={48}
@@ -60,7 +58,7 @@ exports[`ProjectPluginRow renders 1`] = `
         </span>
       </div>
     </Flex>
-  </Flex>
+  </PluginInfo>
   <Switch
     isActive={false}
     size="lg"
