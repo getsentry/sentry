@@ -24,7 +24,7 @@ const LINKS = {
   DOCUMENTATION_CLI: 'https://docs.sentry.io/learn/cli/',
   DOCUMENTATION_API: 'https://docs.sentry.io/hosted/api/',
   API: '/settings/account/api/',
-  API_APPLICATION: '/settings/account/api/application/',
+  API_APPLICATIONS: '/settings/account/api/applications/',
   MANAGE: '/manage/',
   FORUM: 'https://forum.sentry.io/',
   GITHUB_ISSUES: 'https://github.com/getsentry/sentry/issues',
@@ -133,9 +133,7 @@ class SettingsIndex extends React.Component {
                       </HomeLink>
                     </li>
                     <li>
-                      <HomeLink to="/settings/account/avatar/">
-                        {t('Change my avatar')}
-                      </HomeLink>
+                      <HomeLink to="/settings/account/">{t('Change my avatar')}</HomeLink>
                     </li>
                   </ul>
                 </HomePanelBody>
@@ -160,18 +158,18 @@ class SettingsIndex extends React.Component {
                   <h3>{t('Quick links')}:</h3>
                   <ul>
                     <li>
+                      <HomeLink to={`${organizationSettingsUrl}projects/`}>
+                        {t('Projects')}
+                      </HomeLink>
+                    </li>
+                    <li>
                       <HomeLink to={`${organizationSettingsUrl}teams/`}>
-                        {t('Projects & Teams')}
+                        {t('Teams')}
                       </HomeLink>
                     </li>
                     <li>
                       <HomeLink to={`${organizationSettingsUrl}members/`}>
                         {t('Members')}
-                      </HomeLink>
-                    </li>
-                    <li>
-                      <HomeLink to={`${organizationSettingsUrl}stats/`}>
-                        {t('Stats')}
                       </HomeLink>
                     </li>
                   </ul>
@@ -267,7 +265,7 @@ class SettingsIndex extends React.Component {
                       <HomeLink to={LINKS.API}>{t('Auth Tokens')}</HomeLink>
                     </li>
                     <li>
-                      <HomeLink to={LINKS.API_APPLICATION}>{t('Applications')}</HomeLink>
+                      <HomeLink to={LINKS.API_APPLICATIONS}>{t('Applications')}</HomeLink>
                     </li>
                     <li>
                       <ExternalHomeLink href={LINKS.DOCUMENTATION_API}>
