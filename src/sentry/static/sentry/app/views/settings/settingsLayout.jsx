@@ -19,30 +19,29 @@ let StyledAlert = styled(Alert)`
 let NewSettingsWarning = ({location = {}}) => {
   // This translates current URLs back to "old" settings URLs
   // This is so that we can move from new settings back to old settings
-  let projectRegex = /^\/settings\/organization\/([^\/]+)\/project\/([^\/]+)\//;
+  let projectRegex = /^\/settings\/([^\/]+)\/([^\/]+)\//;
   let accountRegex = /^\/settings\/account\/([^\/]+)\//;
+  let orgRegex = /^\/settings\/([^\/]+)\/(settings|projects|teams|stats|members|auth|audit-log|rate-limits|repos|billing|payments|subscription|legal|support)\//;
   let isProject = projectRegex.test(location.pathname);
+  let isOrg = orgRegex.test(location.pathname);
   let isAccount = accountRegex.test(location.pathname);
   let oldLocation;
 
-  if (isProject) {
-    oldLocation = location.pathname.replace(projectRegex, '/$1/$2/settings/');
-  } else if (isAccount) {
+  if (isAccount) {
     oldLocation = location.pathname
       .replace(accountRegex, '/account/settings/$1/')
       .replace('details/', '')
       .replace('settings/close-account/', 'remove/')
       .replace('account/settings/api/', 'api/')
       .replace('auth-tokens/', '');
-  } else {
-    oldLocation = location.pathname.replace(
-      /^\/settings\/organization\//,
-      '/organizations/'
-    );
+  } else if (isOrg) {
+    oldLocation = location.pathname.replace(orgRegex, '/organizations/$1/$2/');
+  } else if (isProject) {
+    oldLocation = location.pathname.replace(projectRegex, '/$1/$2/settings/');
   }
 
   // original org auth view and account settings are django views so we can't use react router navigation
-  let isRouter = !/\/(auth|account)\//.test(location.pathname);
+  let isRouter = !/\/(auth)\//.test(location.pathname);
   let linkProps = {
     href: isRouter ? undefined : oldLocation,
     to: isRouter ? oldLocation : undefined,
