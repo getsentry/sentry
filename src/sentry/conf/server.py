@@ -754,6 +754,7 @@ SENTRY_FEATURES = {
     'organizations:environments': False,
     'organizations:internal-catchall': False,
     'organizations:new-teams': False,
+    'organizations:code-owners': False,
     'projects:global-events': False,
     'projects:plugins': True,
     'projects:dsym': False,
