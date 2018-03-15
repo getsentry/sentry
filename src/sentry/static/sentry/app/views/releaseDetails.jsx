@@ -13,12 +13,15 @@ import ProjectState from '../mixins/projectState';
 import TimeSince from '../components/timeSince';
 import Version from '../components/version';
 import {t} from '../locale';
+import SentryTypes from '../proptypes';
+import withEnvironmentInQueryString from '../utils/withEnvironmentInQueryString';
 
 const ReleaseDetails = createReactClass({
   displayName: 'ReleaseDetails',
 
   propTypes: {
     setProjectNavSection: PropTypes.func,
+    environment: SentryTypes.Environment,
   },
 
   contextTypes: {
@@ -50,6 +53,12 @@ const ReleaseDetails = createReactClass({
     this.fetchData();
   },
 
+  componentDidUpdate(prevProps) {
+    if (this.props.environment !== prevProps.environment) {
+      this.fetchData();
+    }
+  },
+
   getTitle() {
     let project = this.getProject();
     let params = this.props.params;
@@ -62,7 +71,11 @@ const ReleaseDetails = createReactClass({
       error: false,
     });
 
+    const {environment} = this.props;
+    const query = environment ? {environment: environment.name} : {};
+
     this.api.request(this.getReleaseDetailsEndpoint(), {
+      query,
       success: data => {
         this.setState({
           loading: false,
@@ -204,6 +217,7 @@ const ReleaseDetails = createReactClass({
           </div>
           {React.cloneElement(this.props.children, {
             release,
+            environment: this.props.environment,
           })}
         </div>
       </DocumentTitle>
@@ -211,4 +225,4 @@ const ReleaseDetails = createReactClass({
   },
 });
 
-export default ReleaseDetails;
+export default withEnvironmentInQueryString(ReleaseDetails);
