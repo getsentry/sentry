@@ -190,7 +190,7 @@ const SuggestedOwners = createReactClass({
 
   render() {
     let {committers, owners} = this.state;
-    let showOwners = new Set(this.getOrganization().features).has('internal-catchall');
+    let showOwners = new Set(this.getOrganization().features).has('code-owners');
 
     if (committers.length == 0 && (!showOwners || owners.length == 0)) {
       return null;

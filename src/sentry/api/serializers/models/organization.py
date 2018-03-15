@@ -121,6 +121,8 @@ class DetailedOrganizationSerializer(OrganizationSerializer):
             feature_list.append('suggested-commits')
         if features.has('organizations:new-teams', obj, actor=user):
             feature_list.append('new-teams')
+        if features.has('organizations:code-owners', obj, actor=user):
+            feature_list.append('code-owners')
 
         if getattr(obj.flags, 'allow_joinleave'):
             feature_list.append('open-membership')
