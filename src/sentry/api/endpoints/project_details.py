@@ -261,7 +261,7 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
         old_team_id = None
         new_team = None
         if result.get('team'):
-            if features.has('organizations:internal-catchall',
+            if features.has('organizations:new-teams',
                             project.organization, actor=request.user):
                 return Response(
                     {
