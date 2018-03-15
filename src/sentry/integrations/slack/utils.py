@@ -172,16 +172,16 @@ def build_attachment(group, event=None, tags=None, identity=None, actions=None, 
 
     option_groups = []
 
-    if members:
-        option_groups.insert(0, {
-            'text': 'People',
-            'options': members,
-        })
-
     if teams:
-        option_groups.insert(0, {
+        option_groups.append({
             'text': 'Teams',
             'options': teams,
+        })
+
+    if members:
+        option_groups.append({
+            'text': 'People',
+            'options': members,
         })
 
     payload_actions = [
