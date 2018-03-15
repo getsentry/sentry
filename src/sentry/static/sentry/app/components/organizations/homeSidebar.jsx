@@ -137,7 +137,18 @@ const HomeSidebar = createReactClass({
           >
             {t('Dashboard')}
           </ListLink>
-          <ListLink to={`${pathPrefix}/teams/`}>{t('Projects & Teams')}</ListLink>
+
+          {!features.has('new-teams') && (
+            <ListLink to={`${pathPrefix}/teams/`}>{t('Projects & Teams')}</ListLink>
+          )}
+
+          {features.has('new-teams') && (
+            <React.Fragment>
+              <ListLink to={`${pathPrefix}/projects/`}>{t('Projects')}</ListLink>
+              <ListLink to={`${pathPrefix}/teams/`}>{t('Teams')}</ListLink>
+            </React.Fragment>
+          )}
+
           {access.has('org:read') && (
             <ListLink to={`${pathPrefix}/stats/`}>{t('Stats')}</ListLink>
           )}

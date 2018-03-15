@@ -811,7 +811,12 @@ exports[`Issues -> Merged View renders with mocked data 1`] = `
                                 <Link
                                   onlyActiveOnIndex={false}
                                   style={Object {}}
-                                  to="/orgId/projectId/issues/268/events/904/"
+                                  to={
+                                    Object {
+                                      "pathname": "/orgId/projectId/issues/268/events/904/",
+                                      "search": "",
+                                    }
+                                  }
                                 >
                                   <a
                                     onClick={[Function]}
@@ -1242,7 +1247,12 @@ exports[`Issues -> Merged View renders with mocked data 1`] = `
                                 <Link
                                   onlyActiveOnIndex={false}
                                   style={Object {}}
-                                  to="/orgId/projectId/issues/268/events/904/"
+                                  to={
+                                    Object {
+                                      "pathname": "/orgId/projectId/issues/268/events/904/",
+                                      "search": "",
+                                    }
+                                  }
                                 >
                                   <a
                                     onClick={[Function]}
@@ -2183,7 +2193,12 @@ exports[`Issues -> Merged View renders with mocked data 2`] = `
                                 <Link
                                   onlyActiveOnIndex={false}
                                   style={Object {}}
-                                  to="/orgId/projectId/issues/268/events/904/"
+                                  to={
+                                    Object {
+                                      "pathname": "/orgId/projectId/issues/268/events/904/",
+                                      "search": "",
+                                    }
+                                  }
                                 >
                                   <a
                                     onClick={[Function]}
@@ -2614,7 +2629,12 @@ exports[`Issues -> Merged View renders with mocked data 2`] = `
                                 <Link
                                   onlyActiveOnIndex={false}
                                   style={Object {}}
-                                  to="/orgId/projectId/issues/268/events/904/"
+                                  to={
+                                    Object {
+                                      "pathname": "/orgId/projectId/issues/268/events/904/",
+                                      "search": "",
+                                    }
+                                  }
                                 >
                                   <a
                                     onClick={[Function]}

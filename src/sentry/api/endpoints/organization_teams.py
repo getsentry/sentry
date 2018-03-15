@@ -13,6 +13,8 @@ from sentry.models import (
 )
 from sentry.utils.apidocs import scenario, attach_scenarios
 
+CONFLICTING_SLUG_ERROR = 'A team with this slug already exists.'
+
 
 @scenario('CreateNewTeam')
 def create_new_team_scenario(runner):
@@ -109,7 +111,8 @@ class OrganizationTeamsEndpoint(OrganizationEndpoint):
             except IntegrityError:
                 return Response(
                     {
-                        'detail': 'A team with this slug already exists.'
+                        'non_field_errors': [CONFLICTING_SLUG_ERROR],
+                        'detail': CONFLICTING_SLUG_ERROR,
                     },
                     status=409,
                 )

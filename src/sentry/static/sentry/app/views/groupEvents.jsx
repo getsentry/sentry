@@ -10,7 +10,7 @@ import LoadingIndicator from '../components/loadingIndicator';
 import Pagination from '../components/pagination';
 import SearchBar from '../components/searchBar';
 import EventsTable from '../components/eventsTable/eventsTable';
-import {t} from '../locale';
+import {t, tct} from '../locale';
 import withEnvironment from '../utils/withEnvironment';
 import {getQueryEnvironment, getQueryStringWithEnvironment} from '../utils/queryString';
 import EnvironmentStore from '../stores/environmentStore';
@@ -131,19 +131,32 @@ const GroupEvents = createReactClass({
   },
 
   renderNoQueryResults() {
+    const {environment} = this.props;
+    const message = environment
+      ? tct('Sorry, no events match your search query in the [env] environment.', {
+          env: environment.displayName,
+        })
+      : t('Sorry, no events match your search query.');
+
     return (
       <div className="box empty-stream">
         <span className="icon icon-exclamation" />
-        <p>{t('Sorry, no events match your search query.')}</p>
+        <p>{message}</p>
       </div>
     );
   },
 
   renderEmpty() {
+    const {environment} = this.props;
+    const message = environment
+      ? tct("There don't seem to be any events in the [env] environment yet.", {
+          env: environment.displayName,
+        })
+      : t("There don't seem to be any events yet.");
     return (
       <div className="box empty-stream">
         <span className="icon icon-exclamation" />
-        <p>{t("There don't seem to be any events yet.")}</p>
+        <p>{t(message)}</p>
       </div>
     );
   },

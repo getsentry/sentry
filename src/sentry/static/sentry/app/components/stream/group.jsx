@@ -29,6 +29,7 @@ const StreamIssue = createReactClass({
     projectId: PropTypes.string.isRequired,
     statsPeriod: PropTypes.string.isRequired,
     canSelect: PropTypes.bool,
+    query: PropTypes.string,
   },
 
   mixins: [Reflux.listenTo(GroupStore, 'onGroupChange'), ProjectState],
@@ -101,7 +102,12 @@ const StreamIssue = createReactClass({
           </IssueCheckbox>
         )}
         <IssueSummary w={[8 / 12, 8 / 12, 6 / 12]} mx={1} flex="1">
-          <EventOrGroupHeader data={data} orgId={orgId} projectId={projectId} />
+          <EventOrGroupHeader
+            data={data}
+            orgId={orgId}
+            projectId={projectId}
+            query={this.props.query}
+          />
           <EventOrGroupExtraDetails
             group
             {...data}

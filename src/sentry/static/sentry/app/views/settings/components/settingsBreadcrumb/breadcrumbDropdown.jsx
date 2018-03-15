@@ -5,6 +5,8 @@ import Crumb from './crumb';
 import DropdownAutoCompleteMenu from '../../../../components/dropdownAutoCompleteMenu';
 import Divider from './divider';
 
+const EXIT_DELAY = 0;
+
 class BreadcrumbDropdown extends React.Component {
   static propTypes = {
     hasMenu: PropTypes.bool,
@@ -17,7 +19,7 @@ class BreadcrumbDropdown extends React.Component {
   };
 
   static defaultProps = {
-    enterDelay: 200,
+    enterDelay: 0,
   };
 
   constructor(...args) {
@@ -25,7 +27,20 @@ class BreadcrumbDropdown extends React.Component {
 
     this.entering = false;
     this.leaving = false;
+    this.state = {
+      isOpen: false,
+    };
   }
+
+  open = () => {
+    this.setState({isOpen: true});
+  };
+
+  close = () => {
+    this.setState({isOpen: false});
+  };
+
+  handleStateChange = () => {};
 
   // Adds a delay when mouse hovers on actor (in this case the breadcrumb)
   handleMouseEnterActor = (actions, e) => {
@@ -33,7 +48,7 @@ class BreadcrumbDropdown extends React.Component {
       clearTimeout(this.leaving);
     }
 
-    this.entering = setTimeout(() => actions.open(), this.props.enterDelay);
+    this.entering = setTimeout(() => this.open(), this.props.enterDelay);
   };
 
   // handles mouseEnter event on actor and menu, should clear the leaving timeout and keep menu open
@@ -42,7 +57,7 @@ class BreadcrumbDropdown extends React.Component {
       clearTimeout(this.leaving);
     }
 
-    actions.open();
+    this.open();
   };
 
   // handles mouseLeave event on actor and menu, adds a timeout before updating state to account for
@@ -52,34 +67,44 @@ class BreadcrumbDropdown extends React.Component {
       clearTimeout(this.entering);
     }
 
-    this.leaving = setTimeout(() => actions.open(), 200);
+    this.leaving = setTimeout(() => this.close(), EXIT_DELAY);
   };
 
   // Close immediately when actor is clicked clicked
   handleClickActor = (actions, e) => {
-    actions.close();
+    this.close();
   };
 
   // Close immediately when clicked outside
   handleClose = actions => {
-    actions.close();
+    this.close();
   };
 
   render() {
     let {hasMenu, route, isLast, name, items, onSelect} = this.props;
     return (
-      <DropdownAutoCompleteMenu items={items} onSelect={onSelect} isStyled>
+      <DropdownAutoCompleteMenu
+        alignMenu="left"
+        onOpen={this.handleMouseEnter}
+        onClose={this.close}
+        isOpen={this.state.isOpen}
+        menuProps={{
+          onMouseEnter: this.handleMouseEnter,
+          onMouseLeave: this.handleMouseLeave,
+        }}
+        items={items}
+        onSelect={onSelect}
+        isStyled
+      >
         {({actions, isOpen}) => {
           return (
-            <Crumb hasMenu={hasMenu}>
-              <div
-                onClick={this.handleClickActor.bind(this, actions)}
-                onMouseEnter={this.handleMouseEnterActor.bind(this, actions)}
-                onMouseLeave={this.handleMouseLeave.bind(this, actions)}
-                style={{display: 'inline'}}
-              >
-                {name || route.name}{' '}
-              </div>
+            <Crumb
+              hasMenu={hasMenu}
+              onClick={this.handleClickActor.bind(this, actions)}
+              onMouseEnter={this.handleMouseEnterActor.bind(this, actions)}
+              onMouseLeave={this.handleMouseLeave.bind(this, actions)}
+            >
+              <span>{name || route.name} </span>
               <Divider isHover={hasMenu && isOpen} isLast={isLast} />
             </Crumb>
           );

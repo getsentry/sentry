@@ -24,20 +24,20 @@ exports[`ProjectTeamsSettings render() renders 1`] = `
         flex={false}
       >
         <p>
-          To configure automated issue ownership in Sentry, you'll need to define rules here. 
+          Define rules here to configure automated ownership for new issues and direct email alerts
         </p>
         <p>
-          Rules follow the pattern type:glob owner, owner
+          Rules follow the pattern type:glob owner owner
         </p>
         <p>
           Owners can be team identifiers starting with #, or user emails (use @ to input from list)
         </p>
         Examples:
         <CodeBlock>
-          path:src/sentry/pipeline/* person@sentry.io #platform
+          path:src/example/pipeline/* person@sentry.io #infrastructure
           
 
-          url:http://sentry.io/settings/* #workflow
+          url:http://example.com/settings/* #product
         </CodeBlock>
         <OwnerInput
           initialText="url:src @dummy@example.com"
@@ -84,7 +84,10 @@ exports[`ProjectTeamsSettings render() renders 1`] = `
               "digestsMaxDelay": 60,
               "digestsMinDelay": 5,
               "features": Array [],
+              "hasAccess": true,
               "id": "2",
+              "isBookmarked": false,
+              "isMember": true,
               "name": "Project Name",
               "resolveAge": 48,
               "safeFields": Array [

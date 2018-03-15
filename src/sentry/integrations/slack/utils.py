@@ -115,7 +115,7 @@ def build_action_text(identity, action):
     )
 
 
-def build_attachment(group, event=None, identity=None, actions=None, rules=None):
+def build_attachment(group, event=None, tags=None, identity=None, actions=None, rules=None):
     # XXX(dcramer): options are limited to 100 choices, even when nested
     status = group.get_status()
     assignees = get_assignees(group)
@@ -172,12 +172,27 @@ def build_attachment(group, event=None, identity=None, actions=None, rules=None)
         ignore_button,
         {
             'name': 'assign',
-            'text': 'Select Assignee ..',
+            'text': 'Select Assignee...',
             'type': 'select',
             'options': assignees,
             'selected_options': [assignee],
         },
     ]
+
+    fields = []
+
+    if tags:
+        event_tags = event.tags if event else group.get_latest_event().tags
+
+        for tag_key, tag_value in event_tags:
+            if tag_key in tags:
+                fields.append(
+                    {
+                        'title': tag_key.encode('utf-8'),
+                        'value': tag_value.encode('utf-8'),
+                        'short': True,
+                    }
+                )
 
     if actions:
         action_texts = filter(None, [build_action_text(identity, a) for a in actions])
@@ -205,6 +220,7 @@ def build_attachment(group, event=None, identity=None, actions=None, rules=None)
         'title': build_attachment_title(group, event),
         'title_link': add_notification_referrer_param(group.get_absolute_url(), 'slack'),
         'text': text,
+        'fields': fields,
         'mrkdwn_in': ['text'],
         'callback_id': json.dumps({'issue': group.id}),
         'footer_icon': logo_url,

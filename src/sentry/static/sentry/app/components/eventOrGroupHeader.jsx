@@ -25,6 +25,7 @@ class EventOrIssueHeader extends React.Component {
     }),
     includeLink: PropTypes.bool,
     hideIcons: PropTypes.bool,
+    query: PropTypes.string,
   };
 
   static defaultProps = {
@@ -53,9 +54,12 @@ class EventOrIssueHeader extends React.Component {
     let props = {};
     let Wrapper;
     if (includeLink) {
-      props.to = `/${orgId}/${projectId}/issues/${isEvent ? groupID : id}/${isEvent
-        ? `events/${data.id}/`
-        : ''}`;
+      props.to = {
+        pathname: `/${orgId}/${projectId}/issues/${isEvent ? groupID : id}/${isEvent
+          ? `events/${data.id}/`
+          : ''}`,
+        search: `${this.props.query ? `?query=${this.props.query}` : ''}`,
+      };
       Wrapper = Link;
     } else {
       Wrapper = 'span';

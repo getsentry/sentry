@@ -17,17 +17,24 @@ describe('GuideDrawer', function() {
 
   it('gets dismissed', function() {
     let mock = jest.fn();
-    let wrapper = shallow(<GuideDrawer guide={data} step={1} onClose={mock} />);
+    let mock2 = jest.fn();
+    let wrapper = shallow(
+      <GuideDrawer guide={data} step={1} onFinish={mock} onDismiss={mock2} />
+    );
     expect(wrapper).toMatchSnapshot();
     wrapper
       .find('Button')
       .last()
       .simulate('click');
-    expect(mock).toHaveBeenCalled();
+    expect(mock2).toHaveBeenCalled();
   });
 
   it('renders next step', function() {
-    let wrapper = shallow(<GuideDrawer guide={data} step={2} onClose={jest.fn()} />);
+    let mock = jest.fn();
+    let mock2 = jest.fn();
+    let wrapper = shallow(
+      <GuideDrawer guide={data} step={2} onFinish={mock} onDismiss={mock2} />
+    );
     expect(wrapper).toMatchSnapshot();
 
     // Mark as useful.

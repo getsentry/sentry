@@ -8,7 +8,12 @@ exports[`EventOrGroupHeader Event hides level tag 1`] = `
     <Link
       onlyActiveOnIndex={false}
       style={Object {}}
-      to="/orgId/projectId/issues/groupID/events/id/"
+      to={
+        Object {
+          "pathname": "/orgId/projectId/issues/groupID/events/id/",
+          "search": "",
+        }
+      }
     >
       <EventOrGroupTitle
         data={
@@ -46,7 +51,12 @@ exports[`EventOrGroupHeader Event renders with \`type = csp\` 1`] = `
     <Link
       onlyActiveOnIndex={false}
       style={Object {}}
-      to="/orgId/projectId/issues/groupID/events/id/"
+      to={
+        Object {
+          "pathname": "/orgId/projectId/issues/groupID/events/id/",
+          "search": "",
+        }
+      }
     >
       <EventOrGroupTitle
         data={
@@ -88,7 +98,12 @@ exports[`EventOrGroupHeader Event renders with \`type = default\` 1`] = `
     <Link
       onlyActiveOnIndex={false}
       style={Object {}}
-      to="/orgId/projectId/issues/groupID/events/id/"
+      to={
+        Object {
+          "pathname": "/orgId/projectId/issues/groupID/events/id/",
+          "search": "",
+        }
+      }
     >
       <EventOrGroupTitle
         data={
@@ -125,7 +140,12 @@ exports[`EventOrGroupHeader Event renders with \`type = error\` 1`] = `
     <Link
       onlyActiveOnIndex={false}
       style={Object {}}
-      to="/orgId/projectId/issues/groupID/events/id/"
+      to={
+        Object {
+          "pathname": "/orgId/projectId/issues/groupID/events/id/",
+          "search": "",
+        }
+      }
     >
       <EventOrGroupTitle
         data={
@@ -167,7 +187,12 @@ exports[`EventOrGroupHeader Group renders with \`type = csp\` 1`] = `
     <Link
       onlyActiveOnIndex={false}
       style={Object {}}
-      to="/orgId/projectId/issues/id/"
+      to={
+        Object {
+          "pathname": "/orgId/projectId/issues/id/",
+          "search": "",
+        }
+      }
     >
       <EventOrGroupTitle
         data={
@@ -208,7 +233,12 @@ exports[`EventOrGroupHeader Group renders with \`type = default\` 1`] = `
     <Link
       onlyActiveOnIndex={false}
       style={Object {}}
-      to="/orgId/projectId/issues/id/"
+      to={
+        Object {
+          "pathname": "/orgId/projectId/issues/id/",
+          "search": "",
+        }
+      }
     >
       <EventOrGroupTitle
         data={
@@ -249,7 +279,12 @@ exports[`EventOrGroupHeader Group renders with \`type = error\` 1`] = `
     <Link
       onlyActiveOnIndex={false}
       style={Object {}}
-      to="/orgId/projectId/issues/id/"
+      to={
+        Object {
+          "pathname": "/orgId/projectId/issues/id/",
+          "search": "",
+        }
+      }
     >
       <EventOrGroupTitle
         data={

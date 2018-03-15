@@ -89,3 +89,32 @@ class OrganizationMemberIssuesAssignedTest(APITestCase):
         assert resp.status_code == 200
         assert len(resp.data) == 1
         assert resp.data[0]['id'] == six.text_type(group1.id)
+
+    def test_team_does_not_return_all_org_teams_for_owners(self):
+        now = timezone.now()
+        user = self.create_user('foo@example.com')
+        org = self.create_organization(name='foo')
+        team = self.create_team(name='foo', organization=org)
+        self.create_member(
+            organization=org,
+            user=user,
+            role='owner',
+            teams=[],
+        )
+        project1 = self.create_project(name='foo', organization=org, teams=[team])
+        group1 = self.create_group(project=project1)
+        GroupAssignee.objects.create(
+            group=group1,
+            project=project1,
+            team=team,
+            date_added=now,
+        )
+
+        path = reverse('sentry-api-0-organization-member-issues-assigned', args=[org.slug, 'me'])
+
+        self.login_as(user)
+
+        resp = self.client.get(path)
+
+        assert resp.status_code == 200
+        assert len(resp.data) == 0

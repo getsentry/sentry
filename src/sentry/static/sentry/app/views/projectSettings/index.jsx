@@ -78,15 +78,20 @@ const ProjectSettings = createReactClass({
   },
 
   render() {
-    let access = this.getAccess();
     // TODO(dcramer): move sidebar into component
     if (this.state.loading) return <LoadingIndicator />;
     else if (this.state.error) return <LoadingError onRetry={this.fetchData} />;
 
+    let access = this.getAccess();
+    let features = this.getFeatures();
     let {orgId, projectId} = this.props.params;
-    let settingsUrlRoot = `/${orgId}/${projectId}/settings`;
+    let hasNewSettings = features.has('new-settings');
+    let pathPrefix = hasNewSettings
+      ? `/settings/organization/${orgId}/project/${projectId}`
+      : `/${orgId}/${projectId}/settings`;
+    let settingsUrlRoot = pathPrefix;
     let project = this.state.project;
-    let rootInstallPath = `/${orgId}/${projectId}/settings/install/`;
+    let rootInstallPath = `${pathPrefix}/install/`;
     let path = this.props.location.pathname;
     let processingIssues = this.state.project.processingIssues;
 
@@ -95,46 +100,43 @@ const ProjectSettings = createReactClass({
         <div className="col-md-2">
           <h6 className="nav-header">{t('Configuration')}</h6>
           <ul className="nav nav-stacked">
-            <ListLink to={`/${orgId}/${projectId}/settings/`} index={true}>
+            <ListLink to={`${pathPrefix}/`} index={true}>
               {t('General')}
             </ListLink>
             <ListLink
-              to={`/${orgId}/${projectId}/settings/alerts/`}
+              to={`${pathPrefix}/alerts/`}
               isActive={loc => path.indexOf(loc.pathname) === 0}
             >
               {t('Alerts')}
             </ListLink>
             <ListLink
-              to={`/${orgId}/${projectId}/settings/environments/`}
+              to={`${pathPrefix}/environments/`}
               isActive={loc => path.indexOf(loc.pathname) === 0}
             >
               {t('Environments')}
             </ListLink>
-            <ListLink to={`/${orgId}/${projectId}/settings/tags/`}>{t('Tags')}</ListLink>
-            <ListLink to={`/${orgId}/${projectId}/settings/issue-tracking/`}>
+            <ListLink to={`${pathPrefix}/tags/`}>{t('Tags')}</ListLink>
+            <ListLink to={`${pathPrefix}/issue-tracking/`}>
               {t('Issue Tracking')}
             </ListLink>
             {access.has('project:write') && (
               <ListLink
-                to={`/${orgId}/${projectId}/settings/release-tracking/`}
+                to={`${pathPrefix}/release-tracking/`}
                 isActive={loc => path.indexOf(loc.pathname) === 0}
               >
                 {t('Release Tracking')}
               </ListLink>
             )}
-            <ListLink to={`/${orgId}/${projectId}/settings/data-forwarding/`}>
+            <ListLink to={`${pathPrefix}/data-forwarding/`}>
               {t('Data Forwarding')}
             </ListLink>
-            <ListLink to={`/${orgId}/${projectId}/settings/saved-searches/`}>
+            <ListLink to={`${pathPrefix}/saved-searches/`}>
               {t('Saved Searches')}
             </ListLink>
-            <ListLink to={`/${orgId}/${projectId}/settings/debug-symbols/`}>
+            <ListLink to={`${pathPrefix}/debug-symbols/`}>
               {t('Debug Information Files')}
             </ListLink>
-            <ListLink
-              className="badged"
-              to={`/${orgId}/${projectId}/settings/processing-issues/`}
-            >
+            <ListLink className="badged" to={`${pathPrefix}/processing-issues/`}>
               {t('Processing Issues')}
               {processingIssues > 0 && (
                 <Badge
@@ -155,24 +157,14 @@ const ProjectSettings = createReactClass({
             >
               {t('Error Tracking')}
             </ListLink>
-            <ListLink to={`/${orgId}/${projectId}/settings/csp/`}>
-              {t('CSP Reports')}
-            </ListLink>
-            <ListLink to={`/${orgId}/${projectId}/settings/user-feedback/`}>
-              {t('User Feedback')}
-            </ListLink>
-            <ListLink to={`/${orgId}/${projectId}/settings/filters/`}>
-              {t('Inbound Filters')}
-            </ListLink>
-            <ListLink to={`/${orgId}/${projectId}/settings/keys/`}>
-              {t('Client Keys')} (DSN)
-            </ListLink>
+            <ListLink to={`${pathPrefix}/csp/`}>{t('CSP Reports')}</ListLink>
+            <ListLink to={`${pathPrefix}/user-feedback/`}>{t('User Feedback')}</ListLink>
+            <ListLink to={`${pathPrefix}/filters/`}>{t('Inbound Filters')}</ListLink>
+            <ListLink to={`${pathPrefix}/keys/`}>{t('Client Keys')} (DSN)</ListLink>
           </ul>
           <h6 className="nav-header">{t('Integrations')}</h6>
           <ul className="nav nav-stacked">
-            <ListLink to={`/${orgId}/${projectId}/settings/plugins/`}>
-              {t('All Integrations')}
-            </ListLink>
+            <ListLink to={`${pathPrefix}/plugins/`}>{t('All Integrations')}</ListLink>
             <PluginNavigation urlRoot={settingsUrlRoot} />
           </ul>
         </div>

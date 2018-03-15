@@ -201,7 +201,10 @@ export const ProjectKey = PropTypes.shape({
   public: PropTypes.string,
   secret: PropTypes.string,
   name: PropTypes.string,
-  rateLimit: PropTypes.number,
+  rateLimit: PropTypes.shape({
+    count: PropTypes.number,
+    window: PropTypes.number,
+  }),
   projectId: PropTypes.number,
   dateCreated: PropTypes.string,
   id: PropTypes.string,

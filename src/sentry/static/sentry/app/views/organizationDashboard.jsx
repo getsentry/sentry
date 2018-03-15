@@ -10,7 +10,7 @@ import {loadStats} from '../actionCreators/projects';
 
 import GroupStore from '../stores/groupStore';
 import HookStore from '../stores/hookStore';
-import ProjectStore from '../stores/projectsStore';
+import ProjectsStore from '../stores/projectsStore';
 import TeamStore from '../stores/teamStore';
 
 import ActivityFeed from '../components/activity/feed';
@@ -345,7 +345,7 @@ const OrganizationDashboard = createReactClass({
   mixins: [
     ApiMixin,
     Reflux.listenTo(TeamStore, 'onTeamListChange'),
-    Reflux.listenTo(ProjectStore, 'onProjectListChange'),
+    Reflux.listenTo(ProjectsStore, 'onProjectListChange'),
     OrganizationState,
   ],
 
@@ -366,7 +366,7 @@ const OrganizationDashboard = createReactClass({
 
     return {
       teams: TeamStore.getAll(),
-      projects: ProjectStore.getAll(),
+      projects: ProjectsStore.getAll(),
       hooks,
     };
   },
@@ -394,7 +394,7 @@ const OrganizationDashboard = createReactClass({
 
   onProjectListChange() {
     this.setState({
-      projects: ProjectStore.getAll(),
+      projects: ProjectsStore.getAll(),
     });
   },
 
@@ -413,7 +413,7 @@ const OrganizationDashboard = createReactClass({
           <div className="col-md-4">
             {this.state.hooks}
             <EventsPerHour {...this.props} />
-            {features.has('internal-catchall') ? (
+            {features.has('new-teams') ? (
               <ProjectList {...this.props} projects={this.state.projects} />
             ) : (
               <ProjectListOld {...this.props} projects={this.state.projects} />

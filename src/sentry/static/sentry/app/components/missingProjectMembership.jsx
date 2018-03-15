@@ -82,7 +82,7 @@ const MissingProjectMembership = createReactClass({
   },
 
   renderExplanation(features) {
-    if (features.has('internal-catchall')) {
+    if (features.has('new-teams')) {
       if (features.has('open-membership')) {
         return t('To view this data you must one of the following teams.');
       } else {
@@ -136,7 +136,7 @@ const MissingProjectMembership = createReactClass({
           <span className="icon icon-exclamation" />
           <p>{t("You're not a member of this project.")}</p>
           <p>{this.renderExplanation(features)}</p>
-          {features.has('internal-catchall') ? (
+          {features.has('new-teams') ? (
             this.renderJoinTeams(features)
           ) : (
             <p>{this.renderJoinTeam(team, features)}</p>

@@ -18,17 +18,18 @@ exports[`TeamMembers render() renders 1`] = `
         }
       >
         <DropdownAutoComplete
-          action={
-            <Button
-              disabled={false}
-              priority="primary"
-              to="/settings/organization/org-slug/members/new/"
-            >
-              Add New Organization Member
-            </Button>
-          }
-          isOpen={false}
+          alignMenu="right"
           items={Array []}
+          menuHeader={
+            <StyledMembersLabel>
+              Members
+              <StyledCreateMemberLink
+                to="/settings/organization/org-slug/members/new/"
+              >
+                Add Member
+              </StyledCreateMemberLink>
+            </StyledMembersLabel>
+          }
           onSelect={[Function]}
         />
       </div>

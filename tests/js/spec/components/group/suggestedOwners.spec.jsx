@@ -55,7 +55,7 @@ describe('SuggestedOwners', function() {
       );
 
       wrapper.setContext({
-        organization: {id: '1', features: new Set(['internal-catchall'])},
+        organization: {id: '1', features: new Set(['code-owners'])},
       });
 
       expect(wrapper).toMatchSnapshot();

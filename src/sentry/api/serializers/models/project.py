@@ -233,6 +233,20 @@ class ProjectWithTeamSerializer(ProjectSerializer):
         return data
 
 
+class ProjectSummarySerializer(ProjectWithTeamSerializer):
+    def serialize(self, obj, attrs, user):
+        return {
+            'team': attrs['teams'][0] if attrs['teams'] else None,
+            'teams': attrs['teams'],
+            'id': six.text_type(obj.id),
+            'name': obj.name,
+            'slug': obj.slug,
+            'isBookmarked': attrs['is_bookmarked'],
+            'isMember': attrs['is_member'],
+            'hasAccess': attrs['has_access'],
+        }
+
+
 class DetailedProjectSerializer(ProjectWithTeamSerializer):
     OPTION_KEYS = frozenset(
         [

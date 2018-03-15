@@ -2,6 +2,9 @@ from __future__ import absolute_import
 
 import six
 
+from datetime import timedelta
+from django.utils import timezone
+
 from sentry import tagstore
 from sentry.models import Environment
 from sentry.testutils import APITestCase
@@ -228,3 +231,26 @@ class GroupEventsTest(APITestCase):
 
         assert response.status_code == 200, response.content
         assert response.data == []
+
+    def test_filters_based_on_retention(self):
+        self.login_as(user=self.user)
+
+        project = self.create_project()
+        group = self.create_group(project=project)
+        self.create_event(
+            'a' * 32,
+            group=group,
+            datetime=timezone.now() - timedelta(days=2),
+        )
+        event_2 = self.create_event('b' * 32, group=group)
+
+        with self.options({'system.event-retention-days': 1}):
+            response = self.client.get('/api/0/issues/{}/events/'.format(group.id))
+
+        assert response.status_code == 200, response.content
+        assert len(response.data) == 1
+        assert sorted(map(lambda x: x['id'], response.data)) == sorted(
+            [
+                six.text_type(event_2.id),
+            ]
+        )

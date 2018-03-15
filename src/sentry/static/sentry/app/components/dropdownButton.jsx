@@ -4,11 +4,11 @@ import styled from 'react-emotion';
 import Button from './buttons/button';
 import InlineSvg from './inlineSvg';
 
-const DropdownButton = ({isOpen, children}) => {
+const DropdownButton = ({isOpen, children, ...props}) => {
   return (
-    <StyledButton isOpen={isOpen}>
-      <StyledChevronDown />
+    <StyledButton isOpen={isOpen} {...props}>
       {children}
+      <StyledChevronDown />
     </StyledButton>
   );
 };
@@ -20,14 +20,14 @@ DropdownButton.propTypes = {
 const StyledChevronDown = styled(props => (
   <InlineSvg src="icon-chevron-down" {...props} />
 ))`
-  margin-right: 0.5em;
+  margin-left: 0.33em;
 `;
 
 const StyledButton = styled(({isOpen, ...props}) => <Button {...props} />)`
   border-bottom-right-radius: ${p => (p.isOpen ? 0 : p.theme.borderRadius)};
   border-bottom-left-radius: ${p => (p.isOpen ? 0 : p.theme.borderRadius)};
   position: relative;
-  z-index: 1;
+  z-index: 2;
   box-shadow: none;
 
   &,

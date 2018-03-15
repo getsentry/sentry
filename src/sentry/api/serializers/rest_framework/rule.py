@@ -53,6 +53,9 @@ class RuleNodeField(serializers.WritableField):
                 'Ensure at least one action is enabled and all required fields are filled in.'
             )
 
+        # Update data from cleaned form values
+        data.update(form.cleaned_data)
+
         return data
 
 

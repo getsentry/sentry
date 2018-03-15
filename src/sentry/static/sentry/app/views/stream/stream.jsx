@@ -11,6 +11,7 @@ import SentryTypes from '../../proptypes';
 import ApiMixin from '../../mixins/apiMixin';
 import GroupStore from '../../stores/groupStore';
 import EnvironmentStore from '../../stores/environmentStore';
+import HookStore from '../../stores/hookStore';
 import LoadingError from '../../components/loadingError';
 import LoadingIndicator from '../../components/loadingIndicator';
 import ProjectState from '../../mixins/projectState';
@@ -477,6 +478,18 @@ const Stream = createReactClass({
         this.transitionTo
       );
     }
+
+    // Ignore saved searches
+    if (this.state.savedSearchList.map(s => s.query == this.state.query).length > 0) {
+      let {orgId, projectId} = this.props.params;
+      HookStore.get('analytics:event').forEach(cb =>
+        cb('issue.search', {
+          query: this.state.query,
+          organization_id: orgId,
+          project_id: projectId,
+        })
+      );
+    }
   },
 
   onSortChange(sort) {
@@ -620,6 +633,7 @@ const Stream = createReactClass({
           orgId={orgId}
           projectId={projectId}
           statsPeriod={statsPeriod}
+          query={this.state.query}
         />
       );
     });
@@ -680,10 +694,17 @@ const Stream = createReactClass({
   },
 
   renderEmpty() {
+    const {environment} = this.state;
+    const message = environment
+      ? tct('Sorry no events match your filters in the [env] environment.', {
+          env: environment.displayName,
+        })
+      : t('Sorry, no events match your filters.');
+
     return (
       <div className="box empty-stream">
         <span className="icon icon-exclamation" />
-        <p>{t('Sorry, no events match your filters.')}</p>
+        <p>{message}</p>
       </div>
     );
   },
