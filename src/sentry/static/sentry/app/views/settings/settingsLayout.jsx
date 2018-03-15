@@ -5,6 +5,7 @@ import React from 'react';
 import styled from 'react-emotion';
 
 import Alert from '../../components/alert';
+import Footer from '../../components/footer';
 import SettingsBackButton from './components/settingsBackButton';
 import SettingsBreadcrumb from './components/settingsBreadcrumb';
 import SettingsHeader from './components/settingsHeader';
@@ -125,6 +126,7 @@ class SettingsLayout extends React.Component {
             <NewSettingsWarning location={this.props.location} />
           </Content>
         </Container>
+        <Footer />
       </div>
     );
   }
