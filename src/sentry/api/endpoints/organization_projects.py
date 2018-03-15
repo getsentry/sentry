@@ -6,7 +6,7 @@ from sentry.api.base import DocSection
 from sentry.api.bases.organization import OrganizationEndpoint
 from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers import serialize
-from sentry.api.serializers.models.project import ProjectWithTeamSerializer
+from sentry.api.serializers.models.project import ProjectSummarySerializer
 from sentry.models import Project, Team
 from sentry.utils.apidocs import scenario, attach_scenarios
 
@@ -83,7 +83,7 @@ class OrganizationProjectsEndpoint(OrganizationEndpoint):
             request=request,
             queryset=queryset,
             order_by='slug',
-            on_results=lambda x: serialize(x, request.user, ProjectWithTeamSerializer(
+            on_results=lambda x: serialize(x, request.user, ProjectSummarySerializer(
                 stats_period=stats_period,
             )),
             paginator_cls=OffsetPaginator,
