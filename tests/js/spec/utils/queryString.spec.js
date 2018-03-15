@@ -21,6 +21,16 @@ describe('getQueryEnvironment()', function() {
     const qs = 'is:unresolved is:unassigned environment:something.com';
     expect(utils.getQueryEnvironment(qs)).toBe('something.com');
   });
+
+  it('handles environment provided with quote marks', function() {
+    const qs = 'is:unresolved is:unassigned environment:"production"';
+    expect(utils.getQueryEnvironment(qs)).toBe('production');
+  });
+
+  it('handles environment names with space and quote marks', function() {
+    const qs = 'is:unresolved is:unassigned environment:"my environment"';
+    expect(utils.getQueryEnvironment(qs)).toBe('my environment');
+  });
 });
 
 describe('getQueryStringWithEnvironment', function() {
