@@ -1,62 +1,68 @@
 // Jest Snapshot v1, https://goo.gl/fbAQLP
 
 exports[`ProjectPluginRow renders 1`] = `
-<tr
+.glamor-0 {
+  color: #979ba0;
+}
+
+<Flex
+  align="center"
   className="amazon-sqs"
+  flex="1"
   key="amazon-sqs"
 >
-  <td
-    colSpan={2}
-  >
+  <PluginInfo>
     <StyledPluginIcon
       pluginId="amazon-sqs"
       size={48}
     />
-    <h5>
-      Amazon SQS 
-      <DynamicWrapper
-        fixed={
-          <span>
-            v10
-          </span>
-        }
-        value={
-          <span>
-            v8.23.0.dev0
-          </span>
-        }
-      />
-    </h5>
-    <p>
-      <ExternalLink
-        href="https://github.com/getsentry/sentry"
-        rel="noreferrer noopener"
-        target="_blank"
-      >
-        Sentry Team
-      </ExternalLink>
-      <span>
-         
-        ·
-         
-        <Link
-          onlyActiveOnIndex={false}
-          style={Object {}}
-          to="/org-slug/project-slug/settings/plugins/amazon-sqs/"
+    <Flex
+      direction="column"
+      justify="center"
+    >
+      <PluginName>
+        Amazon SQS 
+        <DynamicWrapper
+          fixed={
+            <Version>
+              v10
+            </Version>
+          }
+          value={
+            <Version>
+              v8.23.0.dev0
+            </Version>
+          }
+        />
+      </PluginName>
+      <div>
+        <ExternalLink
+          className="glamor-0"
+          href="https://github.com/getsentry/sentry"
+          rel="noreferrer noopener"
+          target="_blank"
         >
-          Configure plugin
-        </Link>
-      </span>
-    </p>
-  </td>
-  <td
-    className="align-right"
-  >
-    <Checkbox
-      checked={false}
-      name="amazon-sqs"
-      onChange={[Function]}
-    />
-  </td>
-</tr>
+          Sentry Team
+        </ExternalLink>
+        <span>
+           
+          ·
+           
+          <Link
+            className="glamor-0"
+            onlyActiveOnIndex={false}
+            style={Object {}}
+          >
+            Configure plugin
+          </Link>
+        </span>
+      </div>
+    </Flex>
+  </PluginInfo>
+  <Switch
+    isActive={false}
+    size="lg"
+    toggle={[Function]}
+  />
+</Flex>
 `;
