@@ -138,11 +138,11 @@ const HomeSidebar = createReactClass({
             {t('Dashboard')}
           </ListLink>
 
-          {!features.has('internal-catchall') && (
+          {!features.has('new-teams') && (
             <ListLink to={`${pathPrefix}/teams/`}>{t('Projects & Teams')}</ListLink>
           )}
 
-          {features.has('internal-catchall') && (
+          {features.has('new-teams') && (
             <React.Fragment>
               <ListLink to={`${pathPrefix}/projects/`}>{t('Projects')}</ListLink>
               <ListLink to={`${pathPrefix}/teams/`}>{t('Teams')}</ListLink>
