@@ -8,7 +8,7 @@ import EventUserReport from '../components/events/userReport';
 import LoadingError from '../components/loadingError';
 import LoadingIndicator from '../components/loadingIndicator';
 import {t, tct} from '../locale';
-import withEnvironment from '../utils/withEnvironment';
+import withEnvironmentInQueryString from '../utils/withEnvironmentInQueryString';
 
 const GroupUserReports = createReactClass({
   displayName: 'GroupUserReports',
@@ -128,4 +128,4 @@ const GroupUserReports = createReactClass({
   },
 });
 
-export default withEnvironment(GroupUserReports);
+export default withEnvironmentInQueryString(GroupUserReports);
