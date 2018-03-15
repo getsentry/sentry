@@ -59,7 +59,7 @@ class OwnerInput extends React.Component {
       })
       .catch(error => {
         this.setState({error: error.responseJSON});
-        addErrorMessage(t('Error updating ownership rules'));
+        addErrorMessage(t('Unable to save ownership rules changes'));
       });
 
     return request;
