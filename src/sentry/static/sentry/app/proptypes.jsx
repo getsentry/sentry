@@ -111,15 +111,32 @@ export const Actor = PropTypes.shape({
   name: PropTypes.string.isRequired,
 });
 
+export const Team = PropTypes.shape({
+  id: PropTypes.string.isRequired,
+  slug: PropTypes.string.isRequired,
+});
+
 export const Project = PropTypes.shape({
   id: PropTypes.string.isRequired,
   name: PropTypes.string.isRequired,
   slug: PropTypes.string.isRequired,
+  isBookmarked: PropTypes.bool.isRequired,
+  teams: PropTypes.arrayOf(Team).isRequired,
+  status: PropTypes.string,
+});
+
+export const ProjectDetail = PropTypes.shape({
+  id: PropTypes.string.isRequired,
+  name: PropTypes.string.isRequired,
+  slug: PropTypes.string.isRequired,
+  dateCreated: PropTypes.string.isRequired,
+  isBookmarked: PropTypes.bool.isRequired,
+  isMember: PropTypes.bool.isRequired,
+  hasAccess: PropTypes.bool.isRequired,
+  teams: PropTypes.arrayOf(Team).isRequired,
   color: PropTypes.string,
-  dateCreated: PropTypes.string,
   features: PropTypes.arrayOf(PropTypes.string),
   firstEvent: PropTypes.oneOfType([PropTypes.string, PropTypes.bool]),
-  isBookmarked: PropTypes.bool,
   isPublic: PropTypes.bool,
   platform: PropTypes.string,
   stats: PropTypes.arrayOf(PropTypes.arrayOf(PropTypes.number)),
@@ -155,6 +172,8 @@ export const Environment = PropTypes.shape({
   id: PropTypes.string.isRequired,
   name: PropTypes.string.isRequired,
 });
+
+export const PageLinks = PropTypes.string;
 
 export const Plugin = {
   assets: PropTypes.array,
@@ -224,13 +243,12 @@ let SentryTypes = {
     id: PropTypes.string.isRequired,
   }),
   Tag,
+  PageLinks,
   Project,
   TagKey: PropTypes.shape({
     key: PropTypes.string.isRequired,
   }),
-  Team: PropTypes.shape({
-    id: PropTypes.string.isRequired,
-  }),
+  Team,
   NavigationObject,
   Member,
   Plugin,

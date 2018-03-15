@@ -1,16 +1,21 @@
 from __future__ import absolute_import
 
+import six
+
 from django.db import IntegrityError, transaction
+from django.db.models import Q
 from rest_framework import serializers, status
 from rest_framework.response import Response
 
 from sentry.api.base import DocSection
 from sentry.api.bases.organization import OrganizationEndpoint, OrganizationPermission
+from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.team import TeamWithProjectsSerializer
 from sentry.models import (
     AuditLogEntryEvent, OrganizationMember, OrganizationMemberTeam, Team, TeamStatus
 )
+from sentry.search.utils import tokenize_query
 from sentry.utils.apidocs import scenario, attach_scenarios
 
 CONFLICTING_SLUG_ERROR = 'A team with this slug already exists.'
@@ -70,14 +75,28 @@ class OrganizationTeamsEndpoint(OrganizationEndpoint):
         if request.auth and hasattr(request.auth, 'project'):
             return Response(status=403)
 
-        team_list = list(
-            Team.objects.filter(
-                organization=organization,
-                status=TeamStatus.VISIBLE,
-            ).order_by('name', 'slug')
-        )
+        queryset = Team.objects.filter(
+            organization=organization,
+            status=TeamStatus.VISIBLE,
+        ).order_by('slug')
 
-        return Response(serialize(team_list, request.user, TeamWithProjectsSerializer()))
+        query = request.GET.get('query')
+        if query:
+            tokens = tokenize_query(query)
+            for key, value in six.iteritems(tokens):
+                if key == 'query':
+                    value = ' '.join(value)
+                    queryset = queryset.filter(Q(name__icontains=value) | Q(slug__icontains=value))
+                else:
+                    queryset = queryset.none()
+
+        return self.paginate(
+            request=request,
+            queryset=queryset,
+            order_by='slug',
+            on_results=lambda x: serialize(x, request.user, TeamWithProjectsSerializer()),
+            paginator_cls=OffsetPaginator,
+        )
 
     @attach_scenarios([create_new_team_scenario])
     def post(self, request, organization):
