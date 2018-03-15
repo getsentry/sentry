@@ -432,32 +432,224 @@ exports[`ApiTokens renders with result 1`] = `
           </Component>
         </TextBlock>
         <Panel>
-          <div
-            className="glamor-59 glamor-60"
-          >
-            <PanelHeader
-              disablePadding={true}
+          <StyledPanel>
+            <div
+              className="glamor-59 glamor-60"
             >
-              <StyledPanelHeader
+              <PanelHeader
                 disablePadding={true}
               >
-                <Component
-                  className="glamor-31 glamor-32"
+                <StyledPanelHeader
                   disablePadding={true}
                 >
-                  <div
+                  <Component
                     className="glamor-31 glamor-32"
+                    disablePadding={true}
                   >
-                    <StyledPanelHeading>
-                      <Component
-                        className="glamor-27 glamor-24"
-                      >
-                        <PanelHeading
+                    <div
+                      className="glamor-31 glamor-32"
+                    >
+                      <StyledPanelHeading>
+                        <Component
                           className="glamor-27 glamor-24"
                         >
-                          <div
-                            className="glamor-24 glamor-25 glamor-26"
+                          <PanelHeading
+                            className="glamor-27 glamor-24"
                           >
+                            <div
+                              className="glamor-24 glamor-25 glamor-26"
+                            >
+                              <Flex
+                                align="center"
+                              >
+                                <Base
+                                  align="center"
+                                  className="glamor-2"
+                                >
+                                  <div
+                                    className="glamor-2"
+                                    is={null}
+                                  >
+                                    <Box
+                                      flex="1"
+                                      px={2}
+                                    >
+                                      <Base
+                                        className="glamor-20"
+                                        flex="1"
+                                        px={2}
+                                      >
+                                        <div
+                                          className="glamor-20"
+                                          is={null}
+                                        >
+                                          Auth Token
+                                        </div>
+                                      </Base>
+                                    </Box>
+                                  </div>
+                                </Base>
+                              </Flex>
+                            </div>
+                          </PanelHeading>
+                        </Component>
+                      </StyledPanelHeading>
+                    </div>
+                  </Component>
+                </StyledPanelHeader>
+              </PanelHeader>
+              <PanelBody
+                direction="column"
+                disablePadding={true}
+                flex={false}
+              >
+                <div
+                  className=""
+                >
+                  <ApiTokenRow
+                    key="apitoken123"
+                    onRemove={[Function]}
+                    token={
+                      Object {
+                        "dateCreated": 2018-01-12T02:01:41.000Z,
+                        "scopes": Array [
+                          "scope1",
+                          "scope2",
+                        ],
+                        "token": "apitoken123",
+                      }
+                    }
+                  >
+                    <PanelItem
+                      justify="space-between"
+                      p={2}
+                      px={2}
+                      py={2}
+                    >
+                      <StyledPanelItem
+                        justify="space-between"
+                        p={2}
+                        px={2}
+                        py={2}
+                      >
+                        <Base
+                          className="glamor-55 glamor-56"
+                          justify="space-between"
+                          p={2}
+                          px={2}
+                          py={2}
+                        >
+                          <div
+                            className="glamor-55 glamor-56"
+                            is={null}
+                          >
+                            <Box
+                              flex="1"
+                            >
+                              <Base
+                                className="glamor-47"
+                                flex="1"
+                              >
+                                <div
+                                  className="glamor-47"
+                                  is={null}
+                                >
+                                  <div
+                                    style={
+                                      Object {
+                                        "marginBottom": 5,
+                                      }
+                                    }
+                                  >
+                                    <small>
+                                      <TextCopyInput
+                                        flexValueContainer={false}
+                                        onCopy={[Function]}
+                                        renderer={[Function]}
+                                      >
+                                        <Flex>
+                                          <Base
+                                            className="glamor-41"
+                                          >
+                                            <div
+                                              className="glamor-41"
+                                              is={null}
+                                            >
+                                              <OverflowContainer>
+                                                <div
+                                                  className="glamor-39 glamor-40"
+                                                >
+                                                  <StyledInput
+                                                    onClick={[Function]}
+                                                    readOnly={true}
+                                                    value="apitoken123"
+                                                  >
+                                                    <Component
+                                                      className="glamor-35 glamor-36"
+                                                      onClick={[Function]}
+                                                      readOnly={true}
+                                                      value="apitoken123"
+                                                    >
+                                                      <input
+                                                        className="glamor-35 glamor-36"
+                                                        onClick={[Function]}
+                                                        readOnly={true}
+                                                        value="apitoken123"
+                                                      />
+                                                    </Component>
+                                                  </StyledInput>
+                                                </div>
+                                              </OverflowContainer>
+                                              <Clipboard
+                                                errorMessage="Error copying to clipboard"
+                                                hideMessages={false}
+                                                hideUnsupported={true}
+                                                onClick={[Function]}
+                                                successMessage="Copied to clipboard"
+                                                value="apitoken123"
+                                              />
+                                            </div>
+                                          </Base>
+                                        </Flex>
+                                      </TextCopyInput>
+                                    </small>
+                                  </div>
+                                  <div
+                                    style={
+                                      Object {
+                                        "marginBottom": 5,
+                                      }
+                                    }
+                                  >
+                                    <Created>
+                                      <div
+                                        className="glamor-43 glamor-44"
+                                      >
+                                        Created
+                                         
+                                        <DateTime
+                                          date={2018-01-12T02:01:41.000Z}
+                                          seconds={true}
+                                        >
+                                          <time>
+                                            Jan 12, 2018 2:01:41 AM UTC
+                                          </time>
+                                        </DateTime>
+                                      </div>
+                                    </Created>
+                                  </div>
+                                  <div>
+                                    <ScopeList>
+                                      <div
+                                        className="glamor-45 glamor-46"
+                                      >
+                                        scope1, scope2
+                                      </div>
+                                    </ScopeList>
+                                  </div>
+                                </div>
+                              </Base>
+                            </Box>
                             <Flex
                               align="center"
                             >
@@ -470,19 +662,46 @@ exports[`ApiTokens renders with result 1`] = `
                                   is={null}
                                 >
                                   <Box
-                                    flex="1"
-                                    px={2}
+                                    pl={2}
                                   >
                                     <Base
-                                      className="glamor-20"
-                                      flex="1"
-                                      px={2}
+                                      className="glamor-51"
+                                      pl={2}
                                     >
                                       <div
-                                        className="glamor-20"
+                                        className="glamor-51"
                                         is={null}
                                       >
-                                        Auth Token
+                                        <Button
+                                          disabled={false}
+                                          onClick={[Function]}
+                                        >
+                                          <button
+                                            className="button button-default"
+                                            disabled={false}
+                                            onClick={[Function]}
+                                            role="button"
+                                          >
+                                            <Flex
+                                              align="center"
+                                              className="button-label"
+                                            >
+                                              <Base
+                                                align="center"
+                                                className="button-label glamor-2"
+                                              >
+                                                <div
+                                                  className="button-label glamor-2"
+                                                  is={null}
+                                                >
+                                                  <span
+                                                    className="icon icon-trash"
+                                                  />
+                                                </div>
+                                              </Base>
+                                            </Flex>
+                                          </button>
+                                        </Button>
                                       </div>
                                     </Base>
                                   </Box>
@@ -490,231 +709,14 @@ exports[`ApiTokens renders with result 1`] = `
                               </Base>
                             </Flex>
                           </div>
-                        </PanelHeading>
-                      </Component>
-                    </StyledPanelHeading>
-                  </div>
-                </Component>
-              </StyledPanelHeader>
-            </PanelHeader>
-            <PanelBody
-              direction="column"
-              disablePadding={true}
-              flex={false}
-            >
-              <div
-                className=""
-              >
-                <ApiTokenRow
-                  key="apitoken123"
-                  onRemove={[Function]}
-                  token={
-                    Object {
-                      "dateCreated": 2018-01-12T02:01:41.000Z,
-                      "scopes": Array [
-                        "scope1",
-                        "scope2",
-                      ],
-                      "token": "apitoken123",
-                    }
-                  }
-                >
-                  <PanelItem
-                    justify="space-between"
-                    p={2}
-                    px={2}
-                    py={2}
-                  >
-                    <StyledPanelItem
-                      justify="space-between"
-                      p={2}
-                      px={2}
-                      py={2}
-                    >
-                      <Base
-                        className="glamor-55 glamor-56"
-                        justify="space-between"
-                        p={2}
-                        px={2}
-                        py={2}
-                      >
-                        <div
-                          className="glamor-55 glamor-56"
-                          is={null}
-                        >
-                          <Box
-                            flex="1"
-                          >
-                            <Base
-                              className="glamor-47"
-                              flex="1"
-                            >
-                              <div
-                                className="glamor-47"
-                                is={null}
-                              >
-                                <div
-                                  style={
-                                    Object {
-                                      "marginBottom": 5,
-                                    }
-                                  }
-                                >
-                                  <small>
-                                    <TextCopyInput
-                                      flexValueContainer={false}
-                                      onCopy={[Function]}
-                                      renderer={[Function]}
-                                    >
-                                      <Flex>
-                                        <Base
-                                          className="glamor-41"
-                                        >
-                                          <div
-                                            className="glamor-41"
-                                            is={null}
-                                          >
-                                            <OverflowContainer>
-                                              <div
-                                                className="glamor-39 glamor-40"
-                                              >
-                                                <StyledInput
-                                                  onClick={[Function]}
-                                                  readOnly={true}
-                                                  value="apitoken123"
-                                                >
-                                                  <Component
-                                                    className="glamor-35 glamor-36"
-                                                    onClick={[Function]}
-                                                    readOnly={true}
-                                                    value="apitoken123"
-                                                  >
-                                                    <input
-                                                      className="glamor-35 glamor-36"
-                                                      onClick={[Function]}
-                                                      readOnly={true}
-                                                      value="apitoken123"
-                                                    />
-                                                  </Component>
-                                                </StyledInput>
-                                              </div>
-                                            </OverflowContainer>
-                                            <Clipboard
-                                              errorMessage="Error copying to clipboard"
-                                              hideMessages={false}
-                                              hideUnsupported={true}
-                                              onClick={[Function]}
-                                              successMessage="Copied to clipboard"
-                                              value="apitoken123"
-                                            />
-                                          </div>
-                                        </Base>
-                                      </Flex>
-                                    </TextCopyInput>
-                                  </small>
-                                </div>
-                                <div
-                                  style={
-                                    Object {
-                                      "marginBottom": 5,
-                                    }
-                                  }
-                                >
-                                  <Created>
-                                    <div
-                                      className="glamor-43 glamor-44"
-                                    >
-                                      Created
-                                       
-                                      <DateTime
-                                        date={2018-01-12T02:01:41.000Z}
-                                        seconds={true}
-                                      >
-                                        <time>
-                                          Jan 12, 2018 2:01:41 AM UTC
-                                        </time>
-                                      </DateTime>
-                                    </div>
-                                  </Created>
-                                </div>
-                                <div>
-                                  <ScopeList>
-                                    <div
-                                      className="glamor-45 glamor-46"
-                                    >
-                                      scope1, scope2
-                                    </div>
-                                  </ScopeList>
-                                </div>
-                              </div>
-                            </Base>
-                          </Box>
-                          <Flex
-                            align="center"
-                          >
-                            <Base
-                              align="center"
-                              className="glamor-2"
-                            >
-                              <div
-                                className="glamor-2"
-                                is={null}
-                              >
-                                <Box
-                                  pl={2}
-                                >
-                                  <Base
-                                    className="glamor-51"
-                                    pl={2}
-                                  >
-                                    <div
-                                      className="glamor-51"
-                                      is={null}
-                                    >
-                                      <Button
-                                        disabled={false}
-                                        onClick={[Function]}
-                                      >
-                                        <button
-                                          className="button button-default"
-                                          disabled={false}
-                                          onClick={[Function]}
-                                          role="button"
-                                        >
-                                          <Flex
-                                            align="center"
-                                            className="button-label"
-                                          >
-                                            <Base
-                                              align="center"
-                                              className="button-label glamor-2"
-                                            >
-                                              <div
-                                                className="button-label glamor-2"
-                                                is={null}
-                                              >
-                                                <span
-                                                  className="icon icon-trash"
-                                                />
-                                              </div>
-                                            </Base>
-                                          </Flex>
-                                        </button>
-                                      </Button>
-                                    </div>
-                                  </Base>
-                                </Box>
-                              </div>
-                            </Base>
-                          </Flex>
-                        </div>
-                      </Base>
-                    </StyledPanelItem>
-                  </PanelItem>
-                </ApiTokenRow>
-              </div>
-            </PanelBody>
-          </div>
+                        </Base>
+                      </StyledPanelItem>
+                    </PanelItem>
+                  </ApiTokenRow>
+                </div>
+              </PanelBody>
+            </div>
+          </StyledPanel>
         </Panel>
       </div>
     </DocumentTitle>

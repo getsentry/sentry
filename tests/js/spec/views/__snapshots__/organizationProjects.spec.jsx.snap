@@ -317,236 +317,178 @@ exports[`OrganizationProjectsView render() Should render the projects in the sto
           <Panel
             className="table table-no-top-border m-b-0"
           >
-            <div
-              className="table table-no-top-border m-b-0 glamor-53 glamor-54"
+            <StyledPanel
+              className="table table-no-top-border m-b-0"
             >
-              <PanelHeader>
-                <StyledPanelHeader>
-                  <Component
-                    className="glamor-26 glamor-27"
-                  >
-                    <div
+              <div
+                className="table table-no-top-border m-b-0 glamor-53 glamor-54"
+              >
+                <PanelHeader>
+                  <StyledPanelHeader>
+                    <Component
                       className="glamor-26 glamor-27"
                     >
-                      <StyledPanelHeading>
-                        <Component
-                          className="glamor-22 glamor-19"
-                        >
-                          <PanelHeading
+                      <div
+                        className="glamor-26 glamor-27"
+                      >
+                        <StyledPanelHeading>
+                          <Component
                             className="glamor-22 glamor-19"
                           >
-                            <div
-                              className="glamor-19 glamor-20 glamor-21"
+                            <PanelHeading
+                              className="glamor-22 glamor-19"
                             >
-                              Projects
-                            </div>
-                          </PanelHeading>
-                        </Component>
-                      </StyledPanelHeading>
-                    </div>
-                  </Component>
-                </StyledPanelHeader>
-              </PanelHeader>
-              <PanelBody
-                className="glamor-51"
-                direction="column"
-                disablePadding={true}
-                flex={false}
-              >
-                <div
+                              <div
+                                className="glamor-19 glamor-20 glamor-21"
+                              >
+                                Projects
+                              </div>
+                            </PanelHeading>
+                          </Component>
+                        </StyledPanelHeading>
+                      </div>
+                    </Component>
+                  </StyledPanelHeader>
+                </PanelHeader>
+                <PanelBody
                   className="glamor-51"
+                  direction="column"
+                  disablePadding={true}
+                  flex={false}
                 >
-                  <PanelItem
-                    align="center"
-                    key="2"
-                    p={0}
+                  <div
+                    className="glamor-51"
                   >
-                    <StyledPanelItem
+                    <PanelItem
                       align="center"
+                      key="2"
                       p={0}
                     >
-                      <Base
+                      <StyledPanelItem
                         align="center"
-                        className="glamor-47 glamor-48"
                         p={0}
                       >
-                        <div
+                        <Base
+                          align="center"
                           className="glamor-47 glamor-48"
-                          is={null}
+                          p={0}
                         >
-                          <Box
-                            flex="1"
-                            p={2}
+                          <div
+                            className="glamor-47 glamor-48"
+                            is={null}
                           >
-                            <Base
-                              className="glamor-39"
+                            <Box
                               flex="1"
                               p={2}
                             >
-                              <div
+                              <Base
                                 className="glamor-39"
-                                is={null}
+                                flex="1"
+                                p={2}
                               >
-                                <ProjectItem
-                                  organization={
-                                    Object {
-                                      "access": Array [
-                                        "org:read",
-                                        "org:write",
-                                        "org:admin",
-                                        "project:read",
-                                        "project:write",
-                                        "project:admin",
-                                        "team:read",
-                                        "team:write",
-                                        "team:admin",
-                                      ],
-                                      "features": Array [],
-                                      "id": "3",
-                                      "name": "Organization Name",
-                                      "onboardingTasks": Array [],
-                                      "projects": Array [],
-                                      "slug": "org-slug",
-                                      "status": Object {
-                                        "id": "active",
-                                        "name": "active",
-                                      },
-                                      "teams": Array [],
-                                    }
-                                  }
-                                  project={
-                                    Object {
-                                      "allowedDomains": Array [
-                                        "example.com",
-                                        "https://example.com",
-                                      ],
-                                      "dataScrubber": false,
-                                      "dataScrubberDefaults": false,
-                                      "digestsMaxDelay": 60,
-                                      "digestsMinDelay": 5,
-                                      "features": Array [],
-                                      "id": "2",
-                                      "name": "Project Name",
-                                      "resolveAge": 48,
-                                      "safeFields": Array [
-                                        "business-email",
-                                        "company",
-                                      ],
-                                      "scrapeJavaScript": true,
-                                      "scrubIPAddresses": false,
-                                      "securityToken": "security-token",
-                                      "securityTokenHeader": "x-security-header",
-                                      "sensitiveFields": Array [
-                                        "creditcard",
-                                        "ssn",
-                                      ],
-                                      "slug": "project-slug",
-                                      "subjectTemplate": "[$project] \${tag:level}: $title",
-                                      "teams": Array [],
-                                      "verifySSL": true,
-                                    }
-                                  }
+                                <div
+                                  className="glamor-39"
+                                  is={null}
                                 >
-                                  <div
-                                    className={null}
-                                    key="2"
+                                  <ProjectItem
+                                    organization={
+                                      Object {
+                                        "access": Array [
+                                          "org:read",
+                                          "org:write",
+                                          "org:admin",
+                                          "project:read",
+                                          "project:write",
+                                          "project:admin",
+                                          "team:read",
+                                          "team:write",
+                                          "team:admin",
+                                        ],
+                                        "features": Array [],
+                                        "id": "3",
+                                        "name": "Organization Name",
+                                        "onboardingTasks": Array [],
+                                        "projects": Array [],
+                                        "slug": "org-slug",
+                                        "status": Object {
+                                          "id": "active",
+                                          "name": "active",
+                                        },
+                                        "teams": Array [],
+                                      }
+                                    }
+                                    project={
+                                      Object {
+                                        "allowedDomains": Array [
+                                          "example.com",
+                                          "https://example.com",
+                                        ],
+                                        "dataScrubber": false,
+                                        "dataScrubberDefaults": false,
+                                        "digestsMaxDelay": 60,
+                                        "digestsMinDelay": 5,
+                                        "features": Array [],
+                                        "id": "2",
+                                        "name": "Project Name",
+                                        "resolveAge": 48,
+                                        "safeFields": Array [
+                                          "business-email",
+                                          "company",
+                                        ],
+                                        "scrapeJavaScript": true,
+                                        "scrubIPAddresses": false,
+                                        "securityToken": "security-token",
+                                        "securityTokenHeader": "x-security-header",
+                                        "sensitiveFields": Array [
+                                          "creditcard",
+                                          "ssn",
+                                        ],
+                                        "slug": "project-slug",
+                                        "subjectTemplate": "[$project] \${tag:level}: $title",
+                                        "teams": Array [],
+                                        "verifySSL": true,
+                                      }
+                                    }
                                   >
-                                    <Tooltip
-                                      title="Add to bookmarks"
+                                    <div
+                                      className={null}
+                                      key="2"
                                     >
-                                      <InlineButton
-                                        className="tip"
-                                        onClick={[Function]}
+                                      <Tooltip
                                         title="Add to bookmarks"
                                       >
-                                        <button
-                                          className="tip glamor-30 glamor-31"
+                                        <InlineButton
+                                          className="tip"
                                           onClick={[Function]}
                                           title="Add to bookmarks"
                                         >
-                                          <span
-                                            className="icon-star-outline bookmark"
-                                          />
-                                        </button>
-                                      </InlineButton>
-                                    </Tooltip>
-                                    <Link
-                                      className="glamor-36"
-                                      to="/settings/organization/org-slug/project/project-slug/"
-                                    >
+                                          <button
+                                            className="tip glamor-30 glamor-31"
+                                            onClick={[Function]}
+                                            title="Add to bookmarks"
+                                          >
+                                            <span
+                                              className="icon-star-outline bookmark"
+                                            />
+                                          </button>
+                                        </InlineButton>
+                                      </Tooltip>
                                       <Link
                                         className="glamor-36"
-                                        onlyActiveOnIndex={false}
-                                        style={Object {}}
                                         to="/settings/organization/org-slug/project/project-slug/"
                                       >
-                                        <a
+                                        <Link
                                           className="glamor-36"
-                                          onClick={[Function]}
+                                          onlyActiveOnIndex={false}
                                           style={Object {}}
+                                          to="/settings/organization/org-slug/project/project-slug/"
                                         >
-                                          <StyledProjectLabel
-                                            organization={
-                                              Object {
-                                                "access": Array [
-                                                  "org:read",
-                                                  "org:write",
-                                                  "org:admin",
-                                                  "project:read",
-                                                  "project:write",
-                                                  "project:admin",
-                                                  "team:read",
-                                                  "team:write",
-                                                  "team:admin",
-                                                ],
-                                                "features": Array [],
-                                                "id": "3",
-                                                "name": "Organization Name",
-                                                "onboardingTasks": Array [],
-                                                "projects": Array [],
-                                                "slug": "org-slug",
-                                                "status": Object {
-                                                  "id": "active",
-                                                  "name": "active",
-                                                },
-                                                "teams": Array [],
-                                              }
-                                            }
-                                            project={
-                                              Object {
-                                                "allowedDomains": Array [
-                                                  "example.com",
-                                                  "https://example.com",
-                                                ],
-                                                "dataScrubber": false,
-                                                "dataScrubberDefaults": false,
-                                                "digestsMaxDelay": 60,
-                                                "digestsMinDelay": 5,
-                                                "features": Array [],
-                                                "id": "2",
-                                                "name": "Project Name",
-                                                "resolveAge": 48,
-                                                "safeFields": Array [
-                                                  "business-email",
-                                                  "company",
-                                                ],
-                                                "scrapeJavaScript": true,
-                                                "scrubIPAddresses": false,
-                                                "securityToken": "security-token",
-                                                "securityTokenHeader": "x-security-header",
-                                                "sensitiveFields": Array [
-                                                  "creditcard",
-                                                  "ssn",
-                                                ],
-                                                "slug": "project-slug",
-                                                "subjectTemplate": "[$project] \${tag:level}: $title",
-                                                "teams": Array [],
-                                                "verifySSL": true,
-                                              }
-                                            }
+                                          <a
+                                            className="glamor-36"
+                                            onClick={[Function]}
+                                            style={Object {}}
                                           >
-                                            <ProjectLabel
-                                              className="glamor-32 glamor-33"
+                                            <StyledProjectLabel
                                               organization={
                                                 Object {
                                                   "access": Array [
@@ -606,7 +548,7 @@ exports[`OrganizationProjectsView render() Should render the projects in the sto
                                                 }
                                               }
                                             >
-                                              <span
+                                              <ProjectLabel
                                                 className="glamor-32 glamor-33"
                                                 organization={
                                                   Object {
@@ -668,137 +610,199 @@ exports[`OrganizationProjectsView render() Should render the projects in the sto
                                                 }
                                               >
                                                 <span
-                                                  className="project-name"
+                                                  className="glamor-32 glamor-33"
+                                                  organization={
+                                                    Object {
+                                                      "access": Array [
+                                                        "org:read",
+                                                        "org:write",
+                                                        "org:admin",
+                                                        "project:read",
+                                                        "project:write",
+                                                        "project:admin",
+                                                        "team:read",
+                                                        "team:write",
+                                                        "team:admin",
+                                                      ],
+                                                      "features": Array [],
+                                                      "id": "3",
+                                                      "name": "Organization Name",
+                                                      "onboardingTasks": Array [],
+                                                      "projects": Array [],
+                                                      "slug": "org-slug",
+                                                      "status": Object {
+                                                        "id": "active",
+                                                        "name": "active",
+                                                      },
+                                                      "teams": Array [],
+                                                    }
+                                                  }
+                                                  project={
+                                                    Object {
+                                                      "allowedDomains": Array [
+                                                        "example.com",
+                                                        "https://example.com",
+                                                      ],
+                                                      "dataScrubber": false,
+                                                      "dataScrubberDefaults": false,
+                                                      "digestsMaxDelay": 60,
+                                                      "digestsMinDelay": 5,
+                                                      "features": Array [],
+                                                      "id": "2",
+                                                      "name": "Project Name",
+                                                      "resolveAge": 48,
+                                                      "safeFields": Array [
+                                                        "business-email",
+                                                        "company",
+                                                      ],
+                                                      "scrapeJavaScript": true,
+                                                      "scrubIPAddresses": false,
+                                                      "securityToken": "security-token",
+                                                      "securityTokenHeader": "x-security-header",
+                                                      "sensitiveFields": Array [
+                                                        "creditcard",
+                                                        "ssn",
+                                                      ],
+                                                      "slug": "project-slug",
+                                                      "subjectTemplate": "[$project] \${tag:level}: $title",
+                                                      "teams": Array [],
+                                                      "verifySSL": true,
+                                                    }
+                                                  }
                                                 >
-                                                  Project Name
+                                                  <span
+                                                    className="project-name"
+                                                  >
+                                                    Project Name
+                                                  </span>
                                                 </span>
-                                              </span>
-                                            </ProjectLabel>
-                                          </StyledProjectLabel>
-                                        </a>
+                                              </ProjectLabel>
+                                            </StyledProjectLabel>
+                                          </a>
+                                        </Link>
                                       </Link>
-                                    </Link>
-                                  </div>
-                                </ProjectItem>
-                              </div>
-                            </Base>
-                          </Box>
-                          <Box
-                            p={2}
-                            w={0.25}
-                          >
-                            <Base
-                              className="glamor-41"
+                                    </div>
+                                  </ProjectItem>
+                                </div>
+                              </Base>
+                            </Box>
+                            <Box
                               p={2}
                               w={0.25}
                             >
-                              <div
+                              <Base
                                 className="glamor-41"
-                                is={null}
+                                p={2}
+                                w={0.25}
                               >
-                                <ProjectListItem
-                                  key="2"
-                                  project={
-                                    Object {
-                                      "allowedDomains": Array [
-                                        "example.com",
-                                        "https://example.com",
-                                      ],
-                                      "dataScrubber": false,
-                                      "dataScrubberDefaults": false,
-                                      "digestsMaxDelay": 60,
-                                      "digestsMinDelay": 5,
-                                      "features": Array [],
-                                      "id": "2",
-                                      "name": "Project Name",
-                                      "resolveAge": 48,
-                                      "safeFields": Array [
-                                        "business-email",
-                                        "company",
-                                      ],
-                                      "scrapeJavaScript": true,
-                                      "scrubIPAddresses": false,
-                                      "securityToken": "security-token",
-                                      "securityTokenHeader": "x-security-header",
-                                      "sensitiveFields": Array [
-                                        "creditcard",
-                                        "ssn",
-                                      ],
-                                      "slug": "project-slug",
-                                      "subjectTemplate": "[$project] \${tag:level}: $title",
-                                      "teams": Array [],
-                                      "verifySSL": true,
-                                    }
-                                  }
+                                <div
+                                  className="glamor-41"
+                                  is={null}
                                 >
-                                  <div />
-                                </ProjectListItem>
-                              </div>
-                            </Base>
-                          </Box>
-                          <Box
-                            align="right"
-                            p={2}
-                          >
-                            <Base
+                                  <ProjectListItem
+                                    key="2"
+                                    project={
+                                      Object {
+                                        "allowedDomains": Array [
+                                          "example.com",
+                                          "https://example.com",
+                                        ],
+                                        "dataScrubber": false,
+                                        "dataScrubberDefaults": false,
+                                        "digestsMaxDelay": 60,
+                                        "digestsMinDelay": 5,
+                                        "features": Array [],
+                                        "id": "2",
+                                        "name": "Project Name",
+                                        "resolveAge": 48,
+                                        "safeFields": Array [
+                                          "business-email",
+                                          "company",
+                                        ],
+                                        "scrapeJavaScript": true,
+                                        "scrubIPAddresses": false,
+                                        "securityToken": "security-token",
+                                        "securityTokenHeader": "x-security-header",
+                                        "sensitiveFields": Array [
+                                          "creditcard",
+                                          "ssn",
+                                        ],
+                                        "slug": "project-slug",
+                                        "subjectTemplate": "[$project] \${tag:level}: $title",
+                                        "teams": Array [],
+                                        "verifySSL": true,
+                                      }
+                                    }
+                                  >
+                                    <div />
+                                  </ProjectListItem>
+                                </div>
+                              </Base>
+                            </Box>
+                            <Box
                               align="right"
-                              className="glamor-45"
                               p={2}
                             >
-                              <div
+                              <Base
+                                align="right"
                                 className="glamor-45"
-                                is={null}
+                                p={2}
                               >
-                                <Button
-                                  disabled={false}
-                                  size="small"
-                                  to="/org-slug/project-slug/"
+                                <div
+                                  className="glamor-45"
+                                  is={null}
                                 >
-                                  <Link
-                                    className="button button-default button-sm"
+                                  <Button
                                     disabled={false}
-                                    onClick={[Function]}
-                                    onlyActiveOnIndex={false}
-                                    role="button"
-                                    style={Object {}}
+                                    size="small"
                                     to="/org-slug/project-slug/"
                                   >
-                                    <a
+                                    <Link
                                       className="button button-default button-sm"
                                       disabled={false}
                                       onClick={[Function]}
+                                      onlyActiveOnIndex={false}
                                       role="button"
                                       style={Object {}}
+                                      to="/org-slug/project-slug/"
                                     >
-                                      <Flex
-                                        align="center"
-                                        className="button-label"
+                                      <a
+                                        className="button button-default button-sm"
+                                        disabled={false}
+                                        onClick={[Function]}
+                                        role="button"
+                                        style={Object {}}
                                       >
-                                        <Base
+                                        <Flex
                                           align="center"
-                                          className="button-label glamor-13"
+                                          className="button-label"
                                         >
-                                          <div
+                                          <Base
+                                            align="center"
                                             className="button-label glamor-13"
-                                            is={null}
                                           >
-                                            View Issues
-                                          </div>
-                                        </Base>
-                                      </Flex>
-                                    </a>
-                                  </Link>
-                                </Button>
-                              </div>
-                            </Base>
-                          </Box>
-                        </div>
-                      </Base>
-                    </StyledPanelItem>
-                  </PanelItem>
-                </div>
-              </PanelBody>
-            </div>
+                                            <div
+                                              className="button-label glamor-13"
+                                              is={null}
+                                            >
+                                              View Issues
+                                            </div>
+                                          </Base>
+                                        </Flex>
+                                      </a>
+                                    </Link>
+                                  </Button>
+                                </div>
+                              </Base>
+                            </Box>
+                          </div>
+                        </Base>
+                      </StyledPanelItem>
+                    </PanelItem>
+                  </div>
+                </PanelBody>
+              </div>
+            </StyledPanel>
           </Panel>
         </div>
       </DocumentTitle>

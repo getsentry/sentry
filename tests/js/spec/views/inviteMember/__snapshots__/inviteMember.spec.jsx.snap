@@ -260,83 +260,74 @@ exports[`CreateProject render() should render roles when available and allowed, 
         <Panel
           className="new-invite-team"
         >
-          <div
-            className="new-invite-team glamor-47 glamor-48"
+          <StyledPanel
+            className="new-invite-team"
           >
-            <PanelHeader>
-              <StyledPanelHeader>
-                <Component
-                  className="glamor-17 glamor-18"
-                >
-                  <div
+            <div
+              className="new-invite-team glamor-47 glamor-48"
+            >
+              <PanelHeader>
+                <StyledPanelHeader>
+                  <Component
                     className="glamor-17 glamor-18"
                   >
-                    <StyledPanelHeading>
-                      <Component
-                        className="glamor-13 glamor-10"
-                      >
-                        <PanelHeading
+                    <div
+                      className="glamor-17 glamor-18"
+                    >
+                      <StyledPanelHeading>
+                        <Component
                           className="glamor-13 glamor-10"
                         >
-                          <div
-                            className="glamor-10 glamor-11 glamor-12"
+                          <PanelHeading
+                            className="glamor-13 glamor-10"
                           >
-                            Role
-                          </div>
-                        </PanelHeading>
-                      </Component>
-                    </StyledPanelHeading>
-                  </div>
-                </Component>
-              </StyledPanelHeader>
-            </PanelHeader>
-            <PanelBody
-              direction="column"
-              disablePadding={true}
-              flex={false}
-            >
-              <div
-                className=""
+                            <div
+                              className="glamor-10 glamor-11 glamor-12"
+                            >
+                              Role
+                            </div>
+                          </PanelHeading>
+                        </Component>
+                      </StyledPanelHeading>
+                    </div>
+                  </Component>
+                </StyledPanelHeader>
+              </PanelHeader>
+              <PanelBody
+                direction="column"
+                disablePadding={true}
+                flex={false}
               >
-                <PanelItem
-                  className="glamor-32"
-                  key="1"
-                  onClick={[Function]}
-                  p={2}
+                <div
+                  className=""
                 >
-                  <StyledPanelItem
+                  <PanelItem
                     className="glamor-32"
+                    key="1"
                     onClick={[Function]}
                     p={2}
                   >
-                    <Base
-                      className="glamor-28 glamor-29"
+                    <StyledPanelItem
+                      className="glamor-32"
                       onClick={[Function]}
                       p={2}
                     >
-                      <div
+                      <Base
                         className="glamor-28 glamor-29"
-                        is={null}
                         onClick={[Function]}
+                        p={2}
                       >
-                        <Label>
-                          <label
-                            className="glamor-26 glamor-27"
-                          >
-                            <Radio
-                              checked={false}
-                              id="1"
-                              readOnly={true}
-                              style={
-                                Object {
-                                  "margin": 0,
-                                }
-                              }
-                              value="member"
+                        <div
+                          className="glamor-28 glamor-29"
+                          is={null}
+                          onClick={[Function]}
+                        >
+                          <Label>
+                            <label
+                              className="glamor-26 glamor-27"
                             >
-                              <input
+                              <Radio
                                 checked={false}
-                                className="radio-select"
                                 id="1"
                                 readOnly={true}
                                 style={
@@ -344,82 +335,82 @@ exports[`CreateProject render() should render roles when available and allowed, 
                                     "margin": 0,
                                   }
                                 }
-                                type="radio"
                                 value="member"
-                              />
-                            </Radio>
-                            <div
-                              style={
-                                Object {
-                                  "flex": 1,
-                                  "padding": "0 16px",
-                                }
-                              }
-                            >
-                              member
-                              <TextBlock
-                                className="glamor-25"
                               >
-                                <Component
-                                  className="glamor-21 glamor-7"
+                                <input
+                                  checked={false}
+                                  className="radio-select"
+                                  id="1"
+                                  readOnly={true}
+                                  style={
+                                    Object {
+                                      "margin": 0,
+                                    }
+                                  }
+                                  type="radio"
+                                  value="member"
+                                />
+                              </Radio>
+                              <div
+                                style={
+                                  Object {
+                                    "flex": 1,
+                                    "padding": "0 16px",
+                                  }
+                                }
+                              >
+                                member
+                                <TextBlock
+                                  className="glamor-25"
                                 >
-                                  <div
+                                  <Component
                                     className="glamor-21 glamor-7"
                                   >
                                     <div
-                                      className="help-block"
+                                      className="glamor-21 glamor-7"
                                     >
-                                      a normal member
+                                      <div
+                                        className="help-block"
+                                      >
+                                        a normal member
+                                      </div>
                                     </div>
-                                  </div>
-                                </Component>
-                              </TextBlock>
-                            </div>
-                          </label>
-                        </Label>
-                      </div>
-                    </Base>
-                  </StyledPanelItem>
-                </PanelItem>
-                <PanelItem
-                  className="glamor-32"
-                  key="2"
-                  onClick={[Function]}
-                  p={2}
-                >
-                  <StyledPanelItem
+                                  </Component>
+                                </TextBlock>
+                              </div>
+                            </label>
+                          </Label>
+                        </div>
+                      </Base>
+                    </StyledPanelItem>
+                  </PanelItem>
+                  <PanelItem
                     className="glamor-32"
+                    key="2"
                     onClick={[Function]}
                     p={2}
                   >
-                    <Base
-                      className="glamor-28 glamor-29"
+                    <StyledPanelItem
+                      className="glamor-32"
                       onClick={[Function]}
                       p={2}
                     >
-                      <div
+                      <Base
                         className="glamor-28 glamor-29"
-                        is={null}
                         onClick={[Function]}
+                        p={2}
                       >
-                        <Label>
-                          <label
-                            className="glamor-26 glamor-27"
-                          >
-                            <Radio
-                              checked={false}
-                              id="2"
-                              readOnly={true}
-                              style={
-                                Object {
-                                  "margin": 0,
-                                }
-                              }
-                              value="bar"
+                        <div
+                          className="glamor-28 glamor-29"
+                          is={null}
+                          onClick={[Function]}
+                        >
+                          <Label>
+                            <label
+                              className="glamor-26 glamor-27"
                             >
-                              <input
+                              <Radio
                                 checked={false}
-                                className="radio-select"
                                 id="2"
                                 readOnly={true}
                                 style={
@@ -427,46 +418,59 @@ exports[`CreateProject render() should render roles when available and allowed, 
                                     "margin": 0,
                                   }
                                 }
-                                type="radio"
                                 value="bar"
-                              />
-                            </Radio>
-                            <div
-                              style={
-                                Object {
-                                  "flex": 1,
-                                  "padding": "0 16px",
-                                }
-                              }
-                            >
-                              bar
-                              <TextBlock
-                                className="glamor-25"
                               >
-                                <Component
-                                  className="glamor-21 glamor-7"
+                                <input
+                                  checked={false}
+                                  className="radio-select"
+                                  id="2"
+                                  readOnly={true}
+                                  style={
+                                    Object {
+                                      "margin": 0,
+                                    }
+                                  }
+                                  type="radio"
+                                  value="bar"
+                                />
+                              </Radio>
+                              <div
+                                style={
+                                  Object {
+                                    "flex": 1,
+                                    "padding": "0 16px",
+                                  }
+                                }
+                              >
+                                bar
+                                <TextBlock
+                                  className="glamor-25"
                                 >
-                                  <div
+                                  <Component
                                     className="glamor-21 glamor-7"
                                   >
                                     <div
-                                      className="help-block"
+                                      className="glamor-21 glamor-7"
                                     >
-                                      another role
+                                      <div
+                                        className="help-block"
+                                      >
+                                        another role
+                                      </div>
                                     </div>
-                                  </div>
-                                </Component>
-                              </TextBlock>
-                            </div>
-                          </label>
-                        </Label>
-                      </div>
-                    </Base>
-                  </StyledPanelItem>
-                </PanelItem>
-              </div>
-            </PanelBody>
-          </div>
+                                  </Component>
+                                </TextBlock>
+                              </div>
+                            </label>
+                          </Label>
+                        </div>
+                      </Base>
+                    </StyledPanelItem>
+                  </PanelItem>
+                </div>
+              </PanelBody>
+            </div>
+          </StyledPanel>
         </Panel>
       </RoleSelect>
       <TeamSelect
@@ -496,134 +500,138 @@ exports[`CreateProject render() should render roles when available and allowed, 
         <Panel
           className="new-invite-team"
         >
-          <div
-            className="new-invite-team glamor-47 glamor-48"
+          <StyledPanel
+            className="new-invite-team"
           >
-            <PanelHeader>
-              <StyledPanelHeader>
-                <Component
-                  className="glamor-17 glamor-18"
-                >
-                  <div
+            <div
+              className="new-invite-team glamor-47 glamor-48"
+            >
+              <PanelHeader>
+                <StyledPanelHeader>
+                  <Component
                     className="glamor-17 glamor-18"
                   >
-                    <StyledPanelHeading>
-                      <Component
-                        className="glamor-13 glamor-10"
-                      >
-                        <PanelHeading
+                    <div
+                      className="glamor-17 glamor-18"
+                    >
+                      <StyledPanelHeading>
+                        <Component
                           className="glamor-13 glamor-10"
                         >
-                          <div
-                            className="glamor-10 glamor-11 glamor-12"
+                          <PanelHeading
+                            className="glamor-13 glamor-10"
                           >
-                            Team
-                          </div>
-                        </PanelHeading>
-                      </Component>
-                    </StyledPanelHeading>
-                  </div>
-                </Component>
-              </StyledPanelHeader>
-            </PanelHeader>
-            <PanelBody
-              className="grouping-controls team-choices"
-              direction="column"
-              disablePadding={true}
-              flex={false}
-            >
-              <div
+                            <div
+                              className="glamor-10 glamor-11 glamor-12"
+                            >
+                              Team
+                            </div>
+                          </PanelHeading>
+                        </Component>
+                      </StyledPanelHeading>
+                    </div>
+                  </Component>
+                </StyledPanelHeader>
+              </PanelHeader>
+              <PanelBody
                 className="grouping-controls team-choices"
+                direction="column"
+                disablePadding={true}
+                flex={false}
               >
-                <PanelItem
-                  className="glamor-68"
-                  p={2}
+                <div
+                  className="grouping-controls team-choices"
                 >
-                  <StyledPanelItem
+                  <PanelItem
                     className="glamor-68"
                     p={2}
                   >
-                    <Base
-                      className="glamor-64 glamor-29"
+                    <StyledPanelItem
+                      className="glamor-68"
                       p={2}
                     >
-                      <div
+                      <Base
                         className="glamor-64 glamor-29"
-                        is={null}
+                        p={2}
                       >
-                        <TeamItem
-                          key="bar"
+                        <div
+                          className="glamor-64 glamor-29"
+                          is={null}
                         >
-                          <div
-                            className="glamor-60 glamor-61"
+                          <TeamItem
+                            key="bar"
                           >
-                            <label
-                              className="checkbox"
+                            <div
+                              className="glamor-60 glamor-61"
                             >
-                              <Checkbox
-                                checked={false}
-                                id="bar"
-                                onChange={[Function]}
+                              <label
+                                className="checkbox"
                               >
-                                <input
+                                <Checkbox
                                   checked={false}
-                                  className="chk-select"
                                   id="bar"
                                   onChange={[Function]}
-                                  type="checkbox"
-                                />
-                              </Checkbox>
-                              <span>
-                                bar
-                              </span>
-                              <span
-                                className="team-slug"
-                              >
-                                bar
-                              </span>
-                            </label>
-                          </div>
-                        </TeamItem>
-                        <TeamItem
-                          key="foo"
-                        >
-                          <div
-                            className="glamor-60 glamor-61"
+                                >
+                                  <input
+                                    checked={false}
+                                    className="chk-select"
+                                    id="bar"
+                                    onChange={[Function]}
+                                    type="checkbox"
+                                  />
+                                </Checkbox>
+                                <span>
+                                  bar
+                                </span>
+                                <span
+                                  className="team-slug"
+                                >
+                                  bar
+                                </span>
+                              </label>
+                            </div>
+                          </TeamItem>
+                          <TeamItem
+                            key="foo"
                           >
-                            <label
-                              className="checkbox"
+                            <div
+                              className="glamor-60 glamor-61"
                             >
-                              <Checkbox
-                                checked={false}
-                                id="foo"
-                                onChange={[Function]}
+                              <label
+                                className="checkbox"
                               >
-                                <input
+                                <Checkbox
                                   checked={false}
-                                  className="chk-select"
                                   id="foo"
                                   onChange={[Function]}
-                                  type="checkbox"
-                                />
-                              </Checkbox>
-                              <span>
-                                foo
-                              </span>
-                              <span
-                                className="team-slug"
-                              >
-                                foo
-                              </span>
-                            </label>
-                          </div>
-                        </TeamItem>
-                      </div>
-                    </Base>
-                  </StyledPanelItem>
-                </PanelItem>
-              </div>
-            </PanelBody>
-          </div>
+                                >
+                                  <input
+                                    checked={false}
+                                    className="chk-select"
+                                    id="foo"
+                                    onChange={[Function]}
+                                    type="checkbox"
+                                  />
+                                </Checkbox>
+                                <span>
+                                  foo
+                                </span>
+                                <span
+                                  className="team-slug"
+                                >
+                                  foo
+                                </span>
+                              </label>
+                            </div>
+                          </TeamItem>
+                        </div>
+                      </Base>
+                    </StyledPanelItem>
+                  </PanelItem>
+                </div>
+              </PanelBody>
+            </div>
+          </StyledPanel>
         </Panel>
       </TeamSelect>
       <Button

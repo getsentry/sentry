@@ -211,192 +211,200 @@ exports[`ProjectDebugSymbols renders 1`] = `
         }
       }
     >
-      <div
-        className="glamor-45 glamor-46"
+      <StyledPanel
         style={
           Object {
             "marginBottom": 40,
           }
         }
       >
-        <PanelHeader>
-          <StyledPanelHeader>
-            <Component
-              className="glamor-17 glamor-18"
-            >
-              <div
+        <div
+          className="glamor-45 glamor-46"
+          style={
+            Object {
+              "marginBottom": 40,
+            }
+          }
+        >
+          <PanelHeader>
+            <StyledPanelHeader>
+              <Component
                 className="glamor-17 glamor-18"
               >
-                <StyledPanelHeading>
-                  <Component
-                    className="glamor-13 glamor-10"
-                  >
-                    <PanelHeading
+                <div
+                  className="glamor-17 glamor-18"
+                >
+                  <StyledPanelHeading>
+                    <Component
                       className="glamor-13 glamor-10"
                     >
-                      <div
-                        className="glamor-10 glamor-11 glamor-12"
+                      <PanelHeading
+                        className="glamor-13 glamor-10"
                       >
                         <div
-                          className="app-icon"
-                          style={null}
-                        />
-                        MyApp
-                         
-                        <small>
-                          (
-                          com.example.myapp
-                          )
-                        </small>
-                      </div>
-                    </PanelHeading>
-                  </Component>
-                </StyledPanelHeading>
-              </div>
-            </Component>
-          </StyledPanelHeader>
-        </PanelHeader>
-        <PanelBody
-          direction="column"
-          disablePadding={true}
-          flex={false}
-        >
-          <div
-            className=""
+                          className="glamor-10 glamor-11 glamor-12"
+                        >
+                          <div
+                            className="app-icon"
+                            style={null}
+                          />
+                          MyApp
+                           
+                          <small>
+                            (
+                            com.example.myapp
+                            )
+                          </small>
+                        </div>
+                      </PanelHeading>
+                    </Component>
+                  </StyledPanelHeading>
+                </div>
+              </Component>
+            </StyledPanelHeader>
+          </PanelHeader>
+          <PanelBody
+            direction="column"
+            disablePadding={true}
+            flex={false}
           >
-            <PanelItem
-              direction="column"
-              key="1.0"
-              p={2}
+            <div
+              className=""
             >
-              <StyledPanelItem
+              <PanelItem
                 direction="column"
+                key="1.0"
                 p={2}
               >
-                <Base
-                  className="glamor-41 glamor-33"
+                <StyledPanelItem
                   direction="column"
                   p={2}
                 >
-                  <div
+                  <Base
                     className="glamor-41 glamor-33"
-                    is={null}
+                    direction="column"
+                    p={2}
                   >
-                    <HoverablePanelItem
-                      className="hoverable"
-                      onClick={[Function]}
+                    <div
+                      className="glamor-41 glamor-33"
+                      is={null}
                     >
-                      <PanelItem
-                        className="hoverable glamor-37 glamor-31"
+                      <HoverablePanelItem
+                        className="hoverable"
                         onClick={[Function]}
-                        p={2}
                       >
-                        <StyledPanelItem
+                        <PanelItem
                           className="hoverable glamor-37 glamor-31"
                           onClick={[Function]}
                           p={2}
                         >
-                          <Base
-                            className="hoverable glamor-31 glamor-32 glamor-33"
+                          <StyledPanelItem
+                            className="hoverable glamor-37 glamor-31"
                             onClick={[Function]}
                             p={2}
                           >
-                            <div
+                            <Base
                               className="hoverable glamor-31 glamor-32 glamor-33"
-                              is={null}
                               onClick={[Function]}
+                              p={2}
                             >
-                              <Flex
-                                direction="column"
-                                flex="1"
-                                p={2}
+                              <div
+                                className="hoverable glamor-31 glamor-32 glamor-33"
+                                is={null}
+                                onClick={[Function]}
                               >
-                                <Base
-                                  className="glamor-27"
+                                <Flex
                                   direction="column"
                                   flex="1"
                                   p={2}
                                 >
-                                  <div
+                                  <Base
                                     className="glamor-27"
-                                    is={null}
+                                    direction="column"
+                                    flex="1"
+                                    p={2}
                                   >
-                                    <h3
-                                      className="truncate"
-                                    >
-                                      1.0
-                                    </h3>
                                     <div
-                                      className="event-message"
+                                      className="glamor-27"
+                                      is={null}
                                     >
-                                      Builds
+                                      <h3
+                                        className="truncate"
+                                      >
+                                        1.0
+                                      </h3>
+                                      <div
+                                        className="event-message"
+                                      >
+                                        Builds
+                                        : 
+                                        1
+                                      </div>
+                                      <LastSeen
+                                        align="center"
+                                      >
+                                        <Base
+                                          align="center"
+                                          className="glamor-23 glamor-24"
+                                        >
+                                          <div
+                                            className="glamor-23 glamor-24"
+                                            is={null}
+                                          >
+                                            <TimeIcon
+                                              className="icon icon-clock"
+                                            >
+                                              <span
+                                                className="icon icon-clock glamor-21 glamor-22"
+                                              />
+                                            </TimeIcon>
+                                            <TimeSince
+                                              date="2018-01-31T07:16:26.072Z"
+                                              suffix="ago"
+                                            >
+                                              <time
+                                                dateTime="2018-01-31T07:16:26.072Z"
+                                                title="January 31, 2018 7:16 AM UTC"
+                                              >
+                                                in 3 months
+                                              </time>
+                                            </TimeSince>
+                                          </div>
+                                        </Base>
+                                      </LastSeen>
+                                    </div>
+                                  </Base>
+                                </Flex>
+                                <Flex
+                                  p={2}
+                                >
+                                  <Base
+                                    className="glamor-29"
+                                    p={2}
+                                  >
+                                    <div
+                                      className="glamor-29"
+                                      is={null}
+                                    >
+                                      Debug Information Files
                                       : 
                                       1
                                     </div>
-                                    <LastSeen
-                                      align="center"
-                                    >
-                                      <Base
-                                        align="center"
-                                        className="glamor-23 glamor-24"
-                                      >
-                                        <div
-                                          className="glamor-23 glamor-24"
-                                          is={null}
-                                        >
-                                          <TimeIcon
-                                            className="icon icon-clock"
-                                          >
-                                            <span
-                                              className="icon icon-clock glamor-21 glamor-22"
-                                            />
-                                          </TimeIcon>
-                                          <TimeSince
-                                            date="2018-01-31T07:16:26.072Z"
-                                            suffix="ago"
-                                          >
-                                            <time
-                                              dateTime="2018-01-31T07:16:26.072Z"
-                                              title="January 31, 2018 7:16 AM UTC"
-                                            >
-                                              in 3 months
-                                            </time>
-                                          </TimeSince>
-                                        </div>
-                                      </Base>
-                                    </LastSeen>
-                                  </div>
-                                </Base>
-                              </Flex>
-                              <Flex
-                                p={2}
-                              >
-                                <Base
-                                  className="glamor-29"
-                                  p={2}
-                                >
-                                  <div
-                                    className="glamor-29"
-                                    is={null}
-                                  >
-                                    Debug Information Files
-                                    : 
-                                    1
-                                  </div>
-                                </Base>
-                              </Flex>
-                            </div>
-                          </Base>
-                        </StyledPanelItem>
-                      </PanelItem>
-                    </HoverablePanelItem>
-                  </div>
-                </Base>
-              </StyledPanelItem>
-            </PanelItem>
-          </div>
-        </PanelBody>
-      </div>
+                                  </Base>
+                                </Flex>
+                              </div>
+                            </Base>
+                          </StyledPanelItem>
+                        </PanelItem>
+                      </HoverablePanelItem>
+                    </div>
+                  </Base>
+                </StyledPanelItem>
+              </PanelItem>
+            </div>
+          </PanelBody>
+        </div>
+      </StyledPanel>
     </Panel>
     <div>
       <SettingsPageHeading

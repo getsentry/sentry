@@ -189,369 +189,603 @@ exports[`ProjectSavedSearches renders 1`] = `
       </Wrapper>
     </SettingsPageHeading>
     <Panel>
-      <div
-        className="glamor-65 glamor-66"
-      >
-        <PanelHeader
-          disablePadding={true}
+      <StyledPanel>
+        <div
+          className="glamor-65 glamor-66"
         >
-          <StyledPanelHeader
+          <PanelHeader
             disablePadding={true}
           >
-            <Component
-              className="glamor-25 glamor-26"
+            <StyledPanelHeader
               disablePadding={true}
             >
-              <div
+              <Component
                 className="glamor-25 glamor-26"
+                disablePadding={true}
               >
-                <StyledPanelHeading>
-                  <Component
-                    className="glamor-21 glamor-18"
-                  >
-                    <PanelHeading
+                <div
+                  className="glamor-25 glamor-26"
+                >
+                  <StyledPanelHeading>
+                    <Component
                       className="glamor-21 glamor-18"
                     >
-                      <div
-                        className="glamor-18 glamor-19 glamor-20"
+                      <PanelHeading
+                        className="glamor-21 glamor-18"
                       >
-                        <Flex>
-                          <Base
-                            className="glamor-16"
-                          >
-                            <div
+                        <div
+                          className="glamor-18 glamor-19 glamor-20"
+                        >
+                          <Flex>
+                            <Base
                               className="glamor-16"
-                              is={null}
                             >
-                              <Flex
-                                flex="1"
-                                px={2}
+                              <div
+                                className="glamor-16"
+                                is={null}
                               >
-                                <Base
-                                  className="glamor-6"
+                                <Flex
                                   flex="1"
                                   px={2}
                                 >
-                                  <div
+                                  <Base
                                     className="glamor-6"
-                                    is={null}
+                                    flex="1"
+                                    px={2}
                                   >
-                                    Search
-                                  </div>
-                                </Base>
-                              </Flex>
-                              <Flex
-                                flex="1"
-                              >
-                                <Base
-                                  className="glamor-14"
+                                    <div
+                                      className="glamor-6"
+                                      is={null}
+                                    >
+                                      Search
+                                    </div>
+                                  </Base>
+                                </Flex>
+                                <Flex
                                   flex="1"
                                 >
-                                  <div
+                                  <Base
                                     className="glamor-14"
-                                    is={null}
+                                    flex="1"
                                   >
-                                    <InputColumn>
-                                      <Flex
-                                        flex="1"
-                                        justify="center"
-                                      >
-                                        <Base
-                                          className="glamor-8"
+                                    <div
+                                      className="glamor-14"
+                                      is={null}
+                                    >
+                                      <InputColumn>
+                                        <Flex
                                           flex="1"
                                           justify="center"
                                         >
-                                          <div
+                                          <Base
                                             className="glamor-8"
-                                            is={null}
+                                            flex="1"
+                                            justify="center"
                                           >
-                                            My Default
-                                          </div>
-                                        </Base>
-                                      </Flex>
-                                    </InputColumn>
-                                    <InputColumn>
-                                      <Flex
-                                        flex="1"
-                                        justify="center"
-                                      >
-                                        <Base
-                                          className="glamor-8"
+                                            <div
+                                              className="glamor-8"
+                                              is={null}
+                                            >
+                                              My Default
+                                            </div>
+                                          </Base>
+                                        </Flex>
+                                      </InputColumn>
+                                      <InputColumn>
+                                        <Flex
                                           flex="1"
                                           justify="center"
                                         >
-                                          <div
+                                          <Base
                                             className="glamor-8"
-                                            is={null}
+                                            flex="1"
+                                            justify="center"
                                           >
-                                            Team Default
-                                          </div>
-                                        </Base>
-                                      </Flex>
-                                    </InputColumn>
-                                    <InputColumn>
-                                      <Flex
-                                        flex="1"
-                                        justify="center"
-                                      >
-                                        <Base
-                                          className="glamor-8"
+                                            <div
+                                              className="glamor-8"
+                                              is={null}
+                                            >
+                                              Team Default
+                                            </div>
+                                          </Base>
+                                        </Flex>
+                                      </InputColumn>
+                                      <InputColumn>
+                                        <Flex
                                           flex="1"
                                           justify="center"
                                         >
-                                          <div
+                                          <Base
                                             className="glamor-8"
-                                            is={null}
+                                            flex="1"
+                                            justify="center"
                                           >
-                                            Remove
-                                          </div>
-                                        </Base>
-                                      </Flex>
-                                    </InputColumn>
-                                  </div>
-                                </Base>
-                              </Flex>
+                                            <div
+                                              className="glamor-8"
+                                              is={null}
+                                            >
+                                              Remove
+                                            </div>
+                                          </Base>
+                                        </Flex>
+                                      </InputColumn>
+                                    </div>
+                                  </Base>
+                                </Flex>
+                              </div>
+                            </Base>
+                          </Flex>
+                        </div>
+                      </PanelHeading>
+                    </Component>
+                  </StyledPanelHeading>
+                </div>
+              </Component>
+            </StyledPanelHeader>
+          </PanelHeader>
+          <PanelBody
+            direction="column"
+            disablePadding={true}
+            flex={false}
+          >
+            <div
+              className=""
+            >
+              <SavedSearchRow
+                access={
+                  Set {
+                    "org:read",
+                    "org:write",
+                    "org:admin",
+                    "project:read",
+                    "project:write",
+                    "project:admin",
+                    "team:read",
+                    "team:write",
+                    "team:admin",
+                  }
+                }
+                canModify={true}
+                data={
+                  Object {
+                    "dateCreated": "2017-11-14T02:22:58.026Z",
+                    "id": "2",
+                    "isDefault": true,
+                    "isPrivate": false,
+                    "isUserDefault": false,
+                    "name": "Needs Triage",
+                    "query": "is:unresolved is:unassigned",
+                  }
+                }
+                key="2"
+                onDefault={[Function]}
+                onRemove={[Function]}
+                onUserDefault={[Function]}
+                orgId="org-slug"
+                projectId="project-slug"
+              >
+                <PanelItem
+                  align="center"
+                  p={0}
+                  py={2}
+                >
+                  <StyledPanelItem
+                    align="center"
+                    p={0}
+                    py={2}
+                  >
+                    <Base
+                      align="center"
+                      className="glamor-43 glamor-44"
+                      p={0}
+                      py={2}
+                    >
+                      <div
+                        className="glamor-43 glamor-44"
+                        is={null}
+                      >
+                        <Flex
+                          direction="column"
+                          flex="1"
+                          px={2}
+                        >
+                          <Base
+                            className="glamor-31"
+                            direction="column"
+                            flex="1"
+                            px={2}
+                          >
+                            <div
+                              className="glamor-31"
+                              is={null}
+                            >
+                              <SearchTitle>
+                                <div
+                                  className="glamor-29 glamor-30"
+                                >
+                                  Needs Triage
+                                </div>
+                              </SearchTitle>
+                              <code>
+                                is:unresolved is:unassigned
+                              </code>
+                            </div>
+                          </Base>
+                        </Flex>
+                        <Flex
+                          flex="1"
+                        >
+                          <Base
+                            className="glamor-14"
+                            flex="1"
+                          >
+                            <div
+                              className="glamor-14"
+                              is={null}
+                            >
+                              <InputColumn>
+                                <Flex
+                                  flex="1"
+                                  justify="center"
+                                >
+                                  <Base
+                                    className="glamor-8"
+                                    flex="1"
+                                    justify="center"
+                                  >
+                                    <div
+                                      className="glamor-8"
+                                      is={null}
+                                    >
+                                      <input
+                                        checked={false}
+                                        name="userDefault"
+                                        onChange={[Function]}
+                                        type="radio"
+                                      />
+                                    </div>
+                                  </Base>
+                                </Flex>
+                              </InputColumn>
+                              <InputColumn>
+                                <Flex
+                                  flex="1"
+                                  justify="center"
+                                >
+                                  <Base
+                                    className="glamor-8"
+                                    flex="1"
+                                    justify="center"
+                                  >
+                                    <div
+                                      className="glamor-8"
+                                      is={null}
+                                    >
+                                      <input
+                                        checked={true}
+                                        name="default"
+                                        onChange={[Function]}
+                                        type="radio"
+                                      />
+                                    </div>
+                                  </Base>
+                                </Flex>
+                              </InputColumn>
+                              <InputColumn>
+                                <Flex
+                                  flex="1"
+                                  justify="center"
+                                >
+                                  <Base
+                                    className="glamor-8"
+                                    flex="1"
+                                    justify="center"
+                                  >
+                                    <div
+                                      className="glamor-8"
+                                      is={null}
+                                    >
+                                      <Confirm
+                                        cancelText="Cancel"
+                                        confirmText="Confirm"
+                                        message="Are you sure you want to remove this?"
+                                        onConfirm={[Function]}
+                                        priority="primary"
+                                      >
+                                        <Button
+                                          disabled={false}
+                                          onClick={[Function]}
+                                          size="small"
+                                        >
+                                          <button
+                                            className="button button-default button-sm"
+                                            disabled={false}
+                                            onClick={[Function]}
+                                            role="button"
+                                          >
+                                            <Flex
+                                              align="center"
+                                              className="button-label"
+                                            >
+                                              <Base
+                                                align="center"
+                                                className="button-label glamor-2"
+                                              >
+                                                <div
+                                                  className="button-label glamor-2"
+                                                  is={null}
+                                                >
+                                                  <span
+                                                    className="icon icon-trash"
+                                                  />
+                                                </div>
+                                              </Base>
+                                            </Flex>
+                                          </button>
+                                        </Button>
+                                        <Modal
+                                          animation={false}
+                                          autoFocus={true}
+                                          backdrop={true}
+                                          bsClass="modal"
+                                          dialogComponentClass={[Function]}
+                                          enforceFocus={true}
+                                          keyboard={true}
+                                          manager={
+                                            ModalManager {
+                                              "add": [Function],
+                                              "containers": Array [],
+                                              "data": Array [],
+                                              "handleContainerOverflow": true,
+                                              "hideSiblingNodes": true,
+                                              "isTopModal": [Function],
+                                              "modals": Array [],
+                                              "remove": [Function],
+                                            }
+                                          }
+                                          onHide={[Function]}
+                                          renderBackdrop={[Function]}
+                                          restoreFocus={true}
+                                          show={false}
+                                        >
+                                          <Modal
+                                            autoFocus={true}
+                                            backdrop={true}
+                                            backdropClassName="modal-backdrop"
+                                            containerClassName="modal-open"
+                                            enforceFocus={true}
+                                            keyboard={true}
+                                            manager={
+                                              ModalManager {
+                                                "add": [Function],
+                                                "containers": Array [],
+                                                "data": Array [],
+                                                "handleContainerOverflow": true,
+                                                "hideSiblingNodes": true,
+                                                "isTopModal": [Function],
+                                                "modals": Array [],
+                                                "remove": [Function],
+                                              }
+                                            }
+                                            onEntering={[Function]}
+                                            onExited={[Function]}
+                                            onHide={[Function]}
+                                            renderBackdrop={[Function]}
+                                            restoreFocus={true}
+                                            show={false}
+                                          />
+                                        </Modal>
+                                      </Confirm>
+                                    </div>
+                                  </Base>
+                                </Flex>
+                              </InputColumn>
                             </div>
                           </Base>
                         </Flex>
                       </div>
-                    </PanelHeading>
-                  </Component>
-                </StyledPanelHeading>
-              </div>
-            </Component>
-          </StyledPanelHeader>
-        </PanelHeader>
-        <PanelBody
-          direction="column"
-          disablePadding={true}
-          flex={false}
-        >
-          <div
-            className=""
-          >
-            <SavedSearchRow
-              access={
-                Set {
-                  "org:read",
-                  "org:write",
-                  "org:admin",
-                  "project:read",
-                  "project:write",
-                  "project:admin",
-                  "team:read",
-                  "team:write",
-                  "team:admin",
+                    </Base>
+                  </StyledPanelItem>
+                </PanelItem>
+              </SavedSearchRow>
+              <SavedSearchRow
+                access={
+                  Set {
+                    "org:read",
+                    "org:write",
+                    "org:admin",
+                    "project:read",
+                    "project:write",
+                    "project:admin",
+                    "team:read",
+                    "team:write",
+                    "team:admin",
+                  }
                 }
-              }
-              canModify={true}
-              data={
-                Object {
-                  "dateCreated": "2017-11-14T02:22:58.026Z",
-                  "id": "2",
-                  "isDefault": true,
-                  "isPrivate": false,
-                  "isUserDefault": false,
-                  "name": "Needs Triage",
-                  "query": "is:unresolved is:unassigned",
+                canModify={true}
+                data={
+                  Object {
+                    "dateCreated": "2017-11-14T02:22:58.022Z",
+                    "id": "1",
+                    "isDefault": false,
+                    "isPrivate": false,
+                    "isUserDefault": true,
+                    "name": "Unresolved Issues",
+                    "query": "is:unresolved",
+                  }
                 }
-              }
-              key="2"
-              onDefault={[Function]}
-              onRemove={[Function]}
-              onUserDefault={[Function]}
-              orgId="org-slug"
-              projectId="project-slug"
-            >
-              <PanelItem
-                align="center"
-                p={0}
-                py={2}
+                key="1"
+                onDefault={[Function]}
+                onRemove={[Function]}
+                onUserDefault={[Function]}
+                orgId="org-slug"
+                projectId="project-slug"
               >
-                <StyledPanelItem
+                <PanelItem
                   align="center"
                   p={0}
                   py={2}
                 >
-                  <Base
+                  <StyledPanelItem
                     align="center"
-                    className="glamor-43 glamor-44"
                     p={0}
                     py={2}
                   >
-                    <div
+                    <Base
+                      align="center"
                       className="glamor-43 glamor-44"
-                      is={null}
+                      p={0}
+                      py={2}
                     >
-                      <Flex
-                        direction="column"
-                        flex="1"
-                        px={2}
+                      <div
+                        className="glamor-43 glamor-44"
+                        is={null}
                       >
-                        <Base
-                          className="glamor-31"
+                        <Flex
                           direction="column"
                           flex="1"
                           px={2}
                         >
-                          <div
+                          <Base
                             className="glamor-31"
-                            is={null}
+                            direction="column"
+                            flex="1"
+                            px={2}
                           >
-                            <SearchTitle>
-                              <div
-                                className="glamor-29 glamor-30"
-                              >
-                                Needs Triage
-                              </div>
-                            </SearchTitle>
-                            <code>
-                              is:unresolved is:unassigned
-                            </code>
-                          </div>
-                        </Base>
-                      </Flex>
-                      <Flex
-                        flex="1"
-                      >
-                        <Base
-                          className="glamor-14"
+                            <div
+                              className="glamor-31"
+                              is={null}
+                            >
+                              <SearchTitle>
+                                <div
+                                  className="glamor-29 glamor-30"
+                                >
+                                  Unresolved Issues
+                                </div>
+                              </SearchTitle>
+                              <code>
+                                is:unresolved
+                              </code>
+                            </div>
+                          </Base>
+                        </Flex>
+                        <Flex
                           flex="1"
                         >
-                          <div
+                          <Base
                             className="glamor-14"
-                            is={null}
+                            flex="1"
                           >
-                            <InputColumn>
-                              <Flex
-                                flex="1"
-                                justify="center"
-                              >
-                                <Base
-                                  className="glamor-8"
+                            <div
+                              className="glamor-14"
+                              is={null}
+                            >
+                              <InputColumn>
+                                <Flex
                                   flex="1"
                                   justify="center"
                                 >
-                                  <div
+                                  <Base
                                     className="glamor-8"
-                                    is={null}
+                                    flex="1"
+                                    justify="center"
                                   >
-                                    <input
-                                      checked={false}
-                                      name="userDefault"
-                                      onChange={[Function]}
-                                      type="radio"
-                                    />
-                                  </div>
-                                </Base>
-                              </Flex>
-                            </InputColumn>
-                            <InputColumn>
-                              <Flex
-                                flex="1"
-                                justify="center"
-                              >
-                                <Base
-                                  className="glamor-8"
-                                  flex="1"
-                                  justify="center"
-                                >
-                                  <div
-                                    className="glamor-8"
-                                    is={null}
-                                  >
-                                    <input
-                                      checked={true}
-                                      name="default"
-                                      onChange={[Function]}
-                                      type="radio"
-                                    />
-                                  </div>
-                                </Base>
-                              </Flex>
-                            </InputColumn>
-                            <InputColumn>
-                              <Flex
-                                flex="1"
-                                justify="center"
-                              >
-                                <Base
-                                  className="glamor-8"
-                                  flex="1"
-                                  justify="center"
-                                >
-                                  <div
-                                    className="glamor-8"
-                                    is={null}
-                                  >
-                                    <Confirm
-                                      cancelText="Cancel"
-                                      confirmText="Confirm"
-                                      message="Are you sure you want to remove this?"
-                                      onConfirm={[Function]}
-                                      priority="primary"
+                                    <div
+                                      className="glamor-8"
+                                      is={null}
                                     >
-                                      <Button
-                                        disabled={false}
-                                        onClick={[Function]}
-                                        size="small"
+                                      <input
+                                        checked={true}
+                                        name="userDefault"
+                                        onChange={[Function]}
+                                        type="radio"
+                                      />
+                                    </div>
+                                  </Base>
+                                </Flex>
+                              </InputColumn>
+                              <InputColumn>
+                                <Flex
+                                  flex="1"
+                                  justify="center"
+                                >
+                                  <Base
+                                    className="glamor-8"
+                                    flex="1"
+                                    justify="center"
+                                  >
+                                    <div
+                                      className="glamor-8"
+                                      is={null}
+                                    >
+                                      <input
+                                        checked={false}
+                                        name="default"
+                                        onChange={[Function]}
+                                        type="radio"
+                                      />
+                                    </div>
+                                  </Base>
+                                </Flex>
+                              </InputColumn>
+                              <InputColumn>
+                                <Flex
+                                  flex="1"
+                                  justify="center"
+                                >
+                                  <Base
+                                    className="glamor-8"
+                                    flex="1"
+                                    justify="center"
+                                  >
+                                    <div
+                                      className="glamor-8"
+                                      is={null}
+                                    >
+                                      <Confirm
+                                        cancelText="Cancel"
+                                        confirmText="Confirm"
+                                        message="Are you sure you want to remove this?"
+                                        onConfirm={[Function]}
+                                        priority="primary"
                                       >
-                                        <button
-                                          className="button button-default button-sm"
+                                        <Button
                                           disabled={false}
                                           onClick={[Function]}
-                                          role="button"
+                                          size="small"
                                         >
-                                          <Flex
-                                            align="center"
-                                            className="button-label"
+                                          <button
+                                            className="button button-default button-sm"
+                                            disabled={false}
+                                            onClick={[Function]}
+                                            role="button"
                                           >
-                                            <Base
+                                            <Flex
                                               align="center"
-                                              className="button-label glamor-2"
+                                              className="button-label"
                                             >
-                                              <div
+                                              <Base
+                                                align="center"
                                                 className="button-label glamor-2"
-                                                is={null}
                                               >
-                                                <span
-                                                  className="icon icon-trash"
-                                                />
-                                              </div>
-                                            </Base>
-                                          </Flex>
-                                        </button>
-                                      </Button>
-                                      <Modal
-                                        animation={false}
-                                        autoFocus={true}
-                                        backdrop={true}
-                                        bsClass="modal"
-                                        dialogComponentClass={[Function]}
-                                        enforceFocus={true}
-                                        keyboard={true}
-                                        manager={
-                                          ModalManager {
-                                            "add": [Function],
-                                            "containers": Array [],
-                                            "data": Array [],
-                                            "handleContainerOverflow": true,
-                                            "hideSiblingNodes": true,
-                                            "isTopModal": [Function],
-                                            "modals": Array [],
-                                            "remove": [Function],
-                                          }
-                                        }
-                                        onHide={[Function]}
-                                        renderBackdrop={[Function]}
-                                        restoreFocus={true}
-                                        show={false}
-                                      >
+                                                <div
+                                                  className="button-label glamor-2"
+                                                  is={null}
+                                                >
+                                                  <span
+                                                    className="icon icon-trash"
+                                                  />
+                                                </div>
+                                              </Base>
+                                            </Flex>
+                                          </button>
+                                        </Button>
                                         <Modal
+                                          animation={false}
                                           autoFocus={true}
                                           backdrop={true}
-                                          backdropClassName="modal-backdrop"
-                                          containerClassName="modal-open"
+                                          bsClass="modal"
+                                          dialogComponentClass={[Function]}
                                           enforceFocus={true}
                                           keyboard={true}
                                           manager={
@@ -566,287 +800,55 @@ exports[`ProjectSavedSearches renders 1`] = `
                                               "remove": [Function],
                                             }
                                           }
-                                          onEntering={[Function]}
-                                          onExited={[Function]}
                                           onHide={[Function]}
                                           renderBackdrop={[Function]}
                                           restoreFocus={true}
                                           show={false}
-                                        />
-                                      </Modal>
-                                    </Confirm>
-                                  </div>
-                                </Base>
-                              </Flex>
-                            </InputColumn>
-                          </div>
-                        </Base>
-                      </Flex>
-                    </div>
-                  </Base>
-                </StyledPanelItem>
-              </PanelItem>
-            </SavedSearchRow>
-            <SavedSearchRow
-              access={
-                Set {
-                  "org:read",
-                  "org:write",
-                  "org:admin",
-                  "project:read",
-                  "project:write",
-                  "project:admin",
-                  "team:read",
-                  "team:write",
-                  "team:admin",
-                }
-              }
-              canModify={true}
-              data={
-                Object {
-                  "dateCreated": "2017-11-14T02:22:58.022Z",
-                  "id": "1",
-                  "isDefault": false,
-                  "isPrivate": false,
-                  "isUserDefault": true,
-                  "name": "Unresolved Issues",
-                  "query": "is:unresolved",
-                }
-              }
-              key="1"
-              onDefault={[Function]}
-              onRemove={[Function]}
-              onUserDefault={[Function]}
-              orgId="org-slug"
-              projectId="project-slug"
-            >
-              <PanelItem
-                align="center"
-                p={0}
-                py={2}
-              >
-                <StyledPanelItem
-                  align="center"
-                  p={0}
-                  py={2}
-                >
-                  <Base
-                    align="center"
-                    className="glamor-43 glamor-44"
-                    p={0}
-                    py={2}
-                  >
-                    <div
-                      className="glamor-43 glamor-44"
-                      is={null}
-                    >
-                      <Flex
-                        direction="column"
-                        flex="1"
-                        px={2}
-                      >
-                        <Base
-                          className="glamor-31"
-                          direction="column"
-                          flex="1"
-                          px={2}
-                        >
-                          <div
-                            className="glamor-31"
-                            is={null}
-                          >
-                            <SearchTitle>
-                              <div
-                                className="glamor-29 glamor-30"
-                              >
-                                Unresolved Issues
-                              </div>
-                            </SearchTitle>
-                            <code>
-                              is:unresolved
-                            </code>
-                          </div>
-                        </Base>
-                      </Flex>
-                      <Flex
-                        flex="1"
-                      >
-                        <Base
-                          className="glamor-14"
-                          flex="1"
-                        >
-                          <div
-                            className="glamor-14"
-                            is={null}
-                          >
-                            <InputColumn>
-                              <Flex
-                                flex="1"
-                                justify="center"
-                              >
-                                <Base
-                                  className="glamor-8"
-                                  flex="1"
-                                  justify="center"
-                                >
-                                  <div
-                                    className="glamor-8"
-                                    is={null}
-                                  >
-                                    <input
-                                      checked={true}
-                                      name="userDefault"
-                                      onChange={[Function]}
-                                      type="radio"
-                                    />
-                                  </div>
-                                </Base>
-                              </Flex>
-                            </InputColumn>
-                            <InputColumn>
-                              <Flex
-                                flex="1"
-                                justify="center"
-                              >
-                                <Base
-                                  className="glamor-8"
-                                  flex="1"
-                                  justify="center"
-                                >
-                                  <div
-                                    className="glamor-8"
-                                    is={null}
-                                  >
-                                    <input
-                                      checked={false}
-                                      name="default"
-                                      onChange={[Function]}
-                                      type="radio"
-                                    />
-                                  </div>
-                                </Base>
-                              </Flex>
-                            </InputColumn>
-                            <InputColumn>
-                              <Flex
-                                flex="1"
-                                justify="center"
-                              >
-                                <Base
-                                  className="glamor-8"
-                                  flex="1"
-                                  justify="center"
-                                >
-                                  <div
-                                    className="glamor-8"
-                                    is={null}
-                                  >
-                                    <Confirm
-                                      cancelText="Cancel"
-                                      confirmText="Confirm"
-                                      message="Are you sure you want to remove this?"
-                                      onConfirm={[Function]}
-                                      priority="primary"
-                                    >
-                                      <Button
-                                        disabled={false}
-                                        onClick={[Function]}
-                                        size="small"
-                                      >
-                                        <button
-                                          className="button button-default button-sm"
-                                          disabled={false}
-                                          onClick={[Function]}
-                                          role="button"
                                         >
-                                          <Flex
-                                            align="center"
-                                            className="button-label"
-                                          >
-                                            <Base
-                                              align="center"
-                                              className="button-label glamor-2"
-                                            >
-                                              <div
-                                                className="button-label glamor-2"
-                                                is={null}
-                                              >
-                                                <span
-                                                  className="icon icon-trash"
-                                                />
-                                              </div>
-                                            </Base>
-                                          </Flex>
-                                        </button>
-                                      </Button>
-                                      <Modal
-                                        animation={false}
-                                        autoFocus={true}
-                                        backdrop={true}
-                                        bsClass="modal"
-                                        dialogComponentClass={[Function]}
-                                        enforceFocus={true}
-                                        keyboard={true}
-                                        manager={
-                                          ModalManager {
-                                            "add": [Function],
-                                            "containers": Array [],
-                                            "data": Array [],
-                                            "handleContainerOverflow": true,
-                                            "hideSiblingNodes": true,
-                                            "isTopModal": [Function],
-                                            "modals": Array [],
-                                            "remove": [Function],
-                                          }
-                                        }
-                                        onHide={[Function]}
-                                        renderBackdrop={[Function]}
-                                        restoreFocus={true}
-                                        show={false}
-                                      >
-                                        <Modal
-                                          autoFocus={true}
-                                          backdrop={true}
-                                          backdropClassName="modal-backdrop"
-                                          containerClassName="modal-open"
-                                          enforceFocus={true}
-                                          keyboard={true}
-                                          manager={
-                                            ModalManager {
-                                              "add": [Function],
-                                              "containers": Array [],
-                                              "data": Array [],
-                                              "handleContainerOverflow": true,
-                                              "hideSiblingNodes": true,
-                                              "isTopModal": [Function],
-                                              "modals": Array [],
-                                              "remove": [Function],
+                                          <Modal
+                                            autoFocus={true}
+                                            backdrop={true}
+                                            backdropClassName="modal-backdrop"
+                                            containerClassName="modal-open"
+                                            enforceFocus={true}
+                                            keyboard={true}
+                                            manager={
+                                              ModalManager {
+                                                "add": [Function],
+                                                "containers": Array [],
+                                                "data": Array [],
+                                                "handleContainerOverflow": true,
+                                                "hideSiblingNodes": true,
+                                                "isTopModal": [Function],
+                                                "modals": Array [],
+                                                "remove": [Function],
+                                              }
                                             }
-                                          }
-                                          onEntering={[Function]}
-                                          onExited={[Function]}
-                                          onHide={[Function]}
-                                          renderBackdrop={[Function]}
-                                          restoreFocus={true}
-                                          show={false}
-                                        />
-                                      </Modal>
-                                    </Confirm>
-                                  </div>
-                                </Base>
-                              </Flex>
-                            </InputColumn>
-                          </div>
-                        </Base>
-                      </Flex>
-                    </div>
-                  </Base>
-                </StyledPanelItem>
-              </PanelItem>
-            </SavedSearchRow>
-          </div>
-        </PanelBody>
-      </div>
+                                            onEntering={[Function]}
+                                            onExited={[Function]}
+                                            onHide={[Function]}
+                                            renderBackdrop={[Function]}
+                                            restoreFocus={true}
+                                            show={false}
+                                          />
+                                        </Modal>
+                                      </Confirm>
+                                    </div>
+                                  </Base>
+                                </Flex>
+                              </InputColumn>
+                            </div>
+                          </Base>
+                        </Flex>
+                      </div>
+                    </Base>
+                  </StyledPanelItem>
+                </PanelItem>
+              </SavedSearchRow>
+            </div>
+          </PanelBody>
+        </div>
+      </StyledPanel>
     </Panel>
   </div>
 </ProjectSavedSearches>

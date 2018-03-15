@@ -5,6 +5,7 @@ import ProjectPlugins from 'app/views/projectPlugins';
 import PluginNavigation from 'app/views/projectSettings/pluginNavigation';
 
 jest.mock('app/api');
+jest.mock('app/utils/recreateRoute');
 
 describe('PluginNavigation Integration', function() {
   let org, project, plugins, wrapper;
@@ -73,34 +74,19 @@ describe('PluginNavigation Integration', function() {
      * This tests that ProjectPlugins and PluginNavigation respond to the same store
      */
     it('has Amazon in <PluginNavigation /> after enabling', function(done) {
-      let hasEnabled = false;
-      let originalDidUpdate =
-        ProjectPlugins.prototype.componentDidUpdate || function() {};
-
-      // Yuck, not sure of a better way to test these
-      ProjectPlugins.prototype.componentDidUpdate = function() {
+      setTimeout(() => {
         wrapper.update();
-        if (!hasEnabled && wrapper.find('Checkbox').length) {
-          hasEnabled = true;
-          // Enable first plugin, should be amazon
-          wrapper
-            .find('Checkbox')
-            .first()
-            .simulate('change');
+        wrapper
+          .find('Switch')
+          .first()
+          .simulate('click');
 
+        setTimeout(() => {
           wrapper.update();
-        }
-        originalDidUpdate();
-      };
-
-      PluginNavigation.prototype.componentDidUpdate = function() {
-        wrapper.update();
-        if (wrapper.find('PluginNavigation a').length) {
           expect(wrapper.find('PluginNavigation').find('a')).toHaveLength(1);
           done();
-        }
-        originalDidUpdate();
-      };
+        });
+      });
     });
   });
 });
