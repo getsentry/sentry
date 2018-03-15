@@ -537,7 +537,6 @@ exports[`OrganizationMembersView No Require Link does not have 2fa warning if us
                                   is={null}
                                 >
                                   <Avatar
-                                    className="avatar"
                                     gravatar={true}
                                     hasTooltip={false}
                                     size={64}
@@ -813,7 +812,6 @@ exports[`OrganizationMembersView No Require Link does not have 2fa warning if us
                                   is={null}
                                 >
                                   <Avatar
-                                    className="avatar"
                                     gravatar={true}
                                     hasTooltip={false}
                                     size={64}
@@ -1084,7 +1082,6 @@ exports[`OrganizationMembersView No Require Link does not have 2fa warning if us
                                   is={null}
                                 >
                                   <Avatar
-                                    className="avatar"
                                     gravatar={true}
                                     hasTooltip={false}
                                     size={64}
@@ -1818,7 +1815,6 @@ exports[`OrganizationMembersView Require Link does not have 2fa warning if user 
                                   is={null}
                                 >
                                   <Avatar
-                                    className="avatar"
                                     gravatar={true}
                                     hasTooltip={false}
                                     size={64}
@@ -2128,7 +2124,6 @@ exports[`OrganizationMembersView Require Link does not have 2fa warning if user 
                                   is={null}
                                 >
                                   <Avatar
-                                    className="avatar"
                                     gravatar={true}
                                     hasTooltip={false}
                                     size={64}
@@ -2438,7 +2433,6 @@ exports[`OrganizationMembersView Require Link does not have 2fa warning if user 
                                   is={null}
                                 >
                                   <Avatar
-                                    className="avatar"
                                     gravatar={true}
                                     hasTooltip={false}
                                     size={64}
