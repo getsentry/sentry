@@ -54,10 +54,10 @@ class ProjectOwnership extends AsyncView {
           <PanelBody disablePadding={false}>
             <p>
               {t(
-                "To configure automated issue ownership in Sentry, you'll need to define rules here. "
+                'Define rules here to configure automated ownership for new issues and direct email alerts'
               )}
             </p>
-            <p>{t('Rules follow the pattern type:glob owner, owner')}</p>
+            <p>{t('Rules follow the pattern type:glob owner owner')}</p>
             <p>
               {t(
                 'Owners can be team identifiers starting with #, or user emails (use @ to input from list)'
@@ -65,9 +65,9 @@ class ProjectOwnership extends AsyncView {
             </p>
             Examples:
             <CodeBlock>
-              path:src/sentry/pipeline/* person@sentry.io #platform
+              path:src/example/pipeline/* person@sentry.io #infrastructure
               {'\n'}
-              url:http://sentry.io/settings/* #workflow
+              url:http://example.com/settings/* #product
             </CodeBlock>
             <OwnerInput {...this.props} initialText={ownership.raw || ''} />
           </PanelBody>
