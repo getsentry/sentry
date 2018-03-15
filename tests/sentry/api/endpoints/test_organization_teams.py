@@ -23,7 +23,7 @@ class OrganizationTeamsListTest(APITestCase):
             teams=[team1],
         )
 
-        path = reverse('sentry-api-0-organization-teams', args=[org.slug])
+        path = '/api/0/organizations/{}/teams/'.format(org.slug)
 
         self.login_as(user=user)
 
@@ -35,6 +35,33 @@ class OrganizationTeamsListTest(APITestCase):
         assert not response.data[0]['isMember']
         assert response.data[1]['id'] == six.text_type(team1.id)
         assert response.data[1]['isMember']
+
+    def test_search(self):
+        user = self.create_user()
+        org = self.create_organization(owner=self.user)
+        team = self.create_team(organization=org, name='bar', slug='bar')
+
+        self.create_member(
+            organization=org,
+            user=user,
+            has_global_access=False,
+            teams=[team],
+        )
+
+        self.login_as(user=user)
+
+        path = '/api/0/organizations/{}/teams/?query=bar'.format(org.slug)
+        response = self.client.get(path)
+
+        assert response.status_code == 200, response.content
+        assert len(response.data) == 1
+        assert response.data[0]['id'] == six.text_type(team.id)
+
+        path = '/api/0/organizations/{}/teams/?query=baz'.format(org.slug)
+        response = self.client.get(path)
+
+        assert response.status_code == 200, response.content
+        assert len(response.data) == 0
 
 
 class OrganizationTeamsCreateTest(APITestCase):

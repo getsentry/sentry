@@ -9,14 +9,26 @@ exports[`Stream render() displays the group list 1`] = `
       className="stream-content"
     >
       <StreamFilters
-        access={Set {}}
+        access={
+          Set {
+            "org:read",
+            "org:write",
+            "org:admin",
+            "project:read",
+            "project:write",
+            "project:admin",
+            "team:read",
+            "team:write",
+            "team:admin",
+          }
+        }
         isSearchDisabled={false}
         onSavedSearchCreate={[Function]}
         onSearch={[Function]}
         onSidebarToggle={[Function]}
         onSortChange={[Function]}
-        orgId="123"
-        projectId="456"
+        orgId="org-slug"
+        projectId="project-slug"
         query="is:unresolved"
         queryCount={null}
         savedSearchList={
@@ -45,8 +57,8 @@ exports[`Stream render() displays the group list 1`] = `
           canSelect={true}
           id="1"
           key="1"
-          orgId="123"
-          projectId="456"
+          orgId="org-slug"
+          projectId="project-slug"
           query="is:unresolved"
           statsPeriod="24h"
         />
@@ -59,8 +71,8 @@ exports[`Stream render() displays the group list 1`] = `
     <StreamSidebar
       loading={false}
       onQueryChange={[Function]}
-      orgId="123"
-      projectId="456"
+      orgId="org-slug"
+      projectId="project-slug"
       query="is:unresolved"
       tags={
         Object {
@@ -147,14 +159,26 @@ exports[`Stream toggles environment select all environments 1`] = `
       className="stream-content"
     >
       <StreamFilters
-        access={Set {}}
+        access={
+          Set {
+            "org:read",
+            "org:write",
+            "org:admin",
+            "project:read",
+            "project:write",
+            "project:admin",
+            "team:read",
+            "team:write",
+            "team:admin",
+          }
+        }
         isSearchDisabled={false}
         onSavedSearchCreate={[Function]}
         onSearch={[Function]}
         onSidebarToggle={[Function]}
         onSortChange={[Function]}
-        orgId="123"
-        projectId="456"
+        orgId="org-slug"
+        projectId="project-slug"
         query="is:unresolved"
         queryCount={null}
         savedSearchList={
@@ -183,8 +207,8 @@ exports[`Stream toggles environment select all environments 1`] = `
           canSelect={true}
           id="1"
           key="1"
-          orgId="123"
-          projectId="456"
+          orgId="org-slug"
+          projectId="project-slug"
           query="is:unresolved"
           statsPeriod="24h"
         />
@@ -197,8 +221,8 @@ exports[`Stream toggles environment select all environments 1`] = `
     <StreamSidebar
       loading={false}
       onQueryChange={[Function]}
-      orgId="123"
-      projectId="456"
+      orgId="org-slug"
+      projectId="project-slug"
       query="is:unresolved"
       tags={
         Object {
