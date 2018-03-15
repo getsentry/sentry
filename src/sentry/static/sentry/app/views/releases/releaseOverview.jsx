@@ -286,7 +286,9 @@ const ReleaseOverview = createReactClass({
               {!deploys.length
                 ? this.renderEmpty()
                 : deploys.map(deploy => {
-                    let href = `/${orgId}/${projectId}/?query=release:${version}&environment=${deploy.environment}`;
+                    let href = `/${orgId}/${projectId}/?query=release:${version}&environment=${encodeURIComponent(
+                      deploy.environment
+                    )}`;
 
                     // TODO(lyn): Remove when environment feature switched on
                     if (!this.getFeatures().has('environments')) {
