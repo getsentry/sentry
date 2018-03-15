@@ -47,6 +47,7 @@ exports[`Stream render() displays the group list 1`] = `
           key="1"
           orgId="123"
           projectId="456"
+          query="is:unresolved"
           statsPeriod="24h"
         />
       </ul>
@@ -184,6 +185,7 @@ exports[`Stream toggles environment select all environments 1`] = `
           key="1"
           orgId="123"
           projectId="456"
+          query="is:unresolved"
           statsPeriod="24h"
         />
       </ul>
