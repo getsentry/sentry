@@ -227,27 +227,6 @@ class APIView(BaseView):
             project.organization = Organization.objects.get_from_cache(
                 id=project.organization_id)
 
-            if auth.version != '2.0':
-                if not auth.secret_key:
-                    # If we're missing a secret_key, check if we are allowed
-                    # to do a CORS request.
-
-                    # If we're missing an Origin/Referrer header entirely,
-                    # we only want to support this on GET requests. By allowing
-                    # un-authenticated CORS checks for POST, we basially
-                    # are obsoleting our need for a secret key entirely.
-                    if origin is None and request.method != 'GET':
-                        raise APIForbidden(
-                            'Missing required attribute in authentication header: sentry_secret'
-                        )
-
-                    if not is_valid_origin(origin, project):
-                        if project:
-                            tsdb.incr(
-                                tsdb.models.project_total_received_cors, project.id)
-                        raise APIForbidden(
-                            'Missing required Origin or Referer header')
-
             response = super(APIView, self).dispatch(
                 request=request, project=project, auth=auth, helper=helper, key=key, **kwargs
             )
