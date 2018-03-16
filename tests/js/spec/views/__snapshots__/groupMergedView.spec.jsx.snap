@@ -784,9 +784,7 @@ exports[`Issues -> Merged View renders with mocked data 1`] = `
                             <h3
                               className="truncate"
                             >
-                              <Link
-                                onlyActiveOnIndex={false}
-                                style={Object {}}
+                              <ProjectLink
                                 to={
                                   Object {
                                     "pathname": "/orgId/projectId/issues/268/events/904/",
@@ -795,8 +793,12 @@ exports[`Issues -> Merged View renders with mocked data 1`] = `
                                 }
                               >
                                 <a
-                                  onClick={[Function]}
-                                  style={Object {}}
+                                  href={
+                                    Object {
+                                      "pathname": "/orgId/projectId/issues/268/events/904/",
+                                      "search": "",
+                                    }
+                                  }
                                 >
                                   <EventOrGroupTitle
                                     data={
@@ -907,7 +909,7 @@ exports[`Issues -> Merged View renders with mocked data 1`] = `
                                     </span>
                                   </EventOrGroupTitle>
                                 </a>
-                              </Link>
+                              </ProjectLink>
                             </h3>
                             <div
                               className="event-message truncate"
@@ -1218,9 +1220,7 @@ exports[`Issues -> Merged View renders with mocked data 1`] = `
                             <h3
                               className="truncate"
                             >
-                              <Link
-                                onlyActiveOnIndex={false}
-                                style={Object {}}
+                              <ProjectLink
                                 to={
                                   Object {
                                     "pathname": "/orgId/projectId/issues/268/events/904/",
@@ -1229,8 +1229,12 @@ exports[`Issues -> Merged View renders with mocked data 1`] = `
                                 }
                               >
                                 <a
-                                  onClick={[Function]}
-                                  style={Object {}}
+                                  href={
+                                    Object {
+                                      "pathname": "/orgId/projectId/issues/268/events/904/",
+                                      "search": "",
+                                    }
+                                  }
                                 >
                                   <EventOrGroupTitle
                                     data={
@@ -1341,7 +1345,7 @@ exports[`Issues -> Merged View renders with mocked data 1`] = `
                                     </span>
                                   </EventOrGroupTitle>
                                 </a>
-                              </Link>
+                              </ProjectLink>
                             </h3>
                             <div
                               className="event-message truncate"
@@ -2139,9 +2143,7 @@ exports[`Issues -> Merged View renders with mocked data 2`] = `
                             <h3
                               className="truncate"
                             >
-                              <Link
-                                onlyActiveOnIndex={false}
-                                style={Object {}}
+                              <ProjectLink
                                 to={
                                   Object {
                                     "pathname": "/orgId/projectId/issues/268/events/904/",
@@ -2150,8 +2152,12 @@ exports[`Issues -> Merged View renders with mocked data 2`] = `
                                 }
                               >
                                 <a
-                                  onClick={[Function]}
-                                  style={Object {}}
+                                  href={
+                                    Object {
+                                      "pathname": "/orgId/projectId/issues/268/events/904/",
+                                      "search": "",
+                                    }
+                                  }
                                 >
                                   <EventOrGroupTitle
                                     data={
@@ -2262,7 +2268,7 @@ exports[`Issues -> Merged View renders with mocked data 2`] = `
                                     </span>
                                   </EventOrGroupTitle>
                                 </a>
-                              </Link>
+                              </ProjectLink>
                             </h3>
                             <div
                               className="event-message truncate"
@@ -2573,9 +2579,7 @@ exports[`Issues -> Merged View renders with mocked data 2`] = `
                             <h3
                               className="truncate"
                             >
-                              <Link
-                                onlyActiveOnIndex={false}
-                                style={Object {}}
+                              <ProjectLink
                                 to={
                                   Object {
                                     "pathname": "/orgId/projectId/issues/268/events/904/",
@@ -2584,8 +2588,12 @@ exports[`Issues -> Merged View renders with mocked data 2`] = `
                                 }
                               >
                                 <a
-                                  onClick={[Function]}
-                                  style={Object {}}
+                                  href={
+                                    Object {
+                                      "pathname": "/orgId/projectId/issues/268/events/904/",
+                                      "search": "",
+                                    }
+                                  }
                                 >
                                   <EventOrGroupTitle
                                     data={
@@ -2696,7 +2704,7 @@ exports[`Issues -> Merged View renders with mocked data 2`] = `
                                     </span>
                                   </EventOrGroupTitle>
                                 </a>
-                              </Link>
+                              </ProjectLink>
                             </h3>
                             <div
                               className="event-message truncate"
