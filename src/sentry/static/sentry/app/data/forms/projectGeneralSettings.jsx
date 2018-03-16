@@ -1,5 +1,6 @@
+import React from 'react';
 import {extractMultilineFields} from '../../utils';
-import {t, tn} from '../../locale';
+import {t, tct, tn} from '../../locale';
 import getDynamicText from '../../utils/getDynamicText';
 
 // Export route to make these forms searchable by label/help
@@ -40,16 +41,21 @@ export const fields = {
     type: 'string',
     required: true,
 
-    // additional data/props that is related to rendering of form field rather than data
-    label: t('Project Name'),
+    label: t('Legacy Name'),
     placeholder: t('My Service Name'),
-    help: t('The name of your project'),
+    help: tct(
+      '[Deprecated] In the future, only [Name] will be used to identify your project',
+      {
+        Deprecated: <strong>DEPRECATED</strong>,
+        Name: <strong>Name</strong>,
+      }
+    ),
   },
   slug: {
     name: 'slug',
     type: 'string',
     required: true,
-    label: t('Short Name'),
+    label: t('Name'),
     placeholder: t('my-service-name'),
     help: t('A unique ID used to identify this project'),
   },
