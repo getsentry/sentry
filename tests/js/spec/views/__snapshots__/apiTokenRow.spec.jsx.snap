@@ -27,43 +27,44 @@ exports[`ApiTokenRow renders 1`] = `
         </TextCopyInput>
       </small>
     </div>
-    <div
-      style={
-        Object {
-          "marginBottom": 5,
-        }
-      }
-    >
-      <Created>
-        Created
-         
-        <DateTime
-          date={2018-01-12T02:01:41.000Z}
-          seconds={true}
-        />
-      </Created>
-    </div>
-    <div>
-      <ScopeList>
-        scope1, scope2
-      </ScopeList>
-    </div>
-  </Box>
-  <Flex
-    align="center"
-  >
-    <Box
-      pl={2}
-    >
-      <Button
-        disabled={false}
-        onClick={[Function]}
+    <Details>
+      <Box
+        flex="1"
       >
-        <span
-          className="icon icon-trash"
-        />
-      </Button>
-    </Box>
-  </Flex>
+        <Heading>
+          Scopes
+        </Heading>
+        <ScopeList>
+          scope1, scope2
+        </ScopeList>
+      </Box>
+      <Box>
+        <Heading>
+          Created
+        </Heading>
+        <Time>
+          <DateTime
+            date={2018-01-12T02:01:41.000Z}
+            seconds={true}
+          />
+        </Time>
+      </Box>
+    </Details>
+  </Box>
+  <Action
+    pl={2}
+  >
+    <StyledButton
+      icon="icon-circle-subtract"
+      onClick={[Function]}
+      size="small"
+    >
+      <span
+        className="ref-delete-api-token"
+      >
+        Remove
+      </span>
+    </StyledButton>
+  </Action>
 </PanelItem>
 `;

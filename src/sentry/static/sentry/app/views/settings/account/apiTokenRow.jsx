@@ -9,13 +9,39 @@ import DateTime from '../../../components/dateTime';
 import PanelItem from '../components/panelItem';
 import TextCopyInput from '../components/forms/textCopyInput';
 
-const ScopeList = styled.div`
-  font-size: 0.9em;
-  color: #999;
+const Details = styled(Flex)`
+  margin-top: 16px;
 `;
 
-const Created = styled.div`
+const ScopeList = styled.div`
   font-size: 0.9em;
+  line-height: 1.4;
+`;
+
+const Time = styled.time`
+  font-size: 0.9em;
+`;
+
+const Action = styled(Box)`
+  align-self: flex-start;
+`;
+
+const Heading = styled.div`
+  font-size: 13px;
+  text-transform: uppercase;
+  color: ${p => p.theme.gray3};
+  margin-bottom: 8px;
+`;
+
+const StyledButton = styled(Button)`
+  /* todo(ckj): Buttons need to be refactored to be properly extended by styled.
+     For now, we'll need to use a child selector:
+  */
+
+  .button-label {
+    padding-top: 9px;
+    padding-bottom: 9px;
+  }
 `;
 
 class ApiTokenRow extends React.Component {
@@ -49,23 +75,29 @@ class ApiTokenRow extends React.Component {
               </TextCopyInput>
             </small>
           </div>
-          <div style={{marginBottom: 5}}>
-            <Created>
-              {t('Created')} <DateTime date={token.dateCreated} />
-            </Created>
-          </div>
-          <div>
-            <ScopeList>{token.scopes.join(', ')}</ScopeList>
-          </div>
+          <Details>
+            <Box flex="1">
+              <Heading>{t('Scopes')}</Heading>
+              <ScopeList>{token.scopes.join(', ')}</ScopeList>
+            </Box>
+            <Box>
+              <Heading>{t('Created')}</Heading>
+              <Time>
+                <DateTime date={token.dateCreated} />
+              </Time>
+            </Box>
+          </Details>
         </Box>
 
-        <Flex align="center">
-          <Box pl={2}>
-            <Button onClick={this.handleRemove}>
-              <span className="icon icon-trash" />
-            </Button>
-          </Box>
-        </Flex>
+        <Action pl={2}>
+          <StyledButton
+            size="small"
+            onClick={this.handleRemove}
+            icon="icon-circle-subtract"
+          >
+            <span className="ref-delete-api-token">{t('Remove')}</span>
+          </StyledButton>
+        </Action>
       </PanelItem>
     );
   }

@@ -124,7 +124,7 @@ exports[`ApiTokens renders with result 1`] = `
   margin-bottom: 30px;
 }
 
-.glamor-59 {
+.glamor-86 {
   background: #fff;
   border: 1px solid;
   margin-bottom: NaNpx;
@@ -165,7 +165,7 @@ exports[`ApiTokens renders with result 1`] = `
   flex: 1;
 }
 
-.glamor-55 {
+.glamor-82 {
   box-sizing: border-box;
   padding: 16px;
   padding-left: 16px;
@@ -183,7 +183,7 @@ exports[`ApiTokens renders with result 1`] = `
   border-bottom: 1px solid;
 }
 
-.glamor-55:last-child {
+.glamor-82:last-child {
   border: 0;
 }
 
@@ -256,18 +256,60 @@ exports[`ApiTokens renders with result 1`] = `
   border-right-width: 0;
 }
 
+.glamor-55 {
+  box-sizing: border-box;
+  display: -webkit-box;
+  display: -webkit-flex;
+  display: -ms-flexbox;
+  display: flex;
+  margin-top: 16px;
+}
+
 .glamor-43 {
-  font-size: 0.9em;
+  font-size: 13px;
+  text-transform: uppercase;
+  margin-bottom: 8px;
 }
 
 .glamor-45 {
   font-size: 0.9em;
-  color: #999;
+  line-height: 1.4;
+}
+
+.glamor-53 {
+  box-sizing: border-box;
 }
 
 .glamor-51 {
+  font-size: 0.9em;
+}
+
+.glamor-78 {
   box-sizing: border-box;
   padding-left: 16px;
+  -webkit-align-self: flex-start;
+  -ms-flex-item-align: start;
+  align-self: flex-start;
+}
+
+.glamor-74 .button-label {
+  padding-top: 9px;
+  padding-bottom: 9px;
+}
+
+.glamor-68 {
+  box-sizing: border-box;
+  margin-right: 6px;
+  margin-left: -2px;
+}
+
+.glamor-64 {
+  display: block;
+}
+
+.glamor-62 {
+  vertical-align: middle;
+  display: block;
 }
 
 <ApiTokens>
@@ -434,7 +476,7 @@ exports[`ApiTokens renders with result 1`] = `
         <Panel>
           <StyledPanel>
             <div
-              className="glamor-59 glamor-60"
+              className="glamor-86 glamor-87"
             >
               <PanelHeader
                 disablePadding={true}
@@ -533,14 +575,14 @@ exports[`ApiTokens renders with result 1`] = `
                         py={2}
                       >
                         <Base
-                          className="glamor-55 glamor-56"
+                          className="glamor-82 glamor-83"
                           justify="space-between"
                           p={2}
                           px={2}
                           py={2}
                         >
                           <div
-                            className="glamor-55 glamor-56"
+                            className="glamor-82 glamor-83"
                             is={null}
                           >
                             <Box
@@ -614,100 +656,181 @@ exports[`ApiTokens renders with result 1`] = `
                                       </TextCopyInput>
                                     </small>
                                   </div>
-                                  <div
-                                    style={
-                                      Object {
-                                        "marginBottom": 5,
-                                      }
-                                    }
-                                  >
-                                    <Created>
+                                  <Details>
+                                    <Base
+                                      className="glamor-55 glamor-56"
+                                    >
                                       <div
-                                        className="glamor-43 glamor-44"
+                                        className="glamor-55 glamor-56"
+                                        is={null}
                                       >
-                                        Created
-                                         
-                                        <DateTime
-                                          date={2018-01-12T02:01:41.000Z}
-                                          seconds={true}
+                                        <Box
+                                          flex="1"
                                         >
-                                          <time>
-                                            Jan 12, 2018 2:01:41 AM UTC
-                                          </time>
-                                        </DateTime>
+                                          <Base
+                                            className="glamor-47"
+                                            flex="1"
+                                          >
+                                            <div
+                                              className="glamor-47"
+                                              is={null}
+                                            >
+                                              <Heading>
+                                                <div
+                                                  className="glamor-43 glamor-44"
+                                                >
+                                                  Scopes
+                                                </div>
+                                              </Heading>
+                                              <ScopeList>
+                                                <div
+                                                  className="glamor-45 glamor-46"
+                                                >
+                                                  scope1, scope2
+                                                </div>
+                                              </ScopeList>
+                                            </div>
+                                          </Base>
+                                        </Box>
+                                        <Box>
+                                          <Base
+                                            className="glamor-53"
+                                          >
+                                            <div
+                                              className="glamor-53"
+                                              is={null}
+                                            >
+                                              <Heading>
+                                                <div
+                                                  className="glamor-43 glamor-44"
+                                                >
+                                                  Created
+                                                </div>
+                                              </Heading>
+                                              <Time>
+                                                <time
+                                                  className="glamor-51 glamor-52"
+                                                >
+                                                  <DateTime
+                                                    date={2018-01-12T02:01:41.000Z}
+                                                    seconds={true}
+                                                  >
+                                                    <time>
+                                                      Jan 12, 2018 2:01:41 AM UTC
+                                                    </time>
+                                                  </DateTime>
+                                                </time>
+                                              </Time>
+                                            </div>
+                                          </Base>
+                                        </Box>
                                       </div>
-                                    </Created>
-                                  </div>
-                                  <div>
-                                    <ScopeList>
-                                      <div
-                                        className="glamor-45 glamor-46"
-                                      >
-                                        scope1, scope2
-                                      </div>
-                                    </ScopeList>
-                                  </div>
+                                    </Base>
+                                  </Details>
                                 </div>
                               </Base>
                             </Box>
-                            <Flex
-                              align="center"
+                            <Action
+                              pl={2}
                             >
                               <Base
-                                align="center"
-                                className="glamor-2"
+                                className="glamor-78 glamor-79"
+                                pl={2}
                               >
                                 <div
-                                  className="glamor-2"
+                                  className="glamor-78 glamor-79"
                                   is={null}
                                 >
-                                  <Box
-                                    pl={2}
+                                  <StyledButton
+                                    icon="icon-circle-subtract"
+                                    onClick={[Function]}
+                                    size="small"
                                   >
-                                    <Base
-                                      className="glamor-51"
-                                      pl={2}
+                                    <Button
+                                      className="glamor-74 glamor-75"
+                                      disabled={false}
+                                      icon="icon-circle-subtract"
+                                      onClick={[Function]}
+                                      size="small"
                                     >
-                                      <div
-                                        className="glamor-51"
-                                        is={null}
+                                      <button
+                                        className="glamor-74 glamor-75 button button-default button-sm"
+                                        disabled={false}
+                                        onClick={[Function]}
+                                        role="button"
                                       >
-                                        <Button
-                                          disabled={false}
-                                          onClick={[Function]}
+                                        <Flex
+                                          align="center"
+                                          className="button-label"
                                         >
-                                          <button
-                                            className="button button-default"
-                                            disabled={false}
-                                            onClick={[Function]}
-                                            role="button"
+                                          <Base
+                                            align="center"
+                                            className="button-label glamor-2"
                                           >
-                                            <Flex
-                                              align="center"
-                                              className="button-label"
+                                            <div
+                                              className="button-label glamor-2"
+                                              is={null}
                                             >
-                                              <Base
-                                                align="center"
-                                                className="button-label glamor-2"
+                                              <Icon
+                                                size="small"
                                               >
-                                                <div
-                                                  className="button-label glamor-2"
-                                                  is={null}
+                                                <Base
+                                                  className="glamor-68 glamor-69"
+                                                  size="small"
                                                 >
-                                                  <span
-                                                    className="icon icon-trash"
-                                                  />
-                                                </div>
-                                              </Base>
-                                            </Flex>
-                                          </button>
-                                        </Button>
-                                      </div>
-                                    </Base>
-                                  </Box>
+                                                  <div
+                                                    className="glamor-68 glamor-69"
+                                                    is={null}
+                                                    size="small"
+                                                  >
+                                                    <StyledInlineSvg
+                                                      size="12px"
+                                                      src="icon-circle-subtract"
+                                                    >
+                                                      <InlineSvg
+                                                        className="glamor-64 glamor-61"
+                                                        size="12px"
+                                                        src="icon-circle-subtract"
+                                                      >
+                                                        <StyledSvg
+                                                          className="glamor-64 glamor-61"
+                                                          height="12px"
+                                                          style={Object {}}
+                                                          viewBox={Object {}}
+                                                          width="12px"
+                                                        >
+                                                          <svg
+                                                            className="glamor-61 glamor-62 glamor-63"
+                                                            height="12px"
+                                                            style={Object {}}
+                                                            viewBox={Object {}}
+                                                            width="12px"
+                                                          >
+                                                            <use
+                                                              href="#test"
+                                                              xlinkHref="#test"
+                                                            />
+                                                          </svg>
+                                                        </StyledSvg>
+                                                      </InlineSvg>
+                                                    </StyledInlineSvg>
+                                                  </div>
+                                                </Base>
+                                              </Icon>
+                                              <span
+                                                className="ref-delete-api-token"
+                                              >
+                                                Remove
+                                              </span>
+                                            </div>
+                                          </Base>
+                                        </Flex>
+                                      </button>
+                                    </Button>
+                                  </StyledButton>
                                 </div>
                               </Base>
-                            </Flex>
+                            </Action>
                           </div>
                         </Base>
                       </StyledPanelItem>
