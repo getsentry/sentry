@@ -2,7 +2,9 @@ import jQuery from 'jquery';
 import PropTypes from 'prop-types';
 import React from 'react';
 import createReactClass from 'create-react-class';
-import {Link, browserHistory} from 'react-router';
+import {browserHistory} from 'react-router';
+
+import ProjectLink from '../../components/projectLink';
 import ApiMixin from '../../mixins/apiMixin';
 import DateTime from '../../components/dateTime';
 import Avatar from '../../components/avatar';
@@ -162,11 +164,11 @@ const ProjectEvents = createReactClass({
           </td>
           <td>
             <h5>
-              <Link
+              <ProjectLink
                 to={`/${orgId}/${projectId}/issues/${event.groupID}/events/${event.id}/`}
               >
                 {this.getEventTitle(event)}
-              </Link>
+              </ProjectLink>
             </h5>
           </td>
           <td className="event-user table-user-info" style={{textAlign: 'right'}}>
