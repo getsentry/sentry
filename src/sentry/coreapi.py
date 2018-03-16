@@ -368,7 +368,10 @@ class MinidumpApiHelper(ClientApiHelper):
         if not key:
             raise APIUnauthorized('Unable to find authentication information')
 
-        auth = Auth({'sentry_key': key}, is_public=True)
+        # Minidump requests are always "trusted".  We at this point only
+        # use is_public to identify requests that have an origin set (via
+        # CORS)
+        auth = Auth({'sentry_key': key}, is_public=False)
         auth.client = 'sentry-minidump'
         return auth
 
