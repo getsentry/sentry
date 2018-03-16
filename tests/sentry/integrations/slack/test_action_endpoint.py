@@ -167,7 +167,7 @@ class StatusActionTest(BaseEventTest):
         # Assign to user
         status_action = {
             'name': 'assign',
-            'selected_options': [{'value': user2.username}],
+            'selected_options': [{'value': u'user:{}'.format(user2.id)}],
         }
 
         resp = self.post_webhook(action_data=[status_action])
@@ -180,19 +180,19 @@ class StatusActionTest(BaseEventTest):
             assigner=self.identity.external_id,
         )
 
-        # Unassign from user
+        # Assign to team
         status_action = {
             'name': 'assign',
-            'selected_options': [{'value': 'none'}],
+            'selected_options': [{'value': u'team:{}'.format(self.team.id)}],
         }
 
         resp = self.post_webhook(action_data=[status_action])
 
         assert resp.status_code == 200, resp.content
-        assert not GroupAssignee.objects.filter(group=self.group1).exists()
+        assert GroupAssignee.objects.filter(group=self.group1, team=self.team).exists()
 
-        expect_status = u'*Issue unassigned by <@{assigner}>*'.format(
-            assignee=user2.get_display_name(),
+        expect_status = u'*Issue assigned to {team} by <@{assigner}>*'.format(
+            team=self.team.slug,
             assigner=self.identity.external_id,
         )
 
@@ -212,7 +212,7 @@ class StatusActionTest(BaseEventTest):
 
         status_action = {
             'name': 'assign',
-            'selected_options': [{'value': user2.username}],
+            'selected_options': [{'value': u'user:{}'.format(user2.id)}],
         }
 
         resp = self.post_webhook(action_data=[status_action])
