@@ -36,12 +36,20 @@ class OwnerInput extends React.Component {
     super(props);
     this.state = {
       text: props.initialText,
+      initialText: props.initialText,
       error: null,
     };
   }
 
+  componentWillReceiveProps({initialText}) {
+    if (initialText != this.state.initialText) {
+      this.setState({initialText});
+    }
+  }
+
   handleUpdateOwnership = () => {
     let {organization, project} = this.props;
+    let {text} = this.state;
     this.setState({error: null});
 
     const api = new Client();
@@ -49,17 +57,26 @@ class OwnerInput extends React.Component {
       `/projects/${organization.slug}/${project.slug}/ownership/`,
       {
         method: 'PUT',
-        data: {raw: this.state.text || ''},
+        data: {raw: text || ''},
       }
     );
 
     request
       .then(() => {
         addSuccessMessage(t('Updated ownership rules'));
+        this.setState({
+          initialText: text,
+        });
       })
       .catch(error => {
         this.setState({error: error.responseJSON});
-        addErrorMessage(t('Unable to save ownership rules changes'));
+        if (error.status === 403) {
+          addErrorMessage(
+            t("You don't have permission to modify ownership rules for this project")
+          );
+        } else {
+          addErrorMessage(t('Unable to save ownership rules changes'));
+        }
       });
 
     return request;
@@ -88,8 +105,7 @@ class OwnerInput extends React.Component {
     this.setState({text: v.target.value});
   }
   render() {
-    let {initialText} = this.props;
-    let {text, error} = this.state;
+    let {text, error, initialText} = this.state;
 
     let mentionableUsers = this.mentionableUsers();
     let mentionableTeams = this.mentionableTeams();
@@ -138,7 +154,7 @@ class OwnerInput extends React.Component {
             error.raw && (
               <SyntaxOverlay line={error.raw[0].match(/line (\d*),/)[1] - 1} />
             )}
-          {error && error.raw.toString()}
+          {error && error.raw && error.raw.toString()}
           <div style={{textAlign: 'end', paddingTop: '10px'}}>
             <Button
               size="small"
