@@ -66,7 +66,7 @@ export default RuleNode;
 const RuleNodeRow = styled.div`
   display: flex;
   align-items: center;
-  padding: 0 10px;
+  padding: 0 15px;
 
   &:nth-child(odd) {
     background-color: ${p => p.theme.offWhite};
@@ -79,7 +79,8 @@ const RuleNodeForm = styled(({className, ...props}) => (
 ))`
   display: flex;
   flex: 1;
-  margin: 10px 0;
+  line-height: 36px;
+  margin: 5px 0;
 
   .select2-container {
     margin: 0 6px;
@@ -96,10 +97,9 @@ const RuleNodeForm = styled(({className, ...props}) => (
     line-height: 1.5;
     margin: 0 6px;
   }
+
   span {
-    display: flex;
-    align-items: center;
-    white-space: nowrap;
+    flex: 1;
   }
 `;
 
