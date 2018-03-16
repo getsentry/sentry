@@ -1076,7 +1076,7 @@ class EventManagerTest(TransactionTestCase):
         manager = EventManager(
             self.make_event(
                 message='foo',
-                event_id='a' * 32,
+                event_id='b' * 32,
                 fingerprint=['a' * 32],
             )
         )
