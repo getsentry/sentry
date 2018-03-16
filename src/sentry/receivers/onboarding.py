@@ -4,6 +4,7 @@ from django.db import IntegrityError, transaction
 from django.db.models import Q
 from django.utils import timezone
 
+from sentry import analytics
 from sentry.models import (
     OnboardingTask, OnboardingTaskStatus, OrganizationOnboardingTask, OrganizationOption
 )
@@ -140,6 +141,12 @@ def record_member_invited(member, user, **kwargs):
         status=OnboardingTaskStatus.PENDING,
         data={'invited_member_id': member.id}
     )
+    analytics.record(
+        'member.invited',
+        invited_member_id=member.id,
+        inviter_user_id=user.id,
+        organization_id=member.organization_id,
+        referrer=kwargs.get('referrer'))
 
 
 @member_joined.connect(weak=False)
