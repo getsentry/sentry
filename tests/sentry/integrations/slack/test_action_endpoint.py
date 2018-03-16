@@ -3,6 +3,7 @@ from __future__ import absolute_import
 import responses
 
 from six.moves.urllib.parse import parse_qs
+from mock import patch
 
 from sentry import options
 from sentry.models import (
@@ -98,7 +99,10 @@ class BaseEventTest(APITestCase):
 
 
 class StatusActionTest(BaseEventTest):
-    def test_ask_linking(self):
+    @patch('sentry.integrations.slack.link_identity.sign')
+    def test_ask_linking(self, sign):
+        sign.return_value = 'signed_parameters'
+
         resp = self.post_webhook(slack_user={
             'id': 'invalid-id',
             'domain': 'example',
