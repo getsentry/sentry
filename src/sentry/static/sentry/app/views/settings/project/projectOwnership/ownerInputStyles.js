@@ -12,24 +12,6 @@ let styles = {
     whiteSpace: 'pre-wrap',
   },
 
-  '&singleLine': {
-    control: {
-      display: 'inline-block',
-
-      width: 130,
-    },
-
-    highlighter: {
-      padding: 1,
-      border: '2px inset transparent',
-    },
-
-    input: {
-      padding: 1,
-      border: '2px inset',
-    },
-  },
-
   '&multiLine': {
     control: {
       fontFamily: 'Monaco, Consolas, "Courier New", monospace',

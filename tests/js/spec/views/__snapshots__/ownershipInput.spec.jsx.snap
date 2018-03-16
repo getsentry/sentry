@@ -67,281 +67,57 @@ exports[`ProjectTeamsSettings render() renders 1`] = `
       }
     }
   >
-    <withDefaultStyle(MentionsInput)
-      autoCapitalize="off"
-      autoComplete="off"
-      autoCorrect="off"
-      autoFocus={true}
-      displayTransform={[Function]}
-      markup="**[sentry.strip:__type__]__display__**"
+    <TextareaAutosize
       onChange={[Function]}
       placeholder="#example usage
 
 path:src/example/pipeline/* person@sentry.io #infrastructure
 
 url:http://example.com/settings/* #product"
-      required={true}
-      spellCheck="false"
+      rows={1}
       style={
         Object {
-          "&multiLine": Object {
-            "control": Object {
-              "fontFamily": "Monaco, Consolas, \\"Courier New\\", monospace",
-            },
-            "highlighter": Object {
-              "padding": 20,
-            },
-            "input": Object {
-              "border": "1 solid",
-              "minHeight": 140,
-              "outline": 0,
-              "overflow": "auto",
-              "padding": "5px 5px 0",
-            },
-          },
-          "&singleLine": Object {
-            "control": Object {
-              "display": "inline-block",
-              "width": 130,
-            },
-            "highlighter": Object {
-              "border": "2px inset transparent",
-              "padding": 1,
-            },
-            "input": Object {
-              "border": "2px inset",
-              "padding": 1,
-            },
-          },
-          "control": Object {
-            "backgroundColor": "#fff",
-            "fontSize": 15,
-            "fontWeight": "normal",
-          },
-          "input": Object {
-            "fontFamily": "Monaco, Consolas, \\"Courier New\\", monospace",
-            "margin": 0,
-            "whiteSpace": "pre-wrap",
-            "wordBreak": "break-all",
-          },
-          "suggestions": Object {
-            "item": Object {
-              "&focused": Object {
-                "backgroundColor": "#f8f6f9",
-              },
-              "borderBottom": "1px solid rgba(0,0,0,0.15)",
-              "padding": "5px 15px",
-            },
-            "list": Object {
-              "backgroundColor": "white",
-              "border": "1px solid rgba(0,0,0,0.15)",
-              "fontSize": 15,
-              "maxHeight": 150,
-              "overflow": "auto",
-            },
-          },
+          "border": "1 solid",
+          "fontFamily": "Monaco, Consolas, \\"Courier New\\", monospace",
+          "margin": 0,
+          "minHeight": 140,
+          "outline": 0,
+          "overflow": "auto",
+          "padding": "5px 5px 0",
+          "resize": "none",
+          "whiteSpace": "pre-wrap",
+          "width": "100%",
+          "wordBreak": "break-all",
         }
       }
       value="new"
     >
-      <MentionsInput
-        autoCapitalize="off"
-        autoComplete="off"
-        autoCorrect="off"
-        autoFocus={true}
-        displayTransform={[Function]}
-        markup="**[sentry.strip:__type__]__display__**"
-        onBlur={[Function]}
+      <textarea
         onChange={[Function]}
-        onKeyDown={[Function]}
-        onSelect={[Function]}
         placeholder="#example usage
 
 path:src/example/pipeline/* person@sentry.io #infrastructure
 
 url:http://example.com/settings/* #product"
-        required={true}
-        singleLine={false}
-        spellCheck="false"
-        style={[Function]}
-        value="new"
-      >
-        <div
-          style={
-            Object {
-              "overflowY": "visible",
-              "position": "relative",
-            }
+        rows={1}
+        style={
+          Object {
+            "border": "1 solid",
+            "fontFamily": "Monaco, Consolas, \\"Courier New\\", monospace",
+            "margin": 0,
+            "minHeight": 140,
+            "outline": 0,
+            "overflow": "auto",
+            "padding": "5px 5px 0",
+            "resize": "none",
+            "whiteSpace": "pre-wrap",
+            "width": "100%",
+            "wordBreak": "break-all",
           }
-        >
-          <div
-            style={
-              Object {
-                "backgroundColor": "#fff",
-                "fontFamily": "Monaco, Consolas, \\"Courier New\\", monospace",
-                "fontSize": 15,
-                "fontWeight": "normal",
-              }
-            }
-          >
-            <withDefaultStyle(Highlighter)
-              displayTransform={[Function]}
-              inputStyle={
-                Object {
-                  "backgroundColor": "transparent",
-                  "border": "1 solid",
-                  "bottom": 0,
-                  "boxSizing": "border-box",
-                  "display": "block",
-                  "fontFamily": "Monaco, Consolas, \\"Courier New\\", monospace",
-                  "height": "100%",
-                  "margin": 0,
-                  "minHeight": 140,
-                  "outline": 0,
-                  "overflow": "auto",
-                  "padding": "5px 5px 0",
-                  "position": "absolute",
-                  "resize": "none",
-                  "top": 0,
-                  "whiteSpace": "pre-wrap",
-                  "width": "100%",
-                  "wordBreak": "break-all",
-                }
-              }
-              markup="**[sentry.strip:__type__]__display__**"
-              onCaretPositionChange={[Function]}
-              selection={
-                Object {
-                  "end": null,
-                  "start": null,
-                }
-              }
-              singleLine={false}
-              style={[Function]}
-              value="new"
-            >
-              <Highlighter
-                displayTransform={[Function]}
-                inputStyle={
-                  Object {
-                    "backgroundColor": "transparent",
-                    "border": "1 solid",
-                    "bottom": 0,
-                    "boxSizing": "border-box",
-                    "display": "block",
-                    "fontFamily": "Monaco, Consolas, \\"Courier New\\", monospace",
-                    "height": "100%",
-                    "margin": 0,
-                    "minHeight": 140,
-                    "outline": 0,
-                    "overflow": "auto",
-                    "padding": "5px 5px 0",
-                    "position": "absolute",
-                    "resize": "none",
-                    "top": 0,
-                    "whiteSpace": "pre-wrap",
-                    "width": "100%",
-                    "wordBreak": "break-all",
-                  }
-                }
-                markup="**[sentry.strip:__type__]__display__**"
-                onCaretPositionChange={[Function]}
-                selection={
-                  Object {
-                    "end": null,
-                    "start": null,
-                  }
-                }
-                singleLine={false}
-                style={[Function]}
-                value="new"
-              >
-                <div
-                  style={
-                    Object {
-                      "backgroundColor": "transparent",
-                      "border": "1 solid",
-                      "bottom": 0,
-                      "boxSizing": "border-box",
-                      "color": "transparent",
-                      "display": "block",
-                      "fontFamily": "Monaco, Consolas, \\"Courier New\\", monospace",
-                      "height": "100%",
-                      "margin": 0,
-                      "minHeight": 140,
-                      "outline": 0,
-                      "overflow": "hidden",
-                      "padding": 20,
-                      "position": "relative",
-                      "resize": "none",
-                      "top": 0,
-                      "whiteSpace": "pre-wrap",
-                      "width": "inherit",
-                      "wordBreak": "break-all",
-                      "wordWrap": "break-word",
-                    }
-                  }
-                >
-                  <span
-                    key="0"
-                    style={
-                      Object {
-                        "visibility": "hidden",
-                      }
-                    }
-                  >
-                    new
-                  </span>
-                   
-                </div>
-              </Highlighter>
-            </withDefaultStyle(Highlighter)>
-            <textarea
-              autoCapitalize="off"
-              autoComplete="off"
-              autoCorrect="off"
-              autoFocus={true}
-              onBlur={[Function]}
-              onChange={[Function]}
-              onCompositionEnd={[Function]}
-              onCompositionStart={[Function]}
-              onKeyDown={[Function]}
-              onSelect={[Function]}
-              placeholder="#example usage
-
-path:src/example/pipeline/* person@sentry.io #infrastructure
-
-url:http://example.com/settings/* #product"
-              required={true}
-              spellCheck="false"
-              style={
-                Object {
-                  "backgroundColor": "transparent",
-                  "border": "1 solid",
-                  "bottom": 0,
-                  "boxSizing": "border-box",
-                  "display": "block",
-                  "fontFamily": "Monaco, Consolas, \\"Courier New\\", monospace",
-                  "height": "100%",
-                  "margin": 0,
-                  "minHeight": 140,
-                  "outline": 0,
-                  "overflow": "auto",
-                  "padding": "5px 5px 0",
-                  "position": "absolute",
-                  "resize": "none",
-                  "top": 0,
-                  "whiteSpace": "pre-wrap",
-                  "width": "100%",
-                  "wordBreak": "break-all",
-                }
-              }
-              value="new"
-            />
-          </div>
-        </div>
-      </MentionsInput>
-    </withDefaultStyle(MentionsInput)>
+        }
+        value="new"
+      />
+    </TextareaAutosize>
     <div
       style={
         Object {

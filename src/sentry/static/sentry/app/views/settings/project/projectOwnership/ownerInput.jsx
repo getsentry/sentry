@@ -1,7 +1,7 @@
 import PropTypes from 'prop-types';
 import React from 'react';
 import styled from 'react-emotion';
-import {MentionsInput, Mention} from 'react-mentions';
+import TextareaAutosize from 'react-autosize-textarea';
 
 import {Client} from '../../../../api';
 import memberListStore from '../../../../stores/memberListStore';
@@ -11,7 +11,6 @@ import SentryTypes from '../../../../proptypes';
 
 import {addErrorMessage, addSuccessMessage} from '../../../../actionCreators/indicator';
 import {t} from '../../../../locale';
-import OwnerInputStyle from './ownerInputStyles';
 
 const SyntaxOverlay = styled.div`
   margin: 5px;
@@ -101,14 +100,11 @@ class OwnerInput extends React.Component {
     }));
   }
 
-  onChange(v) {
-    this.setState({text: v.target.value});
+  onChange(e) {
+    this.setState({text: e.target.value});
   }
   render() {
     let {text, error, initialText} = this.state;
-
-    let mentionableUsers = this.mentionableUsers();
-    let mentionableTeams = this.mentionableTeams();
 
     return (
       <React.Fragment>
@@ -120,36 +116,26 @@ class OwnerInput extends React.Component {
             }
           }}
         >
-          <MentionsInput
-            style={OwnerInputStyle}
+          <TextareaAutosize
             placeholder={
               '#example usage\n\npath:src/example/pipeline/* person@sentry.io #infrastructure\n\nurl:http://example.com/settings/* #product'
             }
+            style={{
+              padding: '5px 5px 0',
+              minHeight: 140,
+              overflow: 'auto',
+              outline: 0,
+              border: '1 solid',
+              width: '100%',
+              resize: 'none',
+              margin: 0,
+              fontFamily: 'Monaco, Consolas, "Courier New", monospace',
+              wordBreak: 'break-all',
+              whiteSpace: 'pre-wrap',
+            }}
             onChange={this.onChange.bind(this)}
-            onBlur={this.onBlur}
             value={text}
-            required={true}
-            autoFocus={true}
-            displayTransform={(id, display, type) => `${display}`}
-            markup="**[sentry.strip:__type__]__display__**"
-            spellCheck="false"
-            autoComplete="off"
-            autoCorrect="off"
-            autoCapitalize="off"
-          >
-            <Mention
-              type="member"
-              trigger="@"
-              data={mentionableUsers}
-              appendSpaceOnAdd={true}
-            />
-            <Mention
-              type="team"
-              trigger="#"
-              data={mentionableTeams}
-              appendSpaceOnAdd={true}
-            />
-          </MentionsInput>
+          />
           {error &&
             error.raw && (
               <SyntaxOverlay line={error.raw[0].match(/line (\d*),/)[1] - 1} />
