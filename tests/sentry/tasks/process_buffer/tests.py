@@ -23,4 +23,9 @@ class ProcessPendingTest(TestCase):
     def test_nothing(self, mock_process_pending):
         # this effectively just says "does the code run"
         process_pending()
-        mock_process_pending.assert_called_once_with()
+        assert len(mock_process_pending.mock_calls) == 1
+        mock_process_pending.assert_any_call(partition=None)
+
+        process_pending(partition=1)
+        assert len(mock_process_pending.mock_calls) == 2
+        mock_process_pending.assert_any_call(partition=1)
