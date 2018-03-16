@@ -31,16 +31,18 @@ const RemoveButton = styled(({hidden, ...props}) => (
 class EmailRow extends React.Component {
   static propTypes = {
     email: PropTypes.string.isRequired,
+    onRemove: PropTypes.func.isRequired,
+    onVerify: PropTypes.func.isRequired,
     isVerified: PropTypes.bool,
     isPrimary: PropTypes.bool,
     hideRemove: PropTypes.bool,
-    onRemove: PropTypes.func,
-    onVerify: PropTypes.func,
     onSetPrimary: PropTypes.func,
   };
 
   handleSetPrimary = e => {
-    this.props.onSetPrimary(this.props.email, e);
+    if (typeof this.props.onSetPrimary === 'function') {
+      this.props.onSetPrimary(this.props.email, e);
+    }
   };
 
   handleRemove = e => {
@@ -157,7 +159,13 @@ class AccountEmails extends AsyncView {
         <Panel>
           <PanelHeader>{t('Emails')}</PanelHeader>
           <PanelBody>
-            {primary && <EmailRow onRemove={this.handleRemove} {...primary} />}
+            {primary && (
+              <EmailRow
+                onRemove={this.handleRemove}
+                onVerify={this.handleVerify}
+                {...primary}
+              />
+            )}
 
             {secondary &&
               secondary.map(emailObj => {
