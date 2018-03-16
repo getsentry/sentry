@@ -477,12 +477,35 @@ class EventManager(object):
 
         project = Project.objects.get_from_cache(id=project)
 
+        # Check to make sure we're not about to do a bunch of work that's
+        # already been done if we've processed an event with this ID. (This
+        # isn't a perfect solution -- this doesn't handle ``EventMapping`` and
+        # there's a race condition between here and when the event is actually
+        # saved, but it's an improvement. See GH-7677.)
+        try:
+            event = Event.objects.get(
+                project_id=project.id,
+                event_id=self.data['event_id'],
+            )
+        except Event.DoesNotExist:
+            pass
+        else:
+            self.logger.info(
+                'duplicate.found',
+                exc_info=True,
+                extra={
+                    'event_uuid': self.data['event_id'],
+                    'project_id': project.id,
+                    'model': Event.__name__,
+                }
+            )
+            return event
+
         data = self.data.copy()
 
         # First we pull out our top-level (non-data attr) kwargs
         event_id = data.pop('event_id')
         level = data.pop('level')
-
         culprit = data.pop('transaction', None)
         if not culprit:
             culprit = data.pop('culprit', None)
@@ -719,24 +742,6 @@ class EventManager(object):
                     }
                 )
                 return event
-
-        # We now always need to check the Event table for dupes
-        # since EventMapping isn't exactly the canonical source of truth.
-        if Event.objects.filter(
-            project_id=project.id,
-            event_id=event_id,
-        ).exists():
-            self.logger.info(
-                'duplicate.found',
-                exc_info=True,
-                extra={
-                    'event_uuid': event_id,
-                    'project_id': project.id,
-                    'group_id': group.id,
-                    'model': Event.__name__,
-                }
-            )
-            return event
 
         environment = Environment.get_or_create(
             project=project,
