@@ -25,7 +25,7 @@ const formGroups = [
         label: t('Legacy Name'),
         placeholder: 'e.g. API Team',
         help: tct(
-          '[Deprecated] In the future, only [Name] will be used to identify your project',
+          '[Deprecated] In the future, only [Name] will be used to identify your team',
           {
             Deprecated: <strong>DEPRECATED</strong>,
             Name: <strong>Name</strong>,
