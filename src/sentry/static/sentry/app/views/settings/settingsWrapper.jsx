@@ -1,8 +1,10 @@
 import $ from 'jquery';
+import {withTheme} from 'emotion-theming';
 import React from 'react';
 import styled from 'react-emotion';
-import {withTheme} from 'emotion-theming';
+
 import Footer from '../../components/footer';
+import ScrollToTop from './components/scrollToTop';
 
 const StyledSettingsWrapper = withTheme(
   styled.div`
@@ -30,7 +32,7 @@ class SettingsWrapper extends React.Component {
   render() {
     return (
       <StyledSettingsWrapper>
-        {this.props.children}
+        <ScrollToTop>{this.props.children}</ScrollToTop>
         <Footer />
       </StyledSettingsWrapper>
     );
