@@ -1,3 +1,4 @@
+import classNames from 'classnames';
 import PropTypes from 'prop-types';
 import React from 'react';
 
@@ -24,11 +25,11 @@ class TeamAvatar extends React.Component {
     let {team, hasTooltip} = this.props;
     let displayName = this.getDisplayName();
     return (
-      <span className={this.props.className}>
-        <Tooltip title={displayName} disabled={!hasTooltip}>
+      <Tooltip title={displayName} disabled={!hasTooltip}>
+        <span className={classNames('avatar', this.props.className)}>
           <LetterAvatar identifier={team.slug} displayName={displayName} />
-        </Tooltip>
-      </span>
+        </span>
+      </Tooltip>
     );
   }
 }

@@ -1,17 +1,17 @@
 // Jest Snapshot v1, https://goo.gl/fbAQLP
 
 exports[`TeamAvatar render() renders 1`] = `
-<span
-  className="avatar"
+<Tooltip
+  disabled={true}
+  title="team-slug"
 >
-  <Tooltip
-    disabled={true}
-    title="team-slug"
+  <span
+    className="avatar avatar"
   >
     <LetterAvatar
       displayName="team-slug"
       identifier="team-slug"
     />
-  </Tooltip>
-</span>
+  </span>
+</Tooltip>
 `;
