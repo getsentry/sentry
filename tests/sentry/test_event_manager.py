@@ -694,6 +694,7 @@ class EventManagerTest(TransactionTestCase):
 
     def test_event_user(self):
         manager = EventManager(self.make_event(
+            event_id='a',
             environment='totally unique environment',
             **{'sentry.interfaces.User': {
                 'id': '1',
@@ -754,10 +755,13 @@ class EventManagerTest(TransactionTestCase):
 
         # ensure event user is mapped to tags in second attempt
         manager = EventManager(
-            self.make_event(**{'sentry.interfaces.User': {
-                'id': '1',
-                'name': 'jane',
-            }})
+            self.make_event(
+                event_id='b',
+                **{'sentry.interfaces.User': {
+                    'id': '1',
+                    'name': 'jane',
+                }}
+            )
         )
         manager.normalize()
         with self.tasks():
