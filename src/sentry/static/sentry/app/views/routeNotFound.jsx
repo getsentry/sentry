@@ -8,7 +8,9 @@ import NotFound from '../components/errors/notFound';
 
 class RouteNotFound extends React.Component {
   componentDidMount() {
-    Raven.captureException(new Error('Route not found'));
+    Raven.captureException(new Error('Route not found'), {
+      fingerprint: ['RouteNotFound'],
+    });
   }
 
   getTitle = () => {

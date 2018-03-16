@@ -8,6 +8,7 @@ import ProjectKeyDetails from 'app/views/settings/project/projectKeys/projectKey
 import theme from 'app/utils/theme';
 
 jest.mock('react-router', () => ({
+  withRouter: i => i,
   browserHistory: {push: jest.fn()},
 }));
 
