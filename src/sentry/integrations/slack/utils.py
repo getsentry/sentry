@@ -45,6 +45,18 @@ def get_team_assignees(group):
     return [format_actor_option(u) for u in group.project.teams.all()]
 
 
+def get_assignee(group):
+    try:
+        assigned_actor = GroupAssignee.objects.get(group=group).assigned_actor()
+    except GroupAssignee.DoesNotExist:
+        return None
+
+    try:
+        return format_actor_option(assigned_actor.resolve())
+    except assigned_actor.type.DoesNotExist:
+        return None
+
+
 def add_notification_referrer_param(url, provider):
     parsed_url = urlparse(url)
     query = parse_qs(parsed_url.query)
@@ -141,11 +153,7 @@ def build_attachment(group, event=None, tags=None, identity=None, actions=None, 
     if actions is None:
         actions = []
 
-    try:
-        assignee = GroupAssignee.objects.get(group=group).assigned_actor()
-        assignee = format_actor_option(assignee)
-    except GroupAssignee.DoesNotExist:
-        assignee = None
+    assignee = get_assignee(group)
 
     resolve_button = {
         'name': 'resolve_dialog',
