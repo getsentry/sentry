@@ -9,8 +9,12 @@ import DateTime from '../../../components/dateTime';
 import PanelItem from '../components/panelItem';
 import TextCopyInput from '../components/forms/textCopyInput';
 
+const StyledPanelItem = styled(PanelItem)`
+  flex-direction: column;
+`;
+
 const Details = styled(Flex)`
-  margin-top: 16px;
+  margin-top: 10px;
 `;
 
 const ScopeList = styled.div`
@@ -20,6 +24,7 @@ const ScopeList = styled.div`
 
 const Time = styled.time`
   font-size: 0.9em;
+  line-height: 1.4;
 `;
 
 const Action = styled(Box)`
@@ -59,46 +64,50 @@ class ApiTokenRow extends React.Component {
     let {token} = this.props;
 
     return (
-      <PanelItem justify="space-between" px={2} py={2}>
-        <Box flex="1">
-          <div style={{marginBottom: 5}}>
-            <small>
-              <TextCopyInput
-                flexValueContainer={false}
-                renderer={({value, ref}) => (
-                  <Flex align="center" ref={ref}>
-                    {value}
-                  </Flex>
-                )}
-              >
-                {token.token}
-              </TextCopyInput>
-            </small>
-          </div>
-          <Details>
+      <StyledPanelItem p={2}>
+        <div>
+          <Flex>
             <Box flex="1">
-              <Heading>{t('Scopes')}</Heading>
-              <ScopeList>{token.scopes.join(', ')}</ScopeList>
+              <div style={{marginBottom: 5}}>
+                <small>
+                  <TextCopyInput
+                    flexValueContainer={false}
+                    renderer={({value, ref}) => (
+                      <Flex align="center" ref={ref}>
+                        {value}
+                      </Flex>
+                    )}
+                  >
+                    {token.token}
+                  </TextCopyInput>
+                </small>
+              </div>
             </Box>
-            <Box>
-              <Heading>{t('Created')}</Heading>
-              <Time>
-                <DateTime date={token.dateCreated} />
-              </Time>
-            </Box>
-          </Details>
-        </Box>
+            <Action pl={2}>
+              <StyledButton
+                size="small"
+                onClick={this.handleRemove}
+                icon="icon-circle-subtract"
+              >
+                <span className="ref-delete-api-token">{t('Remove')}</span>
+              </StyledButton>
+            </Action>
+          </Flex>
+        </div>
 
-        <Action pl={2}>
-          <StyledButton
-            size="small"
-            onClick={this.handleRemove}
-            icon="icon-circle-subtract"
-          >
-            <span className="ref-delete-api-token">{t('Remove')}</span>
-          </StyledButton>
-        </Action>
-      </PanelItem>
+        <Details>
+          <Box flex="1">
+            <Heading>{t('Scopes')}</Heading>
+            <ScopeList>{token.scopes.join(', ')}</ScopeList>
+          </Box>
+          <Box>
+            <Heading>{t('Created')}</Heading>
+            <Time>
+              <DateTime date={token.dateCreated} />
+            </Time>
+          </Box>
+        </Details>
+      </StyledPanelItem>
     );
   }
 }
