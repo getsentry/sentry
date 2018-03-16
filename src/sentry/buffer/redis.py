@@ -60,6 +60,8 @@ class RedisBuffer(Buffer):
         self.cluster, options = get_cluster_from_options('SENTRY_BUFFER_OPTIONS', options)
         self.pending_partitions = pending_partitions
         self.incr_batch_size = incr_batch_size
+        assert self.pending_partitions > 0
+        assert self.incr_batch_size > 0
 
     def validate(self):
         try:
@@ -85,11 +87,22 @@ class RedisBuffer(Buffer):
         )
 
     def _make_pending_key(self, partition=None):
+        """
+        Returns the key to be used for the pending buffer.
+        When partitioning is enabled, there is a key for each
+        partition, without it, there's only the default pending_key
+        """
         if partition is None:
             return self.pending_key
+        assert partition >= 0 and partition < self.pending_partitions
         return '%s:%d' % (self.pending_key, partition)
 
     def _make_pending_key_from_key(self, key):
+        """
+        Return the pending_key for a given key. This is used
+        to route a key into the correct pending buffer. If partitioning
+        is disabled, route into the no partition buffer.
+        """
         if self.pending_partitions == 1:
             return self.pending_key
         return self._make_pending_key(crc32(key) % self.pending_partitions)
