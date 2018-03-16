@@ -56,9 +56,9 @@ class RedisBuffer(Buffer):
     key_expire = 60 * 60  # 1 hour
     pending_key = 'b:p'
 
-    def __init__(self, pending_shards=1, incr_batch_size=2, **options):
+    def __init__(self, pending_partitions=1, incr_batch_size=2, **options):
         self.cluster, options = get_cluster_from_options('SENTRY_BUFFER_OPTIONS', options)
-        self.pending_shards = pending_shards
+        self.pending_partitions = pending_partitions
         self.incr_batch_size = incr_batch_size
 
     def validate(self):
@@ -84,15 +84,15 @@ class RedisBuffer(Buffer):
             ).hexdigest(),
         )
 
-    def _make_pending_key(self, shard=None):
-        if shard is None:
+    def _make_pending_key(self, partition=None):
+        if partition is None:
             return self.pending_key
-        return '%s:%d' % (self.pending_key, shard)
+        return '%s:%d' % (self.pending_key, partition)
 
     def _make_pending_key_from_key(self, key):
-        if self.pending_shards == 1:
+        if self.pending_partitions == 1:
             return self.pending_key
-        return self._make_pending_key(crc32(key) % self.pending_shards)
+        return self._make_pending_key(crc32(key) % self.pending_partitions)
 
     def _make_lock_key(self, key):
         return 'l:%s' % (key, )
@@ -111,7 +111,7 @@ class RedisBuffer(Buffer):
         key = self._make_key(model, filters)
         pending_key = self._make_pending_key_from_key(key)
         # We can't use conn.map() due to wanting to support multiple pending
-        # keys (one per Redis shard)
+        # keys (one per Redis partition)
         conn = self.cluster.get_local_client_for_key(key)
 
         pipe = conn.pipeline()
@@ -127,17 +127,17 @@ class RedisBuffer(Buffer):
         pipe.zadd(pending_key, time(), key)
         pipe.execute()
 
-    def process_pending(self, shard=None):
-        if shard is None and self.pending_shards > 1:
-            # If we're using shards, this one task fans out into
+    def process_pending(self, partition=None):
+        if partition is None and self.pending_partitions > 1:
+            # If we're using partitions, this one task fans out into
             # N subtasks instead.
-            for i in range(self.pending_shards):
-                process_pending.apply_async(kwargs={'shard': i})
-            # Explicitly also run over the unsharded buffer as well
+            for i in range(self.pending_partitions):
+                process_pending.apply_async(kwargs={'partition': i})
+            # Explicitly also run over the unpartitioned buffer as well
             # to ease in transition. In practice, this should just be
             # super fast and is fine to do redundantly.
 
-        pending_key = self._make_pending_key(shard)
+        pending_key = self._make_pending_key(partition)
         client = self.cluster.get_routing_client()
         lock_key = self._make_lock_key(pending_key)
         # prevent a stampede due to celerybeat + periodic task

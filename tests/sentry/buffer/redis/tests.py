@@ -103,16 +103,16 @@ class RedisBufferTest(TestCase):
     @mock.patch('sentry.buffer.redis.RedisBuffer._make_key', mock.Mock(return_value='foo'))
     @mock.patch('sentry.buffer.redis.process_incr')
     @mock.patch('sentry.buffer.redis.process_pending')
-    def test_process_pending_shards_none(self, process_pending, process_incr):
-        self.buf.pending_shards = 2
+    def test_process_pending_partitions_none(self, process_pending, process_incr):
+        self.buf.pending_partitions = 2
         with self.buf.cluster.map() as client:
             client.zadd('b:p:0', 1, 'foo')
             client.zadd('b:p:1', 1, 'bar')
             client.zadd('b:p', 1, 'baz')
 
         # On first pass, we are expecing to do:
-        # * process the buffer that doesn't have a shard (b:p)
-        # * queue up 2 jobs, one for each shard to process.
+        # * process the buffer that doesn't have a partition (b:p)
+        # * queue up 2 jobs, one for each partition to process.
         self.buf.process_pending()
         assert len(process_incr.apply_async.mock_calls) == 1
         process_incr.apply_async.assert_any_call(kwargs={
@@ -120,18 +120,18 @@ class RedisBufferTest(TestCase):
         })
         assert len(process_pending.apply_async.mock_calls) == 2
         process_pending.apply_async.mock_calls == [
-            mock.call(kwargs={'shard': 0}),
-            mock.call(kwargs={'shard': 1}),
+            mock.call(kwargs={'partition': 0}),
+            mock.call(kwargs={'partition': 1}),
         ]
 
-        # Confirm that we've only processed the unsharded buffer
+        # Confirm that we've only processed the unpartitioned buffer
         client = self.buf.cluster.get_routing_client()
         assert client.zrange('b:p', 0, -1) == []
         assert client.zrange('b:p:0', 0, -1) != []
         assert client.zrange('b:p:1', 0, -1) != []
 
-        # shard 0
-        self.buf.process_pending(shard=0)
+        # partition 0
+        self.buf.process_pending(partition=0)
         assert len(process_incr.apply_async.mock_calls) == 2
         process_incr.apply_async.assert_any_call(kwargs={
             'batch_keys': ['foo'],
@@ -141,8 +141,8 @@ class RedisBufferTest(TestCase):
         # Make sure we didn't queue up more
         assert len(process_pending.apply_async.mock_calls) == 2
 
-        # shard 1
-        self.buf.process_pending(shard=1)
+        # partition 1
+        self.buf.process_pending(partition=1)
         assert len(process_incr.apply_async.mock_calls) == 3
         process_incr.apply_async.assert_any_call(kwargs={
             'batch_keys': ['bar'],

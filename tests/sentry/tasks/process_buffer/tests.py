@@ -24,8 +24,8 @@ class ProcessPendingTest(TestCase):
         # this effectively just says "does the code run"
         process_pending()
         assert len(mock_process_pending.mock_calls) == 1
-        mock_process_pending.assert_any_call(shard=None)
+        mock_process_pending.assert_any_call(partition=None)
 
-        process_pending(shard=1)
+        process_pending(partition=1)
         assert len(mock_process_pending.mock_calls) == 2
-        mock_process_pending.assert_any_call(shard=1)
+        mock_process_pending.assert_any_call(partition=1)
