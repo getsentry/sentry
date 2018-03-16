@@ -48,7 +48,7 @@ class SlackIntegration(Integration):
 
     setup_dialog_config = {
         'width': 600,
-        'height': 800,
+        'height': 900,
     }
 
     def get_pipeline_views(self):
