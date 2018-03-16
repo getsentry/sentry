@@ -406,7 +406,7 @@ class Frame(Interface):
             return output
 
         if self.module:
-            if self.is_unhashable_module():
+            if self.is_unhashable_module(platform):
                 output.append('<module>')
             else:
                 output.append(remove_module_outliers(self.module))
@@ -518,9 +518,15 @@ class Frame(Interface):
         # values (see raven-java#125)
         return self.filename.startswith('Caused by: ')
 
-    def is_unhashable_module(self):
-        # TODO(dcramer): this is Java specific
-        return '$$Lambda$' in self.module
+    def is_unhashable_module(self, platform):
+        # Fix for the case where module is a partial copy of the URL
+        # and should not be hashed
+        if (platform == 'javascript' and '/' in self.module
+                and self.abs_path and self.abs_path.endswith(self.module)):
+            return True
+        elif platform == 'java' and '$$Lambda$' in self.module:
+            return True
+        return False
 
     def is_unhashable_function(self):
         # TODO(dcramer): lambda$ is Java specific

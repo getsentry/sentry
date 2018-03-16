@@ -263,7 +263,7 @@ class StacktraceTest(TestCase):
                 'function': 'call',
             }
         )
-        result = interface.get_hash()
+        result = interface.get_hash(platform='java')
         self.assertEquals(result, [
             '<module>',
             'call',
@@ -499,6 +499,30 @@ class StacktraceTest(TestCase):
         )
         result = interface.get_hash()
         assert result == []
+
+    def test_get_hash_ignores_module_if_page_url(self):
+        """
+        When the abs_path is a URL without a file extension, and the module is
+        a suffix of that URL, we should ignore the module. This takes care of a
+        raven-js issue where page URLs (not source filenames) are being used as
+        the module.
+        """
+
+        interface = Frame.to_python({
+            'filename': 'foo.py',
+            'abs_path': 'https://sentry.io/foo/bar/baz.js',
+            'module': 'foo/bar/baz',
+        })
+        result = interface.get_hash(platform='javascript')
+        assert result == ['foo/bar/baz']
+
+        interface = Frame.to_python({
+            'filename': 'foo.py',
+            'abs_path': 'https://sentry.io/foo/bar/baz',
+            'module': 'foo/bar/baz',
+        })
+        result = interface.get_hash(platform='javascript')
+        assert result == ['<module>']
 
     def test_collapse_recursion(self):
         interface = Stacktrace.to_python(
