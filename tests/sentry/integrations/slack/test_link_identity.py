@@ -2,6 +2,8 @@ from __future__ import absolute_import
 
 import responses
 
+from mock import patch
+
 from sentry.models import Identity, IdentityProvider, IdentityStatus, Integration, OrganizationIntegration
 from sentry.testutils import TestCase
 from sentry.integrations.slack.link_identity import build_linking_url
@@ -35,7 +37,15 @@ class SlackIntegrationLinkIdentityTest(TestCase):
         )
 
     @responses.activate
-    def test_basic_flow(self):
+    @patch('sentry.integrations.slack.link_identity.unsign')
+    def test_basic_flow(self, unsign):
+        unsign.return_value = {
+            'integration_id': self.integration.id,
+            'organization_id': self.org.id,
+            'slack_id': 'new-slack-id',
+            'notify_channel_id': 'my-channel',
+        }
+
         linking_url = build_linking_url(
             self.integration,
             self.org,
