@@ -670,6 +670,8 @@ function routes() {
 
         <Route path=":projectId/" component={errorHandler(ProjectDetails)}>
           <IndexRoute component={errorHandler(Stream)} />
+          <Route path="issues/" component={errorHandler(Stream)} />
+
           <Route path="searches/:searchId/" component={errorHandler(Stream)} />
           <Route path="dashboard/" component={errorHandler(ProjectDashboard)} />
           <Route path="events/" component={errorHandler(ProjectEvents)} />
