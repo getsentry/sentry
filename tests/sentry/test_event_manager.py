@@ -57,11 +57,11 @@ class EventManagerTest(TransactionTestCase):
         # we had a regression which caused the default hash to just be
         # 'event.message' instead of '[event.message]' which caused it to
         # generate a hash per letter
-        manager = EventManager(self.make_event(message='foo bar'))
+        manager = EventManager(self.make_event(event_id='a', message='foo bar'))
         manager.normalize()
         event1 = manager.save(1)
 
-        manager = EventManager(self.make_event(message='foo baz'))
+        manager = EventManager(self.make_event(event_id='b', message='foo baz'))
         manager.normalize()
         event2 = manager.save(1)
 
