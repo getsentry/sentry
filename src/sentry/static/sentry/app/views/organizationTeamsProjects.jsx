@@ -1,5 +1,6 @@
 import PropTypes from 'prop-types';
 import React from 'react';
+import {Box, Flex} from 'grid-emotion';
 import {Link} from 'react-router';
 import LazyLoad from 'react-lazy-load';
 
@@ -7,6 +8,10 @@ import BarChart from '../components/barChart';
 import Button from '../components/buttons/button';
 import {Client} from '../api';
 import {loadStats} from '../actionCreators/projects';
+import Panel from './settings/components/panel';
+import PanelBody from './settings/components/panelBody';
+import PanelHeader from './settings/components/panelHeader';
+import PanelItem from './settings/components/panelItem';
 import ProjectLabel from '../components/projectLabel';
 import SettingsPageHeader from './settings/components/settingsPageHeader';
 import {t, tct} from '../locale';
@@ -76,22 +81,20 @@ class OrganizationTeamsProjectsView extends React.Component {
     // TODO(jess): prob should make sure they actually can manage projects
 
     return (
-      <tr key={project.id} className={project.isBookmarked ? 'isBookmarked' : null}>
-        <td>
-          <h5>
-            <Link to={`/${orgId}/${project.slug}/`}>
-              <ProjectLabel project={project} />
-            </Link>
-          </h5>
-        </td>
-        <td className="align-right project-chart">
-          {chartData && (
-            <LazyLoad>
-              <BarChart points={chartData} label="events" />
-            </LazyLoad>
-          )}
-        </td>
-        <td className="align-right">
+      <PanelItem key={project.id} align="center">
+        <Flex flex="1" justify="space-between">
+          <Link to={`/${orgId}/${project.slug}/`}>
+            <ProjectLabel project={project} />
+          </Link>
+          <div className="project-chart">
+            {chartData && (
+              <LazyLoad>
+                <BarChart points={chartData} label="events" />
+              </LazyLoad>
+            )}
+          </div>
+        </Flex>
+        <Box ml={2}>
           <Button
             priority="default"
             size="small"
@@ -99,30 +102,26 @@ class OrganizationTeamsProjectsView extends React.Component {
           >
             {t('Manage Project')}
           </Button>
-        </td>
-      </tr>
+        </Box>
+      </PanelItem>
     );
   };
 
   renderProjectList(projects) {
-    return <tbody>{projects.map(this.renderProject)}</tbody>;
+    return projects.map(this.renderProject);
   }
 
   renderTeamNode = (teamSlug, projects) => {
     let display = teamSlug === null ? t('Projects Without Teams') : `#${teamSlug}`;
     return (
-      <div className="box" key={teamSlug}>
-        <div className="box-header">
-          <h3>{display}</h3>
-        </div>
-        <div className="box-content">
-          <table className="table table-no-top-border m-b-0">
-            {projects.length
-              ? this.renderProjectList(projects)
-              : this.renderNoProjects(teamSlug)}
-          </table>
-        </div>
-      </div>
+      <Panel key={teamSlug}>
+        <PanelHeader css={{textTransform: 'none'}}>{display}</PanelHeader>
+        <PanelBody>
+          {projects.length
+            ? this.renderProjectList(projects)
+            : this.renderNoProjects(teamSlug)}
+        </PanelBody>
+      </Panel>
     );
   };
 
