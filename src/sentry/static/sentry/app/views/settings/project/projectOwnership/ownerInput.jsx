@@ -11,6 +11,7 @@ import SentryTypes from '../../../../proptypes';
 
 import {addErrorMessage, addSuccessMessage} from '../../../../actionCreators/indicator';
 import {t} from '../../../../locale';
+import RuleBuilder from './ruleBuilder';
 
 const SyntaxOverlay = styled.div`
   margin: 5px;
@@ -103,11 +104,24 @@ class OwnerInput extends React.Component {
   onChange(e) {
     this.setState({text: e.target.value});
   }
+
+  handleAddRule(rule) {
+    this.setState(({text}) => ({
+      text: text + '\n' + rule,
+    }));
+  }
+
   render() {
+    let {project, organization} = this.props;
     let {text, error, initialText} = this.state;
 
     return (
       <React.Fragment>
+        <RuleBuilder
+          organization={organization}
+          project={project}
+          handleAddRule={this.handleAddRule.bind(this)}
+        />
         <div
           style={{position: 'relative'}}
           onKeyDown={e => {
