@@ -113,7 +113,7 @@ describe('Configure should render correctly', function() {
       expect(handleSubmitStub.callCount).toEqual(1);
     });
 
-    it('should render platform docs', function() {
+    it('should render platform docs', function(done) {
       let props = {
         ...baseProps,
       };
@@ -162,7 +162,11 @@ describe('Configure should render correctly', function() {
         },
       });
 
-      expect(wrapper).toMatchSnapshot();
+      setTimeout(() => {
+        wrapper.update();
+        expect(wrapper).toMatchSnapshot();
+        done();
+      });
     });
   });
 });
