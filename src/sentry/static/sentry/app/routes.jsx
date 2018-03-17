@@ -57,6 +57,7 @@ import OrganizationRepositoriesView from './views/organizationRepositoriesView';
 import OrganizationGeneralSettingsView from './views/settings/organization/general/organizationGeneralSettingsView';
 import OrganizationStats from './views/organizationStats';
 import OrganizationTeams from './views/organizationTeams';
+import OrganizationTeamsProjectsView from './views/organizationTeamsProjects';
 import ProjectAlertRules from './views/projectAlertRules';
 import ProjectAlertRuleDetails from './views/projectAlertRuleDetails';
 import ProjectAlertSettings from './views/projectAlertSettings';
@@ -633,6 +634,10 @@ function routes() {
         />
 
         <Route path="/organizations/:orgId/" component={OrganizationHomeContainer}>
+          <Route
+            path="projects/"
+            component={errorHandler(OrganizationTeamsProjectsView)}
+          />
           {hooksOrgRoutes}
           {orgSettingsRoutes}
         </Route>
