@@ -22,6 +22,7 @@ from sentry import features, options
 from sentry.models import ProjectOwnership, User
 
 from sentry.digests.utilities import get_digest_metadata
+from sentry.digests.notifications import build_digest, event_to_record
 from sentry.plugins import register
 from sentry.plugins.base.structs import Notification
 from sentry.plugins.bases.notify import NotificationPlugin
@@ -288,23 +289,26 @@ class MailPlugin(NotificationPlugin):
             date=dateformat.format(date, 'N j, Y, P e'),
         )
 
-    def notify_digest(self, project, digest):
-        start, end, counts = get_digest_metadata(digest)
-
+    def render_digest_as_single_notification(self, counts, digest):
         # If there is only one group in this digest (regardless of how many
         # rules it appears in), we should just render this using the single
         # notification template. If there is more than one record for a group,
         # just choose the most recent one.
+        group = six.next(iter(counts))
+        record = max(
+            itertools.chain.from_iterable(
+                groups.get(group, []) for groups in six.itervalues(digest)
+            ),
+            key=lambda record: record.timestamp,
+        )
+        notification = Notification(record.value.event, rules=record.value.rules)
+        self.notify(notification)
+
+    def notify_digest(self, project, digest):
+        start, end, counts = get_digest_metadata(digest)
+
         if len(counts) == 1:
-            group = six.next(iter(counts))
-            record = max(
-                itertools.chain.from_iterable(
-                    groups.get(group, []) for groups in six.itervalues(digest)
-                ),
-                key=lambda record: record.timestamp,
-            )
-            notification = Notification(record.value.event, rules=record.value.rules)
-            return self.notify(notification)
+            self.render_digest_as_single_notification(counts, digest)
 
         context = {
             'start': start,
@@ -317,11 +321,24 @@ class MailPlugin(NotificationPlugin):
         headers = {
             'X-Sentry-Project': project.slug,
         }
-
         group = six.next(iter(counts))
         subject = self.get_digest_subject(group, counts, start)
+        events = self.get_events_from_digest(digest)
+
+        event_actors = ProjectOwnership.get_all_actors(project.id, [event[0] for event in events])
+        event_users = self.event_actors_to_user_ids(event_actors)
 
         for user_id in self.get_send_to(project):
+            events_for_user = [event for event in events if user_id in event_users[event[0]]]
+            if not events_for_user:
+                continue
+            if len(events_for_user) != len(counts):
+                context = self.build_custom_context(events_for_user, project)
+            if len(events_for_user) == 1:
+                # TODO: Not sure what counts even is. Need to build a new digest possibly?
+                self.render_digest_as_single_notification(context['counts'], digest)
+                continue
+
             self.add_unsubscribe_link(context, user_id, project)
             self._send_mail(
                 subject=subject,
@@ -334,6 +351,61 @@ class MailPlugin(NotificationPlugin):
                 context=context,
                 send_to=[user_id],
             )
+
+    def event_actors_to_user_ids(self, event_actors):
+        from sentry.models import Team
+        # Get Team Actors
+        for event, actors in six.iteritems(event_actors):
+            teams_to_resolve = set()
+            for actor in actors:
+                if actor.type == Team:
+                    teams_to_resolve.add(actor)
+
+        # Resolve Teams to User ids
+        resolved_teams = {}
+        for team in teams_to_resolve:
+            users = User.objects.filter(
+                is_active=True,
+                sentry_orgmember_set__organizationmemberteam__team=team,
+            ).values_list('id', flat=True)
+            resolved_teams[team] = set(users)
+
+        # Create a dictionary from event to user_ids
+        event_users = {}
+        for event, actors in six.iteritems(event_actors):
+            user_ids = set()
+            for actor in actors:
+                if actor.type == Team:
+                    user_ids += resolved_teams[actor]
+                else:
+                    user_ids.add(actor.id)
+            event_users[event] = user_ids
+
+        return event_users
+
+    def build_custom_context(self, events, project):
+        records = tuple([event_to_record(event[0], event[1].value.rules) for event in events])
+        digest = build_digest(project, records)
+        start, end, counts = get_digest_metadata(digest)
+        context = {
+            'start': start,
+            'end': end,
+            'project': project,
+            'digest': digest,
+            'counts': counts,
+        }
+        return context
+
+    def get_events_from_digest(self, digest):
+        """
+        Returns events with their corresponding record.
+        """
+        events = []
+        for groups in six.itervalues(digest):
+            for group in groups:
+                record = groups[group][0]
+                events.append((group.get_latest_event(), record))
+        return events
 
     def notify_about_activity(self, activity):
         email_cls = emails.get(activity.type)
