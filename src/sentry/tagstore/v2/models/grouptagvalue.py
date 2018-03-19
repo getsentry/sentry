@@ -43,7 +43,7 @@ class GroupTagValue(Model):
         unique_together = (('project_id', 'group_id', '_key', '_value'), )
         index_together = (('project_id', '_key', '_value', 'last_seen'), )
 
-    __repr__ = sane_repr('project_id', 'group_id', '_key', '_value')
+    __repr__ = sane_repr('project_id', 'group_id', '_key_id', '_value_id')
 
     def delete_for_merge(self):
         using = router.db_for_read(GroupTagValue)
