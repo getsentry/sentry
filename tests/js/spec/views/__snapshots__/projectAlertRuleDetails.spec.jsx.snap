@@ -77,6 +77,7 @@ exports[`ProjectAlertRuleDetails Edit alert rule renders 1`] = `
         actions={
           Array [
             Object {
+              "enabled": true,
               "html": "Send a notification for all services",
               "id": "sentry.rules.actions.notify1",
               "label": "Send a notification for all services",
@@ -86,6 +87,7 @@ exports[`ProjectAlertRuleDetails Edit alert rule renders 1`] = `
         conditions={
           Array [
             Object {
+              "enabled": true,
               "html": "An event is seen",
               "id": "sentry.rules.conditions.1",
               "label": "An event is seen",
@@ -301,6 +303,7 @@ exports[`ProjectAlertRuleDetails Edit alert rule renders 1`] = `
                       nodes={
                         Array [
                           Object {
+                            "enabled": true,
                             "html": "An event is seen",
                             "id": "sentry.rules.conditions.1",
                             "label": "An event is seen",
@@ -435,6 +438,7 @@ exports[`ProjectAlertRuleDetails Edit alert rule renders 1`] = `
                       nodes={
                         Array [
                           Object {
+                            "enabled": true,
                             "html": "Send a notification for all services",
                             "id": "sentry.rules.actions.notify1",
                             "label": "Send a notification for all services",
@@ -750,6 +754,7 @@ exports[`ProjectAlertRuleDetails New alert rule renders 1`] = `
         actions={
           Array [
             Object {
+              "enabled": true,
               "html": "Send a notification for all services",
               "id": "sentry.rules.actions.notify1",
               "label": "Send a notification for all services",
@@ -759,6 +764,7 @@ exports[`ProjectAlertRuleDetails New alert rule renders 1`] = `
         conditions={
           Array [
             Object {
+              "enabled": true,
               "html": "An event is seen",
               "id": "sentry.rules.conditions.1",
               "label": "An event is seen",
@@ -974,6 +980,7 @@ exports[`ProjectAlertRuleDetails New alert rule renders 1`] = `
                       nodes={
                         Array [
                           Object {
+                            "enabled": true,
                             "html": "An event is seen",
                             "id": "sentry.rules.conditions.1",
                             "label": "An event is seen",
@@ -1108,6 +1115,7 @@ exports[`ProjectAlertRuleDetails New alert rule renders 1`] = `
                       nodes={
                         Array [
                           Object {
+                            "enabled": true,
                             "html": "Send a notification for all services",
                             "id": "sentry.rules.actions.notify1",
                             "label": "Send a notification for all services",

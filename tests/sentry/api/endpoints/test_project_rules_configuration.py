@@ -23,5 +23,5 @@ class ProjectRuleConfigurationTest(APITestCase):
         response = self.client.get(url, format='json')
 
         assert response.status_code == 200, response.content
-        assert len(response.data['actions']) == 2
+        assert len(response.data['actions']) == 3
         assert len(response.data['conditions']) == 8
