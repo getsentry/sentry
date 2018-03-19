@@ -6,6 +6,8 @@ import {Link, browserHistory} from 'react-router';
 import Cookies from 'js-cookie';
 import {StickyContainer, Sticky} from 'react-sticky';
 import classNames from 'classnames';
+import qs from 'query-string';
+import {omit, isEqual} from 'lodash';
 
 import SentryTypes from '../../proptypes';
 import ApiMixin from '../../mixins/apiMixin';
@@ -119,7 +121,17 @@ const Stream = createReactClass({
       ? nextSearchId
       : nextSearchId !== this.state.searchId;
 
-    if (searchIdChanged || nextProps.location.search !== this.props.location.search) {
+    // We are using qs.parse with location.search since this.props.location.query
+    // returns the same value as nextProps.location.query
+    let currentSearchTerm = qs.parse(this.props.location.search);
+    let nextSearchTerm = qs.parse(nextProps.location.search);
+
+    let searchTermChanged = !isEqual(
+      omit(currentSearchTerm, 'environment'),
+      omit(nextSearchTerm, 'environment')
+    );
+
+    if (searchIdChanged || searchTermChanged) {
       this.setState(this.getQueryState(nextProps), this.fetchData);
     }
   },
