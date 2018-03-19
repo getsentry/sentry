@@ -179,8 +179,9 @@ describe('AssigneeSelector', function() {
       assigneeSelector.update();
       expect(assigneeSelector.instance().assignableTeams().length).toBe(1);
 
-      expect(assigneeSelector.find('Avatar').length).toBe(2);
-      expect(assigneeSelector.find('TeamAvatar').length).toBe(1);
+      expect(assigneeSelector.find('Avatar').length).toBe(3);
+      expect(assigneeSelector.find('UserAvatar').length).toBe(2);
+      expect(assigneeSelector.find('SlugAvatar').length).toBe(1);
       expect(assigneeSelector.find('LoadingIndicator').exists()).toBe(false);
     });
 
@@ -189,13 +190,13 @@ describe('AssigneeSelector', function() {
       MemberListStore.loadInitialData([USER_1, USER_2]);
       assigneeSelector.update();
 
-      expect(assigneeSelector.find('Avatar').length).toBe(2);
+      expect(assigneeSelector.find('Avatar').length).toBe(3);
       expect(assigneeSelector.find('LoadingIndicator').exists()).toBe(false);
 
       MemberListStore.loadInitialData([USER_1, USER_2, USER_3]);
       assigneeSelector.update();
 
-      expect(assigneeSelector.find('Avatar').length).toBe(2);
+      expect(assigneeSelector.find('Avatar').length).toBe(3);
       expect(assigneeSelector.find('LoadingIndicator').exists()).toBe(false);
     });
 
@@ -223,7 +224,7 @@ describe('AssigneeSelector', function() {
       MemberListStore.loadInitialData([USER_1, USER_2]);
       assigneeSelector.update();
       assigneeSelector
-        .find('TeamAvatar')
+        .find('SlugAvatar')
         .first()
         .simulate('click');
       assigneeSelector.update();

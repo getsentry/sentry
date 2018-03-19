@@ -8,7 +8,6 @@ import {t} from '../locale';
 import {valueIsEqual, buildUserId, buildTeamId} from '../utils';
 import SentryTypes from '../proptypes';
 import Avatar from '../components/avatar';
-import TeamAvatar from '../components/teamAvatar';
 import ActorAvatar from '../components/actorAvatar';
 import DropdownLink from './dropdownLink';
 import FlowLayout from './flowLayout';
@@ -25,7 +24,9 @@ const AssigneeSelector = createReactClass({
 
   propTypes: {
     id: PropTypes.string.isRequired,
+    size: PropTypes.number,
   },
+
   contextTypes: {
     organization: SentryTypes.Organization,
   },
@@ -61,6 +62,12 @@ const AssigneeSelector = createReactClass({
         .concat(members.slice(0, sessionUserIndex))
         .concat(members.slice(sessionUserIndex + 1));
     },
+  },
+
+  getDefaultProps() {
+    return {
+      size: 20,
+    };
   },
 
   getInitialState() {
@@ -214,6 +221,7 @@ const AssigneeSelector = createReactClass({
 
   renderMemberNodes() {
     let {filter, memberList} = this.state;
+    let {size} = this.props;
     let members = AssigneeSelector.filterAssignees(memberList, filter);
     members = AssigneeSelector.putSessionUserFirst(members);
 
@@ -223,7 +231,7 @@ const AssigneeSelector = createReactClass({
           key={buildUserId(item.id)}
           onSelect={this.assignToUser.bind(this, item)}
         >
-          <Avatar user={item} className="avatar" size={48} />
+          <Avatar user={item} size={size} />
           {this.highlight(item.name || item.email, filter)}
         </MenuItem>
       );
@@ -232,6 +240,7 @@ const AssigneeSelector = createReactClass({
 
   renderTeamNodes() {
     let {filter} = this.state;
+    let {size} = this.props;
     let teamNodes = [];
     let org = this.context.organization;
     let features = new Set(org.features);
@@ -240,7 +249,7 @@ const AssigneeSelector = createReactClass({
       teamNodes = this.assignableTeams().map(({id, display, team}) => {
         return (
           <MenuItem key={id} onSelect={this.assignToTeam.bind(this, team)}>
-            <TeamAvatar team={team} className="avatar" size={48} />
+            <Avatar team={team} size={size} />
             {this.highlight(display, filter)}
           </MenuItem>
         );

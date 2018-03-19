@@ -1,8 +1,7 @@
 // Jest Snapshot v1, https://goo.gl/fbAQLP
 
 exports[`Avatar render() should show a gravatar when actor type is a team 1`] = `
-<TeamAvatar
-  className="avatar"
+<Avatar
   hasTooltip={true}
   team={
     Object {
@@ -20,9 +19,7 @@ exports[`Avatar render() should show a gravatar when actor type is a team 1`] = 
 
 exports[`Avatar render() should show a gravatar when actor type is a user 1`] = `
 <Avatar
-  gravatar={true}
   hasTooltip={true}
-  size={64}
   user={
     Object {
       "email": "janedoe@example.com",
