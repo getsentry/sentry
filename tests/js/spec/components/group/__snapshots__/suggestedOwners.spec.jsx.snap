@@ -107,7 +107,6 @@ exports[`SuggestedOwners render() should show owners when enable 1`] = `
                   gravatarId="janedoe@example.com"
                   hasTooltip={false}
                   letterId="janedoe@example.com"
-                  size={64}
                   style={Object {}}
                   title="Jane Doe"
                   tooltip="Jane Doe (janedoe@example.com)"
@@ -119,12 +118,7 @@ exports[`SuggestedOwners render() should show owners when enable 1`] = `
                   >
                     <span
                       className="avatar tip"
-                      style={
-                        Object {
-                          "height": "64px",
-                          "width": "64px",
-                        }
-                      }
+                      style={Object {}}
                     >
                       <img
                         onError={[Function]}

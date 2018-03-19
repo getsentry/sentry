@@ -41,7 +41,7 @@ class UserContextType extends React.Component {
     return (
       <div className="user-widget">
         <div className="pull-left">
-          <Avatar user={user} size={96} gravatar={false} />
+          <Avatar user={user} size={48} gravatar={false} />
         </div>
         <table className="key-value table">
           <tbody>

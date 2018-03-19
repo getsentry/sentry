@@ -102,6 +102,10 @@ const ExternalHomeLink = styled(ExternalLink)`
   }
 `;
 
+const AvatarContainer = styled.div`
+  margin-bottom: 20px;
+`;
+
 class SettingsIndex extends React.Component {
   static propTypes = {
     organization: SentryTypes.Organization,
@@ -130,13 +134,9 @@ class SettingsIndex extends React.Component {
               <Panel>
                 <HomePanelHeader>
                   <HomeLinkIcon to="/settings/account/">
-                    <div css={{marginBottom: 20}}>
-                      <Avatar
-                        user={user}
-                        style={{width: HOME_ICON_SIZE, height: HOME_ICON_SIZE}}
-                        size={HOME_ICON_SIZE}
-                      />
-                    </div>
+                    <AvatarContainer>
+                      <Avatar user={user} size={HOME_ICON_SIZE} />
+                    </AvatarContainer>
                     {t('My Account')}
                   </HomeLinkIcon>
                 </HomePanelHeader>
@@ -168,9 +168,15 @@ class SettingsIndex extends React.Component {
                 {!organization && <LoadingIndicator overlay />}
                 <HomePanelHeader>
                   <HomeLinkIcon to={organizationSettingsUrl}>
-                    <HomeIcon color="green">
-                      <InlineSvg src="icon-stack" size="44px" />
-                    </HomeIcon>
+                    {organization ? (
+                      <AvatarContainer>
+                        <Avatar organization={organization} size={HOME_ICON_SIZE} />
+                      </AvatarContainer>
+                    ) : (
+                      <HomeIcon color="green">
+                        <InlineSvg src="icon-stack" size="44px" />
+                      </HomeIcon>
+                    )}
                     <TextOverflow css={{lineHeight: '1.1em'}}>
                       {organization ? organization.slug : t('Organization')}
                     </TextOverflow>

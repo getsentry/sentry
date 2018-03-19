@@ -1,3 +1,4 @@
+import {sortedIndexOf} from 'lodash';
 import MD5 from 'crypto-js/md5';
 import PropTypes from 'prop-types';
 import React from 'react';
@@ -8,9 +9,16 @@ import ConfigStore from '../../stores/configStore';
 import LetterAvatar from '../letterAvatar';
 import Tooltip from '../tooltip';
 
+const DEFAULT_GRAVATAR_SIZE = 64;
+const ALLOWED_SIZES = [20, 32, 36, 48, 52, 64, 80, 96, 120];
+
 class BaseAvatar extends React.Component {
   static propTypes = {
     size: PropTypes.number,
+    /**
+     * This is the size of the remote image to request.
+     */
+    remoteImageSize: PropTypes.oneOf(ALLOWED_SIZES),
     default: PropTypes.string,
     hasTooltip: PropTypes.bool,
     type: PropTypes.string,
@@ -22,7 +30,8 @@ class BaseAvatar extends React.Component {
   };
 
   static defaultProps = {
-    size: 64,
+    // No default size to ease transition from CSS defined sizes
+    // size: 64,
     style: {},
     hasTooltip: false,
     type: 'letter_avatar',
@@ -36,6 +45,16 @@ class BaseAvatar extends React.Component {
     };
   }
 
+  getRemoteImageSize = () => {
+    let {remoteImageSize, size} = this.props;
+
+    return (
+      remoteImageSize ||
+      (size && ALLOWED_SIZES[sortedIndexOf(ALLOWED_SIZES, size)]) ||
+      DEFAULT_GRAVATAR_SIZE
+    );
+  };
+
   buildGravatarUrl = () => {
     let {gravatarId} = this.props;
     let url = ConfigStore.getConfig().gravatarBaseUrl + '/avatar/';
@@ -43,7 +62,7 @@ class BaseAvatar extends React.Component {
     url += MD5(gravatarId);
 
     let query = {
-      s: this.props.size || undefined,
+      s: this.getRemoteImageSize() || undefined,
       d: this.props.default || 'blank',
     };
 
@@ -53,15 +72,9 @@ class BaseAvatar extends React.Component {
   };
 
   buildUploadUrl = () => {
-    let {uploadId, size} = this.props;
+    let {uploadId} = this.props;
 
-    let url = `/avatar/${uploadId}/`;
-
-    if (size) {
-      url += '?' + qs.stringify({s: size});
-    }
-
-    return url;
+    return `/avatar/${uploadId}/?${qs.stringify({s: this.getRemoteImageSize()})}`;
   };
 
   handleLoad = () => {

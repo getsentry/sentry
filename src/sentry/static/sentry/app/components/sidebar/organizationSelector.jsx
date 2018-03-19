@@ -1,15 +1,14 @@
 import PropTypes from 'prop-types';
 import React from 'react';
 import createReactClass from 'create-react-class';
-import Link from '../link';
-import SidebarPanel from '../sidebarPanel';
-import LetterAvatar from '../letterAvatar';
-
-import AppState from '../../mixins/appState';
-import OrganizationsStore from '../../stores/organizationsStore';
-import ConfigStore from '../../stores/configStore';
 
 import {t} from '../../locale';
+import AppState from '../../mixins/appState';
+import Avatar from '../avatar';
+import ConfigStore from '../../stores/configStore';
+import Link from '../link';
+import OrganizationsStore from '../../stores/organizationsStore';
+import SidebarPanel from '../sidebarPanel';
 
 let RouterOrBrowserLink = ({isRouter, path, ...props}) =>
   isRouter ? <Link to={path} {...props} /> : <a href={path} {...props} />;
@@ -76,7 +75,7 @@ const OrganizationSelector = createReactClass({
     return (
       <div className={classNames}>
         <a className="active-org" onClick={this.props.togglePanel}>
-          <LetterAvatar displayName={activeOrg.name} identifier={activeOrg.slug} />
+          <Avatar size={32} organization={activeOrg} />
         </a>
 
         {this.props.showPanel &&
@@ -91,7 +90,7 @@ const OrganizationSelector = createReactClass({
                     >
                       {this.getLinkNode(
                         org,
-                        <LetterAvatar displayName={org.name} identifier={org.slug} />,
+                        <Avatar size={36} organization={org} />,
                         'org-avatar'
                       )}
                       <h5>{this.getLinkNode(org, org.name)}</h5>
