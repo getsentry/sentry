@@ -12,12 +12,18 @@ class SlugAvatar extends React.Component {
   };
 
   render() {
-    let {model} = this.props;
+    let {model, ...props} = this.props;
     if (!model) return null;
     let title = (model && model.slug) || '';
 
     return (
-      <BaseAvatar type="letter_avatar" letterId={title} tooltip={title} title={title} />
+      <BaseAvatar
+        {...props}
+        type="letter_avatar"
+        letterId={title}
+        tooltip={title}
+        title={title}
+      />
     );
   }
 }

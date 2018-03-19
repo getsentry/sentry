@@ -17,13 +17,13 @@ class Avatar extends React.Component {
   };
 
   render() {
-    let {user, team, organization} = this.props;
+    let {user, team, organization, ...props} = this.props;
 
     if (user) {
       return <UserAvatar {...this.props} />;
     }
 
-    return <SlugAvatar model={team || organization} {...this.props} />;
+    return <SlugAvatar model={team || organization} {...props} />;
   }
 }
 
