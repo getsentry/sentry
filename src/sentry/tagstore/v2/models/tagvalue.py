@@ -22,11 +22,6 @@ from sentry.utils.cache import cache
 from sentry.utils.hashlib import md5_text
 
 
-class TagValueManager(BaseManager):
-    def get_queryset(self):
-        return super(TagValueManager, self).get_queryset().select_related('_key')
-
-
 class TagValue(Model):
     """
     Stores references to available filters.
@@ -43,7 +38,7 @@ class TagValue(Model):
     first_seen = models.DateTimeField(
         default=timezone.now, db_index=True, null=True)
 
-    objects = TagValueManager()
+    objects = BaseManager()
 
     class Meta:
         app_label = 'tagstore'
