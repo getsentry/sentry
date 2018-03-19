@@ -9,13 +9,44 @@ import DateTime from '../../../components/dateTime';
 import PanelItem from '../components/panelItem';
 import TextCopyInput from '../components/forms/textCopyInput';
 
-const ScopeList = styled.div`
-  font-size: 0.9em;
-  color: #999;
+const StyledPanelItem = styled(PanelItem)`
+  flex-direction: column;
 `;
 
-const Created = styled.div`
+const Details = styled(Flex)`
+  margin-top: 10px;
+`;
+
+const ScopeList = styled.div`
   font-size: 0.9em;
+  line-height: 1.4;
+`;
+
+const Time = styled.time`
+  font-size: 0.9em;
+  line-height: 1.4;
+`;
+
+const Action = styled(Box)`
+  align-self: flex-start;
+`;
+
+const Heading = styled.div`
+  font-size: 13px;
+  text-transform: uppercase;
+  color: ${p => p.theme.gray3};
+  margin-bottom: 8px;
+`;
+
+const StyledButton = styled(Button)`
+  /* todo(ckj): Buttons need to be refactored to be properly extended by styled.
+     For now, we'll need to use a child selector:
+  */
+
+  .button-label {
+    padding-top: 9px;
+    padding-bottom: 9px;
+  }
 `;
 
 class ApiTokenRow extends React.Component {
@@ -33,40 +64,50 @@ class ApiTokenRow extends React.Component {
     let {token} = this.props;
 
     return (
-      <PanelItem justify="space-between" px={2} py={2}>
-        <Box flex="1">
-          <div style={{marginBottom: 5}}>
-            <small>
-              <TextCopyInput
-                flexValueContainer={false}
-                renderer={({value, ref}) => (
-                  <Flex align="center" ref={ref}>
-                    {value}
-                  </Flex>
-                )}
+      <StyledPanelItem p={2}>
+        <div>
+          <Flex>
+            <Box flex="1">
+              <div style={{marginBottom: 5}}>
+                <small>
+                  <TextCopyInput
+                    flexValueContainer={false}
+                    renderer={({value, ref}) => (
+                      <Flex align="center" ref={ref}>
+                        {value}
+                      </Flex>
+                    )}
+                  >
+                    {token.token}
+                  </TextCopyInput>
+                </small>
+              </div>
+            </Box>
+            <Action pl={2}>
+              <StyledButton
+                size="small"
+                onClick={this.handleRemove}
+                icon="icon-circle-subtract"
               >
-                {token.token}
-              </TextCopyInput>
-            </small>
-          </div>
-          <div style={{marginBottom: 5}}>
-            <Created>
-              {t('Created')} <DateTime date={token.dateCreated} />
-            </Created>
-          </div>
-          <div>
-            <ScopeList>{token.scopes.join(', ')}</ScopeList>
-          </div>
-        </Box>
+                <span className="ref-delete-api-token">{t('Remove')}</span>
+              </StyledButton>
+            </Action>
+          </Flex>
+        </div>
 
-        <Flex align="center">
-          <Box pl={2}>
-            <Button onClick={this.handleRemove}>
-              <span className="icon icon-trash" />
-            </Button>
+        <Details>
+          <Box flex="1">
+            <Heading>{t('Scopes')}</Heading>
+            <ScopeList>{token.scopes.join(', ')}</ScopeList>
           </Box>
-        </Flex>
-      </PanelItem>
+          <Box>
+            <Heading>{t('Created')}</Heading>
+            <Time>
+              <DateTime date={token.dateCreated} />
+            </Time>
+          </Box>
+        </Details>
+      </StyledPanelItem>
     );
   }
 }
