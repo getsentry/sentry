@@ -10,7 +10,7 @@ from __future__ import absolute_import, print_function
 
 import six
 
-from django.db import models
+from django.db import models, router, connections
 from django.utils.translation import ugettext_lazy as _
 
 from sentry.api.serializers import Serializer, register
@@ -48,6 +48,17 @@ class TagKey(Model):
         unique_together = (('project_id', 'environment_id', 'key'), )
 
     __repr__ = sane_repr('project_id', 'environment_id', 'key')
+
+    def delete(self):
+        using = router.db_for_read(TagKey)
+        cursor = connections[using].cursor()
+        cursor.execute(
+            """
+            DELETE FROM tagstore_tagkey
+            WHERE project_id = %s
+              AND id = %s
+        """, [self.project_id, self.id]
+        )
 
     def get_label(self):
         from sentry import tagstore
