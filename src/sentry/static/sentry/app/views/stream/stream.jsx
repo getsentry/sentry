@@ -6,7 +6,6 @@ import {Link, browserHistory} from 'react-router';
 import Cookies from 'js-cookie';
 import {StickyContainer, Sticky} from 'react-sticky';
 import classNames from 'classnames';
-import {isEqual, omit} from 'lodash';
 
 import SentryTypes from '../../proptypes';
 import ApiMixin from '../../mixins/apiMixin';
@@ -120,14 +119,7 @@ const Stream = createReactClass({
       ? nextSearchId
       : nextSearchId !== this.state.searchId;
 
-    // We omit environment when we check the the query has changed as we
-    // handle environment changes separately
-    let queryChanged = !isEqual(
-      omit(nextProps.location.query, 'environment'),
-      omit(this.props.location.query, 'environment')
-    );
-
-    if (searchIdChanged || queryChanged) {
+    if (searchIdChanged || nextProps.location.search !== this.props.location.search) {
       this.setState(this.getQueryState(nextProps), this.fetchData);
     }
   },
