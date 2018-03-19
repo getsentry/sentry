@@ -1,9 +1,10 @@
 import {Flex, Box} from 'grid-emotion';
 import DocumentTitle from 'react-document-title';
 import React from 'react';
-import styled from 'react-emotion';
+import styled, {css} from 'react-emotion';
 
 import {t} from '../../locale';
+import Avatar from '../../components/avatar';
 import ConfigStore from '../../stores/configStore';
 import ExternalLink from '../../components/externalLink';
 import InlineSvg from '../../components/inlineSvg';
@@ -30,6 +31,8 @@ const LINKS = {
   GITHUB_ISSUES: 'https://github.com/getsentry/sentry/issues',
   SERVICE_STATUS: 'https://status.sentry.io/',
 };
+
+const HOME_ICON_SIZE = 76;
 
 const HomePanelHeader = styled(PanelHeader)`
   background: #fff;
@@ -58,14 +61,17 @@ const HomePanelBody = styled(PanelBody)`
   }
 `;
 
+const getHomeIconMargin = css`
+  margin-bottom: 20px;
+`;
+
 const HomeIcon = styled.div`
   background: ${p => p.theme[p.color || 'gray2']};
   color: #fff;
-  width: 76px;
-  height: 76px;
-  border-radius: 76px;
-  margin: 0 auto 20px;
-  > svg {
+  width: ${HOME_ICON_SIZE}px;
+  height: ${HOME_ICON_SIZE}px;
+  border-radius: ${HOME_ICON_SIZE}px;
+  ${getHomeIconMargin} > svg {
     margin-top: 14px;
   }
 `;
@@ -76,6 +82,16 @@ const HomeLink = styled(Link)`
   &:hover {
     color: ${p => p.theme.purpleDark};
   }
+`;
+
+const flexCenter = css`
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+`;
+
+const HomeLinkIcon = styled(HomeLink)`
+  ${flexCenter};
 `;
 
 const ExternalHomeLink = styled(ExternalLink)`
@@ -113,12 +129,16 @@ class SettingsIndex extends React.Component {
             <Box w={1 / 3} px={2}>
               <Panel>
                 <HomePanelHeader>
-                  <HomeLink to="/settings/account/">
-                    <HomeIcon color="blue">
-                      <InlineSvg src="icon-user" size="44px" />
-                    </HomeIcon>
+                  <HomeLinkIcon to="/settings/account/">
+                    <div css={{marginBottom: 20}}>
+                      <Avatar
+                        user={user}
+                        style={{width: HOME_ICON_SIZE, height: HOME_ICON_SIZE}}
+                        size={HOME_ICON_SIZE}
+                      />
+                    </div>
                     {t('My Account')}
-                  </HomeLink>
+                  </HomeLinkIcon>
                 </HomePanelHeader>
 
                 <HomePanelBody>
@@ -147,14 +167,14 @@ class SettingsIndex extends React.Component {
               <Panel>
                 {!organization && <LoadingIndicator overlay />}
                 <HomePanelHeader>
-                  <HomeLink to={organizationSettingsUrl}>
+                  <HomeLinkIcon to={organizationSettingsUrl}>
                     <HomeIcon color="green">
                       <InlineSvg src="icon-stack" size="44px" />
                     </HomeIcon>
                     <TextOverflow css={{lineHeight: '1.1em'}}>
                       {organization ? organization.slug : t('Organization')}
                     </TextOverflow>
-                  </HomeLink>
+                  </HomeLinkIcon>
                 </HomePanelHeader>
                 <HomePanelBody>
                   <h3>{t('Quick links')}:</h3>
@@ -182,7 +202,7 @@ class SettingsIndex extends React.Component {
             <Box w={1 / 3} px={2}>
               <Panel>
                 <HomePanelHeader>
-                  <ExternalHomeLink href={LINKS.DOCUMENTATION}>
+                  <ExternalHomeLink css={flexCenter} href={LINKS.DOCUMENTATION}>
                     <HomeIcon color="orange">
                       <InlineSvg src="icon-docs" size="48px" />
                     </HomeIcon>
@@ -218,7 +238,7 @@ class SettingsIndex extends React.Component {
             <Box w={1 / 3} px={2}>
               <Panel>
                 <HomePanelHeader>
-                  <SupportLinkComponent {...supportLinkProps}>
+                  <SupportLinkComponent css={flexCenter} {...supportLinkProps}>
                     <HomeIcon color="purple">
                       <InlineSvg src="icon-support" size="48px" />
                     </HomeIcon>
@@ -252,12 +272,12 @@ class SettingsIndex extends React.Component {
             <Box w={1 / 3} px={2}>
               <Panel>
                 <HomePanelHeader>
-                  <HomeLink to={LINKS.API}>
+                  <HomeLinkIcon to={LINKS.API}>
                     <HomeIcon>
                       <InlineSvg src="icon-lock" size="48px" />
                     </HomeIcon>
                     {t('API Keys')}
-                  </HomeLink>
+                  </HomeLinkIcon>
                 </HomePanelHeader>
 
                 <HomePanelBody>
@@ -283,12 +303,12 @@ class SettingsIndex extends React.Component {
               <Box w={1 / 3} px={2}>
                 <Panel>
                   <HomePanelHeader>
-                    <HomeLink href={LINKS.MANAGE}>
+                    <HomeLinkIcon href={LINKS.MANAGE}>
                       <HomeIcon color="red">
                         <InlineSvg src="icon-laptop" size="48px" />
                       </HomeIcon>
                       {t('Server Admin')}
-                    </HomeLink>
+                    </HomeLinkIcon>
                   </HomePanelHeader>
                   <HomePanelBody>
                     <h3>{t('Quick links')}:</h3>
