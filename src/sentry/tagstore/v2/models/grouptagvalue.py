@@ -45,7 +45,7 @@ class GroupTagValue(Model):
 
     __repr__ = sane_repr('project_id', 'group_id', '_key', '_value')
 
-    def delete_for_merge(self):
+    def delete(self):
         using = router.db_for_read(GroupTagValue)
         cursor = connections[using].cursor()
         cursor.execute(

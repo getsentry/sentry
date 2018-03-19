@@ -334,11 +334,7 @@ def merge_objects(models, group, new_group, limit=1000, logger=None, transaction
                     obj.merge_counts(new_group)
 
                 obj_id = obj.id
-
-                if hasattr(model, 'delete_for_merge'):
-                    obj.delete_for_merge()
-                else:
-                    obj.delete()
+                obj.delete()
 
                 if logger is not None:
                     delete_logger.debug(
