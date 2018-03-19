@@ -105,8 +105,6 @@ const formGroups = [
       {
         name: 'dataScrubberDefaults',
         type: 'boolean',
-
-        required: true,
         label: t('Require Using Default Scrubbers'),
         help: t(
           'Require the default scrubbers be applied to prevent things like passwords and credit cards from being stored for all projects.'
