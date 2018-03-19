@@ -18,12 +18,6 @@ from sentry.db.models import (
 )
 
 
-class GroupTagValueManager(BaseManager):
-    def get_queryset(self):
-        return super(GroupTagValueManager, self)\
-            .get_queryset().select_related('_value', '_key')
-
-
 class GroupTagValue(Model):
     """
     Stores the total number of messages seen by a group matching
@@ -41,7 +35,7 @@ class GroupTagValue(Model):
     first_seen = models.DateTimeField(
         default=timezone.now, db_index=True, null=True)
 
-    objects = GroupTagValueManager()
+    objects = BaseManager()
 
     class Meta:
         app_label = 'tagstore'
