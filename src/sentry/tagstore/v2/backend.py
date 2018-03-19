@@ -89,10 +89,10 @@ class V2TagStorage(TagStorage):
                 key_id_field_name = 'key_id' if (db.is_postgres() or db.is_mysql()) else '_key_id'
 
                 relations = [
-                    ModelRelation(m, {
+                    ModelRelation(m, query={
                         'project_id': instance.project_id,
                         key_id_field_name: instance.id,
-                    }) for m in model_list
+                    }, partition_key={'project_id': instance.project_id}) for m in model_list
                 ]
                 return relations
 
