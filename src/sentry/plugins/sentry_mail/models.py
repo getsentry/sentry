@@ -191,7 +191,7 @@ class MailPlugin(NotificationPlugin):
             }
         )
 
-    def notify(self, notification):
+    def notify(self, notification, users=None):
         from sentry.models import Commit, Release
 
         event = notification.event
@@ -267,7 +267,8 @@ class MailPlugin(NotificationPlugin):
             'X-Sentry-Reply-To': group_id_to_email(group.id),
         }
 
-        for user_id in self.get_send_to(project=project, event=event):
+        send_to_users = users or self.get_send_to(project=project, event=event)
+        for user_id in send_to_users:
             self.add_unsubscribe_link(context, user_id, project)
             self._send_mail(
                 subject=subject,
@@ -289,7 +290,7 @@ class MailPlugin(NotificationPlugin):
             date=dateformat.format(date, 'N j, Y, P e'),
         )
 
-    def render_digest_as_single_notification(self, counts, digest):
+    def render_digest_as_single_notification(self, counts, digest, users=None):
         # If there is only one group in this digest (regardless of how many
         # rules it appears in), we should just render this using the single
         # notification template. If there is more than one record for a group,
@@ -302,7 +303,7 @@ class MailPlugin(NotificationPlugin):
             key=lambda record: record.timestamp,
         )
         notification = Notification(record.value.event, rules=record.value.rules)
-        self.notify(notification)
+        self.notify(notification, users)
 
     def notify_digest(self, project, digest):
         start, end, counts = get_digest_metadata(digest)
@@ -327,16 +328,15 @@ class MailPlugin(NotificationPlugin):
 
         event_actors = ProjectOwnership.get_all_actors(project.id, [event[0] for event in events])
         event_users = self.event_actors_to_user_ids(event_actors)
-
         for user_id in self.get_send_to(project):
             events_for_user = [event for event in events if user_id in event_users[event[0]]]
             if not events_for_user:
                 continue
             if len(events_for_user) != len(counts):
-                context = self.build_custom_context(events_for_user, project)
+                context_for_user = self.build_custom_context(events_for_user, project)
             if len(events_for_user) == 1:
-                # TODO: Not sure what counts even is. Need to build a new digest possibly?
-                self.render_digest_as_single_notification(context['counts'], digest)
+                self.render_digest_as_single_notification(
+                    context_for_user['counts'], context_for_user['digest'], [user_id])
                 continue
 
             self.add_unsubscribe_link(context, user_id, project)
@@ -352,25 +352,30 @@ class MailPlugin(NotificationPlugin):
                 send_to=[user_id],
             )
 
+#    def event_actors_to_user_ids_2(self, event_actors):
+#        """
+#        Create a dictionary from user_ids to events
+#        """
+#        from sentry.models import Team
+#        resolved_teams = self.teams_to_user_ids(event_actors)
+#        user_events = {}
+#        for event, actors in six.iteritems(event_actors):
+#            user_ids = set()
+#            for actor in actors:
+#                if actor.type == Team:
+        #             user_ids += resolved_teams[actor]
+        #         else:
+        #             user_ids.add(actor.id)
+        #     event_users[event] = user_ids
+
+        # return event_users
+
     def event_actors_to_user_ids(self, event_actors):
+        """
+        Create a dictionary from event to user_ids
+        """
         from sentry.models import Team
-        # Get Team Actors
-        for event, actors in six.iteritems(event_actors):
-            teams_to_resolve = set()
-            for actor in actors:
-                if actor.type == Team:
-                    teams_to_resolve.add(actor)
-
-        # Resolve Teams to User ids
-        resolved_teams = {}
-        for team in teams_to_resolve:
-            users = User.objects.filter(
-                is_active=True,
-                sentry_orgmember_set__organizationmemberteam__team=team,
-            ).values_list('id', flat=True)
-            resolved_teams[team] = set(users)
-
-        # Create a dictionary from event to user_ids
+        resolved_teams = self.teams_to_user_ids(event_actors)
         event_users = {}
         for event, actors in six.iteritems(event_actors):
             user_ids = set()
@@ -383,8 +388,31 @@ class MailPlugin(NotificationPlugin):
 
         return event_users
 
+    def teams_to_user_ids(self, event_actors):
+        """
+        Create a dictionary of team:[user_ids]
+        """
+        from sentry.models import Team
+        # Get Team Actors
+        for event, actors in six.iteritems(event_actors):
+            teams_to_resolve = set()
+            for actor in actors:
+                if actor.type == Team:
+                    teams_to_resolve.add(actor)
+
+        # Resolve Teams to User ids
+        resolved_teams = {}
+        for team in teams_to_resolve:
+            users = list(User.objects.filter(
+                is_active=True,
+                sentry_orgmember_set__organizationmemberteam__team=team,
+            ).values_list('id', flat=True))
+            resolved_teams[team] = set(users)
+
+        return resolved_teams
+
     def build_custom_context(self, events, project):
-        records = tuple([event_to_record(event[0], event[1].value.rules) for event in events])
+        records = tuple([event_to_record(event[0], event[1]) for event in events])
         digest = build_digest(project, records)
         start, end, counts = get_digest_metadata(digest)
         context = {
@@ -398,13 +426,13 @@ class MailPlugin(NotificationPlugin):
 
     def get_events_from_digest(self, digest):
         """
-        Returns events with their corresponding record.
+        Returns events with their corresponding rules.
         """
         events = []
         for groups in six.itervalues(digest):
             for group in groups:
-                record = groups[group][0]
-                events.append((group.get_latest_event(), record))
+                rules = groups[group][0].value.rules
+                events.append((group.get_latest_event(), rules))
         return events
 
     def notify_about_activity(self, activity):

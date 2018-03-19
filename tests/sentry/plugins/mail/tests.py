@@ -490,13 +490,13 @@ class MailPluginOwnersTest(TestCase):
         return MailPlugin()
 
     def setUp(self):
-        self.user = self.create_user(email='foo@example.com', is_active=True)
-        self.user2 = self.create_user(email='baz@example.com', is_active=True)
+        self.user = self.create_user(email='user1@example.com', is_active=True)
+        self.user2 = self.create_user(email='user2@example.com', is_active=True)
 
         self.organization = self.create_organization(owner=self.user)
         self.team = self.create_team(organization=self.organization)
 
-        self.project = self.create_project(name='Test', teams=[self.team])
+        self.project = self.create_project(name='Test Project', teams=[self.team])
         OrganizationMemberTeam.objects.create(
             organizationmember=OrganizationMember.objects.get(
                 user=self.user,
@@ -509,7 +509,7 @@ class MailPluginOwnersTest(TestCase):
             first_seen=timezone.now(),
             last_seen=timezone.now(),
             project=self.project,
-            message='hello  world',
+            message='hello  world this is a group',
             logger='root',
         )
         ProjectOwnership.objects.create(
@@ -527,6 +527,41 @@ class MailPluginOwnersTest(TestCase):
                 ])
             ]),
             fallthrough=True,
+        )
+        self.group1 = self.create_group(
+            project=self.project,
+            first_seen=timezone.now(),
+            last_seen=timezone.now(),
+            message='group 2',
+            logger='root',
+        )
+        self.group2 = self.create_group(
+            project=self.project,
+            first_seen=timezone.now(),
+            last_seen=timezone.now(),
+            message='group 3',
+            logger='root',
+        )
+        self.event_all_users = self.create_event(
+            group=self.group1,
+            message=self.group1.message,
+            datetime=self.group1.last_seen,
+            project=self.project,
+            data=self.make_event_data('foo.cbl'),
+        )
+        self.event_team = self.create_event(
+            group=self.group2,
+            message=self.group2.message,
+            datetime=self.group2.last_seen,
+            project=self.project,
+            data=self.make_event_data('foo.py'),
+        )
+        self.event_single_user = self.create_event(
+            group=self.group,
+            message=self.group.message,
+            datetime=self.group.last_seen,
+            project=self.project,
+            data=self.make_event_data('foo.jx'),
         )
 
     def make_event_data(self, filename, url='http://example.com'):
@@ -609,32 +644,9 @@ class MailPluginOwnersTest(TestCase):
         assert [] == sorted(self.plugin.get_send_to(self.project, event.data))
 
     def test_notify_users_with_owners(self):
-        event_all_users = Event(
-            group=self.group,
-            message=self.group.message,
-            project=self.project,
-            datetime=self.group.last_seen,
-            data=self.make_event_data('foo.cbl'),
-        )
-        self.assert_notify(event_all_users, [self.user.email, self.user2.email])
-
-        event_team = Event(
-            group=self.group,
-            message=self.group.message,
-            project=self.project,
-            datetime=self.group.last_seen,
-            data=self.make_event_data('foo.py'),
-        )
-        self.assert_notify(event_team, [self.user.email, self.user2.email])
-
-        event_single_user = Event(
-            group=self.group,
-            message=self.group.message,
-            project=self.project,
-            datetime=self.group.last_seen,
-            data=self.make_event_data('foo.jx'),
-        )
-        self.assert_notify(event_single_user, [self.user2.email])
+        self.assert_notify(self.event_all_users, [self.user.email, self.user2.email])
+        self.assert_notify(self.event_team, [self.user.email, self.user2.email])
+        self.assert_notify(self.event_single_user, [self.user2.email])
 
     def test_notify_digest(self, notify):
         project = self.event.project
@@ -658,124 +670,58 @@ class MailPluginOwnersTest(TestCase):
 
     def test_notify_digest_with_owners(self):
         rule = self.project.rule_set.all()[0]
-        group1 = self.create_group(
-            project=self.project,
-            first_seen=timezone.now(),
-            last_seen=timezone.now(),
-            message='group 2',
-            logger='root',
-        )
-        group2 = self.create_group(
-            project=self.project,
-            first_seen=timezone.now(),
-            last_seen=timezone.now(),
-            message='group 3',
-            logger='root',
-        )
-        event_all_users = self.create_event(
-            group=group1,
-            message=group1.message,
-            datetime=group1.last_seen,
-            project=self.project,
-            data=self.make_event_data('foo.cbl'),
-        )
-        self.assert_notify(event_all_users, [self.user.email, self.user2.email])
-
-        event_team = self.create_event(
-            group=group2,
-            message=group2.message,
-            datetime=group2.last_seen,
-            project=self.project,
-            data=self.make_event_data('foo.py'),
-        )
-        self.assert_notify(event_team, [self.user.email, self.user2.email])
-
-        event_single_user = self.create_event(
-            group=self.group,
-            message=self.group.message,
-            datetime=self.group.last_seen,
-            project=self.project,
-            data=self.make_event_data('foo.jx'),
-        )
         digest = build_digest(
             self.project,
             (
-                event_to_record(event_all_users, (rule,)),
-                event_to_record(event_single_user, (rule,)),
+                event_to_record(self.event_all_users, (rule,)),
+                event_to_record(self.event_single_user, (rule,)),
                 # event_to_record(event_team, (rule,)),
             )
         )
         with self.tasks():
             self.plugin.notify_digest(self.project, digest)
 
+        assert len(mail.outbox) == 2
+
+        email = mail.outbox[0]
+        assert email.to == [self.user.email]
+        assert email.subject == u'[Sentry] TEST-PROJECT-2 - group 2'
+        assert not (self.event_single_user.message in email.body)
+        assert self.event_all_users.message in email.body
+
+        email = mail.outbox[1]
+        assert email.to == [self.user2.email]
+        assert u'[Sentry] TEST-PROJECT-1 - 2 new alerts' in email.subject
+        assert self.event_single_user.message in email.body
+        assert self.event_all_users.message in email.body
+
     def test_get_events_from_digest(self):
         rule = self.project.rule_set.all()[0]
-        group1 = self.create_group(
-            project=self.project,
-            first_seen=timezone.now(),
-            last_seen=timezone.now(),
-            message='group 2',
-            logger='root',
-        )
-        event_all_users = self.create_event(
-            group=group1,
-            message=group1.message,
-            datetime=group1.last_seen,
-            project=self.project,
-            data=self.make_event_data('foo.cbl'),
-        )
-        event_single_user = self.create_event(
-            group=self.group,
-            message=self.group.message,
-            datetime=self.group.last_seen,
-            project=self.project,
-            data=self.make_event_data('foo.jx'),
-        )
         digest = build_digest(
             self.project,
             (
-                event_to_record(event_all_users, (rule,)),
-                event_to_record(event_single_user, (rule,)),
+                event_to_record(self.event_all_users, (rule,)),
+                event_to_record(self.event_single_user, (rule,)),
                 # event_to_record(event_team, (rule,)),
             )
         )
         events = self.plugin.get_events_from_digest(digest)
-        assert event_all_users in events
-        assert event_single_user in events
+        assert len(events) == 2
+        assert (self.event_all_users, [rule]) in events
+        assert (self.event_single_user, [rule]) in events
 
     def test_event_actors_to_user_ids(self):
         from sentry.models import User
         from sentry.api.fields.actor import Actor
-        group1 = self.create_group(
-            project=self.project,
-            first_seen=timezone.now(),
-            last_seen=timezone.now(),
-            message='group 2',
-            logger='root',
-        )
-        event_all_users = self.create_event(
-            group=group1,
-            message=group1.message,
-            datetime=group1.last_seen,
-            project=self.project,
-            data=self.make_event_data('foo.cbl'),
-        )
-        event_single_user = self.create_event(
-            group=self.group,
-            message=self.group.message,
-            datetime=self.group.last_seen,
-            project=self.project,
-            data=self.make_event_data('foo.jx'),
-        )
         user_actor1 = Actor(self.user.id, User)
         user_actor2 = Actor(self.user2.id, User)
         event_actors = {
-            event_all_users: [user_actor1, user_actor2],
-            event_single_user: [user_actor2],
+            self.event_all_users: [user_actor1, user_actor2],
+            self.event_single_user: [user_actor2],
         }
         event_actors = self.plugin.event_actors_to_user_ids(event_actors)
-        assert event_all_users in event_actors
-        assert sorted(event_actors[event_all_users]) == sorted(
+        assert self.event_all_users in event_actors
+        assert sorted(event_actors[self.event_all_users]) == sorted(
             set([user_actor1.id, user_actor2.id]))
-        assert event_single_user in event_actors
-        assert event_actors[event_single_user] == set([user_actor2.id])
+        assert self.event_single_user in event_actors
+        assert self.event_actors[self.event_single_user] == set([user_actor2.id])
