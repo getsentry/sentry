@@ -7,7 +7,7 @@ sentry.tagstore.v2.models.eventtag
 """
 from __future__ import absolute_import
 
-from django.db import models
+from django.db import models, router, connections
 from django.utils import timezone
 
 from sentry.db.models import (Model, BoundedBigIntegerField, FlexibleForeignKey, sane_repr)
@@ -32,3 +32,14 @@ class EventTag(Model):
         )
 
     __repr__ = sane_repr('event_id', 'key', 'value')
+
+    def delete(self):
+        using = router.db_for_read(EventTag)
+        cursor = connections[using].cursor()
+        cursor.execute(
+            """
+            DELETE FROM tagstore_eventtag
+            WHERE project_id = %s
+              AND id = %s
+        """, [self.project_id, self.id]
+        )
