@@ -1,6 +1,200 @@
 // Jest Snapshot v1, https://goo.gl/fbAQLP
 
 exports[`OrganizationMembersView No Require Link does not have 2fa warning if user has 2fa 1`] = `
+.glamor-21 {
+  font-size: 14px;
+  box-shadow: inset 0 -1px 0;
+  margin: -20px 0 30px;
+}
+
+.glamor-13 {
+  box-sizing: border-box;
+  display: -webkit-box;
+  display: -webkit-flex;
+  display: -ms-flexbox;
+  display: flex;
+  -webkit-align-items: center;
+  -webkit-box-align: center;
+  -ms-flex-align: center;
+  align-items: center;
+}
+
+.glamor-0 {
+  font-size: 20px;
+  font-weight: bold;
+  margin: 20px 0;
+  -webkit-flex: 1;
+  -ms-flex: 1;
+  flex: 1;
+}
+
+.glamor-9 {
+  box-sizing: border-box;
+  margin-right: 6px;
+  margin-left: -2px;
+}
+
+.glamor-5 {
+  display: block;
+}
+
+.glamor-3 {
+  vertical-align: middle;
+  display: block;
+}
+
+.glamor-15 {
+  width: 20px;
+  height: 20px;
+  cursor: pointer;
+  z-index: 999;
+  position: relative;
+  pointer-events: none;
+  -webkit-animation: animation-1vh9m9r-expandOut 1.5s ease-out infinite;
+  animation: animation-1vh9m9r-expandOut 1.5s ease-out infinite;
+  visibility: hidden;
+}
+
+.glamor-15,
+.glamor-15:before,
+.glamor-15:after {
+  position: absolute;
+  display: block;
+  left: calc(50% - 10px);
+  top: calc(50% - 10px);
+  border-radius: 50%;
+}
+
+.glamor-15:before,
+.glamor-15:after {
+  content: '';
+}
+
+.glamor-15:before {
+  width: 70%;
+  height: 70%;
+  left: calc(50% - 7px);
+  top: calc(50% - 7px);
+}
+
+.glamor-15:after {
+  width: 50%;
+  height: 50%;
+  left: calc(50% - 5px);
+  top: calc(50% - 5px);
+}
+
+.glamor-113 {
+  background: #fff;
+  border: 1px solid;
+  margin-bottom: NaNpx;
+  position: relative;
+}
+
+.glamor-43 {
+  font-size: 13px;
+  font-weight: 600;
+  text-transform: uppercase;
+  border-bottom: 1px solid;
+  border-radius: 0 0;
+  line-height: 1;
+  padding: 15px 0;
+}
+
+.glamor-40 {
+  box-sizing: border-box;
+  display: -webkit-box;
+  display: -webkit-flex;
+  display: -ms-flexbox;
+  display: flex;
+  -webkit-align-items: center;
+  -webkit-box-align: center;
+  -ms-flex-align: center;
+  align-items: center;
+  -webkit-box-pack: justify;
+  -webkit-justify-content: space-between;
+  -ms-flex-pack: justify;
+  justify-content: space-between;
+  font-size: 13px;
+  font-weight: 600;
+  text-transform: uppercase;
+  border-bottom: 1px solid;
+  border-radius: 0 0;
+  line-height: 1;
+  padding: 15px 0;
+}
+
+.glamor-23 {
+  box-sizing: border-box;
+  padding-left: 16px;
+  padding-right: 16px;
+  -webkit-flex: 1;
+  -ms-flex: 1;
+  flex: 1;
+}
+
+.glamor-29 {
+  display: inline-block;
+  position: relative;
+}
+
+.glamor-25 {
+  box-sizing: border-box;
+  width: 180px;
+  padding-left: 16px;
+  padding-right: 16px;
+}
+
+.glamor-31 {
+  box-sizing: border-box;
+  width: 140px;
+  padding-left: 16px;
+  padding-right: 16px;
+}
+
+.glamor-65 {
+  box-sizing: border-box;
+  padding: 0px;
+  padding-top: 16px;
+  padding-bottom: 16px;
+  display: -webkit-box;
+  display: -webkit-flex;
+  display: -ms-flexbox;
+  display: flex;
+  -webkit-align-items: center;
+  -webkit-box-align: center;
+  -ms-flex-align: center;
+  align-items: center;
+  border-bottom: 1px solid;
+}
+
+.glamor-65:last-child {
+  border: 0;
+}
+
+.glamor-47 {
+  box-sizing: border-box;
+  padding-left: 16px;
+}
+
+.glamor-55 {
+  box-sizing: border-box;
+  padding-left: 8px;
+  padding-right: 16px;
+  -webkit-flex: 1;
+  -ms-flex: 1;
+  flex: 1;
+}
+
+.glamor-49 {
+  font-size: 16px;
+}
+
+.glamor-53 {
+  font-size: 14px;
+}
+
+>>>>>>> feat(assistant): Members Guide
 <OrganizationMembersView
   canAddMembers={false}
   canRemoveMembers={false}
@@ -47,16 +241,21 @@ exports[`OrganizationMembersView No Require Link does not have 2fa warning if us
       <div>
         <SettingsPageHeading
           action={
-            <Button
-              disabled={false}
-              icon="icon-circle-add"
-              priority="primary"
-              size="small"
-              title={undefined}
-              to="new"
+            <GuideAnchor
+              target="member-add"
+              type="invisible"
             >
-              Invite Member
-            </Button>
+              <Button
+                disabled={false}
+                icon="icon-circle-add"
+                priority="primary"
+                size="small"
+                title={undefined}
+                to="new"
+              >
+                Invite Member
+              </Button>
+            </GuideAnchor>
           }
           title="Members"
         >
@@ -83,32 +282,24 @@ exports[`OrganizationMembersView No Require Link does not have 2fa warning if us
                       </div>
                     </Title>
                     <div>
-                      <Button
-                        disabled={false}
-                        icon="icon-circle-add"
-                        priority="primary"
-                        size="small"
-                        to="new"
+                      <GuideAnchor
+                        target="member-add"
+                        type="invisible"
                       >
-                        <Link
-                          className="button button-primary button-sm"
-                          disabled={false}
-                          onClick={[Function]}
-                          onlyActiveOnIndex={false}
-                          role="button"
-                          style={Object {}}
-                          to="new"
+                        <GuideAnchorContainer
+                          innerRef={[Function]}
+                          type="invisible"
                         >
-                          <a
-                            className="button button-primary button-sm"
-                            disabled={false}
-                            onClick={[Function]}
-                            role="button"
-                            style={Object {}}
+                          <div
+                            className="glamor-17 glamor-18"
+                            type="invisible"
                           >
-                            <Flex
-                              align="center"
-                              className="button-label"
+                            <Button
+                              disabled={false}
+                              icon="icon-circle-add"
+                              priority="primary"
+                              size="small"
+                              to="new"
                             >
                               <Base
                                 align="center"
@@ -118,8 +309,9 @@ exports[`OrganizationMembersView No Require Link does not have 2fa warning if us
                                   className="button-label css-5ipae5"
                                   is={null}
                                 >
-                                  <Icon
-                                    size="small"
+                                  <Flex
+                                    align="center"
+                                    className="button-label"
                                   >
                                     <Base
                                       className="css-11bwulm-Icon css-1vxxnb60"
@@ -128,11 +320,9 @@ exports[`OrganizationMembersView No Require Link does not have 2fa warning if us
                                       <div
                                         className="css-11bwulm-Icon css-1vxxnb60"
                                         is={null}
-                                        size="small"
                                       >
-                                        <StyledInlineSvg
-                                          size="12px"
-                                          src="icon-circle-add"
+                                        <Icon
+                                          size="small"
                                         >
                                           <InlineSvg
                                             className="css-1ov3rcq-StyledInlineSvg css-1vxxnb61"
@@ -151,24 +341,54 @@ exports[`OrganizationMembersView No Require Link does not have 2fa warning if us
                                                 viewBox={Object {}}
                                                 width="12px"
                                               >
-                                                <use
-                                                  href="#test"
-                                                  xlinkHref="#test"
-                                                />
-                                              </svg>
-                                            </StyledSvg>
-                                          </InlineSvg>
-                                        </StyledInlineSvg>
+                                                <InlineSvg
+                                                  className="glamor-5 glamor-2"
+                                                  size="12px"
+                                                  src="icon-circle-add"
+                                                >
+                                                  <StyledSvg
+                                                    className="glamor-5 glamor-2"
+                                                    height="12px"
+                                                    style={Object {}}
+                                                    viewBox={Object {}}
+                                                    width="12px"
+                                                  >
+                                                    <svg
+                                                      className="glamor-2 glamor-3 glamor-4"
+                                                      height="12px"
+                                                      style={Object {}}
+                                                      viewBox={Object {}}
+                                                      width="12px"
+                                                    >
+                                                      <use
+                                                        href="#test"
+                                                        xlinkHref="#test"
+                                                      />
+                                                    </svg>
+                                                  </StyledSvg>
+                                                </InlineSvg>
+                                              </StyledInlineSvg>
+                                            </div>
+                                          </Base>
+                                        </Icon>
+                                        Invite Member
                                       </div>
                                     </Base>
-                                  </Icon>
-                                  Invite Member
-                                </div>
-                              </Base>
-                            </Flex>
-                          </a>
-                        </Link>
-                      </Button>
+                                  </Flex>
+                                </a>
+                              </Link>
+                            </Button>
+                            <StyledGuideAnchor
+                              active={false}
+                              className="guide-anchor-ping member-add"
+                            >
+                              <span
+                                className="guide-anchor-ping member-add glamor-15 glamor-16"
+                              />
+                            </StyledGuideAnchor>
+                          </div>
+                        </GuideAnchorContainer>
+                      </GuideAnchor>
                     </div>
                   </div>
                 </Base>
@@ -228,9 +448,9 @@ exports[`OrganizationMembersView No Require Link does not have 2fa warning if us
                               </div>
                             </Base>
                           </Box>
-                          <Box
-                            px={2}
-                            w={180}
+                          <GuideAnchor
+                            target="member-status"
+                            type="text"
                           >
                             <Base
                               className="css-1pkva7q"
@@ -241,13 +461,37 @@ exports[`OrganizationMembersView No Require Link does not have 2fa warning if us
                                 className="css-1pkva7q"
                                 is={null}
                               >
-                                Status
+                                <Box
+                                  px={2}
+                                  w={180}
+                                >
+                                  <Base
+                                    className="glamor-25"
+                                    px={2}
+                                    w={180}
+                                  >
+                                    <div
+                                      className="glamor-25"
+                                      is={null}
+                                    >
+                                      Status
+                                    </div>
+                                  </Base>
+                                </Box>
+                                <StyledGuideAnchor
+                                  active={false}
+                                  className="guide-anchor-ping member-status"
+                                >
+                                  <span
+                                    className="guide-anchor-ping member-status glamor-15 glamor-16"
+                                  />
+                                </StyledGuideAnchor>
                               </div>
-                            </Base>
-                          </Box>
-                          <Box
-                            px={2}
-                            w={140}
+                            </GuideAnchorContainer>
+                          </GuideAnchor>
+                          <GuideAnchor
+                            target="member-role"
+                            type="text"
                           >
                             <Base
                               className="css-1fsdpfi"
@@ -258,10 +502,34 @@ exports[`OrganizationMembersView No Require Link does not have 2fa warning if us
                                 className="css-1fsdpfi"
                                 is={null}
                               >
-                                Role
+                                <Box
+                                  px={2}
+                                  w={140}
+                                >
+                                  <Base
+                                    className="glamor-31"
+                                    px={2}
+                                    w={140}
+                                  >
+                                    <div
+                                      className="glamor-31"
+                                      is={null}
+                                    >
+                                      Role
+                                    </div>
+                                  </Base>
+                                </Box>
+                                <StyledGuideAnchor
+                                  active={false}
+                                  className="guide-anchor-ping member-role"
+                                >
+                                  <span
+                                    className="guide-anchor-ping member-role glamor-15 glamor-16"
+                                  />
+                                </StyledGuideAnchor>
                               </div>
-                            </Base>
-                          </Box>
+                            </GuideAnchorContainer>
+                          </GuideAnchor>
                           <Box
                             px={2}
                             w={140}
@@ -1229,16 +1497,21 @@ exports[`OrganizationMembersView Require Link does not have 2fa warning if user 
       <div>
         <SettingsPageHeading
           action={
-            <Button
-              disabled={false}
-              icon="icon-circle-add"
-              priority="primary"
-              size="small"
-              title={undefined}
-              to="new"
+            <GuideAnchor
+              target="member-add"
+              type="invisible"
             >
-              Invite Member
-            </Button>
+              <Button
+                disabled={false}
+                icon="icon-circle-add"
+                priority="primary"
+                size="small"
+                title={undefined}
+                to="new"
+              >
+                Invite Member
+              </Button>
+            </GuideAnchor>
           }
           title="Members"
         >
@@ -1265,32 +1538,24 @@ exports[`OrganizationMembersView Require Link does not have 2fa warning if user 
                       </div>
                     </Title>
                     <div>
-                      <Button
-                        disabled={false}
-                        icon="icon-circle-add"
-                        priority="primary"
-                        size="small"
-                        to="new"
+                      <GuideAnchor
+                        target="member-add"
+                        type="invisible"
                       >
-                        <Link
-                          className="button button-primary button-sm"
-                          disabled={false}
-                          onClick={[Function]}
-                          onlyActiveOnIndex={false}
-                          role="button"
-                          style={Object {}}
-                          to="new"
+                        <GuideAnchorContainer
+                          innerRef={[Function]}
+                          type="invisible"
                         >
-                          <a
-                            className="button button-primary button-sm"
-                            disabled={false}
-                            onClick={[Function]}
-                            role="button"
-                            style={Object {}}
+                          <div
+                            className="glamor-17 glamor-18"
+                            type="invisible"
                           >
-                            <Flex
-                              align="center"
-                              className="button-label"
+                            <Button
+                              disabled={false}
+                              icon="icon-circle-add"
+                              priority="primary"
+                              size="small"
+                              to="new"
                             >
                               <Base
                                 align="center"
@@ -1300,8 +1565,9 @@ exports[`OrganizationMembersView Require Link does not have 2fa warning if user 
                                   className="button-label css-5ipae5"
                                   is={null}
                                 >
-                                  <Icon
-                                    size="small"
+                                  <Flex
+                                    align="center"
+                                    className="button-label"
                                   >
                                     <Base
                                       className="css-11bwulm-Icon css-1vxxnb60"
@@ -1310,11 +1576,9 @@ exports[`OrganizationMembersView Require Link does not have 2fa warning if user 
                                       <div
                                         className="css-11bwulm-Icon css-1vxxnb60"
                                         is={null}
-                                        size="small"
                                       >
-                                        <StyledInlineSvg
-                                          size="12px"
-                                          src="icon-circle-add"
+                                        <Icon
+                                          size="small"
                                         >
                                           <InlineSvg
                                             className="css-1ov3rcq-StyledInlineSvg css-1vxxnb61"
@@ -1333,24 +1597,54 @@ exports[`OrganizationMembersView Require Link does not have 2fa warning if user 
                                                 viewBox={Object {}}
                                                 width="12px"
                                               >
-                                                <use
-                                                  href="#test"
-                                                  xlinkHref="#test"
-                                                />
-                                              </svg>
-                                            </StyledSvg>
-                                          </InlineSvg>
-                                        </StyledInlineSvg>
+                                                <InlineSvg
+                                                  className="glamor-5 glamor-2"
+                                                  size="12px"
+                                                  src="icon-circle-add"
+                                                >
+                                                  <StyledSvg
+                                                    className="glamor-5 glamor-2"
+                                                    height="12px"
+                                                    style={Object {}}
+                                                    viewBox={Object {}}
+                                                    width="12px"
+                                                  >
+                                                    <svg
+                                                      className="glamor-2 glamor-3 glamor-4"
+                                                      height="12px"
+                                                      style={Object {}}
+                                                      viewBox={Object {}}
+                                                      width="12px"
+                                                    >
+                                                      <use
+                                                        href="#test"
+                                                        xlinkHref="#test"
+                                                      />
+                                                    </svg>
+                                                  </StyledSvg>
+                                                </InlineSvg>
+                                              </StyledInlineSvg>
+                                            </div>
+                                          </Base>
+                                        </Icon>
+                                        Invite Member
                                       </div>
                                     </Base>
-                                  </Icon>
-                                  Invite Member
-                                </div>
-                              </Base>
-                            </Flex>
-                          </a>
-                        </Link>
-                      </Button>
+                                  </Flex>
+                                </a>
+                              </Link>
+                            </Button>
+                            <StyledGuideAnchor
+                              active={false}
+                              className="guide-anchor-ping member-add"
+                            >
+                              <span
+                                className="guide-anchor-ping member-add glamor-15 glamor-16"
+                              />
+                            </StyledGuideAnchor>
+                          </div>
+                        </GuideAnchorContainer>
+                      </GuideAnchor>
                     </div>
                   </div>
                 </Base>
@@ -1410,9 +1704,9 @@ exports[`OrganizationMembersView Require Link does not have 2fa warning if user 
                               </div>
                             </Base>
                           </Box>
-                          <Box
-                            px={2}
-                            w={180}
+                          <GuideAnchor
+                            target="member-status"
+                            type="text"
                           >
                             <Base
                               className="css-1pkva7q"
@@ -1423,13 +1717,37 @@ exports[`OrganizationMembersView Require Link does not have 2fa warning if user 
                                 className="css-1pkva7q"
                                 is={null}
                               >
-                                Status
+                                <Box
+                                  px={2}
+                                  w={180}
+                                >
+                                  <Base
+                                    className="glamor-25"
+                                    px={2}
+                                    w={180}
+                                  >
+                                    <div
+                                      className="glamor-25"
+                                      is={null}
+                                    >
+                                      Status
+                                    </div>
+                                  </Base>
+                                </Box>
+                                <StyledGuideAnchor
+                                  active={false}
+                                  className="guide-anchor-ping member-status"
+                                >
+                                  <span
+                                    className="guide-anchor-ping member-status glamor-15 glamor-16"
+                                  />
+                                </StyledGuideAnchor>
                               </div>
-                            </Base>
-                          </Box>
-                          <Box
-                            px={2}
-                            w={140}
+                            </GuideAnchorContainer>
+                          </GuideAnchor>
+                          <GuideAnchor
+                            target="member-role"
+                            type="text"
                           >
                             <Base
                               className="css-1fsdpfi"
@@ -1440,10 +1758,34 @@ exports[`OrganizationMembersView Require Link does not have 2fa warning if user 
                                 className="css-1fsdpfi"
                                 is={null}
                               >
-                                Role
+                                <Box
+                                  px={2}
+                                  w={140}
+                                >
+                                  <Base
+                                    className="glamor-31"
+                                    px={2}
+                                    w={140}
+                                  >
+                                    <div
+                                      className="glamor-31"
+                                      is={null}
+                                    >
+                                      Role
+                                    </div>
+                                  </Base>
+                                </Box>
+                                <StyledGuideAnchor
+                                  active={false}
+                                  className="guide-anchor-ping member-role"
+                                >
+                                  <span
+                                    className="guide-anchor-ping member-role glamor-15 glamor-16"
+                                  />
+                                </StyledGuideAnchor>
                               </div>
-                            </Base>
-                          </Box>
+                            </GuideAnchorContainer>
+                          </GuideAnchor>
                           <Box
                             px={2}
                             w={140}

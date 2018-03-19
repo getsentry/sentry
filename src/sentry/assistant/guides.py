@@ -123,4 +123,31 @@ GUIDES = {
             },
         ]
     },
+    'members': {
+        'id': 3,
+        'cue': _('Tips on inviting your team'),
+        'required_targets': ['member-add'],
+        'steps': [
+            {
+                'title': _('Why invite your team?'),
+                'message': _('Sentry doesn\'t just collect errors. Adding your team lets you '
+                             'triage and assign issues to the right engineer.'),
+                'target': 'member-add',
+            },
+            {
+                'title': _('What is status?'),
+                'message': _('You can enforce <a href="https://sentry.io/settings/organization/${org_slug}/settings/#require2FA">2-factor auth</a> or '
+                             '<a href="/organizations/${org_slug}/auth/"">SSO</a> across your organization. From here, you\'ll be able to see '
+                             'which members haven\'t configured them yet.'),
+                'target': 'member-status',
+            },
+            {
+                'title': _('A tip for roles'),
+                'message': _('Every org should have at least two owners (in case one leaves).<br><br>'
+                             'Add finance as a billing member. They\'ll get access to '
+                             'invoices, so they won\'t email you for receipts.'),
+                'target': 'member-role',
+            },
+        ]
+    }
 }

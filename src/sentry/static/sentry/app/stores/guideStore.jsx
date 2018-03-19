@@ -2,6 +2,7 @@ import Reflux from 'reflux';
 import $ from 'jquery';
 import GuideActions from '../actions/guideActions';
 import HookStore from './hookStore';
+import OrganizationsActions from '../actions/organizationsActions';
 
 const GuideStore = Reflux.createStore({
   init() {
@@ -18,12 +19,19 @@ const GuideStore = Reflux.createStore({
       // The current step of the current guide (1-indexed). 0 if there's no guide
       // or the guide is just cued but not opened.
       currentStep: 0,
+
+      currentOrgSlug: null,
     };
     this.listenTo(GuideActions.fetchSucceeded, this.onFetchSucceeded);
     this.listenTo(GuideActions.closeGuideOrSupport, this.onCloseGuideOrSupport);
     this.listenTo(GuideActions.nextStep, this.onNextStep);
     this.listenTo(GuideActions.registerAnchor, this.onRegisterAnchor);
     this.listenTo(GuideActions.unregisterAnchor, this.onUnregisterAnchor);
+    this.listenTo(OrganizationsActions.setActive, this.onSetActiveOrganization);
+  },
+
+  onSetActiveOrganization(data) {
+    this.state.currentOrgSlug = data.slug;
   },
 
   onFetchSucceeded(data) {

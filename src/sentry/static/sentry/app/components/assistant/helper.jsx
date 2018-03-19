@@ -78,6 +78,7 @@ const AssistantHelper = createReactClass({
               step={currentStep}
               onFinish={closeGuideOrSupport}
               onDismiss={this.handleGuideDismiss}
+              orgSlug={GuideStore.state.currentOrgSlug}
             />
           )}
 
