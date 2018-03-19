@@ -21,13 +21,9 @@ describe('GroupSeenBy', function() {
     it('should return null if seenBy is falsy', function() {
       let wrapper = shallow(<GroupSeenBy />, {
         context: {
-          group: {id: '1337'},
-          project: {
-            id: '2448',
-            name: 'project name',
-            slug: 'project-name',
-          },
-          team: {id: '3559'},
+          group: TestStubs.Group({seenBy: undefined}),
+          project: TestStubs.Project(),
+          team: TestStubs.Team(),
         },
       });
       expect(wrapper.children()).toHaveLength(0);
@@ -36,19 +32,14 @@ describe('GroupSeenBy', function() {
     it('should return a list of each user that saw', function() {
       let wrapper = shallow(<GroupSeenBy />, {
         context: {
-          group: {
-            id: '1337',
+          group: TestStubs.Group({
             seenBy: [
               {id: 1, email: 'jane@example.com'},
               {id: 2, email: 'john@example.com'},
             ],
-          },
-          project: {
-            id: '2448',
-            name: 'project name',
-            slug: 'project-name',
-          },
-          team: {id: '3559'},
+          }),
+          project: TestStubs.Project(),
+          team: TestStubs.Team(),
         },
       });
 

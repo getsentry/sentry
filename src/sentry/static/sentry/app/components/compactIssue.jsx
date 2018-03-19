@@ -10,6 +10,7 @@ import SnoozeAction from './issues/snoozeAction';
 import GroupChart from './stream/groupChart';
 import GroupStore from '../stores/groupStore';
 import Link from './link';
+import ProjectLink from './projectLink';
 import {t} from '../locale';
 
 class CompactIssueHeader extends React.Component {
@@ -70,15 +71,15 @@ class CompactIssueHeader extends React.Component {
       <div>
         <span className="error-level truncate" title={data.level} />
         <h3 className="truncate">
-          <Link to={`/${orgId}/${projectId}/issues/${data.id}/`}>
+          <ProjectLink to={`/${orgId}/${projectId}/issues/${data.id}/`}>
             <span className="icon icon-soundoff" />
             <span className="icon icon-star-solid" />
             {this.getTitle()}
-          </Link>
+          </ProjectLink>
         </h3>
         <div className="event-extra">
           <span className="project-name">
-            <Link to={`/${orgId}/${projectId}/`}>{data.project.slug}</Link>
+            <ProjectLink to={`/${orgId}/${projectId}/`}>{data.project.slug}</ProjectLink>
           </span>
           {data.numComments !== 0 && (
             <span>
