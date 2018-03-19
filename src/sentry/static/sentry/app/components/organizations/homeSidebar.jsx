@@ -143,10 +143,9 @@ const HomeSidebar = createReactClass({
           )}
 
           {features.has('new-teams') && (
-            <React.Fragment>
-              <ListLink to={`${pathPrefix}/projects/`}>{t('Projects')}</ListLink>
-              <ListLink to={`${pathPrefix}/teams/`}>{t('Teams')}</ListLink>
-            </React.Fragment>
+            <ListLink to={`/organizations/${orgId}/projects/`}>
+              {t('Projects & Teams')}
+            </ListLink>
           )}
 
           {access.has('org:read') && (
