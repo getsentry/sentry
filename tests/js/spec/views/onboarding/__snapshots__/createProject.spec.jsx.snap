@@ -191,6 +191,32 @@ exports[`CreateProject render() should deal with incorrect platform name if its 
                 activeClassName="active"
                 index={false}
                 isActive={[Function]}
+                key="desktop"
+                onClick={[Function]}
+                to=""
+              >
+                <li
+                  className=""
+                >
+                  <Link
+                    onClick={[Function]}
+                    onlyActiveOnIndex={false}
+                    style={Object {}}
+                    to=""
+                  >
+                    <a
+                      onClick={[Function]}
+                      style={Object {}}
+                    >
+                      Desktop
+                    </a>
+                  </Link>
+                </li>
+              </ListLink>
+              <ListLink
+                activeClassName="active"
+                index={false}
+                isActive={[Function]}
                 key="backend"
                 onClick={[Function]}
                 to=""
@@ -967,6 +993,32 @@ exports[`CreateProject render() should fill in platform name if its provided by 
                 activeClassName="active"
                 index={false}
                 isActive={[Function]}
+                key="desktop"
+                onClick={[Function]}
+                to=""
+              >
+                <li
+                  className=""
+                >
+                  <Link
+                    onClick={[Function]}
+                    onlyActiveOnIndex={false}
+                    style={Object {}}
+                    to=""
+                  >
+                    <a
+                      onClick={[Function]}
+                      style={Object {}}
+                    >
+                      Desktop
+                    </a>
+                  </Link>
+                </li>
+              </ListLink>
+              <ListLink
+                activeClassName="active"
+                index={false}
+                isActive={[Function]}
                 key="backend"
                 onClick={[Function]}
                 to=""
@@ -1332,6 +1384,32 @@ exports[`CreateProject render() should fill in project name if its empty when pl
                       style={Object {}}
                     >
                       Mobile
+                    </a>
+                  </Link>
+                </li>
+              </ListLink>
+              <ListLink
+                activeClassName="active"
+                index={false}
+                isActive={[Function]}
+                key="desktop"
+                onClick={[Function]}
+                to=""
+              >
+                <li
+                  className=""
+                >
+                  <Link
+                    onClick={[Function]}
+                    onlyActiveOnIndex={false}
+                    style={Object {}}
+                    to=""
+                  >
+                    <a
+                      onClick={[Function]}
+                      style={Object {}}
+                    >
+                      Desktop
                     </a>
                   </Link>
                 </li>

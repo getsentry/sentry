@@ -65,6 +65,16 @@ exports[`PlatformPicker render() should only render Mobile platforms under Mobil
       activeClassName="active"
       index={false}
       isActive={[Function]}
+      key="desktop"
+      onClick={[Function]}
+      to=""
+    >
+      Desktop
+    </ListLink>
+    <ListLink
+      activeClassName="active"
+      index={false}
+      isActive={[Function]}
       key="backend"
       onClick={[Function]}
       to=""
@@ -179,6 +189,16 @@ exports[`PlatformPicker render() should render renderPlatformList with Python wh
       to=""
     >
       Mobile
+    </ListLink>
+    <ListLink
+      activeClassName="active"
+      index={false}
+      isActive={[Function]}
+      key="desktop"
+      onClick={[Function]}
+      to=""
+    >
+      Desktop
     </ListLink>
     <ListLink
       activeClassName="active"
@@ -322,6 +342,16 @@ exports[`PlatformPicker render() should render renderPlatformList with community
       to=""
     >
       Mobile
+    </ListLink>
+    <ListLink
+      activeClassName="active"
+      index={false}
+      isActive={[Function]}
+      key="desktop"
+      onClick={[Function]}
+      to=""
+    >
+      Desktop
     </ListLink>
     <ListLink
       activeClassName="active"
@@ -474,6 +504,32 @@ exports[`PlatformPicker render() should update State.tab onClick when particular
         activeClassName="active"
         index={false}
         isActive={[Function]}
+        key="desktop"
+        onClick={[Function]}
+        to=""
+      >
+        <li
+          className=""
+        >
+          <Link
+            onClick={[Function]}
+            onlyActiveOnIndex={false}
+            style={Object {}}
+            to=""
+          >
+            <a
+              onClick={[Function]}
+              style={Object {}}
+            >
+              Desktop
+            </a>
+          </Link>
+        </li>
+      </ListLink>
+      <ListLink
+        activeClassName="active"
+        index={false}
+        isActive={[Function]}
         key="backend"
         onClick={[Function]}
         to=""
@@ -584,6 +640,37 @@ exports[`PlatformPicker render() should update State.tab onClick when particular
           <h5>
              
             Cordova
+             
+          </h5>
+        </span>
+      </PlatformCard>
+      <PlatformCard
+        className=""
+        key="electron"
+        onClick={[Function]}
+        platform="electron"
+      >
+        <span
+          className="platform-card"
+          onClick={[Function]}
+        >
+          <PlatformiconTile
+            className=""
+            onClick={[Function]}
+            platform="electron"
+          >
+            <li
+              className="platform-tile list-unstyled electron electron "
+              onClick={[Function]}
+            >
+              <span
+                className="platformicon platformicon-electron"
+              />
+            </li>
+          </PlatformiconTile>
+          <h5>
+             
+            Electron
              
           </h5>
         </span>

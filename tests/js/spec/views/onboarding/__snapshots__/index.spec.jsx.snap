@@ -255,6 +255,32 @@ exports[`OnboardingWizard render() should render and respond to click events 1`]
                     activeClassName="active"
                     index={false}
                     isActive={[Function]}
+                    key="desktop"
+                    onClick={[Function]}
+                    to=""
+                  >
+                    <li
+                      className=""
+                    >
+                      <Link
+                        onClick={[Function]}
+                        onlyActiveOnIndex={false}
+                        style={Object {}}
+                        to=""
+                      >
+                        <a
+                          onClick={[Function]}
+                          style={Object {}}
+                        >
+                          Desktop
+                        </a>
+                      </Link>
+                    </li>
+                  </ListLink>
+                  <ListLink
+                    activeClassName="active"
+                    index={false}
+                    isActive={[Function]}
                     key="backend"
                     onClick={[Function]}
                     to=""
@@ -1101,6 +1127,32 @@ exports[`OnboardingWizard render() should render and respond to click events 2`]
                           style={Object {}}
                         >
                           Mobile
+                        </a>
+                      </Link>
+                    </li>
+                  </ListLink>
+                  <ListLink
+                    activeClassName="active"
+                    index={false}
+                    isActive={[Function]}
+                    key="desktop"
+                    onClick={[Function]}
+                    to=""
+                  >
+                    <li
+                      className=""
+                    >
+                      <Link
+                        onClick={[Function]}
+                        onlyActiveOnIndex={false}
+                        style={Object {}}
+                        to=""
+                      >
+                        <a
+                          onClick={[Function]}
+                          style={Object {}}
+                        >
+                          Desktop
                         </a>
                       </Link>
                     </li>

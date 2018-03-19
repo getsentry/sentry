@@ -15,15 +15,27 @@
     {
       "integrations": [
         {
-          "link": "https://docs.getsentry.com/hosted/clients/cordova/", 
-          "type": "language", 
-          "id": "cordova", 
+          "link": "https://docs.getsentry.com/hosted/clients/cordova/",
+          "type": "language",
+          "id": "cordova",
           "name": "Cordova"
         }
-      ], 
-      "id": "cordova", 
+      ],
+      "id": "cordova",
       "name": "Cordova"
-    }, 
+    },
+    {
+      "integrations": [
+        {
+          "link": "https://docs.getsentry.com/hosted/clients/electron/",
+          "type": "language",
+          "id": "electron",
+          "name": "Electron"
+        }
+      ],
+      "id": "electron",
+      "name": "Electron"
+    },
     {
       "integrations": [
         {

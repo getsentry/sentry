@@ -243,6 +243,32 @@ exports[`Project render() should set required class on empty submit 1`] = `
             activeClassName="active"
             index={false}
             isActive={[Function]}
+            key="desktop"
+            onClick={[Function]}
+            to=""
+          >
+            <li
+              className=""
+            >
+              <Link
+                onClick={[Function]}
+                onlyActiveOnIndex={false}
+                style={Object {}}
+                to=""
+              >
+                <a
+                  onClick={[Function]}
+                  style={Object {}}
+                >
+                  Desktop
+                </a>
+              </Link>
+            </li>
+          </ListLink>
+          <ListLink
+            activeClassName="active"
+            index={false}
+            isActive={[Function]}
             key="backend"
             onClick={[Function]}
             to=""
