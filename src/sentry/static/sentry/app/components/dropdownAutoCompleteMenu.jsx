@@ -129,9 +129,11 @@ class DropdownAutoCompleteMenu extends React.Component {
                     alignMenu,
                   })}
                 >
-                  <StyledInputContainer>
-                    <StyledInput autoFocus {...getInputProps()} />
-                  </StyledInputContainer>
+                  <StyledInput
+                    autoFocus
+                    placeholder="Filter search"
+                    {...getInputProps()}
+                  />
                   <div>
                     {menuHeader && <StyledLabel>{menuHeader}</StyledLabel>}
                     {this.autoCompleteFilter(items, inputValue).map(
@@ -167,26 +169,29 @@ const AutoCompleteRoot = styled(({isOpen, ...props}) => <div {...props} />)`
 `;
 
 const StyledInput = styled(Input)`
-  height: 1.75em;
-  font-size: 0.75em;
+  &,
+  &:focus {
+    border: none;
+    box-shadow: none;
+    font-size: 13px;
+    padding: 12px 8px;
+    font-weight: normal;
+    color: ${p => p.gray2};
+  }
 `;
 
 const AutoCompleteItem = styled('div')`
   background-color: ${p =>
     p.index == p.highlightedIndex ? p.theme.offWhite : 'transparent'};
-  padding: 0.25em 0.5em;
+  padding: 4px 8px;
   cursor: pointer;
   &:hover {
     background-color: ${p => p.theme.offWhite};
   }
 `;
 
-const StyledInputContainer = styled('div')`
-  padding: 0.75em 0.5em;
-`;
-
 const StyledLabel = styled('div')`
-  padding: 0 0.5em;
+  padding: 0 8px;
   background-color: ${p => p.theme.offWhite};
   border: 1px solid ${p => p.theme.borderLight};
   border-width: 1px 0;
