@@ -645,6 +645,7 @@ window.TestStubs = {
           html: 'Send a notification for all services',
           id: 'sentry.rules.actions.notify1',
           label: 'Send a notification for all services',
+          enabled: true,
         },
       ],
       conditions: [
@@ -652,6 +653,7 @@ window.TestStubs = {
           html: 'An event is seen',
           id: 'sentry.rules.conditions.1',
           label: 'An event is seen',
+          enabled: true,
         },
       ],
     };

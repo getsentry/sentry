@@ -24,10 +24,8 @@ class ProjectRulesConfigurationEndpoint(ProjectEndpoint):
                 'id': node.id,
                 'label': node.label,
                 'html': node.render_form(),
+                'enabled': node.is_enabled(),
             }
-
-            if not node.is_enabled():
-                continue
 
             if rule_type.startswith('condition/'):
                 condition_list.append(context)
