@@ -86,6 +86,14 @@ if getattr(settings, 'DEBUG_VIEWS', settings.DEBUG):
     from sentry.web.debug_urls import urlpatterns as debug_urls
     urlpatterns += debug_urls
 
+# Special favicon in debug mode
+if settings.DEBUG:
+    urlpatterns += patterns('', url(
+        r'^_static/[^/]+/[^/]+/images/favicon\.ico$',
+        generic.dev_favicon,
+        name='sentry-dev-favicon'
+    ))
+
 urlpatterns += patterns(
     '',
     # Store endpoints first since they are the most active
