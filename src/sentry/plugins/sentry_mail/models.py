@@ -352,24 +352,6 @@ class MailPlugin(NotificationPlugin):
                 send_to=[user_id],
             )
 
-#    def event_actors_to_user_ids_2(self, event_actors):
-#        """
-#        Create a dictionary from user_ids to events
-#        """
-#        from sentry.models import Team
-#        resolved_teams = self.teams_to_user_ids(event_actors)
-#        user_events = {}
-#        for event, actors in six.iteritems(event_actors):
-#            user_ids = set()
-#            for actor in actors:
-#                if actor.type == Team:
-        #             user_ids += resolved_teams[actor]
-        #         else:
-        #             user_ids.add(actor.id)
-        #     event_users[event] = user_ids
-
-        # return event_users
-
     def event_actors_to_user_ids(self, event_actors):
         """
         Create a dictionary from event to user_ids
