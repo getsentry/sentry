@@ -11,8 +11,10 @@ import six
 
 from time import time
 from binascii import crc32
+from datetime import timedelta
 
 from django.db import models
+from django.utils import timezone
 from django.utils.encoding import force_bytes
 
 from sentry.buffer import Buffer
@@ -144,8 +146,13 @@ class RedisBuffer(Buffer):
         if partition is None and self.pending_partitions > 1:
             # If we're using partitions, this one task fans out into
             # N subtasks instead.
+            now = timezone.now()
             for i in range(self.pending_partitions):
-                process_pending.apply_async(kwargs={'partition': i})
+                process_pending.apply_async(
+                    kwargs={'partition': i},
+                    # Smear over 10 seconds
+                    eta=now + timedelta(seconds=(float(i) / (self.pending_partitions - 1)) * 10),
+                )
             # Explicitly also run over the unpartitioned buffer as well
             # to ease in transition. In practice, this should just be
             # super fast and is fine to do redundantly.
