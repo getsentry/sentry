@@ -13,6 +13,7 @@ import PanelBody from './settings/components/panelBody';
 import PanelHeader from './settings/components/panelHeader';
 import PanelItem from './settings/components/panelItem';
 import ProjectLabel from '../components/projectLabel';
+import SentryTypes from '../proptypes';
 import SettingsPageHeader from './settings/components/settingsPageHeader';
 import {t, tct} from '../locale';
 import withProjects from '../utils/withProjects';
@@ -21,6 +22,10 @@ class OrganizationTeamsProjectsView extends React.Component {
   static propTypes = {
     params: PropTypes.object,
     projects: PropTypes.array,
+  };
+
+  static contextTypes = {
+    organization: SentryTypes.Organization,
   };
 
   componentWillMount() {
@@ -46,12 +51,8 @@ class OrganizationTeamsProjectsView extends React.Component {
     });
   }
 
-  urlPrefix() {
-    let {orgId} = this.props.params;
-    return `/organizations/${orgId}`;
-  }
-
   renderNoProjects(teamSlug) {
+    let {orgId} = this.props.params;
     return (
       <tbody>
         <tr>
@@ -60,7 +61,9 @@ class OrganizationTeamsProjectsView extends React.Component {
               {tct(
                 'There are no projects in this team. Get started by [link:creating your first project].',
                 {
-                  link: <a href={this.urlPrefix() + '/projects/new/?team=' + teamSlug} />,
+                  link: (
+                    <a href={`/organizations/${orgId}/projects/new/?team=' + teamSlug`} />
+                  ),
                 }
               )}
             </p>
@@ -78,7 +81,7 @@ class OrganizationTeamsProjectsView extends React.Component {
         return {x: point[0], y: point[1]};
       });
 
-    // TODO(jess): prob should make sure they actually can manage projects
+    let access = new Set(this.context.organization.access);
 
     return (
       <PanelItem key={project.id} align="center">
@@ -94,15 +97,16 @@ class OrganizationTeamsProjectsView extends React.Component {
             )}
           </div>
         </Flex>
-        <Box ml={2}>
-          <Button
-            priority="default"
-            size="small"
-            to={`/settings/organization/${orgId}/project/${project.slug}/settings/`}
-          >
-            {t('Manage Project')}
-          </Button>
-        </Box>
+        {access.has('project:write') && (
+          <Box ml={2}>
+            <Button
+              size="small"
+              to={`/settings/organization/${orgId}/project/${project.slug}/settings/`}
+            >
+              {t('Manage Project')}
+            </Button>
+          </Box>
+        )}
       </PanelItem>
     );
   };
