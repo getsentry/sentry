@@ -69,7 +69,7 @@ describe('ApiTokens', function() {
       },
     });
 
-    wrapper.find('.icon-trash').simulate('click');
+    wrapper.find('.ref-delete-api-token').simulate('click');
 
     // Should be loading
     expect(mock).toHaveBeenCalledTimes(1);
