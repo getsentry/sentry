@@ -16,11 +16,15 @@ from sentry.api.serializers import Serializer, register
 from sentry.constants import MAX_TAG_VALUE_LENGTH
 from sentry.db.models import (
     Model, BoundedPositiveIntegerField, BoundedBigIntegerField, GzippedDictField,
-    FlexibleForeignKey, sane_repr
+    BaseManager, FlexibleForeignKey, sane_repr
 )
-from sentry.tagstore.query import TagStoreManager
 from sentry.utils.cache import cache
 from sentry.utils.hashlib import md5_text
+
+
+class TagValueManager(BaseManager):
+    def get_queryset(self):
+        return super(TagValueManager, self).get_queryset().select_related('_key')
 
 
 class TagValue(Model):
@@ -39,7 +43,7 @@ class TagValue(Model):
     first_seen = models.DateTimeField(
         default=timezone.now, db_index=True, null=True)
 
-    objects = TagStoreManager(select_related=('_key',))
+    objects = TagValueManager()
 
     class Meta:
         app_label = 'tagstore'

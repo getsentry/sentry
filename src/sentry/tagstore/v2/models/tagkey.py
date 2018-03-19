@@ -15,7 +15,6 @@ from django.utils.translation import ugettext_lazy as _
 
 from sentry.api.serializers import Serializer, register
 from sentry.tagstore import TagKeyStatus
-from sentry.tagstore.query import TagStoreManager
 from sentry.constants import MAX_TAG_KEY_LENGTH
 from sentry.db.models import (Model, BoundedPositiveIntegerField, BoundedBigIntegerField, sane_repr)
 from sentry.utils.cache import cache
@@ -40,8 +39,6 @@ class TagKey(Model):
         ),
         default=TagKeyStatus.VISIBLE
     )
-
-    objects = TagStoreManager()
 
     class Meta:
         app_label = 'tagstore'
