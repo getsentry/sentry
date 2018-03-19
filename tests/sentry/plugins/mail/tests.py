@@ -648,26 +648,6 @@ class MailPluginOwnersTest(TestCase):
         self.assert_notify(self.event_team, [self.user.email, self.user2.email])
         self.assert_notify(self.event_single_user, [self.user2.email])
 
-    def test_notify_digest(self, notify):
-        project = self.event.project
-        rule = project.rule_set.all()[0]
-        digest = build_digest(
-            project,
-            (
-                event_to_record(self.create_event(group=self.create_group()), (rule, )),
-                event_to_record(self.event, (rule, )),
-            ),
-        )
-
-        with self.tasks():
-            self.plugin.notify_digest(project, digest)
-
-        assert notify.call_count is 0
-        assert len(mail.outbox) == 1
-
-        message = mail.outbox[0]
-        assert 'List-ID' in message.message()
-
     def test_notify_digest_with_owners(self):
         rule = self.project.rule_set.all()[0]
         digest = build_digest(
@@ -683,17 +663,16 @@ class MailPluginOwnersTest(TestCase):
 
         assert len(mail.outbox) == 2
 
-        email = mail.outbox[0]
-        assert email.to == [self.user.email]
-        assert email.subject == u'[Sentry] TEST-PROJECT-2 - group 2'
-        assert not (self.event_single_user.message in email.body)
-        assert self.event_all_users.message in email.body
+        emails = sorted(mail.outbox, key=lambda e: e.subject)
+        assert emails[0].to == [self.user2.email]
+        assert u'[Sentry] TEST-PROJECT-1 - 2 new alerts' in emails[0].subject
+        assert self.event_single_user.message in emails[0].body
+        assert self.event_all_users.message in emails[0].body
 
-        email = mail.outbox[1]
-        assert email.to == [self.user2.email]
-        assert u'[Sentry] TEST-PROJECT-1 - 2 new alerts' in email.subject
-        assert self.event_single_user.message in email.body
-        assert self.event_all_users.message in email.body
+        assert emails[1].to == [self.user.email]
+        assert emails[1].subject == u'[Sentry] TEST-PROJECT-2 - group 2'
+        assert not (self.event_single_user.message in emails[1].body)
+        assert self.event_all_users.message in emails[1].body
 
     def test_get_events_from_digest(self):
         rule = self.project.rule_set.all()[0]
@@ -724,4 +703,4 @@ class MailPluginOwnersTest(TestCase):
         assert sorted(event_actors[self.event_all_users]) == sorted(
             set([user_actor1.id, user_actor2.id]))
         assert self.event_single_user in event_actors
-        assert self.event_actors[self.event_single_user] == set([user_actor2.id])
+        assert event_actors[self.event_single_user] == set([user_actor2.id])
