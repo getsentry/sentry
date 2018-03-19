@@ -14,8 +14,9 @@ from django.utils import timezone
 
 from sentry.api.serializers import Serializer, register
 from sentry.db.models import (
-    Model, BoundedPositiveIntegerField, BoundedBigIntegerField, BaseManager, FlexibleForeignKey, sane_repr
+    Model, BoundedPositiveIntegerField, BoundedBigIntegerField, FlexibleForeignKey, sane_repr
 )
+from sentry.tagstore.query import TagStoreManager
 
 
 class GroupTagValue(Model):
@@ -35,7 +36,7 @@ class GroupTagValue(Model):
     first_seen = models.DateTimeField(
         default=timezone.now, db_index=True, null=True)
 
-    objects = BaseManager()
+    objects = TagStoreManager()
 
     class Meta:
         app_label = 'tagstore'
