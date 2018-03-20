@@ -74,28 +74,28 @@ describe('AssigneeSelector', function() {
   });
 
   describe('statics', function() {
-    const filterMembers = AssigneeSelector.filterMembers;
+    const filterAssignees = AssigneeSelector.filterAssignees;
 
-    describe('filterMembers()', function() {
+    describe('filterAssignees()', function() {
       it('should return the full array when filter is falsy', function() {
-        expect(filterMembers([USER_1, USER_2], '')).toEqual([USER_1, USER_2]);
-        expect(filterMembers([USER_1, USER_2], null)).toEqual([USER_1, USER_2]);
-        expect(filterMembers([USER_1, USER_2], undefined)).toEqual([USER_1, USER_2]);
+        expect(filterAssignees([USER_1, USER_2], '')).toEqual([USER_1, USER_2]);
+        expect(filterAssignees([USER_1, USER_2], null)).toEqual([USER_1, USER_2]);
+        expect(filterAssignees([USER_1, USER_2], undefined)).toEqual([USER_1, USER_2]);
       });
 
       it('should match on email', function() {
-        expect(filterMembers([USER_1, USER_2], 'johnsmith@example.com')).toEqual([
+        expect(filterAssignees([USER_1, USER_2], 'johnsmith@example.com')).toEqual([
           USER_2,
         ]);
       });
 
       it('should match on name', function() {
-        expect(filterMembers([USER_1, USER_2], 'John Smith')).toEqual([USER_2]);
+        expect(filterAssignees([USER_1, USER_2], 'John Smith')).toEqual([USER_2]);
       });
 
       it('should ignore capitalization', function() {
-        expect(filterMembers([USER_1], 'Jane')).toEqual([USER_1]);
-        expect(filterMembers([USER_1], 'jane')).toEqual([USER_1]);
+        expect(filterAssignees([USER_1], 'Jane')).toEqual([USER_1]);
+        expect(filterAssignees([USER_1], 'jane')).toEqual([USER_1]);
       });
     });
 
