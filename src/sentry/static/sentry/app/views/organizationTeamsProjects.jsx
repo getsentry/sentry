@@ -17,11 +17,13 @@ import SentryTypes from '../proptypes';
 import SettingsPageHeader from './settings/components/settingsPageHeader';
 import {t, tct} from '../locale';
 import withProjects from '../utils/withProjects';
+import withTeams from '../utils/withTeams';
 
 class OrganizationTeamsProjectsView extends React.Component {
   static propTypes = {
     params: PropTypes.object,
     projects: PropTypes.array,
+    teams: PropTypes.array,
   };
 
   static contextTypes = {
@@ -130,15 +132,19 @@ class OrganizationTeamsProjectsView extends React.Component {
   };
 
   render() {
-    let {projects} = this.props;
+    let {projects, teams} = this.props;
     let projectsByTeam = {};
     let teamlessProjects = [];
+    let usersTeams = new Set(teams.filter(team => team.isMember).map(team => team.slug));
 
     projects.forEach(project => {
-      if (!project.teams.length) {
+      if (!project.teams.length && project.isMember) {
         teamlessProjects.push(project);
       } else {
         project.teams.forEach(team => {
+          if (!usersTeams.has(team.slug)) {
+            return;
+          }
           if (!projectsByTeam[team.slug]) {
             projectsByTeam[team.slug] = [];
           }
@@ -152,9 +158,18 @@ class OrganizationTeamsProjectsView extends React.Component {
         <SettingsPageHeader title={t('Projects by Team')} />
         <div className="col-md-9">
           <div className="team-list">
-            {Object.keys(projectsByTeam).map(teamSlug => {
-              return this.renderTeamNode(teamSlug, projectsByTeam[teamSlug]);
-            })}
+            {Object.keys(projectsByTeam)
+              .sort()
+              .map(teamSlug => {
+                return this.renderTeamNode(
+                  teamSlug,
+                  projectsByTeam[teamSlug].sort((a, b) => {
+                    if (a.slug > b.slug) return 1;
+                    if (a.slug < b.slug) return -1;
+                    return 0;
+                  })
+                );
+              })}
             {!!teamlessProjects.length && this.renderTeamNode(null, teamlessProjects)}
           </div>
         </div>
@@ -163,4 +178,4 @@ class OrganizationTeamsProjectsView extends React.Component {
   }
 }
 
-export default withProjects(OrganizationTeamsProjectsView);
+export default withTeams(withProjects(OrganizationTeamsProjectsView));
