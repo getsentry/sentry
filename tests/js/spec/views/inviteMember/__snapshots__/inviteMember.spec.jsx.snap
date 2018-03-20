@@ -145,6 +145,11 @@ exports[`CreateProject render() should render roles when available and allowed, 
 }
 
 <InviteMember
+  location={
+    Object {
+      "query": Object {},
+    }
+  }
   params={
     Object {
       "orgId": "testOrg",
