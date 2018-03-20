@@ -66,8 +66,11 @@ const withEnvironmentInQueryString = WrappedComponent =>
       if (hasEnvironmentsFeature && environmentHasChanged) {
         const {query, pathname} = this.props.location;
         if (environment === defaultEnvironment) {
+          // We never show environment in the query string if it's the default one
           delete query.environment;
         } else {
+          // We show ?environment=__all_environments__ in the query string if 'All environments'
+          // is selected and that is not the default
           const envName = environment ? environment.name : ALL_ENVIRONMENTS_KEY;
           query.environment = envName;
         }

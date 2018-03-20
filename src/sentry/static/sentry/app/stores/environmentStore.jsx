@@ -32,6 +32,8 @@ const EnvironmentStore = Reflux.createStore({
   loadInitialData(items, activeEnvironmentName) {
     this.loadActiveData(items);
     // Update the default environment in the latest context store
+    // The active environment will be null (aka All Environments) if the name matches
+    // ALL_ENVIRONMENTS_KEY otherwise find the environment matching the name provided
     let activeEnvironment = null;
     if (activeEnvironmentName !== ALL_ENVIRONMENTS_KEY) {
       activeEnvironment = this.getByName(activeEnvironmentName) || this.getDefault();
