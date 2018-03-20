@@ -9,7 +9,10 @@ jest.mock('jquery');
 
 jest.mock('react-router', () => {
   return {
-    browserHistory: {push: jest.fn()},
+    browserHistory: {
+      push: jest.fn(),
+      replace: jest.fn(),
+    },
   };
 });
 
@@ -23,6 +26,7 @@ describe('OrganizationGeneralSettingsView', function() {
       body: TestStubs.Organization(),
     });
     browserHistory.push.mockReset();
+    browserHistory.replace.mockReset();
   });
 
   it('has LoadingError on error', function(done) {
@@ -99,7 +103,7 @@ describe('OrganizationGeneralSettingsView', function() {
 
       setTimeout(() => {
         // Not sure why this needs to be async, but it does
-        expect(browserHistory.push).toHaveBeenCalledWith(
+        expect(browserHistory.replace).toHaveBeenCalledWith(
           '/settings/organization/new-slug/settings/'
         );
         done();
