@@ -103,7 +103,7 @@ class OrganizationTeamsProjectsView extends React.Component {
           <Box ml={2}>
             <Button
               size="small"
-              to={`/settings/organization/${orgId}/project/${project.slug}/settings/`}
+              to={`/settings/organization/${orgId}/project/${project.slug}/`}
             >
               {t('Manage Project')}
             </Button>
