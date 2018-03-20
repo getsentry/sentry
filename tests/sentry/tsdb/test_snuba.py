@@ -3,6 +3,7 @@ from __future__ import absolute_import
 from datetime import timedelta
 from dateutil.parser import parse as parse_datetime
 
+from sentry.models import GroupHash, Release
 from sentry.testutils import TestCase
 from sentry.tsdb.base import TSDBModel
 from sentry.tsdb.snuba import SnubaTSDB
@@ -85,3 +86,33 @@ class SnubaTSDBTest(TestCase):
         results = self.db.get_distinct_counts_union(TSDBModel.users_affected_by_project,
                                                     [project_id], dts[0], dts[-1])
         assert has_shape(results, 1)
+
+    def test_groups(self):
+        project = self.create_project()
+        group = self.create_group(
+            project=project,
+        )
+        GroupHash.objects.create(
+            project=project,
+            group=group,
+            hash='0000000000000000'
+        )
+
+        now = parse_datetime('2018-03-09T01:00:00Z')
+        dts = [now + timedelta(hours=i) for i in range(4)]
+        results = self.db.get_range(TSDBModel.group, [group.id], dts[0], dts[-1])
+        assert results is not None
+
+    def test_releases(self):
+        now = parse_datetime('2018-03-09T01:00:00Z')
+        project = self.create_project()
+        release = Release.objects.create(
+            organization_id=self.organization.id,
+            version='version X',
+            date_added=now,
+        )
+        release.add_project(project)
+
+        dts = [now + timedelta(hours=i) for i in range(4)]
+        results = self.db.get_range(TSDBModel.release, [release.id], dts[0], dts[-1])
+        assert results is not None

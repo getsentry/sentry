@@ -45,7 +45,7 @@ redis>=2.10.3,<2.10.6
 requests[security]>=2.18.4,<2.19.0
 selenium==3.8.0
 simplejson>=3.2.0,<3.9.0
-six>=1.10.0,<1.11.0
+six>=1.10.0,<=1.11.0
 setproctitle>=1.1.7,<1.2.0
 statsd>=3.1.0,<3.2.0
 strict-rfc3339>=0.7
