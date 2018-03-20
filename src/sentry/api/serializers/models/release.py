@@ -192,13 +192,10 @@ class ReleaseSerializer(Serializer):
         return tags, group_counts_by_release
 
     def __get_release_data_with_environment(self, project, item_list, environment):
-        if project:
-            release_project_envs = ReleaseProjectEnvironment.objects.filter(
-                project=project, release__in=item_list, environment=environment).select_related('release')
-        else:
-            release_project_envs = ReleaseProjectEnvironment.objects.filter(
-                release__in=item_list, environment=environment).select_related('release')
-
+        release_project_envs = ReleaseProjectEnvironment.objects.filter(
+            release__in=item_list, environment=environment).select_related('release')
+        if project is None:
+            release_project_envs = release_project_envs.filter(project=project)
         first_and_last_seen = {}
         for release_project_env in release_project_envs:
             first_and_last_seen[release_project_env.release.version] = {
@@ -215,10 +212,8 @@ class ReleaseSerializer(Serializer):
     def get_attrs(self, item_list, user, *args, **kwargs):
         project = kwargs.get('project')
         environment = kwargs.get('environment')
-        # TODO(LB): This is kind of weird. Not sure why we're using tagstore as opposed to
-        # releaseenvironment
         if environment is None:
-            tags, issue_counts_by_release = self.__get_release_data_no_environment(
+            first_and_last_seen, issue_counts_by_release = self.__get_release_data_no_environment(
                 project, item_list)
         else:
             first_and_last_seen, issue_counts_by_release = self.__get_release_data_with_environment(
@@ -248,19 +243,9 @@ class ReleaseSerializer(Serializer):
             result[item] = {
                 'owner': owners[six.text_type(item.owner_id)] if item.owner_id else None,
                 'new_groups': issue_counts_by_release.get(item.id) or 0,
-                'projects': release_projects.get(item.id, [])
+                'projects': release_projects.get(item.id, []),
+                'first_and_last_seen': first_and_last_seen.get(item.version),
             }
-            if environment is None:
-                result[item].update({
-                    'tag': tags.get(item.version),
-                    'first_and_last_seen': None,
-                })
-            else:
-                result[item].update({
-                    'tag': None,
-                    'first_and_last_seen': first_and_last_seen.get(item.version),
-                })
-
             result[item].update(release_metadata_attrs[item])
             result[item].update(deploy_metadata_attrs[item])
         return result
@@ -285,19 +270,10 @@ class ReleaseSerializer(Serializer):
         }
         first_and_last_seen = attrs.get('first_and_last_seen')
         if first_and_last_seen:
-            d.update(
-                {
-                    'firstEvent': first_and_last_seen['first_seen'],
-                    'lastEvent': first_and_last_seen['last_seen'],
-                }
-            )
-        elif attrs['tag']:
-            d.update(
-                {
-                    'lastEvent': attrs['tag']['last_seen'],
-                    'firstEvent': attrs['tag']['first_seen'],
-                }
-            )
+            d.update({
+                'firstEvent': first_and_last_seen['first_seen'],
+                'lastEvent': first_and_last_seen['last_seen'],
+            })
         else:
             d.update({
                 'lastEvent': None,
