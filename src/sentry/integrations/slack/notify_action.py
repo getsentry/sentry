@@ -58,7 +58,7 @@ class SlackNotifyServiceForm(forms.Form):
             }
 
             raise forms.ValidationError(
-                _('The "%(channel)s" channel or user does not exist in the %(workspace)s Slack workspace.'),
+                _('The slack resource "%(channel)s" does not exist or has not been granted access in the %(workspace)s Slack workspace.'),
                 code='invalid',
                 params=params,
             )
@@ -141,6 +141,13 @@ class SlackNotifyServiceAction(EventAction):
             organizations=self.project.organization,
         )
 
+    def get_form_instance(self):
+        return self.form_cls(
+            self.data,
+            integrations=self.get_integrations(),
+            channel_transformer=self.get_channel_id,
+        )
+
     def get_channel_id(self, integration_id, name):
         try:
             integration = Integration.objects.get(
@@ -151,15 +158,30 @@ class SlackNotifyServiceAction(EventAction):
         except Integration.DoesNotExist:
             return None
 
-        # Look for channel ID
-        payload = {
+        session = http.build_session()
+
+        token_payload = {
             'token': integration.metadata['access_token'],
-            'exclude_archived': False,
-            'exclude_members': True,
         }
 
-        session = http.build_session()
-        resp = session.get('https://slack.com/api/channels.list', params=payload)
+        # Get slack app resource permissions
+        resp = session.get('https://slack.com/api/apps.permissions.info', params=token_payload)
+        resp = resp.json()
+        if not resp.get('ok'):
+            extra = {'error': resp.get('error')}
+            self.logger.info('rule.slack.permission_check_failed', extra=extra)
+            return None
+
+        channel_perms = resp['info']['channel']['resources']
+        dm_perms = resp['info']['im']['resources']
+
+        # Look for channel ID
+        channels_payload = dict(token_payload, **{
+            'exclude_archived': False,
+            'exclude_members': True,
+        })
+
+        resp = session.get('https://slack.com/api/channels.list', params=channels_payload)
         resp = resp.json()
         if not resp.get('ok'):
             self.logger.info('rule.slack.channel_list_failed', extra={'error': resp.get('error')})
@@ -168,14 +190,16 @@ class SlackNotifyServiceAction(EventAction):
         channel_id = {c['name']: c['id'] for c in resp['channels']}.get(name)
 
         if channel_id:
+            if channel_id in channel_perms['excluded_ids']:
+                return None
+
+            if not channel_perms['wildcard'] and channel_id not in channel_perms['ids']:
+                return None
+
             return (CHANNEL_PREFIX, channel_id)
 
         # Look for user ID
-        payload = {
-            'token': integration.metadata['access_token'],
-        }
-
-        resp = session.get('https://slack.com/api/users.list', params=payload)
+        resp = session.get('https://slack.com/api/users.list', params=token_payload)
         resp = resp.json()
         if not resp.get('ok'):
             self.logger.info('rule.slack.user_list_failed', extra={'error': resp.get('error')})
@@ -183,14 +207,7 @@ class SlackNotifyServiceAction(EventAction):
 
         member_id = {c['name']: c['id'] for c in resp['members']}.get(name)
 
-        if member_id:
+        if member_id and member_id in dm_perms['ids']:
             return (MEMBER_PREFIX, member_id)
 
         return None
-
-    def get_form_instance(self):
-        return self.form_cls(
-            self.data,
-            integrations=self.get_integrations(),
-            channel_transformer=self.get_channel_id,
-        )
