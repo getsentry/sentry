@@ -46,7 +46,7 @@ class TagValue(Model):
         unique_together = (('project_id', '_key', 'value'), )
         index_together = (('project_id', '_key', 'last_seen'), )
 
-    __repr__ = sane_repr('project_id', '_key', 'value')
+    __repr__ = sane_repr('project_id', '_key_id', 'value')
 
     def delete(self):
         using = router.db_for_read(TagValue)
