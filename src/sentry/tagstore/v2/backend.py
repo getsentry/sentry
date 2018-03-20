@@ -459,6 +459,7 @@ class V2TagStorage(TagStorage):
             updated = TagKey.objects.filter(
                 id=tagkey.id,
                 status=TagKeyStatus.VISIBLE,
+                project_id=project_id,
             ).update(status=TagKeyStatus.PENDING_DELETION)
 
             if updated:
