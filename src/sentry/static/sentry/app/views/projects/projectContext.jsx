@@ -133,7 +133,7 @@ const ProjectContext = createReactClass({
   },
 
   fetchData() {
-    let {orgId, projectId} = this.props;
+    let {orgId, projectId, location} = this.props;
     // we fetch core access/information from the global organization data
     let activeProject = this.identifyProject();
     let hasAccess = activeProject && activeProject.hasAccess;
@@ -164,7 +164,12 @@ const ProjectContext = createReactClass({
           // assuming here that this means the project is considered the active project
           setActiveProject(project);
 
-          loadEnvironments(envs, project.defaultEnvironment);
+          // If an environment is specified in the query string, load it instead of default
+          const queryEnv = location.query.environment;
+          const envName =
+            typeof queryEnv === 'undefined' ? project.defaultEnvironment : queryEnv;
+
+          loadEnvironments(envs, envName);
         },
         () => {
           this.setState({
