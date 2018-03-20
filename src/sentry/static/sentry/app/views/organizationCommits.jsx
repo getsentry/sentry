@@ -68,9 +68,11 @@ export default class OrganizationCommits extends AsyncView {
     commitList.forEach(commit => {
       if (marker) {
         releasedCommits.push(commit);
+      } else if (commit.releases.length) {
+        marker = true;
+        releasedCommits.push(commit);
       } else {
         unreleasedCommits.push(commit);
-        if (commit.releases.length) marker = true;
       }
     });
 
@@ -86,10 +88,16 @@ export default class OrganizationCommits extends AsyncView {
             </ul>
           </div>
         )}
-        {releasedCommits.length &&
-          Object.keys(this.getCommitsByRepository(releasedCommits)).map(repository => {
-            return this.renderCommitsForRepo(repository, releasedCommits);
-          })}
+        {releasedCommits.length && (
+          <div className="panel panel-default">
+            <div className="panel-heading panel-heading-bold">Released</div>
+            <ul className="list-group list-group-lg commit-list">
+              {releasedCommits.map(commit => {
+                return <CommitRow key={commit.id} commit={commit} />;
+              })}
+            </ul>
+          </div>
+        )}
         {commitListPageLinks && (
           <Pagination pageLinks={commitListPageLinks} {...this.props} />
         )}
