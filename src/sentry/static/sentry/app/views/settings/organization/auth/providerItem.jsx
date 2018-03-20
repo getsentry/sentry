@@ -31,7 +31,7 @@ export default class ProviderItem extends React.PureComponent {
         <Flex flex="1">
           <ProviderLogo className={`provider-logo ${providerName.toLowerCase()}`} />
           <Box flex="1">
-            <h4>{providerName}</h4>
+            <ProviderName>{providerName}</ProviderName>
             <div>
               {tct('Enable your organization to sign in with [providerName]', {
                 providerName,
@@ -54,8 +54,13 @@ export default class ProviderItem extends React.PureComponent {
   }
 }
 
+const ProviderName = styled.div`
+  font-size: 22px;
+`;
+
 const ProviderLogo = styled.div`
   height: 48px;
   width: 48px;
   border-radius: 3px;
+  top: auto;
 `;
