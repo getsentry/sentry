@@ -46,7 +46,11 @@ const ProjectsStore = Reflux.createStore({
   },
 
   getAll() {
-    return Object.values(this.itemsById);
+    return Object.values(this.itemsById).sort((a, b) => {
+      if (a.slug > b.slug) return 1;
+      if (a.slug < b.slug) return -1;
+      return 0;
+    });
   },
 
   getAllGroupedByOrganization() {
