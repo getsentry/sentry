@@ -3,20 +3,34 @@ import React from 'react';
 import AsyncView from '../views/asyncView';
 import OrganizationHomeContainer from '../components/organizations/homeContainer';
 
-import CommitRow from '../components/commitRow';
+import TimeSince from '../components/timeSince';
+import CommitLink from '../components/commitLink';
 import Pagination from '../components/pagination';
 import {t} from '../locale';
 
 export default class OrganizationCommits extends AsyncView {
   getEndpoints() {
     return [
-      ['commitList', `/organizations/${this.props.params.orgId}/members/me/commits/`],
+      [
+        'unreleasedCommits',
+        `/organizations/${this.props.params.orgId}/members/me/unreleased-commits/`,
+      ],
     ];
   }
 
   getTitle() {
     return 'Commits';
   }
+
+  renderMessage = message => {
+    if (!message) {
+      return t('No message provided');
+    }
+
+    let firstLine = message.split(/\n/)[0];
+
+    return firstLine;
+  };
 
   emptyState() {
     return (
@@ -30,76 +44,37 @@ export default class OrganizationCommits extends AsyncView {
     );
   }
 
-  getCommitsByRepository(commitList) {
-    let commitsByRepository = commitList.reduce(function(cbr, commit) {
-      let {repository} = commit;
-      if (!cbr.hasOwnProperty(repository.name)) {
-        cbr[repository.name] = [];
-      }
-
-      cbr[repository.name].push(commit);
-      return cbr;
-    }, {});
-    return commitsByRepository;
-  }
-
-  renderCommitsForRepo(repo, commitList) {
-    let commitsByRepository = this.getCommitsByRepository(commitList);
-    let activeCommits = commitsByRepository[repo];
-    return (
-      <div className="panel panel-default">
-        <div className="panel-heading panel-heading-bold">{repo}</div>
-        <ul className="list-group list-group-lg commit-list">
-          {activeCommits.map(commit => {
-            return <CommitRow key={commit.id} commit={commit} />;
-          })}
-        </ul>
-      </div>
-    );
-  }
-
   renderBody() {
-    let {commitList, commitListPageLinks} = this.state;
-    if (!commitList.length) return this.emptyState();
-
-    let unreleasedCommits = [],
-      releasedCommits = [];
-    let marker = false;
-    commitList.forEach(commit => {
-      if (marker) {
-        releasedCommits.push(commit);
-      } else if (commit.releases.length) {
-        marker = true;
-        releasedCommits.push(commit);
-      } else {
-        unreleasedCommits.push(commit);
-      }
-    });
+    let {unreleasedCommits, unreleasedCommitsPageLinks} = this.state;
+    let {commits, repositories} = unreleasedCommits;
+    if (!commits.length) return this.emptyState();
 
     return (
       <div>
-        {unreleasedCommits.length && (
-          <div className="panel panel-default">
-            <div className="panel-heading panel-heading-bold">Unreleased</div>
-            <ul className="list-group list-group-lg commit-list">
-              {unreleasedCommits.map(commit => {
-                return <CommitRow key={commit.id} commit={commit} />;
-              })}
-            </ul>
-          </div>
-        )}
-        {releasedCommits.length && (
-          <div className="panel panel-default">
-            <div className="panel-heading panel-heading-bold">Released</div>
-            <ul className="list-group list-group-lg commit-list">
-              {releasedCommits.map(commit => {
-                return <CommitRow key={commit.id} commit={commit} />;
-              })}
-            </ul>
-          </div>
-        )}
-        {commitListPageLinks && (
-          <Pagination pageLinks={commitListPageLinks} {...this.props} />
+        <div className="panel panel-default">
+          <ul className="list-group list-group-lg commit-list">
+            {commits.map(commit => {
+              let repo = repositories[commit.repositoryID];
+              return (
+                <li className="list-group-item" key={commit.id}>
+                  <div className="row row-center-vertically">
+                    <div className="col-xs-10">
+                      <h5 className="truncate">{this.renderMessage(commit.message)}</h5>
+                      <p>
+                        {repo.name} &mdash; <TimeSince date={commit.dateCreated} />
+                      </p>
+                    </div>
+                    <div className="col-xs-2 hidden-xs align-right">
+                      <CommitLink commitId={commit.id} repository={repo} />
+                    </div>
+                  </div>
+                </li>
+              );
+            })}
+          </ul>
+        </div>
+        {!!unreleasedCommitsPageLinks && (
+          <Pagination pageLinks={unreleasedCommitsPageLinks} {...this.props} />
         )}
       </div>
     );
@@ -108,7 +83,9 @@ export default class OrganizationCommits extends AsyncView {
   render() {
     return (
       <OrganizationHomeContainer>
-        <h4>{t('My Commits')}</h4>
+        <h4>
+          {t('Unreleased Changes')} <small>Mine</small>
+        </h4>
         {this.renderComponent()}
       </OrganizationHomeContainer>
     );
