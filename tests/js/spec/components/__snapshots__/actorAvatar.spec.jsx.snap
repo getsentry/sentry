@@ -12,6 +12,7 @@ exports[`Avatar render() should show a gravatar when actor type is a team 1`] = 
           "slug": 2,
         },
       ],
+      "slug": "cool-team",
     }
   }
 />

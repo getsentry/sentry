@@ -84,5 +84,19 @@ describe('Avatar', function() {
 
       expect(avatar.find('BaseAvatar').prop('type')).toBe('letter_avatar');
     });
+
+    it('can display a team Avatar', function() {
+      let team = TestStubs.Team({slug: 'test-team_test'});
+      let avatar = mount(<Avatar team={team} />);
+      expect(avatar.find('LetterAvatar').prop('displayName')).toBe('test team test');
+      expect(avatar.find('LetterAvatar').prop('identifier')).toBe('test-team_test');
+    });
+
+    it('can display an organization Avatar', function() {
+      let organization = TestStubs.Organization({slug: 'test-organization'});
+      let avatar = mount(<Avatar organization={organization} />);
+      expect(avatar.find('LetterAvatar').prop('displayName')).toBe('test organization');
+      expect(avatar.find('LetterAvatar').prop('identifier')).toBe('test-organization');
+    });
   });
 });

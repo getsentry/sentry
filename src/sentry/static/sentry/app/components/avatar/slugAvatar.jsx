@@ -14,14 +14,19 @@ class SlugAvatar extends React.Component {
   render() {
     let {model, ...props} = this.props;
     if (!model) return null;
-    let title = (model && model.slug) || '';
+    let slug = (model && model.slug) || '';
+
+    // Letter avatar uses letters from first 2 words
+    // Previously we used displayName (which allows spaces) but is deprecated in
+    // favor of using slugs only (which do not allow spaces)
+    let title = slug.replace('-', ' ').replace('_', ' ');
 
     return (
       <BaseAvatar
         {...props}
         type="letter_avatar"
-        letterId={title}
-        tooltip={title}
+        letterId={slug}
+        tooltip={slug}
         title={title}
       />
     );
