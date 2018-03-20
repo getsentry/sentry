@@ -28,44 +28,44 @@ exports[`ProjectPluginDetails renders 1`] = `
   flex: 1;
 }
 
-.glamor-31 {
+.glamor-26 {
   background: #fff;
   border: 1px solid;
   margin-bottom: NaNpx;
   position: relative;
 }
 
-.glamor-25 {
+.glamor-20 {
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
   border-bottom: 1px solid;
   border-radius: 0 0;
-  text-transform: uppercase;
-  font-size: 13px;
   line-height: 1;
   padding: 8px 20px;
 }
 
-.glamor-21 {
-  font-size: inherit;
-  text-transform: inherit;
-  margin: 0;
-}
-
-.glamor-19 {
-  font-size: 12px;
-  font-weight: 600;
-  text-transform: uppercase;
-  margin-bottom: 20px;
-  font-size: inherit;
-  text-transform: inherit;
-  margin: 0;
-}
-
-.glamor-16 {
+.glamor-17 {
   box-sizing: border-box;
   display: -webkit-box;
   display: -webkit-flex;
   display: -ms-flexbox;
   display: flex;
+  -webkit-align-items: center;
+  -webkit-box-align: center;
+  -ms-flex-align: center;
+  align-items: center;
+  -webkit-box-pack: justify;
+  -webkit-justify-content: space-between;
+  -ms-flex-pack: justify;
+  justify-content: space-between;
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  border-bottom: 1px solid;
+  border-radius: 0 0;
+  line-height: 1;
+  padding: 8px 20px;
 }
 
 .glamor-14 {
@@ -110,7 +110,7 @@ exports[`ProjectPluginDetails renders 1`] = `
   background-image: url();
 }
 
-.glamor-29 {
+.glamor-24 {
   box-sizing: border-box;
   padding-top: 16px;
   padding-left: 16px;
@@ -442,7 +442,7 @@ exports[`ProjectPluginDetails renders 1`] = `
                     className="plugin-config ref-plugin-config-amazon-sqs"
                   >
                     <div
-                      className="plugin-config ref-plugin-config-amazon-sqs glamor-31 glamor-32"
+                      className="plugin-config ref-plugin-config-amazon-sqs glamor-26 glamor-27"
                     >
                       <PanelHeader
                         hasButtons={true}
@@ -451,87 +451,75 @@ exports[`ProjectPluginDetails renders 1`] = `
                           hasButtons={true}
                         >
                           <Component
-                            className="glamor-25 glamor-26"
+                            className="glamor-20 glamor-16"
                             hasButtons={true}
                           >
-                            <div
-                              className="glamor-25 glamor-26"
+                            <Flex
+                              align="center"
+                              className="glamor-20 glamor-16"
+                              justify="space-between"
                             >
-                              <StyledPanelHeading>
-                                <Component
-                                  className="glamor-21 glamor-18"
+                              <Base
+                                align="center"
+                                className="glamor-16 glamor-17"
+                                justify="space-between"
+                              >
+                                <div
+                                  className="glamor-16 glamor-17"
+                                  is={null}
                                 >
-                                  <PanelHeading
-                                    className="glamor-21 glamor-18"
+                                  <Flex
+                                    align="center"
+                                    flex="1"
                                   >
-                                    <div
-                                      className="glamor-18 glamor-19 glamor-20"
+                                    <Base
+                                      align="center"
+                                      className="glamor-14"
+                                      flex="1"
                                     >
-                                      <Flex>
-                                        <Base
-                                          className="glamor-16"
+                                      <div
+                                        className="glamor-14"
+                                        is={null}
+                                      >
+                                        <Flex
+                                          align="center"
+                                          mr={1}
                                         >
-                                          <div
-                                            className="glamor-16"
-                                            is={null}
+                                          <Base
+                                            align="center"
+                                            className="glamor-12"
+                                            mr={1}
                                           >
-                                            <Flex
-                                              align="center"
-                                              flex="1"
+                                            <div
+                                              className="glamor-12"
+                                              is={null}
                                             >
-                                              <Base
-                                                align="center"
-                                                className="glamor-14"
-                                                flex="1"
+                                              <PluginIcon
+                                                pluginId="amazon-sqs"
+                                                size={20}
                                               >
-                                                <div
-                                                  className="glamor-14"
-                                                  is={null}
+                                                <IntegrationIcon
+                                                  image={Object {}}
+                                                  size={20}
                                                 >
-                                                  <Flex
-                                                    align="center"
-                                                    mr={1}
-                                                  >
-                                                    <Base
-                                                      align="center"
-                                                      className="glamor-12"
-                                                      mr={1}
-                                                    >
-                                                      <div
-                                                        className="glamor-12"
-                                                        is={null}
-                                                      >
-                                                        <PluginIcon
-                                                          pluginId="amazon-sqs"
-                                                          size={20}
-                                                        >
-                                                          <IntegrationIcon
-                                                            image={Object {}}
-                                                            size={20}
-                                                          >
-                                                            <div
-                                                              className="glamor-10 glamor-11"
-                                                              size={20}
-                                                            />
-                                                          </IntegrationIcon>
-                                                        </PluginIcon>
-                                                      </div>
-                                                    </Base>
-                                                  </Flex>
-                                                  <span>
-                                                    Amazon SQS
-                                                  </span>
-                                                </div>
-                                              </Base>
-                                            </Flex>
-                                          </div>
-                                        </Base>
-                                      </Flex>
-                                    </div>
-                                  </PanelHeading>
-                                </Component>
-                              </StyledPanelHeading>
-                            </div>
+                                                  <div
+                                                    className="glamor-10 glamor-11"
+                                                    size={20}
+                                                  />
+                                                </IntegrationIcon>
+                                              </PluginIcon>
+                                            </div>
+                                          </Base>
+                                        </Flex>
+                                        <span>
+                                          Amazon SQS
+                                        </span>
+                                      </div>
+                                    </Base>
+                                  </Flex>
+                                </div>
+                              </Base>
+                            </Flex>
                           </Component>
                         </StyledPanelHeader>
                       </PanelHeader>
@@ -551,14 +539,14 @@ exports[`ProjectPluginDetails renders 1`] = `
                           wrap="wrap"
                         >
                           <Base
-                            className="glamor-29"
+                            className="glamor-24"
                             direction="column"
                             pt={2}
                             px={2}
                             wrap="wrap"
                           >
                             <div
-                              className="glamor-29"
+                              className="glamor-24"
                               is={null}
                             >
                               <div

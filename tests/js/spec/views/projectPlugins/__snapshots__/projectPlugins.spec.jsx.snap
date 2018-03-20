@@ -62,16 +62,14 @@ exports[`ProjectPlugins renders 1`] = `
     </UNDEFINED>
   }
   title={
-    <Flex
-      justify="space-between"
-    >
+    <UNDEFINED>
       <div>
         Legacy Integration
       </div>
       <div>
         Enabled
       </div>
-    </Flex>
+    </UNDEFINED>
   }
 />
 `;

@@ -80,7 +80,7 @@ describe('OrganizationIntegrationConfig', function() {
         const open = jest.fn().mockReturnValue({focus});
         global.open = open;
 
-        wrapper.find('PanelHeading Button').simulate('click');
+        wrapper.find('PanelHeader Button').simulate('click');
         expect(open.mock.calls.length).toBe(1);
         expect(focus.mock.calls.length).toBe(1);
         expect(open.mock.calls[0][2]).toBe(

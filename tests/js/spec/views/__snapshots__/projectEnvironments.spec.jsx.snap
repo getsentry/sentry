@@ -28,39 +28,47 @@ exports[`ProjectEnvironments render active renders empty message 1`] = `
   flex: 1;
 }
 
-.glamor-19 {
+.glamor-16 {
   background: #fff;
   border: 1px solid;
   margin-bottom: NaNpx;
   position: relative;
 }
 
-.glamor-13 {
+.glamor-10 {
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
   border-bottom: 1px solid;
   border-radius: 0 0;
-  text-transform: uppercase;
-  font-size: 13px;
   line-height: 1;
   padding: 15px 20px;
 }
 
-.glamor-9 {
-  font-size: inherit;
-  text-transform: inherit;
-  margin: 0;
-}
-
 .glamor-7 {
+  box-sizing: border-box;
+  display: -webkit-box;
+  display: -webkit-flex;
+  display: -ms-flexbox;
+  display: flex;
+  -webkit-align-items: center;
+  -webkit-box-align: center;
+  -ms-flex-align: center;
+  align-items: center;
+  -webkit-box-pack: justify;
+  -webkit-justify-content: space-between;
+  -ms-flex-pack: justify;
+  justify-content: space-between;
   font-size: 12px;
   font-weight: 600;
   text-transform: uppercase;
-  margin-bottom: 20px;
-  font-size: inherit;
-  text-transform: inherit;
-  margin: 0;
+  border-bottom: 1px solid;
+  border-radius: 0 0;
+  line-height: 1;
+  padding: 15px 20px;
 }
 
-.glamor-17 {
+.glamor-14 {
   display: -webkit-box;
   display: -webkit-flex;
   display: -ms-flexbox;
@@ -238,32 +246,31 @@ exports[`ProjectEnvironments render active renders empty message 1`] = `
     <Panel>
       <StyledPanel>
         <div
-          className="glamor-19 glamor-20"
+          className="glamor-16 glamor-17"
         >
           <PanelHeader>
             <StyledPanelHeader>
               <Component
-                className="glamor-13 glamor-14"
+                className="glamor-10 glamor-6"
               >
-                <div
-                  className="glamor-13 glamor-14"
+                <Flex
+                  align="center"
+                  className="glamor-10 glamor-6"
+                  justify="space-between"
                 >
-                  <StyledPanelHeading>
-                    <Component
-                      className="glamor-9 glamor-6"
+                  <Base
+                    align="center"
+                    className="glamor-6 glamor-7"
+                    justify="space-between"
+                  >
+                    <div
+                      className="glamor-6 glamor-7"
+                      is={null}
                     >
-                      <PanelHeading
-                        className="glamor-9 glamor-6"
-                      >
-                        <div
-                          className="glamor-6 glamor-7 glamor-8"
-                        >
-                          Active Environments
-                        </div>
-                      </PanelHeading>
-                    </Component>
-                  </StyledPanelHeading>
-                </div>
+                      Active Environments
+                    </div>
+                  </Base>
+                </Flex>
               </Component>
             </StyledPanelHeader>
           </PanelHeader>
@@ -278,7 +285,7 @@ exports[`ProjectEnvironments render active renders empty message 1`] = `
               <EmptyMessage>
                 <Wrapper>
                   <div
-                    className="glamor-17 glamor-18"
+                    className="glamor-14 glamor-15"
                   >
                     <div
                       className="ref-message"
@@ -325,39 +332,47 @@ exports[`ProjectEnvironments render active renders environment list 1`] = `
   flex: 1;
 }
 
-.glamor-29 {
+.glamor-26 {
   background: #fff;
   border: 1px solid;
   margin-bottom: NaNpx;
   position: relative;
 }
 
-.glamor-13 {
+.glamor-10 {
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
   border-bottom: 1px solid;
   border-radius: 0 0;
-  text-transform: uppercase;
-  font-size: 13px;
   line-height: 1;
   padding: 15px 20px;
 }
 
-.glamor-9 {
-  font-size: inherit;
-  text-transform: inherit;
-  margin: 0;
-}
-
 .glamor-7 {
+  box-sizing: border-box;
+  display: -webkit-box;
+  display: -webkit-flex;
+  display: -ms-flexbox;
+  display: flex;
+  -webkit-align-items: center;
+  -webkit-box-align: center;
+  -ms-flex-align: center;
+  align-items: center;
+  -webkit-box-pack: justify;
+  -webkit-justify-content: space-between;
+  -ms-flex-pack: justify;
+  justify-content: space-between;
   font-size: 12px;
   font-weight: 600;
   text-transform: uppercase;
-  margin-bottom: 20px;
-  font-size: inherit;
-  text-transform: inherit;
-  margin: 0;
+  border-bottom: 1px solid;
+  border-radius: 0 0;
+  line-height: 1;
+  padding: 15px 20px;
 }
 
-.glamor-19 {
+.glamor-16 {
   box-sizing: border-box;
   padding: 16px;
   display: -webkit-box;
@@ -375,7 +390,7 @@ exports[`ProjectEnvironments render active renders environment list 1`] = `
   border-bottom: 1px solid;
 }
 
-.glamor-19:last-child {
+.glamor-16:last-child {
   border: 0;
 }
 
@@ -540,32 +555,31 @@ exports[`ProjectEnvironments render active renders environment list 1`] = `
     <Panel>
       <StyledPanel>
         <div
-          className="glamor-29 glamor-30"
+          className="glamor-26 glamor-27"
         >
           <PanelHeader>
             <StyledPanelHeader>
               <Component
-                className="glamor-13 glamor-14"
+                className="glamor-10 glamor-6"
               >
-                <div
-                  className="glamor-13 glamor-14"
+                <Flex
+                  align="center"
+                  className="glamor-10 glamor-6"
+                  justify="space-between"
                 >
-                  <StyledPanelHeading>
-                    <Component
-                      className="glamor-9 glamor-6"
+                  <Base
+                    align="center"
+                    className="glamor-6 glamor-7"
+                    justify="space-between"
+                  >
+                    <div
+                      className="glamor-6 glamor-7"
+                      is={null}
                     >
-                      <PanelHeading
-                        className="glamor-9 glamor-6"
-                      >
-                        <div
-                          className="glamor-6 glamor-7 glamor-8"
-                        >
-                          Active Environments
-                        </div>
-                      </PanelHeading>
-                    </Component>
-                  </StyledPanelHeading>
-                </div>
+                      Active Environments
+                    </div>
+                  </Base>
+                </Flex>
               </Component>
             </StyledPanelHeader>
           </PanelHeader>
@@ -590,12 +604,12 @@ exports[`ProjectEnvironments render active renders environment list 1`] = `
                 >
                   <Base
                     align="center"
-                    className="glamor-19 glamor-20"
+                    className="glamor-16 glamor-17"
                     justify="space-between"
                     p={2}
                   >
                     <div
-                      className="glamor-19 glamor-20"
+                      className="glamor-16 glamor-17"
                       is={null}
                     >
                       <span>
@@ -651,12 +665,12 @@ exports[`ProjectEnvironments render active renders environment list 1`] = `
                 >
                   <Base
                     align="center"
-                    className="glamor-19 glamor-20"
+                    className="glamor-16 glamor-17"
                     justify="space-between"
                     p={2}
                   >
                     <div
-                      className="glamor-19 glamor-20"
+                      className="glamor-16 glamor-17"
                       is={null}
                     >
                       <span>
@@ -736,39 +750,47 @@ exports[`ProjectEnvironments render hidden renders empty message 1`] = `
   flex: 1;
 }
 
-.glamor-19 {
+.glamor-16 {
   background: #fff;
   border: 1px solid;
   margin-bottom: NaNpx;
   position: relative;
 }
 
-.glamor-13 {
+.glamor-10 {
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
   border-bottom: 1px solid;
   border-radius: 0 0;
-  text-transform: uppercase;
-  font-size: 13px;
   line-height: 1;
   padding: 15px 20px;
 }
 
-.glamor-9 {
-  font-size: inherit;
-  text-transform: inherit;
-  margin: 0;
-}
-
 .glamor-7 {
+  box-sizing: border-box;
+  display: -webkit-box;
+  display: -webkit-flex;
+  display: -ms-flexbox;
+  display: flex;
+  -webkit-align-items: center;
+  -webkit-box-align: center;
+  -ms-flex-align: center;
+  align-items: center;
+  -webkit-box-pack: justify;
+  -webkit-justify-content: space-between;
+  -ms-flex-pack: justify;
+  justify-content: space-between;
   font-size: 12px;
   font-weight: 600;
   text-transform: uppercase;
-  margin-bottom: 20px;
-  font-size: inherit;
-  text-transform: inherit;
-  margin: 0;
+  border-bottom: 1px solid;
+  border-radius: 0 0;
+  line-height: 1;
+  padding: 15px 20px;
 }
 
-.glamor-17 {
+.glamor-14 {
   display: -webkit-box;
   display: -webkit-flex;
   display: -ms-flexbox;
@@ -946,32 +968,31 @@ exports[`ProjectEnvironments render hidden renders empty message 1`] = `
     <Panel>
       <StyledPanel>
         <div
-          className="glamor-19 glamor-20"
+          className="glamor-16 glamor-17"
         >
           <PanelHeader>
             <StyledPanelHeader>
               <Component
-                className="glamor-13 glamor-14"
+                className="glamor-10 glamor-6"
               >
-                <div
-                  className="glamor-13 glamor-14"
+                <Flex
+                  align="center"
+                  className="glamor-10 glamor-6"
+                  justify="space-between"
                 >
-                  <StyledPanelHeading>
-                    <Component
-                      className="glamor-9 glamor-6"
+                  <Base
+                    align="center"
+                    className="glamor-6 glamor-7"
+                    justify="space-between"
+                  >
+                    <div
+                      className="glamor-6 glamor-7"
+                      is={null}
                     >
-                      <PanelHeading
-                        className="glamor-9 glamor-6"
-                      >
-                        <div
-                          className="glamor-6 glamor-7 glamor-8"
-                        >
-                          Hidden
-                        </div>
-                      </PanelHeading>
-                    </Component>
-                  </StyledPanelHeading>
-                </div>
+                      Hidden
+                    </div>
+                  </Base>
+                </Flex>
               </Component>
             </StyledPanelHeader>
           </PanelHeader>
@@ -986,7 +1007,7 @@ exports[`ProjectEnvironments render hidden renders empty message 1`] = `
               <EmptyMessage>
                 <Wrapper>
                   <div
-                    className="glamor-17 glamor-18"
+                    className="glamor-14 glamor-15"
                   >
                     <div
                       className="ref-message"
@@ -1033,39 +1054,47 @@ exports[`ProjectEnvironments render hidden renders environment list 1`] = `
   flex: 1;
 }
 
-.glamor-23 {
+.glamor-20 {
   background: #fff;
   border: 1px solid;
   margin-bottom: NaNpx;
   position: relative;
 }
 
-.glamor-13 {
+.glamor-10 {
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
   border-bottom: 1px solid;
   border-radius: 0 0;
-  text-transform: uppercase;
-  font-size: 13px;
   line-height: 1;
   padding: 15px 20px;
 }
 
-.glamor-9 {
-  font-size: inherit;
-  text-transform: inherit;
-  margin: 0;
-}
-
 .glamor-7 {
+  box-sizing: border-box;
+  display: -webkit-box;
+  display: -webkit-flex;
+  display: -ms-flexbox;
+  display: flex;
+  -webkit-align-items: center;
+  -webkit-box-align: center;
+  -ms-flex-align: center;
+  align-items: center;
+  -webkit-box-pack: justify;
+  -webkit-justify-content: space-between;
+  -ms-flex-pack: justify;
+  justify-content: space-between;
   font-size: 12px;
   font-weight: 600;
   text-transform: uppercase;
-  margin-bottom: 20px;
-  font-size: inherit;
-  text-transform: inherit;
-  margin: 0;
+  border-bottom: 1px solid;
+  border-radius: 0 0;
+  line-height: 1;
+  padding: 15px 20px;
 }
 
-.glamor-19 {
+.glamor-16 {
   box-sizing: border-box;
   padding: 16px;
   display: -webkit-box;
@@ -1083,7 +1112,7 @@ exports[`ProjectEnvironments render hidden renders environment list 1`] = `
   border-bottom: 1px solid;
 }
 
-.glamor-19:last-child {
+.glamor-16:last-child {
   border: 0;
 }
 
@@ -1248,32 +1277,31 @@ exports[`ProjectEnvironments render hidden renders environment list 1`] = `
     <Panel>
       <StyledPanel>
         <div
-          className="glamor-23 glamor-24"
+          className="glamor-20 glamor-21"
         >
           <PanelHeader>
             <StyledPanelHeader>
               <Component
-                className="glamor-13 glamor-14"
+                className="glamor-10 glamor-6"
               >
-                <div
-                  className="glamor-13 glamor-14"
+                <Flex
+                  align="center"
+                  className="glamor-10 glamor-6"
+                  justify="space-between"
                 >
-                  <StyledPanelHeading>
-                    <Component
-                      className="glamor-9 glamor-6"
+                  <Base
+                    align="center"
+                    className="glamor-6 glamor-7"
+                    justify="space-between"
+                  >
+                    <div
+                      className="glamor-6 glamor-7"
+                      is={null}
                     >
-                      <PanelHeading
-                        className="glamor-9 glamor-6"
-                      >
-                        <div
-                          className="glamor-6 glamor-7 glamor-8"
-                        >
-                          Hidden
-                        </div>
-                      </PanelHeading>
-                    </Component>
-                  </StyledPanelHeading>
-                </div>
+                      Hidden
+                    </div>
+                  </Base>
+                </Flex>
               </Component>
             </StyledPanelHeader>
           </PanelHeader>
@@ -1298,12 +1326,12 @@ exports[`ProjectEnvironments render hidden renders environment list 1`] = `
                 >
                   <Base
                     align="center"
-                    className="glamor-19 glamor-20"
+                    className="glamor-16 glamor-17"
                     justify="space-between"
                     p={2}
                   >
                     <div
-                      className="glamor-19 glamor-20"
+                      className="glamor-16 glamor-17"
                       is={null}
                     >
                       <span>

@@ -28,36 +28,44 @@ exports[`AuditLogView renders 1`] = `
   flex: 1;
 }
 
-.glamor-67 {
+.glamor-62 {
   background: #fff;
   border: 1px solid;
   margin-bottom: NaNpx;
   position: relative;
 }
 
-.glamor-23 {
+.glamor-18 {
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
   border-bottom: 1px solid;
   border-radius: 0 0;
-  text-transform: uppercase;
-  font-size: 13px;
   line-height: 1;
   padding: 15px 0;
 }
 
-.glamor-19 {
-  font-size: inherit;
-  text-transform: inherit;
-  margin: 0;
-}
-
-.glamor-17 {
+.glamor-15 {
+  box-sizing: border-box;
+  display: -webkit-box;
+  display: -webkit-flex;
+  display: -ms-flexbox;
+  display: flex;
+  -webkit-align-items: center;
+  -webkit-box-align: center;
+  -ms-flex-align: center;
+  align-items: center;
+  -webkit-box-pack: justify;
+  -webkit-justify-content: space-between;
+  -ms-flex-pack: justify;
+  justify-content: space-between;
   font-size: 12px;
   font-weight: 600;
   text-transform: uppercase;
-  margin-bottom: 20px;
-  font-size: inherit;
-  text-transform: inherit;
-  margin: 0;
+  border-bottom: 1px solid;
+  border-radius: 0 0;
+  line-height: 1;
+  padding: 15px 0;
 }
 
 .glamor-6 {
@@ -85,7 +93,7 @@ exports[`AuditLogView renders 1`] = `
   padding-right: 8px;
 }
 
-.glamor-43 {
+.glamor-38 {
   box-sizing: border-box;
   padding: 0px;
   display: -webkit-box;
@@ -99,11 +107,11 @@ exports[`AuditLogView renders 1`] = `
   border-bottom: 1px solid;
 }
 
-.glamor-43:last-child {
+.glamor-38:last-child {
   border: 0;
 }
 
-.glamor-33 {
+.glamor-28 {
   box-sizing: border-box;
   padding: 16px;
   -webkit-flex: 1;
@@ -120,7 +128,7 @@ exports[`AuditLogView renders 1`] = `
   flex: 1;
 }
 
-.glamor-31 {
+.glamor-26 {
   display: -webkit-box;
   display: -webkit-flex;
   display: -ms-flexbox;
@@ -134,16 +142,16 @@ exports[`AuditLogView renders 1`] = `
   justify-content: center;
 }
 
-.glamor-27 {
+.glamor-22 {
   font-weight: 600;
   font-size: 15px;
 }
 
-.glamor-29 {
+.glamor-24 {
   font-size: 13px;
 }
 
-.glamor-41 {
+.glamor-36 {
   box-sizing: border-box;
   width: 150px;
   padding: 8px;
@@ -947,7 +955,7 @@ exports[`AuditLogView renders 1`] = `
             <Panel>
               <StyledPanel>
                 <div
-                  className="glamor-67 glamor-68"
+                  className="glamor-62 glamor-63"
                 >
                   <PanelHeader
                     disablePadding={true}
@@ -956,105 +964,90 @@ exports[`AuditLogView renders 1`] = `
                       disablePadding={true}
                     >
                       <Component
-                        className="glamor-23 glamor-24"
+                        className="glamor-18 glamor-14"
                         disablePadding={true}
                       >
-                        <div
-                          className="glamor-23 glamor-24"
+                        <Flex
+                          align="center"
+                          className="glamor-18 glamor-14"
+                          justify="space-between"
                         >
-                          <StyledPanelHeading>
-                            <Component
-                              className="glamor-19 glamor-16"
+                          <Base
+                            align="center"
+                            className="glamor-14 glamor-15"
+                            justify="space-between"
+                          >
+                            <div
+                              className="glamor-14 glamor-15"
+                              is={null}
                             >
-                              <PanelHeading
-                                className="glamor-19 glamor-16"
+                              <Box
+                                flex="1"
+                                pl={2}
                               >
-                                <div
-                                  className="glamor-16 glamor-17 glamor-18"
+                                <Base
+                                  className="glamor-6"
+                                  flex="1"
+                                  pl={2}
                                 >
-                                  <Flex
-                                    align="center"
+                                  <div
+                                    className="glamor-6"
+                                    is={null}
                                   >
-                                    <Base
-                                      align="center"
-                                      className="glamor-2"
-                                    >
-                                      <div
-                                        className="glamor-2"
-                                        is={null}
-                                      >
-                                        <Box
-                                          flex="1"
-                                          pl={2}
-                                        >
-                                          <Base
-                                            className="glamor-6"
-                                            flex="1"
-                                            pl={2}
-                                          >
-                                            <div
-                                              className="glamor-6"
-                                              is={null}
-                                            >
-                                              Member
-                                            </div>
-                                          </Base>
-                                        </Box>
-                                        <Box
-                                          w={150}
-                                        >
-                                          <Base
-                                            className="glamor-8"
-                                            w={150}
-                                          >
-                                            <div
-                                              className="glamor-8"
-                                              is={null}
-                                            >
-                                              Action
-                                            </div>
-                                          </Base>
-                                        </Box>
-                                        <Box
-                                          w={130}
-                                        >
-                                          <Base
-                                            className="glamor-10"
-                                            w={130}
-                                          >
-                                            <div
-                                              className="glamor-10"
-                                              is={null}
-                                            >
-                                              IP
-                                            </div>
-                                          </Base>
-                                        </Box>
-                                        <Box
-                                          px={1}
-                                          w={150}
-                                        >
-                                          <Base
-                                            className="glamor-12"
-                                            px={1}
-                                            w={150}
-                                          >
-                                            <div
-                                              className="glamor-12"
-                                              is={null}
-                                            >
-                                              Time
-                                            </div>
-                                          </Base>
-                                        </Box>
-                                      </div>
-                                    </Base>
-                                  </Flex>
-                                </div>
-                              </PanelHeading>
-                            </Component>
-                          </StyledPanelHeading>
-                        </div>
+                                    Member
+                                  </div>
+                                </Base>
+                              </Box>
+                              <Box
+                                w={150}
+                              >
+                                <Base
+                                  className="glamor-8"
+                                  w={150}
+                                >
+                                  <div
+                                    className="glamor-8"
+                                    is={null}
+                                  >
+                                    Action
+                                  </div>
+                                </Base>
+                              </Box>
+                              <Box
+                                w={130}
+                              >
+                                <Base
+                                  className="glamor-10"
+                                  w={130}
+                                >
+                                  <div
+                                    className="glamor-10"
+                                    is={null}
+                                  >
+                                    IP
+                                  </div>
+                                </Base>
+                              </Box>
+                              <Box
+                                px={1}
+                                w={150}
+                              >
+                                <Base
+                                  className="glamor-12"
+                                  px={1}
+                                  w={150}
+                                >
+                                  <div
+                                    className="glamor-12"
+                                    is={null}
+                                  >
+                                    Time
+                                  </div>
+                                </Base>
+                              </Box>
+                            </div>
+                          </Base>
+                        </Flex>
                       </Component>
                     </StyledPanelHeader>
                   </PanelHeader>
@@ -1077,11 +1070,11 @@ exports[`AuditLogView renders 1`] = `
                         >
                           <Base
                             align="center"
-                            className="glamor-43 glamor-44"
+                            className="glamor-38 glamor-39"
                             p={0}
                           >
                             <div
-                              className="glamor-43 glamor-44"
+                              className="glamor-38 glamor-39"
                               is={null}
                             >
                               <UserInfo
@@ -1089,12 +1082,12 @@ exports[`AuditLogView renders 1`] = `
                                 p={2}
                               >
                                 <Base
-                                  className="glamor-33 glamor-34"
+                                  className="glamor-28 glamor-29"
                                   flex="1"
                                   p={2}
                                 >
                                   <div
-                                    className="glamor-33 glamor-34"
+                                    className="glamor-28 glamor-29"
                                     is={null}
                                   >
                                     <div>
@@ -1305,18 +1298,18 @@ exports[`AuditLogView renders 1`] = `
                                     </div>
                                     <NameContainer>
                                       <div
-                                        className="glamor-31 glamor-32"
+                                        className="glamor-26 glamor-27"
                                       >
                                         <Name>
                                           <div
-                                            className="glamor-27 glamor-28"
+                                            className="glamor-22 glamor-23"
                                           >
                                             billy vong
                                           </div>
                                         </Name>
                                         <Note>
                                           <div
-                                            className="glamor-29 glamor-30"
+                                            className="glamor-24 glamor-25"
                                           >
                                             edited project ludic-science
                                           </div>
@@ -1361,12 +1354,12 @@ exports[`AuditLogView renders 1`] = `
                                 w={150}
                               >
                                 <Base
-                                  className="glamor-41"
+                                  className="glamor-36"
                                   p={1}
                                   w={150}
                                 >
                                   <div
-                                    className="glamor-41"
+                                    className="glamor-36"
                                     is={null}
                                   >
                                     <DateTime
@@ -1395,11 +1388,11 @@ exports[`AuditLogView renders 1`] = `
                         >
                           <Base
                             align="center"
-                            className="glamor-43 glamor-44"
+                            className="glamor-38 glamor-39"
                             p={0}
                           >
                             <div
-                              className="glamor-43 glamor-44"
+                              className="glamor-38 glamor-39"
                               is={null}
                             >
                               <UserInfo
@@ -1407,12 +1400,12 @@ exports[`AuditLogView renders 1`] = `
                                 p={2}
                               >
                                 <Base
-                                  className="glamor-33 glamor-34"
+                                  className="glamor-28 glamor-29"
                                   flex="1"
                                   p={2}
                                 >
                                   <div
-                                    className="glamor-33 glamor-34"
+                                    className="glamor-28 glamor-29"
                                     is={null}
                                   >
                                     <div>
@@ -1623,18 +1616,18 @@ exports[`AuditLogView renders 1`] = `
                                     </div>
                                     <NameContainer>
                                       <div
-                                        className="glamor-31 glamor-32"
+                                        className="glamor-26 glamor-27"
                                       >
                                         <Name>
                                           <div
-                                            className="glamor-27 glamor-28"
+                                            className="glamor-22 glamor-23"
                                           >
                                             billy vong
                                           </div>
                                         </Name>
                                         <Note>
                                           <div
-                                            className="glamor-29 glamor-30"
+                                            className="glamor-24 glamor-25"
                                           >
                                             edited the organization setting(s): accountRateLimit from 1000 to 0
                                           </div>
@@ -1679,12 +1672,12 @@ exports[`AuditLogView renders 1`] = `
                                 w={150}
                               >
                                 <Base
-                                  className="glamor-41"
+                                  className="glamor-36"
                                   p={1}
                                   w={150}
                                 >
                                   <div
-                                    className="glamor-41"
+                                    className="glamor-36"
                                     is={null}
                                   >
                                     <DateTime

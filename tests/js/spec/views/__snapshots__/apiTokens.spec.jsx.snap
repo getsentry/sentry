@@ -124,36 +124,44 @@ exports[`ApiTokens renders with result 1`] = `
   margin-bottom: 30px;
 }
 
-.glamor-94 {
+.glamor-91 {
   background: #fff;
   border: 1px solid;
   margin-bottom: NaNpx;
   position: relative;
 }
 
-.glamor-31 {
+.glamor-28 {
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
   border-bottom: 1px solid;
   border-radius: 0 0;
-  text-transform: uppercase;
-  font-size: 13px;
   line-height: 1;
   padding: 15px 0;
 }
 
-.glamor-27 {
-  font-size: inherit;
-  text-transform: inherit;
-  margin: 0;
-}
-
 .glamor-25 {
+  box-sizing: border-box;
+  display: -webkit-box;
+  display: -webkit-flex;
+  display: -ms-flexbox;
+  display: flex;
+  -webkit-align-items: center;
+  -webkit-box-align: center;
+  -ms-flex-align: center;
+  align-items: center;
+  -webkit-box-pack: justify;
+  -webkit-justify-content: space-between;
+  -ms-flex-pack: justify;
+  justify-content: space-between;
   font-size: 12px;
   font-weight: 600;
   text-transform: uppercase;
-  margin-bottom: 20px;
-  font-size: inherit;
-  text-transform: inherit;
-  margin: 0;
+  border-bottom: 1px solid;
+  border-radius: 0 0;
+  line-height: 1;
+  padding: 15px 0;
 }
 
 .glamor-20 {
@@ -165,13 +173,13 @@ exports[`ApiTokens renders with result 1`] = `
   flex: 1;
 }
 
-.glamor-90 {
+.glamor-87 {
   -webkit-flex-direction: column;
   -ms-flex-direction: column;
   flex-direction: column;
 }
 
-.glamor-85 {
+.glamor-82 {
   box-sizing: border-box;
   padding: 16px;
   display: -webkit-box;
@@ -184,11 +192,11 @@ exports[`ApiTokens renders with result 1`] = `
   flex-direction: column;
 }
 
-.glamor-85:last-child {
+.glamor-82:last-child {
   border: 0;
 }
 
-.glamor-41 {
+.glamor-38 {
   box-sizing: border-box;
   display: -webkit-box;
   display: -webkit-flex;
@@ -196,14 +204,14 @@ exports[`ApiTokens renders with result 1`] = `
   display: flex;
 }
 
-.glamor-43 {
+.glamor-40 {
   box-sizing: border-box;
   -webkit-flex: 1;
   -ms-flex: 1;
   flex: 1;
 }
 
-.glamor-39 {
+.glamor-36 {
   -webkit-box-flex: 1;
   -webkit-flex-grow: 1;
   -ms-flex-positive: 1;
@@ -211,7 +219,7 @@ exports[`ApiTokens renders with result 1`] = `
   border: none;
 }
 
-.glamor-35 {
+.glamor-32 {
   display: block;
   width: 100%;
   background: #fff;
@@ -227,37 +235,37 @@ exports[`ApiTokens renders with result 1`] = `
   border-bottom-right-radius: 0;
 }
 
-.glamor-35:focus {
+.glamor-32:focus {
   outline: none;
 }
 
-.glamor-35:hover,
-.glamor-35:focus,
-.glamor-35:active {
+.glamor-32:hover,
+.glamor-32:focus,
+.glamor-32:active {
   border: 1px solid;
 }
 
-.glamor-35:hover,
-.glamor-35:focus {
+.glamor-32:hover,
+.glamor-32:focus {
   border-right-width: 0;
 }
 
-.glamor-35:hover,
-.glamor-35:focus {
+.glamor-32:hover,
+.glamor-32:focus {
   border-right-width: 0;
 }
 
-.glamor-35:hover,
-.glamor-35:focus {
+.glamor-32:hover,
+.glamor-32:focus {
   border-right-width: 0;
 }
 
-.glamor-35:hover,
-.glamor-35:focus {
+.glamor-32:hover,
+.glamor-32:focus {
   border-right-width: 0;
 }
 
-.glamor-62 {
+.glamor-59 {
   box-sizing: border-box;
   padding-left: 16px;
   -webkit-align-self: flex-start;
@@ -265,27 +273,27 @@ exports[`ApiTokens renders with result 1`] = `
   align-self: flex-start;
 }
 
-.glamor-58 .button-label {
+.glamor-55 .button-label {
   padding-top: 9px;
   padding-bottom: 9px;
 }
 
-.glamor-52 {
+.glamor-49 {
   box-sizing: border-box;
   margin-right: 6px;
   margin-left: -2px;
 }
 
-.glamor-48 {
+.glamor-45 {
   display: block;
 }
 
-.glamor-46 {
+.glamor-43 {
   vertical-align: middle;
   display: block;
 }
 
-.glamor-80 {
+.glamor-77 {
   box-sizing: border-box;
   display: -webkit-box;
   display: -webkit-flex;
@@ -294,22 +302,22 @@ exports[`ApiTokens renders with result 1`] = `
   margin-top: 10px;
 }
 
-.glamor-68 {
+.glamor-65 {
   font-size: 13px;
   text-transform: uppercase;
   margin-bottom: 8px;
 }
 
-.glamor-70 {
+.glamor-67 {
   font-size: 0.9em;
   line-height: 1.4;
 }
 
-.glamor-78 {
+.glamor-75 {
   box-sizing: border-box;
 }
 
-.glamor-76 {
+.glamor-73 {
   font-size: 0.9em;
   line-height: 1.4;
 }
@@ -478,7 +486,7 @@ exports[`ApiTokens renders with result 1`] = `
         <Panel>
           <StyledPanel>
             <div
-              className="glamor-94 glamor-95"
+              className="glamor-91 glamor-92"
             >
               <PanelHeader
                 disablePadding={true}
@@ -487,58 +495,57 @@ exports[`ApiTokens renders with result 1`] = `
                   disablePadding={true}
                 >
                   <Component
-                    className="glamor-31 glamor-32"
+                    className="glamor-28 glamor-24"
                     disablePadding={true}
                   >
-                    <div
-                      className="glamor-31 glamor-32"
+                    <Flex
+                      align="center"
+                      className="glamor-28 glamor-24"
+                      justify="space-between"
                     >
-                      <StyledPanelHeading>
-                        <Component
-                          className="glamor-27 glamor-24"
+                      <Base
+                        align="center"
+                        className="glamor-24 glamor-25"
+                        justify="space-between"
+                      >
+                        <div
+                          className="glamor-24 glamor-25"
+                          is={null}
                         >
-                          <PanelHeading
-                            className="glamor-27 glamor-24"
+                          <Flex
+                            align="center"
                           >
-                            <div
-                              className="glamor-24 glamor-25 glamor-26"
+                            <Base
+                              align="center"
+                              className="glamor-2"
                             >
-                              <Flex
-                                align="center"
+                              <div
+                                className="glamor-2"
+                                is={null}
                               >
-                                <Base
-                                  align="center"
-                                  className="glamor-2"
+                                <Box
+                                  flex="1"
+                                  px={2}
                                 >
-                                  <div
-                                    className="glamor-2"
-                                    is={null}
+                                  <Base
+                                    className="glamor-20"
+                                    flex="1"
+                                    px={2}
                                   >
-                                    <Box
-                                      flex="1"
-                                      px={2}
+                                    <div
+                                      className="glamor-20"
+                                      is={null}
                                     >
-                                      <Base
-                                        className="glamor-20"
-                                        flex="1"
-                                        px={2}
-                                      >
-                                        <div
-                                          className="glamor-20"
-                                          is={null}
-                                        >
-                                          Auth Token
-                                        </div>
-                                      </Base>
-                                    </Box>
-                                  </div>
-                                </Base>
-                              </Flex>
-                            </div>
-                          </PanelHeading>
-                        </Component>
-                      </StyledPanelHeading>
-                    </div>
+                                      Auth Token
+                                    </div>
+                                  </Base>
+                                </Box>
+                              </div>
+                            </Base>
+                          </Flex>
+                        </div>
+                      </Base>
+                    </Flex>
                   </Component>
                 </StyledPanelHeader>
               </PanelHeader>
@@ -568,39 +575,39 @@ exports[`ApiTokens renders with result 1`] = `
                       p={2}
                     >
                       <PanelItem
-                        className="glamor-90 glamor-84"
+                        className="glamor-87 glamor-81"
                         p={2}
                       >
                         <StyledPanelItem
-                          className="glamor-90 glamor-84"
+                          className="glamor-87 glamor-81"
                           p={2}
                         >
                           <Base
-                            className="glamor-84 glamor-85 glamor-86"
+                            className="glamor-81 glamor-82 glamor-83"
                             p={2}
                           >
                             <div
-                              className="glamor-84 glamor-85 glamor-86"
+                              className="glamor-81 glamor-82 glamor-83"
                               is={null}
                             >
                               <div>
                                 <Flex>
                                   <Base
-                                    className="glamor-41"
+                                    className="glamor-38"
                                   >
                                     <div
-                                      className="glamor-41"
+                                      className="glamor-38"
                                       is={null}
                                     >
                                       <Box
                                         flex="1"
                                       >
                                         <Base
-                                          className="glamor-43"
+                                          className="glamor-40"
                                           flex="1"
                                         >
                                           <div
-                                            className="glamor-43"
+                                            className="glamor-40"
                                             is={null}
                                           >
                                             <div
@@ -618,15 +625,15 @@ exports[`ApiTokens renders with result 1`] = `
                                                 >
                                                   <Flex>
                                                     <Base
-                                                      className="glamor-41"
+                                                      className="glamor-38"
                                                     >
                                                       <div
-                                                        className="glamor-41"
+                                                        className="glamor-38"
                                                         is={null}
                                                       >
                                                         <OverflowContainer>
                                                           <div
-                                                            className="glamor-39 glamor-40"
+                                                            className="glamor-36 glamor-37"
                                                           >
                                                             <StyledInput
                                                               onClick={[Function]}
@@ -634,13 +641,13 @@ exports[`ApiTokens renders with result 1`] = `
                                                               value="apitoken123"
                                                             >
                                                               <Component
-                                                                className="glamor-35 glamor-36"
+                                                                className="glamor-32 glamor-33"
                                                                 onClick={[Function]}
                                                                 readOnly={true}
                                                                 value="apitoken123"
                                                               >
                                                                 <input
-                                                                  className="glamor-35 glamor-36"
+                                                                  className="glamor-32 glamor-33"
                                                                   onClick={[Function]}
                                                                   readOnly={true}
                                                                   value="apitoken123"
@@ -670,11 +677,11 @@ exports[`ApiTokens renders with result 1`] = `
                                         pl={2}
                                       >
                                         <Base
-                                          className="glamor-62 glamor-63"
+                                          className="glamor-59 glamor-60"
                                           pl={2}
                                         >
                                           <div
-                                            className="glamor-62 glamor-63"
+                                            className="glamor-59 glamor-60"
                                             is={null}
                                           >
                                             <StyledButton
@@ -683,14 +690,14 @@ exports[`ApiTokens renders with result 1`] = `
                                               size="small"
                                             >
                                               <Button
-                                                className="glamor-58 glamor-59"
+                                                className="glamor-55 glamor-56"
                                                 disabled={false}
                                                 icon="icon-circle-subtract"
                                                 onClick={[Function]}
                                                 size="small"
                                               >
                                                 <button
-                                                  className="glamor-58 glamor-59 button button-default button-sm"
+                                                  className="glamor-55 glamor-56 button button-default button-sm"
                                                   disabled={false}
                                                   onClick={[Function]}
                                                   role="button"
@@ -711,11 +718,11 @@ exports[`ApiTokens renders with result 1`] = `
                                                           size="small"
                                                         >
                                                           <Base
-                                                            className="glamor-52 glamor-53"
+                                                            className="glamor-49 glamor-50"
                                                             size="small"
                                                           >
                                                             <div
-                                                              className="glamor-52 glamor-53"
+                                                              className="glamor-49 glamor-50"
                                                               is={null}
                                                               size="small"
                                                             >
@@ -724,19 +731,19 @@ exports[`ApiTokens renders with result 1`] = `
                                                                 src="icon-circle-subtract"
                                                               >
                                                                 <InlineSvg
-                                                                  className="glamor-48 glamor-45"
+                                                                  className="glamor-45 glamor-42"
                                                                   size="12px"
                                                                   src="icon-circle-subtract"
                                                                 >
                                                                   <StyledSvg
-                                                                    className="glamor-48 glamor-45"
+                                                                    className="glamor-45 glamor-42"
                                                                     height="12px"
                                                                     style={Object {}}
                                                                     viewBox={Object {}}
                                                                     width="12px"
                                                                   >
                                                                     <svg
-                                                                      className="glamor-45 glamor-46 glamor-47"
+                                                                      className="glamor-42 glamor-43 glamor-44"
                                                                       height="12px"
                                                                       style={Object {}}
                                                                       viewBox={Object {}}
@@ -773,33 +780,33 @@ exports[`ApiTokens renders with result 1`] = `
                               </div>
                               <Details>
                                 <Base
-                                  className="glamor-80 glamor-81"
+                                  className="glamor-77 glamor-78"
                                 >
                                   <div
-                                    className="glamor-80 glamor-81"
+                                    className="glamor-77 glamor-78"
                                     is={null}
                                   >
                                     <Box
                                       flex="1"
                                     >
                                       <Base
-                                        className="glamor-43"
+                                        className="glamor-40"
                                         flex="1"
                                       >
                                         <div
-                                          className="glamor-43"
+                                          className="glamor-40"
                                           is={null}
                                         >
                                           <Heading>
                                             <div
-                                              className="glamor-68 glamor-69"
+                                              className="glamor-65 glamor-66"
                                             >
                                               Scopes
                                             </div>
                                           </Heading>
                                           <ScopeList>
                                             <div
-                                              className="glamor-70 glamor-71"
+                                              className="glamor-67 glamor-68"
                                             >
                                               scope1, scope2
                                             </div>
@@ -809,22 +816,22 @@ exports[`ApiTokens renders with result 1`] = `
                                     </Box>
                                     <Box>
                                       <Base
-                                        className="glamor-78"
+                                        className="glamor-75"
                                       >
                                         <div
-                                          className="glamor-78"
+                                          className="glamor-75"
                                           is={null}
                                         >
                                           <Heading>
                                             <div
-                                              className="glamor-68 glamor-69"
+                                              className="glamor-65 glamor-66"
                                             >
                                               Created
                                             </div>
                                           </Heading>
                                           <Time>
                                             <time
-                                              className="glamor-76 glamor-77"
+                                              className="glamor-73 glamor-74"
                                             >
                                               <DateTime
                                                 date={2018-01-12T02:01:41.000Z}
