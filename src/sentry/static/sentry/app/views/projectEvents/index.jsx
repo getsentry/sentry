@@ -1,9 +1,11 @@
-import jQuery from 'jquery';
 import PropTypes from 'prop-types';
 import React from 'react';
 import createReactClass from 'create-react-class';
 import {browserHistory} from 'react-router';
+import {omit, isEqual} from 'lodash';
+import qs from 'query-string';
 
+import SentryTypes from '../../proptypes';
 import ProjectLink from '../../components/projectLink';
 import ApiMixin from '../../mixins/apiMixin';
 import DateTime from '../../components/dateTime';
@@ -21,6 +23,7 @@ const ProjectEvents = createReactClass({
   propTypes: {
     defaultQuery: PropTypes.string,
     setProjectNavSection: PropTypes.func,
+    environment: SentryTypes.Environment,
   },
 
   mixins: [ApiMixin],
@@ -40,6 +43,7 @@ const ProjectEvents = createReactClass({
       error: false,
       query: queryParams.query || this.props.defaultQuery,
       pageLinks: '',
+      environment: this.props.environment,
     };
   },
 
@@ -49,7 +53,13 @@ const ProjectEvents = createReactClass({
   },
 
   componentWillReceiveProps(nextProps) {
-    if (nextProps.location.search !== this.props.location.search) {
+    // omit when environment changes in query string since we handle that separately
+    const searchHasChanged = !isEqual(
+      omit(qs.parse(nextProps.location.search), 'environment'),
+      omit(qs.parse(this.props.location.search), 'environment')
+    );
+
+    if (searchHasChanged) {
       let queryParams = nextProps.location.query;
       this.setState(
         {
@@ -57,6 +67,10 @@ const ProjectEvents = createReactClass({
         },
         this.fetchData
       );
+    }
+
+    if (nextProps.environment !== this.props.environment) {
+      this.setState({environment: nextProps.environment}, this.fetchData);
     }
   },
 
@@ -77,7 +91,22 @@ const ProjectEvents = createReactClass({
       error: false,
     });
 
-    this.api.request(this.getEndpoint(), {
+    const {params} = this.props;
+
+    const query = {
+      ...this.props.location.query,
+      limit: 50,
+      query: this.state.query,
+    };
+
+    if (this.state.environment) {
+      query.environment = this.state.environment.name;
+    } else {
+      delete query.environment;
+    }
+
+    this.api.request(`/projects/${params.orgId}/${params.projectId}/events/`, {
+      query,
       success: (data, _, jqXHR) => {
         this.setState({
           error: false,
@@ -97,19 +126,6 @@ const ProjectEvents = createReactClass({
 
   getEventTitle(event) {
     return event.message.split('\n')[0].substr(0, 100);
-  },
-
-  getEndpoint() {
-    let params = this.props.params;
-    let queryParams = {
-      ...this.props.location.query,
-      limit: 50,
-      query: this.state.query,
-    };
-
-    return `/projects/${params.orgId}/${params.projectId}/events/?${jQuery.param(
-      queryParams
-    )}`;
   },
 
   renderStreamBody() {

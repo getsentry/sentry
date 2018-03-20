@@ -112,6 +112,8 @@ const ProjectUserReports = createReactClass({
 
     if (this.state.environment) {
       query.environment = this.state.environment.name;
+    } else {
+      delete query.environment;
     }
 
     this.api.request(`/projects/${params.orgId}/${params.projectId}/user-reports/`, {
