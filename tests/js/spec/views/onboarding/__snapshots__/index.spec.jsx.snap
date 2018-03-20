@@ -203,7 +203,7 @@ exports[`OnboardingWizard render() should render and respond to click events 1`]
                     activeClassName="active"
                     index={false}
                     isActive={[Function]}
-                    key="frontend"
+                    key="browser"
                     onClick={[Function]}
                     to=""
                   >
@@ -220,7 +220,33 @@ exports[`OnboardingWizard render() should render and respond to click events 1`]
                           onClick={[Function]}
                           style={Object {}}
                         >
-                          Frontend
+                          Browser
+                        </a>
+                      </Link>
+                    </li>
+                  </ListLink>
+                  <ListLink
+                    activeClassName="active"
+                    index={false}
+                    isActive={[Function]}
+                    key="server"
+                    onClick={[Function]}
+                    to=""
+                  >
+                    <li
+                      className=""
+                    >
+                      <Link
+                        onClick={[Function]}
+                        onlyActiveOnIndex={false}
+                        style={Object {}}
+                        to=""
+                      >
+                        <a
+                          onClick={[Function]}
+                          style={Object {}}
+                        >
+                          Server
                         </a>
                       </Link>
                     </li>
@@ -255,7 +281,7 @@ exports[`OnboardingWizard render() should render and respond to click events 1`]
                     activeClassName="active"
                     index={false}
                     isActive={[Function]}
-                    key="backend"
+                    key="desktop"
                     onClick={[Function]}
                     to=""
                   >
@@ -272,7 +298,7 @@ exports[`OnboardingWizard render() should render and respond to click events 1`]
                           onClick={[Function]}
                           style={Object {}}
                         >
-                          Backend
+                          Desktop
                         </a>
                       </Link>
                     </li>
@@ -1057,7 +1083,7 @@ exports[`OnboardingWizard render() should render and respond to click events 2`]
                     activeClassName="active"
                     index={false}
                     isActive={[Function]}
-                    key="frontend"
+                    key="browser"
                     onClick={[Function]}
                     to=""
                   >
@@ -1074,7 +1100,33 @@ exports[`OnboardingWizard render() should render and respond to click events 2`]
                           onClick={[Function]}
                           style={Object {}}
                         >
-                          Frontend
+                          Browser
+                        </a>
+                      </Link>
+                    </li>
+                  </ListLink>
+                  <ListLink
+                    activeClassName="active"
+                    index={false}
+                    isActive={[Function]}
+                    key="server"
+                    onClick={[Function]}
+                    to=""
+                  >
+                    <li
+                      className=""
+                    >
+                      <Link
+                        onClick={[Function]}
+                        onlyActiveOnIndex={false}
+                        style={Object {}}
+                        to=""
+                      >
+                        <a
+                          onClick={[Function]}
+                          style={Object {}}
+                        >
+                          Server
                         </a>
                       </Link>
                     </li>
@@ -1109,7 +1161,7 @@ exports[`OnboardingWizard render() should render and respond to click events 2`]
                     activeClassName="active"
                     index={false}
                     isActive={[Function]}
-                    key="backend"
+                    key="desktop"
                     onClick={[Function]}
                     to=""
                   >
@@ -1126,7 +1178,7 @@ exports[`OnboardingWizard render() should render and respond to click events 2`]
                           onClick={[Function]}
                           style={Object {}}
                         >
-                          Backend
+                          Desktop
                         </a>
                       </Link>
                     </li>
