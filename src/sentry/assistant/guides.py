@@ -118,7 +118,7 @@ GUIDES = {
                 'title': _('Users'),
                 'message': _(
                     'Sending user data to Sentry will unlock a number of features, primarily the ability to drill down into the number of users affected by an issue. '
-                    'Learn how easy it is to set this up today.'),
+                    'Learn how easy it is to <a href="https://docs.sentry.io/learn/context/#capturing-the-user" target="_blank">set this up </a>today.'),
                 'target': 'users',
             },
         ]
