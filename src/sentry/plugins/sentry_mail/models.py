@@ -21,7 +21,7 @@ from django.utils.safestring import mark_safe
 from sentry import features, options
 from sentry.models import ProjectOwnership, User
 
-from sentry.digests.utilities import get_digest_metadata
+from sentry.digests.utilities import get_digest_metadata, get_events_from_digest, sort_records
 from sentry.digests.notifications import build_digest, event_to_record
 from sentry.plugins import register
 from sentry.plugins.base.structs import Notification
@@ -310,6 +310,7 @@ class MailPlugin(NotificationPlugin):
 
         if len(counts) == 1:
             self.render_digest_as_single_notification(counts, digest)
+            return
 
         context = {
             'start': start,
@@ -324,19 +325,39 @@ class MailPlugin(NotificationPlugin):
         }
         group = six.next(iter(counts))
         subject = self.get_digest_subject(group, counts, start)
-        events = self.get_events_from_digest(digest)
 
+        if ProjectOwnership.objects.filter(project_id=project.id):
+            self.send_digest_with_owners(context, project, subject, headers)
+            return
+        for user_id in self.get_send_to(project):
+            self.add_unsubscribe_link(context, user_id, project)
+            self._send_mail(
+                subject=subject,
+                template='sentry/emails/digests/body.txt',
+                html_template='sentry/emails/digests/body.html',
+                project=project,
+                reference=project,
+                headers=headers,
+                type='notify.digest',
+                context=context,
+                send_to=[user_id],
+            )
+
+    def send_digest_with_owners(self, context, project, subject, headers):
+        original_context = context
+        events = get_events_from_digest(context['digest'])
         event_actors = ProjectOwnership.get_all_actors(project.id, [event[0] for event in events])
         event_users = self.event_actors_to_user_ids(event_actors)
         for user_id in self.get_send_to(project):
+            context = original_context
             events_for_user = [event for event in events if user_id in event_users[event[0]]]
             if not events_for_user:
                 continue
-            if len(events_for_user) != len(counts):
-                context_for_user = self.build_custom_context(events_for_user, project)
+            if len(events_for_user) != len(original_context['counts']):
+                context = self.build_custom_context(events_for_user, project)
             if len(events_for_user) == 1:
                 self.render_digest_as_single_notification(
-                    context_for_user['counts'], context_for_user['digest'], [user_id])
+                    context['counts'], context['digest'], [user_id])
                 continue
 
             self.add_unsubscribe_link(context, user_id, project)
@@ -363,7 +384,7 @@ class MailPlugin(NotificationPlugin):
             user_ids = set()
             for actor in actors:
                 if actor.type == Team:
-                    user_ids += resolved_teams[actor]
+                    user_ids.update(resolved_teams[actor])
                 else:
                     user_ids.add(actor.id)
             event_users[event] = user_ids
@@ -376,8 +397,8 @@ class MailPlugin(NotificationPlugin):
         """
         from sentry.models import Team
         # Get Team Actors
-        for event, actors in six.iteritems(event_actors):
-            teams_to_resolve = set()
+        teams_to_resolve = set()
+        for actors in six.itervalues(event_actors):
             for actor in actors:
                 if actor.type == Team:
                     teams_to_resolve.add(actor)
@@ -385,16 +406,17 @@ class MailPlugin(NotificationPlugin):
         # Resolve Teams to User ids
         resolved_teams = {}
         for team in teams_to_resolve:
-            users = list(User.objects.filter(
+            users = User.objects.filter(
                 is_active=True,
-                sentry_orgmember_set__organizationmemberteam__team=team,
-            ).values_list('id', flat=True))
+                sentry_orgmember_set__organizationmemberteam__team_id=team.id,
+            ).values_list('id', flat=True)
             resolved_teams[team] = set(users)
 
         return resolved_teams
 
     def build_custom_context(self, events, project):
         records = tuple([event_to_record(event[0], event[1]) for event in events])
+        records = sort_records(records)
         digest = build_digest(project, records)
         start, end, counts = get_digest_metadata(digest)
         context = {
@@ -405,17 +427,6 @@ class MailPlugin(NotificationPlugin):
             'counts': counts,
         }
         return context
-
-    def get_events_from_digest(self, digest):
-        """
-        Returns events with their corresponding rules.
-        """
-        events = []
-        for groups in six.itervalues(digest):
-            for group in groups:
-                rules = groups[group][0].value.rules
-                events.append((group.get_latest_event(), rules))
-        return events
 
     def notify_about_activity(self, activity):
         email_cls = emails.get(activity.type)

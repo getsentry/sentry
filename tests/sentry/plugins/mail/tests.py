@@ -2,7 +2,7 @@
 
 from __future__ import absolute_import
 
-from datetime import datetime
+from datetime import datetime, timedelta
 
 import mock
 import pytz
@@ -17,6 +17,7 @@ from sentry.api.serializers import (
     serialize, ProjectUserReportSerializer
 )
 from sentry.digests.notifications import build_digest, event_to_record
+from sentry.digests.utilities import sort_records
 from sentry.interfaces.stacktrace import Stacktrace
 from sentry.models import (
     Activity, Event, Group, GroupSubscription, OrganizationMember, OrganizationMemberTeam,
@@ -505,13 +506,7 @@ class MailPluginOwnersTest(TestCase):
             team=self.team,
         )
         self.create_member(user=self.user2, organization=self.organization, teams=[self.team])
-        self.group = self.create_group(
-            first_seen=timezone.now(),
-            last_seen=timezone.now(),
-            project=self.project,
-            message='hello  world this is a group',
-            logger='root',
-        )
+
         ProjectOwnership.objects.create(
             project_id=self.project.id,
             schema=dump_schema([
@@ -528,19 +523,33 @@ class MailPluginOwnersTest(TestCase):
             ]),
             fallthrough=True,
         )
+        self.group = self.create_group(
+            first_seen=timezone.now() - timedelta(days=3),
+            last_seen=timezone.now() - timedelta(hours=3),
+            project=self.project,
+            message='hello  world this is a group',
+            logger='root',
+        )
         self.group1 = self.create_group(
             project=self.project,
-            first_seen=timezone.now(),
-            last_seen=timezone.now(),
+            first_seen=timezone.now() - timedelta(days=2),
+            last_seen=timezone.now() - timedelta(hours=2),
             message='group 2',
             logger='root',
         )
         self.group2 = self.create_group(
             project=self.project,
-            first_seen=timezone.now(),
-            last_seen=timezone.now(),
+            first_seen=timezone.now() - timedelta(days=1),
+            last_seen=timezone.now() - timedelta(hours=1),
             message='group 3',
             logger='root',
+        )
+        self.event_single_user = self.create_event(
+            group=self.group,
+            message=self.group.message,
+            datetime=self.group.last_seen,
+            project=self.project,
+            data=self.make_event_data('foo.jx'),
         )
         self.event_all_users = self.create_event(
             group=self.group1,
@@ -555,13 +564,6 @@ class MailPluginOwnersTest(TestCase):
             datetime=self.group2.last_seen,
             project=self.project,
             data=self.make_event_data('foo.py'),
-        )
-        self.event_single_user = self.create_event(
-            group=self.group,
-            message=self.group.message,
-            datetime=self.group.last_seen,
-            project=self.project,
-            data=self.make_event_data('foo.jx'),
         )
 
     def make_event_data(self, filename, url='http://example.com'):
@@ -587,6 +589,18 @@ class MailPluginOwnersTest(TestCase):
             self.plugin.notify(Notification(event=event))
         assert len(mail.outbox) == len(emails_sent_to)
         assert sorted(email.to[0] for email in mail.outbox) == sorted(emails_sent_to)
+
+    def assert_digest_email(self, email, user_email, subject=None,
+                            event_messages=None, not_event_messages=None):
+        assert email.to == [user_email]
+        if subject:
+            assert subject in email.subject
+        if event_messages:
+            for message in event_messages:
+                assert message in email.body
+        if not_event_messages:
+            for message in not_event_messages:
+                assert not (message in email.body)
 
     def test_get_send_to_with_team_owners(self):
         event = Event(
@@ -650,44 +664,31 @@ class MailPluginOwnersTest(TestCase):
 
     def test_notify_digest_with_owners(self):
         rule = self.project.rule_set.all()[0]
-        digest = build_digest(
-            self.project,
-            (
-                event_to_record(self.event_all_users, (rule,)),
-                event_to_record(self.event_single_user, (rule,)),
-                # event_to_record(event_team, (rule,)),
-            )
-        )
+        records = sort_records((
+            event_to_record(self.event_team, (rule,)),
+            event_to_record(self.event_all_users, (rule,)),
+            event_to_record(self.event_single_user, (rule,)),
+        ))
+        digest = build_digest(self.project, records)
         with self.tasks():
             self.plugin.notify_digest(self.project, digest)
 
         assert len(mail.outbox) == 2
+        emails = sorted(mail.outbox, key=lambda e: e.to)
 
-        emails = sorted(mail.outbox, key=lambda e: e.subject)
-        assert emails[0].to == [self.user2.email]
-        assert u'[Sentry] TEST-PROJECT-1 - 2 new alerts' in emails[0].subject
-        assert self.event_single_user.message in emails[0].body
-        assert self.event_all_users.message in emails[0].body
-
-        assert emails[1].to == [self.user.email]
-        assert emails[1].subject == u'[Sentry] TEST-PROJECT-2 - group 2'
-        assert not (self.event_single_user.message in emails[1].body)
-        assert self.event_all_users.message in emails[1].body
-
-    def test_get_events_from_digest(self):
-        rule = self.project.rule_set.all()[0]
-        digest = build_digest(
-            self.project,
-            (
-                event_to_record(self.event_all_users, (rule,)),
-                event_to_record(self.event_single_user, (rule,)),
-                # event_to_record(event_team, (rule,)),
-            )
+        self.assert_digest_email(
+            email=emails[0],
+            user_email=self.user.email,
+            # subject=u'[Sentry] TEST-PROJECT-2 - group 2',
+            event_messages=[self.event_all_users.message, self.event_team.message],
+            not_event_messages=[self.event_single_user.message],
         )
-        events = self.plugin.get_events_from_digest(digest)
-        assert len(events) == 2
-        assert (self.event_all_users, [rule]) in events
-        assert (self.event_single_user, [rule]) in events
+        self.assert_digest_email(
+            email=emails[1],
+            user_email=self.user2.email,
+            # subject=u'[Sentry] TEST-PROJECT-1 - 2 new alerts',
+            event_messages=[self.event_single_user.message, self.event_all_users.message],
+        )
 
     def test_event_actors_to_user_ids(self):
         from sentry.models import User

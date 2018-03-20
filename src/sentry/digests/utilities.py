@@ -23,3 +23,25 @@ def get_digest_metadata(digest):
                     end = record.datetime
 
     return start, end, counts
+
+
+def sort_records(records):
+    """
+    Sorts records for build_digest method
+    Order is important to the build_digest method.
+    build_digest is expecting these records to be ordered from newest to oldest
+    """
+    return sorted(records, key=lambda r: r.value.event.datetime, reverse=True)
+
+
+def get_events_from_digest(digest):
+    """
+    Returns events with their corresponding rules.
+    ** Uses group.get_latest_event **
+    """
+    events = []
+    for groups in six.itervalues(digest):
+        for group in groups:
+            rules = groups[group][0].value.rules
+            events.append((group.get_latest_event(), rules))
+    return events
