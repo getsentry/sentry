@@ -37,7 +37,7 @@ let NewSettingsWarning = ({location = {}}) => {
   } else if (isOrg) {
     oldLocation = location.pathname.replace(orgRegex, '/organizations/$1/$2/');
   } else if (isProject) {
-    oldLocation = location.pathname.replace(projectRegex, '/$1/$2/settings/');
+    oldLocation = location.pathname.replace(projectRegex, '/$1/$2/');
   }
 
   // original org auth view and account settings are django views so we can't use react router navigation

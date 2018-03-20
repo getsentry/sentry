@@ -57,7 +57,7 @@ const OrgSettingsMenu = ({access, org, features}) => {
             <ListLink to={`${pathPrefix}/repos/`}>{t('Repositories')}</ListLink>
           )}
         {access.has('org:write') && (
-          <ListLink to={`${pathPrefix}/settings/`}>{t('Settings')}</ListLink>
+          <ListLink to={`${pathPrefix}/`}>{t('Settings')}</ListLink>
         )}
       </ul>
     </div>

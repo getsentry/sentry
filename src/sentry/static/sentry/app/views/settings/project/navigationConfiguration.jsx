@@ -10,7 +10,8 @@ export default function getConfiguration({project}) {
       name: t('Project'),
       items: [
         {
-          path: `${pathPrefix}/settings/`,
+          path: `${pathPrefix}/`,
+          index: true,
           title: t('General Settings'),
         },
         {

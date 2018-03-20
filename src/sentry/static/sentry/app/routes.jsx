@@ -239,12 +239,7 @@ const accountSettingsRoutes = (
 
 const projectSettingsRoutes = (
   <React.Fragment>
-    <IndexRedirect to="settings/" />
-    <Route
-      path="settings/"
-      name="General"
-      component={errorHandler(ProjectGeneralSettings)}
-    />
+    <IndexRoute name="General" component={errorHandler(ProjectGeneralSettings)} />
     <Route
       path="teams/"
       name="Teams"
@@ -407,18 +402,15 @@ function routes() {
   // hook store which is not available at import time.
   const orgSettingsRoutes = (
     <React.Fragment>
-      <IndexRedirect to="settings/" />
+      <IndexRoute
+        name="General"
+        component={errorHandler(OrganizationGeneralSettingsView)}
+      />
 
       <Route
         path="projects/"
         name="Projects"
         component={errorHandler(OrganizationProjectsView)}
-      />
-
-      <Route
-        path="settings/"
-        name="General"
-        component={errorHandler(OrganizationGeneralSettingsView)}
       />
 
       <Route

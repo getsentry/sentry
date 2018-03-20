@@ -7,8 +7,9 @@ const organizationNavigation = [
     name: 'Organization',
     items: [
       {
-        path: `${pathPrefix}/settings/`,
+        path: `${pathPrefix}/`,
         title: t('General Settings'),
+        index: true,
         show: ({access}) => access.has('org:write'),
       },
       {
