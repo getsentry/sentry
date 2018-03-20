@@ -139,7 +139,7 @@ exports[`CreateProject render() should deal with incorrect platform name if its 
                 activeClassName="active"
                 index={false}
                 isActive={[Function]}
-                key="frontend"
+                key="browser"
                 onClick={[Function]}
                 to=""
               >
@@ -156,7 +156,33 @@ exports[`CreateProject render() should deal with incorrect platform name if its 
                       onClick={[Function]}
                       style={Object {}}
                     >
-                      Frontend
+                      Browser
+                    </a>
+                  </Link>
+                </li>
+              </ListLink>
+              <ListLink
+                activeClassName="active"
+                index={false}
+                isActive={[Function]}
+                key="server"
+                onClick={[Function]}
+                to=""
+              >
+                <li
+                  className=""
+                >
+                  <Link
+                    onClick={[Function]}
+                    onlyActiveOnIndex={false}
+                    style={Object {}}
+                    to=""
+                  >
+                    <a
+                      onClick={[Function]}
+                      style={Object {}}
+                    >
+                      Server
                     </a>
                   </Link>
                 </li>
@@ -209,32 +235,6 @@ exports[`CreateProject render() should deal with incorrect platform name if its 
                       style={Object {}}
                     >
                       Desktop
-                    </a>
-                  </Link>
-                </li>
-              </ListLink>
-              <ListLink
-                activeClassName="active"
-                index={false}
-                isActive={[Function]}
-                key="backend"
-                onClick={[Function]}
-                to=""
-              >
-                <li
-                  className=""
-                >
-                  <Link
-                    onClick={[Function]}
-                    onlyActiveOnIndex={false}
-                    style={Object {}}
-                    to=""
-                  >
-                    <a
-                      onClick={[Function]}
-                      style={Object {}}
-                    >
-                      Backend
                     </a>
                   </Link>
                 </li>
@@ -941,7 +941,7 @@ exports[`CreateProject render() should fill in platform name if its provided by 
                 activeClassName="active"
                 index={false}
                 isActive={[Function]}
-                key="frontend"
+                key="browser"
                 onClick={[Function]}
                 to=""
               >
@@ -958,7 +958,33 @@ exports[`CreateProject render() should fill in platform name if its provided by 
                       onClick={[Function]}
                       style={Object {}}
                     >
-                      Frontend
+                      Browser
+                    </a>
+                  </Link>
+                </li>
+              </ListLink>
+              <ListLink
+                activeClassName="active"
+                index={false}
+                isActive={[Function]}
+                key="server"
+                onClick={[Function]}
+                to=""
+              >
+                <li
+                  className=""
+                >
+                  <Link
+                    onClick={[Function]}
+                    onlyActiveOnIndex={false}
+                    style={Object {}}
+                    to=""
+                  >
+                    <a
+                      onClick={[Function]}
+                      style={Object {}}
+                    >
+                      Server
                     </a>
                   </Link>
                 </li>
@@ -1011,32 +1037,6 @@ exports[`CreateProject render() should fill in platform name if its provided by 
                       style={Object {}}
                     >
                       Desktop
-                    </a>
-                  </Link>
-                </li>
-              </ListLink>
-              <ListLink
-                activeClassName="active"
-                index={false}
-                isActive={[Function]}
-                key="backend"
-                onClick={[Function]}
-                to=""
-              >
-                <li
-                  className=""
-                >
-                  <Link
-                    onClick={[Function]}
-                    onlyActiveOnIndex={false}
-                    style={Object {}}
-                    to=""
-                  >
-                    <a
-                      onClick={[Function]}
-                      style={Object {}}
-                    >
-                      Backend
                     </a>
                   </Link>
                 </li>
@@ -1340,7 +1340,7 @@ exports[`CreateProject render() should fill in project name if its empty when pl
                 activeClassName="active"
                 index={false}
                 isActive={[Function]}
-                key="frontend"
+                key="browser"
                 onClick={[Function]}
                 to=""
               >
@@ -1357,7 +1357,33 @@ exports[`CreateProject render() should fill in project name if its empty when pl
                       onClick={[Function]}
                       style={Object {}}
                     >
-                      Frontend
+                      Browser
+                    </a>
+                  </Link>
+                </li>
+              </ListLink>
+              <ListLink
+                activeClassName="active"
+                index={false}
+                isActive={[Function]}
+                key="server"
+                onClick={[Function]}
+                to=""
+              >
+                <li
+                  className=""
+                >
+                  <Link
+                    onClick={[Function]}
+                    onlyActiveOnIndex={false}
+                    style={Object {}}
+                    to=""
+                  >
+                    <a
+                      onClick={[Function]}
+                      style={Object {}}
+                    >
+                      Server
                     </a>
                   </Link>
                 </li>
@@ -1410,32 +1436,6 @@ exports[`CreateProject render() should fill in project name if its empty when pl
                       style={Object {}}
                     >
                       Desktop
-                    </a>
-                  </Link>
-                </li>
-              </ListLink>
-              <ListLink
-                activeClassName="active"
-                index={false}
-                isActive={[Function]}
-                key="backend"
-                onClick={[Function]}
-                to=""
-              >
-                <li
-                  className=""
-                >
-                  <Link
-                    onClick={[Function]}
-                    onlyActiveOnIndex={false}
-                    style={Object {}}
-                    to=""
-                  >
-                    <a
-                      onClick={[Function]}
-                      style={Object {}}
-                    >
-                      Backend
                     </a>
                   </Link>
                 </li>

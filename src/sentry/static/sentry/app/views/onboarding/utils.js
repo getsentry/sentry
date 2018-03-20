@@ -72,10 +72,10 @@ const desktop = ['cocoa', 'csharp', 'java', 'electron'];
 
 const categoryList = [
   {id: 'popular', name: t('Popular'), platforms: popular},
-  {id: 'frontend', name: t('Frontend'), platforms: frontend},
+  {id: 'browser', name: t('Browser'), platforms: frontend},
+  {id: 'server', name: t('Server'), platforms: backend},
   {id: 'mobile', name: t('Mobile'), platforms: mobile},
   {id: 'desktop', name: t('Desktop'), platforms: desktop},
-  {id: 'backend', name: t('Backend'), platforms: backend},
 ];
 
 const additional = platforms.concat({

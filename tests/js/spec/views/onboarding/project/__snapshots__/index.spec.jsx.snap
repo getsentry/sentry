@@ -191,7 +191,7 @@ exports[`Project render() should set required class on empty submit 1`] = `
             activeClassName="active"
             index={false}
             isActive={[Function]}
-            key="frontend"
+            key="browser"
             onClick={[Function]}
             to=""
           >
@@ -208,7 +208,33 @@ exports[`Project render() should set required class on empty submit 1`] = `
                   onClick={[Function]}
                   style={Object {}}
                 >
-                  Frontend
+                  Browser
+                </a>
+              </Link>
+            </li>
+          </ListLink>
+          <ListLink
+            activeClassName="active"
+            index={false}
+            isActive={[Function]}
+            key="server"
+            onClick={[Function]}
+            to=""
+          >
+            <li
+              className=""
+            >
+              <Link
+                onClick={[Function]}
+                onlyActiveOnIndex={false}
+                style={Object {}}
+                to=""
+              >
+                <a
+                  onClick={[Function]}
+                  style={Object {}}
+                >
+                  Server
                 </a>
               </Link>
             </li>
@@ -261,32 +287,6 @@ exports[`Project render() should set required class on empty submit 1`] = `
                   style={Object {}}
                 >
                   Desktop
-                </a>
-              </Link>
-            </li>
-          </ListLink>
-          <ListLink
-            activeClassName="active"
-            index={false}
-            isActive={[Function]}
-            key="backend"
-            onClick={[Function]}
-            to=""
-          >
-            <li
-              className=""
-            >
-              <Link
-                onClick={[Function]}
-                onlyActiveOnIndex={false}
-                style={Object {}}
-                to=""
-              >
-                <a
-                  onClick={[Function]}
-                  style={Object {}}
-                >
-                  Backend
                 </a>
               </Link>
             </li>
