@@ -130,11 +130,14 @@ class TagStorage(Service):
             lambda instance: ModelRelation(tagkey_model,
                                            query={'project_id': instance.id}),
             lambda instance: ModelRelation(tagvalue_model,
-                                           query={'project_id': instance.id}),
+                                           query={'project_id': instance.id},
+                                           partition_key={'project_id': instance.id}),
             lambda instance: ModelRelation(grouptagkey_model,
-                                           query={'project_id': instance.id}),
+                                           query={'project_id': instance.id},
+                                           partition_key={'project_id': instance.id}),
             lambda instance: ModelRelation(grouptagvalue_model,
-                                           query={'project_id': instance.id}),
+                                           query={'project_id': instance.id},
+                                           partition_key={'project_id': instance.id}),
         ])
 
     def setup_cleanup(self, tagvalue_model, grouptagvalue_model, eventtag_model):
