@@ -37,7 +37,7 @@ class GroupTagKey(Model):
         app_label = 'tagstore'
         unique_together = (('project_id', 'group_id', '_key'), )
 
-    __repr__ = sane_repr('project_id', 'group_id', '_key')
+    __repr__ = sane_repr('project_id', 'group_id', '_key_id')
 
     def delete(self):
         using = router.db_for_read(GroupTagKey)

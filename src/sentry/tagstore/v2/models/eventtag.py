@@ -31,7 +31,7 @@ class EventTag(Model):
             ('group_id', 'key', 'value'),
         )
 
-    __repr__ = sane_repr('event_id', 'key', 'value')
+    __repr__ = sane_repr('event_id', 'key_id', 'value_id')
 
     def delete(self):
         using = router.db_for_read(EventTag)
