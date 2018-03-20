@@ -2,7 +2,13 @@
 
 exports[`GuideAnchor renders 1`] = `
 <span
-  className="guide-anchor anchor-type-text"
+  style={
+    Object {
+      "height": 0,
+      "position": "relative",
+      "width": 0,
+    }
+  }
 >
   <StyledGuideAnchor
     active={false}
@@ -14,7 +20,13 @@ exports[`GuideAnchor renders 1`] = `
 
 exports[`GuideAnchor turns active when guide state changes 1`] = `
 <span
-  className="guide-anchor anchor-type-text"
+  style={
+    Object {
+      "height": 0,
+      "position": "relative",
+      "width": 0,
+    }
+  }
 >
   <StyledGuideAnchor
     active={true}

@@ -2,17 +2,13 @@
 
 exports[`ResolveActions with confirmation step renders 1`] = `
 .glamor-0 {
-  width: 12px;
-  height: 12px;
   cursor: pointer;
   z-index: 999;
-  position: relative;
+  position: absolute;
   pointer-events: none;
   -webkit-animation: animation-1vh9m9r-expandOut 1.5s ease-out infinite;
   animation: animation-1vh9m9r-expandOut 1.5s ease-out infinite;
   visibility: hidden;
-  display: inline-block;
-  position: relative;
 }
 
 .glamor-0,
@@ -26,6 +22,8 @@ exports[`ResolveActions with confirmation step renders 1`] = `
   -ms-transform: translate(-50%,-50%);
   transform: translate(-50%,-50%);
   border-radius: 50%;
+  width: 12px;
+  height: 12px;
 }
 
 .glamor-0:before,
@@ -159,7 +157,13 @@ exports[`ResolveActions with confirmation step renders 1`] = `
               type="text"
             >
               <span
-                className="guide-anchor anchor-type-text"
+                style={
+                  Object {
+                    "height": 0,
+                    "position": "relative",
+                    "width": 0,
+                  }
+                }
               >
                 <StyledGuideAnchor
                   active={false}
@@ -483,17 +487,13 @@ exports[`ResolveActions with confirmation step renders 1`] = `
 
 exports[`ResolveActions without confirmation renders 1`] = `
 .glamor-0 {
-  width: 12px;
-  height: 12px;
   cursor: pointer;
   z-index: 999;
-  position: relative;
+  position: absolute;
   pointer-events: none;
   -webkit-animation: animation-1vh9m9r-expandOut 1.5s ease-out infinite;
   animation: animation-1vh9m9r-expandOut 1.5s ease-out infinite;
   visibility: hidden;
-  display: inline-block;
-  position: relative;
 }
 
 .glamor-0,
@@ -507,6 +507,8 @@ exports[`ResolveActions without confirmation renders 1`] = `
   -ms-transform: translate(-50%,-50%);
   transform: translate(-50%,-50%);
   border-radius: 50%;
+  width: 12px;
+  height: 12px;
 }
 
 .glamor-0:before,
@@ -629,7 +631,13 @@ exports[`ResolveActions without confirmation renders 1`] = `
             type="text"
           >
             <span
-              className="guide-anchor anchor-type-text"
+              style={
+                Object {
+                  "height": 0,
+                  "position": "relative",
+                  "width": 0,
+                }
+              }
             >
               <StyledGuideAnchor
                 active={false}
