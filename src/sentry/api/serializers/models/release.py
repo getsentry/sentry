@@ -166,16 +166,17 @@ class ReleaseSerializer(Serializer):
                 'project_id', flat=True
             ).distinct())
 
-        tags = {}
+        first_seen = {}
+        last_seen = {}
         tvs = tagstore.get_release_tags(project_ids,
                                         environment_id=None,
                                         versions=[o.version for o in item_list])
         for tv in tvs:
-            val = tags.get(tv.value)
-            tags[tv.value] = {
-                'first_seen': min(tv.first_seen, val['first_seen']) if val else tv.first_seen,
-                'last_seen': max(tv.last_seen, val['last_seen']) if val else tv.last_seen
-            }
+            first_val = first_seen.get(tv.value)
+            last_val = last_seen.get(tv.value)
+            first_seen[tv.value] = min(tv.first_seen, first_val) if first_val else tv.first_seen
+            last_seen[tv.value] = max(tv.last_seen, last_val) if last_val else tv.last_seen
+
         if project:
             group_counts_by_release = dict(
                 ReleaseProject.objects.filter(project=project, release__in=item_list)
@@ -189,34 +190,34 @@ class ReleaseSerializer(Serializer):
                 .values('release_id').annotate(new_groups=Sum('new_groups'))
                 .values_list('release_id', 'new_groups')
             )
-        return tags, group_counts_by_release
+        return first_seen, last_seen, group_counts_by_release
 
     def __get_release_data_with_environment(self, project, item_list, environment):
         release_project_envs = ReleaseProjectEnvironment.objects.filter(
             release__in=item_list, environment=environment).select_related('release')
         if project is None:
             release_project_envs = release_project_envs.filter(project=project)
-        first_and_last_seen = {}
+        first_seen = {}
+        last_seen = {}
         for release_project_env in release_project_envs:
-            first_and_last_seen[release_project_env.release.version] = {
-                'first_seen': release_project_env.first_seen,
-                'last_seen': release_project_env.last_seen,
-            }
+            first_seen[release_project_env.release.version] = release_project_env.first_seen
+            last_seen[release_project_env.release.version] = release_project_env.last_seen
+
         issue_counts_by_release = dict(
             release_project_envs.values('release_id').annotate(
                 new_issues_count=Sum('new_issues_count'))
             .values_list('release_id', 'new_issues_count')
         )
-        return first_and_last_seen, issue_counts_by_release
+        return first_seen, last_seen, issue_counts_by_release
 
     def get_attrs(self, item_list, user, *args, **kwargs):
         project = kwargs.get('project')
         environment = kwargs.get('environment')
         if environment is None:
-            first_and_last_seen, issue_counts_by_release = self.__get_release_data_no_environment(
+            first_seen, last_seen, issue_counts_by_release = self.__get_release_data_no_environment(
                 project, item_list)
         else:
-            first_and_last_seen, issue_counts_by_release = self.__get_release_data_with_environment(
+            first_seen, last_seen, issue_counts_by_release = self.__get_release_data_with_environment(
                 project, item_list, environment)
 
         owners = {
@@ -244,7 +245,8 @@ class ReleaseSerializer(Serializer):
                 'owner': owners[six.text_type(item.owner_id)] if item.owner_id else None,
                 'new_groups': issue_counts_by_release.get(item.id) or 0,
                 'projects': release_projects.get(item.id, []),
-                'first_and_last_seen': first_and_last_seen.get(item.version),
+                'first_seen': first_seen.get(item.version),
+                'last_seen': last_seen.get(item.version),
             }
             result[item].update(release_metadata_attrs[item])
             result[item].update(deploy_metadata_attrs[item])
@@ -266,17 +268,8 @@ class ReleaseSerializer(Serializer):
             'deployCount': obj.total_deploys,
             'lastDeploy': attrs.get('last_deploy'),
             'authors': attrs.get('authors', []),
-            'projects': attrs.get('projects', [])
+            'projects': attrs.get('projects', []),
+            'firstEvent': attrs.get('first_seen'),
+            'lastEvent': attrs.get('last_seen'),
         }
-        first_and_last_seen = attrs.get('first_and_last_seen')
-        if first_and_last_seen:
-            d.update({
-                'firstEvent': first_and_last_seen['first_seen'],
-                'lastEvent': first_and_last_seen['last_seen'],
-            })
-        else:
-            d.update({
-                'lastEvent': None,
-                'firstEvent': None,
-            })
         return d
