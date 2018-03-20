@@ -91,6 +91,8 @@ const ProjectReleases = createReactClass({
 
     if (this.state.environment) {
       query.environment = this.state.environment.name;
+    } else {
+      delete query.environment;
     }
 
     this.api.request(url, {
