@@ -97,4 +97,8 @@ const StyledTitle = styled('div')`
 const StyledContent = styled('div')`
   margin: 1.5rem;
   line-height: 1.5;
+
+  a {
+    color: ${p => p.theme.greenLight};
+  }
 `;
