@@ -152,3 +152,15 @@ class OrganizationTeamsCreateTest(APITestCase):
         )
 
         assert resp.status_code == 409, resp.content
+
+    def test_name_too_long(self):
+        self.login_as(user=self.user)
+
+        resp = self.client.post(
+            self.path, data={
+                'name': 'x' * 65,
+                'slug': 'xxxxxxx',
+            }
+        )
+
+        assert resp.status_code == 400, resp.content
