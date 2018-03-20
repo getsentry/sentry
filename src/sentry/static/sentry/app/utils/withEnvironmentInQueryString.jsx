@@ -5,7 +5,9 @@ import Reflux from 'reflux';
 import {browserHistory} from 'react-router';
 import qs from 'query-string';
 
+import EnvironmentStore from '../stores/environmentStore';
 import LatestContextStore from '../stores/latestContextStore';
+import {ALL_ENVIRONMENTS_KEY} from '../constants';
 
 const withEnvironmentInQueryString = WrappedComponent =>
   createReactClass({
@@ -27,17 +29,26 @@ const withEnvironmentInQueryString = WrappedComponent =>
     },
 
     componentWillMount() {
-      if (this.state.hasEnvironmentsFeature) {
+      const {hasEnvironmentsFeature, environment} = this.state;
+
+      if (hasEnvironmentsFeature) {
         const {query, pathname} = this.props.location;
 
-        if (this.state.environment) {
-          const envName = this.state.environment.name;
-          const hasValidEnvironmentInQuery =
-            'environment' in query && query.environment === envName;
+        const isDefaultEnvironment = environment === EnvironmentStore.getDefault();
 
-          // Update environment in browser history if it is not in sync with the currently active one
-          if (!hasValidEnvironmentInQuery) {
-            query.environment = this.state.environment.name;
+        // Update the query string to match environment if they are not in sync
+        if (environment) {
+          if (environment.name !== query.environment) {
+            if (isDefaultEnvironment) {
+              delete query.environment;
+            } else {
+              query.environment = environment.name;
+            }
+            browserHistory.replace(`${pathname}?${qs.stringify(query)}`);
+          }
+        } else {
+          if (environment === null && !isDefaultEnvironment) {
+            query.environment = ALL_ENVIRONMENTS_KEY;
             browserHistory.replace(`${pathname}?${qs.stringify(query)}`);
           }
         }
@@ -48,12 +59,20 @@ const withEnvironmentInQueryString = WrappedComponent =>
       // TODO(lyn): Remove this when environments feature is active
       const hasEnvironmentsFeature = this.hasEnvironmentsFeature(organization);
 
-      if (hasEnvironmentsFeature && environment !== this.state.environment) {
+      const environmentHasChanged = environment !== this.state.environment;
+
+      const defaultEnvironment = EnvironmentStore.getDefault();
+
+      if (hasEnvironmentsFeature && environmentHasChanged) {
         const {query, pathname} = this.props.location;
-        if (environment) {
-          query.environment = environment.name;
-        } else {
+        if (environment === defaultEnvironment) {
+          // We never show environment in the query string if it's the default one
           delete query.environment;
+        } else {
+          // We show ?environment=__all_environments__ in the query string if 'All environments'
+          // is selected and that is not the default
+          const envName = environment ? environment.name : ALL_ENVIRONMENTS_KEY;
+          query.environment = envName;
         }
         browserHistory.push(`${pathname}?${qs.stringify(query)}`);
       }
