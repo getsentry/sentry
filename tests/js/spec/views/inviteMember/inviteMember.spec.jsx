@@ -27,6 +27,7 @@ describe('CreateProject', function() {
       params: {
         orgId: 'testOrg',
       },
+      location: {query: {}},
     };
 
     const baseContext = {
