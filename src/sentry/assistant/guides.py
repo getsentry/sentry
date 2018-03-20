@@ -103,8 +103,7 @@ GUIDES = {
             {
                 'title': _('Events'),
                 'message': _(
-                    'When your application throws an error, that error is captured by Sentry as an event. '
-                    'The events tab at the top of this page will show you all errors related to this project.'),
+                    'When your application throws an error, that error is captured by Sentry as an event.'),
                 'target': 'events',
             },
             {
@@ -114,6 +113,13 @@ GUIDES = {
                     'A single issue can represent anywhere from one to thousands of individual events, depending on how many '
                     'times a specific error is thrown. '),
                 'target': 'issues',
+            },
+            {
+                'title': _('Users'),
+                'message': _(
+                    'Sending user data to Sentry will unlock a number of features, primarily the ability to drill down into the number of users affected by an issue. '
+                    'Learn how easy it is to set this up today.'),
+                'target': 'users',
             },
         ]
     },

@@ -138,6 +138,7 @@ const StreamGroup = createReactClass({
           <Count value={data.count} />
         </div>
         <div className="col-md-1 col-xs-2 event-users align-right">
+          <GuideAnchor target="users" type="text" />
           <Count value={userCount} />
         </div>
       </li>
