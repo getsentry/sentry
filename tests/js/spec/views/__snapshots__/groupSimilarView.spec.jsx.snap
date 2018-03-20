@@ -671,7 +671,7 @@ exports[`Issues Similar View renders with mocked data 1`] = `
                                 type="text"
                               >
                                 <div
-                                  className="guide-anchor text"
+                                  className="guide-anchor anchor-type-text"
                                 >
                                   <span
                                     className="issues guide-anchor-ping"
@@ -1776,7 +1776,7 @@ exports[`Issues Similar View renders with mocked data 2`] = `
                                 type="text"
                               >
                                 <div
-                                  className="guide-anchor text"
+                                  className="guide-anchor anchor-type-text"
                                 >
                                   <span
                                     className="issues guide-anchor-ping"
