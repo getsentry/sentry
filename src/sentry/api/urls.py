@@ -48,6 +48,7 @@ from .endpoints.organization_details import OrganizationDetailsEndpoint
 from .endpoints.organization_shortid import ShortIdLookupEndpoint
 from .endpoints.organization_slugs import SlugsUpdateEndpoint
 from .endpoints.organization_issues_new import OrganizationIssuesNewEndpoint
+from .endpoints.organization_member_commits import OrganizationMemberCommitsEndpoint
 from .endpoints.organization_member_details import OrganizationMemberDetailsEndpoint
 from .endpoints.organization_member_index import OrganizationMemberIndexEndpoint
 from .endpoints.organization_member_issues_assigned import OrganizationMemberIssuesAssignedEndpoint
@@ -398,6 +399,11 @@ urlpatterns = patterns(
         r'^organizations/(?P<organization_slug>[^\/]+)/members/(?P<member_id>[^\/]+)/$',
         OrganizationMemberDetailsEndpoint.as_view(),
         name='sentry-api-0-organization-member-details'
+    ),
+    url(
+        r'^organizations/(?P<organization_slug>[^\/]+)/members/(?P<member_id>[^\/]+)/commits/$',
+        OrganizationMemberCommitsEndpoint.as_view(),
+        name='sentry-api-0-organization-member-commits'
     ),
     url(
         r'^organizations/(?P<organization_slug>[^\/]+)/members/(?P<member_id>[^\/]+)/issues/assigned/$',
