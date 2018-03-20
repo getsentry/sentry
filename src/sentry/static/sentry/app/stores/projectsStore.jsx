@@ -27,10 +27,8 @@ const ProjectsStore = Reflux.createStore({
   onChangeSlug(prevSlug, newSlug) {
     let prevProject = this.getBySlug(prevSlug);
 
-    if (!prevProject) {
-      // This shouldn't happen
-      return;
-    }
+    // This shouldn't happen
+    if (!prevProject) return;
 
     this.itemsById[newSlug] = {
       ...prevProject,
