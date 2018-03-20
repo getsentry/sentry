@@ -45,7 +45,7 @@ class OrganizationTeamsPermission(OrganizationPermission):
 
 
 class TeamSerializer(serializers.Serializer):
-    name = serializers.CharField(max_length=200, required=False)
+    name = serializers.CharField(max_length=64, required=False)
     slug = serializers.RegexField(r'^[a-z0-9_\-]+$', max_length=50, required=False)
 
     def validate(self, attrs):
