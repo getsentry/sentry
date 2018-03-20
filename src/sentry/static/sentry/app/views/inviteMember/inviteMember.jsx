@@ -17,7 +17,6 @@ import TeamSelect from './teamSelect';
 import TextBlock from '../settings/components/text/textBlock';
 import TextField from '../../components/forms/textField';
 import recreateRoute from '../../utils/recreateRoute';
-import {getQueryParams} from '../../utils';
 
 // These don't have allowed and are only used for superusers. superceded by server result of allowed roles
 const STATIC_ROLE_LIST = [
@@ -142,7 +141,7 @@ const InviteMember = createReactClass({
           user: email,
           teams: Array.from(selectedTeams.keys()),
           role: selectedRole,
-          referrer: getQueryParams().referrer,
+          referrer: this.props.location.query.referrer,
         },
         success: () => {
           // TODO(billy): Use indicator when these views only exist in Settings area

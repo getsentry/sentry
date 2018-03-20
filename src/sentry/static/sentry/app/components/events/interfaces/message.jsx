@@ -26,9 +26,7 @@ class MessageInterface extends React.Component {
         <pre
           className="plain"
           dangerouslySetInnerHTML={{
-            __html: utils.nl2br(
-              utils.urlize(utils.escape(data.formatted || data.message))
-            ),
+            __html: utils.nl2br(utils.escape(data.formatted || data.message)),
           }}
         />
         {data.params &&
