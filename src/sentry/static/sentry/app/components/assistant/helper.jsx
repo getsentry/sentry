@@ -3,12 +3,13 @@ import Reflux from 'reflux';
 import createReactClass from 'create-react-class';
 import styled from 'react-emotion';
 import {t} from '../../locale';
-import {closeGuide, fetchGuides, nextStep} from '../../actionCreators/guides';
+import {dismiss, closeGuide, fetchGuides, nextStep} from '../../actionCreators/guides';
 import SupportDrawer from './supportDrawer';
 import GuideDrawer from './guideDrawer';
 import GuideStore from '../../stores/guideStore';
 import CueIcon from './cueIcon';
 import AssistantContainer from './assistantContainer';
+import CloseIcon from './closeIcon';
 
 // AssistantHelper is responsible for rendering the cue message, guide drawer and support drawer.
 const AssistantHelper = createReactClass({
@@ -57,7 +58,7 @@ const AssistantHelper = createReactClass({
     });
   },
 
-  handleDismiss() {
+  handleDismiss(e) {
     dismiss(this.state.currentGuide.id);
     closeGuide();
   },
@@ -101,10 +102,12 @@ const AssistantHelper = createReactClass({
             hasGuide={this.state.currentGuide}
           >
             <CueIcon hasGuide={this.state.currentGuide} />
-            <StyledCueText hasGuide={this.state.currentGuide}>
-              {cueText}
-              <a onClick={this.handleDismiss} className="icon-close assistant-cue" />
-            </StyledCueText>
+            <StyledCueText hasGuide={this.state.currentGuide}>{cueText}</StyledCueText>
+            {isGuideCued && (
+              <div style={{display: 'flex'}} onClick={this.handleDismiss}>
+                <CloseIcon />
+              </div>
+            )}
           </StyledAssistantContainer>
         )}
       </StyledHelper>
@@ -115,6 +118,10 @@ const AssistantHelper = createReactClass({
 //this globally controls the size of the component
 const StyledHelper = styled('div')`
   font-size: 1.4rem;
+
+  &:hover {
+    cursor: pointer;
+  }
 `;
 
 const StyledCueText = styled('span')`
@@ -130,7 +137,7 @@ const StyledCueText = styled('span')`
     `
     width: auto;
     opacity: 1;
-    margin: 0 1em 0 0.5em;
+    margin-left: 8px;
   `};
 `;
 

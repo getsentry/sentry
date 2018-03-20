@@ -14,10 +14,6 @@ exports[`Helper renders cue 1`] = `
       hasGuide={null}
     >
       Need Help?
-      <a
-        className="icon-close assistant-cue"
-        onClick={[Function]}
-      />
     </StyledCueText>
   </StyledAssistantContainer>
 </StyledHelper>

@@ -28,20 +28,26 @@ export default class GuideDrawer extends React.Component {
         <StyledAssistantInputRow>
           <CueIcon hasGuide={true} />
           <StyledTitle>{this.props.guide.steps[this.props.step - 1].title}</StyledTitle>
-          <div className="close-button" onClick={this.handleDismiss}>
+          <div
+            className="close-button"
+            style={{display: 'flex'}}
+            onClick={this.props.onDismiss}
+          >
             <CloseIcon />
           </div>
         </StyledAssistantInputRow>
         <StyledContent>
           <div
-          dangerouslySetInnerHTML={{
-            __html: this.props.guide.steps[this.props.step - 1].message,
-          }}></div>
+            dangerouslySetInnerHTML={{
+              __html: this.props.guide.steps[this.props.step - 1].message,
+            }}
+          />
           <div style={{marginTop: '1em'}}>
             {this.props.step < this.props.guide.steps.length ? (
               <div>
-                <Button onClick={nextStep}>{t('Next')} &rarr;</Button>
-                <Button className="close-button" onClick={this.props.onDismiss}>{t('Dismiss')}</Button>
+                <Button priority="success" size="small" onClick={nextStep}>
+                  {t('Next')} &rarr;
+                </Button>
               </div>
             ) : (
               <div>

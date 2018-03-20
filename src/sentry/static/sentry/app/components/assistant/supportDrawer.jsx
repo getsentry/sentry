@@ -115,7 +115,11 @@ const SupportDrawer = createReactClass({
               value={this.state.inputVal}
               autoFocus
             />
-            <div onClick={this.props.onClose}>
+            <div
+              className="close-button"
+              onClick={this.props.onClose}
+              style={{display: 'flex'}}
+            >
               <CloseIcon />
             </div>
           </StyledSearchContainer>
@@ -146,6 +150,10 @@ const StyledInput = styled(Input)`
   text-indent: 1em;
   border-top-left-radius: 1.45rem;
   border-bottom-left-radius: 1.45rem;
+
+  &:focus {
+    border-color: ${p => p.theme.borderLight};
+  }
 `;
 
 const StyledSearchIcon = styled(InlineSvg)`

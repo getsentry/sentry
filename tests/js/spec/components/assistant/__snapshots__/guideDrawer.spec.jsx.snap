@@ -11,6 +11,12 @@ exports[`GuideDrawer gets dismissed 1`] = `
     </StyledTitle>
     <div
       className="close-button"
+      onClick={[MockFunction]}
+      style={
+        Object {
+          "display": "flex",
+        }
+      }
     >
       <CloseIcon />
     </div>
@@ -34,16 +40,11 @@ exports[`GuideDrawer gets dismissed 1`] = `
         <Button
           disabled={false}
           onClick={[Function]}
+          priority="success"
+          size="small"
         >
           Next
            →
-        </Button>
-        <Button
-          className="close-button"
-          disabled={false}
-          onClick={[MockFunction]}
-        >
-          Dismiss
         </Button>
       </div>
     </div>
@@ -62,6 +63,12 @@ exports[`GuideDrawer renders next step 1`] = `
     </StyledTitle>
     <div
       className="close-button"
+      onClick={[MockFunction]}
+      style={
+        Object {
+          "display": "flex",
+        }
+      }
     >
       <CloseIcon />
     </div>
