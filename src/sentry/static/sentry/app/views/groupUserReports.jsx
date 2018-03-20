@@ -1,6 +1,9 @@
 import React from 'react';
 import createReactClass from 'create-react-class';
 import {Link} from 'react-router';
+import {omit, isEqual} from 'lodash';
+import qs from 'query-string';
+
 import SentryTypes from '../proptypes';
 import ApiMixin from '../mixins/apiMixin';
 import GroupState from '../mixins/groupState';
@@ -33,10 +36,14 @@ const GroupUserReports = createReactClass({
   },
 
   componentDidUpdate(prevProps) {
-    if (
-      prevProps.location.search !== this.props.location.search ||
-      prevProps.environment !== this.props.environment
-    ) {
+    // Search term has changed (excluding environment)
+    const searchHasChanged = !isEqual(
+      omit(qs.parse(prevProps.location.search), 'environment'),
+      omit(qs.parse(this.props.location.search), 'environment')
+    );
+    const environmentHasChanged = prevProps.environment !== this.props.environment;
+
+    if (searchHasChanged || environmentHasChanged) {
       this.fetchData();
     }
   },
