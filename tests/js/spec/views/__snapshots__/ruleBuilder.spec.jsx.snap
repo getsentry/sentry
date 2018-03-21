@@ -1,7 +1,7 @@
 // Jest Snapshot v1, https://goo.gl/fbAQLP
 
 exports[`ProjectTeamsSettings render() renders 1`] = `
-.glamor-61 {
+.glamor-66 {
   display: -webkit-box;
   display: -webkit-flex;
   display: -ms-flexbox;
@@ -91,11 +91,16 @@ exports[`ProjectTeamsSettings render() renders 1`] = `
   border: 1px solid;
 }
 
-.glamor-6 {
-  line-height: 32px;
+.glamor-9 {
+  height: 32px;
 }
 
-.glamor-8 {
+.glamor-7 {
+  vertical-align: middle;
+  height: 32px;
+}
+
+.glamor-13 {
   -webkit-box-flex: 100;
   -webkit-flex-grow: 100;
   -ms-flex-positive: 100;
@@ -110,34 +115,36 @@ exports[`ProjectTeamsSettings render() renders 1`] = `
   display: flex;
 }
 
-.glamor-8 span {
+.glamor-13 span {
   margin-right: 2px;
 }
 
-.glamor-8 .avatar {
+.glamor-13 .avatar {
   width: 32px;
   height: 32px;
 }
 
-.glamor-34 {
+.glamor-39 {
   position: relative;
   display: inline-block;
 }
 
-.glamor-30 {
+.glamor-35 {
   margin-right: 5px;
   height: 32px;
+  white-space: nowrap;
 }
 
-.glamor-22 {
+.glamor-27 {
   position: relative;
   z-index: 2;
   box-shadow: none;
   margin-right: 5px;
   height: 32px;
+  white-space: nowrap;
 }
 
-.glamor-19 {
+.glamor-24 {
   box-sizing: border-box;
   display: -webkit-box;
   display: -webkit-flex;
@@ -149,18 +156,18 @@ exports[`ProjectTeamsSettings render() renders 1`] = `
   align-items: center;
 }
 
-.glamor-13 {
+.glamor-18 {
   margin-left: 0.33em;
 }
 
-.glamor-11 {
+.glamor-16 {
   vertical-align: middle;
   margin-left: 0.33em;
 }
 
-.glamor-57 {
+.glamor-62 {
   height: 32px;
-  width: 35px;
+  width: 32px;
   display: -webkit-box;
   display: -webkit-flex;
   display: -ms-flexbox;
@@ -171,32 +178,32 @@ exports[`ProjectTeamsSettings render() renders 1`] = `
   justify-content: center;
 }
 
-.glamor-57 .button-label {
+.glamor-62 .button-label {
   height: 32px;
   padding: 0.5em;
 }
 
-.glamor-57 div {
+.glamor-62 div {
   margin: 0px !important;
 }
 
-.glamor-51 {
+.glamor-56 {
   box-sizing: border-box;
   margin-right: 8px;
   margin-left: -2px;
 }
 
-.glamor-47 {
+.glamor-52 {
   display: block;
 }
 
-.glamor-45 {
+.glamor-50 {
   vertical-align: middle;
   display: block;
 }
 
 <RuleBuilder
-  handleAddRule={
+  onAddRule={
     [MockFunction] {
       "calls": Array [
         Array [
@@ -219,7 +226,7 @@ exports[`ProjectTeamsSettings render() renders 1`] = `
 >
   <BuilderBar>
     <div
-      className="glamor-61 glamor-62"
+      className="glamor-66 glamor-67"
     >
       <BuilderSelect
         onChange={[Function]}
@@ -269,16 +276,38 @@ exports[`ProjectTeamsSettings render() renders 1`] = `
           value=""
         />
       </BuilderInput>
-      <Divider>
-        <span
-          className="glamor-6 glamor-7"
+      <Divider
+        src="icon-chevron-right"
+      >
+        <InlineSvg
+          className="glamor-9 glamor-6"
+          src="icon-chevron-right"
         >
-          〉
-        </span>
+          <StyledSvg
+            className="glamor-9 glamor-6"
+            height="1em"
+            style={Object {}}
+            viewBox={Object {}}
+            width="1em"
+          >
+            <svg
+              className="glamor-6 glamor-7 glamor-8"
+              height="1em"
+              style={Object {}}
+              viewBox={Object {}}
+              width="1em"
+            >
+              <use
+                href="#test"
+                xlinkHref="#test"
+              />
+            </svg>
+          </StyledSvg>
+        </InlineSvg>
       </Divider>
       <Owners>
         <div
-          className="glamor-8 glamor-9"
+          className="glamor-13 glamor-14"
         />
       </Owners>
       <BuilderDropdownAutoComplete
@@ -326,7 +355,7 @@ exports[`ProjectTeamsSettings render() renders 1`] = `
       >
         <DropdownAutoComplete
           alignMenu="right"
-          className="glamor-38 glamor-39"
+          className="glamor-43 glamor-44"
           items={
             Array [
               Object {
@@ -371,7 +400,7 @@ exports[`ProjectTeamsSettings render() renders 1`] = `
         >
           <DropdownAutoCompleteMenu
             alignMenu="right"
-            className="glamor-38 glamor-39"
+            className="glamor-43 glamor-44"
             items={
               Array [
                 Object {
@@ -415,7 +444,7 @@ exports[`ProjectTeamsSettings render() renders 1`] = `
             onSelect={[Function]}
           >
             <AutoComplete
-              className="glamor-38 glamor-39"
+              className="glamor-43 glamor-44"
               itemToString={[Function]}
               onSelect={[Function]}
             >
@@ -426,10 +455,10 @@ exports[`ProjectTeamsSettings render() renders 1`] = `
               >
                 <AutoCompleteRoot>
                   <Component
-                    className="glamor-34 glamor-35"
+                    className="glamor-39 glamor-40"
                   >
                     <div
-                      className="glamor-34 glamor-35"
+                      className="glamor-39 glamor-40"
                     >
                       <div
                         onClick={[Function]}
@@ -442,27 +471,27 @@ exports[`ProjectTeamsSettings render() renders 1`] = `
                           size="xsmall"
                         >
                           <DropdownButton
-                            className="glamor-30 glamor-21"
+                            className="glamor-35 glamor-26"
                             isOpen={false}
                             size="xsmall"
                           >
                             <StyledButton
-                              className="glamor-30 glamor-21"
+                              className="glamor-35 glamor-26"
                               isOpen={false}
                               size="xsmall"
                             >
                               <Component
-                                className="glamor-21 glamor-22 glamor-23"
+                                className="glamor-26 glamor-27 glamor-28"
                                 isOpen={false}
                                 size="xsmall"
                               >
                                 <Button
-                                  className="glamor-21 glamor-22 glamor-23"
+                                  className="glamor-26 glamor-27 glamor-28"
                                   disabled={false}
                                   size="xsmall"
                                 >
                                   <button
-                                    className="glamor-21 glamor-22 glamor-23 button button-default button-xs"
+                                    className="glamor-26 glamor-27 glamor-28 button button-default button-xs"
                                     disabled={false}
                                     onClick={[Function]}
                                     role="button"
@@ -473,30 +502,30 @@ exports[`ProjectTeamsSettings render() renders 1`] = `
                                     >
                                       <Base
                                         align="center"
-                                        className="button-label glamor-19"
+                                        className="button-label glamor-24"
                                       >
                                         <div
-                                          className="button-label glamor-19"
+                                          className="button-label glamor-24"
                                           is={null}
                                         >
                                           Add Owners
                                           <StyledChevronDown>
                                             <Component
-                                              className="glamor-13 glamor-10"
+                                              className="glamor-18 glamor-15"
                                             >
                                               <InlineSvg
-                                                className="glamor-13 glamor-10"
+                                                className="glamor-18 glamor-15"
                                                 src="icon-chevron-down"
                                               >
                                                 <StyledSvg
-                                                  className="glamor-13 glamor-10"
+                                                  className="glamor-18 glamor-15"
                                                   height="1em"
                                                   style={Object {}}
                                                   viewBox={Object {}}
                                                   width="1em"
                                                 >
                                                   <svg
-                                                    className="glamor-10 glamor-11 glamor-12"
+                                                    className="glamor-15 glamor-16 glamor-8"
                                                     height="1em"
                                                     style={Object {}}
                                                     viewBox={Object {}}
@@ -533,34 +562,19 @@ exports[`ProjectTeamsSettings render() renders 1`] = `
         icon="icon-circle-add"
         onClick={[Function]}
         priority="primary"
-        style={
-          Object {
-            "width": "50px",
-          }
-        }
       >
         <Button
-          className="glamor-57 glamor-58"
+          className="glamor-62 glamor-63"
           disabled={false}
           icon="icon-circle-add"
           onClick={[Function]}
           priority="primary"
-          style={
-            Object {
-              "width": "50px",
-            }
-          }
         >
           <button
-            className="glamor-57 glamor-58 button button-primary"
+            className="glamor-62 glamor-63 button button-primary"
             disabled={false}
             onClick={[Function]}
             role="button"
-            style={
-              Object {
-                "width": "50px",
-              }
-            }
           >
             <Flex
               align="center"
@@ -568,18 +582,18 @@ exports[`ProjectTeamsSettings render() renders 1`] = `
             >
               <Base
                 align="center"
-                className="button-label glamor-19"
+                className="button-label glamor-24"
               >
                 <div
-                  className="button-label glamor-19"
+                  className="button-label glamor-24"
                   is={null}
                 >
                   <Icon>
                     <Base
-                      className="glamor-51 glamor-52"
+                      className="glamor-56 glamor-57"
                     >
                       <div
-                        className="glamor-51 glamor-52"
+                        className="glamor-56 glamor-57"
                         is={null}
                       >
                         <StyledInlineSvg
@@ -587,19 +601,19 @@ exports[`ProjectTeamsSettings render() renders 1`] = `
                           src="icon-circle-add"
                         >
                           <InlineSvg
-                            className="glamor-47 glamor-44"
+                            className="glamor-52 glamor-49"
                             size="16px"
                             src="icon-circle-add"
                           >
                             <StyledSvg
-                              className="glamor-47 glamor-44"
+                              className="glamor-52 glamor-49"
                               height="16px"
                               style={Object {}}
                               viewBox={Object {}}
                               width="16px"
                             >
                               <svg
-                                className="glamor-44 glamor-45 glamor-12"
+                                className="glamor-49 glamor-50 glamor-8"
                                 height="16px"
                                 style={Object {}}
                                 viewBox={Object {}}

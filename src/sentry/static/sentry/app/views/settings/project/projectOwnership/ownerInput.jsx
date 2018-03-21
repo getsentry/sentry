@@ -125,7 +125,7 @@ class OwnerInput extends React.Component {
         <RuleBuilder
           organization={organization}
           project={project}
-          handleAddRule={this.handleAddRule.bind(this)}
+          onAddRule={this.handleAddRule.bind(this)}
         />
         <div
           style={{position: 'relative'}}
@@ -154,6 +154,10 @@ class OwnerInput extends React.Component {
             }}
             onChange={this.onChange.bind(this)}
             value={text}
+            spellCheck="false"
+            autoComplete="off"
+            autoCorrect="off"
+            autoCapitalize="off"
           />
           {error &&
             error.raw && (

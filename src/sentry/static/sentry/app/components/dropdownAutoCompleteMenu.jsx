@@ -142,7 +142,7 @@ class DropdownAutoCompleteMenu extends React.Component {
                           <StyledLabel key={index}>{item.label}</StyledLabel>
                         ) : (
                           <AutoCompleteItem
-                            key={item.value}
+                            key={`${item.value}-${item.label}`}
                             highlightedIndex={highlightedIndex}
                             index={item.index}
                             {...getItemProps({item, index: item.index})}

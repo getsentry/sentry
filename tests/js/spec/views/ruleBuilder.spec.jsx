@@ -46,7 +46,7 @@ describe('ProjectTeamsSettings', function() {
   describe('render()', function() {
     it('renders', function() {
       let wrapper = mount(
-        <RuleBuilder project={project} handleAddRule={handleAdd} />,
+        <RuleBuilder project={project} onAddRule={handleAdd} />,
         TestStubs.routerContext()
       );
 

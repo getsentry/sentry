@@ -285,6 +285,8 @@ export function sortProjects(projects) {
 export const buildUserId = id => `user:${id}`;
 export const buildTeamId = id => `team:${id}`;
 
+export const actorEquality = (a, b) => a.type === b.type && a.id === b.id;
+
 // re-export under utils
 export {parseLinkHeader, deviceNameMapper, Collection, PendingChangeQueue, CursorPoller};
 

@@ -6,12 +6,13 @@ import memberListStore from '../../../../stores/memberListStore';
 import ProjectsStore from '../../../../stores/projectsStore';
 import Button from '../../../../components/buttons/button';
 import SelectInput from '../../../../components/selectInput';
+import InlineSvg from '../../../../components/inlineSvg';
 import Input from '../../../../views/settings/components/forms/controls/input';
 import DropdownAutoComplete from '../../../../components/dropdownAutoComplete';
 import DropdownButton from '../../../../components/dropdownButton';
 import ActorAvatar from '../../../../components/actorAvatar';
 import SentryTypes from '../../../../proptypes';
-import {buildUserId, buildTeamId} from '../../../../utils';
+import {buildUserId, buildTeamId, actorEquality} from '../../../../utils';
 import {addErrorMessage} from '../../../../actionCreators/indicator';
 
 import {t} from '../../../../locale';
@@ -36,8 +37,8 @@ const BuilderInput = styled(Input)`
   width: 50%;
 `;
 
-const Divider = styled('span')`
-  line-height: 32px;
+const Divider = styled(InlineSvg)`
+  height: 32px;
 `;
 
 const Owners = styled('div')`
@@ -58,11 +59,12 @@ const BuilderDropdownAutoComplete = styled(DropdownAutoComplete)``;
 const BuilderDropdownButton = styled(DropdownButton)`
   margin-right: 5px;
   height: 32px;
+  white-space: nowrap;
 `;
 
 const RuleAddButton = styled(Button)`
   height: 32px;
-  width: 35px;
+  width: 32px;
   display: flex;
 
   justify-content: center;
@@ -83,7 +85,7 @@ const initialState = {
 class RuleBuilder extends React.Component {
   static propTypes = {
     project: SentryTypes.Project,
-    handleAddRule: PropTypes.func,
+    onAddRule: PropTypes.func,
   };
 
   constructor(props) {
@@ -106,9 +108,13 @@ class RuleBuilder extends React.Component {
 
   mentionableTeams() {
     let {project} = this.props;
-    return (ProjectsStore.getAll().find(p => p.slug == project.slug) || {
-      teams: [],
-    }).teams.map(team => ({
+    let projectData = ProjectsStore.getAll().find(p => p.slug == project.slug);
+
+    if (!projectData) {
+      return [];
+    }
+
+    return projectData.teams.map(team => ({
       value: buildTeamId(team.id),
       label: `#${team.slug}`,
       searchKey: team.slug,
@@ -120,33 +126,29 @@ class RuleBuilder extends React.Component {
     }));
   }
 
-  handleTypeChange(e) {
+  handleTypeChange = e => {
     this.setState({type: e[0].value});
-  }
+  };
 
-  onValueChange(e) {
+  handleChangeValue = e => {
     this.setState({text: e.target.value});
-  }
+  };
 
-  handleAddActor({actor}) {
-    let {owners} = this.state;
-    if (!owners.find(i => actor.type == i.type && actor.id == i.id)) {
-      this.setState({
-        owners: [...owners, actor],
-      });
-    }
-  }
+  onAddActor = ({actor}) => {
+    this.setState(({owners}) => {
+      if (!owners.find(i => actorEquality(i, actor))) {
+        return {owners: [...owners, actor]};
+      } else return {};
+    });
+  };
 
   handleRemoveActor(toRemove) {
-    let {owners} = this.state;
-    this.setState({
-      owners: owners.filter(
-        actor => !(actor.type == toRemove.type && actor.id == toRemove.id)
-      ),
-    });
+    this.setState(({owners}) => ({
+      owners: owners.filter(actor => !actorEquality(actor, toRemove)),
+    }));
   }
 
-  handleAddRule() {
+  handleAddRule = () => {
     let {type, text, owners} = this.state;
 
     if (!text || owners.length == 0) {
@@ -158,9 +160,9 @@ class RuleBuilder extends React.Component {
       .join(' ');
 
     let rule = `${type}:${text} ${ownerText}`;
-    this.props.handleAddRule(rule);
+    this.props.onAddRule(rule);
     this.setState(initialState);
-  }
+  };
 
   render() {
     let {type, text, owners} = this.state;
@@ -168,17 +170,17 @@ class RuleBuilder extends React.Component {
     let menuHeader = <StyledTeamsLabel>{t('Owners')}</StyledTeamsLabel>;
     return (
       <BuilderBar>
-        <BuilderSelect value={type} onChange={this.handleTypeChange.bind(this)}>
+        <BuilderSelect value={type} onChange={this.handleTypeChange}>
           <option value="path">Path</option>
           <option value="url">URL</option>
         </BuilderSelect>
         <BuilderInput
           controlled
           value={text}
-          onChange={this.onValueChange.bind(this)}
+          onChange={this.handleChangeValue}
           placeholder={type === 'path' ? 'src/example/*' : 'example.com/settings/*'}
         />
-        <Divider>〉</Divider>
+        <Divider src="icon-chevron-right" />
         <Owners>
           {owners.map(owner => (
             <span
@@ -202,7 +204,7 @@ class RuleBuilder extends React.Component {
               items: this.mentionableUsers(),
             },
           ]}
-          onSelect={this.handleAddActor.bind(this)}
+          onSelect={this.onAddActor}
           menuHeader={menuHeader}
         >
           {({isOpen, selectedItem}) => (
@@ -213,9 +215,8 @@ class RuleBuilder extends React.Component {
         </BuilderDropdownAutoComplete>
         <RuleAddButton
           priority="primary"
-          onClick={this.handleAddRule.bind(this)}
+          onClick={this.handleAddRule}
           icon="icon-circle-add"
-          style={{width: '50px'}}
         />
       </BuilderBar>
     );
