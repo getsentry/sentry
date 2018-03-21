@@ -1,0 +1,619 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`ProjectTeamsSettings render() renders 1`] = `
+.glamor-61 {
+  display: -webkit-box;
+  display: -webkit-flex;
+  display: -ms-flexbox;
+  display: flex;
+  height: 2em;
+  margin-bottom: 1em;
+}
+
+.glamor-0 {
+  height: 32px;
+  padding: 0.5em;
+  margin-right: 5px;
+  width: 80px;
+}
+
+.glamor-4 {
+  display: block;
+  width: 100%;
+  background: #fff;
+  border: 1px solid;
+  box-shadow: inset;
+  padding: 0.5em;
+  -webkit-transition: border 0.1s linear;
+  transition: border 0.1s linear;
+  resize: vertical;
+  height: 32px;
+  padding: 0.5em;
+  margin-right: 5px;
+  width: 50%;
+}
+
+.glamor-4 {
+  display: block;
+  width: 100%;
+  background: #fff;
+  border: 1px solid;
+  box-shadow: inset;
+  padding: 0.5em;
+  -webkit-transition: border 0.1s linear;
+  transition: border 0.1s linear;
+  resize: vertical;
+  height: 32px;
+  padding: 0.5em;
+  margin-right: 5px;
+  width: 50%;
+}
+
+.glamor-4 {
+  display: block;
+  width: 100%;
+  background: #fff;
+  border: 1px solid;
+  box-shadow: inset;
+  padding: 0.5em;
+  -webkit-transition: border 0.1s linear;
+  transition: border 0.1s linear;
+  resize: vertical;
+  height: 32px;
+  padding: 0.5em;
+  margin-right: 5px;
+  width: 50%;
+}
+
+.glamor-4 {
+  display: block;
+  width: 100%;
+  background: #fff;
+  border: 1px solid;
+  box-shadow: inset;
+  padding: 0.5em;
+  -webkit-transition: border 0.1s linear;
+  transition: border 0.1s linear;
+  resize: vertical;
+  height: 32px;
+  padding: 0.5em;
+  margin-right: 5px;
+  width: 50%;
+}
+
+.glamor-4:focus {
+  outline: none;
+}
+
+.glamor-4:hover,
+.glamor-4:focus,
+.glamor-4:active {
+  border: 1px solid;
+}
+
+.glamor-6 {
+  line-height: 32px;
+}
+
+.glamor-8 {
+  -webkit-box-flex: 100;
+  -webkit-flex-grow: 100;
+  -ms-flex-positive: 100;
+  flex-grow: 100;
+  -webkit-box-pack: end;
+  -webkit-justify-content: flex-end;
+  -ms-flex-pack: end;
+  justify-content: flex-end;
+  display: -webkit-box;
+  display: -webkit-flex;
+  display: -ms-flexbox;
+  display: flex;
+}
+
+.glamor-8 span {
+  margin-right: 2px;
+}
+
+.glamor-8 .avatar {
+  width: 32px;
+  height: 32px;
+}
+
+.glamor-34 {
+  position: relative;
+  display: inline-block;
+}
+
+.glamor-30 {
+  margin-right: 5px;
+  height: 32px;
+}
+
+.glamor-22 {
+  position: relative;
+  z-index: 2;
+  box-shadow: none;
+  margin-right: 5px;
+  height: 32px;
+}
+
+.glamor-19 {
+  box-sizing: border-box;
+  display: -webkit-box;
+  display: -webkit-flex;
+  display: -ms-flexbox;
+  display: flex;
+  -webkit-align-items: center;
+  -webkit-box-align: center;
+  -ms-flex-align: center;
+  align-items: center;
+}
+
+.glamor-13 {
+  margin-left: 0.33em;
+}
+
+.glamor-11 {
+  vertical-align: middle;
+  margin-left: 0.33em;
+}
+
+.glamor-57 {
+  height: 32px;
+  width: 35px;
+  display: -webkit-box;
+  display: -webkit-flex;
+  display: -ms-flexbox;
+  display: flex;
+  -webkit-box-pack: center;
+  -webkit-justify-content: center;
+  -ms-flex-pack: center;
+  justify-content: center;
+}
+
+.glamor-57 .button-label {
+  height: 32px;
+  padding: 0.5em;
+}
+
+.glamor-57 div {
+  margin: 0px !important;
+}
+
+.glamor-51 {
+  box-sizing: border-box;
+  margin-right: 8px;
+  margin-left: -2px;
+}
+
+.glamor-47 {
+  display: block;
+}
+
+.glamor-45 {
+  vertical-align: middle;
+  display: block;
+}
+
+<RuleBuilder
+  handleAddRule={[MockFunction]}
+  project={
+    Object {
+      "hasAccess": true,
+      "id": "2",
+      "isBookmarked": false,
+      "isMember": true,
+      "name": "Project Name",
+      "slug": "project-slug",
+      "teams": Array [],
+    }
+  }
+>
+  <BuilderBar>
+    <div
+      className="glamor-61 glamor-62"
+    >
+      <BuilderSelect
+        value="path"
+      >
+        <SelectInput
+          className="glamor-0 glamor-1"
+          disabled={false}
+          multiple={false}
+          onChange={[Function]}
+          placeholder="Select an option..."
+          required={false}
+          value="path"
+        >
+          <select
+            className="glamor-0 glamor-1"
+            disabled={false}
+            multiple={false}
+            onChange={[Function]}
+            placeholder="Select an option..."
+            required={false}
+            value="path"
+          >
+            <option
+              value="path"
+            >
+              Path
+            </option>
+            <option
+              value="url"
+            >
+              URL
+            </option>
+          </select>
+        </SelectInput>
+      </BuilderSelect>
+      <BuilderInput
+        controlled={true}
+        onChange={[Function]}
+        placeholder="src/example/*"
+        value="some/path/*"
+      >
+        <input
+          className="glamor-4 glamor-5"
+          onChange={[Function]}
+          placeholder="src/example/*"
+          value="some/path/*"
+        />
+      </BuilderInput>
+      <Divider>
+        <span
+          className="glamor-6 glamor-7"
+        >
+          〉
+        </span>
+      </Divider>
+      <Owners>
+        <div
+          className="glamor-8 glamor-9"
+        />
+      </Owners>
+      <BuilderDropdownAutoComplete
+        items={
+          Array [
+            Object {
+              "items": Array [],
+              "label": "Teams",
+              "value": "team",
+            },
+            Object {
+              "items": Array [
+                Object {
+                  "actor": Object {
+                    "id": "1",
+                    "name": "Jane Doe",
+                    "type": "user",
+                  },
+                  "label": "janedoe@example.com",
+                  "searchKey": "janedoe@example.com  nodejs",
+                  "value": "user:1",
+                },
+                Object {
+                  "actor": Object {
+                    "id": "2",
+                    "name": "John Smith",
+                    "type": "user",
+                  },
+                  "label": "johnsmith@example.com",
+                  "searchKey": "johnsmith@example.com  nodejs",
+                  "value": "user:2",
+                },
+              ],
+              "label": "Users",
+              "value": "user",
+            },
+          ]
+        }
+        menuHeader={
+          <StyledTeamsLabel>
+            Owners
+          </StyledTeamsLabel>
+        }
+        onSelect={[Function]}
+      >
+        <DropdownAutoComplete
+          alignMenu="right"
+          className="glamor-38 glamor-39"
+          items={
+            Array [
+              Object {
+                "items": Array [],
+                "label": "Teams",
+                "value": "team",
+              },
+              Object {
+                "items": Array [
+                  Object {
+                    "actor": Object {
+                      "id": "1",
+                      "name": "Jane Doe",
+                      "type": "user",
+                    },
+                    "label": "janedoe@example.com",
+                    "searchKey": "janedoe@example.com  nodejs",
+                    "value": "user:1",
+                  },
+                  Object {
+                    "actor": Object {
+                      "id": "2",
+                      "name": "John Smith",
+                      "type": "user",
+                    },
+                    "label": "johnsmith@example.com",
+                    "searchKey": "johnsmith@example.com  nodejs",
+                    "value": "user:2",
+                  },
+                ],
+                "label": "Users",
+                "value": "user",
+              },
+            ]
+          }
+          menuHeader={
+            <StyledTeamsLabel>
+              Owners
+            </StyledTeamsLabel>
+          }
+          onSelect={[Function]}
+        >
+          <DropdownAutoCompleteMenu
+            alignMenu="right"
+            className="glamor-38 glamor-39"
+            items={
+              Array [
+                Object {
+                  "items": Array [],
+                  "label": "Teams",
+                  "value": "team",
+                },
+                Object {
+                  "items": Array [
+                    Object {
+                      "actor": Object {
+                        "id": "1",
+                        "name": "Jane Doe",
+                        "type": "user",
+                      },
+                      "label": "janedoe@example.com",
+                      "searchKey": "janedoe@example.com  nodejs",
+                      "value": "user:1",
+                    },
+                    Object {
+                      "actor": Object {
+                        "id": "2",
+                        "name": "John Smith",
+                        "type": "user",
+                      },
+                      "label": "johnsmith@example.com",
+                      "searchKey": "johnsmith@example.com  nodejs",
+                      "value": "user:2",
+                    },
+                  ],
+                  "label": "Users",
+                  "value": "user",
+                },
+              ]
+            }
+            menuHeader={
+              <StyledTeamsLabel>
+                Owners
+              </StyledTeamsLabel>
+            }
+            onSelect={[Function]}
+          >
+            <AutoComplete
+              className="glamor-38 glamor-39"
+              itemToString={[Function]}
+              onSelect={[Function]}
+            >
+              <DropdownMenu
+                isOpen={false}
+                keepMenuOpen={false}
+                onClickOutside={[Function]}
+              >
+                <AutoCompleteRoot>
+                  <Component
+                    className="glamor-34 glamor-35"
+                  >
+                    <div
+                      className="glamor-34 glamor-35"
+                    >
+                      <div
+                        onClick={[Function]}
+                        onMouseEnter={[Function]}
+                        onMouseLeave={[Function]}
+                        role="button"
+                      >
+                        <BuilderDropdownButton
+                          isOpen={false}
+                          size="xsmall"
+                        >
+                          <DropdownButton
+                            className="glamor-30 glamor-21"
+                            isOpen={false}
+                            size="xsmall"
+                          >
+                            <StyledButton
+                              className="glamor-30 glamor-21"
+                              isOpen={false}
+                              size="xsmall"
+                            >
+                              <Component
+                                className="glamor-21 glamor-22 glamor-23"
+                                isOpen={false}
+                                size="xsmall"
+                              >
+                                <Button
+                                  className="glamor-21 glamor-22 glamor-23"
+                                  disabled={false}
+                                  size="xsmall"
+                                >
+                                  <button
+                                    className="glamor-21 glamor-22 glamor-23 button button-default button-xs"
+                                    disabled={false}
+                                    onClick={[Function]}
+                                    role="button"
+                                  >
+                                    <Flex
+                                      align="center"
+                                      className="button-label"
+                                    >
+                                      <Base
+                                        align="center"
+                                        className="button-label glamor-19"
+                                      >
+                                        <div
+                                          className="button-label glamor-19"
+                                          is={null}
+                                        >
+                                          Add Owners
+                                          <StyledChevronDown>
+                                            <Component
+                                              className="glamor-13 glamor-10"
+                                            >
+                                              <InlineSvg
+                                                className="glamor-13 glamor-10"
+                                                src="icon-chevron-down"
+                                              >
+                                                <StyledSvg
+                                                  className="glamor-13 glamor-10"
+                                                  height="1em"
+                                                  style={Object {}}
+                                                  viewBox={Object {}}
+                                                  width="1em"
+                                                >
+                                                  <svg
+                                                    className="glamor-10 glamor-11 glamor-12"
+                                                    height="1em"
+                                                    style={Object {}}
+                                                    viewBox={Object {}}
+                                                    width="1em"
+                                                  >
+                                                    <use
+                                                      href="#test"
+                                                      xlinkHref="#test"
+                                                    />
+                                                  </svg>
+                                                </StyledSvg>
+                                              </InlineSvg>
+                                            </Component>
+                                          </StyledChevronDown>
+                                        </div>
+                                      </Base>
+                                    </Flex>
+                                  </button>
+                                </Button>
+                              </Component>
+                            </StyledButton>
+                          </DropdownButton>
+                        </BuilderDropdownButton>
+                      </div>
+                    </div>
+                  </Component>
+                </AutoCompleteRoot>
+              </DropdownMenu>
+            </AutoComplete>
+          </DropdownAutoCompleteMenu>
+        </DropdownAutoComplete>
+      </BuilderDropdownAutoComplete>
+      <RuleAddButton
+        icon="icon-circle-add"
+        onClick={[Function]}
+        priority="primary"
+        style={
+          Object {
+            "width": "50px",
+          }
+        }
+      >
+        <Button
+          className="glamor-57 glamor-58"
+          disabled={false}
+          icon="icon-circle-add"
+          onClick={[Function]}
+          priority="primary"
+          style={
+            Object {
+              "width": "50px",
+            }
+          }
+        >
+          <button
+            className="glamor-57 glamor-58 button button-primary"
+            disabled={false}
+            onClick={[Function]}
+            role="button"
+            style={
+              Object {
+                "width": "50px",
+              }
+            }
+          >
+            <Flex
+              align="center"
+              className="button-label"
+            >
+              <Base
+                align="center"
+                className="button-label glamor-19"
+              >
+                <div
+                  className="button-label glamor-19"
+                  is={null}
+                >
+                  <Icon>
+                    <Base
+                      className="glamor-51 glamor-52"
+                    >
+                      <div
+                        className="glamor-51 glamor-52"
+                        is={null}
+                      >
+                        <StyledInlineSvg
+                          size="16px"
+                          src="icon-circle-add"
+                        >
+                          <InlineSvg
+                            className="glamor-47 glamor-44"
+                            size="16px"
+                            src="icon-circle-add"
+                          >
+                            <StyledSvg
+                              className="glamor-47 glamor-44"
+                              height="16px"
+                              style={Object {}}
+                              viewBox={Object {}}
+                              width="16px"
+                            >
+                              <svg
+                                className="glamor-44 glamor-45 glamor-12"
+                                height="16px"
+                                style={Object {}}
+                                viewBox={Object {}}
+                                width="16px"
+                              >
+                                <use
+                                  href="#test"
+                                  xlinkHref="#test"
+                                />
+                              </svg>
+                            </StyledSvg>
+                          </InlineSvg>
+                        </StyledInlineSvg>
+                      </div>
+                    </Base>
+                  </Icon>
+                </div>
+              </Base>
+            </Flex>
+          </button>
+        </Button>
+      </RuleAddButton>
+    </div>
+  </BuilderBar>
+</RuleBuilder>
+`;
