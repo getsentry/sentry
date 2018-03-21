@@ -3,6 +3,7 @@ import React from 'react';
 
 import createReactClass from 'create-react-class';
 
+import withEnvironmentInQueryString from '../../utils/withEnvironmentInQueryString';
 import LoadingIndicator from '../../components/loadingIndicator';
 import LoadingError from '../../components/loadingError';
 import IconOpen from '../../icons/icon-open';
@@ -341,4 +342,4 @@ const ReleaseOverview = createReactClass({
   },
 });
 
-export default ReleaseOverview;
+export default withEnvironmentInQueryString(ReleaseOverview);
