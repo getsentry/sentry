@@ -61,12 +61,6 @@ const organizationNavigation = [
         title: t('Repositories'),
         show: ({access}) => access.has('org:write'),
       },
-      {
-        path: `${pathPrefix}/integrations/`,
-        title: t('Integrations'),
-        show: ({access, features}) =>
-          features.has('integrations-v3') && access.has('org:integrations'),
-      },
     ],
   },
 ];

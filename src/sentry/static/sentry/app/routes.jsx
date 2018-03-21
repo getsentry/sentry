@@ -48,7 +48,6 @@ import OrganizationCreate from './views/organizationCreate';
 import OrganizationDashboard from './views/organizationDashboard';
 import OrganizationDetails from './views/organizationDetails';
 import OrganizationHomeContainer from './components/organizations/homeContainer';
-import OrganizationIntegrations from './views/organizationIntegrations';
 import OrganizationMemberDetail from './views/settings/organization/members/organizationMemberDetail';
 import OrganizationMembersView from './views/settings/organization/members/organizationMembersView';
 import OrganizationPicker from './views/settings/components/organizationPicker';
@@ -447,12 +446,6 @@ function routes() {
         path="auth/"
         name="Auth Providers"
         component={errorHandler(OrganizationAuthView)}
-      />
-
-      <Route
-        path="integrations/"
-        name="Integrations"
-        component={errorHandler(OrganizationIntegrations)}
       />
 
       <Route path="members/" name="Members">
