@@ -20,7 +20,7 @@ import TimeSince from '../timeSince';
 
 import {valueIsEqual} from '../../utils';
 
-const StreamIssue = createReactClass({
+const StreamGroup = createReactClass({
   displayName: 'StreamGroup',
 
   propTypes: {
@@ -94,14 +94,14 @@ const StreamIssue = createReactClass({
     // Todo(ckj): Implement resolved and hasSeen state
 
     return (
-      <Issue onClick={this.toggleSelect} py={1}>
-        <IssueLevel level={data.level} />
+      <Group onClick={this.toggleSelect} py={1}>
+        <GroupLevel level={data.level} />
         {this.props.canSelect && (
-          <IssueCheckbox ml={1}>
+          <GroupCheckbox ml={1}>
             <GroupCheckBox id={data.id} />
-          </IssueCheckbox>
+          </GroupCheckbox>
         )}
-        <IssueSummary w={[8 / 12, 8 / 12, 6 / 12]} mx={1} flex="1">
+        <GroupSummary w={[8 / 12, 8 / 12, 6 / 12]} mx={1} flex="1">
           <EventOrGroupHeader
             data={data}
             orgId={orgId}
@@ -115,13 +115,13 @@ const StreamIssue = createReactClass({
             orgId={orgId}
             projectId={projectId}
           />
-        </IssueSummary>
+        </GroupSummary>
         <Box w={160} mx={2}>
-          {data.shortId && <IssueShortId shortId={data.shortId} />}
+          {data.shortId && <GroupShortId shortId={data.shortId} />}
           {data.firstSeen && (
-            <IssueTimeSinceWrapper>
+            <GroupTimeSinceWrapper>
               first seen <TimeSince date={data.firstSeen} suffix="ago" />
-            </IssueTimeSinceWrapper>
+            </GroupTimeSinceWrapper>
           )}
         </Box>
         <Box w={120} mx={2}>
@@ -136,12 +136,12 @@ const StreamIssue = createReactClass({
         <Box w={70} mx={2}>
           <StyledAssigneeSelector id={data.id} />
         </Box>
-      </Issue>
+      </Group>
     );
   },
 });
 
-const Issue = styled(Flex)`
+const Group = styled(Flex)`
   line-height: 1.1;
   font-size: 16px;
   position: relative;
@@ -166,11 +166,11 @@ const Issue = styled(Flex)`
   }
 `;
 
-const IssueSummary = styled(Box)`
+const GroupSummary = styled(Box)`
   overflow: hidden;
 `;
 
-const IssueLevel = styled.div`
+const GroupLevel = styled.div`
   margin-left: -1px;
   width: 9px;
   height: 15px;
@@ -195,7 +195,7 @@ const IssueLevel = styled.div`
   }};
 `;
 
-const IssueCheckbox = styled(Box)`
+const GroupCheckbox = styled(Box)`
   align-self: flex-start;
   & input[type='checkbox'] {
     margin: 0;
@@ -203,12 +203,12 @@ const IssueCheckbox = styled(Box)`
   }
 `;
 
-const IssueTimeSinceWrapper = styled.span`
+const GroupTimeSinceWrapper = styled.span`
   font-size: 12px;
   color: ${p => p.theme.gray2};
 `;
 
-const IssueShortId = styled(ShortId)`
+const GroupShortId = styled(ShortId)`
   display: inline;
   font-size: 15px;
   margin-bottom: 4px;
@@ -219,4 +219,4 @@ const StyledAssigneeSelector = styled(AssigneeSelector)`
   color: ${p => p.theme.gray1};
 `;
 
-export default StreamIssue;
+export default StreamGroup;
