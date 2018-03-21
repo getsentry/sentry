@@ -226,16 +226,12 @@ export default class OrganizationIntegrationConfig extends AsyncView {
     // TODO(epurkhiser): Workspaces needs to get genericised into the integration
     const header = (
       <PanelHeader disablePadding hasButtons>
-        <Flex align="center">
-          <Box px={2} flex="1">
-            {t('Workspaces')}
-          </Box>
-          <Box mr={1}>
-            <Button size="xsmall" onClick={() => this.handleAddIntegration(provider)}>
-              <span className="icon icon-add" /> {t('Add Workspace')}
-            </Button>
-          </Box>
-        </Flex>
+        <Box px={2}>{t('Workspaces')}</Box>
+        <Box mr={1}>
+          <Button size="xsmall" onClick={() => this.handleAddIntegration(provider)}>
+            <span className="icon icon-add" /> {t('Add Workspace')}
+          </Button>
+        </Box>
       </PanelHeader>
     );
 
