@@ -234,11 +234,13 @@ class ProjectTeams extends AsyncView {
     return (
       <div>
         <SettingsPageHeader title={t('Teams')} />
-        <PanelHeader hasButtons={true}>
-          <div>{t('Team')}</div>
-          <div>{this.renderAddTeamButton()}</div>
-        </PanelHeader>
-        <Panel>{body}</Panel>
+        <Panel>
+          <PanelHeader hasButtons={true}>
+            <div>{t('Team')}</div>
+            <div>{this.renderAddTeamButton()}</div>
+          </PanelHeader>
+          {body}
+        </Panel>
       </div>
     );
   }

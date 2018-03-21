@@ -8,42 +8,42 @@ exports[`ProjectTeamsSettings render() renders 1`] = `
     <SettingsPageHeading
       title="Teams"
     />
-    <PanelHeader
-      hasButtons={true}
-    >
-      <div>
-        Team
-      </div>
-      <div>
-        <DropdownAutoComplete
-          alignMenu="right"
-          items={
-            Array [
-              Object {
-                "label": <TeamDropdownElement>
-                  #
-                  team-slug-2
-                </TeamDropdownElement>,
-                "searchKey": "team-slug-2",
-                "value": "2",
-              },
-            ]
-          }
-          menuHeader={
-            <StyledTeamsLabel>
-              Teams
-              <StyledCreateTeamLink
-                to="/organizations/org-slug/teams/new/"
-              >
-                Create Team
-              </StyledCreateTeamLink>
-            </StyledTeamsLabel>
-          }
-          onSelect={[Function]}
-        />
-      </div>
-    </PanelHeader>
     <Panel>
+      <PanelHeader
+        hasButtons={true}
+      >
+        <div>
+          Team
+        </div>
+        <div>
+          <DropdownAutoComplete
+            alignMenu="right"
+            items={
+              Array [
+                Object {
+                  "label": <TeamDropdownElement>
+                    #
+                    team-slug-2
+                  </TeamDropdownElement>,
+                  "searchKey": "team-slug-2",
+                  "value": "2",
+                },
+              ]
+            }
+            menuHeader={
+              <StyledTeamsLabel>
+                Teams
+                <StyledCreateTeamLink
+                  to="/organizations/org-slug/teams/new/"
+                >
+                  Create Team
+                </StyledCreateTeamLink>
+              </StyledTeamsLabel>
+            }
+            onSelect={[Function]}
+          />
+        </div>
+      </PanelHeader>
       <PanelBody
         direction="column"
         disablePadding={true}
