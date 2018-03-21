@@ -102,3 +102,43 @@ class CreateAuditEntryTest(TestCase):
         deleted_project = DeletedProject.objects.get(slug=self.project.slug)
         self.assert_valid_deleted_log(deleted_project, self.project)
         assert deleted_project.platform == self.project.platform
+
+    def test_audit_entry_integration_log(self):
+        project = self.create_project()
+        self.login_as(user=self.user)
+
+        entry = create_audit_entry(
+            request=self.req,
+            organization=self.project.organization,
+            target_object=self.project.id,
+            event=AuditLogEntryEvent.INTEGRATION_ADD,
+            data={'integration': 'webhooks', 'project': project.slug},
+        )
+
+        assert entry.actor == self.user
+        assert entry.target_object == self.project.id
+        assert entry.event == AuditLogEntryEvent.INTEGRATION_ADD
+
+        entry2 = create_audit_entry(
+            request=self.req,
+            organization=self.project.organization,
+            target_object=self.project.id,
+            event=AuditLogEntryEvent.INTEGRATION_EDIT,
+            data={'integration': 'webhooks', 'project': project.slug},
+        )
+
+        assert entry2.actor == self.user
+        assert entry2.target_object == self.project.id
+        assert entry2.event == AuditLogEntryEvent.INTEGRATION_EDIT
+
+        entry3 = create_audit_entry(
+            request=self.req,
+            organization=self.project.organization,
+            target_object=self.project.id,
+            event=AuditLogEntryEvent.INTEGRATION_REMOVE,
+            data={'integration': 'webhooks', 'project': project.slug},
+        )
+
+        assert entry3.actor == self.user
+        assert entry3.target_object == self.project.id
+        assert entry3.event == AuditLogEntryEvent.INTEGRATION_REMOVE
