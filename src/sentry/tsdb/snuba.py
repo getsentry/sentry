@@ -69,13 +69,21 @@ class SnubaTSDB(BaseTSDB):
             model_aggregate = None
 
         keys_map = dict(zip(model_columns, self.flatten_keys(keys)))
-        conditions = []
+        keys_map = {k: v for k, v in six.iteritems(keys_map) if k is not None and v is not None}
         if environment_id is not None:
             keys_map['environment'] = [environment_id]
 
+        # Forward and reverse translation maps from model ids to snuba keys, per column
+        snuba_map = {col: self.get_snuba_map(col, keys) for col, keys in six.iteritems(keys_map)}
+        snuba_map = {k: v for k, v in six.iteritems(snuba_map) if k is not None and v is not None}
+        rev_snuba_map = {col: dict(reversed(i) for i in keys.items())
+                         for col, keys in six.iteritems(snuba_map)}
+
+        conditions = []
         for col, keys in six.iteritems(keys_map):
-            if col is not None and keys is not None:
-                conditions.append((col, 'IN', self.get_snuba_keys(col, keys)))
+            if col in snuba_map:
+                keys = [snuba_map[col][k] for k in keys]
+            conditions.append((col, 'IN', keys))
 
         # project_ids will be the set of projects either referenced directly as
         # passed-in keys for project_id, or indrectly (eg the set of projects
@@ -108,7 +116,7 @@ class SnubaTSDB(BaseTSDB):
         # TODO handle error responses
         response = json.loads(response.text)
 
-        # Validate and scrub response
+        # Validate and scrub response, and translate snuba keys back to IDs
         expected_cols = groupby + ['aggregate']
         assert all(c['name'] in expected_cols for c in response['meta'])
         for d in response['data']:
@@ -116,6 +124,9 @@ class SnubaTSDB(BaseTSDB):
                 d['time'] = int(to_timestamp(parse_datetime(d['time'])))
             if d['aggregate'] is None:
                 d['aggregate'] = 0
+            for col in rev_snuba_map:
+                if col in d:
+                    d[col] = rev_snuba_map[col][d[col]]
 
         return self.nest_groups(response['data'], groupby)
 
@@ -234,20 +245,21 @@ class SnubaTSDB(BaseTSDB):
         else:
             return (None, None)
 
-    def get_snuba_keys(self, column, ids):
+    def get_snuba_map(self, column, ids):
         """
         Some models are stored differently in snuba, eg. as the environment
         name instead of the the environment ID. Here we look up a set of keys
-        for a given model and translate them into what snuba expects.
+        for a given model and return a lookup dictionary from those keys to the
+        equivalent ones in snuba.
         """
         mappings = {
             'environment': (Environment, 'name'),
             'release': (Release, 'version'),
         }
-        if ids and column in mappings:
+        if column in mappings and ids:
             model, field = mappings[column]
-            return list(model.objects.filter(pk__in=ids).values_list(field, flat=True))
-        return ids
+            return dict(model.objects.filter(id__in=ids).values_list('id', field))
+        return None
 
     def get_project_issues(self, project_ids):
         """

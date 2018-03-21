@@ -2,11 +2,14 @@ from __future__ import absolute_import
 
 from datetime import timedelta
 from dateutil.parser import parse as parse_datetime
+import json
+import responses
 
 from sentry.models import GroupHash, Release
 from sentry.testutils import TestCase
 from sentry.tsdb.base import TSDBModel
 from sentry.tsdb.snuba import SnubaTSDB
+from sentry.utils.dates import to_timestamp
 
 
 def has_shape(data, shape, allow_empty=False):
@@ -52,40 +55,52 @@ class SnubaTSDBTest(TestCase):
         project_id = 194503
         dts = [now + timedelta(hours=i) for i in range(4)]
 
-        results = self.db.get_most_frequent(TSDBModel.frequent_issues_by_project,
-                                            [project_id], dts[0], dts[-1])
-        assert has_shape(results, {1: [(1, 1.0)]})
+        with responses.RequestsMock() as rsps:
+            def snuba_response(request):
+                body = json.loads(request.body)
+                meta = [{'name': col} for col in body['groupby'] + ['aggregate']]
+                datum = {col['name']: 1 for col in meta}
+                if 'time' in datum:
+                    datum['time'] = '2018-03-09T01:00:00Z'
+                if body['aggregation'].startswith('topK'):
+                    datum['aggregate'] = [1]
+                return (200, {}, json.dumps({'data': [datum], 'meta': meta}))
 
-        results = self.db.get_most_frequent_series(TSDBModel.frequent_issues_by_project,
-                                                   [project_id], dts[0], dts[-1])
-        assert has_shape(results, {1: [(1, {1: 1.0})]})
+            rsps.add_callback(responses.POST, SnubaTSDB.SNUBA + '/query', callback=snuba_response)
 
-        items = {
-            project_id: (0, 1, 2)  # {project_id: (issue_id, issue_id, ...)}
-        }
-        results = self.db.get_frequency_series(TSDBModel.frequent_issues_by_project,
-                                               items, dts[0], dts[-1])
-        assert has_shape(results, {1: [(1, {1: 1})]})
+            results = self.db.get_most_frequent(TSDBModel.frequent_issues_by_project,
+                                                [project_id], dts[0], dts[-1])
+            assert has_shape(results, {1: [(1, 1.0)]})
 
-        results = self.db.get_frequency_totals(TSDBModel.frequent_issues_by_project,
-                                               items, dts[0], dts[-1])
-        assert has_shape(results, {1: {1: 1}})
+            results = self.db.get_most_frequent_series(TSDBModel.frequent_issues_by_project,
+                                                       [project_id], dts[0], dts[-1])
+            assert has_shape(results, {1: [(1, {1: 1.0})]})
 
-        results = self.db.get_range(TSDBModel.project, [project_id], dts[0], dts[-1])
-        assert has_shape(results, {1: [(1, 1)]})
-        assert project_id in results
+            items = {
+                project_id: (0, 1, 2)  # {project_id: (issue_id, issue_id, ...)}
+            }
+            results = self.db.get_frequency_series(TSDBModel.frequent_issues_by_project,
+                                                   items, dts[0], dts[-1])
+            assert has_shape(results, {1: [(1, {1: 1})]})
 
-        results = self.db.get_distinct_counts_series(TSDBModel.users_affected_by_project,
-                                                     [project_id], dts[0], dts[-1])
-        assert has_shape(results, {1: [(1, 1)]})
+            results = self.db.get_frequency_totals(TSDBModel.frequent_issues_by_project,
+                                                   items, dts[0], dts[-1])
+            assert has_shape(results, {1: {1: 1}})
 
-        results = self.db.get_distinct_counts_totals(TSDBModel.users_affected_by_project,
-                                                     [project_id], dts[0], dts[-1])
-        assert has_shape(results, {1: 1})
+            results = self.db.get_range(TSDBModel.project, [project_id], dts[0], dts[-1])
+            assert has_shape(results, {1: [(1, 1)]})
 
-        results = self.db.get_distinct_counts_union(TSDBModel.users_affected_by_project,
-                                                    [project_id], dts[0], dts[-1])
-        assert has_shape(results, 1)
+            results = self.db.get_distinct_counts_series(TSDBModel.users_affected_by_project,
+                                                         [project_id], dts[0], dts[-1])
+            assert has_shape(results, {1: [(1, 1)]})
+
+            results = self.db.get_distinct_counts_totals(TSDBModel.users_affected_by_project,
+                                                         [project_id], dts[0], dts[-1])
+            assert has_shape(results, {1: 1})
+
+            results = self.db.get_distinct_counts_union(TSDBModel.users_affected_by_project,
+                                                        [project_id], dts[0], dts[-1])
+            assert has_shape(results, 1)
 
     def test_groups(self):
         project = self.create_project()
@@ -103,6 +118,7 @@ class SnubaTSDBTest(TestCase):
         results = self.db.get_range(TSDBModel.group, [group.id], dts[0], dts[-1])
         assert results is not None
 
+    @responses.activate
     def test_releases(self):
         now = parse_datetime('2018-03-09T01:00:00Z')
         project = self.create_project()
@@ -112,7 +128,44 @@ class SnubaTSDBTest(TestCase):
             date_added=now,
         )
         release.add_project(project)
-
         dts = [now + timedelta(hours=i) for i in range(4)]
-        results = self.db.get_range(TSDBModel.release, [release.id], dts[0], dts[-1])
-        assert results is not None
+
+        with responses.RequestsMock() as rsps:
+            def snuba_response(request):
+                body = json.loads(request.body)
+                assert body['aggregation'] == 'count'
+                assert body['project'] == [project.id]
+                assert body['groupby'] == ['release', 'time']
+                assert ['release', 'IN', ['version X']] in body['conditions']
+                return (200, {}, json.dumps({
+                    'data': [{'release': 'version X', 'time': '2018-03-09T01:00:00Z', 'aggregate': 100}],
+                    'meta': [{'name': 'release'}, {'name': 'time'}, {'name': 'aggregate'}]
+                }))
+
+            rsps.add_callback(responses.POST, SnubaTSDB.SNUBA + '/query', callback=snuba_response)
+            results = self.db.get_range(TSDBModel.release, [release.id], dts[0], dts[-1])
+            assert results == {release.id: [(to_timestamp(now), 100)]}
+
+    @responses.activate
+    def test_environment(self):
+        now = parse_datetime('2018-03-09T01:00:00Z')
+        project = self.create_project()
+        env = self.create_environment(project=project, name="prod")
+        dts = [now + timedelta(hours=i) for i in range(4)]
+
+        with responses.RequestsMock() as rsps:
+            def snuba_response(request):
+                body = json.loads(request.body)
+                assert body['aggregation'] == 'count'
+                assert body['project'] == [project.id]
+                assert body['groupby'] == ['project_id', 'time']
+                assert ['environment', 'IN', ['prod']] in body['conditions']
+                return (200, {}, json.dumps({
+                    'data': [{'project_id': project.id, 'time': '2018-03-09T01:00:00Z', 'aggregate': 100}],
+                    'meta': [{'name': 'project_id'}, {'name': 'time'}, {'name': 'aggregate'}]
+                }))
+
+            rsps.add_callback(responses.POST, SnubaTSDB.SNUBA + '/query', callback=snuba_response)
+            results = self.db.get_range(TSDBModel.project, [project.id],
+                                        dts[0], dts[-1], environment_id=env.id)
+            assert results == {project.id: [(to_timestamp(now), 100)]}
