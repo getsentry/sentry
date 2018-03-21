@@ -141,6 +141,7 @@ const InviteMember = createReactClass({
           user: email,
           teams: Array.from(selectedTeams.keys()),
           role: selectedRole,
+          referrer: this.props.location.query.referrer,
         },
         success: () => {
           // TODO(billy): Use indicator when these views only exist in Settings area

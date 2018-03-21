@@ -1,7 +1,7 @@
 import PropTypes from 'prop-types';
 import React from 'react';
 import styled from 'react-emotion';
-import {MentionsInput, Mention} from 'react-mentions';
+import TextareaAutosize from 'react-autosize-textarea';
 
 import {Client} from '../../../../api';
 import memberListStore from '../../../../stores/memberListStore';
@@ -11,7 +11,6 @@ import SentryTypes from '../../../../proptypes';
 
 import {addErrorMessage, addSuccessMessage} from '../../../../actionCreators/indicator';
 import {t} from '../../../../locale';
-import OwnerInputStyle from './ownerInputStyles';
 
 const SyntaxOverlay = styled.div`
   margin: 5px;
@@ -36,12 +35,20 @@ class OwnerInput extends React.Component {
     super(props);
     this.state = {
       text: props.initialText,
+      initialText: props.initialText,
       error: null,
     };
   }
 
+  componentWillReceiveProps({initialText}) {
+    if (initialText != this.state.initialText) {
+      this.setState({initialText});
+    }
+  }
+
   handleUpdateOwnership = () => {
     let {organization, project} = this.props;
+    let {text} = this.state;
     this.setState({error: null});
 
     const api = new Client();
@@ -49,17 +56,26 @@ class OwnerInput extends React.Component {
       `/projects/${organization.slug}/${project.slug}/ownership/`,
       {
         method: 'PUT',
-        data: {raw: this.state.text || ''},
+        data: {raw: text || ''},
       }
     );
 
     request
       .then(() => {
         addSuccessMessage(t('Updated ownership rules'));
+        this.setState({
+          initialText: text,
+        });
       })
       .catch(error => {
         this.setState({error: error.responseJSON});
-        addErrorMessage(t('Unable to save ownership rules changes'));
+        if (error.status === 403) {
+          addErrorMessage(
+            t("You don't have permission to modify ownership rules for this project")
+          );
+        } else {
+          addErrorMessage(t('Unable to save ownership rules changes'));
+        }
       });
 
     return request;
@@ -84,15 +100,11 @@ class OwnerInput extends React.Component {
     }));
   }
 
-  onChange(v) {
-    this.setState({text: v.target.value});
+  onChange(e) {
+    this.setState({text: e.target.value});
   }
   render() {
-    let {initialText} = this.props;
-    let {text, error} = this.state;
-
-    let mentionableUsers = this.mentionableUsers();
-    let mentionableTeams = this.mentionableTeams();
+    let {text, error, initialText} = this.state;
 
     return (
       <React.Fragment>
@@ -104,41 +116,31 @@ class OwnerInput extends React.Component {
             }
           }}
         >
-          <MentionsInput
-            style={OwnerInputStyle}
+          <TextareaAutosize
             placeholder={
               '#example usage\n\npath:src/example/pipeline/* person@sentry.io #infrastructure\n\nurl:http://example.com/settings/* #product'
             }
+            style={{
+              padding: '5px 5px 0',
+              minHeight: 140,
+              overflow: 'auto',
+              outline: 0,
+              border: '1 solid',
+              width: '100%',
+              resize: 'none',
+              margin: 0,
+              fontFamily: 'Monaco, Consolas, "Courier New", monospace',
+              wordBreak: 'break-all',
+              whiteSpace: 'pre-wrap',
+            }}
             onChange={this.onChange.bind(this)}
-            onBlur={this.onBlur}
             value={text}
-            required={true}
-            autoFocus={true}
-            displayTransform={(id, display, type) => `${display}`}
-            markup="**[sentry.strip:__type__]__display__**"
-            spellCheck="false"
-            autoComplete="off"
-            autoCorrect="off"
-            autoCapitalize="off"
-          >
-            <Mention
-              type="member"
-              trigger="@"
-              data={mentionableUsers}
-              appendSpaceOnAdd={true}
-            />
-            <Mention
-              type="team"
-              trigger="#"
-              data={mentionableTeams}
-              appendSpaceOnAdd={true}
-            />
-          </MentionsInput>
+          />
           {error &&
             error.raw && (
               <SyntaxOverlay line={error.raw[0].match(/line (\d*),/)[1] - 1} />
             )}
-          {error && error.raw.toString()}
+          {error && error.raw && error.raw.toString()}
           <div style={{textAlign: 'end', paddingTop: '10px'}}>
             <Button
               size="small"

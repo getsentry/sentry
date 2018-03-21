@@ -444,6 +444,21 @@ def main(num_events=1, extra_events=False):
                     order=commit_index,
                 )
 
+            # create an unreleased commit
+            Commit.objects.get_or_create(
+                organization_id=org.id,
+                repository_id=repo[0].id,
+                key=sha1(uuid4().hex).hexdigest(),
+                defaults={
+                    'author': CommitAuthor.objects.get_or_create(
+                        organization_id=org.id,
+                        email=user.email,
+                        defaults={'name': user.name}
+                    )[0],
+                    'message': 'feat: Do something to {}\n{}'.format(random.choice(loremipsum.words) + '.js', make_sentence()),
+                },
+            )[0]
+
             Activity.objects.create(
                 type=Activity.RELEASE,
                 project=project,

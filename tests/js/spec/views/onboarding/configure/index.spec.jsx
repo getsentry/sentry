@@ -1,4 +1,5 @@
 import React from 'react';
+import PropTypes from 'prop-types';
 import {shallow, mount} from 'enzyme';
 
 import {Client} from 'app/api';
@@ -113,7 +114,7 @@ describe('Configure should render correctly', function() {
       expect(handleSubmitStub.callCount).toEqual(1);
     });
 
-    it('should render platform docs', function() {
+    it('should render platform docs', function(done) {
       let props = {
         ...baseProps,
       };
@@ -158,11 +159,15 @@ describe('Configure should render correctly', function() {
         childContextTypes: {
           organization: SentryTypes.Organization,
           project: SentryTypes.Project,
-          router: SentryTypes.object,
+          router: PropTypes.object,
         },
       });
 
-      expect(wrapper).toMatchSnapshot();
+      setTimeout(() => {
+        wrapper.update();
+        expect(wrapper).toMatchSnapshot();
+        done();
+      });
     });
   });
 });

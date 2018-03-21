@@ -86,6 +86,14 @@ if getattr(settings, 'DEBUG_VIEWS', settings.DEBUG):
     from sentry.web.debug_urls import urlpatterns as debug_urls
     urlpatterns += debug_urls
 
+# Special favicon in debug mode
+if settings.DEBUG:
+    urlpatterns += patterns('', url(
+        r'^_static/[^/]+/[^/]+/images/favicon\.ico$',
+        generic.dev_favicon,
+        name='sentry-dev-favicon'
+    ))
+
 urlpatterns += patterns(
     '',
     # Store endpoints first since they are the most active
@@ -366,8 +374,13 @@ urlpatterns += patterns(
     ),
     url(
         r'^organizations/(?P<organization_slug>[\w_-]+)/auth/$',
-        OrganizationAuthSettingsView.as_view(),
+        react_page_view,
         name='sentry-organization-auth-settings'
+    ),
+    url(
+        r'^organizations/(?P<organization_slug>[\w_-]+)/auth/configure/$',
+        OrganizationAuthSettingsView.as_view(),
+        name='sentry-organization-auth-provider-settings'
     ),
     url(
         r'^organizations/(?P<organization_slug>[\w_-]+)/integrations/(?P<provider_id>[\w_-]+)/setup/$',

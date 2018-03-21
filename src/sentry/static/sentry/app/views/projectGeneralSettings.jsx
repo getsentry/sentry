@@ -170,11 +170,10 @@ export default class ProjectGeneralSettings extends AsyncView {
                   </TextBlock>
                   <TextBlock>
                     {t(
-                      'Please enter the owner of the organization you would like to transfer this project to.'
+                      'Please enter the organization owner you would like to transfer this project to.'
                     )}
                   </TextBlock>
                   <Panel>
-                    <PanelHeader>{t('Transfer to')}</PanelHeader>
                     <Form
                       hideFooter
                       onFieldChange={this.handleTransferFieldChange}
@@ -244,7 +243,7 @@ export default class ProjectGeneralSettings extends AsyncView {
           <JsonForm
             {...jsonFormProps}
             title={t('Project Details')}
-            fields={[fields.name, fields.slug, fields.team]}
+            fields={[fields.slug, fields.name, fields.team]}
           />
 
           <JsonForm

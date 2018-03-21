@@ -83,7 +83,11 @@ exports[`Configure should render correctly render() should render platform docs 
         }
       >
         <ProjectContext
-          location={Object {}}
+          location={
+            Object {
+              "query": Object {},
+            }
+          }
           orgId="testOrg"
           projectId="project-slug"
           router={
@@ -93,7 +97,9 @@ exports[`Configure should render correctly render() should render platform docs 
               "goBack": [Function],
               "goForward": [Function],
               "isActive": [Function],
-              "location": Object {},
+              "location": Object {
+                "query": Object {},
+              },
               "push": [Function],
               "replace": [Function],
               "setRouteLeaveHook": [Function],

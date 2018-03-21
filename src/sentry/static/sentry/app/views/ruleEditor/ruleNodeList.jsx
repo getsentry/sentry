@@ -81,7 +81,7 @@ class RuleNodeList extends React.Component {
         <fieldset className="node-selector">
           <SelectInput onChange={this.onAddRow} style={{width: '100%'}}>
             <option key="blank" />
-            {this.props.nodes.map(node => {
+            {this.props.nodes.filter(n => n.enabled).map(node => {
               return (
                 <option value={node.id} key={node.id}>
                   {node.label}

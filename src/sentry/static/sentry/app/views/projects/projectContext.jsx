@@ -134,8 +134,6 @@ const ProjectContext = createReactClass({
 
   fetchData() {
     let {orgId, projectId, location} = this.props;
-    let query = location.query || {};
-    let envName = query.environment;
     // we fetch core access/information from the global organization data
     let activeProject = this.identifyProject();
     let hasAccess = activeProject && activeProject.hasAccess;
@@ -148,37 +146,44 @@ const ProjectContext = createReactClass({
 
     if (activeProject && hasAccess) {
       setActiveProject(null);
-      this.api.request(`/projects/${orgId}/${projectId}/`, {
-        success: data => {
+      const projectRequest = this.api.requestPromise(`/projects/${orgId}/${projectId}/`);
+
+      const environmentRequest = this.api.requestPromise(
+        this.getEnvironmentListEndpoint()
+      );
+
+      Promise.all([projectRequest, environmentRequest]).then(
+        ([project, envs]) => {
           this.setState({
             loading: false,
-            project: data,
+            project,
             error: false,
             errorType: null,
           });
+
           // assuming here that this means the project is considered the active project
-          setActiveProject(data);
+          setActiveProject(project);
+
+          // If an environment is specified in the query string, load it instead of default
+          const queryEnv = location.query.environment;
+          const envName =
+            typeof queryEnv === 'undefined' ? project.defaultEnvironment : queryEnv;
+
+          loadEnvironments(envs, envName);
         },
-        error: error => {
-          // TODO(dcramer): this should handle 404 (project not found)
+        () => {
           this.setState({
             loading: false,
             error: false,
             errorType: ERROR_TYPES.UNKNOWN,
           });
-        },
-      });
+        }
+      );
 
       // TODO(dcramer): move member list to organization level
       this.api.request(this.getMemberListEndpoint(), {
         success: data => {
           MemberListStore.loadInitialData(data.filter(m => m.user).map(m => m.user));
-        },
-      });
-
-      this.api.request(this.getEnvironmentListEndpoint(), {
-        success: envs => {
-          loadEnvironments(envs, envName);
         },
       });
     } else if (activeProject && !activeProject.isMember) {

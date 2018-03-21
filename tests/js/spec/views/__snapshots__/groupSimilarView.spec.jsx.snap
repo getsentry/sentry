@@ -706,9 +706,7 @@ exports[`Issues Similar View renders with mocked data 1`] = `
                                 <div
                                   className="glamor-0 glamor-1"
                                 >
-                                  <Link
-                                    onlyActiveOnIndex={false}
-                                    style={Object {}}
+                                  <ProjectLink
                                     to={
                                       Object {
                                         "pathname": "/orgId/projectId/issues/271/",
@@ -717,8 +715,12 @@ exports[`Issues Similar View renders with mocked data 1`] = `
                                     }
                                   >
                                     <a
-                                      onClick={[Function]}
-                                      style={Object {}}
+                                      href={
+                                        Object {
+                                          "pathname": "/orgId/projectId/issues/271/",
+                                          "search": "",
+                                        }
+                                      }
                                     >
                                       <EventOrGroupTitle
                                         data={
@@ -777,7 +779,7 @@ exports[`Issues Similar View renders with mocked data 1`] = `
                                         </span>
                                       </EventOrGroupTitle>
                                     </a>
-                                  </Link>
+                                  </ProjectLink>
                                 </div>
                               </Title>
                               <Message>
@@ -1802,9 +1804,7 @@ exports[`Issues Similar View renders with mocked data 2`] = `
                                 <div
                                   className="glamor-0 glamor-1"
                                 >
-                                  <Link
-                                    onlyActiveOnIndex={false}
-                                    style={Object {}}
+                                  <ProjectLink
                                     to={
                                       Object {
                                         "pathname": "/orgId/projectId/issues/271/",
@@ -1813,8 +1813,12 @@ exports[`Issues Similar View renders with mocked data 2`] = `
                                     }
                                   >
                                     <a
-                                      onClick={[Function]}
-                                      style={Object {}}
+                                      href={
+                                        Object {
+                                          "pathname": "/orgId/projectId/issues/271/",
+                                          "search": "",
+                                        }
+                                      }
                                     >
                                       <EventOrGroupTitle
                                         data={
@@ -1873,7 +1877,7 @@ exports[`Issues Similar View renders with mocked data 2`] = `
                                         </span>
                                       </EventOrGroupTitle>
                                     </a>
-                                  </Link>
+                                  </ProjectLink>
                                 </div>
                               </Title>
                               <Message>

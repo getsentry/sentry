@@ -10,17 +10,30 @@ from sentry.testutils import APITestCase, TwoFactorAPITestCase
 
 
 class OrganizationsListTest(APITestCase):
-    @fixture
-    def path(self):
-        return reverse('sentry-api-0-organizations')
+    path = '/api/0/organizations/'
 
     def test_membership(self):
         org = self.create_organization(owner=self.user)
         self.login_as(user=self.user)
-        response = self.client.get('{}?member=1'.format(self.path))
+        response = self.client.get('{}'.format(self.path))
         assert response.status_code == 200
         assert len(response.data) == 1
         assert response.data[0]['id'] == six.text_type(org.id)
+
+    def test_show_all_with_superuser(self):
+        org = self.organization
+        self.login_as(user=self.create_user(is_superuser=True), superuser=True)
+        response = self.client.get('{}?show=all'.format(self.path))
+        assert response.status_code == 200
+        assert len(response.data) == 2
+        assert response.data[0]['id'] == six.text_type(org.id)
+
+    def test_show_all_without_superuser(self):
+        self.create_organization(owner=self.user)
+        self.login_as(user=self.create_user(is_superuser=False))
+        response = self.client.get('{}?show=all'.format(self.path))
+        assert response.status_code == 200
+        assert len(response.data) == 0
 
     def test_ownership(self):
         org = self.create_organization(name="A", owner=self.user)
@@ -68,9 +81,7 @@ class OrganizationsListTest(APITestCase):
 
 
 class OrganizationsCreateTest(APITestCase):
-    @fixture
-    def path(self):
-        return reverse('sentry-api-0-organizations')
+    path = '/api/0/organizations/'
 
     def test_missing_params(self):
         self.login_as(user=self.user)

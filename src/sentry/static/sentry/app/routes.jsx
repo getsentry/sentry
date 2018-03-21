@@ -41,13 +41,12 @@ import OrganizationActivity from './views/organizationActivity';
 import OrganizationApiKeyDetailsView from './views/settings/organization/apiKeys/organizationApiKeyDetailsView';
 import OrganizationApiKeysView from './views/settings/organization/apiKeys/organizationApiKeysView';
 import OrganizationAuditLogView from './views/settings/organization/auditLog/auditLogView';
-import OrganizationAuthView from './views/settings/organization/auth/organizationAuthView';
+import OrganizationCommits from './views/organizationCommits';
 import OrganizationContext from './views/organizationContext';
 import OrganizationCreate from './views/organizationCreate';
 import OrganizationDashboard from './views/organizationDashboard';
 import OrganizationDetails from './views/organizationDetails';
 import OrganizationHomeContainer from './components/organizations/homeContainer';
-import OrganizationIntegrations from './views/organizationIntegrations';
 import OrganizationMemberDetail from './views/settings/organization/members/organizationMemberDetail';
 import OrganizationMembersView from './views/settings/organization/members/organizationMembersView';
 import OrganizationPicker from './views/settings/components/organizationPicker';
@@ -57,6 +56,7 @@ import OrganizationRepositoriesView from './views/organizationRepositoriesView';
 import OrganizationGeneralSettingsView from './views/settings/organization/general/organizationGeneralSettingsView';
 import OrganizationStats from './views/organizationStats';
 import OrganizationTeams from './views/organizationTeams';
+import OrganizationTeamsProjectsView from './views/organizationTeamsProjects';
 import ProjectAlertRules from './views/projectAlertRules';
 import ProjectAlertRuleDetails from './views/projectAlertRuleDetails';
 import ProjectAlertSettings from './views/projectAlertSettings';
@@ -378,7 +378,7 @@ const projectSettingsRoutes = (
       componentPromise={() =>
         import(/* webpackChunkName: "OrganizationIntegrationConfig" */ './views/organizationIntegrationConfig')}
       component={errorHandler(LazyLoad)}
-    />,
+    />
     <Route
       path="install/"
       name="Basic Configuration"
@@ -444,13 +444,9 @@ function routes() {
       <Route
         path="auth/"
         name="Auth Providers"
-        component={errorHandler(OrganizationAuthView)}
-      />
-
-      <Route
-        path="integrations/"
-        name="Integrations"
-        component={errorHandler(OrganizationIntegrations)}
+        componentPromise={() =>
+          import(/*webpackChunkName: OrganizationAuthView*/ './views/settings/organization/auth/organizationAuthView')}
+        component={errorHandler(LazyLoad)}
       />
 
       <Route path="members/" name="Members">
@@ -628,11 +624,20 @@ function routes() {
         />
 
         <Route
+          path="/organizations/:orgId/commits/"
+          component={errorHandler(OrganizationCommits)}
+        />
+
+        <Route
           path="/organizations/:orgId/teams/new/"
           component={errorHandler(TeamCreate)}
         />
 
         <Route path="/organizations/:orgId/" component={OrganizationHomeContainer}>
+          <Route
+            path="projects/"
+            component={errorHandler(OrganizationTeamsProjectsView)}
+          />
           {hooksOrgRoutes}
           {orgSettingsRoutes}
         </Route>
@@ -670,6 +675,8 @@ function routes() {
 
         <Route path=":projectId/" component={errorHandler(ProjectDetails)}>
           <IndexRoute component={errorHandler(Stream)} />
+          <Route path="issues/" component={errorHandler(Stream)} />
+
           <Route path="searches/:searchId/" component={errorHandler(Stream)} />
           <Route path="dashboard/" component={errorHandler(ProjectDashboard)} />
           <Route path="events/" component={errorHandler(ProjectEvents)} />

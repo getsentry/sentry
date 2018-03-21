@@ -749,7 +749,7 @@ class AuthHelper(object):
         self.clear_session()
 
         next_uri = reverse(
-            'sentry-organization-auth-settings', args=[
+            'sentry-organization-auth-provider-settings', args=[
                 self.organization.slug,
             ]
         )

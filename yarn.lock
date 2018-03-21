@@ -342,6 +342,10 @@ ajv-keywords@^2.0.0, ajv-keywords@^2.1.0:
   version "2.1.1"
   resolved "https://registry.yarnpkg.com/ajv-keywords/-/ajv-keywords-2.1.1.tgz#617997fc5f60576894c435f940d819e135b80762"
 
+ajv-keywords@^3.1.0:
+  version "3.1.0"
+  resolved "https://registry.yarnpkg.com/ajv-keywords/-/ajv-keywords-3.1.0.tgz#ac2b27939c543e95d2c06e7f7f5c27be4aa543be"
+
 ajv@^4.9.1:
   version "4.11.8"
   resolved "https://registry.yarnpkg.com/ajv/-/ajv-4.11.8.tgz#82ffb02b29e662ae53bdc20af15947706739c536"
@@ -372,6 +376,14 @@ ajv@^5.2.3:
   resolved "https://registry.yarnpkg.com/ajv/-/ajv-5.3.0.tgz#4414ff74a50879c208ee5fdc826e32c303549eda"
   dependencies:
     co "^4.6.0"
+    fast-deep-equal "^1.0.0"
+    fast-json-stable-stringify "^2.0.0"
+    json-schema-traverse "^0.3.0"
+
+ajv@^6.1.0:
+  version "6.3.0"
+  resolved "https://registry.yarnpkg.com/ajv/-/ajv-6.3.0.tgz#1650a41114ef00574cac10b8032d8f4c14812da7"
+  dependencies:
     fast-deep-equal "^1.0.0"
     fast-json-stable-stringify "^2.0.0"
     json-schema-traverse "^0.3.0"
@@ -632,6 +644,10 @@ autoprefixer@^7.1.6:
     num2fraction "^1.2.2"
     postcss "^6.0.14"
     postcss-value-parser "^3.2.3"
+
+autosize@^4.0.0:
+  version "4.0.0"
+  resolved "https://registry.yarnpkg.com/autosize/-/autosize-4.0.0.tgz#7a0599b1ba84d73bd7589b0d9da3870152c69237"
 
 aws-sign2@~0.6.0:
   version "0.6.0"
@@ -2444,6 +2460,10 @@ compression@^1.5.2:
     safe-buffer "5.1.1"
     vary "~1.1.2"
 
+computed-style@~0.1.3:
+  version "0.1.4"
+  resolved "https://registry.yarnpkg.com/computed-style/-/computed-style-0.1.4.tgz#7f344fd8584b2e425bedca4a1afc0e300bb05d74"
+
 concat-map@0.0.1:
   version "0.0.1"
   resolved "https://registry.yarnpkg.com/concat-map/-/concat-map-0.0.1.tgz#d8a96bd77fd68df7793a73036a3ba0d5405d477b"
@@ -2880,7 +2900,7 @@ deep-eql@^0.1.3:
   dependencies:
     type-detect "0.1.1"
 
-deep-equal@^1.0.0, deep-equal@^1.0.1:
+deep-equal@^1.0.1:
   version "1.0.1"
   resolved "https://registry.yarnpkg.com/deep-equal/-/deep-equal-1.0.1.tgz#f5d260292b660e084eff4cdbc9f08ad3247448b5"
 
@@ -3818,11 +3838,12 @@ file-entry-cache@^2.0.0:
     flat-cache "^1.2.1"
     object-assign "^4.0.1"
 
-file-loader@0.8.4:
-  version "0.8.4"
-  resolved "https://registry.yarnpkg.com/file-loader/-/file-loader-0.8.4.tgz#36cb91a1e07fb59817432a76b8408d66fbaa69c6"
+file-loader@1.1.11:
+  version "1.1.11"
+  resolved "https://registry.yarnpkg.com/file-loader/-/file-loader-1.1.11.tgz#6fe886449b0f2a936e43cabaac0cdbfb369506f8"
   dependencies:
-    loader-utils "~0.2.5"
+    loader-utils "^1.0.2"
+    schema-utils "^0.4.5"
 
 file-loader@^1.1.5:
   version "1.1.5"
@@ -4312,15 +4333,6 @@ he@^1.1.1:
   version "1.1.1"
   resolved "https://registry.yarnpkg.com/he/-/he-1.1.1.tgz#93410fd21b009735151f8868c2f271f3427e23fd"
 
-history@1.13.0:
-  version "1.13.0"
-  resolved "https://registry.yarnpkg.com/history/-/history-1.13.0.tgz#ff75e23680d9f7962c5eb1e159a36d22ae87f4aa"
-  dependencies:
-    deep-equal "^1.0.0"
-    invariant "^2.0.0"
-    qs "^4.0.0"
-    warning "^2.0.0"
-
 history@^3.0.0:
   version "3.3.0"
   resolved "https://registry.yarnpkg.com/history/-/history-3.3.0.tgz#fcedcce8f12975371545d735461033579a6dae9c"
@@ -4623,7 +4635,7 @@ interpret@^1.0.0:
   version "1.1.0"
   resolved "https://registry.yarnpkg.com/interpret/-/interpret-1.1.0.tgz#7ed1b1410c6a0e0f78cf95d3b8440c63f78b8614"
 
-invariant@^2.0.0, invariant@^2.1.0, invariant@^2.2.0, invariant@^2.2.1, invariant@^2.2.2:
+invariant@^2.1.0, invariant@^2.2.0, invariant@^2.2.1, invariant@^2.2.2:
   version "2.2.2"
   resolved "https://registry.yarnpkg.com/invariant/-/invariant-2.2.2.tgz#9e1f56ac0acdb6bf303306f338be3b204ae60360"
   dependencies:
@@ -5557,6 +5569,12 @@ levn@^0.3.0, levn@~0.3.0:
     prelude-ls "~1.1.2"
     type-check "~0.3.2"
 
+line-height@^0.3.1:
+  version "0.3.1"
+  resolved "https://registry.yarnpkg.com/line-height/-/line-height-0.3.1.tgz#4b1205edde182872a5efa3c8f620b3187a9c54c9"
+  dependencies:
+    computed-style "~0.1.3"
+
 lint-staged@^4.1.3:
   version "4.3.0"
   resolved "https://registry.yarnpkg.com/lint-staged/-/lint-staged-4.3.0.tgz#ed0779ad9a42c0dc62bb3244e522870b41125879"
@@ -5647,7 +5665,7 @@ loader-runner@^2.3.0:
   version "2.3.0"
   resolved "https://registry.yarnpkg.com/loader-runner/-/loader-runner-2.3.0.tgz#f482aea82d543e07921700d5a46ef26fdac6b8a2"
 
-loader-utils@0.2.x, loader-utils@^0.2.5, loader-utils@^0.2.7, loader-utils@~0.2.5:
+loader-utils@^0.2.5, loader-utils@^0.2.7:
   version "0.2.17"
   resolved "https://registry.yarnpkg.com/loader-utils/-/loader-utils-0.2.17.tgz#f86e6374d43205a6e6c60e9196f17c0299bfb348"
   dependencies:
@@ -6006,10 +6024,6 @@ mime-types@^2.1.12, mime-types@^2.1.14, mime-types@~2.1.15, mime-types@~2.1.16, 
   resolved "https://registry.yarnpkg.com/mime-types/-/mime-types-2.1.17.tgz#09d7a393f03e995a79f8af857b70a9e0ab16557a"
   dependencies:
     mime-db "~1.30.0"
-
-mime@1.2.x:
-  version "1.2.11"
-  resolved "https://registry.yarnpkg.com/mime/-/mime-1.2.11.tgz#58203eed86e3a5ef17aed2b7d9ebd47f0a60dd10"
 
 mime@1.4.1:
   version "1.4.1"
@@ -7272,10 +7286,6 @@ qs@6.5.1, qs@^6.5.1, qs@~6.5.1:
   version "6.5.1"
   resolved "https://registry.yarnpkg.com/qs/-/qs-6.5.1.tgz#349cdf6eef89ec45c12d7d5eb3fc0c870343a6d8"
 
-qs@^4.0.0:
-  version "4.0.0"
-  resolved "https://registry.yarnpkg.com/qs/-/qs-4.0.0.tgz#c31d9b74ec27df75e543a86c78728ed8d4623607"
-
 qs@~6.4.0:
   version "6.4.0"
   resolved "https://registry.yarnpkg.com/qs/-/qs-6.4.0.tgz#13e26d28ad6b0ffaa91312cd3bf708ed351e7233"
@@ -7394,6 +7404,14 @@ react-addons-css-transition-group@15.6.2:
   resolved "https://registry.yarnpkg.com/react-addons-css-transition-group/-/react-addons-css-transition-group-15.6.2.tgz#9e4376bcf40b5217d14ec68553081cee4b08a6d6"
   dependencies:
     react-transition-group "^1.2.0"
+
+react-autosize-textarea@3.0.2:
+  version "3.0.2"
+  resolved "https://registry.yarnpkg.com/react-autosize-textarea/-/react-autosize-textarea-3.0.2.tgz#2b6840a69f7138719abcea5a429ecf7301768c07"
+  dependencies:
+    autosize "^4.0.0"
+    line-height "^0.3.1"
+    prop-types "^15.5.6"
 
 react-bootstrap@^0.32.0:
   version "0.32.0"
@@ -8121,6 +8139,13 @@ schema-utils@^0.3.0:
   resolved "https://registry.yarnpkg.com/schema-utils/-/schema-utils-0.3.0.tgz#f5877222ce3e931edae039f17eb3716e7137f8cf"
   dependencies:
     ajv "^5.0.0"
+
+schema-utils@^0.4.5:
+  version "0.4.5"
+  resolved "https://registry.yarnpkg.com/schema-utils/-/schema-utils-0.4.5.tgz#21836f0608aac17b78f9e3e24daff14a5ca13a3e"
+  dependencies:
+    ajv "^6.1.0"
+    ajv-keywords "^3.1.0"
 
 scroll-to-element@^2.0.0:
   version "2.0.0"
@@ -9146,13 +9171,6 @@ urix@^0.1.0, urix@~0.1.0:
   version "0.1.0"
   resolved "https://registry.yarnpkg.com/urix/-/urix-0.1.0.tgz#da937f7a62e21fec1fd18d49b35c2935067a6c72"
 
-url-loader@0.5.6:
-  version "0.5.6"
-  resolved "https://registry.yarnpkg.com/url-loader/-/url-loader-0.5.6.tgz#644521a5dc66b8729caab1b6ba9e580e021ded45"
-  dependencies:
-    loader-utils "0.2.x"
-    mime "1.2.x"
-
 url-loader@^0.6.2:
   version "0.6.2"
   resolved "https://registry.yarnpkg.com/url-loader/-/url-loader-0.6.2.tgz#a007a7109620e9d988d14bce677a1decb9a993f7"
@@ -9286,7 +9304,7 @@ walker@~1.0.5:
   dependencies:
     makeerror "1.0.x"
 
-warning@^2.0.0, warning@^2.1.0:
+warning@^2.1.0:
   version "2.1.0"
   resolved "https://registry.yarnpkg.com/warning/-/warning-2.1.0.tgz#21220d9c63afc77a8c92111e011af705ce0c6901"
   dependencies:

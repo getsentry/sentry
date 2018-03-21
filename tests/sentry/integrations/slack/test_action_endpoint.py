@@ -3,6 +3,7 @@ from __future__ import absolute_import
 import responses
 
 from six.moves.urllib.parse import parse_qs
+from mock import patch
 
 from sentry import options
 from sentry.models import (
@@ -98,7 +99,10 @@ class BaseEventTest(APITestCase):
 
 
 class StatusActionTest(BaseEventTest):
-    def test_ask_linking(self):
+    @patch('sentry.integrations.slack.link_identity.sign')
+    def test_ask_linking(self, sign):
+        sign.return_value = 'signed_parameters'
+
         resp = self.post_webhook(slack_user={
             'id': 'invalid-id',
             'domain': 'example',
@@ -163,7 +167,7 @@ class StatusActionTest(BaseEventTest):
         # Assign to user
         status_action = {
             'name': 'assign',
-            'selected_options': [{'value': user2.username}],
+            'selected_options': [{'value': u'user:{}'.format(user2.id)}],
         }
 
         resp = self.post_webhook(action_data=[status_action])
@@ -176,19 +180,19 @@ class StatusActionTest(BaseEventTest):
             assigner=self.identity.external_id,
         )
 
-        # Unassign from user
+        # Assign to team
         status_action = {
             'name': 'assign',
-            'selected_options': [{'value': 'none'}],
+            'selected_options': [{'value': u'team:{}'.format(self.team.id)}],
         }
 
         resp = self.post_webhook(action_data=[status_action])
 
         assert resp.status_code == 200, resp.content
-        assert not GroupAssignee.objects.filter(group=self.group1).exists()
+        assert GroupAssignee.objects.filter(group=self.group1, team=self.team).exists()
 
-        expect_status = u'*Issue unassigned by <@{assigner}>*'.format(
-            assignee=user2.get_display_name(),
+        expect_status = u'*Issue assigned to {team} by <@{assigner}>*'.format(
+            team=self.team.slug,
             assigner=self.identity.external_id,
         )
 
@@ -208,7 +212,7 @@ class StatusActionTest(BaseEventTest):
 
         status_action = {
             'name': 'assign',
-            'selected_options': [{'value': user2.username}],
+            'selected_options': [{'value': u'user:{}'.format(user2.id)}],
         }
 
         resp = self.post_webhook(action_data=[status_action])

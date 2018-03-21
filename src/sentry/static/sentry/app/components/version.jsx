@@ -1,7 +1,7 @@
 import PropTypes from 'prop-types';
 import React from 'react';
-import {Link} from 'react-router';
 
+import ProjectLink from '../components/projectLink';
 import {getShortVersion} from '../utils';
 
 class Version extends React.Component {
@@ -24,9 +24,11 @@ class Version extends React.Component {
       return (
         // NOTE: version is encoded because it can contain slashes "/",
         //       which can interfere with URL construction
-        <Link to={`/${orgId}/${projectId}/releases/${encodeURIComponent(version)}/`}>
+        <ProjectLink
+          to={`/${orgId}/${projectId}/releases/${encodeURIComponent(version)}/`}
+        >
           <span title={version}>{shortVersion}</span>
-        </Link>
+        </ProjectLink>
       );
     }
     return <span title={version}>{shortVersion}</span>;

@@ -206,29 +206,29 @@ class ProjectTeams extends AsyncView {
     let {orgId, projectId} = this.props.params;
     let access = new Set(this.props.organization.access);
 
-    return [
-      <PanelHeader key={'header'} hasButtons={true}>
-        <PanelHeaderContent>
+    return (
+      <React.Fragment>
+        <PanelHeader hasButtons={true}>
           <div>{t('Team')}</div>
           <div>{this.renderAddTeamButton()}</div>
-        </PanelHeaderContent>
-      </PanelHeader>,
-      <PanelBody key={'body'}>
-        {this.state.projectTeams.map(team => {
-          return (
-            <TeamRow
-              access={access}
-              key={team.id}
-              orgId={orgId}
-              projectId={projectId}
-              team={team}
-              onRemove={this.handleRemovedTeam.bind(this, team)}
-              teamCount={this.state.projectTeams.length}
-            />
-          );
-        })}
-      </PanelBody>,
-    ];
+        </PanelHeader>
+        <PanelBody>
+          {this.state.projectTeams.map(team => {
+            return (
+              <TeamRow
+                access={access}
+                key={team.id}
+                orgId={orgId}
+                projectId={projectId}
+                team={team}
+                onRemove={this.handleRemovedTeam.bind(this, team)}
+                teamCount={this.state.projectTeams.length}
+              />
+            );
+          })}
+        </PanelBody>
+      </React.Fragment>
+    );
   }
 
   renderBody() {
@@ -254,12 +254,6 @@ const RemoveIcon = styled(props => (
   min-height: 1.25em;
   min-width: 1.25em;
   margin-right: 0.5em;
-`;
-
-const PanelHeaderContent = styled('div')`
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
 `;
 
 const TeamDropdownElement = styled('div')`

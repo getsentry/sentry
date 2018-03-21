@@ -84,11 +84,7 @@ const ReleaseCommits = createReactClass({
     let activeCommits = commitsByRepository[repo];
     return (
       <div className="panel panel-default">
-        <div className="panel-heading panel-heading-bold">
-          <div className="row">
-            <div className="col-xs-12">{repo}</div>
-          </div>
-        </div>
+        <div className="panel-heading panel-heading-bold">{repo}</div>
         <ul className="list-group list-group-lg commit-list">
           {activeCommits.map(commit => {
             return <CommitRow key={commit.id} commit={commit} />;

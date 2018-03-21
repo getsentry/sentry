@@ -10,11 +10,13 @@ describe('RuleNodeList', function() {
     sampleNodes = [
       {
         id: 'sentry.rules.conditions.every_event.EveryEventCondition',
+        enabled: true,
         label: 'An event is seen',
         html: 'An event is seen',
       },
       {
         id: 'sentry.rules.conditions.event_frequency.EventFrequencyCondition',
+        enabled: false,
         label: 'An event is seen more than {value} times in {interval}',
         html:
           'An event is seen more than <input id="id_value" name="value" placeholder="100" type="number" /> times ' +
@@ -43,6 +45,7 @@ describe('RuleNodeList', function() {
       expect(wrapper.state('items')[0]).toHaveProperty('key_attr', 0);
       expect(wrapper.state('items')[1]).toHaveProperty('key_attr', 1);
       expect(wrapper.state('counter')).toEqual(2);
+      expect(wrapper.find('.node-selector option[value]').length).toEqual(1);
     });
   });
 

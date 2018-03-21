@@ -19,8 +19,7 @@ import Panel from '../settings/components/panel';
 import PanelBody from '../settings/components/panelBody';
 import PanelHeader from '../settings/components/panelHeader';
 import RuleNodeList from './ruleNodeList';
-
-const ALL_ENVIRONMENTS_KEY = '__all_environments__';
+import {ALL_ENVIRONMENTS_KEY} from '../../constants';
 
 const FREQUENCY_CHOICES = [
   ['5', t('5 minutes')],

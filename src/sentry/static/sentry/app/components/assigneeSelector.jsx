@@ -36,13 +36,14 @@ const AssigneeSelector = createReactClass({
   ],
 
   statics: {
-    filterMembers(memberList, filter) {
-      if (!memberList) return [];
-      if (!filter) return memberList;
+    filterAssignees(itemList, filter) {
+      if (!itemList) return [];
+      if (!filter) return itemList;
 
       filter = filter.toLowerCase();
-      return memberList.filter(item => {
-        let fullName = [item.name, item.email].join(' ').toLowerCase();
+
+      return itemList.filter(item => {
+        let fullName = [item.name, item.email, item.slug].join(' ').toLowerCase();
 
         return fullName.indexOf(filter) !== -1;
       });
@@ -109,9 +110,12 @@ const AssigneeSelector = createReactClass({
   assignableTeams() {
     let group = GroupStore.get(this.props.id);
 
-    return (ProjectsStore.getAll().find(p => p.slug == group.project.slug) || {
-      teams: [],
-    }).teams.map(team => ({
+    return AssigneeSelector.filterAssignees(
+      (ProjectsStore.getAll().find(p => p.slug == group.project.slug) || {
+        teams: [],
+      }).teams,
+      this.state.filter
+    ).map(team => ({
       id: buildTeamId(team.id),
       display: `#${team.slug}`,
       email: team.id,
@@ -158,7 +162,7 @@ const AssigneeSelector = createReactClass({
 
   onFilterKeyDown(evt) {
     if (evt.key === 'Enter' && this.state.filter) {
-      let members = AssigneeSelector.filterMembers(
+      let members = AssigneeSelector.filterAssignees(
         this.state.memberList,
         this.state.filter
       );
@@ -211,7 +215,7 @@ const AssigneeSelector = createReactClass({
 
   renderMemberNodes() {
     let {filter, memberList} = this.state;
-    let members = AssigneeSelector.filterMembers(memberList, filter);
+    let members = AssigneeSelector.filterAssignees(memberList, filter);
     members = AssigneeSelector.putSessionUserFirst(members);
 
     return members && members.length ? (
@@ -240,10 +244,7 @@ const AssigneeSelector = createReactClass({
     let features = new Set(org.features);
 
     if (features.has('new-teams')) {
-      teamNodes = AssigneeSelector.filterMembers(
-        this.assignableTeams(),
-        filter
-      ).map(({id, display, team}) => {
+      teamNodes = this.assignableTeams().map(({id, display, team}) => {
         return (
           <MenuItem key={id} onSelect={this.assignToTeam.bind(this, team)}>
             <TeamAvatar team={team} className="avatar" size={48} />
@@ -345,6 +346,7 @@ const AssigneeSelector = createReactClass({
                 disabled={!loading}
                 to={`/settings/organization/${this.context.organization
                   .slug}/members/new/`}
+                query={{referrer: 'assignee_selector'}}
               >
                 <span className="icon-plus" /> {t('Invite Member')}
               </MenuItem>

@@ -1,16 +1,19 @@
 import {isEqual} from 'lodash';
 import PropTypes from 'prop-types';
-import Raven from 'raven-js';
 import React from 'react';
 
 import {Client} from '../api';
-import {t, tct} from '../locale';
-import ExternalLink from './externalLink';
+import {t} from '../locale';
 import LoadingError from './loadingError';
 import LoadingIndicator from '../components/loadingIndicator';
+import PermissionDenied from '../views/permissionDenied';
 import RouteError from './../views/routeError';
 
 class AsyncComponent extends React.Component {
+  static propTypes = {
+    location: PropTypes.object,
+  };
+
   static contextTypes = {
     router: PropTypes.object,
   };
@@ -31,13 +34,14 @@ class AsyncComponent extends React.Component {
 
   componentWillReceiveProps(nextProps, nextContext) {
     const isRouterInContext = !!this.context.router;
+    const isLocationInProps = nextProps.location !== undefined;
 
-    const currentLocation = isRouterInContext
-      ? this.context.router.location
-      : this.props.location;
-    const nextLocation = isRouterInContext
-      ? nextContext.router.location
-      : nextProps.location;
+    const currentLocation = isLocationInProps
+      ? this.props.location
+      : isRouterInContext ? this.context.router.location : null;
+    const nextLocation = isLocationInProps
+      ? nextProps.location
+      : isRouterInContext ? nextContext.router.location : null;
 
     // re-fetch data when router params change
     if (
@@ -93,10 +97,12 @@ class AsyncComponent extends React.Component {
     endpoints.forEach(([stateKey, endpoint, params, options]) => {
       options = options || {};
       let locationQuery = (this.props.location && this.props.location.query) || {};
-      let paramsQuery = (params && params.query) || {};
+      let query = (params && params.query) || {};
       // If paginate option then pass entire `query` object to API call
       // It should only be expecting `query.cursor` for pagination
-      let query = options.paginate && {...locationQuery, ...paramsQuery};
+      if (options.paginate) {
+        query = {...locationQuery, ...query};
+      }
 
       this.api.request(endpoint, {
         method: 'GET',
@@ -187,18 +193,7 @@ class AsyncComponent extends React.Component {
     }
 
     if (permissionErrors) {
-      // TODO(billy): Refactor this into a new PermissionDenied component
-      Raven.captureException(new Error('Permission Denied'), {});
-      return (
-        <LoadingError
-          message={tct(
-            'Your role does not have the necessary permissions to access this resource, please read more about [link:organizational roles]',
-            {
-              link: <ExternalLink href="https://docs.sentry.io/learn/membership/" />,
-            }
-          )}
-        />
-      );
+      return <PermissionDenied />;
     }
 
     return <RouteError error={error} component={this} onRetry={this.remountComponent} />;

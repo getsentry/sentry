@@ -2,7 +2,8 @@ import PropTypes from 'prop-types';
 import React from 'react';
 import styled, {css} from 'react-emotion';
 import classNames from 'classnames';
-import {Link} from 'react-router';
+
+import ProjectLink from '../components/projectLink';
 import {Metadata} from '../proptypes';
 import EventOrGroupTitle from './eventOrGroupTitle';
 
@@ -60,7 +61,7 @@ class EventOrIssueHeader extends React.Component {
           : ''}`,
         search: `${this.props.query ? `?query=${this.props.query}` : ''}`,
       };
-      Wrapper = Link;
+      Wrapper = ProjectLink;
     } else {
       Wrapper = 'span';
     }

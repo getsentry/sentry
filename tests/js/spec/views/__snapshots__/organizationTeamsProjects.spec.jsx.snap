@@ -1,0 +1,402 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`OrganizationTeamProjects Should render 1`] = `
+.glamor-14 {
+  text-transform: none;
+}
+
+.glamor-4 {
+  font-size: 14px;
+  box-shadow: inset 0 -1px 0;
+  margin: -20px 0 30px;
+}
+
+.glamor-2 {
+  box-sizing: border-box;
+  display: -webkit-box;
+  display: -webkit-flex;
+  display: -ms-flexbox;
+  display: flex;
+  -webkit-align-items: center;
+  -webkit-box-align: center;
+  -ms-flex-align: center;
+  align-items: center;
+}
+
+.glamor-0 {
+  font-size: 20px;
+  font-weight: bold;
+  margin: 20px 0;
+  -webkit-flex: 1;
+  -ms-flex: 1;
+  flex: 1;
+}
+
+.glamor-26 {
+  background: #fff;
+  border: 1px solid;
+  margin-bottom: NaNpx;
+  position: relative;
+}
+
+.glamor-10 {
+  font-size: 13px;
+  font-weight: 600;
+  text-transform: uppercase;
+  border-bottom: 1px solid;
+  border-radius: 0 0;
+  line-height: 1;
+  padding: 15px 20px;
+  text-transform: none;
+}
+
+.glamor-7 {
+  box-sizing: border-box;
+  display: -webkit-box;
+  display: -webkit-flex;
+  display: -ms-flexbox;
+  display: flex;
+  -webkit-align-items: center;
+  -webkit-box-align: center;
+  -ms-flex-align: center;
+  align-items: center;
+  -webkit-box-pack: justify;
+  -webkit-justify-content: space-between;
+  -ms-flex-pack: justify;
+  justify-content: space-between;
+  font-size: 13px;
+  font-weight: 600;
+  text-transform: uppercase;
+  border-bottom: 1px solid;
+  border-radius: 0 0;
+  line-height: 1;
+  padding: 15px 20px;
+  text-transform: none;
+}
+
+.glamor-22 {
+  box-sizing: border-box;
+  padding: 16px;
+  display: -webkit-box;
+  display: -webkit-flex;
+  display: -ms-flexbox;
+  display: flex;
+  -webkit-align-items: center;
+  -webkit-box-align: center;
+  -ms-flex-align: center;
+  align-items: center;
+  border-bottom: 1px solid;
+}
+
+.glamor-22:last-child {
+  border: 0;
+}
+
+.glamor-16 {
+  box-sizing: border-box;
+  -webkit-flex: 1;
+  -ms-flex: 1;
+  flex: 1;
+  display: -webkit-box;
+  display: -webkit-flex;
+  display: -ms-flexbox;
+  display: flex;
+  -webkit-box-pack: justify;
+  -webkit-justify-content: space-between;
+  -ms-flex-pack: justify;
+  justify-content: space-between;
+}
+
+.glamor-20 {
+  box-sizing: border-box;
+  margin-left: 16px;
+}
+
+<withTeams
+  params={
+    Object {
+      "orgId": "org-slug",
+    }
+  }
+>
+  <withProjects
+    params={
+      Object {
+        "orgId": "org-slug",
+      }
+    }
+    teams={Array []}
+  >
+    <OrganizationTeamsProjectsView
+      params={
+        Object {
+          "orgId": "org-slug",
+        }
+      }
+      projects={
+        Array [
+          Object {
+            "hasAccess": true,
+            "id": "2",
+            "isBookmarked": false,
+            "isMember": true,
+            "name": "Project Name",
+            "slug": "project-slug",
+            "teams": Array [
+              Object {
+                "id": "1",
+                "name": "Team Name",
+                "slug": "team-slug",
+              },
+            ],
+          },
+          Object {
+            "hasAccess": true,
+            "id": "3",
+            "isBookmarked": false,
+            "isMember": true,
+            "name": "Project Name 2",
+            "slug": "project-slug-2",
+            "teams": Array [],
+          },
+        ]
+      }
+      teams={Array []}
+    >
+      <div
+        className="row"
+      >
+        <SettingsPageHeading
+          title="Projects by Team"
+        >
+          <Wrapper>
+            <div
+              className="glamor-4 glamor-5"
+            >
+              <Flex
+                align="center"
+              >
+                <Base
+                  align="center"
+                  className="glamor-2"
+                >
+                  <div
+                    className="glamor-2"
+                    is={null}
+                  >
+                    <Title>
+                      <div
+                        className="glamor-0 glamor-1"
+                      >
+                        Projects by Team
+                      </div>
+                    </Title>
+                  </div>
+                </Base>
+              </Flex>
+            </div>
+          </Wrapper>
+        </SettingsPageHeading>
+        <div
+          className="col-md-9"
+        >
+          <div
+            className="team-list"
+          >
+            <Panel
+              key="null"
+            >
+              <StyledPanel>
+                <div
+                  className="glamor-26 glamor-27"
+                >
+                  <PanelHeader
+                    className="glamor-14"
+                  >
+                    <StyledPanelHeader
+                      className="glamor-14"
+                    >
+                      <Component
+                        className="glamor-10 glamor-6"
+                      >
+                        <Flex
+                          align="center"
+                          className="glamor-10 glamor-6"
+                          justify="space-between"
+                        >
+                          <Base
+                            align="center"
+                            className="glamor-6 glamor-7"
+                            justify="space-between"
+                          >
+                            <div
+                              className="glamor-6 glamor-7"
+                              is={null}
+                            >
+                              Projects Without Teams
+                            </div>
+                          </Base>
+                        </Flex>
+                      </Component>
+                    </StyledPanelHeader>
+                  </PanelHeader>
+                  <PanelBody
+                    direction="column"
+                    disablePadding={true}
+                    flex={false}
+                  >
+                    <div
+                      className=""
+                    >
+                      <PanelItem
+                        align="center"
+                        key="3"
+                        p={2}
+                      >
+                        <StyledPanelItem
+                          align="center"
+                          p={2}
+                        >
+                          <Base
+                            align="center"
+                            className="glamor-22 glamor-23"
+                            p={2}
+                          >
+                            <div
+                              className="glamor-22 glamor-23"
+                              is={null}
+                            >
+                              <Flex
+                                flex="1"
+                                justify="space-between"
+                              >
+                                <Base
+                                  className="glamor-16"
+                                  flex="1"
+                                  justify="space-between"
+                                >
+                                  <div
+                                    className="glamor-16"
+                                    is={null}
+                                  >
+                                    <Link
+                                      onlyActiveOnIndex={false}
+                                      style={Object {}}
+                                      to="/org-slug/project-slug-2/"
+                                    >
+                                      <a
+                                        onClick={[Function]}
+                                        style={Object {}}
+                                      >
+                                        <ProjectLabel
+                                          project={
+                                            Object {
+                                              "hasAccess": true,
+                                              "id": "3",
+                                              "isBookmarked": false,
+                                              "isMember": true,
+                                              "name": "Project Name 2",
+                                              "slug": "project-slug-2",
+                                              "teams": Array [],
+                                            }
+                                          }
+                                        >
+                                          <span
+                                            className="project-label"
+                                            project={
+                                              Object {
+                                                "hasAccess": true,
+                                                "id": "3",
+                                                "isBookmarked": false,
+                                                "isMember": true,
+                                                "name": "Project Name 2",
+                                                "slug": "project-slug-2",
+                                                "teams": Array [],
+                                              }
+                                            }
+                                          >
+                                            <span
+                                              className="project-name"
+                                            >
+                                              project-slug-2
+                                            </span>
+                                          </span>
+                                        </ProjectLabel>
+                                      </a>
+                                    </Link>
+                                    <div
+                                      className="project-chart"
+                                    />
+                                  </div>
+                                </Base>
+                              </Flex>
+                              <Box
+                                ml={2}
+                              >
+                                <Base
+                                  className="glamor-20"
+                                  ml={2}
+                                >
+                                  <div
+                                    className="glamor-20"
+                                    is={null}
+                                  >
+                                    <Button
+                                      disabled={false}
+                                      size="small"
+                                      to="/settings/organization/org-slug/project/project-slug-2/settings/"
+                                    >
+                                      <Link
+                                        className="button button-default button-sm"
+                                        disabled={false}
+                                        onClick={[Function]}
+                                        onlyActiveOnIndex={false}
+                                        role="button"
+                                        style={Object {}}
+                                        to="/settings/organization/org-slug/project/project-slug-2/settings/"
+                                      >
+                                        <a
+                                          className="button button-default button-sm"
+                                          disabled={false}
+                                          onClick={[Function]}
+                                          role="button"
+                                          style={Object {}}
+                                        >
+                                          <Flex
+                                            align="center"
+                                            className="button-label"
+                                          >
+                                            <Base
+                                              align="center"
+                                              className="button-label glamor-2"
+                                            >
+                                              <div
+                                                className="button-label glamor-2"
+                                                is={null}
+                                              >
+                                                Manage Project
+                                              </div>
+                                            </Base>
+                                          </Flex>
+                                        </a>
+                                      </Link>
+                                    </Button>
+                                  </div>
+                                </Base>
+                              </Box>
+                            </div>
+                          </Base>
+                        </StyledPanelItem>
+                      </PanelItem>
+                    </div>
+                  </PanelBody>
+                </div>
+              </StyledPanel>
+            </Panel>
+          </div>
+        </div>
+      </div>
+    </OrganizationTeamsProjectsView>
+  </withProjects>
+</withTeams>
+`;

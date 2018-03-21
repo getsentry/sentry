@@ -5,9 +5,7 @@ exports[`EventOrGroupHeader Event hides level tag 1`] = `
   className="event-issue-header"
 >
   <Title>
-    <Link
-      onlyActiveOnIndex={false}
-      style={Object {}}
+    <ProjectLink
       to={
         Object {
           "pathname": "/orgId/projectId/issues/groupID/events/id/",
@@ -38,7 +36,7 @@ exports[`EventOrGroupHeader Event hides level tag 1`] = `
         orgId="orgId"
         projectId="projectId"
       />
-    </Link>
+    </ProjectLink>
   </Title>
 </div>
 `;
@@ -48,9 +46,7 @@ exports[`EventOrGroupHeader Event renders with \`type = csp\` 1`] = `
   className="event-issue-header"
 >
   <Title>
-    <Link
-      onlyActiveOnIndex={false}
-      style={Object {}}
+    <ProjectLink
       to={
         Object {
           "pathname": "/orgId/projectId/issues/groupID/events/id/",
@@ -80,7 +76,7 @@ exports[`EventOrGroupHeader Event renders with \`type = csp\` 1`] = `
         orgId="orgId"
         projectId="projectId"
       />
-    </Link>
+    </ProjectLink>
   </Title>
   <Message>
     <span>
@@ -95,9 +91,7 @@ exports[`EventOrGroupHeader Event renders with \`type = default\` 1`] = `
   className="event-issue-header"
 >
   <Title>
-    <Link
-      onlyActiveOnIndex={false}
-      style={Object {}}
+    <ProjectLink
       to={
         Object {
           "pathname": "/orgId/projectId/issues/groupID/events/id/",
@@ -127,7 +121,7 @@ exports[`EventOrGroupHeader Event renders with \`type = default\` 1`] = `
         orgId="orgId"
         projectId="projectId"
       />
-    </Link>
+    </ProjectLink>
   </Title>
 </div>
 `;
@@ -137,9 +131,7 @@ exports[`EventOrGroupHeader Event renders with \`type = error\` 1`] = `
   className="event-issue-header"
 >
   <Title>
-    <Link
-      onlyActiveOnIndex={false}
-      style={Object {}}
+    <ProjectLink
       to={
         Object {
           "pathname": "/orgId/projectId/issues/groupID/events/id/",
@@ -169,7 +161,7 @@ exports[`EventOrGroupHeader Event renders with \`type = error\` 1`] = `
         orgId="orgId"
         projectId="projectId"
       />
-    </Link>
+    </ProjectLink>
   </Title>
   <Message>
     <span>
@@ -184,9 +176,7 @@ exports[`EventOrGroupHeader Group renders with \`type = csp\` 1`] = `
   className="event-issue-header"
 >
   <Title>
-    <Link
-      onlyActiveOnIndex={false}
-      style={Object {}}
+    <ProjectLink
       to={
         Object {
           "pathname": "/orgId/projectId/issues/id/",
@@ -215,7 +205,7 @@ exports[`EventOrGroupHeader Group renders with \`type = csp\` 1`] = `
         orgId="orgId"
         projectId="projectId"
       />
-    </Link>
+    </ProjectLink>
   </Title>
   <Message>
     <span>
@@ -230,9 +220,7 @@ exports[`EventOrGroupHeader Group renders with \`type = default\` 1`] = `
   className="event-issue-header"
 >
   <Title>
-    <Link
-      onlyActiveOnIndex={false}
-      style={Object {}}
+    <ProjectLink
       to={
         Object {
           "pathname": "/orgId/projectId/issues/id/",
@@ -261,7 +249,7 @@ exports[`EventOrGroupHeader Group renders with \`type = default\` 1`] = `
         orgId="orgId"
         projectId="projectId"
       />
-    </Link>
+    </ProjectLink>
   </Title>
   <Message>
     <span>
@@ -276,9 +264,7 @@ exports[`EventOrGroupHeader Group renders with \`type = error\` 1`] = `
   className="event-issue-header"
 >
   <Title>
-    <Link
-      onlyActiveOnIndex={false}
-      style={Object {}}
+    <ProjectLink
       to={
         Object {
           "pathname": "/orgId/projectId/issues/id/",
@@ -307,7 +293,7 @@ exports[`EventOrGroupHeader Group renders with \`type = error\` 1`] = `
         orgId="orgId"
         projectId="projectId"
       />
-    </Link>
+    </ProjectLink>
   </Title>
   <Message>
     <span>

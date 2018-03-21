@@ -22,6 +22,7 @@ exports[`AccountEmails renders with emails 1`] = `
           isPrimary={true}
           isVerified={true}
           onRemove={[Function]}
+          onVerify={[Function]}
         />
         <EmailRow
           email="secondary1@example.com"

@@ -53,6 +53,7 @@ from .endpoints.organization_member_index import OrganizationMemberIndexEndpoint
 from .endpoints.organization_member_issues_assigned import OrganizationMemberIssuesAssignedEndpoint
 from .endpoints.organization_member_issues_bookmarked import OrganizationMemberIssuesBookmarkedEndpoint
 from .endpoints.organization_member_issues_viewed import OrganizationMemberIssuesViewedEndpoint
+from .endpoints.organization_member_unreleased_commits import OrganizationMemberUnreleasedCommitsEndpoint
 from .endpoints.organization_member_team_details import OrganizationMemberTeamDetailsEndpoint
 from .endpoints.organization_onboarding_tasks import OrganizationOnboardingTaskEndpoint
 from .endpoints.organization_index import OrganizationIndexEndpoint
@@ -135,7 +136,7 @@ from .endpoints.team_details import TeamDetailsEndpoint
 from .endpoints.team_groups_new import TeamGroupsNewEndpoint
 from .endpoints.team_groups_trending import TeamGroupsTrendingEndpoint
 from .endpoints.team_members import TeamMembersEndpoint
-from .endpoints.team_project_index import TeamProjectIndexEndpoint
+from .endpoints.team_projects import TeamProjectsEndpoint
 from .endpoints.team_stats import TeamStatsEndpoint
 from .endpoints.useravatar import UserAvatarEndpoint
 from .endpoints.user_appearance import UserAppearanceEndpoint
@@ -400,6 +401,11 @@ urlpatterns = patterns(
         name='sentry-api-0-organization-member-details'
     ),
     url(
+        r'^organizations/(?P<organization_slug>[^\/]+)/members/(?P<member_id>[^\/]+)/unreleased-commits/$',
+        OrganizationMemberUnreleasedCommitsEndpoint.as_view(),
+        name='sentry-api-0-organization-member-unreleased-commits'
+    ),
+    url(
         r'^organizations/(?P<organization_slug>[^\/]+)/members/(?P<member_id>[^\/]+)/issues/assigned/$',
         OrganizationMemberIssuesAssignedEndpoint.as_view(),
         name='sentry-api-0-organization-member-issues-assigned'
@@ -513,7 +519,7 @@ urlpatterns = patterns(
     ),
     url(
         r'^teams/(?P<organization_slug>[^\/]+)/(?P<team_slug>[^\/]+)/projects/$',
-        TeamProjectIndexEndpoint.as_view(),
+        TeamProjectsEndpoint.as_view(),
         name='sentry-api-0-team-project-index'
     ),
     url(

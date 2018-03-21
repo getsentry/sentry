@@ -9,7 +9,7 @@ from __future__ import absolute_import, print_function
 
 import six
 
-from django.db import models
+from django.db import models, router, connections
 from django.utils import timezone
 
 from sentry.api.serializers import Serializer, register
@@ -39,14 +39,25 @@ class TagValue(Model):
     first_seen = models.DateTimeField(
         default=timezone.now, db_index=True, null=True)
 
-    objects = TagStoreManager(select_related=('_key',))
+    objects = TagStoreManager()
 
     class Meta:
         app_label = 'tagstore'
         unique_together = (('project_id', '_key', 'value'), )
         index_together = (('project_id', '_key', 'last_seen'), )
 
-    __repr__ = sane_repr('project_id', '_key', 'value')
+    __repr__ = sane_repr('project_id', '_key_id', 'value')
+
+    def delete(self):
+        using = router.db_for_read(TagValue)
+        cursor = connections[using].cursor()
+        cursor.execute(
+            """
+            DELETE FROM tagstore_tagvalue
+            WHERE project_id = %s
+              AND id = %s
+        """, [self.project_id, self.id]
+        )
 
     @property
     def key(self):

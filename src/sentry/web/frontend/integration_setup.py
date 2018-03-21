@@ -25,8 +25,4 @@ class IntegrationSetupView(BaseView):
             logging.error('integration.setup-error')
             return self.redirect('/')
 
-        try:
-            return pipeline.current_step()
-        except Exception:
-            logging.exception('integration.setup-error')
-            return pipeline.error('an internal error occurred')
+        return pipeline.current_step()

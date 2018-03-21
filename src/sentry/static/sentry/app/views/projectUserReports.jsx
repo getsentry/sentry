@@ -1,8 +1,9 @@
-import jQuery from 'jquery';
 import PropTypes from 'prop-types';
 import React from 'react';
 import createReactClass from 'create-react-class';
 import {browserHistory, Link} from 'react-router';
+import qs from 'query-string';
+import {omit, isEqual} from 'lodash';
 import SentryTypes from '../proptypes';
 import ApiMixin from '../mixins/apiMixin';
 import GroupStore from '../stores/groupStore';
@@ -52,7 +53,11 @@ const ProjectUserReports = createReactClass({
   },
 
   componentWillReceiveProps(nextProps) {
-    if (nextProps.location.search !== this.props.location.search) {
+    // Ignore changes to environment term since this is handled separately
+    const nextSearchTerm = omit(qs.parse(nextProps.location.search), 'environment');
+    const thisSearchTerm = omit(qs.parse(this.props.location.search), 'environment');
+
+    if (!isEqual(nextSearchTerm, thisSearchTerm)) {
       this.setState(this.getQueryStringState(nextProps), this.fetchData);
     }
 
@@ -96,11 +101,22 @@ const ProjectUserReports = createReactClass({
       error: false,
     });
 
-    const query = this.state.environment
-      ? {environment: this.state.environment.name}
-      : null;
+    let params = this.props.params;
 
-    this.api.request(this.getEndpoint(), {
+    let query = {
+      ...this.props.location.query,
+      limit: 50,
+      query: this.state.query,
+      status: this.state.status,
+    };
+
+    if (this.state.environment) {
+      query.environment = this.state.environment.name;
+    } else {
+      delete query.environment;
+    }
+
+    this.api.request(`/projects/${params.orgId}/${params.projectId}/user-reports/`, {
       query,
       success: (data, _, jqXHR) => {
         let issues = data.map(r => r.issue);
@@ -119,20 +135,6 @@ const ProjectUserReports = createReactClass({
         });
       },
     });
-  },
-
-  getEndpoint() {
-    let params = this.props.params;
-    let queryParams = {
-      ...this.props.location.query,
-      limit: 50,
-      query: this.state.query,
-      status: this.state.status,
-    };
-
-    return `/projects/${params.orgId}/${params.projectId}/user-reports/?${jQuery.param(
-      queryParams
-    )}`;
   },
 
   getUserReportsUrl() {

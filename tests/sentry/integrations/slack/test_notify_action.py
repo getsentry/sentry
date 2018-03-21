@@ -16,6 +16,32 @@ class SlackNotifyActionTest(RuleTestCase):
     def setUp(self):
         event = self.get_event()
 
+        self.permissions = {
+            'ok': True,
+            'info': {
+                'channel': {
+                    'resources': {
+                        'wildcard': True,
+                        'excluded_ids': [],
+                        'ids': [],
+                    },
+                },
+                'im': {
+                    'resources': {
+                        'ids': ['member-id', 'morty-id'],
+                    },
+                },
+            },
+        }
+
+        responses.add(
+            method=responses.GET,
+            url='https://slack.com/api/apps.permissions.info',
+            status=200,
+            content_type='application/json',
+            body=json.dumps(self.permissions),
+        )
+
         self.integration = Integration.objects.create(
             provider='slack',
             name='Awesome Team',
@@ -164,6 +190,14 @@ class SlackNotifyActionTest(RuleTestCase):
             'ok': 'true',
             'channels': [{'name': 'other-chann', 'id': 'chan-id'}],
         }
+
+        responses.add(
+            method=responses.GET,
+            url='https://slack.com/api/channels.list',
+            status=200,
+            content_type='application/json',
+            body=json.dumps(channels),
+        )
 
         responses.add(
             method=responses.GET,

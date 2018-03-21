@@ -10,21 +10,39 @@ from __future__ import absolute_import, print_function, unicode_literals
 
 import copy
 import json
+import os
 import petname
+import random
 import six
 import warnings
 
+from django.utils import timezone
 from django.utils.text import slugify
 from exam import fixture
+from hashlib import sha1
+from loremipsum import Generator
 from uuid import uuid4
-import os
-from django.utils import timezone
 
 from sentry.models import (
     Activity, Environment, Event, EventError, EventMapping, Group, Organization, OrganizationMember,
     OrganizationMemberTeam, Project, Team, User, UserEmail, Release, Commit, ReleaseCommit,
     CommitAuthor, Repository, CommitFileChange
 )
+
+loremipsum = Generator()
+
+
+def make_sentence(words=None):
+    if words is None:
+        words = int(random.weibullvariate(8, 3))
+    return ' '.join(random.choice(loremipsum.words) for _ in range(words))
+
+
+def make_word(words=None):
+    if words is None:
+        words = int(random.weibullvariate(8, 3))
+    return random.choice(loremipsum.words)
+
 
 DEFAULT_EVENT_DATA = {
     'extra': {
@@ -327,8 +345,15 @@ class Fixtures(object):
         # add commits
         if user:
             author = self.create_commit_author(project, user)
-            repo = self.create_repo(project)
-            commit = self.create_commit(project, repo, author, release)
+            repo = self.create_repo(project, name='organization-{}'.format(project.slug))
+            commit = self.create_commit(
+                project=project,
+                repo=repo,
+                author=author,
+                release=release,
+                key='deadbeef',
+                message='placeholder commit message',
+            )
 
             release.update(
                 authors=[six.text_type(author.id)],
@@ -338,49 +363,51 @@ class Fixtures(object):
 
         return release
 
-    def create_repo(self, project):
+    def create_repo(self, project, name=None):
         repo = Repository.objects.create(
             organization_id=project.organization_id,
-            name='organization-{}'.format(project.slug),
+            name=name or make_word(),
         )
         return repo
 
-    def create_commit(self, project, repo, author, release):
+    def create_commit(self, project, repo, author=None, release=None,
+                      message=None, key=None, date_added=None):
         commit = Commit.objects.get_or_create(
             organization_id=project.organization_id,
             repository_id=repo.id,
-            key='deadbeef',
+            key=key or sha1(uuid4().hex).hexdigest(),
             defaults={
-                'message': 'placeholder commit message',
-                'author': author,
-                'date_added': timezone.now(),
+                'message': message or make_sentence(),
+                'author': author or self.create_commit_author(project),
+                'date_added': date_added or timezone.now(),
             }
         )[0]
 
-        # add it to release
-        ReleaseCommit.objects.create(
-            organization_id=project.organization_id,
-            project_id=project.id,
-            release=release,
-            commit=commit,
-            order=1,
-        )
+        if release:
+            ReleaseCommit.objects.create(
+                organization_id=project.organization_id,
+                project_id=project.id,
+                release=release,
+                commit=commit,
+                order=1,
+            )
 
-        self.create_commit_file_change(commit, release, project, '/models/foo.py')
-        self.create_commit_file_change(commit, release, project, '/worsematch/foo.py')
-        self.create_commit_file_change(commit, release, project, '/models/other.py')
+        self.create_commit_file_change(commit, project, '/models/foo.py')
+        self.create_commit_file_change(commit, project, '/worsematch/foo.py')
+        self.create_commit_file_change(commit, project, '/models/other.py')
 
         return commit
 
-    def create_commit_author(self, project, user):
-        commit_author = CommitAuthor.objects.get_or_create(
-            organization_id=project.organization_id, email=user, defaults={
-                'name': user,
+    def create_commit_author(self, project, user=None):
+        return CommitAuthor.objects.get_or_create(
+            organization_id=project.organization_id,
+            email=user.email if user else '{}@example.com'.format(make_word()),
+            defaults={
+                'name': user.name if user else make_word(),
             }
         )[0]
-        return commit_author
 
-    def create_commit_file_change(self, commit, release, project, filename):
+    def create_commit_file_change(self, commit, project, filename):
         commit_file_change = CommitFileChange.objects.get_or_create(
             organization_id=project.organization_id,
             commit=commit,
@@ -403,7 +430,7 @@ class Fixtures(object):
         user.save()
 
         # UserEmail is created by a signal
-        UserEmail.objects.filter(
+        assert UserEmail.objects.filter(
             user=user,
             email=email,
         ).update(is_verified=True)

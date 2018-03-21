@@ -1,6 +1,7 @@
-import {extractMultilineFields} from '../../utils';
+import React from 'react';
 
-import {t} from '../../locale';
+import {extractMultilineFields} from '../../utils';
+import {t, tct} from '../../locale';
 
 // Export route to make these forms searchable by label/help
 export const route = '/settings/organization/:orgId/settings/';
@@ -11,20 +12,25 @@ const formGroups = [
     title: t('General'),
     fields: [
       {
+        name: 'slug',
+        type: 'string',
+        required: true,
+        label: t('Name'),
+        help: t('A unique ID used to identify this organization.'),
+      },
+      {
         name: 'name',
         type: 'string',
         required: true,
 
-        // additional data/props that is related to rendering of form field rather than data
-        label: t('Name'),
-        help: t('The name of your organization. e.g. My Company'),
-      },
-      {
-        name: 'slug',
-        type: 'string',
-        required: true,
-        label: t('Short Name'),
-        help: t('A unique ID used to identify this organization.'),
+        label: t('Legacy Name'),
+        help: tct(
+          '[Deprecated] In the future, only [Name] will be used to identify your organization',
+          {
+            Deprecated: <strong>DEPRECATED</strong>,
+            Name: <strong>Name</strong>,
+          }
+        ),
       },
       {
         name: 'isEarlyAdopter',
@@ -99,8 +105,6 @@ const formGroups = [
       {
         name: 'dataScrubberDefaults',
         type: 'boolean',
-
-        required: true,
         label: t('Require Using Default Scrubbers'),
         help: t(
           'Require the default scrubbers be applied to prevent things like passwords and credit cards from being stored for all projects.'
