@@ -8,20 +8,6 @@ import OrganizationState from '../../mixins/organizationState';
 import HookStore from '../../stores/hookStore';
 import {t} from '../../locale';
 
-let RouterOrBrowserLink = ({isRouter, path, ...props}) =>
-  isRouter ? (
-    <ListLink to={path} {...props} />
-  ) : (
-    <li>
-      <a href={path} {...props} />
-    </li>
-  );
-
-RouterOrBrowserLink.propTypes = {
-  isRouter: PropTypes.bool,
-  path: PropTypes.string.isRequired,
-};
-
 const OrgSettingsMenu = ({access, org, features}) => {
   // Everything requires `org:write` or more permission except
   // "Members" which requires `member:read`
@@ -50,12 +36,7 @@ const OrgSettingsMenu = ({access, org, features}) => {
           )}
         {features.has('sso') &&
           access.has('org:admin') && (
-            <RouterOrBrowserLink
-              isRouter={false}
-              path={`/organizations/${org.slug}/auth/`}
-            >
-              {t('Auth')}
-            </RouterOrBrowserLink>
+            <ListLink to={`${pathPrefix}/auth/`}>{t('Auth')}</ListLink>
           )}
 
         {access.has('org:admin') &&
