@@ -64,25 +64,32 @@ const GuideAnchor = createReactClass({
     let {target, type} = this.props;
 
     return (
-      <span
-        ref={el => (this.anchorElement = el)}
-        style={{width: 0, height: 0, position: 'relative'}}
-      >
+      <GuideAnchorContainer ref={el => (this.anchorElement = el)} type={type}>
         {this.props.children}
         <StyledGuideAnchor
-          type={type}
           className={classNames('guide-anchor-ping', target)}
           active={this.state.active}
         />
-      </span>
+      </GuideAnchorContainer>
     );
   },
 });
 
-const StyledGuideAnchor = styled('div')`
+const GuideAnchorContainer = styled('div')`
+  ${p =>
+    p.type == 'text' &&
+    `
+      display: inline-block;
+      position: relative;
+    `};
+`;
+
+const StyledGuideAnchor = styled('span')`
+  width: 20px;
+  height: 20px;
   cursor: pointer;
   z-index: 999;
-  position: absolute;
+  position: relative;
   pointer-events: none;
   animation: ${expandOut} 1.5s ease-out infinite;
   visibility: hidden;
@@ -97,8 +104,6 @@ const StyledGuideAnchor = styled('div')`
     transform: translate(-50%, -50%);
     background-color: ${p => p.theme.greenLight};
     border-radius: 50%;
-    width: 12px;
-    height: 12px;
   }
 
   &:before,

@@ -1,10 +1,17 @@
 // Jest Snapshot v1, https://goo.gl/fbAQLP
 
 exports[`ResolveActions with confirmation step renders 1`] = `
+.glamor-2 {
+  display: inline-block;
+  position: relative;
+}
+
 .glamor-0 {
+  width: 20px;
+  height: 20px;
   cursor: pointer;
   z-index: 999;
-  position: absolute;
+  position: relative;
   pointer-events: none;
   -webkit-animation: animation-1vh9m9r-expandOut 1.5s ease-out infinite;
   animation: animation-1vh9m9r-expandOut 1.5s ease-out infinite;
@@ -22,8 +29,6 @@ exports[`ResolveActions with confirmation step renders 1`] = `
   -ms-transform: translate(-50%,-50%);
   transform: translate(-50%,-50%);
   border-radius: 50%;
-  width: 12px;
-  height: 12px;
 }
 
 .glamor-0:before,
@@ -156,26 +161,23 @@ exports[`ResolveActions with confirmation step renders 1`] = `
               target="resolve"
               type="text"
             >
-              <span
-                style={
-                  Object {
-                    "height": 0,
-                    "position": "relative",
-                    "width": 0,
-                  }
-                }
+              <GuideAnchorContainer
+                type="text"
               >
-                <StyledGuideAnchor
-                  active={false}
-                  className="guide-anchor-ping resolve"
+                <div
+                  className="glamor-2 glamor-3"
                   type="text"
                 >
-                  <div
-                    className="guide-anchor-ping resolve glamor-0 glamor-1"
-                    type="text"
-                  />
-                </StyledGuideAnchor>
-              </span>
+                  <StyledGuideAnchor
+                    active={false}
+                    className="guide-anchor-ping resolve"
+                  >
+                    <span
+                      className="guide-anchor-ping resolve glamor-0 glamor-1"
+                    />
+                  </StyledGuideAnchor>
+                </div>
+              </GuideAnchorContainer>
             </GuideAnchor>
             Resolve
           </a>
@@ -486,10 +488,17 @@ exports[`ResolveActions with confirmation step renders 1`] = `
 `;
 
 exports[`ResolveActions without confirmation renders 1`] = `
+.glamor-2 {
+  display: inline-block;
+  position: relative;
+}
+
 .glamor-0 {
+  width: 20px;
+  height: 20px;
   cursor: pointer;
   z-index: 999;
-  position: absolute;
+  position: relative;
   pointer-events: none;
   -webkit-animation: animation-1vh9m9r-expandOut 1.5s ease-out infinite;
   animation: animation-1vh9m9r-expandOut 1.5s ease-out infinite;
@@ -507,8 +516,6 @@ exports[`ResolveActions without confirmation renders 1`] = `
   -ms-transform: translate(-50%,-50%);
   transform: translate(-50%,-50%);
   border-radius: 50%;
-  width: 12px;
-  height: 12px;
 }
 
 .glamor-0:before,
@@ -630,26 +637,23 @@ exports[`ResolveActions without confirmation renders 1`] = `
             target="resolve"
             type="text"
           >
-            <span
-              style={
-                Object {
-                  "height": 0,
-                  "position": "relative",
-                  "width": 0,
-                }
-              }
+            <GuideAnchorContainer
+              type="text"
             >
-              <StyledGuideAnchor
-                active={false}
-                className="guide-anchor-ping resolve"
+              <div
+                className="glamor-2 glamor-3"
                 type="text"
               >
-                <div
-                  className="guide-anchor-ping resolve glamor-0 glamor-1"
-                  type="text"
-                />
-              </StyledGuideAnchor>
-            </span>
+                <StyledGuideAnchor
+                  active={false}
+                  className="guide-anchor-ping resolve"
+                >
+                  <span
+                    className="guide-anchor-ping resolve glamor-0 glamor-1"
+                  />
+                </StyledGuideAnchor>
+              </div>
+            </GuideAnchorContainer>
           </GuideAnchor>
           Resolve
         </a>
