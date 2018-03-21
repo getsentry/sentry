@@ -374,8 +374,13 @@ urlpatterns += patterns(
     ),
     url(
         r'^organizations/(?P<organization_slug>[\w_-]+)/auth/$',
-        OrganizationAuthSettingsView.as_view(),
+        react_page_view,
         name='sentry-organization-auth-settings'
+    ),
+    url(
+        r'^organizations/(?P<organization_slug>[\w_-]+)/auth/configure/$',
+        OrganizationAuthSettingsView.as_view(),
+        name='sentry-organization-auth-provider-settings'
     ),
     url(
         r'^organizations/(?P<organization_slug>[\w_-]+)/integrations/(?P<provider_id>[\w_-]+)/setup/$',
