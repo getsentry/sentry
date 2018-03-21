@@ -66,7 +66,7 @@ class UpdateProjectPluginTest(APITestCase):
         )
         audit = AuditLogEntry.objects.get(target_object=project.id)
 
-        assert audit.event == 106
+        assert audit.event == 111
         assert response.status_code == 200, (response.status_code, response.content)
         assert ProjectOption.objects.get(
             key='webhooks:urls',
@@ -98,7 +98,7 @@ class EnableProjectPluginTest(APITestCase):
         response = self.client.post(url)
         audit = AuditLogEntry.objects.get(target_object=project.id)
 
-        assert audit.event == 105
+        assert audit.event == 110
         assert response.status_code == 201, (response.status_code, response.content)
         assert ProjectOption.objects.get(
             key='webhooks:enabled',
@@ -115,7 +115,7 @@ class EnableProjectPluginTest(APITestCase):
         response = self.client.post(url, {'reset': True})
         audit = AuditLogEntry.objects.get(target_object=project.id)
         test_configuration.assert_called_once_with(project)
-        assert audit.event == 106
+        assert audit.event == 111
         assert response.status_code == 200, (response.status_code, response.content)
 
         configs = response.data.get('config')
@@ -147,7 +147,7 @@ class DisableProjectPluginTest(APITestCase):
         response = self.client.delete(url)
         audit = AuditLogEntry.objects.get(target_object=project.id)
 
-        assert audit.event == 107
+        assert audit.event == 112
         assert response.status_code == 204, (response.status_code, response.content)
         assert ProjectOption.objects.get(
             key='webhooks:enabled',
