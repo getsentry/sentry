@@ -30,7 +30,6 @@ describe('ProjectTeamsSettings', function() {
   });
 
   beforeEach(function() {
-    // org = TestStubs.Organization();
     sandbox = sinon.sandbox.create();
 
     sandbox.stub(MemberListStore, 'getAll').returns([USER_1, USER_2]);
@@ -61,17 +60,14 @@ describe('ProjectTeamsSettings', function() {
       add.simulate('click');
       expect(handleAdd).not.toHaveBeenCalled();
 
-      let owners = wrapper.find('DropdownAutoCompleteMenu');
-      owners.simulate('click');
-      expect(handleAdd).not.toHaveBeenCalled();
+      let openDropdown = wrapper.find('BuilderDropdownButton');
+      openDropdown.simulate('click');
+      let user = wrapper.find('AutoCompleteItem').first();
+      user.simulate('click');
 
-      // // ac = wrapper.find('BuilderDropdownAutoComplete');
+      add.simulate('click');
+      expect(handleAdd).toHaveBeenCalled();
 
-      // // wrapper.setState({text: 'new'});
-      // // submit.simulate('click');
-
-      // // expect(put).toHaveBeenCalled();
-      // console.log(owners.debug());
       expect(wrapper).toMatchSnapshot();
     });
   });

@@ -291,6 +291,7 @@ exports[`ProjectTeamsSettings render() renders 1`] = `
         className="glamor-61 glamor-62"
       >
         <BuilderSelect
+          onChange={[Function]}
           value="path"
         >
           <SelectInput

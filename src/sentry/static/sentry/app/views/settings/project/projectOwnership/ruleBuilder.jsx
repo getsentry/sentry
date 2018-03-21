@@ -74,6 +74,11 @@ const RuleAddButton = styled(Button)`
     margin: 0px !important;
   }
 `;
+const initialState = {
+  text: '',
+  type: 'path',
+  owners: [],
+};
 
 class RuleBuilder extends React.Component {
   static propTypes = {
@@ -83,11 +88,7 @@ class RuleBuilder extends React.Component {
 
   constructor(props) {
     super(props);
-    this.state = {
-      text: '',
-      type: 'path',
-      owners: [],
-    };
+    this.state = initialState;
   }
 
   mentionableUsers() {
@@ -119,7 +120,11 @@ class RuleBuilder extends React.Component {
     }));
   }
 
-  onChange(e) {
+  handleTypeChange(e) {
+    this.setState({type: e[0].value});
+  }
+
+  onValueChange(e) {
     this.setState({text: e.target.value});
   }
 
@@ -140,6 +145,7 @@ class RuleBuilder extends React.Component {
       ),
     });
   }
+
   handleAddRule() {
     let {type, text, owners} = this.state;
 
@@ -153,6 +159,7 @@ class RuleBuilder extends React.Component {
 
     let rule = `${type}:${text} ${ownerText}`;
     this.props.handleAddRule(rule);
+    this.setState(initialState);
   }
 
   render() {
@@ -161,15 +168,15 @@ class RuleBuilder extends React.Component {
     let menuHeader = <StyledTeamsLabel>{t('Owners')}</StyledTeamsLabel>;
     return (
       <BuilderBar>
-        <BuilderSelect value={type}>
+        <BuilderSelect value={type} onChange={this.handleTypeChange.bind(this)}>
           <option value="path">Path</option>
           <option value="url">URL</option>
         </BuilderSelect>
         <BuilderInput
           controlled
           value={text}
-          onChange={this.onChange.bind(this)}
-          placeholder="src/example/*"
+          onChange={this.onValueChange.bind(this)}
+          placeholder={type === 'path' ? 'src/example/*' : 'example.com/settings/*'}
         />
         <Divider>〉</Divider>
         <Owners>

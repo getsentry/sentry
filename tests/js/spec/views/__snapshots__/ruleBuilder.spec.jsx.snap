@@ -196,7 +196,15 @@ exports[`ProjectTeamsSettings render() renders 1`] = `
 }
 
 <RuleBuilder
-  handleAddRule={[MockFunction]}
+  handleAddRule={
+    [MockFunction] {
+      "calls": Array [
+        Array [
+          "path:some/path/* Jane Doe",
+        ],
+      ],
+    }
+  }
   project={
     Object {
       "hasAccess": true,
@@ -214,6 +222,7 @@ exports[`ProjectTeamsSettings render() renders 1`] = `
       className="glamor-61 glamor-62"
     >
       <BuilderSelect
+        onChange={[Function]}
         value="path"
       >
         <SelectInput
@@ -251,13 +260,13 @@ exports[`ProjectTeamsSettings render() renders 1`] = `
         controlled={true}
         onChange={[Function]}
         placeholder="src/example/*"
-        value="some/path/*"
+        value=""
       >
         <input
           className="glamor-4 glamor-5"
           onChange={[Function]}
           placeholder="src/example/*"
-          value="some/path/*"
+          value=""
         />
       </BuilderInput>
       <Divider>
