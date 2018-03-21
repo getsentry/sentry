@@ -41,7 +41,7 @@ exports[`ProjectTags renders 1`] = `
 }
 
 .glamor-18 {
-  font-size: 12px;
+  font-size: 13px;
   font-weight: 600;
   text-transform: uppercase;
   border-bottom: 1px solid;
@@ -64,7 +64,7 @@ exports[`ProjectTags renders 1`] = `
   -webkit-justify-content: space-between;
   -ms-flex-pack: justify;
   justify-content: space-between;
-  font-size: 12px;
+  font-size: 13px;
   font-weight: 600;
   text-transform: uppercase;
   border-bottom: 1px solid;

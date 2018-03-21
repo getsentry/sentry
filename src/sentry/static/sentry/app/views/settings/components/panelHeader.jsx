@@ -11,7 +11,7 @@ const StyledPanelHeader = styled(({disablePadding, hasButtons, ...props}) => (
   <Flex align="center" justify="space-between" {...props} />
 ))`
   color: ${p => (p.lightText ? p.theme.gray2 : p.theme.gray3)};
-  font-size: 12px;
+  font-size: 13px;
   font-weight: 600;
   text-transform: uppercase;
   border-bottom: 1px solid ${p => p.theme.borderDark};
