@@ -207,27 +207,21 @@ class ProjectTeams extends AsyncView {
     let access = new Set(this.props.organization.access);
 
     return (
-      <React.Fragment>
-        <PanelHeader hasButtons={true}>
-          <div>{t('Team')}</div>
-          <div>{this.renderAddTeamButton()}</div>
-        </PanelHeader>
-        <PanelBody>
-          {this.state.projectTeams.map(team => {
-            return (
-              <TeamRow
-                access={access}
-                key={team.id}
-                orgId={orgId}
-                projectId={projectId}
-                team={team}
-                onRemove={this.handleRemovedTeam.bind(this, team)}
-                teamCount={this.state.projectTeams.length}
-              />
-            );
-          })}
-        </PanelBody>
-      </React.Fragment>
+      <PanelBody>
+        {this.state.projectTeams.map(team => {
+          return (
+            <TeamRow
+              access={access}
+              key={team.id}
+              orgId={orgId}
+              projectId={projectId}
+              team={team}
+              onRemove={this.handleRemovedTeam.bind(this, team)}
+              teamCount={this.state.projectTeams.length}
+            />
+          );
+        })}
+      </PanelBody>
     );
   }
 
@@ -240,6 +234,10 @@ class ProjectTeams extends AsyncView {
     return (
       <div>
         <SettingsPageHeader title={t('Teams')} />
+        <PanelHeader hasButtons={true}>
+          <div>{t('Team')}</div>
+          <div>{this.renderAddTeamButton()}</div>
+        </PanelHeader>
         <Panel>{body}</Panel>
       </div>
     );

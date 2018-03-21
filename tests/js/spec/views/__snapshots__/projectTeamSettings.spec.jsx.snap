@@ -8,77 +8,75 @@ exports[`ProjectTeamsSettings render() renders 1`] = `
     <SettingsPageHeading
       title="Teams"
     />
-    <Panel>
-      <React.Fragment>
-        <PanelHeader
-          hasButtons={true}
-        >
-          <div>
-            Team
-          </div>
-          <div>
-            <DropdownAutoComplete
-              alignMenu="right"
-              items={
-                Array [
-                  Object {
-                    "label": <TeamDropdownElement>
-                      #
-                      team-slug-2
-                    </TeamDropdownElement>,
-                    "searchKey": "team-slug-2",
-                    "value": "2",
-                  },
-                ]
-              }
-              menuHeader={
-                <StyledTeamsLabel>
-                  Teams
-                  <StyledCreateTeamLink
-                    to="/organizations/org-slug/teams/new/"
-                  >
-                    Create Team
-                  </StyledCreateTeamLink>
-                </StyledTeamsLabel>
-              }
-              onSelect={[Function]}
-            />
-          </div>
-        </PanelHeader>
-        <PanelBody
-          direction="column"
-          disablePadding={true}
-          flex={false}
-        >
-          <TeamRow
-            access={
-              Set {
-                "org:read",
-                "org:write",
-                "org:admin",
-                "project:read",
-                "project:write",
-                "project:admin",
-                "team:read",
-                "team:write",
-                "team:admin",
-              }
-            }
-            key="1"
-            onRemove={[Function]}
-            orgId="org-slug"
-            projectId="project-slug"
-            team={
+    <PanelHeader
+      hasButtons={true}
+    >
+      <div>
+        Team
+      </div>
+      <div>
+        <DropdownAutoComplete
+          alignMenu="right"
+          items={
+            Array [
               Object {
-                "id": "1",
-                "name": "Team Name",
-                "slug": "team-slug",
-              }
+                "label": <TeamDropdownElement>
+                  #
+                  team-slug-2
+                </TeamDropdownElement>,
+                "searchKey": "team-slug-2",
+                "value": "2",
+              },
+            ]
+          }
+          menuHeader={
+            <StyledTeamsLabel>
+              Teams
+              <StyledCreateTeamLink
+                to="/organizations/org-slug/teams/new/"
+              >
+                Create Team
+              </StyledCreateTeamLink>
+            </StyledTeamsLabel>
+          }
+          onSelect={[Function]}
+        />
+      </div>
+    </PanelHeader>
+    <Panel>
+      <PanelBody
+        direction="column"
+        disablePadding={true}
+        flex={false}
+      >
+        <TeamRow
+          access={
+            Set {
+              "org:read",
+              "org:write",
+              "org:admin",
+              "project:read",
+              "project:write",
+              "project:admin",
+              "team:read",
+              "team:write",
+              "team:admin",
             }
-            teamCount={1}
-          />
-        </PanelBody>
-      </React.Fragment>
+          }
+          key="1"
+          onRemove={[Function]}
+          orgId="org-slug"
+          projectId="project-slug"
+          team={
+            Object {
+              "id": "1",
+              "name": "Team Name",
+              "slug": "team-slug",
+            }
+          }
+          teamCount={1}
+        />
+      </PanelBody>
     </Panel>
   </div>
 </SideEffect(DocumentTitle)>
