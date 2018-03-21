@@ -1757,62 +1757,31 @@ ul.faces {
   display: flex;
   justify-content: flex-end;
 
-  .loading {
-    display: inline-block;
-  }
-
-  .btn-group {
-    height: 24px;
-
-    &.open {
-      .dropdown-toggle {
-        color: @gray-dark;
-      }
-    }
+  .avatar {
+    .square(24px);
   }
 
   .icon-arrow-down {
-    right: -2px;
+    position: static;
     top: 0;
-  }
-
-  .avatar {
-    display: inline-block;
-    width: 24px;
-    height: 24px;
-    position: relative;
-    left: -2px;
-    top: -1px;
   }
 
   .dropdown-toggle {
     color: inherit;
-
-    .avatar + span,
-    .icon-user + span {
-      display: none;
-    }
   }
 
   .dropdown-menu {
-    left: auto;
     right: -14px !important;
     min-width: 180px;
-    padding-top: 0;
-    padding-bottom: 3px;
     max-width: 250px;
-    top: 30px;
-    z-index: @zindex-dropdown;
+    padding: 0;
     font-size: 13px;
 
     .form-control {
       border: 0;
-      border: 0;
       border-bottom: 1px solid #e9ebec;
-      background: none;
-      box-shadow: none;
       padding-bottom: 8px;
-      margin-bottom: 6px;
+      box-shadow: none;
       border-radius: 0;
       font-size: 13px;
 
@@ -1830,7 +1799,6 @@ ul.faces {
     li {
       &.not-found span {
         padding: 5px 8px;
-        padding-left: 10px;
         display: block;
         font-style: italic;
         text-align: center;
@@ -1842,20 +1810,15 @@ ul.faces {
       }
 
       a {
-        padding: 5px 8px;
-        display: block;
-        padding-left: 33px;
-        position: relative;
-        max-width: 100%;
+        display: flex;
+        align-items: center;
+        height: 34px;
         overflow: hidden;
         text-overflow: ellipsis;
-        text-align: left;
+        white-space: nowrap;
 
         span.avatar {
           margin-right: 5px;
-          position: absolute;
-          left: 8px;
-          top: 4px;
           .square(20px);
         }
       }
@@ -1865,8 +1828,6 @@ ul.faces {
   &.unassigned {
     .icon-user {
       margin-right: 3px;
-      position: relative;
-      top: 3px;
       font-size: 20px;
     }
   }
@@ -1874,25 +1835,18 @@ ul.faces {
   .invite-member a {
     .icon-plus {
       font-size: 16px;
-      position: absolute;
-      left: 10px;
-      top: 4px;
       opacity: 0.3;
+      margin-right: 5px;
     }
   }
 
   .clear-assignee a {
     background: rgba(52, 60, 69, 0.03);
     border-bottom: 1px solid rgba(52, 60, 69, 0.06);
-    margin-top: -6px;
-    margin-bottom: 2px;
-    padding: 4px 0 2px 33px !important;
 
     .icon-circle-cross {
       font-size: 16px;
-      position: absolute;
-      left: 10px;
-      top: 4px;
+      margin-right: 5px;
       opacity: 0.3;
     }
   }
