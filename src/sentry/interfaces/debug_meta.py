@@ -7,7 +7,7 @@ __all__ = ('DebugMeta', )
 
 from sentry.interfaces.base import Interface, InterfaceValidationError
 
-from symbolic import parse_addr
+from symbolic import parse_addr, normalize_debug_id
 
 image_types = {}
 
@@ -34,14 +34,21 @@ def process_apple_image(image):
             'image_size': image['image_size'],
             'image_vmaddr': _addr(image.get('image_vmaddr') or 0),
             'name': image.get('name'),
-            'uuid': six.text_type(uuid.UUID(image['uuid']))
         }
+        if image.get('uuid') is not None:
+            apple_image['uuid'] = six.text_type(uuid.UUID(image['uuid']))
+        if image.get('id') is not None:
+            apple_image['id'] = normalize_debug_id(image['id'])
         if image.get('major_version') is not None:
             apple_image['major_version'] = image['major_version']
         if image.get('minor_version') is not None:
             apple_image['minor_version'] = image['minor_version']
         if image.get('revision_version') is not None:
             apple_image['revision_version'] = image['revision_version']
+
+        if 'id' not in apple_image and 'uuid' not in apple_image:
+            raise KeyError('id or uuid')
+
         return apple_image
     except KeyError as e:
         raise InterfaceValidationError('Missing value for apple image: %s' % e.args[0])

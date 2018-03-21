@@ -2,7 +2,6 @@ from __future__ import absolute_import
 
 import os
 import time
-import uuid
 import zipfile
 from six import BytesIO, text_type
 
@@ -14,7 +13,7 @@ from sentry.models import ProjectDSymFile
 
 # This is obviously a freely generated UUID and not the checksum UUID.
 # This is permissible if users want to send different UUIDs
-PROGUARD_UUID = uuid.UUID('6dc7fdb0-d2fb-4c8e-9d6b-bb1aa98929b1')
+PROGUARD_UUID = text_type('6dc7fdb0-d2fb-4c8e-9d6b-bb1aa98929b1')
 PROGUARD_SOURCE = b'''\
 org.slf4j.helpers.Util$ClassContextSecurityManager -> org.a.b.g$a:
 65:65:void <init>() -> <init>
@@ -57,14 +56,14 @@ class DSymFilesClearTest(APITestCase):
         assert response.data[0]['headers'] == {
             'Content-Type': 'text/x-proguard+plain'}
         assert response.data[0]['sha1'] == 'e6d3c5185dac63eddfdc1a5edfffa32d46103b44'
-        assert response.data[0]['uuid'] == text_type(PROGUARD_UUID)
+        assert response.data[0]['uuid'] == PROGUARD_UUID
         assert response.data[0]['objectName'] == 'proguard-mapping'
         assert response.data[0]['cpuName'] == 'any'
         assert response.data[0]['symbolType'] == 'proguard'
 
         dsyms = ProjectDSymFile.dsymcache.fetch_dsyms(
             project=project,
-            uuids=[PROGUARD_UUID])
+            debug_ids=[PROGUARD_UUID])
         assert len(dsyms) == 1
         assert os.path.isfile(dsyms[PROGUARD_UUID])
 

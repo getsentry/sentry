@@ -1,6 +1,5 @@
 from __future__ import absolute_import
 
-import six
 import logging
 import posixpath
 
@@ -107,7 +106,7 @@ class NativeStacktraceProcessor(StacktraceProcessor):
         processable_frame.data = {
             'instruction_addr': instr_addr,
             'obj': obj,
-            'obj_uuid': six.text_type(obj.uuid) if obj is not None else None,
+            'obj_uuid': obj.id if obj is not None else None,
             'symbolserver_match': None,
         }
 
@@ -119,7 +118,7 @@ class NativeStacktraceProcessor(StacktraceProcessor):
                     # the address for the cache key to be within the image
                     # the same way as we do it in the symbolizer.
                     rebase_addr(instr_addr, obj),
-                    six.text_type(obj.uuid),
+                    obj.id,
                     obj.arch,
                     obj.size,
                 )
@@ -181,7 +180,7 @@ class NativeStacktraceProcessor(StacktraceProcessor):
                 continue
             to_lookup.append(
                 {
-                    'object_uuid': six.text_type(obj.uuid),
+                    'object_uuid': obj.id,
                     'object_name': obj.name or '<unknown>',
                     'addr': '0x%x' % rebase_addr(pf.data['instruction_addr'], obj)
                 }

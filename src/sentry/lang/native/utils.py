@@ -6,7 +6,7 @@ import logging
 
 from collections import namedtuple
 from django.core.files.uploadedfile import InMemoryUploadedFile, TemporaryUploadedFile
-from symbolic import parse_addr, arch_from_breakpad, arch_from_macho, arch_is_known, ProcessState
+from symbolic import parse_addr, arch_from_breakpad, arch_from_macho, arch_is_known, ProcessState, id_from_breakpad
 
 from sentry.interfaces.contexts import DeviceContextType
 
@@ -213,7 +213,7 @@ def merge_minidump_event(data, minidump):
     # Extract referenced (not all loaded) images
     images = [{
         'type': 'apple',  # Required by interface
-        'uuid': six.text_type(module.uuid),
+        'uuid': id_from_breakpad(module.id),
         'image_addr': '0x%x' % module.addr,
         'image_size': '0x%x' % module.size,
         'name': module.name,
