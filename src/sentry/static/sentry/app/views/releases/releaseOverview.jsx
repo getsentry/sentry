@@ -61,6 +61,8 @@ const ReleaseOverview = createReactClass({
 
     if (this.props.environment) {
       query.environment = this.props.environment.name;
+    } else {
+      delete query.environment;
     }
 
     let path = `/organizations/${orgId}/releases/${encodeURIComponent(
@@ -185,6 +187,9 @@ const ReleaseOverview = createReactClass({
     }, {});
 
     let deploys = this.state.deploys;
+
+    let query = this.props.environment ? {environment: this.props.environment.name} : {};
+
     return (
       <div>
         <div className="row" style={{paddingTop: 10}}>
@@ -194,6 +199,7 @@ const ReleaseOverview = createReactClass({
               endpoint={`/projects/${orgId}/${projectId}/releases/${encodeURIComponent(
                 version
               )}/resolved/`}
+              query={query}
               pagination={false}
               renderEmpty={() => (
                 <div className="box empty m-b-2" key="none">
@@ -209,6 +215,7 @@ const ReleaseOverview = createReactClass({
             <IssueList
               endpoint={`/projects/${orgId}/${projectId}/issues/`}
               query={{
+                ...query,
                 query: 'first-release:"' + version + '"',
                 limit: 5,
               }}
@@ -292,10 +299,10 @@ const ReleaseOverview = createReactClass({
 
                     // TODO(lyn): Remove when environment feature switched on
                     if (!this.getFeatures().has('environments')) {
-                      let query = encodeURIComponent(
+                      let q = encodeURIComponent(
                         `environment:${deploy.environment} release:${version}`
                       );
-                      href = `/${orgId}/${projectId}/?query=${query}`;
+                      href = `/${orgId}/${projectId}/?query=${q}`;
                     }
                     // End remove block
 
