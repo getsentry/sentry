@@ -1,7 +1,7 @@
 // Jest Snapshot v1, https://goo.gl/fbAQLP
 
 exports[`OrganizationTeamProjects Should render 1`] = `
-.glamor-17 {
+.glamor-14 {
   text-transform: none;
 }
 
@@ -32,40 +32,49 @@ exports[`OrganizationTeamProjects Should render 1`] = `
   flex: 1;
 }
 
-.glamor-29 {
+.glamor-26 {
   background: #fff;
   border: 1px solid;
   margin-bottom: NaNpx;
   position: relative;
 }
 
-.glamor-13 {
+.glamor-10 {
+  font-size: 13px;
+  font-weight: 600;
+  text-transform: uppercase;
   border-bottom: 1px solid;
   border-radius: 0 0;
-  text-transform: uppercase;
-  font-size: 13px;
   line-height: 1;
   padding: 15px 20px;
   text-transform: none;
 }
 
-.glamor-9 {
-  font-size: inherit;
-  text-transform: inherit;
-  margin: 0;
-}
-
 .glamor-7 {
-  font-size: 12px;
+  box-sizing: border-box;
+  display: -webkit-box;
+  display: -webkit-flex;
+  display: -ms-flexbox;
+  display: flex;
+  -webkit-align-items: center;
+  -webkit-box-align: center;
+  -ms-flex-align: center;
+  align-items: center;
+  -webkit-box-pack: justify;
+  -webkit-justify-content: space-between;
+  -ms-flex-pack: justify;
+  justify-content: space-between;
+  font-size: 13px;
   font-weight: 600;
   text-transform: uppercase;
-  margin-bottom: 20px;
-  font-size: inherit;
-  text-transform: inherit;
-  margin: 0;
+  border-bottom: 1px solid;
+  border-radius: 0 0;
+  line-height: 1;
+  padding: 15px 20px;
+  text-transform: none;
 }
 
-.glamor-25 {
+.glamor-22 {
   box-sizing: border-box;
   padding: 16px;
   display: -webkit-box;
@@ -79,11 +88,11 @@ exports[`OrganizationTeamProjects Should render 1`] = `
   border-bottom: 1px solid;
 }
 
-.glamor-25:last-child {
+.glamor-22:last-child {
   border: 0;
 }
 
-.glamor-19 {
+.glamor-16 {
   box-sizing: border-box;
   -webkit-flex: 1;
   -ms-flex: 1;
@@ -98,7 +107,7 @@ exports[`OrganizationTeamProjects Should render 1`] = `
   justify-content: space-between;
 }
 
-.glamor-23 {
+.glamor-20 {
   box-sizing: border-box;
   margin-left: 16px;
 }
@@ -199,36 +208,35 @@ exports[`OrganizationTeamProjects Should render 1`] = `
             >
               <StyledPanel>
                 <div
-                  className="glamor-29 glamor-30"
+                  className="glamor-26 glamor-27"
                 >
                   <PanelHeader
-                    className="glamor-17"
+                    className="glamor-14"
                   >
                     <StyledPanelHeader
-                      className="glamor-17"
+                      className="glamor-14"
                     >
                       <Component
-                        className="glamor-13 glamor-14"
+                        className="glamor-10 glamor-6"
                       >
-                        <div
-                          className="glamor-13 glamor-14"
+                        <Flex
+                          align="center"
+                          className="glamor-10 glamor-6"
+                          justify="space-between"
                         >
-                          <StyledPanelHeading>
-                            <Component
-                              className="glamor-9 glamor-6"
+                          <Base
+                            align="center"
+                            className="glamor-6 glamor-7"
+                            justify="space-between"
+                          >
+                            <div
+                              className="glamor-6 glamor-7"
+                              is={null}
                             >
-                              <PanelHeading
-                                className="glamor-9 glamor-6"
-                              >
-                                <div
-                                  className="glamor-6 glamor-7 glamor-8"
-                                >
-                                  Projects Without Teams
-                                </div>
-                              </PanelHeading>
-                            </Component>
-                          </StyledPanelHeading>
-                        </div>
+                              Projects Without Teams
+                            </div>
+                          </Base>
+                        </Flex>
                       </Component>
                     </StyledPanelHeader>
                   </PanelHeader>
@@ -251,11 +259,11 @@ exports[`OrganizationTeamProjects Should render 1`] = `
                         >
                           <Base
                             align="center"
-                            className="glamor-25 glamor-26"
+                            className="glamor-22 glamor-23"
                             p={2}
                           >
                             <div
-                              className="glamor-25 glamor-26"
+                              className="glamor-22 glamor-23"
                               is={null}
                             >
                               <Flex
@@ -263,12 +271,12 @@ exports[`OrganizationTeamProjects Should render 1`] = `
                                 justify="space-between"
                               >
                                 <Base
-                                  className="glamor-19"
+                                  className="glamor-16"
                                   flex="1"
                                   justify="space-between"
                                 >
                                   <div
-                                    className="glamor-19"
+                                    className="glamor-16"
                                     is={null}
                                   >
                                     <Link
@@ -326,11 +334,11 @@ exports[`OrganizationTeamProjects Should render 1`] = `
                                 ml={2}
                               >
                                 <Base
-                                  className="glamor-23"
+                                  className="glamor-20"
                                   ml={2}
                                 >
                                   <div
-                                    className="glamor-23"
+                                    className="glamor-20"
                                     is={null}
                                   >
                                     <Button
