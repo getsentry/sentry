@@ -695,7 +695,8 @@ const Stream = createReactClass({
           </p>
           <p>
             <Link
-              to={`/${org.slug}/${project.slug}/getting-started/`}
+              to={`/${org.slug}/${project.slug}/getting-started/${project.platform ||
+                ''}`}
               className="btn btn-primary btn-lg"
             >
               {t('Installation Instructions')}
