@@ -55,7 +55,7 @@ class RateLimitView extends React.Component {
         <SettingsPageHeader title={t('Rate Limits')} />
 
         <Panel>
-          <PanelHeader disablePadding isFlex>
+          <PanelHeader disablePadding>
             <Box px={2} flex="1">
               {t('Adjust Limits')}
             </Box>

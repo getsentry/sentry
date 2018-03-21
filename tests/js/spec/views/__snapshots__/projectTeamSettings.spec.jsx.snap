@@ -9,11 +9,10 @@ exports[`ProjectTeamsSettings render() renders 1`] = `
       title="Teams"
     />
     <Panel>
-      <PanelHeader
-        hasButtons={true}
-        key="header"
-      >
-        <PanelHeaderContent>
+      <React.Fragment>
+        <PanelHeader
+          hasButtons={true}
+        >
           <div>
             Team
           </div>
@@ -45,42 +44,41 @@ exports[`ProjectTeamsSettings render() renders 1`] = `
               onSelect={[Function]}
             />
           </div>
-        </PanelHeaderContent>
-      </PanelHeader>
-      <PanelBody
-        direction="column"
-        disablePadding={true}
-        flex={false}
-        key="body"
-      >
-        <TeamRow
-          access={
-            Set {
-              "org:read",
-              "org:write",
-              "org:admin",
-              "project:read",
-              "project:write",
-              "project:admin",
-              "team:read",
-              "team:write",
-              "team:admin",
+        </PanelHeader>
+        <PanelBody
+          direction="column"
+          disablePadding={true}
+          flex={false}
+        >
+          <TeamRow
+            access={
+              Set {
+                "org:read",
+                "org:write",
+                "org:admin",
+                "project:read",
+                "project:write",
+                "project:admin",
+                "team:read",
+                "team:write",
+                "team:admin",
+              }
             }
-          }
-          key="1"
-          onRemove={[Function]}
-          orgId="org-slug"
-          projectId="project-slug"
-          team={
-            Object {
-              "id": "1",
-              "name": "Team Name",
-              "slug": "team-slug",
+            key="1"
+            onRemove={[Function]}
+            orgId="org-slug"
+            projectId="project-slug"
+            team={
+              Object {
+                "id": "1",
+                "name": "Team Name",
+                "slug": "team-slug",
+              }
             }
-          }
-          teamCount={1}
-        />
-      </PanelBody>
+            teamCount={1}
+          />
+        </PanelBody>
+      </React.Fragment>
     </Panel>
   </div>
 </SideEffect(DocumentTitle)>

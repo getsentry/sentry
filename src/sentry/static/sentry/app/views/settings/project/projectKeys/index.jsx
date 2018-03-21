@@ -1,4 +1,4 @@
-import {Box} from 'grid-emotion';
+import {Box, Flex} from 'grid-emotion';
 import {Link} from 'react-router';
 import DocumentTitle from 'react-document-title';
 import PropTypes from 'prop-types';
@@ -155,7 +155,7 @@ const KeyRow = createReactClass({
 
     return (
       <ClientKeyItemPanel disabled={!data.isActive}>
-        <PanelHeader isFlex hasButtons align="center">
+        <PanelHeader hasButtons>
           <Box flex="1">
             <PanelHeaderLink to={editUrl}>{data.label}</PanelHeaderLink>
             {!data.isActive && (
@@ -165,7 +165,9 @@ const KeyRow = createReactClass({
               </small>
             )}
           </Box>
-          <div>{controls.map((c, n) => <span key={n}> {c}</span>)}</div>
+          <Flex align="center">
+            {controls.map((c, n) => <KeyControl key={n}> {c}</KeyControl>)}
+          </Flex>
         </PanelHeader>
 
         <ClippedBox
@@ -347,4 +349,8 @@ const ClientKeyItemPanel = styled(({disabled, ...props}) => <Panel {...props} />
 
 const PanelHeaderLink = styled(Link)`
   color: ${p => p.theme.gray3};
+`;
+
+const KeyControl = styled.span`
+  margin-left: 6px;
 `;

@@ -1,4 +1,4 @@
-import {Box, Flex} from 'grid-emotion';
+import {Box} from 'grid-emotion';
 import PropTypes from 'prop-types';
 import React from 'react';
 import styled from 'react-emotion';
@@ -79,16 +79,14 @@ class AuditLogList extends React.Component {
 
         <Panel>
           <PanelHeader disablePadding>
-            <Flex align="center">
-              <Box flex="1" pl={2}>
-                {t('Member')}
-              </Box>
-              <Box w={150}>{t('Action')}</Box>
-              <Box w={130}>{t('IP')}</Box>
-              <Box w={150} px={1}>
-                {t('Time')}
-              </Box>
-            </Flex>
+            <Box flex="1" pl={2}>
+              {t('Member')}
+            </Box>
+            <Box w={150}>{t('Action')}</Box>
+            <Box w={130}>{t('IP')}</Box>
+            <Box w={150} px={1}>
+              {t('Time')}
+            </Box>
           </PanelHeader>
 
           <PanelBody>

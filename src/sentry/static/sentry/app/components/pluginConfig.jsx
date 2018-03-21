@@ -111,31 +111,29 @@ const PluginConfig = createReactClass({
     return (
       <Panel className={`plugin-config ref-plugin-config-${data.id}`}>
         <PanelHeader hasButtons>
-          <Flex>
-            <Flex align="center" flex="1">
-              <Flex align="center" mr={1}>
-                <PluginIcon pluginId={data.id} />
-              </Flex>
-              <span>{data.name}</span>
+          <Flex align="center" flex="1">
+            <Flex align="center" mr={1}>
+              <PluginIcon pluginId={data.id} />
             </Flex>
-            {data.canDisable &&
-              enabled && (
-                <Flex align="center">
-                  <Box mr={1}>
-                    {data.isTestable && (
-                      <Button onClick={this.testPlugin} size="small">
-                        {t('Test Plugin')}
-                      </Button>
-                    )}
-                  </Box>
-                  <Box>
-                    <Button size="small" onClick={this.disablePlugin}>
-                      {t('Disable')}
-                    </Button>
-                  </Box>
-                </Flex>
-              )}
+            <span>{data.name}</span>
           </Flex>
+          {data.canDisable &&
+            enabled && (
+              <Flex align="center">
+                <Box mr={1}>
+                  {data.isTestable && (
+                    <Button onClick={this.testPlugin} size="small">
+                      {t('Test Plugin')}
+                    </Button>
+                  )}
+                </Box>
+                <Box>
+                  <Button size="small" onClick={this.disablePlugin}>
+                    {t('Disable')}
+                  </Button>
+                </Box>
+              </Flex>
+            )}
         </PanelHeader>
         <PanelBody px={2} pt={2} flex wrap="wrap">
           {data.status === 'beta' ? (

@@ -1,23 +1,24 @@
-import React from 'react';
-import PropTypes from 'prop-types';
-import idx from 'idx';
 import {Box} from 'grid-emotion';
+import PropTypes from 'prop-types';
+import React from 'react';
+import idx from 'idx';
 
-import {t} from '../../../../locale';
 import {getOrganizationState} from '../../../../mixins/organizationState';
-import OrganizationSettingsView from '../../../organizationSettingsView';
-import ProjectStatsGraph from './projectStatsGraph';
-import SentryTypes from '../../../../proptypes';
 import {sortProjects} from '../../../../utils';
-import Panel from '../../components/panel';
-import PanelItem from '../../components/panelItem';
-import PanelHeader from '../../components/panelHeader';
-import PanelBody from '../../components/panelBody';
-import ProjectListItem from '../../../settings/components/settingsProjectItem';
-import SettingsPageHeader from '../../components/settingsPageHeader';
+import {t} from '../../../../locale';
 import Button from '../../../../components/buttons/button';
 import EmptyMessage from '../../components/emptyMessage';
+import Input from '../../components/forms/controls/input';
+import OrganizationSettingsView from '../../../organizationSettingsView';
 import Pagination from '../../../../components/pagination';
+import Panel from '../../components/panel';
+import PanelBody from '../../components/panelBody';
+import PanelHeader from '../../components/panelHeader';
+import PanelItem from '../../components/panelItem';
+import ProjectListItem from '../../../settings/components/settingsProjectItem';
+import ProjectStatsGraph from './projectStatsGraph';
+import SentryTypes from '../../../../proptypes';
+import SettingsPageHeader from '../../components/settingsPageHeader';
 
 export default class OrganizationProjectsView extends OrganizationSettingsView {
   static contextTypes = {
@@ -102,17 +103,18 @@ export default class OrganizationProjectsView extends OrganizationSettingsView {
     return (
       <div>
         <SettingsPageHeader title="Projects" action={action} />
-        <Panel className="table table-no-top-border m-b-0">
-          <PanelHeader>
-            <form className="pull-right" onSubmit={this.onSearch}>
-              <input
+        <Panel>
+          <PanelHeader hasButtons>
+            {t('Projects')}
+
+            <form onSubmit={this.onSearch}>
+              <Input
                 value={this.state.searchQuery}
                 onChange={e => this.setState({searchQuery: e.target.value})}
                 className="search"
                 placeholder="search"
               />
             </form>
-            {t('Projects')}
           </PanelHeader>
           <PanelBody css={{width: '100%'}}>
             {sortProjects(projectList).map((project, i) => (

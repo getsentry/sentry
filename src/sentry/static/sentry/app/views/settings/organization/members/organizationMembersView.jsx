@@ -1,4 +1,4 @@
-import {Flex, Box} from 'grid-emotion';
+import {Box} from 'grid-emotion';
 import {browserHistory} from 'react-router';
 import PropTypes from 'prop-types';
 import React from 'react';
@@ -250,21 +250,19 @@ class OrganizationMembersView extends OrganizationSettingsView {
         />
 
         <Panel>
-          <PanelHeader disablePadding={true}>
-            <Flex align="center">
-              <Box px={2} flex="1">
-                {t('Member')}
-              </Box>
-              <Box px={2} w={180}>
-                {t('Status')}
-              </Box>
-              <Box px={2} w={140}>
-                {t('Role')}
-              </Box>
-              <Box px={2} w={140}>
-                {t('Actions')}
-              </Box>
-            </Flex>
+          <PanelHeader disablePadding>
+            <Box px={2} flex="1">
+              {t('Member')}
+            </Box>
+            <Box px={2} w={180}>
+              {t('Status')}
+            </Box>
+            <Box px={2} w={140}>
+              {t('Role')}
+            </Box>
+            <Box px={2} w={140}>
+              {t('Actions')}
+            </Box>
           </PanelHeader>
 
           <PanelBody>

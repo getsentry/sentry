@@ -1,4 +1,3 @@
-import {Flex} from 'grid-emotion';
 import PropTypes from 'prop-types';
 import React, {Fragment, Component} from 'react';
 
@@ -36,10 +35,10 @@ class ProjectPlugins extends Component {
     return (
       <Panel
         title={
-          <Flex justify="space-between">
+          <React.Fragment>
             <div>{t('Legacy Integration')}</div>
             <div>{t('Enabled')}</div>
-          </Flex>
+          </React.Fragment>
         }
         body={
           <Fragment>

@@ -244,7 +244,7 @@ const ProjectSavedSearches = createReactClass({
     return (
       <Panel>
         <PanelHeader disablePadding>
-          <Flex>
+          <Flex flex="1">
             <Flex flex="1" px={2}>
               {t('Search')}
             </Flex>
