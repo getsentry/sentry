@@ -47,7 +47,7 @@ class UnreleasedChanges extends AsyncComponent {
 
   emptyState() {
     return (
-      <div className="box empty-stream m-y-0">
+      <div className="box empty-stream">
         <span className="icon icon-exclamation" />
         <p>We couldn't find any unreleased commits associated with your account.</p>
       </div>
@@ -56,7 +56,7 @@ class UnreleasedChanges extends AsyncComponent {
 
   missingEmails() {
     return (
-      <div className="box empty-stream m-y-0">
+      <div className="box empty-stream">
         <span className="icon icon-exclamation" />
         <p>We couldn't find any commits associated with your account.</p>
         <p>
