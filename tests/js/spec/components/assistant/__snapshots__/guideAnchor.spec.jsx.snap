@@ -2,6 +2,7 @@
 
 exports[`GuideAnchor renders 1`] = `
 <GuideAnchorContainer
+  innerRef={[Function]}
   type="text"
 >
   <StyledGuideAnchor
@@ -13,6 +14,7 @@ exports[`GuideAnchor renders 1`] = `
 
 exports[`GuideAnchor turns active when guide state changes 1`] = `
 <GuideAnchorContainer
+  innerRef={[Function]}
   type="text"
 >
   <StyledGuideAnchor

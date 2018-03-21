@@ -162,6 +162,7 @@ exports[`ResolveActions with confirmation step renders 1`] = `
               type="text"
             >
               <GuideAnchorContainer
+                innerRef={[Function]}
                 type="text"
               >
                 <div
@@ -638,6 +639,7 @@ exports[`ResolveActions without confirmation renders 1`] = `
             type="text"
           >
             <GuideAnchorContainer
+              innerRef={[Function]}
               type="text"
             >
               <div
