@@ -114,7 +114,7 @@ export function objectIsEmpty(obj) {
   return true;
 }
 
-function trim(str) {
+export function trim(str) {
   return str.replace(/^\s+|\s+$/g, '');
 }
 
