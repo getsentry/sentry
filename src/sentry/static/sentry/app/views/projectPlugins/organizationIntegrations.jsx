@@ -6,6 +6,7 @@ import styled from 'react-emotion';
 import {t} from '../../locale';
 import AsyncComponent from '../../components/asyncComponent';
 import Link from '../../components/link';
+import Button from '../../components/buttons/button';
 import Panel from '../settings/components/panel';
 import PanelBody from '../settings/components/panelBody';
 import PanelHeader from '../settings/components/panelHeader';
@@ -39,7 +40,7 @@ export default class OrganizationIntegrations extends AsyncComponent {
     let {orgId, projectId} = this.props;
 
     const integrations = this.state.config.providers.map(provider => (
-      <PanelItem key={provider.key}>
+      <PanelItem key={provider.key} align="center">
         <Box>
           <PluginIcon size={32} pluginId={provider.key} />
         </Box>
@@ -53,6 +54,14 @@ export default class OrganizationIntegrations extends AsyncComponent {
             </Link>
           </ProviderName>
           <TeamName>{provider.metadata.author}</TeamName>
+        </Box>
+        <Box>
+          <Button
+            size="small"
+            to={`/settings/organization/${orgId}/project/${projectId}/integrations/${provider.key}/`}
+          >
+            {t('Configure')}
+          </Button>
         </Box>
       </PanelItem>
     ));
