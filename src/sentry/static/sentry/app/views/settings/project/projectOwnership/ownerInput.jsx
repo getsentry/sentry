@@ -25,6 +25,11 @@ const SyntaxOverlay = styled.div`
   top: ${({line}) => line}em;
 `;
 
+const SaveButton = styled.div`
+  text-align: end;
+  padding-top: 10px;
+`;
+
 class OwnerInput extends React.Component {
   static propTypes = {
     organization: SentryTypes.Organization,
@@ -155,7 +160,7 @@ class OwnerInput extends React.Component {
               <SyntaxOverlay line={error.raw[0].match(/line (\d*),/)[1] - 1} />
             )}
           {error && error.raw && error.raw.toString()}
-          <div style={{textAlign: 'end', paddingTop: '10px'}}>
+          <SaveButton>
             <Button
               size="small"
               priority="primary"
@@ -164,7 +169,7 @@ class OwnerInput extends React.Component {
             >
               {t('Save Changes')}
             </Button>
-          </div>
+          </SaveButton>
         </div>
       </React.Fragment>
     );

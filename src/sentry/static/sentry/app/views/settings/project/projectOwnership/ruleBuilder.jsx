@@ -12,15 +12,71 @@ import DropdownButton from '../../../../components/dropdownButton';
 import ActorAvatar from '../../../../components/actorAvatar';
 import SentryTypes from '../../../../proptypes';
 import {buildUserId, buildTeamId} from '../../../../utils';
+import {addErrorMessage} from '../../../../actionCreators/indicator';
+
 import {t} from '../../../../locale';
 
 const BuilderBar = styled('div')`
   display: flex;
+  height: 2em;
+  margin-bottom: 1em;
+`;
+
+const BuilderSelect = styled(SelectInput)`
+  height: 32px;
+  padding: 0.5em;
+  margin-right: 5px;
+  width: 80px;
+`;
+
+const BuilderInput = styled(Input)`
+  height: 32px;
+  padding: 0.5em;
+  margin-right: 5px;
+  width: 50%;
+`;
+
+const Divider = styled('span')`
+  line-height: 32px;
+`;
+
+const Owners = styled('div')`
+  flex-grow: 100;
+  justify-content: flex-end;
+  display: flex;
+  span {
+    margin-right: 2px;
+  }
+  .avatar {
+    width: 32px;
+    height: 32px;
+  }
+`;
+
+const BuilderDropdownAutoComplete = styled(DropdownAutoComplete)``;
+
+const BuilderDropdownButton = styled(DropdownButton)`
+  margin-right: 5px;
+  height: 32px;
+`;
+
+const RuleAddButton = styled(Button)`
+  height: 32px;
+  width: 35px;
+  display: flex;
+
+  justify-content: center;
+  .button-label {
+    height: 32px;
+    padding: 0.5em;
+  }
+  div {
+    margin: 0px !important;
+  }
 `;
 
 class RuleBuilder extends React.Component {
   static propTypes = {
-    organization: SentryTypes.Organization,
     project: SentryTypes.Project,
     handleAddRule: PropTypes.func,
   };
@@ -67,11 +123,13 @@ class RuleBuilder extends React.Component {
     this.setState({text: e.target.value});
   }
 
-  handleAddActor(actor) {
+  handleAddActor({actor}) {
     let {owners} = this.state;
-    this.setState({
-      owners: [...owners, actor.actor],
-    });
+    if (!owners.find(i => actor.type == i.type && actor.id == i.id)) {
+      this.setState({
+        owners: [...owners, actor],
+      });
+    }
   }
 
   handleRemoveActor(toRemove) {
@@ -84,6 +142,11 @@ class RuleBuilder extends React.Component {
   }
   handleAddRule() {
     let {type, text, owners} = this.state;
+
+    if (!text || owners.length == 0) {
+      addErrorMessage('A Rule needs a type, a value, and one or more owners.');
+      return;
+    }
     let ownerText = owners
       .map(actor => `${actor.type == 'team' ? '#' : ''}${actor.name}`)
       .join(' ');
@@ -98,31 +161,37 @@ class RuleBuilder extends React.Component {
     let menuHeader = <StyledTeamsLabel>{t('Owners')}</StyledTeamsLabel>;
     return (
       <BuilderBar>
-        <SelectInput value={type} style={{width: '200px'}}>
-          <option value="path">path</option>
+        <BuilderSelect value={type}>
+          <option value="path">Path</option>
           <option value="url">URL</option>
-        </SelectInput>
-        <Input controlled value={text} onChange={this.onChange.bind(this)} />
-        >
-        {owners.map(owner => (
-          <span
-            style={{width: '50px', height: '50px'}}
-            key={`${owner.type}-${owner.id}`}
-            onClick={this.handleRemoveActor.bind(this, owner)}
-          >
-            <ActorAvatar actor={owner} />
-          </span>
-        ))}
-        <DropdownAutoComplete
+        </BuilderSelect>
+        <BuilderInput
+          controlled
+          value={text}
+          onChange={this.onChange.bind(this)}
+          placeholder="src/example/*"
+        />
+        <Divider>〉</Divider>
+        <Owners>
+          {owners.map(owner => (
+            <span
+              key={`${owner.type}-${owner.id}`}
+              onClick={this.handleRemoveActor.bind(this, owner)}
+            >
+              <ActorAvatar actor={owner} />
+            </span>
+          ))}
+        </Owners>
+        <BuilderDropdownAutoComplete
           items={[
             {
               value: 'team',
-              label: 'teams',
+              label: 'Teams',
               items: this.mentionableTeams(),
             },
             {
               value: 'user',
-              label: 'users',
+              label: 'Users',
               items: this.mentionableUsers(),
             },
           ]}
@@ -130,15 +199,16 @@ class RuleBuilder extends React.Component {
           menuHeader={menuHeader}
         >
           {({isOpen, selectedItem}) => (
-            <DropdownButton isOpen={isOpen} size="xsmall">
-              {t('Owners')}
-            </DropdownButton>
+            <BuilderDropdownButton isOpen={isOpen} size="xsmall">
+              {t('Add Owners')}
+            </BuilderDropdownButton>
           )}
-        </DropdownAutoComplete>
-        <Button
+        </BuilderDropdownAutoComplete>
+        <RuleAddButton
           priority="primary"
           onClick={this.handleAddRule.bind(this)}
           icon="icon-circle-add"
+          style={{width: '50px'}}
         />
       </BuilderBar>
     );

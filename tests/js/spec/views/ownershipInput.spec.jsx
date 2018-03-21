@@ -4,6 +4,7 @@ import {mount} from 'enzyme';
 import {Client} from 'app/api';
 import OwnerInput from 'app/views/settings/project/projectOwnership/ownerInput';
 
+jest.mock('jquery');
 describe('ProjectTeamsSettings', function() {
   let org;
   let project;
@@ -32,7 +33,7 @@ describe('ProjectTeamsSettings', function() {
         TestStubs.routerContext()
       );
 
-      let submit = wrapper.find('button');
+      let submit = wrapper.find('SaveButton button');
 
       expect(put).not.toHaveBeenCalled();
 
