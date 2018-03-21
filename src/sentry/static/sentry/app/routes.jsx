@@ -41,7 +41,6 @@ import OrganizationActivity from './views/organizationActivity';
 import OrganizationApiKeyDetailsView from './views/settings/organization/apiKeys/organizationApiKeyDetailsView';
 import OrganizationApiKeysView from './views/settings/organization/apiKeys/organizationApiKeysView';
 import OrganizationAuditLogView from './views/settings/organization/auditLog/auditLogView';
-import OrganizationCommits from './views/organizationCommits';
 import OrganizationContext from './views/organizationContext';
 import OrganizationCreate from './views/organizationCreate';
 import OrganizationDashboard from './views/organizationDashboard';
@@ -621,11 +620,6 @@ function routes() {
         <Route
           path="/organizations/:orgId/activity/"
           component={errorHandler(OrganizationActivity)}
-        />
-
-        <Route
-          path="/organizations/:orgId/commits/"
-          component={errorHandler(OrganizationCommits)}
         />
 
         <Route

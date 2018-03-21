@@ -330,9 +330,10 @@ class Release(Model):
         This will clear any existing commit log and replace it with the given
         commits.
         """
+        # TODO(dcramer): this function could use some cleanup/refactoring as its a bit unwieldly
         from sentry.models import (
             Commit, CommitAuthor, Group, GroupLink, GroupResolution, GroupStatus,
-            ReleaseCommit, Repository, PullRequest
+            ReleaseCommit, ReleaseHeadCommit, Repository, PullRequest
         )
         from sentry.plugins.providers.repository import RepositoryProvider
 
@@ -354,6 +355,7 @@ class Release(Model):
                 authors = {}
                 repos = {}
                 commit_author_by_commit = {}
+                head_commit_by_repo = {}
                 latest_commit = None
                 for idx, data in enumerate(commit_list):
                     repo_name = data.get('repository'
@@ -432,6 +434,8 @@ class Release(Model):
                     if latest_commit is None:
                         latest_commit = commit
 
+                    head_commit_by_repo.setdefault(repo.id, commit.id)
+
                 self.update(
                     commit_count=len(commit_list),
                     authors=[
@@ -443,6 +447,19 @@ class Release(Model):
                     ],
                     last_commit_id=latest_commit.id if latest_commit else None,
                 )
+
+        # fill any missing ReleaseHeadCommit entries
+        for repo_id, commit_id in six.iteritems(head_commit_by_repo):
+            try:
+                with transaction.atomic():
+                    ReleaseHeadCommit.objects.create(
+                        organization_id=self.organization_id,
+                        release_id=self.id,
+                        repository_id=repo_id,
+                        commit_id=commit_id,
+                    )
+            except IntegrityError:
+                pass
 
         release_commits = list(ReleaseCommit.objects.filter(release=self)
                                .select_related('commit').values('commit_id', 'commit__key'))

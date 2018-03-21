@@ -9,6 +9,8 @@ from sentry.api.bases import OrganizationMemberEndpoint
 from sentry.api.serializers import serialize
 from sentry.models import Commit, Repository, UserEmail
 
+# TODO(dcramer): once LatestRelease is backfilled, change this query to use the new
+# schema [performance]
 query = """
 select c1.*
 from sentry_commit c1
@@ -43,7 +45,13 @@ class OrganizationMemberUnreleasedCommitsEndpoint(OrganizationMemberEndpoint):
             is_verified=True,
         ).values_list('email', flat=True))
         if not email_list:
-            return self.respond([])
+            return self.respond({
+                'commits': [],
+                'repositories': {},
+                'errors': {
+                    'missing_emails': True,
+                }
+            })
 
         params = [organization.id, organization.id]
         for e in email_list:

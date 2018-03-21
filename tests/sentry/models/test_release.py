@@ -4,7 +4,8 @@ import six
 
 from sentry.models import (
     Commit, CommitAuthor, Environment, Group, GroupRelease, GroupResolution, GroupLink, GroupStatus,
-    Release, ReleaseCommit, ReleaseEnvironment, ReleaseProject, ReleaseProjectEnvironment, Repository
+    Release, ReleaseCommit, ReleaseEnvironment, ReleaseHeadCommit, ReleaseProject, ReleaseProjectEnvironment,
+    Repository
 )
 
 from sentry.testutils import TestCase
@@ -199,6 +200,12 @@ class SetCommitsTestCase(TestCase):
         assert release.commit_count == 3
         assert release.authors == []
         assert release.last_commit_id == commit.id
+
+        assert ReleaseHeadCommit.objects.filter(
+            release_id=release.id,
+            commit_id=commit.id,
+            repository_id=repo.id,
+        ).exists()
 
     def test_backfilling_commits(self):
         org = self.create_organization()
