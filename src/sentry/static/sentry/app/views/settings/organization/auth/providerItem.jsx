@@ -1,4 +1,4 @@
-import {Box, Flex} from 'grid-emotion';
+import {Flex} from 'grid-emotion';
 import PropTypes from 'prop-types';
 import React from 'react';
 import styled from 'react-emotion';
@@ -30,7 +30,7 @@ export default class ProviderItem extends React.PureComponent {
       <PanelItem align="center">
         <Flex flex="1">
           <ProviderLogo className={`provider-logo ${providerName.toLowerCase()}`} />
-          <Box flex="1">
+          <Flex direction="column" justify="space-around" flex="1">
             <ProviderName>{providerName}</ProviderName>
             <div>
               {tct('Enable your organization to sign in with [providerName]', {
@@ -38,7 +38,7 @@ export default class ProviderItem extends React.PureComponent {
               })}
               .
             </div>
-          </Box>
+          </Flex>
         </Flex>
 
         <Button
