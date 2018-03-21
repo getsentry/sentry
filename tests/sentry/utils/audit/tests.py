@@ -115,6 +115,7 @@ class CreateAuditEntryTest(TestCase):
             data={'integration': 'webhooks', 'project': project.slug},
         )
 
+        assert ('enabled') in entry.get_note()
         assert entry.actor == self.user
         assert entry.target_object == self.project.id
         assert entry.event == AuditLogEntryEvent.INTEGRATION_ADD
@@ -127,6 +128,7 @@ class CreateAuditEntryTest(TestCase):
             data={'integration': 'webhooks', 'project': project.slug},
         )
 
+        assert ('edited') in entry2.get_note()
         assert entry2.actor == self.user
         assert entry2.target_object == self.project.id
         assert entry2.event == AuditLogEntryEvent.INTEGRATION_EDIT
@@ -139,6 +141,7 @@ class CreateAuditEntryTest(TestCase):
             data={'integration': 'webhooks', 'project': project.slug},
         )
 
+        assert ('disable') in entry3.get_note()
         assert entry3.actor == self.user
         assert entry3.target_object == self.project.id
         assert entry3.event == AuditLogEntryEvent.INTEGRATION_REMOVE
