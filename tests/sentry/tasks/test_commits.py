@@ -5,7 +5,7 @@ from mock import patch
 from social_auth.models import UserSocialAuth
 
 from sentry.exceptions import InvalidIdentity, PluginError
-from sentry.models import Commit, Deploy, Release, ReleaseHeadCommit, Repository
+from sentry.models import Commit, Deploy, LatestRelease, Release, ReleaseHeadCommit, Repository
 from sentry.tasks.commits import fetch_commits, handle_invalid_identity
 from sentry.testutils import TestCase
 
@@ -82,6 +82,14 @@ class FetchCommitsTest(TestCase):
         assert commit_list[2].key == 'b' * 40
 
         mock_notify_if_ready.assert_called_with(deploy.id, fetch_complete=True)
+
+        latest_release = LatestRelease.objects.get(
+            repository_id=repo.id,
+            environment_id=5,
+        )
+        assert latest_release.deploy_id == deploy.id
+        assert latest_release.release_id == release2.id
+        assert latest_release.commit_id == commit_list[0].id
 
     @patch('sentry.tasks.commits.handle_invalid_identity')
     @patch('sentry.plugins.providers.dummy.repository.DummyRepositoryProvider.compare_commits')

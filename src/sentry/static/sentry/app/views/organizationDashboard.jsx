@@ -13,14 +13,102 @@ import HookStore from '../stores/hookStore';
 import ProjectsStore from '../stores/projectsStore';
 import TeamStore from '../stores/teamStore';
 
+import AsyncComponent from '../components/asyncComponent';
 import ActivityFeed from '../components/activity/feed';
 import EventsPerHour from '../components/events/eventsPerHour';
 import IssueList from '../components/issueList';
 import OrganizationHomeContainer from '../components/organizations/homeContainer';
 import OrganizationState from '../mixins/organizationState';
+import TimeSince from '../components/timeSince';
+import CommitLink from '../components/commitLink';
 
 import {t, tct} from '../locale';
 import {sortArray} from '../utils';
+
+class UnreleasedChanges extends AsyncComponent {
+  getEndpoints() {
+    return [
+      [
+        'unreleasedCommits',
+        `/organizations/${this.props.params.orgId}/members/me/unreleased-commits/`,
+      ],
+    ];
+  }
+
+  renderMessage = message => {
+    if (!message) {
+      return t('No message provided');
+    }
+
+    let firstLine = message.split(/\n/)[0];
+
+    return firstLine;
+  };
+
+  emptyState() {
+    return (
+      <div className="box empty-stream m-y-0">
+        <span className="icon icon-exclamation" />
+        <p>We couldn't find any unreleased commits associated with your account.</p>
+      </div>
+    );
+  }
+
+  missingEmails() {
+    return (
+      <div className="box empty-stream m-y-0">
+        <span className="icon icon-exclamation" />
+        <p>We couldn't find any commits associated with your account.</p>
+        <p>
+          <small>
+            Have you added (and verified) the email address associated with your activity?
+          </small>
+        </p>
+      </div>
+    );
+  }
+
+  renderBody() {
+    let {unreleasedCommits} = this.state;
+    let {commits, errors, repositories} = unreleasedCommits;
+
+    if (errors && errors.missing_emails) return this.missingEmails();
+    if (!commits.length) return this.emptyState();
+    return (
+      <div className="panel panel-default">
+        <ul className="list-group list-group-lg commit-list">
+          {commits.map(commit => {
+            let repo = repositories[commit.repositoryID];
+            return (
+              <li className="list-group-item" key={commit.id}>
+                <div className="row row-center-vertically">
+                  <div className="col-xs-10">
+                    <h5 className="truncate">{this.renderMessage(commit.message)}</h5>
+                    <p>
+                      {repo.name} &mdash; <TimeSince date={commit.dateCreated} />
+                    </p>
+                  </div>
+                  <div className="col-xs-2 hidden-xs align-right">
+                    <CommitLink commitId={commit.id} repository={repo} />
+                  </div>
+                </div>
+              </li>
+            );
+          })}
+        </ul>
+      </div>
+    );
+  }
+
+  render() {
+    return (
+      <div>
+        <h4>{t('Unreleased Changes')}</h4>
+        {this.renderComponent()}
+      </div>
+    );
+  }
+}
 
 class AssignedIssues extends React.Component {
   static propTypes = {
@@ -406,6 +494,7 @@ const OrganizationDashboard = createReactClass({
       <OrganizationHomeContainer>
         <div className="row">
           <div className="col-md-8">
+            {features.has('unreleased-changes') && <UnreleasedChanges {...this.props} />}
             <AssignedIssues {...this.props} />
             <NewIssues {...this.props} />
             <Activity {...this.props} />
