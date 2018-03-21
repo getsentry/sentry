@@ -5,6 +5,7 @@ from dateutil.parser import parse as parse_datetime
 import json
 import responses
 
+from sentry.utils import snuba
 from sentry.models import GroupHash, Release
 from sentry.testutils import TestCase
 from sentry.tsdb.base import TSDBModel
@@ -66,7 +67,7 @@ class SnubaTSDBTest(TestCase):
                     datum['aggregate'] = [1]
                 return (200, {}, json.dumps({'data': [datum], 'meta': meta}))
 
-            rsps.add_callback(responses.POST, SnubaTSDB.SNUBA + '/query', callback=snuba_response)
+            rsps.add_callback(responses.POST, snuba.SNUBA + '/query', callback=snuba_response)
 
             results = self.db.get_most_frequent(TSDBModel.frequent_issues_by_project,
                                                 [project_id], dts[0], dts[-1])
@@ -142,7 +143,7 @@ class SnubaTSDBTest(TestCase):
                     'meta': [{'name': 'release'}, {'name': 'time'}, {'name': 'aggregate'}]
                 }))
 
-            rsps.add_callback(responses.POST, SnubaTSDB.SNUBA + '/query', callback=snuba_response)
+            rsps.add_callback(responses.POST, snuba.SNUBA + '/query', callback=snuba_response)
             results = self.db.get_range(TSDBModel.release, [release.id], dts[0], dts[-1])
             assert results == {release.id: [(to_timestamp(now), 100)]}
 
@@ -165,7 +166,7 @@ class SnubaTSDBTest(TestCase):
                     'meta': [{'name': 'project_id'}, {'name': 'time'}, {'name': 'aggregate'}]
                 }))
 
-            rsps.add_callback(responses.POST, SnubaTSDB.SNUBA + '/query', callback=snuba_response)
+            rsps.add_callback(responses.POST, snuba.SNUBA + '/query', callback=snuba_response)
             results = self.db.get_range(TSDBModel.project, [project.id],
                                         dts[0], dts[-1], environment_id=env.id)
             assert results == {project.id: [(to_timestamp(now), 100)]}
