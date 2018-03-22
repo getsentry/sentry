@@ -1,11 +1,12 @@
 import PropTypes from 'prop-types';
 import classNames from 'classnames';
 import React from 'react';
-import $ from 'jquery';
+import styled from 'react-emotion';
 import createReactClass from 'create-react-class';
 import Reflux from 'reflux';
 import {registerAnchor, unregisterAnchor} from '../../actionCreators/guides';
 import GuideStore from '../../stores/guideStore';
+import {expandOut} from '../../styles/animations';
 
 // A guide anchor provides a ripple-effect on an element to draw attention to it.
 // Guide anchors register with the guide store, which uses this information to
@@ -33,14 +34,10 @@ const GuideAnchor = createReactClass({
   },
 
   componentDidUpdate(prevProps, prevState) {
-    // Invisible pings should not be scrolled to since they are not attached to a specific element.
     if (!prevState.active && this.state.active && this.props.type !== 'invisible') {
-      $('html, body').animate(
-        {
-          scrollTop: $(this.anchorElement).offset().top,
-        },
-        1000
-      );
+      this.anchorElement.scrollIntoView({
+        behavior: 'smooth',
+      });
     }
   },
 
@@ -67,19 +64,69 @@ const GuideAnchor = createReactClass({
     let {target, type} = this.props;
 
     return (
-      <div
-        ref={el => (this.anchorElement = el)}
-        className={classNames('guide-anchor', `anchor-type-${type}`)}
-      >
+      <GuideAnchorContainer innerRef={el => (this.anchorElement = el)} type={type}>
         {this.props.children}
-        <span
-          className={classNames(target, 'guide-anchor-ping', {
-            active: this.state.active,
-          })}
+        <StyledGuideAnchor
+          className={classNames('guide-anchor-ping', target)}
+          active={this.state.active}
         />
-      </div>
+      </GuideAnchorContainer>
     );
   },
 });
+
+const GuideAnchorContainer = styled('div')`
+  ${p =>
+    p.type == 'text' &&
+    `
+      display: inline-block;
+      position: relative;
+    `};
+`;
+
+const StyledGuideAnchor = styled('span')`
+  width: 20px;
+  height: 20px;
+  cursor: pointer;
+  z-index: 999;
+  position: relative;
+  pointer-events: none;
+  animation: ${expandOut} 1.5s ease-out infinite;
+  visibility: hidden;
+
+  &,
+  &:before,
+  &:after {
+    position: absolute;
+    display: block;
+    left: calc(50% - 10px);
+    top: calc(50% - 10px);
+    background-color: ${p => p.theme.greenTransparent25};
+    border-radius: 50%;
+  }
+
+  &:before,
+  &:after {
+    content: '';
+  }
+
+  &:before {
+    width: 70%;
+    height: 70%;
+    left: calc(50% - 7px);
+    top: calc(50% - 7px);
+    background-color: ${p => p.theme.greenTransparent25};
+  }
+
+  &:after {
+    width: 50%;
+    height: 50%;
+    left: calc(50% - 5px);
+    top: calc(50% - 5px);
+    color: ${p => p.theme.green};
+  }
+
+  ${p => (p.active ? 'visibility: visible;' : '')};
+`;
 
 export default GuideAnchor;
