@@ -2,13 +2,14 @@ import PropTypes from 'prop-types';
 import React from 'react';
 import createReactClass from 'create-react-class';
 import {Link} from 'react-router';
+import styled from 'react-emotion';
+import {Flex, Box} from 'grid-emotion';
 
 import ProjectState from '../mixins/projectState';
 import TimeSince from './timeSince';
-import ShortId from './shortId';
 
-const EventOrGroupExtraDetails = createReactClass({
-  displayName: 'EventOrGroupExtraDetails',
+const EventOrIssueExtraDetails = createReactClass({
+  displayName: 'EventOrIssueExtraDetails',
 
   propTypes: {
     orgId: PropTypes.string.isRequired,
@@ -37,8 +38,6 @@ const EventOrGroupExtraDetails = createReactClass({
       projectId,
       groupId,
       lastSeen,
-      firstSeen,
-      shortId,
       subscriptionDetails,
       numComments,
       logger,
@@ -52,61 +51,67 @@ const EventOrGroupExtraDetails = createReactClass({
     }
 
     return (
-      <div className="event-extra">
-        <ul>
-          {shortId && (
-            <li>
-              <ShortId shortId={shortId} />
-            </li>
-          )}
-          <li>
-            <span className="icon icon-clock" />
-            {lastSeen && <TimeSince date={lastSeen} />}
-            {firstSeen && lastSeen && <span>&nbsp;—&nbsp;</span>}
-            {firstSeen && <TimeSince date={firstSeen} suffix="old" />}
-          </li>
-          {numComments > 0 && (
-            <li>
-              <Link
-                to={`/${orgId}/${projectId}/issues/${groupId}/activity/`}
-                className="comments"
-              >
-                <span className="icon icon-comments" style={styles} />
-                <span className="tag-count">{numComments}</span>
-              </Link>
-            </li>
-          )}
-          {logger && (
-            <li className="event-annotation">
-              <Link
-                to={{
-                  pathname: `/${orgId}/${projectId}/`,
-                  query: {
-                    query: 'logger:' + logger,
-                  },
+      <GroupExtra>
+        {lastSeen && (
+          <Box>
+            <GroupExtraIcon className="icon icon-clock" />
+            <TimeSince date={lastSeen} suffix="ago" />
+          </Box>
+        )}
+        {numComments > 0 && (
+          <Box>
+            <Link
+              to={`/${orgId}/${projectId}/issues/${groupId}/activity/`}
+              className="comments"
+            >
+              <GroupExtraIcon className="icon icon-comments" style={styles} />
+              <GroupExtraIcon className="tag-count">{numComments}</GroupExtraIcon>
+            </Link>
+          </Box>
+        )}
+        {logger && (
+          <Box className="event-annotation">
+            <Link
+              to={{
+                pathname: `/${orgId}/${projectId}/`,
+                query: {
+                  query: 'logger:' + logger,
+                },
+              }}
+            >
+              {logger}
+            </Link>
+          </Box>
+        )}
+        {annotations &&
+          annotations.map((annotation, key) => {
+            return (
+              <Box
+                className="event-annotation"
+                dangerouslySetInnerHTML={{
+                  __html: annotation,
                 }}
-              >
-                {logger}
-              </Link>
-            </li>
-          )}
-          {annotations &&
-            annotations.map((annotation, key) => {
-              return (
-                <li
-                  className="event-annotation"
-                  dangerouslySetInnerHTML={{
-                    __html: annotation,
-                  }}
-                  key={key}
-                />
-              );
-            })}
+                key={key}
+              />
+            );
+          })}
 
-          {showAssignee && assignedTo && <li>Assigned to {assignedTo.name}</li>}
-        </ul>
-      </div>
+        {showAssignee && assignedTo && <Box>Assigned to {assignedTo.name}</Box>}
+      </GroupExtra>
     );
   },
 });
-export default EventOrGroupExtraDetails;
+
+const GroupExtra = styled(Flex)`
+  color: ${p => p.theme.gray2};
+  font-size: 12px;
+`;
+
+const GroupExtraIcon = styled.span`
+  color: ${p => p.theme.gray2};
+  font-size: 11px;
+  margin-right: 4px;
+  opacity: 0.5;
+`;
+
+export default EventOrIssueExtraDetails;

@@ -3,6 +3,7 @@ import React from 'react';
 import createReactClass from 'create-react-class';
 import Reflux from 'reflux';
 import classNames from 'classnames';
+import {cx} from 'react-emotion';
 
 import {t} from '../locale';
 import {valueIsEqual, buildUserId, buildTeamId} from '../utils';
@@ -283,76 +284,74 @@ const AssigneeSelector = createReactClass({
     });
 
     return (
-      <div>
-        <div className={className}>
-          <DropdownLink
-            className="assignee-selector-toggle"
-            onOpen={this.onDropdownOpen}
-            onClose={this.onDropdownClose}
-            isOpen={this.state.isOpen}
-            alwaysRenderMenu={false}
-            title={
-              assignedTo ? (
-                <ActorAvatar actor={assignedTo} className="avatar" size={48} />
-              ) : (
-                <span className="icon-user" />
-              )
-            }
-          >
-            {assigneeListLoading ? (
-              <li>
-                <FlowLayout center className="list-loading-container">
-                  <LoadingIndicator mini />
-                </FlowLayout>
-              </li>
+      <div className={cx(className, this.props.className)}>
+        <DropdownLink
+          className="assignee-selector-toggle"
+          onOpen={this.onDropdownOpen}
+          onClose={this.onDropdownClose}
+          isOpen={this.state.isOpen}
+          alwaysRenderMenu={false}
+          title={
+            assignedTo ? (
+              <ActorAvatar actor={assignedTo} className="avatar" size={48} />
             ) : (
-              <React.Fragment>
-                <MenuItem noAnchor>
-                  <input
-                    type="text"
-                    className="form-control input-sm"
-                    placeholder={
-                      features.has('new-teams')
-                        ? t('Filter teams and people')
-                        : t('Filter members')
-                    }
-                    ref={ref => this.onFilterMount(ref)}
-                    onClick={this.onFilterClick}
-                    onKeyDown={this.onFilterKeyDown}
-                    onKeyUp={this.onFilterKeyUp}
-                  />
-                </MenuItem>
+              <span className="icon-user" />
+            )
+          }
+        >
+          {assigneeListLoading ? (
+            <li>
+              <FlowLayout center className="list-loading-container">
+                <LoadingIndicator mini />
+              </FlowLayout>
+            </li>
+          ) : (
+            <React.Fragment>
+              <MenuItem noAnchor>
+                <input
+                  type="text"
+                  className="form-control input-sm"
+                  placeholder={
+                    features.has('new-teams')
+                      ? t('Filter teams and people')
+                      : t('Filter members')
+                  }
+                  ref={ref => this.onFilterMount(ref)}
+                  onClick={this.onFilterClick}
+                  onKeyDown={this.onFilterKeyDown}
+                  onKeyUp={this.onFilterKeyUp}
+                />
+              </MenuItem>
 
-                {assignedTo && (
-                  <MenuItem
-                    className="clear-assignee"
-                    disabled={!loading}
-                    onSelect={this.clearAssignTo}
-                  >
-                    <span className="icon-circle-cross" /> {t('Clear Assignee')}
-                  </MenuItem>
-                )}
-
-                <li>
-                  <ul>{[...this.renderTeamNodes(), ...this.renderMemberNodes()]}</ul>
-                </li>
-              </React.Fragment>
-            )}
-
-            {ConfigStore.get('invitesEnabled') &&
-              access.has('org:write') && (
+              {assignedTo && (
                 <MenuItem
-                  className="invite-member"
+                  className="clear-assignee"
                   disabled={!loading}
-                  to={`/settings/organization/${this.context.organization
-                    .slug}/members/new/`}
-                  query={{referrer: 'assignee_selector'}}
+                  onSelect={this.clearAssignTo}
                 >
-                  <span className="icon-plus" /> {t('Invite Member')}
+                  <span className="icon-circle-cross" /> {t('Clear Assignee')}
                 </MenuItem>
               )}
-          </DropdownLink>
-        </div>
+
+              <li>
+                <ul>{[...this.renderTeamNodes(), ...this.renderMemberNodes()]}</ul>
+              </li>
+            </React.Fragment>
+          )}
+
+          {ConfigStore.get('invitesEnabled') &&
+            access.has('org:write') && (
+              <MenuItem
+                className="invite-member"
+                disabled={!loading}
+                to={`/settings/organization/${this.context.organization
+                  .slug}/members/new/`}
+                query={{referrer: 'assignee_selector'}}
+              >
+                <span className="icon-plus" /> {t('Invite Member')}
+              </MenuItem>
+            )}
+        </DropdownLink>
       </div>
     );
   },

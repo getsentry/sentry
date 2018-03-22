@@ -4,7 +4,6 @@ import createReactClass from 'create-react-class';
 import Reflux from 'reflux';
 import {Link, browserHistory} from 'react-router';
 import Cookies from 'js-cookie';
-import {StickyContainer, Sticky} from 'react-sticky';
 import classNames from 'classnames';
 import qs from 'query-string';
 import {omit, isEqual} from 'lodash';
@@ -651,7 +650,7 @@ const Stream = createReactClass({
         />
       );
     });
-    return <ul className="group-list">{groupNodes}</ul>;
+    return <div className="ref-group-list">{groupNodes}</div>;
   },
 
   renderAwaitingEvents() {
@@ -762,58 +761,52 @@ const Stream = createReactClass({
     let access = this.getAccess();
     let projectFeatures = this.getProjectFeatures();
     return (
-      <StickyContainer>
-        <div className={classNames(classes)}>
-          <div className="stream-content">
-            <StreamFilters
-              access={access}
-              orgId={orgId}
-              projectId={projectId}
-              query={this.state.query}
-              sort={this.state.sort}
-              searchId={searchId}
-              queryCount={this.state.queryCount}
-              queryMaxCount={this.state.queryMaxCount}
-              onSortChange={this.onSortChange}
-              onSearch={this.onSearch}
-              onSavedSearchCreate={this.onSavedSearchCreate}
-              onSidebarToggle={this.onSidebarToggle}
-              isSearchDisabled={this.state.isSidebarVisible}
-              savedSearchList={this.state.savedSearchList}
-            />
-            <Sticky topOffset={59}>
-              {props => (
-                <div className={classNames('group-header', {sticky: props.isSticky})}>
-                  <StreamActions
-                    orgId={params.orgId}
-                    projectId={params.projectId}
-                    hasReleases={projectFeatures.has('releases')}
-                    latestRelease={this.context.project.latestRelease}
-                    query={this.state.query}
-                    onSelectStatsPeriod={this.onSelectStatsPeriod}
-                    onRealtimeChange={this.onRealtimeChange}
-                    realtimeActive={this.state.realtimeActive}
-                    statsPeriod={this.state.statsPeriod}
-                    groupIds={this.state.groupIds}
-                    allResultsVisible={this.allResultsVisible()}
-                  />
-                </div>
-              )}
-            </Sticky>
-            {this.renderProcessingIssuesHint()}
-            {this.renderStreamBody()}
-            <Pagination pageLinks={this.state.pageLinks} />
-          </div>
-          <StreamSidebar
-            loading={this.props.tagsLoading}
-            tags={this.props.tags}
+      <div className={classNames(classes)}>
+        <div className="stream-content">
+          <StreamFilters
+            access={access}
+            orgId={orgId}
+            projectId={projectId}
             query={this.state.query}
-            onQueryChange={this.onSearch}
+            sort={this.state.sort}
+            searchId={searchId}
+            queryCount={this.state.queryCount}
+            queryMaxCount={this.state.queryMaxCount}
+            onSortChange={this.onSortChange}
+            onSearch={this.onSearch}
+            onSavedSearchCreate={this.onSavedSearchCreate}
+            onSidebarToggle={this.onSidebarToggle}
+            isSearchDisabled={this.state.isSidebarVisible}
+            savedSearchList={this.state.savedSearchList}
+          />
+
+          <StreamActions
             orgId={params.orgId}
             projectId={params.projectId}
+            hasReleases={projectFeatures.has('releases')}
+            latestRelease={this.context.project.latestRelease}
+            query={this.state.query}
+            onSelectStatsPeriod={this.onSelectStatsPeriod}
+            onRealtimeChange={this.onRealtimeChange}
+            realtimeActive={this.state.realtimeActive}
+            statsPeriod={this.state.statsPeriod}
+            groupIds={this.state.groupIds}
+            allResultsVisible={this.allResultsVisible()}
           />
+
+          {this.renderProcessingIssuesHint()}
+          {this.renderStreamBody()}
+          <Pagination pageLinks={this.state.pageLinks} />
         </div>
-      </StickyContainer>
+        <StreamSidebar
+          loading={this.props.tagsLoading}
+          tags={this.props.tags}
+          query={this.state.query}
+          onQueryChange={this.onSearch}
+          orgId={params.orgId}
+          projectId={params.projectId}
+        />
+      </div>
     );
   },
 });
