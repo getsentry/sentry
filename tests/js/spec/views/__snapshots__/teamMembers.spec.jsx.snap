@@ -3,37 +3,34 @@
 exports[`TeamMembers render() renders 1`] = `
 <Panel>
   <PanelHeader
-    disablePadding={true}
     hasButtons={true}
   >
-    <StyledHeaderContainer>
-      <div>
-        Members
-      </div>
-      <div
-        style={
-          Object {
-            "textTransform": "none",
-          }
+    <div>
+      Members
+    </div>
+    <div
+      style={
+        Object {
+          "textTransform": "none",
         }
-      >
-        <DropdownAutoComplete
-          alignMenu="right"
-          items={Array []}
-          menuHeader={
-            <StyledMembersLabel>
-              Members
-              <StyledCreateMemberLink
-                to="/settings/organization/org-slug/members/new/"
-              >
-                Add Member
-              </StyledCreateMemberLink>
-            </StyledMembersLabel>
-          }
-          onSelect={[Function]}
-        />
-      </div>
-    </StyledHeaderContainer>
+      }
+    >
+      <DropdownAutoComplete
+        alignMenu="right"
+        items={Array []}
+        menuHeader={
+          <StyledMembersLabel>
+            Members
+            <StyledCreateMemberLink
+              to="/settings/organization/org-slug/members/new/"
+            >
+              Add Member
+            </StyledCreateMemberLink>
+          </StyledMembersLabel>
+        }
+        onSelect={[Function]}
+      />
+    </div>
   </PanelHeader>
   <StyledMemberContainer
     key="0"
