@@ -116,7 +116,7 @@ const StreamGroup = createReactClass({
             projectId={projectId}
           />
         </GroupSummary>
-        <Box w={160} mx={2}>
+        <Box w={130} mx={2} className="hidden-xs">
           {data.shortId && <GroupShortId shortId={data.shortId} />}
           {data.firstSeen && (
             <GroupTimeSinceWrapper>
@@ -124,16 +124,16 @@ const StreamGroup = createReactClass({
             </GroupTimeSinceWrapper>
           )}
         </Box>
-        <Box w={120} mx={2}>
+        <Box w={120} mx={2} className="hidden-xs hidden-sm">
           <GroupChart id={data.id} statsPeriod={this.props.statsPeriod} data={data} />
         </Box>
-        <Box w={60} mx={2} className="align-right">
+        <Box w={50} mx={2} className="align-right">
           <Count value={data.count} />
         </Box>
-        <Box w={60} mx={2} className="align-right">
+        <Box w={50} mx={2} className="align-right">
           <Count value={userCount} />
         </Box>
-        <Box w={70} mx={2}>
+        <Box w={50} mx={2}>
           <StyledAssigneeSelector id={data.id} />
         </Box>
       </Group>
