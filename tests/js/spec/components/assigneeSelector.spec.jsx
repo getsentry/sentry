@@ -181,7 +181,7 @@ describe('AssigneeSelector', function() {
 
       expect(assigneeSelector.find('Avatar').length).toBe(3);
       expect(assigneeSelector.find('UserAvatar').length).toBe(2);
-      expect(assigneeSelector.find('SlugAvatar').length).toBe(1);
+      expect(assigneeSelector.find('TeamAvatar').length).toBe(1);
       expect(assigneeSelector.find('LoadingIndicator').exists()).toBe(false);
     });
 
@@ -224,7 +224,7 @@ describe('AssigneeSelector', function() {
       MemberListStore.loadInitialData([USER_1, USER_2]);
       assigneeSelector.update();
       assigneeSelector
-        .find('SlugAvatar')
+        .find('TeamAvatar')
         .first()
         .simulate('click');
       assigneeSelector.update();

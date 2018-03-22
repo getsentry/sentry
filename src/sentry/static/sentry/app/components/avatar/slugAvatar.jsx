@@ -1,6 +1,7 @@
 import PropTypes from 'prop-types';
 import React from 'react';
 
+import {explodeSlug} from '../../utils';
 import BaseAvatar from './baseAvatar';
 
 class SlugAvatar extends React.Component {
@@ -19,7 +20,7 @@ class SlugAvatar extends React.Component {
     // Letter avatar uses letters from first 2 words
     // Previously we used displayName (which allows spaces) but is deprecated in
     // favor of using slugs only (which do not allow spaces)
-    let title = slug.replace('-', ' ').replace('_', ' ');
+    let title = explodeSlug(slug);
 
     return (
       <BaseAvatar

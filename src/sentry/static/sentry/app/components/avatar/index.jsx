@@ -1,8 +1,9 @@
 import React from 'react';
 
-import SlugAvatar from './slugAvatar';
-import UserAvatar from './userAvatar';
 import SentryTypes from '../../proptypes';
+import SlugAvatar from './slugAvatar';
+import TeamAvatar from './teamAvatar';
+import UserAvatar from './userAvatar';
 
 class Avatar extends React.Component {
   static propTypes = {
@@ -20,10 +21,15 @@ class Avatar extends React.Component {
     let {user, team, organization, ...props} = this.props;
 
     if (user) {
-      return <UserAvatar {...this.props} />;
+      return <UserAvatar user={user} {...props} />;
     }
 
-    return <SlugAvatar model={team || organization} {...props} />;
+    if (team) {
+      return <TeamAvatar team={team} {...props} />;
+    }
+
+    // Could support project too
+    return <SlugAvatar model={organization} {...props} />;
   }
 }
 
