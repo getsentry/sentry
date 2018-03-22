@@ -197,12 +197,12 @@ class SlackActionEndpoint(Endpoint):
         action_list = data.get('actions', [])
 
         try:
-            group = Group.objects.get(
+            group = Group.objects.select_related('project__organization').get(
                 project__in=Project.objects.filter(
                     organization__in=integration.organizations.all(),
                 ),
                 id=group_id,
-            ).select_related('project__organization')
+            )
         except Group.DoesNotExist:
             logger.error('slack.action.invalid-issue', extra=logging_data)
             return self.respond(status=403)
