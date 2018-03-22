@@ -99,9 +99,8 @@ const StyledGuideAnchor = styled('span')`
   &:after {
     position: absolute;
     display: block;
-    left: 50%;
-    top: 50%;
-    transform: translate(-50%, -50%);
+    left: calc(50% - 10px);
+    top: calc(50% - 10px);
     background-color: ${p => p.theme.greenTransparent25};
     border-radius: 50%;
   }
@@ -112,14 +111,18 @@ const StyledGuideAnchor = styled('span')`
   }
 
   &:before {
-    width: 75%;
-    height: 75%;
+    width: 70%;
+    height: 70%;
+    left: calc(50% - 7px);
+    top: calc(50% - 7px);
     background-color: ${p => p.theme.greenTransparent25};
   }
 
   &:after {
     width: 50%;
     height: 50%;
+    left: calc(50% - 5px);
+    top: calc(50% - 5px);
     color: ${p => p.theme.green};
   }
 
