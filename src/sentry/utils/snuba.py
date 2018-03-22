@@ -11,8 +11,14 @@ from sentry.utils.dates import to_timestamp
 SNUBA = 'http://localhost:5000'
 
 
-def query_snuba(filter_keys, start, end, rollup, groupby, aggregation, aggregateby=None):
+def query(filter_keys, start, end, groupby, aggregation=None, aggregateby=None, rollup=None):
+    """
+    Sends a query to snuba.
 
+    `filter_keys`: A dictionary of {col: [key1, key2]} that will be converted
+    into "col IN (key1, key2)" SQL predicates. Known translations (eg. from
+    environment id to environment name) are automatically performed.
+    """
     # Forward and reverse translation maps from model ids to snuba keys, per column
     snuba_map = {col: get_snuba_map(col, keys) for col, keys in six.iteritems(filter_keys)}
     snuba_map = {k: v for k, v in six.iteritems(snuba_map) if k is not None and v is not None}
@@ -32,7 +38,7 @@ def query_snuba(filter_keys, start, end, rollup, groupby, aggregation, aggregate
     project_ids = list(set.intersection(*[set(ids) for ids in project_ids if ids]))
 
     if not project_ids:
-        return None
+        raise Exception("No project_id filter, or none could be inferred from other filters.")
 
     # If the grouping, aggregation, or any of the conditions reference `issue`
     # we need to fetch the issue definitions (issue -> fingerprint hashes)

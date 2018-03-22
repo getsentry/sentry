@@ -3,7 +3,7 @@ from __future__ import absolute_import
 import six
 
 from sentry.tsdb.base import BaseTSDB, TSDBModel
-from sentry.utils.snuba import query_snuba
+from sentry.utils import snuba
 
 
 class SnubaTSDB(BaseTSDB):
@@ -40,7 +40,7 @@ class SnubaTSDB(BaseTSDB):
     def get_data(self, model, keys, start, end, rollup=None, environment_id=None,
                  aggregation='count', group_on_model=True, group_on_time=False):
         """
-        Queries the snuba service for time series data.
+        Normalizes all the TSDB parameters and sends a query to snuba.
 
         `group_on_time`: whether to add a GROUP BY clause on the 'time' field.
         `group_on_model`: whether to add a GROUP BY clause on the primary model.
@@ -68,7 +68,7 @@ class SnubaTSDB(BaseTSDB):
         if environment_id is not None:
             keys_map['environment'] = [environment_id]
 
-        return query_snuba(keys_map, start, end, rollup, groupby, aggregation, model_aggregate)
+        return snuba.query(keys_map, start, end, groupby, aggregation, model_aggregate, rollup)
 
     def get_range(self, model, keys, start, end, rollup=None, environment_id=None):
         result = self.get_data(model, keys, start, end, rollup, environment_id,
