@@ -265,11 +265,25 @@ class V2TagStorage(TagStorage):
                                       environment_id, key, value, **kwargs):
         assert environment_id is not None
 
-        tag_key, _ = self.get_or_create_tag_key(
-            project_id, environment_id, key, **kwargs)
+        if 'defaults' in kwargs:
+            # while backfilling v2 it is possible that a user performs an unmerge
+            # (which contains default values in kwargs) AND where the TagKey actually
+            # doesn't exist in the v2 database yet, so the defaults are used in create
+            # and explode because the fields don't actually exist in TagKey
+            # this is solved here as a one-off because it's very seldomly used and in
+            # the hot path for basically everything to do with tags
+            kcopy = kwargs.copy()
+            kcopy.pop('defaults')
+            tag_key, _ = self.get_or_create_tag_key(project_id, environment_id, key, **kcopy)
 
-        tag_value, _ = self.get_or_create_tag_value(
-            project_id, environment_id, key, value, key_id=tag_key.id, **kwargs)
+            tag_value, _ = self.get_or_create_tag_value(
+                project_id, environment_id, key, value, key_id=tag_key.id, **kcopy)
+
+        else:
+            tag_key, _ = self.get_or_create_tag_key(project_id, environment_id, key, **kwargs)
+
+            tag_value, _ = self.get_or_create_tag_value(
+                project_id, environment_id, key, value, key_id=tag_key.id, **kwargs)
 
         gtv, created = GroupTagValue.objects.get_or_create(
             project_id=project_id,
