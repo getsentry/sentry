@@ -164,7 +164,8 @@ class MultiTagStorage(TagStorage):
         return getattr(backend, func)(*args, **kwargs)
 
     def setup(self):
-        return self._call_all_backends('setup')
+        for backend in self.backends:
+            backend.setup()
 
     def create_tag_key(self, *args, **kwargs):
         return self._call_all_backends('create_tag_key', *args, **kwargs)
