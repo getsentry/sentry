@@ -183,8 +183,8 @@ export default class OrganizationMemberRow extends React.PureComponent {
                     orgName,
                   })}
                 >
-                  <Button priority="danger" size="small" busy={this.state.busy}>
-                    <span className="icon icon-trash" /> {t('Remove')}
+                  <Button icon="icon-circle-subtract" size="small" busy={this.state.busy}>
+                    {t('Remove')}
                   </Button>
                 </Confirm>
               )}
