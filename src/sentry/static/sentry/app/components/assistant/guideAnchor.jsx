@@ -102,7 +102,7 @@ const StyledGuideAnchor = styled('span')`
     left: 50%;
     top: 50%;
     transform: translate(-50%, -50%);
-    background-color: ${p => p.theme.greenLight};
+    background-color: ${p => p.theme.greenTransparent25};
     border-radius: 50%;
   }
 
@@ -114,7 +114,7 @@ const StyledGuideAnchor = styled('span')`
   &:before {
     width: 75%;
     height: 75%;
-    background-color: ${p => p.theme.greenDark};
+    background-color: ${p => p.theme.greenTransparent25};
   }
 
   &:after {
