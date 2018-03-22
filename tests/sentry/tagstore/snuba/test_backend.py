@@ -21,10 +21,18 @@ class TagStorage(TestCase):
         GroupHash.objects.create(project=self.proj1, group=self.proj1group2, hash='2' * 16)
 
     def test_get_group_ids_for_search_filter(self):
+        from sentry.search.base import ANY, EMPTY
         tags = {
             'foo': 'bar',
             'baz': 'quux',
         }
 
-        assert self.ts.get_group_ids_for_search_filter(
-            self.proj1.id, self.proj1env1.id, tags) == [self.proj1group1.id]
+        result = self.ts.get_group_ids_for_search_filter(self.proj1.id, self.proj1env1.id, tags)
+
+        tags = {
+            'foo': ANY,
+            'baz': EMPTY,
+        }
+
+        result = self.ts.get_group_ids_for_search_filter(self.proj1.id, self.proj1env1.id, tags)
+        assert result is not None

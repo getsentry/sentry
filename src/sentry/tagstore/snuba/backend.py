@@ -78,11 +78,22 @@ class SnubaTagStorage(TagStorage):
 
     # Search
     def get_group_ids_for_search_filter(self, project_id, environment_id, tags):
-        # TODO deal with ANY/EMPTY
-        filters = {'tags[{}]'.format(k): [v] for k, v in six.iteritems(tags)}
-        filters['environment'] = [environment_id]
-        filters['project_id'] = [project_id]
+        from sentry.search.base import ANY, EMPTY
+        filters = {
+            'environment': [environment_id],
+            'project_id': [project_id],
+        }
+
+        conditions = []
+        for tag, val in six.iteritems(tags):
+            col = 'tags[{}]'.format(tag)
+            if val == ANY:
+                conditions.append((col, 'IS NOT NULL', None))
+            elif val == EMPTY:
+                conditions.append((col, 'IS NULL', None))
+            else:
+                conditions.append((col, '=', val))
 
         end = datetime.utcnow().replace(tzinfo=pytz.UTC)
         start = end - timedelta(days=90)
-        return snuba.query(filters, start, end, ['issue'])
+        return snuba.query(start, end, ['issue'], conditions, filters)

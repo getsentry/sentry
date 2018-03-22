@@ -11,21 +11,32 @@ from sentry.utils.dates import to_timestamp
 SNUBA = 'http://localhost:5000'
 
 
-def query(filter_keys, start, end, groupby, aggregation=None, aggregateby=None, rollup=None):
+def query(start, end, groupby, conditions=None, filter_keys=None,
+          aggregation=None, aggregateby=None, rollup=None):
     """
     Sends a query to snuba.
 
-    `filter_keys`: A dictionary of {col: [key1, key2]} that will be converted
-    into "col IN (key1, key2)" SQL predicates. Known translations (eg. from
-    environment id to environment name) are automatically performed.
+    `conditions`: A list of (column, operator, literal) conditions to be passed
+    to the query. Conditions that we know will not have to be translated should
+    be passed this way (eg tag[foo] = bar).
+
+    `filter_keys`: A dictionary of {col: [key, ...]} that will be converted
+    into "col IN (key, ...)" conditions. These are used to restrict the query to
+    known sets of project/issue/environment/release etc. Appropriate
+    translations (eg. from environment model ID to environment name) are
+    performed on the query, and the inverse translation performed on the
+    result. The project_id(s) to restrict the query to will also be
+    automatically inferred from these keys.
     """
+    conditions = conditions or []
+    filter_keys = filter_keys or {}
+
     # Forward and reverse translation maps from model ids to snuba keys, per column
     snuba_map = {col: get_snuba_map(col, keys) for col, keys in six.iteritems(filter_keys)}
     snuba_map = {k: v for k, v in six.iteritems(snuba_map) if k is not None and v is not None}
     rev_snuba_map = {col: dict(reversed(i) for i in keys.items())
                      for col, keys in six.iteritems(snuba_map)}
 
-    conditions = []
     for col, keys in six.iteritems(filter_keys):
         if col in snuba_map:
             keys = [snuba_map[col][k] for k in keys]
@@ -35,10 +46,9 @@ def query(filter_keys, start, end, groupby, aggregation=None, aggregateby=None, 
     # passed-in keys for project_id, or indrectly (eg the set of projects
     # related to the queried set of issues or releases)
     project_ids = [get_project_ids(k, ids) for k, ids in six.iteritems(filter_keys)]
-    project_ids = list(set.intersection(*[set(ids) for ids in project_ids if ids]))
-
-    if not project_ids:
+    if all(not ids for ids in project_ids):
         raise Exception("No project_id filter, or none could be inferred from other filters.")
+    project_ids = list(set.intersection(*[set(ids) for ids in project_ids if ids]))
 
     # If the grouping, aggregation, or any of the conditions reference `issue`
     # we need to fetch the issue definitions (issue -> fingerprint hashes)
