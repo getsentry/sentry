@@ -23,12 +23,6 @@ import InlineSvg from '../../../components/inlineSvg';
 import {sortProjects} from '../../../utils';
 import {t} from '../../../locale';
 
-const PanelHeaderContentContainer = styled('div')`
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-`;
-
 const TeamProjects = createReactClass({
   displayName: 'TeamProjects',
   mixins: [
@@ -139,22 +133,20 @@ const TeamProjects = createReactClass({
     return (
       <div>
         <Panel>
-          <PanelHeader>
-            <PanelHeaderContentContainer>
-              {t('Projects')}
-              <div style={{textTransform: 'none'}}>
-                <DropdownAutoComplete
-                  items={otherProjects}
-                  onSelect={this.handleProjectSelected}
-                >
-                  {({isOpen, selectedItem}) => (
-                    <DropdownButton isOpen={isOpen} size="xsmall">
-                      {t('Add Project')}
-                    </DropdownButton>
-                  )}
-                </DropdownAutoComplete>
-              </div>
-            </PanelHeaderContentContainer>
+          <PanelHeader hasButtons>
+            {t('Projects')}
+            <div style={{textTransform: 'none'}}>
+              <DropdownAutoComplete
+                items={otherProjects}
+                onSelect={this.handleProjectSelected}
+              >
+                {({isOpen, selectedItem}) => (
+                  <DropdownButton isOpen={isOpen} size="xsmall">
+                    {t('Add Project')}
+                  </DropdownButton>
+                )}
+              </DropdownAutoComplete>
+            </div>
           </PanelHeader>
           <PanelBody>{this.projectPanelcontents(linkedProjects)}</PanelBody>
         </Panel>

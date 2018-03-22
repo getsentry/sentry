@@ -238,11 +238,9 @@ const TeamMembers = createReactClass({
 
     return (
       <Panel>
-        <PanelHeader hasButtons disablePadding>
-          <StyledHeaderContainer>
-            <div>{t('Members')}</div>
-            <div style={{textTransform: 'none'}}>{this.renderDropdown(access)}</div>
-          </StyledHeaderContainer>
+        <PanelHeader hasButtons>
+          <div>{t('Members')}</div>
+          <div style={{textTransform: 'none'}}>{this.renderDropdown(access)}</div>
         </PanelHeader>
         {this.state.teamMemberList.length ? (
           this.state.teamMemberList.map((member, i) => (
@@ -258,14 +256,6 @@ const TeamMembers = createReactClass({
     );
   },
 });
-
-const StyledHeaderContainer = styled('div')`
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding-left: 1em;
-  padding-right: 1em;
-`;
 
 const StyledMemberContainer = styled('div')`
   display: flex;
