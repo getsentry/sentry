@@ -202,7 +202,7 @@ class SlackActionEndpoint(Endpoint):
                     organization__in=integration.organizations.all(),
                 ),
                 id=group_id,
-            )
+            ).select_related('project__organization')
         except Group.DoesNotExist:
             logger.error('slack.action.invalid-issue', extra=logging_data)
             return self.respond(status=403)
@@ -211,7 +211,7 @@ class SlackActionEndpoint(Endpoint):
         try:
             identity = Identity.objects.get(
                 external_id=user_id,
-                idp__organization_id=group.organization_id,
+                idp__organization=group.organization,
             )
         except Identity.DoesNotExist:
             associate_url = build_linking_url(
