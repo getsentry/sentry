@@ -43,14 +43,10 @@ export default class TeamSettings extends AsyncView {
     if (id === 'slug') {
       addLoadingMessage(t('Slug changed, refreshing page...'));
       window.location.assign(
-        `/settings/organization/${this.props.params.orgId}/teams/${model.getValue(
-          id
-        )}/settings/`
+        `/settings/${this.props.params.orgId}/teams/${model.getValue(id)}/settings/`
       );
       this.props.router.push(
-        `/settings/organization/${this.props.params.orgId}/teams/${model.getValue(
-          id
-        )}/settings/`
+        `/settings/${this.props.params.orgId}/teams/${model.getValue(id)}/settings/`
       );
       this.setState({loading: true});
     }

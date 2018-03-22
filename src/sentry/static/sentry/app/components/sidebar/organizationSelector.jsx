@@ -98,7 +98,7 @@ const OrganizationSelector = createReactClass({
                       <p>
                         <RouterOrBrowserLink
                           isRouter={hasNewSettings}
-                          path={`${settingsPrefix}/${org.slug}/settings/`}
+                          path={`${settingsPrefix}/${org.slug}/`}
                         >
                           <span className="icon-settings" /> {t('Settings')}
                         </RouterOrBrowserLink>

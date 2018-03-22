@@ -344,8 +344,7 @@ const AssigneeSelector = createReactClass({
                 <MenuItem
                   className="invite-member"
                   disabled={!loading}
-                  to={`/settings/organization/${this.context.organization
-                    .slug}/members/new/`}
+                  to={`/settings/${this.context.organization.slug}/members/new/`}
                   query={{referrer: 'assignee_selector'}}
                 >
                   <span className="icon-plus" /> {t('Invite Member')}

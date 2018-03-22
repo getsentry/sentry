@@ -1,5 +1,5 @@
 // Export route to make these forms searchable by label/help
-export const route = '/settings/organization/:orgId/project/:projectId/user-feedback/';
+export const route = '/settings/:orgId/:projectId/user-feedback/';
 
 const formGroups = [
   {

@@ -47,7 +47,7 @@ export default class OrganizationIntegrations extends AsyncComponent {
         <Box px={2} flex={1}>
           <ProviderName>
             <Link
-              to={`/settings/organization/${orgId}/project/${projectId}/integrations/${provider.key}/`}
+              to={`/settings/${orgId}/${projectId}/integrations/${provider.key}/`}
               css={{color: theme.gray5}}
             >
               {provider.name}

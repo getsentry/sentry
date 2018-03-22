@@ -3,7 +3,7 @@ import {t, tct} from '../../locale';
 import ExternalLink from '../../components/externalLink';
 
 // Export route to make these forms searchable by label/help
-export const route = '/settings/organization/:orgId/project/:projectId/filters/';
+export const route = '/settings/:orgId/:projectId/filters/';
 
 const newLineHelpText = t('Separate multiple entries with a newline.');
 const globHelpText = tct('Allows [link:glob pattern matching].', {

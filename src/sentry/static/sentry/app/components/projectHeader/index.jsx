@@ -97,7 +97,7 @@ class ProjectHeader extends React.Component {
                   <Link
                     to={
                       orgFeatures.has('new-settings')
-                        ? `/settings/organization/${org.slug}/project/${project.slug}/`
+                        ? `/settings/${org.slug}/${project.slug}/`
                         : `/${org.slug}/${project.slug}/settings/`
                     }
                   >
@@ -128,7 +128,7 @@ class ProjectHeader extends React.Component {
                   <Button
                     to={
                       orgFeatures.has('new-settings')
-                        ? `/settings/organization/${org.slug}/project/${project.slug}/environments/`
+                        ? `/settings/${org.slug}/${project.slug}/environments/`
                         : `/${org.slug}/${project.slug}/settings/`
                     }
                     priority="primary"

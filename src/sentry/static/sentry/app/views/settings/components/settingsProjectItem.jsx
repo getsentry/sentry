@@ -80,10 +80,7 @@ const ProjectItem = createReactClass({
             )}
           </InlineButton>
         </Tooltip>
-        <Link
-          to={`/settings/organization/${org.slug}/project/${project.slug}/`}
-          css={{color: theme.gray3}}
-        >
+        <Link to={`/settings/${org.slug}/${project.slug}/`} css={{color: theme.gray3}}>
           <StyledProjectLabel project={project} organization={this.props.organization} />
         </Link>
       </div>

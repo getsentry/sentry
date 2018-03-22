@@ -188,7 +188,7 @@ class SettingsSearch extends React.Component {
                             },
                           })}
                           highlighted={index === highlightedIndex}
-                          key={field.name}
+                          key={`${route}::${field.name}`}
                         >
                           <div>
                             <span>{field.label}</span>

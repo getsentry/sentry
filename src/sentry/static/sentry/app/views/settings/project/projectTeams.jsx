@@ -76,9 +76,7 @@ const TeamRow = createReactClass({
       <StyledPanelItem>
         <div>
           {access.has('team:write') ? (
-            <Link to={`/settings/organization/${orgId}/teams/${team.slug}`}>
-              #{team.slug}
-            </Link>
+            <Link to={`/settings/${orgId}/teams/${team.slug}/`}>#{team.slug}</Link>
           ) : (
             `#${team.slug}`
           )}

@@ -494,13 +494,13 @@ exports[`OrganizationProjectsView render() Should render the projects in the sto
                                     </Tooltip>
                                     <Link
                                       className="glamor-35"
-                                      to="/settings/organization/org-slug/project/project-slug/"
+                                      to="/settings/org-slug/project-slug/"
                                     >
                                       <Link
                                         className="glamor-35"
                                         onlyActiveOnIndex={false}
                                         style={Object {}}
-                                        to="/settings/organization/org-slug/project/project-slug/"
+                                        to="/settings/org-slug/project-slug/"
                                       >
                                         <a
                                           className="glamor-35"

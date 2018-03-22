@@ -48,7 +48,6 @@ import OrganizationDetails from './views/organizationDetails';
 import OrganizationHomeContainer from './components/organizations/homeContainer';
 import OrganizationMemberDetail from './views/settings/organization/members/organizationMemberDetail';
 import OrganizationMembersView from './views/settings/organization/members/organizationMembersView';
-import OrganizationPicker from './views/settings/components/organizationPicker';
 import OrganizationProjectsView from './views/settings/organization/projects/organizationProjectsView';
 import OrganizationRateLimits from './views/organizationRateLimits';
 import OrganizationRepositoriesView from './views/organizationRepositoriesView';
@@ -72,7 +71,6 @@ import ProjectGeneralSettings from './views/projectGeneralSettings';
 import ProjectGettingStarted from './views/projectInstall/gettingStarted';
 import ProjectInstallOverview from './views/projectInstall/overview';
 import ProjectInstallPlatform from './views/projectInstall/platform';
-import ProjectPicker from './views/settings/components/projectPicker';
 import ProjectIssueTracking from './views/projectIssueTracking';
 import ProjectReleases from './views/projectReleases';
 import ProjectSavedSearches from './views/projectSavedSearches';
@@ -241,12 +239,7 @@ const accountSettingsRoutes = (
 
 const projectSettingsRoutes = (
   <React.Fragment>
-    <IndexRedirect to="settings/" />
-    <Route
-      path="settings/"
-      name="General"
-      component={errorHandler(ProjectGeneralSettings)}
-    />
+    <IndexRoute name="General" component={errorHandler(ProjectGeneralSettings)} />
     <Route
       path="teams/"
       name="Teams"
@@ -409,18 +402,15 @@ function routes() {
   // hook store which is not available at import time.
   const orgSettingsRoutes = (
     <React.Fragment>
-      <IndexRedirect to="settings/" />
+      <IndexRoute
+        name="General"
+        component={errorHandler(OrganizationGeneralSettingsView)}
+      />
 
       <Route
         path="projects/"
         name="Projects"
         component={errorHandler(OrganizationProjectsView)}
-      />
-
-      <Route
-        path="settings/"
-        name="General"
-        component={errorHandler(OrganizationGeneralSettingsView)}
       />
 
       <Route
@@ -548,38 +538,31 @@ function routes() {
           {accountSettingsRoutes}
         </Route>
 
-        <Route path="organization/">
-          <IndexRoute component={errorHandler(OrganizationPicker)} />
+        <Route
+          name="Organization"
+          path=":orgId/"
+          component={errorHandler(OrganizationContext)}
+        >
+          <Route
+            getComponent={(loc, cb) =>
+              import(/*webpackChunkName: "OrganizationSettingsLayout" */ './views/settings/organization/organizationSettingsLayout').then(
+                lazyLoad(cb)
+              )}
+          >
+            {hooksOrgRoutes}
+            {orgSettingsRoutes}
+          </Route>
 
           <Route
-            name="Organization"
-            path=":orgId/"
-            component={errorHandler(OrganizationContext)}
+            name="Project"
+            path=":projectId/"
+            getComponent={(loc, cb) =>
+              import(/*webpackChunkName: "ProjectSettingsLayout" */ './views/settings/project/projectSettingsLayout').then(
+                lazyLoad(cb)
+              )}
           >
-            <Route
-              getComponent={(loc, cb) =>
-                import(/*webpackChunkName: "OrganizationSettingsLayout" */ './views/settings/organization/organizationSettingsLayout').then(
-                  lazyLoad(cb)
-                )}
-            >
-              {hooksOrgRoutes}
-              {orgSettingsRoutes}
-            </Route>
-
-            <Route path="project/">
-              <IndexRoute component={errorHandler(ProjectPicker)} />
-              <Route
-                name="Project"
-                path=":projectId/"
-                getComponent={(loc, cb) =>
-                  import(/*webpackChunkName: "ProjectSettingsLayout" */ './views/settings/project/projectSettingsLayout').then(
-                    lazyLoad(cb)
-                  )}
-              >
-                <Route component={errorHandler(SettingsProjectProvider)}>
-                  {projectSettingsRoutes}
-                </Route>
-              </Route>
+            <Route component={errorHandler(SettingsProjectProvider)}>
+              {projectSettingsRoutes}
             </Route>
           </Route>
         </Route>

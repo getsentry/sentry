@@ -112,9 +112,7 @@ describe('NewTeamSettings', function() {
 
     setTimeout(() => {
       expect(
-        window.location.assign.calledWith(
-          '/settings/organization/org/teams/new-slug/settings/'
-        )
+        window.location.assign.calledWith('/settings/org/teams/new-slug/settings/')
       ).toBe(true);
       done();
     }, 1);
