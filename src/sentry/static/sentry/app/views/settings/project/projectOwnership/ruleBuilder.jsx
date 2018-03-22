@@ -38,6 +38,7 @@ const BuilderInput = styled(Input)`
 `;
 
 const Divider = styled(InlineSvg)`
+  color: ${p => p.theme.borderDark};
   flex-shrink: 0;
   margin-right: 5px;
 `;
@@ -45,7 +46,6 @@ const Divider = styled(InlineSvg)`
 const Owners = styled('div')`
   justify-content: flex-end;
   display: flex;
-
   span {
     margin-right: 2px;
   }
@@ -62,8 +62,9 @@ const BuilderDropdownButton = styled(DropdownButton)`
   white-space: nowrap;
   height: 37px;
   .button-label {
-    text-size: 14px;
-    padding: 2px 12px;
+    font-size: 14px;
+    padding: 4px 8px;
+    padding-left 4px;
   }
 `;
 
@@ -82,6 +83,11 @@ const RuleAddButton = styled(Button)`
   div {
     margin: 0px !important;
   }
+`;
+
+const AddOwnersLabel = styled.div`
+  margin-left: 3px;
+  padding: 0px;
 `;
 
 const initialState = {
@@ -217,7 +223,7 @@ class RuleBuilder extends React.Component {
                     </span>
                   ))}
                 </Owners>
-                {t('Add Owners')}
+                <AddOwnersLabel>{t('Add Owners')}</AddOwnersLabel>
               </BuilderDropdownButton>
             )}
           </DropdownAutoComplete>
