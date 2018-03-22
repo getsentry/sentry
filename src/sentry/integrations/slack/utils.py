@@ -90,7 +90,7 @@ def build_attachment_text(group, event=None):
         return None
 
 
-def build_assigned_text(identity, assignee):
+def build_assigned_text(group, identity, assignee):
     actor = Actor.from_actor_id(assignee)
 
     try:
@@ -102,7 +102,10 @@ def build_assigned_text(identity, assignee):
         assignee_text = assigned_actor.slug
     elif actor.type == User:
         try:
-            assignee_ident = Identity.objects.get(user=assigned_actor)
+            assignee_ident = Identity.objects.get(
+                user=assigned_actor,
+                idp__organization=group.organization,
+            )
             assignee_text = u'<@{}>'.format(assignee_ident.external_id)
         except Identity.DoesNotExist:
             assignee_text = assigned_actor.get_display_name()
@@ -115,9 +118,9 @@ def build_assigned_text(identity, assignee):
     )
 
 
-def build_action_text(identity, action):
+def build_action_text(group, identity, action):
     if action['name'] == 'assign':
-        return build_assigned_text(identity, action['selected_options'][0]['value'])
+        return build_assigned_text(group, identity, action['selected_options'][0]['value'])
 
     statuses = {
         'resolved': 'resolved',
@@ -224,7 +227,7 @@ def build_attachment(group, event=None, tags=None, identity=None, actions=None, 
                 )
 
     if actions:
-        action_texts = filter(None, [build_action_text(identity, a) for a in actions])
+        action_texts = filter(None, [build_action_text(group, identity, a) for a in actions])
         text += '\n' + '\n'.join(action_texts)
 
         color = ACTIONED_ISSUE_COLOR
