@@ -74,7 +74,7 @@ class DropdownAutoCompleteMenu extends React.Component {
       //if the first item has children, we assume it is a group
       return _.flatMap(this.filterGroupedItems(items, inputValue), item => {
         return [
-          {...item.group, groupLabel: true},
+          {...item, groupLabel: true},
           ...item.items.map(groupedItem => ({...groupedItem, index: itemCount++})),
         ];
       });
@@ -139,10 +139,10 @@ class DropdownAutoCompleteMenu extends React.Component {
                     {this.autoCompleteFilter(items, inputValue).map(
                       (item, index) =>
                         item.groupLabel ? (
-                          <StyledLabel key={item.value}>{item.label}</StyledLabel>
+                          <StyledLabel key={index}>{item.label}</StyledLabel>
                         ) : (
                           <AutoCompleteItem
-                            key={item.value}
+                            key={`${item.value}-${item.label}`}
                             highlightedIndex={highlightedIndex}
                             index={item.index}
                             {...getItemProps({item, index: item.index})}
@@ -191,7 +191,7 @@ const AutoCompleteItem = styled('div')`
 `;
 
 const StyledLabel = styled('div')`
-  padding: 0 8px;
+  padding: 2px 8px;
   background-color: ${p => p.theme.offWhite};
   border: 1px solid ${p => p.theme.borderLight};
   border-width: 1px 0;

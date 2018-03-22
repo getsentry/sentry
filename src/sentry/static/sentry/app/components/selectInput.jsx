@@ -67,6 +67,7 @@ class SelectInput extends React.Component {
   };
 
   destroy = () => {
+    this.select2.off('change', this.onChange);
     jQuery(this.refs.select).select2('destroy');
   };
 

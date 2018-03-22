@@ -3,7 +3,7 @@
 exports[`TeamAvatar render() renders 1`] = `
 <Tooltip
   disabled={true}
-  title="team-slug"
+  title="#team-slug"
 >
   <span
     className="avatar avatar"
