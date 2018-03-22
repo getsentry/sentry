@@ -19,7 +19,7 @@ const StyledInlineSvg = styled(InlineSvg)`
 
 class Button extends React.Component {
   static propTypes = {
-    priority: PropTypes.oneOf(['primary', 'danger', 'link']),
+    priority: PropTypes.oneOf(['primary', 'danger', 'link', 'success']),
     size: PropTypes.oneOf(['small', 'xsmall', 'large']),
     disabled: PropTypes.bool,
     busy: PropTypes.bool,
@@ -85,6 +85,7 @@ class Button extends React.Component {
 
     let isPrimary = priority === 'primary' && !disabled;
     let isDanger = priority === 'danger' && !disabled;
+    let isSuccess = priority === 'success' && !disabled;
     let isLink = priority === 'link';
 
     let cx = classNames(className, 'button', {
@@ -92,6 +93,7 @@ class Button extends React.Component {
       'button-no-border': borderless,
       'button-primary': isPrimary,
       'button-danger': isDanger,
+      'button-success': isSuccess,
       'button-link': isLink && !isPrimary && !isDanger,
       'button-default': !isLink && !isPrimary && !isDanger,
       'button-sm': size === 'small',

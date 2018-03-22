@@ -1,21 +1,25 @@
 // Jest Snapshot v1, https://goo.gl/fbAQLP
 
 exports[`GuideAnchor renders 1`] = `
-<div
-  className="guide-anchor anchor-type-text"
+<GuideAnchorContainer
+  innerRef={[Function]}
+  type="text"
 >
-  <span
-    className="target 1 guide-anchor-ping"
+  <StyledGuideAnchor
+    active={false}
+    className="guide-anchor-ping target 1"
   />
-</div>
+</GuideAnchorContainer>
 `;
 
 exports[`GuideAnchor turns active when guide state changes 1`] = `
-<div
-  className="guide-anchor anchor-type-text"
+<GuideAnchorContainer
+  innerRef={[Function]}
+  type="text"
 >
-  <span
-    className="target 1 guide-anchor-ping active"
+  <StyledGuideAnchor
+    active={true}
+    className="guide-anchor-ping target 1"
   />
-</div>
+</GuideAnchorContainer>
 `;
