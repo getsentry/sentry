@@ -1,6 +1,7 @@
 import PropTypes from 'prop-types';
 import React from 'react';
 import styled from 'react-emotion';
+import {Flex} from 'grid-emotion';
 
 import memberListStore from '../../../../stores/memberListStore';
 import ProjectsStore from '../../../../stores/projectsStore';
@@ -19,63 +20,70 @@ import {t} from '../../../../locale';
 
 const BuilderBar = styled('div')`
   display: flex;
-  height: 2em;
+  height: 40px;
+  align-items: center;
   margin-bottom: 1em;
 `;
 
 const BuilderSelect = styled(SelectInput)`
-  height: 32px;
   padding: 0.5em;
   margin-right: 5px;
   width: 80px;
+  flex-shrink: 0;
 `;
 
 const BuilderInput = styled(Input)`
-  height: 32px;
   padding: 0.5em;
   margin-right: 5px;
-  width: 50%;
 `;
 
 const Divider = styled(InlineSvg)`
-  height: 32px;
+  flex-shrink: 0;
+  margin-right: 5px;
 `;
 
 const Owners = styled('div')`
-  flex-grow: 100;
   justify-content: flex-end;
   display: flex;
+
   span {
     margin-right: 2px;
   }
+
   .avatar {
-    width: 32px;
-    height: 32px;
+    width: 28px;
+    height: 28px;
   }
 `;
-
-const BuilderDropdownAutoComplete = styled(DropdownAutoComplete)``;
 
 const BuilderDropdownButton = styled(DropdownButton)`
   margin-right: 5px;
-  height: 32px;
+  flex: 1;
   white-space: nowrap;
+  height: 37px;
+  .button-label {
+    text-size: 14px;
+    padding: 2px 12px;
+  }
 `;
 
 const RuleAddButton = styled(Button)`
-  height: 32px;
-  width: 32px;
-  display: flex;
+  width: 37px;
+  height: 37px;
+  flex-shrink: 0;
 
+  display: flex;
   justify-content: center;
+
   .button-label {
-    height: 32px;
     padding: 0.5em;
   }
+
   div {
     margin: 0px !important;
   }
 `;
+
 const initialState = {
   text: '',
   type: 'path',
@@ -142,10 +150,11 @@ class RuleBuilder extends React.Component {
     });
   };
 
-  handleRemoveActor(toRemove) {
+  handleRemoveActor(toRemove, e) {
     this.setState(({owners}) => ({
       owners: owners.filter(actor => !actorEquality(actor, toRemove)),
     }));
+    e.stopPropagation();
   }
 
   handleAddRule = () => {
@@ -167,7 +176,6 @@ class RuleBuilder extends React.Component {
   render() {
     let {type, text, owners} = this.state;
 
-    let menuHeader = <StyledTeamsLabel>{t('Owners')}</StyledTeamsLabel>;
     return (
       <BuilderBar>
         <BuilderSelect value={type} onChange={this.handleTypeChange}>
@@ -181,38 +189,40 @@ class RuleBuilder extends React.Component {
           placeholder={type === 'path' ? 'src/example/*' : 'example.com/settings/*'}
         />
         <Divider src="icon-chevron-right" />
-        <Owners>
-          {owners.map(owner => (
-            <span
-              key={`${owner.type}-${owner.id}`}
-              onClick={this.handleRemoveActor.bind(this, owner)}
-            >
-              <ActorAvatar actor={owner} />
-            </span>
-          ))}
-        </Owners>
-        <BuilderDropdownAutoComplete
-          items={[
-            {
-              value: 'team',
-              label: 'Teams',
-              items: this.mentionableTeams(),
-            },
-            {
-              value: 'user',
-              label: 'Users',
-              items: this.mentionableUsers(),
-            },
-          ]}
-          onSelect={this.onAddActor}
-          menuHeader={menuHeader}
-        >
-          {({isOpen, selectedItem}) => (
-            <BuilderDropdownButton isOpen={isOpen} size="xsmall">
-              {t('Add Owners')}
-            </BuilderDropdownButton>
-          )}
-        </BuilderDropdownAutoComplete>
+        <Flex flex="1" align="center">
+          <DropdownAutoComplete
+            items={[
+              {
+                value: 'team',
+                label: 'Teams',
+                items: this.mentionableTeams(),
+              },
+              {
+                value: 'user',
+                label: 'Users',
+                items: this.mentionableUsers(),
+              },
+            ]}
+            onSelect={this.onAddActor}
+          >
+            {({isOpen, selectedItem}) => (
+              <BuilderDropdownButton isOpen={isOpen}>
+                <Owners>
+                  {owners.map(owner => (
+                    <span
+                      key={`${owner.type}-${owner.id}`}
+                      onClick={this.handleRemoveActor.bind(this, owner)}
+                    >
+                      <ActorAvatar actor={owner} />
+                    </span>
+                  ))}
+                </Owners>
+                {t('Add Owners')}
+              </BuilderDropdownButton>
+            )}
+          </DropdownAutoComplete>
+        </Flex>
+
         <RuleAddButton
           priority="primary"
           onClick={this.handleAddRule}
@@ -222,12 +232,5 @@ class RuleBuilder extends React.Component {
     );
   }
 }
-
-const StyledTeamsLabel = styled('div')`
-  width: 250px;
-  font-size: 0.875em;
-  padding: 0.75em 0;
-  text-transform: uppercase;
-`;
 
 export default RuleBuilder;

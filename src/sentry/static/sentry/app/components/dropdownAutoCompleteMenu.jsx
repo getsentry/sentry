@@ -191,7 +191,7 @@ const AutoCompleteItem = styled('div')`
 `;
 
 const StyledLabel = styled('div')`
-  padding: 0 8px;
+  padding: 2px 8px;
   background-color: ${p => p.theme.offWhite};
   border: 1px solid ${p => p.theme.borderLight};
   border-width: 1px 0;
