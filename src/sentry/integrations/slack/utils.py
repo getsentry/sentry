@@ -104,7 +104,7 @@ def build_assigned_text(group, identity, assignee):
         try:
             assignee_ident = Identity.objects.get(
                 user=assigned_actor,
-                idp__organization_id=group.organization_id,
+                idp__organization_id=group.project.organization_id,
                 idp__type='slack',
             )
             assignee_text = u'<@{}>'.format(assignee_ident.external_id)
