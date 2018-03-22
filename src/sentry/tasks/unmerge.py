@@ -280,6 +280,27 @@ def truncate_denormalizations(group):
     features.delete(group)
 
 
+def collect_group_environment_data(events):
+    results = {}
+    for event in events:
+        results[(event.group_id, get_environment_name(event))] = event.get_tag('sentry:release')
+    return results
+
+
+def repair_group_environment_data(caches, project, events):
+    for (group_id, env_name), first_release in collect_group_environment_data(events).items():
+        fields = {
+            'first_release_id': caches['Release'](project.organization_id, first_release).id,
+        }
+
+        GroupEnvironment.objects.create_or_update(
+            environment_id=caches['Environment'](project.organization_id, env_name).id,
+            group_id=group_id,
+            defaults=fields,
+            values=fields,
+        )
+
+
 def collect_tag_data(events):
     results = {}
 
@@ -389,26 +410,6 @@ def repair_group_release_data(caches, project, events):
             instance.update(first_seen=first_seen)
 
 
-def repair_group_environment_data(caches, project, events):
-    group_environments = {}
-    for event in events:
-        key = group_id, environment_name, = (event.group_id, get_environment_name(event))
-        if key not in group_environments:
-            # NOTE: This doesn't use the `get_or_create` method that is defined
-            # on the `GroupEnvironment` (instead using the default version that
-            # exists on the manager) to avoid reading cached data that was
-            # written prior to the truncation at the beginning of the unmerge
-            # task.
-            group_environments[key], _ = GroupEnvironment.objects.get_or_create(
-                group_id=group_id,
-                environment_id=caches['Environment'](
-                    project.organization_id,
-                    environment_name,
-                ).id,
-                # TODO: Implement `first_release_id` support.
-            )
-
-
 def get_event_user_from_interface(value):
     return EventUser(
         ident=value.get('id'),
@@ -494,8 +495,8 @@ def repair_tsdb_data(caches, project, events):
 
 
 def repair_denormalizations(caches, project, events):
-    repair_tag_data(caches, project, events)
     repair_group_environment_data(caches, project, events)
+    repair_tag_data(caches, project, events)
     repair_group_release_data(caches, project, events)
     repair_tsdb_data(caches, project, events)
 
