@@ -90,9 +90,9 @@ const EnvironmentStore = Reflux.createStore({
 
     let defaultEnv = allEnvs.find(e => e.name === this.defaultEnvironment);
 
-    let prodEnvs = allEnvs.filter(e => PRODUCTION_ENV_NAMES.has(e.name));
+    let prodEnv = allEnvs.find(e => PRODUCTION_ENV_NAMES.has(e.name));
 
-    return defaultEnv || (prodEnvs.length && prodEnvs[0]) || null;
+    return defaultEnv || prodEnv || null;
   },
 });
 
