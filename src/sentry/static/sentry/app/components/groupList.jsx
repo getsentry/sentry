@@ -4,6 +4,7 @@ import createReactClass from 'create-react-class';
 import Reflux from 'reflux';
 import jQuery from 'jquery';
 
+import SentryTypes from '../proptypes';
 import ApiMixin from '../mixins/apiMixin';
 import GroupListHeader from '../components/groupListHeader';
 import GroupStore from '../stores/groupStore';
@@ -23,6 +24,7 @@ const GroupList = createReactClass({
     orgId: PropTypes.string.isRequired,
     projectId: PropTypes.string.isRequired,
     bulkActions: PropTypes.bool.isRequired,
+    environment: SentryTypes.Environment,
   },
 
   contextTypes: {
@@ -100,6 +102,13 @@ const GroupList = createReactClass({
     queryParams.limit = 50;
     queryParams.sort = 'new';
     queryParams.query = this.props.query;
+
+    if (this.props.environment) {
+      queryParams.environment = this.props.environment.name;
+    } else {
+      delete queryParams.environment;
+    }
+
     let querystring = jQuery.param(queryParams);
 
     let props = this.props;
