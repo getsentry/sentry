@@ -87,7 +87,7 @@ const ProjectSettings = createReactClass({
     let {orgId, projectId} = this.props.params;
     let hasNewSettings = features.has('new-settings');
     let pathPrefix = hasNewSettings
-      ? `/settings/organization/${orgId}/project/${projectId}`
+      ? `/settings/${orgId}/${projectId}`
       : `/${orgId}/${projectId}/settings`;
     let settingsUrlRoot = pathPrefix;
     let project = this.state.project;

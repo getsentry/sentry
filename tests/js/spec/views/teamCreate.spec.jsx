@@ -64,9 +64,7 @@ describe('TeamCreate', function() {
       wrapper.instance().onSubmitSuccess({
         slug: 'new-team',
       });
-      expect(locationAssignMock).toBeCalledWith(
-        '/settings/organization/org/teams/new-team/'
-      );
+      expect(locationAssignMock).toBeCalledWith('/settings/org/teams/new-team/');
     });
   });
 });

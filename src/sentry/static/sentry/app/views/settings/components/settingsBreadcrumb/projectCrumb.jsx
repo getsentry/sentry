@@ -58,13 +58,10 @@ class ProjectCrumb extends React.Component {
             ) : (
               <div>
                 <TextLink
-                  to={replaceRouterParams(
-                    '/settings/organization/:orgId/project/:projectId/',
-                    {
-                      orgId: latestOrganization.slug,
-                      projectId: latestProject.slug,
-                    }
-                  )}
+                  to={replaceRouterParams('/settings/:orgId/:projectId/', {
+                    orgId: latestOrganization.slug,
+                    projectId: latestProject.slug,
+                  })}
                 >
                   {latestProject.slug}
                 </TextLink>

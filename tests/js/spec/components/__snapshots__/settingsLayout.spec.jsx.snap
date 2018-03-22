@@ -32,5 +32,6 @@ exports[`SettingsLayout renders 1`] = `
       <NewSettingsWarning />
     </Content>
   </Container>
+  <Footer />
 </div>
 `;

@@ -1,14 +1,15 @@
 import {t} from '../../../locale';
 
-const pathPrefix = '/settings/organization/:orgId';
+const pathPrefix = '/settings/:orgId';
 
 const organizationNavigation = [
   {
     name: 'Organization',
     items: [
       {
-        path: `${pathPrefix}/settings/`,
+        path: `${pathPrefix}/`,
         title: t('General Settings'),
+        index: true,
         show: ({access}) => access.has('org:write'),
       },
       {

@@ -14,9 +14,7 @@ const OrgSettingsMenu = ({access, org, features}) => {
   if (!access.has('org:write') && !access.has('member:read')) return null;
 
   let hasNewSettings = features.has('new-settings');
-  let pathPrefix = `${hasNewSettings
-    ? '/settings/organization'
-    : '/organizations'}/${org.slug}`;
+  let pathPrefix = `${hasNewSettings ? '/settings' : '/organizations'}/${org.slug}`;
 
   return (
     <div>
@@ -59,7 +57,9 @@ const OrgSettingsMenu = ({access, org, features}) => {
             <ListLink to={`${pathPrefix}/repos/`}>{t('Repositories')}</ListLink>
           )}
         {access.has('org:write') && (
-          <ListLink to={`${pathPrefix}/settings/`}>{t('Settings')}</ListLink>
+          <ListLink index to={`${pathPrefix}/`}>
+            {t('Settings')}
+          </ListLink>
         )}
       </ul>
     </div>
@@ -100,9 +100,7 @@ const HomeSidebar = createReactClass({
     let org = this.getOrganization();
 
     let hasNewSettings = features.has('new-settings');
-    let pathPrefix = `${hasNewSettings
-      ? '/settings/organization'
-      : '/organizations'}/${org.slug}`;
+    let pathPrefix = `${hasNewSettings ? '/settings' : '/organizations'}/${org.slug}`;
     let orgId = org.slug;
 
     return (

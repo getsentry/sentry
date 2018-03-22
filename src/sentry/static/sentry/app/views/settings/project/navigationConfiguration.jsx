@@ -1,6 +1,6 @@
 import {t} from '../../../locale';
 
-const pathPrefix = '/settings/organization/:orgId/project/:projectId';
+const pathPrefix = '/settings/:orgId/:projectId';
 
 export default function getConfiguration({project}) {
   let plugins = ((project && project.plugins) || []).filter(plugin => plugin.enabled);
@@ -10,7 +10,8 @@ export default function getConfiguration({project}) {
       name: t('Project'),
       items: [
         {
-          path: `${pathPrefix}/settings/`,
+          path: `${pathPrefix}/`,
+          index: true,
           title: t('General Settings'),
         },
         {
