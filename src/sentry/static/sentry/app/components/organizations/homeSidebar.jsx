@@ -48,10 +48,6 @@ const OrgSettingsMenu = ({access, org, features}) => {
         {access.has('org:write') && (
           <ListLink to={`${pathPrefix}/rate-limits/`}>{t('Rate Limits')}</ListLink>
         )}
-        {features.has('integrations-v3') &&
-          access.has('org:integrations') && (
-            <ListLink to={`${pathPrefix}/integrations/`}>{t('Integrations')}</ListLink>
-          )}
         {features.has('repos') &&
           access.has('org:write') && (
             <ListLink to={`${pathPrefix}/repos/`}>{t('Repositories')}</ListLink>
