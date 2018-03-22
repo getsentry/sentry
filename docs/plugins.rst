@@ -64,6 +64,7 @@ The following plugins are available and maintained by members of the Sentry comm
 * `sentry-groveio <https://github.com/mattrobenolt/sentry-groveio>`_
 * `sentry-irccat <https://github.com/russss/sentry-irccat>`_
 * `sentry-lighthouse <https://github.com/gthb/sentry-lighthouse>`_
+* `sentry-msteams <https://github.com/Neko-Design/sentry-msteams>`_
 * `sentry-notifico <https://github.com/lukegb/sentry-notifico>`_
 * `sentry-searchbutton <https://github.com/timmyomahony/sentry-searchbutton>`_
 * `sentry-sprintly <https://github.com/mattrobenolt/sentry-sprintly>`_
