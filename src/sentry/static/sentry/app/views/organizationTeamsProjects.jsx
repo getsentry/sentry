@@ -101,10 +101,7 @@ class OrganizationTeamsProjectsView extends React.Component {
         </Flex>
         {access.has('project:write') && (
           <Box ml={2}>
-            <Button
-              size="small"
-              to={`/settings/organization/${orgId}/project/${project.slug}/`}
-            >
+            <Button size="small" to={`/settings/${orgId}/${project.slug}/`}>
               {t('Manage Project')}
             </Button>
           </Box>
