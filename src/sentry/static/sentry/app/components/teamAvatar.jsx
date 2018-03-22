@@ -25,7 +25,7 @@ class TeamAvatar extends React.Component {
     let {team, hasTooltip} = this.props;
     let displayName = this.getDisplayName();
     return (
-      <Tooltip title={displayName} disabled={!hasTooltip}>
+      <Tooltip title={`#${displayName}`} disabled={!hasTooltip}>
         <span className={classNames('avatar', this.props.className)}>
           <LetterAvatar identifier={team.slug} displayName={displayName} />
         </span>

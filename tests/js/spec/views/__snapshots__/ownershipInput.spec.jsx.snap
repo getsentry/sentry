@@ -1,7 +1,163 @@
 // Jest Snapshot v1, https://goo.gl/fbAQLP
 
 exports[`ProjectTeamsSettings render() renders 1`] = `
+.glamor-64 {
+  display: -webkit-box;
+  display: -webkit-flex;
+  display: -ms-flexbox;
+  display: flex;
+  height: 40px;
+  -webkit-align-items: center;
+  -webkit-box-align: center;
+  -ms-flex-align: center;
+  align-items: center;
+  margin-bottom: 1em;
+}
+
 .glamor-0 {
+  padding: 0.5em;
+  margin-right: 5px;
+  width: 80px;
+  -webkit-flex-shrink: 0;
+  -ms-flex-negative: 0;
+  flex-shrink: 0;
+}
+
+.glamor-4 {
+  display: block;
+  width: 100%;
+  background: #fff;
+  border: 1px solid;
+  box-shadow: inset;
+  padding: 0.5em;
+  -webkit-transition: border 0.1s linear;
+  transition: border 0.1s linear;
+  resize: vertical;
+  padding: 0.5em;
+  margin-right: 5px;
+}
+
+.glamor-4 {
+  display: block;
+  width: 100%;
+  background: #fff;
+  border: 1px solid;
+  box-shadow: inset;
+  padding: 0.5em;
+  -webkit-transition: border 0.1s linear;
+  transition: border 0.1s linear;
+  resize: vertical;
+  padding: 0.5em;
+  margin-right: 5px;
+}
+
+.glamor-4 {
+  display: block;
+  width: 100%;
+  background: #fff;
+  border: 1px solid;
+  box-shadow: inset;
+  padding: 0.5em;
+  -webkit-transition: border 0.1s linear;
+  transition: border 0.1s linear;
+  resize: vertical;
+  padding: 0.5em;
+  margin-right: 5px;
+}
+
+.glamor-4 {
+  display: block;
+  width: 100%;
+  background: #fff;
+  border: 1px solid;
+  box-shadow: inset;
+  padding: 0.5em;
+  -webkit-transition: border 0.1s linear;
+  transition: border 0.1s linear;
+  resize: vertical;
+  padding: 0.5em;
+  margin-right: 5px;
+}
+
+.glamor-4:focus {
+  outline: none;
+}
+
+.glamor-4:hover,
+.glamor-4:focus,
+.glamor-4:active {
+  border: 1px solid;
+}
+
+.glamor-9 {
+  -webkit-flex-shrink: 0;
+  -ms-flex-negative: 0;
+  flex-shrink: 0;
+  margin-right: 5px;
+}
+
+.glamor-7 {
+  vertical-align: middle;
+  -webkit-flex-shrink: 0;
+  -ms-flex-negative: 0;
+  flex-shrink: 0;
+  margin-right: 5px;
+}
+
+.glamor-45 {
+  box-sizing: border-box;
+  -webkit-flex: 1;
+  -ms-flex: 1;
+  flex: 1;
+  display: -webkit-box;
+  display: -webkit-flex;
+  display: -ms-flexbox;
+  display: flex;
+  -webkit-align-items: center;
+  -webkit-box-align: center;
+  -ms-flex-align: center;
+  align-items: center;
+}
+
+.glamor-41 {
+  position: relative;
+  display: inline-block;
+}
+
+.glamor-37 {
+  margin-right: 5px;
+  -webkit-flex: 1;
+  -ms-flex: 1;
+  flex: 1;
+  white-space: nowrap;
+  height: 37px;
+}
+
+.glamor-37 .button-label {
+  font-size: 14px;
+  padding: 4px 8px;
+  padding-left: 4px;
+}
+
+.glamor-29 {
+  position: relative;
+  z-index: 2;
+  box-shadow: none;
+  margin-right: 5px;
+  -webkit-flex: 1;
+  -ms-flex: 1;
+  flex: 1;
+  white-space: nowrap;
+  height: 37px;
+}
+
+.glamor-29 .button-label {
+  font-size: 14px;
+  padding: 4px 8px;
+  padding-left: 4px;
+}
+
+.glamor-26 {
   box-sizing: border-box;
   display: -webkit-box;
   display: -webkit-flex;
@@ -11,6 +167,84 @@ exports[`ProjectTeamsSettings render() renders 1`] = `
   -webkit-box-align: center;
   -ms-flex-align: center;
   align-items: center;
+}
+
+.glamor-13 {
+  -webkit-box-pack: end;
+  -webkit-justify-content: flex-end;
+  -ms-flex-pack: end;
+  justify-content: flex-end;
+  display: -webkit-box;
+  display: -webkit-flex;
+  display: -ms-flexbox;
+  display: flex;
+}
+
+.glamor-13 span {
+  margin-right: 2px;
+}
+
+.glamor-13 .avatar {
+  width: 28px;
+  height: 28px;
+}
+
+.glamor-15 {
+  margin-left: 3px;
+  padding: 0px;
+}
+
+.glamor-20 {
+  margin-left: 0.33em;
+}
+
+.glamor-18 {
+  vertical-align: middle;
+  margin-left: 0.33em;
+}
+
+.glamor-60 {
+  width: 37px;
+  height: 37px;
+  -webkit-flex-shrink: 0;
+  -ms-flex-negative: 0;
+  flex-shrink: 0;
+  display: -webkit-box;
+  display: -webkit-flex;
+  display: -ms-flexbox;
+  display: flex;
+  -webkit-box-pack: center;
+  -webkit-justify-content: center;
+  -ms-flex-pack: center;
+  justify-content: center;
+}
+
+.glamor-60 .button-label {
+  padding: 0.5em;
+}
+
+.glamor-60 div {
+  margin: 0px !important;
+}
+
+.glamor-54 {
+  box-sizing: border-box;
+  margin-right: 8px;
+  margin-left: -2px;
+}
+
+.glamor-50 {
+  display: block;
+}
+
+.glamor-48 {
+  vertical-align: middle;
+  display: block;
+}
+
+.glamor-68 {
+  text-align: end;
+  padding-top: 10px;
 }
 
 <OwnerInput
@@ -59,6 +293,379 @@ exports[`ProjectTeamsSettings render() renders 1`] = `
     }
   }
 >
+  <RuleBuilder
+    onAddRule={[Function]}
+    organization={
+      Object {
+        "access": Array [
+          "org:read",
+          "org:write",
+          "org:admin",
+          "project:read",
+          "project:write",
+          "project:admin",
+          "team:read",
+          "team:write",
+          "team:admin",
+        ],
+        "features": Array [],
+        "id": "3",
+        "name": "Organization Name",
+        "onboardingTasks": Array [],
+        "projects": Array [],
+        "slug": "org-slug",
+        "status": Object {
+          "id": "active",
+          "name": "active",
+        },
+        "teams": Array [],
+      }
+    }
+    project={
+      Object {
+        "hasAccess": true,
+        "id": "2",
+        "isBookmarked": false,
+        "isMember": true,
+        "name": "Project Name",
+        "slug": "project-slug",
+        "teams": Array [],
+      }
+    }
+  >
+    <BuilderBar>
+      <div
+        className="glamor-64 glamor-65"
+      >
+        <BuilderSelect
+          onChange={[Function]}
+          value="path"
+        >
+          <SelectInput
+            className="glamor-0 glamor-1"
+            disabled={false}
+            multiple={false}
+            onChange={[Function]}
+            placeholder="Select an option..."
+            required={false}
+            value="path"
+          >
+            <select
+              className="glamor-0 glamor-1"
+              disabled={false}
+              multiple={false}
+              onChange={[Function]}
+              placeholder="Select an option..."
+              required={false}
+              value="path"
+            >
+              <option
+                value="path"
+              >
+                Path
+              </option>
+              <option
+                value="url"
+              >
+                URL
+              </option>
+            </select>
+          </SelectInput>
+        </BuilderSelect>
+        <BuilderInput
+          controlled={true}
+          onChange={[Function]}
+          placeholder="src/example/*"
+          value=""
+        >
+          <input
+            className="glamor-4 glamor-5"
+            onChange={[Function]}
+            placeholder="src/example/*"
+            value=""
+          />
+        </BuilderInput>
+        <Divider
+          src="icon-chevron-right"
+        >
+          <InlineSvg
+            className="glamor-9 glamor-6"
+            src="icon-chevron-right"
+          >
+            <StyledSvg
+              className="glamor-9 glamor-6"
+              height="1em"
+              style={Object {}}
+              viewBox={Object {}}
+              width="1em"
+            >
+              <svg
+                className="glamor-6 glamor-7 glamor-8"
+                height="1em"
+                style={Object {}}
+                viewBox={Object {}}
+                width="1em"
+              >
+                <use
+                  href="#test"
+                  xlinkHref="#test"
+                />
+              </svg>
+            </StyledSvg>
+          </InlineSvg>
+        </Divider>
+        <Flex
+          align="center"
+          flex="1"
+        >
+          <Base
+            align="center"
+            className="glamor-45"
+            flex="1"
+          >
+            <div
+              className="glamor-45"
+              is={null}
+            >
+              <DropdownAutoComplete
+                alignMenu="right"
+                items={
+                  Array [
+                    Object {
+                      "items": Array [],
+                      "label": "Teams",
+                      "value": "team",
+                    },
+                    Object {
+                      "items": Array [],
+                      "label": "Users",
+                      "value": "user",
+                    },
+                  ]
+                }
+                onSelect={[Function]}
+              >
+                <DropdownAutoCompleteMenu
+                  alignMenu="right"
+                  items={
+                    Array [
+                      Object {
+                        "items": Array [],
+                        "label": "Teams",
+                        "value": "team",
+                      },
+                      Object {
+                        "items": Array [],
+                        "label": "Users",
+                        "value": "user",
+                      },
+                    ]
+                  }
+                  onSelect={[Function]}
+                >
+                  <AutoComplete
+                    itemToString={[Function]}
+                    onSelect={[Function]}
+                  >
+                    <DropdownMenu
+                      isOpen={false}
+                      keepMenuOpen={false}
+                      onClickOutside={[Function]}
+                    >
+                      <AutoCompleteRoot>
+                        <Component
+                          className="glamor-41 glamor-42"
+                        >
+                          <div
+                            className="glamor-41 glamor-42"
+                          >
+                            <div
+                              onClick={[Function]}
+                              onMouseEnter={[Function]}
+                              onMouseLeave={[Function]}
+                              role="button"
+                            >
+                              <BuilderDropdownButton
+                                isOpen={false}
+                              >
+                                <DropdownButton
+                                  className="glamor-37 glamor-28"
+                                  isOpen={false}
+                                >
+                                  <StyledButton
+                                    className="glamor-37 glamor-28"
+                                    isOpen={false}
+                                  >
+                                    <Component
+                                      className="glamor-28 glamor-29 glamor-30"
+                                      isOpen={false}
+                                    >
+                                      <Button
+                                        className="glamor-28 glamor-29 glamor-30"
+                                        disabled={false}
+                                      >
+                                        <button
+                                          className="glamor-28 glamor-29 glamor-30 button button-default"
+                                          disabled={false}
+                                          onClick={[Function]}
+                                          role="button"
+                                        >
+                                          <Flex
+                                            align="center"
+                                            className="button-label"
+                                          >
+                                            <Base
+                                              align="center"
+                                              className="button-label glamor-26"
+                                            >
+                                              <div
+                                                className="button-label glamor-26"
+                                                is={null}
+                                              >
+                                                <Owners>
+                                                  <div
+                                                    className="glamor-13 glamor-14"
+                                                  />
+                                                </Owners>
+                                                <AddOwnersLabel>
+                                                  <div
+                                                    className="glamor-15 glamor-16"
+                                                  >
+                                                    Add Owners
+                                                  </div>
+                                                </AddOwnersLabel>
+                                                <StyledChevronDown>
+                                                  <Component
+                                                    className="glamor-20 glamor-17"
+                                                  >
+                                                    <InlineSvg
+                                                      className="glamor-20 glamor-17"
+                                                      src="icon-chevron-down"
+                                                    >
+                                                      <StyledSvg
+                                                        className="glamor-20 glamor-17"
+                                                        height="1em"
+                                                        style={Object {}}
+                                                        viewBox={Object {}}
+                                                        width="1em"
+                                                      >
+                                                        <svg
+                                                          className="glamor-17 glamor-18 glamor-8"
+                                                          height="1em"
+                                                          style={Object {}}
+                                                          viewBox={Object {}}
+                                                          width="1em"
+                                                        >
+                                                          <use
+                                                            href="#test"
+                                                            xlinkHref="#test"
+                                                          />
+                                                        </svg>
+                                                      </StyledSvg>
+                                                    </InlineSvg>
+                                                  </Component>
+                                                </StyledChevronDown>
+                                              </div>
+                                            </Base>
+                                          </Flex>
+                                        </button>
+                                      </Button>
+                                    </Component>
+                                  </StyledButton>
+                                </DropdownButton>
+                              </BuilderDropdownButton>
+                            </div>
+                          </div>
+                        </Component>
+                      </AutoCompleteRoot>
+                    </DropdownMenu>
+                  </AutoComplete>
+                </DropdownAutoCompleteMenu>
+              </DropdownAutoComplete>
+            </div>
+          </Base>
+        </Flex>
+        <RuleAddButton
+          icon="icon-circle-add"
+          onClick={[Function]}
+          priority="primary"
+        >
+          <Button
+            className="glamor-60 glamor-61"
+            disabled={false}
+            icon="icon-circle-add"
+            onClick={[Function]}
+            priority="primary"
+          >
+            <button
+              className="glamor-60 glamor-61 button button-primary"
+              disabled={false}
+              onClick={[Function]}
+              role="button"
+            >
+              <Flex
+                align="center"
+                className="button-label"
+              >
+                <Base
+                  align="center"
+                  className="button-label glamor-26"
+                >
+                  <div
+                    className="button-label glamor-26"
+                    is={null}
+                  >
+                    <Icon>
+                      <Base
+                        className="glamor-54 glamor-55"
+                      >
+                        <div
+                          className="glamor-54 glamor-55"
+                          is={null}
+                        >
+                          <StyledInlineSvg
+                            size="16px"
+                            src="icon-circle-add"
+                          >
+                            <InlineSvg
+                              className="glamor-50 glamor-47"
+                              size="16px"
+                              src="icon-circle-add"
+                            >
+                              <StyledSvg
+                                className="glamor-50 glamor-47"
+                                height="16px"
+                                style={Object {}}
+                                viewBox={Object {}}
+                                width="16px"
+                              >
+                                <svg
+                                  className="glamor-47 glamor-48 glamor-8"
+                                  height="16px"
+                                  style={Object {}}
+                                  viewBox={Object {}}
+                                  width="16px"
+                                >
+                                  <use
+                                    href="#test"
+                                    xlinkHref="#test"
+                                  />
+                                </svg>
+                              </StyledSvg>
+                            </InlineSvg>
+                          </StyledInlineSvg>
+                        </div>
+                      </Base>
+                    </Icon>
+                  </div>
+                </Base>
+              </Flex>
+            </button>
+          </Button>
+        </RuleAddButton>
+      </div>
+    </BuilderBar>
+  </RuleBuilder>
   <div
     onKeyDown={[Function]}
     style={
@@ -68,6 +675,9 @@ exports[`ProjectTeamsSettings render() renders 1`] = `
     }
   >
     <TextareaAutosize
+      autoCapitalize="off"
+      autoComplete="off"
+      autoCorrect="off"
       onChange={[Function]}
       placeholder="#example usage
 
@@ -75,6 +685,7 @@ path:src/example/pipeline/* person@sentry.io #infrastructure
 
 url:http://example.com/settings/* #product"
       rows={1}
+      spellCheck="false"
       style={
         Object {
           "border": "1 solid",
@@ -93,6 +704,9 @@ url:http://example.com/settings/* #product"
       value="new"
     >
       <textarea
+        autoCapitalize="off"
+        autoComplete="off"
+        autoCorrect="off"
         onChange={[Function]}
         placeholder="#example usage
 
@@ -100,6 +714,7 @@ path:src/example/pipeline/* person@sentry.io #infrastructure
 
 url:http://example.com/settings/* #product"
         rows={1}
+        spellCheck="false"
         style={
           Object {
             "border": "1 solid",
@@ -118,45 +733,42 @@ url:http://example.com/settings/* #product"
         value="new"
       />
     </TextareaAutosize>
-    <div
-      style={
-        Object {
-          "paddingTop": "10px",
-          "textAlign": "end",
-        }
-      }
-    >
-      <Button
-        disabled={false}
-        onClick={[Function]}
-        priority="primary"
-        size="small"
+    <SaveButton>
+      <div
+        className="glamor-68 glamor-69"
       >
-        <button
-          className="button button-primary button-sm"
+        <Button
           disabled={false}
           onClick={[Function]}
-          role="button"
+          priority="primary"
+          size="small"
         >
-          <Flex
-            align="center"
-            className="button-label"
+          <button
+            className="button button-primary button-sm"
+            disabled={false}
+            onClick={[Function]}
+            role="button"
           >
-            <Base
+            <Flex
               align="center"
-              className="button-label glamor-0"
+              className="button-label"
             >
-              <div
-                className="button-label glamor-0"
-                is={null}
+              <Base
+                align="center"
+                className="button-label glamor-26"
               >
-                Save Changes
-              </div>
-            </Base>
-          </Flex>
-        </button>
-      </Button>
-    </div>
+                <div
+                  className="button-label glamor-26"
+                  is={null}
+                >
+                  Save Changes
+                </div>
+              </Base>
+            </Flex>
+          </button>
+        </Button>
+      </div>
+    </SaveButton>
   </div>
 </OwnerInput>
 `;

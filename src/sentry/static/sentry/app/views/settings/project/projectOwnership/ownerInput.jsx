@@ -11,6 +11,7 @@ import SentryTypes from '../../../../proptypes';
 
 import {addErrorMessage, addSuccessMessage} from '../../../../actionCreators/indicator';
 import {t} from '../../../../locale';
+import RuleBuilder from './ruleBuilder';
 
 const SyntaxOverlay = styled.div`
   margin: 5px;
@@ -22,6 +23,11 @@ const SyntaxOverlay = styled.div`
   pointer-events: none;
   position: absolute;
   top: ${({line}) => line}em;
+`;
+
+const SaveButton = styled.div`
+  text-align: end;
+  padding-top: 10px;
 `;
 
 class OwnerInput extends React.Component {
@@ -103,11 +109,24 @@ class OwnerInput extends React.Component {
   onChange(e) {
     this.setState({text: e.target.value});
   }
+
+  handleAddRule(rule) {
+    this.setState(({text}) => ({
+      text: text + '\n' + rule,
+    }));
+  }
+
   render() {
+    let {project, organization} = this.props;
     let {text, error, initialText} = this.state;
 
     return (
       <React.Fragment>
+        <RuleBuilder
+          organization={organization}
+          project={project}
+          onAddRule={this.handleAddRule.bind(this)}
+        />
         <div
           style={{position: 'relative'}}
           onKeyDown={e => {
@@ -135,13 +154,17 @@ class OwnerInput extends React.Component {
             }}
             onChange={this.onChange.bind(this)}
             value={text}
+            spellCheck="false"
+            autoComplete="off"
+            autoCorrect="off"
+            autoCapitalize="off"
           />
           {error &&
             error.raw && (
               <SyntaxOverlay line={error.raw[0].match(/line (\d*),/)[1] - 1} />
             )}
           {error && error.raw && error.raw.toString()}
-          <div style={{textAlign: 'end', paddingTop: '10px'}}>
+          <SaveButton>
             <Button
               size="small"
               priority="primary"
@@ -150,7 +173,7 @@ class OwnerInput extends React.Component {
             >
               {t('Save Changes')}
             </Button>
-          </div>
+          </SaveButton>
         </div>
       </React.Fragment>
     );
