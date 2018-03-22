@@ -96,4 +96,10 @@ class SnubaTagStorage(TagStorage):
 
         end = datetime.utcnow().replace(tzinfo=pytz.UTC)
         start = end - timedelta(days=90)
-        return snuba.query(start, end, ['issue'], conditions, filters)
+        issues = snuba.query(start, end, ['issue'], conditions, filters)
+
+        # convert
+        #    {issue1: count, ...}
+        # into
+        #    [issue1, ...]
+        return issues.keys()
