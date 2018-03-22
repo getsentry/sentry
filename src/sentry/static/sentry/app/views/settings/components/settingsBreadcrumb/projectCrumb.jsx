@@ -5,9 +5,9 @@ import styled from 'react-emotion';
 
 import BreadcrumbDropdown from './breadcrumbDropdown';
 import LoadingIndicator from '../../../../components/loadingIndicator';
+import MenuItem from './menuItem';
 import SentryTypes from '../../../../proptypes';
 import TextLink from '../../../../components/textLink';
-import TextOverflow from '../../../../components/textOverflow';
 import recreateRoute from '../../../../utils/recreateRoute';
 import replaceRouterParams from '../../../../utils/replaceRouterParams';
 import withLatestContext from '../../../../utils/withLatestContext';
@@ -80,7 +80,7 @@ class ProjectCrumb extends React.Component {
         }}
         items={projects.map(project => ({
           value: project.slug,
-          label: <TextOverflow>{project.slug}</TextOverflow>,
+          label: <MenuItem>{project.slug}</MenuItem>,
         }))}
         {...props}
       />

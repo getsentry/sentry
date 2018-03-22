@@ -155,13 +155,7 @@ const TeamProjects = createReactClass({
   },
 });
 
-const ProjectListElement = styled('div')`
-  padding: 0.5em 0.25em;
-
-  &:hover {
-    cursor: pointer;
-  }
-`;
+const ProjectListElement = styled('div')``;
 
 const RemoveIcon = styled(props => (
   <InlineSvg {...props} src="icon-circle-subtract">

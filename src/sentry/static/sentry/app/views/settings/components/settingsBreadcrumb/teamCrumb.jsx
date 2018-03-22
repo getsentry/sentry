@@ -4,8 +4,8 @@ import PropTypes from 'prop-types';
 import React from 'react';
 
 import BreadcrumbDropdown from './breadcrumbDropdown';
+import MenuItem from './menuItem';
 import TextLink from '../../../../components/textLink';
-import TextOverflow from '../../../../components/textOverflow';
 import recreateRoute from '../../../../utils/recreateRoute';
 import withTeams from '../../../../utils/withTeams';
 
@@ -48,7 +48,7 @@ class TeamCrumb extends React.Component {
         route={route}
         items={teams.map(({slug}) => ({
           value: slug,
-          label: <TextOverflow>#{slug}</TextOverflow>,
+          label: <MenuItem>#{slug}</MenuItem>,
         }))}
         {...props}
       />

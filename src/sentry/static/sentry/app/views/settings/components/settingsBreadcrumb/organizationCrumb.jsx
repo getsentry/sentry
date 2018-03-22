@@ -5,9 +5,9 @@ import React from 'react';
 
 import BreadcrumbDropdown from './breadcrumbDropdown';
 import LetterAvatar from '../../../../components/letterAvatar';
+import MenuItem from './menuItem';
 import SentryTypes from '../../../../proptypes';
 import TextLink from '../../../../components/textLink';
-import TextOverflow from '../../../../components/textOverflow';
 import recreateRoute from '../../../../utils/recreateRoute';
 import withLatestContext from '../../../../utils/withLatestContext';
 
@@ -59,7 +59,7 @@ class OrganizationCrumb extends React.Component {
         route={route}
         items={organizations.map(org => ({
           value: org.slug,
-          label: <TextOverflow>{org.slug}</TextOverflow>,
+          label: <MenuItem>{org.slug}</MenuItem>,
         }))}
         {...props}
       />
