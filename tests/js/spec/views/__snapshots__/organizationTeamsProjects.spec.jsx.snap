@@ -344,7 +344,7 @@ exports[`OrganizationTeamProjects Should render 1`] = `
                                     <Button
                                       disabled={false}
                                       size="small"
-                                      to="/settings/organization/org-slug/project/project-slug-2/"
+                                      to="/settings/org-slug/project-slug-2/"
                                     >
                                       <Link
                                         className="button button-default button-sm"
@@ -353,7 +353,7 @@ exports[`OrganizationTeamProjects Should render 1`] = `
                                         onlyActiveOnIndex={false}
                                         role="button"
                                         style={Object {}}
-                                        to="/settings/organization/org-slug/project/project-slug-2/"
+                                        to="/settings/org-slug/project-slug-2/"
                                       >
                                         <a
                                           className="button button-default button-sm"
