@@ -4,7 +4,7 @@ from sentry import analytics
 from sentry import http, options
 from sentry.api import client
 from sentry.api.base import Endpoint
-from sentry.models import Group, Integration, Project, IdentityProvider, Identity, ApiKey
+from sentry.models import Group, Integration, Project, Identity, ApiKey
 from sentry.utils import json
 
 from .link_identity import build_linking_url
@@ -211,7 +211,7 @@ class SlackActionEndpoint(Endpoint):
         try:
             identity = Identity.objects.get(
                 external_id=user_id,
-                idp=IdentityProvider.objects.get(organization=group.organization),
+                idp__organization=group.organization,
             )
         except Identity.DoesNotExist:
             associate_url = build_linking_url(
