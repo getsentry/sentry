@@ -249,9 +249,12 @@ def truncate_denormalizations(group):
         group_id=group.id,
     ).delete()
 
-    GroupEnvironment.objects.filter(
-        group_id=group.id,
-    ).delete()
+    # XXX: This can cause a race condition with the ``FirstSeenEventCondition``
+    # where notifications can be erroneously sent if they occur in this group
+    # before the reprocessing of the denormalizated data completes, since a new
+    # ``GroupEnvironment`` will be created.
+    for instance in GroupEnvironment.objects.filter(group_id=group.id):
+        instance.delete()
 
     environment_ids = list(
         Environment.objects.filter(
