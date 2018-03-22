@@ -405,6 +405,7 @@ def repair_group_environment_data(caches, project, events):
                     project.organization_id,
                     environment_name,
                 ).id,
+                # TODO: Implement `first_release_id` support.
             )
 
 
