@@ -19,7 +19,8 @@ GUIDES = {
             {
                 'title': _('Breadcrumbs'),
                 'message': _(
-                    'Breadcrumbs are a trail of events that happened prior to the error. They\'re '
+                    'Breadcrumbs (when sent with the event) appear below the stacktrace and show '
+                    'you a trail of events that happened prior to the error. They\'re '
                     'similar to traditional logs but can record more rich structured data. '
                     'When Sentry is used with web frameworks, breadcrumbs are automatically '
                     'captured for events like database calls and network requests.'),
@@ -29,13 +30,13 @@ GUIDES = {
                 'title': _('Tags'),
                 'message': _(
                     'Tags are arbitrary key-value pairs sent with every event. You can filter '
-                    'events by tags - for example, searching for all events from a specific '
-                    'machine, browser, release etc. The sidebar on the right shows you the '
+                    'events by tags, like searching for all events from a specific machine, '
+                    'browser, release etc. The sidebar on the right shows you the '
                     'distribution of tags for all events in this event group.'),
                 'target': 'tags',
             },
             {
-                'title': _('Resolution'),
+                'title': _('Resolve'),
                 'message': _(
                     'Resolving an issue removes it from the default dashboard view of unresolved '
                     'issues. You can ask Sentry to <a href="/settings/account/notifications/"> '
@@ -43,7 +44,7 @@ GUIDES = {
                 'target': 'resolve',
             },
             {
-                'title': _('Issue number'),
+                'title': _('Issue Number'),
                 'message': _(
                     'This is a unique identifier for the issue, and can be included in a commit '
                     'message to tell Sentry to resolve the issue when the commit gets deployed. '
@@ -54,17 +55,21 @@ GUIDES = {
             {
                 'title': _('Issue Tracking'),
                 'message': _(
-                    'Create issues within your project management tool. Sentry integrates with '
-                    '<a href="https://docs.sentry.io/integrations/">many popular tools</a>.'),
+                    'Create issues in your project management tool from within Sentry. See a list '
+                    'of all integrations <a href="https://docs.sentry.io/integrations/">here</a>.'),
                 'target': 'issue_tracking',
             },
             {
-                'title': _('Delete & Discard'),
+                'title': _('Ignore, Delete and Discard'),
                 'message': _(
-                    'Deleting & Discarding an issue deletes most of the data associated with the '
-                    'issue and discards future events matching the issue before it reaches your '
-                    'stream. This is useful to permanently ignore errors you don\'t care about.'),
-                'target': 'delete_discard',
+                    'Ignoring an issue silences notifications and removes it from your feeds by '
+                    'default. Deleting an issue deletes the data associated with an issue and '
+                    'causes a new issue to be created if the same error happens again. Delete '
+                    '& Discard (available on the medium plan and higher) deletes most of the data '
+                    'associated with the issue and discards future events matching the issue '
+                    'before it reaches your stream. This is useful to permanently ignore errors '
+                    'you don\'t care about.'),
+                'target': 'ignore_delete_discard',
             },
         ],
     },

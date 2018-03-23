@@ -118,10 +118,6 @@ const AssistantHelper = createReactClass({
 //this globally controls the size of the component
 const StyledHelper = styled('div')`
   font-size: 1.4rem;
-
-  &:hover {
-    cursor: pointer;
-  }
 `;
 
 const StyledCueText = styled('span')`

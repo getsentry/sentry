@@ -88,7 +88,13 @@ exports[`GuideDrawer renders next step 1`] = `
         }
       }
     >
-      <div>
+      <div
+        style={
+          Object {
+            "textAlign": "center",
+          }
+        }
+      >
         <p>
           Did you find this guide useful?
         </p>
