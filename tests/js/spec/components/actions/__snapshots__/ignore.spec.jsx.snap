@@ -1,6 +1,52 @@
 // Jest Snapshot v1, https://goo.gl/fbAQLP
 
 exports[`IgnoreActions with confirmation step renders 1`] = `
+.glamor-2 {
+  display: inline-block;
+  position: relative;
+}
+
+.glamor-0 {
+  width: 20px;
+  height: 20px;
+  cursor: pointer;
+  z-index: 999;
+  position: relative;
+  pointer-events: none;
+  -webkit-animation: animation-1vh9m9r-expandOut 1.5s ease-out infinite;
+  animation: animation-1vh9m9r-expandOut 1.5s ease-out infinite;
+  visibility: hidden;
+}
+
+.glamor-0,
+.glamor-0:before,
+.glamor-0:after {
+  position: absolute;
+  display: block;
+  left: calc(50% - 10px);
+  top: calc(50% - 10px);
+  border-radius: 50%;
+}
+
+.glamor-0:before,
+.glamor-0:after {
+  content: '';
+}
+
+.glamor-0:before {
+  width: 70%;
+  height: 70%;
+  left: calc(50% - 7px);
+  top: calc(50% - 7px);
+}
+
+.glamor-0:after {
+  width: 50%;
+  height: 50%;
+  left: calc(50% - 5px);
+  top: calc(50% - 5px);
+}
+
 <IgnoreActions
   confirmLabel="Ignore"
   confirmMessage="Yoooooo"
@@ -263,6 +309,29 @@ exports[`IgnoreActions with confirmation step renders 1`] = `
                 }
               }
             />
+            <GuideAnchor
+              target="ignore_delete_discard"
+              type="text"
+            >
+              <GuideAnchorContainer
+                innerRef={[Function]}
+                type="text"
+              >
+                <div
+                  className="glamor-2 glamor-3"
+                  type="text"
+                >
+                  <StyledGuideAnchor
+                    active={false}
+                    className="guide-anchor-ping ignore_delete_discard"
+                  >
+                    <span
+                      className="guide-anchor-ping ignore_delete_discard glamor-0 glamor-1"
+                    />
+                  </StyledGuideAnchor>
+                </div>
+              </GuideAnchorContainer>
+            </GuideAnchor>
             Ignore
           </a>
           <Modal
@@ -4989,6 +5058,52 @@ exports[`IgnoreActions with confirmation step renders 1`] = `
 `;
 
 exports[`IgnoreActions without confirmation renders 1`] = `
+.glamor-2 {
+  display: inline-block;
+  position: relative;
+}
+
+.glamor-0 {
+  width: 20px;
+  height: 20px;
+  cursor: pointer;
+  z-index: 999;
+  position: relative;
+  pointer-events: none;
+  -webkit-animation: animation-1vh9m9r-expandOut 1.5s ease-out infinite;
+  animation: animation-1vh9m9r-expandOut 1.5s ease-out infinite;
+  visibility: hidden;
+}
+
+.glamor-0,
+.glamor-0:before,
+.glamor-0:after {
+  position: absolute;
+  display: block;
+  left: calc(50% - 10px);
+  top: calc(50% - 10px);
+  border-radius: 50%;
+}
+
+.glamor-0:before,
+.glamor-0:after {
+  content: '';
+}
+
+.glamor-0:before {
+  width: 70%;
+  height: 70%;
+  left: calc(50% - 7px);
+  top: calc(50% - 7px);
+}
+
+.glamor-0:after {
+  width: 50%;
+  height: 50%;
+  left: calc(50% - 5px);
+  top: calc(50% - 5px);
+}
+
 <IgnoreActions
   confirmLabel="Ignore"
   isIgnored={false}
@@ -5240,6 +5355,29 @@ exports[`IgnoreActions without confirmation renders 1`] = `
               }
             }
           />
+          <GuideAnchor
+            target="ignore_delete_discard"
+            type="text"
+          >
+            <GuideAnchorContainer
+              innerRef={[Function]}
+              type="text"
+            >
+              <div
+                className="glamor-2 glamor-3"
+                type="text"
+              >
+                <StyledGuideAnchor
+                  active={false}
+                  className="guide-anchor-ping ignore_delete_discard"
+                >
+                  <span
+                    className="guide-anchor-ping ignore_delete_discard glamor-0 glamor-1"
+                  />
+                </StyledGuideAnchor>
+              </div>
+            </GuideAnchorContainer>
+          </GuideAnchor>
           Ignore
         </a>
       </ActionLink>

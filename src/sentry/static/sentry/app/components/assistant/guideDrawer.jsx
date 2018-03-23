@@ -50,7 +50,7 @@ export default class GuideDrawer extends React.Component {
                 </Button>
               </div>
             ) : (
-              <div>
+              <div style={{textAlign: 'center'}}>
                 <p>{t('Did you find this guide useful?')}</p>
                 <Button
                   priority="success"
