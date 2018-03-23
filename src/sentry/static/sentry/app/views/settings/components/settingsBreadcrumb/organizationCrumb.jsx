@@ -5,6 +5,7 @@ import React from 'react';
 
 import BreadcrumbDropdown from './breadcrumbDropdown';
 import LetterAvatar from '../../../../components/letterAvatar';
+import MenuItem from './menuItem';
 import SentryTypes from '../../../../proptypes';
 import TextLink from '../../../../components/textLink';
 import recreateRoute from '../../../../utils/recreateRoute';
@@ -58,7 +59,7 @@ class OrganizationCrumb extends React.Component {
         route={route}
         items={organizations.map(org => ({
           value: org.slug,
-          label: org.slug,
+          label: <MenuItem>{org.slug}</MenuItem>,
         }))}
         {...props}
       />

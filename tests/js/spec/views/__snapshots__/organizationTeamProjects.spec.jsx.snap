@@ -190,6 +190,7 @@ exports[`OrganizationTeamProjects Should render 1`] = `
                         >
                           <DropdownAutoCompleteMenu
                             alignMenu="right"
+                            blendCorner={true}
                             items={
                               Array [
                                 Object {

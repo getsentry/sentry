@@ -267,10 +267,6 @@ const StyledUserListElement = styled('div')`
   font-size: 0.875em;
   display: flex;
   align-items: center;
-  padding: 0.25em 0;
-  &:hover {
-    cursor: pointer;
-  }
 `;
 
 const StyledNameOrEmail = styled('div')`

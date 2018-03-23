@@ -1,12 +1,12 @@
+import {Link} from 'react-router';
 import PropTypes from 'prop-types';
 import React from 'react';
-import {Link} from 'react-router';
 
-import SentryTypes from '../../../proptypes';
-
+import {tct} from '../../../locale';
 import AllTeamsRow from './allTeamsRow';
 import EmptyMessage from '../components/emptyMessage';
-import {tct} from '../../../locale';
+import SentryTypes from '../../../proptypes';
+import TextBlock from '../components/text/textBlock';
 
 class AllTeamsList extends React.Component {
   static propTypes = {
@@ -41,7 +41,7 @@ class AllTeamsList extends React.Component {
     return (
       <EmptyMessage>
         {tct('No teams here. You can always [link:create one].', {
-          root: <p />,
+          root: <TextBlock noMargin />,
           link: <Link to={`/organizations/${organization.slug}/teams/new/`} />,
         })}
       </EmptyMessage>

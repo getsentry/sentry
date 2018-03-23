@@ -46,6 +46,7 @@ const theme = {
   purpleDark: '#5346AE',
   purpleDarkest: '#392C94',
 
+  borderLighter: '#f9f6fd',
   borderLight: '#E2DBE8',
   borderDark: '#D1CAD8',
   borderRadius: '4px',
