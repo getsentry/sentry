@@ -217,23 +217,17 @@ const AssigneeSelector = createReactClass({
     let members = AssigneeSelector.filterAssignees(memberList, filter);
     members = AssigneeSelector.putSessionUserFirst(members);
 
-    return members && members.length ? (
-      members.map(item => {
-        return (
-          <MenuItem
-            key={buildUserId(item.id)}
-            onSelect={this.assignToUser.bind(this, item)}
-          >
-            <Avatar user={item} className="avatar" size={48} />
-            {this.highlight(item.name || item.email, filter)}
-          </MenuItem>
-        );
-      })
-    ) : (
-      <li className="not-found">
-        <span>{t('No matching users found.')}</span>
-      </li>
-    );
+    return members.map(item => {
+      return (
+        <MenuItem
+          key={buildUserId(item.id)}
+          onSelect={this.assignToUser.bind(this, item)}
+        >
+          <Avatar user={item} className="avatar" size={48} />
+          {this.highlight(item.name || item.email, filter)}
+        </MenuItem>
+      );
+    });
   },
 
   renderTeamNodes() {
@@ -251,9 +245,6 @@ const AssigneeSelector = createReactClass({
           </MenuItem>
         );
       });
-      if (teamNodes.length > 0) {
-        teamNodes = [...teamNodes, <hr key="divider" style={{margin: 0}} />];
-      }
     }
     return teamNodes;
   },
@@ -281,6 +272,11 @@ const AssigneeSelector = createReactClass({
     let className = classNames('assignee-selector anchor-right', {
       unassigned: !assignedTo,
     });
+
+    let teams = this.renderTeamNodes();
+    let members = this.renderMemberNodes();
+    let hasTeamsAndMembers = teams.length && members.length;
+    let hasTeamsOrMembers = teams.length || members.length;
 
     return (
       <div>
@@ -334,21 +330,33 @@ const AssigneeSelector = createReactClass({
                 )}
 
                 <li>
-                  <ul>{[...this.renderTeamNodes(), ...this.renderMemberNodes()]}</ul>
+                  <ul>
+                    {teams}
+                    {hasTeamsAndMembers ? <hr key="divider" style={{margin: 0}} /> : null}
+                    {members}
+                    {!hasTeamsOrMembers && (
+                      <li className="not-found">
+                        <span>{t('No matches found.')}</span>
+                      </li>
+                    )}
+                  </ul>
                 </li>
               </React.Fragment>
             )}
 
             {ConfigStore.get('invitesEnabled') &&
               access.has('org:write') && (
-                <MenuItem
-                  className="invite-member"
-                  disabled={!loading}
-                  to={`/settings/${this.context.organization.slug}/members/new/`}
-                  query={{referrer: 'assignee_selector'}}
-                >
-                  <span className="icon-plus" /> {t('Invite Member')}
-                </MenuItem>
+                <React.Fragment>
+                  <hr key="divider" style={{margin: 0}} />
+                  <MenuItem
+                    className="invite-member"
+                    disabled={!loading}
+                    to={`/settings/${this.context.organization.slug}/members/new/`}
+                    query={{referrer: 'assignee_selector'}}
+                  >
+                    <span className="icon-plus" /> {t('Invite Member')}
+                  </MenuItem>
+                </React.Fragment>
               )}
           </DropdownLink>
         </div>
