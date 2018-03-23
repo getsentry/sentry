@@ -23,7 +23,7 @@ class Migration(SchemaMigration):
                 ('object_id', self.gf('sentry.db.models.fields.bounded.BoundedBigIntegerField')()),
                 (
                     'date_added',
-                    self.gf('django.db.models.fields.DateTimeField')(default=datetime.datetime.now)
+                    self.gf('django.db.models.fields.DateTimeField')()
                 ), (
                     'date_scheduled', self.gf('django.db.models.fields.DateTimeField')(
                         default=datetime.datetime(2017, 6, 30, 0, 0)
@@ -38,11 +38,13 @@ class Migration(SchemaMigration):
         )
         db.send_create_signal('sentry', ['ScheduledDeletion'])
 
-        # Adding unique constraint on 'ScheduledDeletion', fields ['app_label', 'model_name', 'object_id']
+        # Adding unique constraint on 'ScheduledDeletion', fields ['app_label',
+        # 'model_name', 'object_id']
         db.create_unique('sentry_scheduleddeletion', ['app_label', 'model_name', 'object_id'])
 
     def backwards(self, orm):
-        # Removing unique constraint on 'ScheduledDeletion', fields ['app_label', 'model_name', 'object_id']
+        # Removing unique constraint on 'ScheduledDeletion', fields ['app_label',
+        # 'model_name', 'object_id']
         db.delete_unique('sentry_scheduleddeletion', ['app_label', 'model_name', 'object_id'])
 
         # Deleting model 'ScheduledDeletion'

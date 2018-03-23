@@ -17,7 +17,7 @@ class Migration(SchemaMigration):
                 ), ('name', self.gf('django.db.models.fields.CharField')(max_length=128)),
                 ('payload', self.gf('jsonfield.fields.JSONField')(default={})), (
                     'date_added',
-                    self.gf('django.db.models.fields.DateTimeField')(default=datetime.datetime.now)
+                    self.gf('django.db.models.fields.DateTimeField')()
                 ), ('date_scheduled', self.gf('django.db.models.fields.DateTimeField')()),
             )
         )

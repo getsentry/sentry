@@ -24,7 +24,7 @@ class Migration(SchemaMigration):
                     )
                 ), (
                     'datetime', self.gf('django.db.models.fields.DateTimeField')(
-                        default=datetime.datetime.now, db_index=True
+                        db_index=True
                     )
                 ),
             )

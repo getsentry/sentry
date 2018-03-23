@@ -16,7 +16,8 @@ class Migration(SchemaMigration):
         db.create_table('sentry_identityprovider', (
             ('id', self.gf('sentry.db.models.fields.bounded.BoundedBigAutoField')(primary_key=True)),
             ('type', self.gf('django.db.models.fields.CharField')(max_length=64)),
-            ('organization', self.gf('sentry.db.models.fields.foreignkey.FlexibleForeignKey')(to=orm['sentry.Organization'])),
+            ('organization', self.gf('sentry.db.models.fields.foreignkey.FlexibleForeignKey')(
+                to=orm['sentry.Organization'])),
             ('config', self.gf('sentry.db.models.fields.encrypted.EncryptedJsonField')(default={})),
         ))
         db.send_create_signal('sentry', ['IdentityProvider'])
@@ -27,20 +28,22 @@ class Migration(SchemaMigration):
         # Adding model 'Identity'
         db.create_table('sentry_identity', (
             ('id', self.gf('sentry.db.models.fields.bounded.BoundedBigAutoField')(primary_key=True)),
-            ('idp', self.gf('sentry.db.models.fields.foreignkey.FlexibleForeignKey')(to=orm['sentry.IdentityProvider'])),
-            ('user', self.gf('sentry.db.models.fields.foreignkey.FlexibleForeignKey')(to=orm['sentry.User'])),
+            ('idp', self.gf('sentry.db.models.fields.foreignkey.FlexibleForeignKey')(
+                to=orm['sentry.IdentityProvider'])),
+            ('user', self.gf('sentry.db.models.fields.foreignkey.FlexibleForeignKey')(
+                to=orm['sentry.User'])),
             ('external_id', self.gf('django.db.models.fields.CharField')(max_length=64)),
             ('data', self.gf('sentry.db.models.fields.encrypted.EncryptedJsonField')(default={})),
             ('status', self.gf('sentry.db.models.fields.bounded.BoundedPositiveIntegerField')(default=0)),
-            ('scopes', self.gf('sentry.db.models.fields.array.ArrayField')(of=('django.db.models.fields.TextField', [], {}))),
-            ('date_verified', self.gf('django.db.models.fields.DateTimeField')(default=datetime.datetime.now)),
-            ('date_added', self.gf('django.db.models.fields.DateTimeField')(default=datetime.datetime.now)),
+            ('scopes', self.gf('sentry.db.models.fields.array.ArrayField')(
+                of=('django.db.models.fields.TextField', [], {}))),
+            ('date_verified', self.gf('django.db.models.fields.DateTimeField')()),
+            ('date_added', self.gf('django.db.models.fields.DateTimeField')()),
         ))
         db.send_create_signal('sentry', ['Identity'])
 
         # Adding unique constraint on 'Identity', fields ['idp', 'external_id']
         db.create_unique('sentry_identity', ['idp_id', 'external_id'])
-
 
     def backwards(self, orm):
         # Removing unique constraint on 'Identity', fields ['idp', 'external_id']
@@ -54,7 +57,6 @@ class Migration(SchemaMigration):
 
         # Deleting model 'Identity'
         db.delete_table('sentry_identity')
-
 
     models = {
         'sentry.activity': {

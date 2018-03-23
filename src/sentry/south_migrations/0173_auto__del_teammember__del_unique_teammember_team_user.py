@@ -27,7 +27,7 @@ class Migration(SchemaMigration):
                     )
                 ), (
                     'date_added',
-                    self.gf('django.db.models.fields.DateTimeField')(default=datetime.datetime.now)
+                    self.gf('django.db.models.fields.DateTimeField')()
                 ), (
                     'type',
                     self.gf('sentry.db.models.fields.bounded.BoundedIntegerField')(default=50)

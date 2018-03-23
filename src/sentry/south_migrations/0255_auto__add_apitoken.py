@@ -26,7 +26,7 @@ class Migration(SchemaMigration):
                 ('token', self.gf('django.db.models.fields.CharField')(unique=True, max_length=64)),
                 ('scopes', self.gf('django.db.models.fields.BigIntegerField')(default=None)), (
                     'date_added',
-                    self.gf('django.db.models.fields.DateTimeField')(default=datetime.datetime.now)
+                    self.gf('django.db.models.fields.DateTimeField')()
                 ),
             )
         )

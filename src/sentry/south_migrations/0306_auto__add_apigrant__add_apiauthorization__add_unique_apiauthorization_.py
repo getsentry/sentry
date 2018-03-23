@@ -49,7 +49,7 @@ class Migration(SchemaMigration):
                     )
                 ), ('scopes', self.gf('django.db.models.fields.BigIntegerField')(default=None)), (
                     'date_added',
-                    self.gf('django.db.models.fields.DateTimeField')(default=datetime.datetime.now)
+                    self.gf('django.db.models.fields.DateTimeField')()
                 ),
             )
         )
@@ -95,7 +95,7 @@ class Migration(SchemaMigration):
                     self.gf('django.db.models.fields.URLField')(max_length=200, null=True)
                 ), (
                     'date_added',
-                    self.gf('django.db.models.fields.DateTimeField')(default=datetime.datetime.now)
+                    self.gf('django.db.models.fields.DateTimeField')()
                 ),
             )
         )

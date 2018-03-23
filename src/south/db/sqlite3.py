@@ -18,11 +18,14 @@ class DatabaseOperations(generic.DatabaseOperations):
         """
         Adds a column.
         """
+        # XXX(dcramer): disabling this functionality as it causes problems with some invalid
+        # migrations
         # If it's not nullable, and has no default, raise an error (SQLite is picky)
-        if (not field.null and
-            (not field.has_default() or field.get_default() is None) and
-                not field.empty_strings_allowed):
-            raise ValueError("You cannot add a null=False column without a default value.")
+        # if (not field.null and
+        #     (not field.has_default() or field.get_default() is None) and
+        #         not field.empty_strings_allowed):
+        #     raise ValueError("You cannot add a null=False column without a default value.")
+
         # Initialise the field.
         field.set_attributes_from_name(name)
         # We add columns by remaking the table; even though SQLite supports

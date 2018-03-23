@@ -32,21 +32,23 @@ class Migration(SchemaMigration):
                     self.gf('django.db.models.fields.CharField')(default='', max_length=64)
                 ), (
                     'first_seen',
-                    self.gf('django.db.models.fields.DateTimeField')(default=datetime.datetime.now)
+                    self.gf('django.db.models.fields.DateTimeField')()
                 ), (
                     'last_seen', self.gf('django.db.models.fields.DateTimeField')(
-                        default=datetime.datetime.now, db_index=True
+                        db_index=True
                     )
                 ),
             )
         )
         db.send_create_signal('sentry', ['GroupRelease'])
 
-        # Adding unique constraint on 'GroupRelease', fields ['group_id', 'release_id', 'environment']
+        # Adding unique constraint on 'GroupRelease', fields ['group_id',
+        # 'release_id', 'environment']
         db.create_unique('sentry_grouprelease', ['group_id', 'release_id', 'environment'])
 
     def backwards(self, orm):
-        # Removing unique constraint on 'GroupRelease', fields ['group_id', 'release_id', 'environment']
+        # Removing unique constraint on 'GroupRelease', fields ['group_id',
+        # 'release_id', 'environment']
         db.delete_unique('sentry_grouprelease', ['group_id', 'release_id', 'environment'])
 
         # Deleting model 'GroupRelease'
