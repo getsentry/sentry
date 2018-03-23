@@ -90,7 +90,11 @@ const OrganizationSelector = createReactClass({
                     >
                       {this.getLinkNode(
                         org,
-                        <Avatar size={36} organization={org} />,
+                        <Avatar
+                          style={{verticalAlign: 'inherit'}}
+                          size={36}
+                          organization={org}
+                        />,
                         'org-avatar'
                       )}
                       <h5>{this.getLinkNode(org, org.name)}</h5>
