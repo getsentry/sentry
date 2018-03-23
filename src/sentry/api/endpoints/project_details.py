@@ -250,7 +250,10 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
                     )
 
         changed = False
+
+        old_slug = None
         if result.get('slug'):
+            old_slug = project.slug
             project.slug = result['slug']
             changed = True
 
@@ -304,6 +307,9 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
                     project=project,
                     team_id=old_team_id,
                 ).update(team=new_team)
+
+            if old_slug:
+                project.record_redirect_slug(old_slug)
 
         if result.get('isBookmarked'):
             try:

@@ -172,7 +172,9 @@ class Project(Model):
 
     @property
     def callsign(self):
-        warnings.warn('Project.callsign is deprecated. Use Group.get_short_id() instead.', DeprecationWarning)
+        warnings.warn(
+            'Project.callsign is deprecated. Use Group.get_short_id() instead.',
+            DeprecationWarning)
         return self.slug.upper()
 
     @property
@@ -384,3 +386,20 @@ class Project(Model):
 
     def get_lock_key(self):
         return 'project_token:%s' % self.id
+
+    def record_redirect_slug(self, historic_slug):
+        """
+        Records a historic slug used for redirect purposes. Overwrites
+        historic redirect slugs from previous projects
+        """
+        from sentry.models import ProjectRedirect
+
+        redirect, created = ProjectRedirect.objects.get_or_create(
+            redirect_slug=historic_slug,
+            organization=self.organization,
+            defaults={'project': self},
+        )
+
+        if not created:
+            redirect.project = self
+            redirect.save()
