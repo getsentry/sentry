@@ -4,6 +4,7 @@ import logging
 
 from six.moves.urllib.parse import parse_qs, urlencode, urlparse, urlunparse
 
+from sentry import features
 from sentry.api.fields.actor import Actor
 from sentry.utils import json
 from sentry.utils.assets import get_asset_url
@@ -207,6 +208,11 @@ def build_attachment(group, event=None, tags=None, identity=None, actions=None, 
             'option_groups': option_groups,
         },
     ]
+
+    # TODO(epurkhiser): Remove when teams are no longer early adopter
+    if not features.has('organizations:new-teams', group.organization):
+        payload_actions[2]['options'] = members
+        del payload_actions[2]['option_groups']
 
     fields = []
 
