@@ -242,11 +242,9 @@ exports[`OrganizationTeamProjects Should render 1`] = `
                         items={
                           Array [
                             Object {
-                              "label": <div
-                                className="css-azzeh5-otherProjects-otherProjects"
-                              >
+                              "label": <ProjectDropdownListElement>
                                 project-slug-2
-                              </div>,
+                              </ProjectDropdownListElement>,
                               "searchKey": "project-slug-2",
                               "value": "3",
                             },
@@ -260,11 +258,9 @@ exports[`OrganizationTeamProjects Should render 1`] = `
                           items={
                             Array [
                               Object {
-                                "label": <div
-                                  className="css-azzeh5-otherProjects-otherProjects"
-                                >
+                                "label": <ProjectDropdownListElement>
                                   project-slug-2
-                                </div>,
+                                </ProjectDropdownListElement>,
                                 "searchKey": "project-slug-2",
                                 "value": "3",
                               },

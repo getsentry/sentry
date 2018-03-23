@@ -1,7 +1,7 @@
 import React from 'react';
 import createReactClass from 'create-react-class';
 import Reflux from 'reflux';
-import styled, {css} from 'react-emotion';
+import styled from 'react-emotion';
 
 import ApiMixin from '../../../mixins/apiMixin';
 import {addErrorMessage, addSuccessMessage} from '../../../actionCreators/indicator';
@@ -121,15 +121,7 @@ const TeamProjects = createReactClass({
         return {
           value: p.id,
           searchKey: p.slug,
-          label: (
-            <div
-              className={css`
-                ${padding.verticalSmall} ${padding.horizontalExtaSmall};
-              `}
-            >
-              {p.slug}
-            </div>
-          ),
+          label: <ProjectDropdownListElement>{p.slug}</ProjectDropdownListElement>,
         };
       });
 
@@ -166,11 +158,15 @@ const RemoveIcon = styled(props => (
   margin-right: 0.5em;
 `;
 
+const ProjectDropdownListElement = styled('div')`
+  ${padding.verticalSmall} ${padding.horizontalExtaSmall};
+`;
+
 const StyledPanelItem = styled(PanelItem)`
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 16px;
+  ${padding.normal};
 `;
 
 export default TeamProjects;

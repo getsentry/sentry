@@ -1,7 +1,7 @@
 import PropTypes from 'prop-types';
 import React from 'react';
 import createReactClass from 'create-react-class';
-import styled, {css} from 'react-emotion';
+import styled from 'react-emotion';
 
 import {
   addErrorMessage,
@@ -176,15 +176,7 @@ class ProjectTeams extends AsyncView {
       .map(team => ({
         value: team.id,
         searchKey: team.slug,
-        label: (
-          <div
-            className={css`
-              ${padding.verticalSmall} ${padding.horizontalExtaSmall};
-            `}
-          >
-            #{team.slug}
-          </div>
-        ),
+        label: <TeamDropdownListElement>#{team.slug}</TeamDropdownListElement>,
       }));
 
     let menuHeader = (
@@ -301,6 +293,10 @@ const StyledTeamsLabel = styled('div')`
   font-size: 0.875em;
   text-transform: uppercase;
   ${padding.verticalSmall};
+`;
+
+const TeamDropdownListElement = styled('div')`
+  ${padding.verticalSmall} ${padding.horizontalExtaSmall};
 `;
 
 export default ProjectTeams;
