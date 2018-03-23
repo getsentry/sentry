@@ -1,7 +1,7 @@
 import classNames from 'classnames';
 import PropTypes from 'prop-types';
 import React from 'react';
-import $ from 'jquery';
+import qs from 'query-string';
 import MD5 from 'crypto-js/md5';
 import ConfigStore from '../stores/configStore';
 import UserLetterAvatar from '../components/userLetterAvatar';
@@ -41,7 +41,7 @@ class Avatar extends React.Component {
       d: this.props.default || 'blank',
     };
 
-    url += '?' + $.param(query);
+    url += '?' + qs.stringify(query);
 
     return url;
   };
@@ -49,7 +49,7 @@ class Avatar extends React.Component {
   buildProfileUrl = () => {
     let url = '/avatar/' + this.props.user.avatar.avatarUuid + '/';
     if (this.props.size) {
-      url += '?' + $.param({s: this.props.size});
+      url += '?' + qs.stringify({s: this.props.size});
     }
     return url;
   };

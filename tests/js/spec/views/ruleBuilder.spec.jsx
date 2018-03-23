@@ -7,7 +7,8 @@ import TeamStore from 'app/stores/teamStore';
 import RuleBuilder from 'app/views/settings/project/projectOwnership/ruleBuilder';
 
 jest.mock('jquery');
-describe('ProjectTeamsSettings', function() {
+
+describe('RuleBuilder', function() {
   let sandbox;
 
   let project;
@@ -31,8 +32,7 @@ describe('ProjectTeamsSettings', function() {
 
   beforeEach(function() {
     sandbox = sinon.sandbox.create();
-
-    sandbox.stub(MemberListStore, 'getAll').returns([USER_1, USER_2]);
+    MemberListStore.loadInitialData([USER_1, USER_2]);
     sandbox.stub(TeamStore, 'getAll').returns([TEAM_1]);
 
     handleAdd = jest.fn();
