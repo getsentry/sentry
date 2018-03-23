@@ -29,7 +29,7 @@ class Migration(SchemaMigration):
                     )
                 ), (
                     'date_added',
-                    self.gf('django.db.models.fields.DateTimeField')(default=datetime.datetime.now)
+                    self.gf('django.db.models.fields.DateTimeField')()
                 ), ('type', self.gf('django.db.models.fields.IntegerField')(default=0)), (
                     'id', self.gf('sentry.db.models.fields.bounded.BoundedBigAutoField')(
                         primary_key=True

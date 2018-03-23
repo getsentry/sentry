@@ -25,7 +25,7 @@ class Migration(SchemaMigration):
                     self.gf('django.db.models.fields.CharField')(unique=True, max_length=40)
                 ), (
                     'timestamp', self.gf('django.db.models.fields.DateTimeField')(
-                        default=datetime.datetime.now, db_index=True
+                        db_index=True
                     )
                 ),
             )

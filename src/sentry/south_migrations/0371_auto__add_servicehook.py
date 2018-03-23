@@ -27,7 +27,7 @@ class Migration(SchemaMigration):
             ('status', self.gf('sentry.db.models.fields.bounded.BoundedPositiveIntegerField')(
                 default=0, db_index=True)),
             ('version', self.gf('sentry.db.models.fields.bounded.BoundedPositiveIntegerField')(default=0)),
-            ('date_added', self.gf('django.db.models.fields.DateTimeField')(default=datetime.datetime.now)),
+            ('date_added', self.gf('django.db.models.fields.DateTimeField')()),
         ))
         db.send_create_signal('sentry', ['ServiceHook'])
 

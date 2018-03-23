@@ -21,7 +21,7 @@ class Migration(SchemaMigration):
                 ), ('email', self.gf('django.db.models.fields.EmailField')(max_length=75)),
                 ('validation_hash', self.gf('django.db.models.fields.CharField')(max_length=32)), (
                     'date_hash_added',
-                    self.gf('django.db.models.fields.DateTimeField')(default=datetime.datetime.now)
+                    self.gf('django.db.models.fields.DateTimeField')()
                 ), ('is_verified', self.gf('django.db.models.fields.BooleanField')(default=False)),
             )
         )
