@@ -1,5 +1,6 @@
 NPM_ROOT = ./node_modules
 STATIC_DIR = src/sentry/static/sentry
+DJANGO_VERSION := ">=1.6,<1.7"
 
 ifneq "$(wildcard /usr/local/opt/libxmlsec1/lib)" ""
 	LDFLAGS += -L/usr/local/opt/libxmlsec1/lib
@@ -197,6 +198,7 @@ travis-setup-cassandra:
 	echo "create keyspace sentry with replication = {'class' : 'SimpleStrategy', 'replication_factor': 1};" | cqlsh --cqlversion=3.1.7
 	echo 'create table nodestore (key text primary key, value blob, flags int);' | cqlsh -k sentry --cqlversion=3.1.7
 travis-install-python:
+	pip install Django${DJANGO_VERSION}
 	$(MAKE) travis-upgrade-pip
 	$(MAKE) install-python-base
 	$(MAKE) install-python-tests
@@ -228,7 +230,6 @@ travis-install-dist:
 	$(MAKE) travis-upgrade-pip
 	$(MAKE) travis-install-python install-yarn
 travis-install-django-18: travis-install-postgres
-	pip install "Django>=1.8,<1.9"
 
 .PHONY: travis-install-sqlite travis-install-postgres travis-install-js travis-install-cli travis-install-dist
 
