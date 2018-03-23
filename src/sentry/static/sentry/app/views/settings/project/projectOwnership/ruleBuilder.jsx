@@ -46,6 +46,7 @@ const Divider = styled(InlineSvg)`
 const Owners = styled('div')`
   justify-content: flex-end;
   display: flex;
+  padding: 3px;
   span {
     margin-right: 2px;
   }
@@ -58,36 +59,20 @@ const Owners = styled('div')`
 
 const BuilderDropdownButton = styled(DropdownButton)`
   margin-right: 5px;
+  padding-right: 8px !important;
+  padding-left: 3px !important;
+
   flex: 1;
   white-space: nowrap;
   height: 37px;
-  .button-label {
-    font-size: 14px;
-    padding: 4px 8px;
-    padding-left 4px;
-  }
+  color: ${p => p.theme.gray3} !important;
 `;
 
 const RuleAddButton = styled(Button)`
   width: 37px;
   height: 37px;
   flex-shrink: 0;
-
-  display: flex;
-  justify-content: center;
-
-  .button-label {
-    padding: 0.5em;
-  }
-
-  div {
-    margin: 0px !important;
-  }
-`;
-
-const AddOwnersLabel = styled.div`
-  margin-left: 3px;
-  padding: 0px;
+  padding: 10px 12px !important;
 `;
 
 const initialState = {
@@ -170,8 +155,14 @@ class RuleBuilder extends React.Component {
       addErrorMessage('A Rule needs a type, a value, and one or more owners.');
       return;
     }
+
     let ownerText = owners
-      .map(actor => `${actor.type == 'team' ? '#' : ''}${actor.name}`)
+      .map(
+        actor =>
+          actor.type == 'team'
+            ? `#${actor.name}`
+            : memberListStore.getById(actor.id).email
+      )
       .join(' ');
 
     let rule = `${type}:${text} ${ownerText}`;
@@ -184,7 +175,7 @@ class RuleBuilder extends React.Component {
 
     return (
       <BuilderBar>
-        <BuilderSelect value={type} onChange={this.handleTypeChange}>
+        <BuilderSelect value={type} showSearch={false} onChange={this.handleTypeChange}>
           <option value="path">Path</option>
           <option value="url">URL</option>
         </BuilderSelect>
@@ -212,7 +203,7 @@ class RuleBuilder extends React.Component {
             onSelect={this.onAddActor}
           >
             {({isOpen, selectedItem}) => (
-              <BuilderDropdownButton isOpen={isOpen}>
+              <BuilderDropdownButton isOpen={isOpen} size="zero">
                 <Owners>
                   {owners.map(owner => (
                     <span
@@ -223,7 +214,7 @@ class RuleBuilder extends React.Component {
                     </span>
                   ))}
                 </Owners>
-                <AddOwnersLabel>{t('Add Owners')}</AddOwnersLabel>
+                <div>{t('Add Owners')}</div>
               </BuilderDropdownButton>
             )}
           </DropdownAutoComplete>
@@ -233,6 +224,7 @@ class RuleBuilder extends React.Component {
           priority="primary"
           onClick={this.handleAddRule}
           icon="icon-circle-add"
+          size="zero"
         />
       </BuilderBar>
     );
