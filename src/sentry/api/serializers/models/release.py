@@ -159,7 +159,7 @@ class ReleaseSerializer(Serializer):
         return result
 
     def __get_release_data_no_environment(self, project, item_list):
-        if project:
+        if project is not None:
             project_ids = [project.id]
         else:
             project_ids = list(ReleaseProject.objects.filter(release__in=item_list).values_list(
@@ -177,7 +177,7 @@ class ReleaseSerializer(Serializer):
             first_seen[tv.value] = min(tv.first_seen, first_val) if first_val else tv.first_seen
             last_seen[tv.value] = max(tv.last_seen, last_val) if last_val else tv.last_seen
 
-        if project:
+        if project is not None:
             group_counts_by_release = dict(
                 ReleaseProject.objects.filter(project=project, release__in=item_list)
                 .values_list('release_id', 'new_groups')
@@ -195,7 +195,7 @@ class ReleaseSerializer(Serializer):
     def __get_release_data_with_environment(self, project, item_list, environment):
         release_project_envs = ReleaseProjectEnvironment.objects.filter(
             release__in=item_list, environment=environment).select_related('release')
-        if project is None:
+        if project is not None:
             release_project_envs = release_project_envs.filter(project=project)
         first_seen = {}
         last_seen = {}
