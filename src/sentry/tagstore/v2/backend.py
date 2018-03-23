@@ -719,14 +719,7 @@ class V2TagStorage(TagStorage):
                     """
                 SELECT *
                 FROM (
-                    SELECT tagstore_grouptagvalue.id,
-                           tagstore_grouptagvalue.project_id,
-                           tagstore_grouptagvalue.group_id,
-                           tagstore_grouptagvalue.times_seen,
-                           tagstore_grouptagvalue.key_id,
-                           tagstore_grouptagvalue.value_id,
-                           tagstore_grouptagvalue.last_seen,
-                           tagstore_grouptagvalue.first_seen
+                    SELECT tagstore_grouptagvalue.*
                     FROM tagstore_grouptagvalue
                     INNER JOIN tagstore_tagkey
                     ON (tagstore_grouptagvalue.key_id = tagstore_tagkey.id)

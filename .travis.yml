@@ -31,6 +31,7 @@ env:
     - CXX=g++-4.8
     - SOUTH_TESTS_MIGRATE=1
     - JEST_JUNIT_OUTPUT=jest.junit.xml
+    - DJANGO_VERSION=">=1.6,<1.7"
 install:
   - 'export PATH=$PATH:~/.bin'
   - nvm install $TRAVIS_NODE_VERSION
@@ -67,9 +68,6 @@ after_failure:
 # each attribute in the matrix will override the global attribute
 matrix:
   fast_finish: true
-  allow_failures:
-    - python: 2.7
-      env: TEST_SUITE=django-18
   include:
     # only the sqlite suite runs riak tests
     - python: 2.7
@@ -112,7 +110,7 @@ matrix:
     - python: 2.7
       env: TEST_SUITE=dist
     - python: 2.7
-      env: TEST_SUITE=django-18
+      env: TEST_SUITE=postgres DJANGO_VERSION=">=1.8,<1.9"
       services:
         - memcached
         - redis-server

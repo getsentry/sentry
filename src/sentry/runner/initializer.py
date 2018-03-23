@@ -266,8 +266,6 @@ def initialize_app(config, skip_service_validation=False):
 
     apply_legacy_settings(settings)
 
-    bind_cache_to_option_store()
-
     # Commonly setups don't correctly configure themselves for production envs
     # so lets try to provide a bit more guidance
     if settings.CELERY_ALWAYS_EAGER and not settings.DEBUG:
@@ -300,6 +298,13 @@ def initialize_app(config, skip_service_validation=False):
     settings.STATIC_URL = settings.STATIC_URL.format(
         version=settings.ASSET_VERSION,
     )
+
+    import django
+    if hasattr(django, 'setup'):
+        # support for Django 1.7+
+        django.setup()
+
+    bind_cache_to_option_store()
 
     register_plugins(settings)
 

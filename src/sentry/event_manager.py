@@ -240,36 +240,68 @@ class HashDiscarded(Exception):
     pass
 
 
-class ScoreClause(object):
-    def __init__(self, group):
-        self.group = group
+try:
+    from django.db.models import Func
+except ImportError:
+    # XXX(dramer): compatibility hack for Django 1.6
+    class ScoreClause(object):
+        def __init__(self, group, *args, **kwargs):
+            self.group = group
+            super(ScoreClause, self).__init__(*args, **kwargs)
 
-    def __int__(self):
-        # Calculate the score manually when coercing to an int.
-        # This is used within create_or_update and friends
-        return self.group.get_score()
+        def __int__(self):
+            # Calculate the score manually when coercing to an int.
+            # This is used within create_or_update and friends
+            return self.group.get_score()
 
-    def prepare_database_save(self, unused):
-        return self
+        def prepare_database_save(self, unused):
+            return self
 
-    def prepare(self, evaluator, query, allow_joins):
-        return
+        def prepare(self, evaluator, query, allow_joins):
+            return
 
-    def evaluate(self, node, qn, connection):
-        engine = get_db_engine(getattr(connection, 'alias', 'default'))
-        if engine.startswith('postgresql'):
-            sql = 'log(times_seen) * 600 + last_seen::abstime::int'
-        elif engine.startswith('mysql'):
-            sql = 'log(times_seen) * 600 + unix_timestamp(last_seen)'
-        else:
-            # XXX: if we cant do it atomically let's do it the best we can
-            sql = int(self)
+        def evaluate(self, node, qn, connection):
+            engine = get_db_engine(getattr(connection, 'alias', 'default'))
+            if engine.startswith('postgresql'):
+                sql = 'log(times_seen) * 600 + last_seen::abstime::int'
+            elif engine.startswith('mysql'):
+                sql = 'log(times_seen) * 600 + unix_timestamp(last_seen)'
+            else:
+                # XXX: if we cant do it atomically let's do it the best we can
+                sql = int(self)
 
-        return (sql, [])
+            return (sql, [])
 
-    @classmethod
-    def calculate(cls, times_seen, last_seen):
-        return math.log(times_seen) * 600 + float(last_seen.strftime('%s'))
+        @classmethod
+        def calculate(cls, times_seen, last_seen):
+            return math.log(times_seen) * 600 + float(last_seen.strftime('%s'))
+else:
+    # XXX(dramer): compatibility hack for Django 1.8+
+    class ScoreClause(Func):
+        def __init__(self, group, *args, **kwargs):
+            self.group = group
+            super(ScoreClause, self).__init__(*args, **kwargs)
+
+        def __int__(self):
+            # Calculate the score manually when coercing to an int.
+            # This is used within create_or_update and friends
+            return self.group.get_score()
+
+        def as_sql(self, compiler, connection, function=None, template=None):
+            engine = get_db_engine(getattr(connection, 'alias', 'default'))
+            if engine.startswith('postgresql'):
+                sql = 'log(times_seen) * 600 + last_seen::abstime::int'
+            elif engine.startswith('mysql'):
+                sql = 'log(times_seen) * 600 + unix_timestamp(last_seen)'
+            else:
+                # XXX: if we cant do it atomically let's do it the best we can
+                sql = int(self)
+
+            return (sql, [])
+
+        @classmethod
+        def calculate(cls, times_seen, last_seen):
+            return math.log(times_seen) * 600 + float(last_seen.strftime('%s'))
 
 
 class InvalidTimestamp(Exception):

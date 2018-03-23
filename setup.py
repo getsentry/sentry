@@ -75,6 +75,14 @@ dev_requires = get_requirements('dev')
 tests_require = get_requirements('test')
 optional_requires = get_requirements('optional')
 
+DJANGO_VERSION = os.environ.get('DJANGO_VERSION')
+if DJANGO_VERSION:
+    install_requires = [
+        'Django{}'.format(DJANGO_VERSION[1:-1])
+        if k.startswith('Django>=') else k
+        for k in install_requires
+    ]
+
 
 class SentrySDistCommand(SDistCommand):
     # If we are not a light build we want to also execute build_assets as
