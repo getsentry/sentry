@@ -1,13 +1,6 @@
 from django.db import models
 from south.db import DEFAULT_DB_ALIAS
 
-# If we detect Django 1.7 or higher, then exit
-# Placed here so it's guaranteed to be imported on Django start
-import django
-if django.VERSION[0] > 1 or (django.VERSION[0] == 1 and django.VERSION[1] > 6):
-    raise RuntimeError(
-        "South does not support Django 1.7 or higher. Please use native Django migrations.")
-
 
 class MigrationHistory(models.Model):
     app_name = models.CharField(max_length=255)

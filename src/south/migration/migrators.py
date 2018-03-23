@@ -209,56 +209,6 @@ class FakeMigrator(MigratorWrapper):
         pass
 
 
-class LoadInitialDataMigrator(MigratorWrapper):
-
-    def load_initial_data(self, target, db='default'):
-        if target is None or target != target.migrations[-1]:
-            return
-        # Load initial data, if we ended up at target
-        if self.verbosity:
-            print(" - Loading initial data for %s." % target.app_label())
-        if DJANGO_VERSION < (1, 6):
-            self.pre_1_6(target, db)
-        else:
-            self.post_1_6(target, db)
-
-    def pre_1_6(self, target, db):
-        # Override Django's get_apps call temporarily to only load from the
-        # current app
-        old_get_apps = models.get_apps
-
-        def new_get_apps(): return [models.get_app(target.app_label())]
-        models.get_apps = new_get_apps
-        loaddata.get_apps = new_get_apps
-        try:
-            call_command('loaddata', 'initial_data', verbosity=self.verbosity, database=db)
-        finally:
-            models.get_apps = old_get_apps
-            loaddata.get_apps = old_get_apps
-
-    def post_1_6(self, target, db):
-        import django.db.models.loading
-        # build a new 'AppCache' object with just the app we care about.
-        old_cache = django.db.models.loading.cache
-        new_cache = django.db.models.loading.AppCache()
-        new_cache.get_apps = lambda: [new_cache.get_app(target.app_label())]
-
-        # monkeypatch
-        django.db.models.loading.cache = new_cache
-        try:
-            call_command('loaddata', 'initial_data', verbosity=self.verbosity, database=db)
-        finally:
-            # unmonkeypatch
-            django.db.models.loading.cache = old_cache
-
-    def migrate_many(self, target, migrations, database):
-        migrator = self._migrator
-        result = migrator.__class__.migrate_many(migrator, target, migrations, database)
-        if result:
-            self.load_initial_data(target, db=database)
-        return True
-
-
 class Forwards(Migrator):
     """
     Runs the specified migration forwards, in order.
