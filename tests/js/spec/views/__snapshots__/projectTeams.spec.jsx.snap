@@ -1,5 +1,6 @@
 // Jest Snapshot v1, https://goo.gl/fbAQLP
 
+<<<<<<< HEAD
 exports['ProjectTeams renders 1'] = `
 <SideEffect(DocumentTitle)
   title="Sentry"
@@ -102,3 +103,6 @@ exports['ProjectTeams renders 1'] = `
   </div>
 </SideEffect(DocumentTitle)>
 `;
+=======
+exports[`ProjectTeams renders 1`] = `""`;
+>>>>>>> second commit

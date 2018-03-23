@@ -1,7 +1,7 @@
 import PropTypes from 'prop-types';
 import React from 'react';
 import createReactClass from 'create-react-class';
-import styled from 'react-emotion';
+import styled, {css} from 'react-emotion';
 
 import {
   addErrorMessage,
@@ -24,8 +24,7 @@ import InlineSvg from '../../../components/inlineSvg';
 import Link from '../../../components/link';
 import {Panel, PanelBody, PanelHeader, PanelItem} from '../../../components/panels';
 import SettingsPageHeader from '../components/settingsPageHeader';
-import classNames from 'classnames';
-import {verticalPaddingSmall, horizontalPaddingExtaSmall} from '../../../styles/padding';
+import padding from '../../../styles/padding';
 
 const TeamRow = createReactClass({
   displayName: 'TeamRow',
@@ -178,7 +177,11 @@ class ProjectTeams extends AsyncView {
         value: team.id,
         searchKey: team.slug,
         label: (
-          <div className={classNames(verticalPaddingSmall, horizontalPaddingExtaSmall)}>
+          <div
+            className={css`
+              ${padding.verticalSmall} ${padding.horizontalExtaSmall};
+            `}
+          >
             #{team.slug}
           </div>
         ),
@@ -218,29 +221,19 @@ class ProjectTeams extends AsyncView {
     let {orgId, projectId} = this.props.params;
     let access = new Set(this.props.organization.access);
 
-    return (
-      <PanelBody>
-        <PanelHeader key={'header'} hasButtons={true}>
-          <PanelHeaderContent>
-            <div>{t('Team')}</div>
-            <div>{this.renderAddTeamButton()}</div>
-          </PanelHeaderContent>
-        </PanelHeader>
-        {this.state.projectTeams.map(team => {
-          return (
-            <TeamRow
-              access={access}
-              key={team.id}
-              orgId={orgId}
-              projectId={projectId}
-              team={team}
-              onRemove={this.handleRemovedTeam.bind(this, team)}
-              teamCount={this.state.projectTeams.length}
-            />
-          );
-        })}
-      </PanelBody>
-    );
+    return this.state.projectTeams.map(team => {
+      return (
+        <TeamRow
+          access={access}
+          key={team.id}
+          orgId={orgId}
+          projectId={projectId}
+          team={team}
+          onRemove={this.handleRemovedTeam.bind(this, team)}
+          teamCount={this.state.projectTeams.length}
+        />
+      );
+    });
   }
 
   renderBody() {
@@ -297,13 +290,6 @@ const RemoveIcon = styled(props => (
   margin-right: 0.5em;
 `;
 
-
-const PanelHeaderContent = styled('div')`
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-`;
-
 const StyledPanelItem = styled(PanelItem)`
   display: flex;
   align-items: center;
@@ -313,13 +299,8 @@ const StyledPanelItem = styled(PanelItem)`
 const StyledTeamsLabel = styled('div')`
   width: 250px;
   font-size: 0.875em;
-  padding: 0.75em 0;
   text-transform: uppercase;
-`;
-
-const StyledCreateTeamLink = styled(Link)`
-  float: right;
-  text-transform: none;
+  ${padding.verticalSmall};
 `;
 
 export default ProjectTeams;

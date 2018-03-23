@@ -1,13 +1,11 @@
 import React from 'react';
 import createReactClass from 'create-react-class';
-import {Box} from 'grid-emotion';
 import Reflux from 'reflux';
-import styled from 'react-emotion';
-import classNames from 'classnames';
+import styled, {css} from 'react-emotion';
 
 import ApiMixin from '../../../mixins/apiMixin';
 import {addErrorMessage, addSuccessMessage} from '../../../actionCreators/indicator';
-import {verticalPaddingSmall, horizontalPaddingExtaSmall} from '../../../styles/padding';
+import padding from '../../../styles/padding';
 import Button from '../../../components/buttons/button';
 import DropdownAutoComplete from '../../../components/dropdownAutoComplete';
 import DropdownButton from '../../../components/dropdownButton';
@@ -124,7 +122,11 @@ const TeamProjects = createReactClass({
           value: p.id,
           searchKey: p.slug,
           label: (
-            <div className={classNames(verticalPaddingSmall, horizontalPaddingExtaSmall)}>
+            <div
+              className={css`
+                ${padding.verticalSmall} ${padding.horizontalExtaSmall};
+              `}
+            >
               {p.slug}
             </div>
           ),
@@ -170,6 +172,5 @@ const StyledPanelItem = styled(PanelItem)`
   justify-content: space-between;
   padding: 16px;
 `;
-
 
 export default TeamProjects;
