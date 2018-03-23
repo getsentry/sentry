@@ -1,4 +1,5 @@
 const theme = {
+  white: '#FFFFFF',
   offWhite: '#FAF9FB',
   whiteDark: '#fbfbfc',
 
@@ -123,5 +124,51 @@ theme.alert.error.background = theme.red;
 
 //alias warn to warning
 theme.alert.warn = theme.alert.warning;
+
+theme.button = {
+  default: {
+    color: '#2f2936',
+    colorActive: '#161319',
+    background: theme.white,
+    backgroundActive: theme.white,
+    border: '#d8d2de',
+    borderActive: '#c9c0d1',
+  },
+  primary: {
+    color: theme.white,
+    background: theme.purple,
+    backgroundActive: '#4e3fb4',
+    border: '#3d328e',
+    borderActive: '#352b7b',
+  },
+  success: {
+    color: theme.white,
+    background: '#3fa372',
+    backgroundActive: theme.green,
+    border: '#7ccca5',
+    borderActive: '#7ccca5',
+  },
+  danger: {
+    color: theme.white,
+    background: theme.red,
+    backgroundActive: '#bf2a1d',
+    border: '#bf2a1d',
+    borderActive: '#7d1c13',
+  },
+  link: {
+    color: theme.blue,
+    background: 'transparent',
+    // border: '#3d328e',
+    backgroundActive: 'transparent',
+    // borderActive: '#352b7b',
+  },
+  disabled: {
+    color: '#ced3d6',
+    border: '#e3e5e6',
+    borderActive: '#e3e5e6',
+    background: theme.white,
+    backgroundActive: theme.white,
+  },
+};
 
 export default theme;

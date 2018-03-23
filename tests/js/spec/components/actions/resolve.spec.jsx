@@ -16,7 +16,8 @@ describe('ResolveActions', function() {
           hasRelease={false}
           orgId={'org-1'}
           projectId={'proj-1'}
-        />
+        />,
+        TestStubs.routerContext()
       );
       button = component.find('a.btn.btn-default').first();
     });
@@ -43,7 +44,8 @@ describe('ResolveActions', function() {
           orgId={'org-1'}
           projectId={'proj-1'}
           isResolved={true}
-        />
+        />,
+        TestStubs.routerContext()
       );
     });
 
@@ -71,7 +73,8 @@ describe('ResolveActions', function() {
           projectId={'proj-1'}
           isResolved={true}
           isAutoResolved={true}
-        />
+        />,
+        TestStubs.routerContext()
       );
 
       component.find('a.btn').simulate('click');
@@ -89,7 +92,8 @@ describe('ResolveActions', function() {
           hasRelease={false}
           orgId={'org-1'}
           projectId={'proj-1'}
-        />
+        />,
+        TestStubs.routerContext()
       );
     });
 
@@ -118,7 +122,8 @@ describe('ResolveActions', function() {
           projectId={'proj-1'}
           shouldConfirm={true}
           confirmMessage={'Are you sure???'}
-        />
+        />,
+        TestStubs.routerContext()
       );
       button = component.find('a.btn.btn-default').first();
     });

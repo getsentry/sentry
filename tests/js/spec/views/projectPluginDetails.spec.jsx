@@ -10,8 +10,9 @@ jest.mock('jquery');
 
 describe('ProjectPluginDetails', function() {
   let component;
-  let org = TestStubs.Organization();
-  let project = TestStubs.Project();
+  let routerContext = TestStubs.routerContext();
+  let {organization, project} = routerContext.context;
+  let org = organization;
   let plugins = TestStubs.Plugins();
   let plugin = TestStubs.Plugin();
   let pluginId = plugin.id;
@@ -54,15 +55,7 @@ describe('ProjectPluginDetails', function() {
         params={{orgId: org.slug, projectId: project.slug, pluginId: 'amazon-sqs'}}
         location={TestStubs.location()}
       />,
-      {
-        context: {
-          router: TestStubs.router(),
-        },
-
-        childContextTypes: {
-          router: PropTypes.object,
-        },
-      }
+      routerContext
     );
   });
 
@@ -85,15 +78,7 @@ describe('ProjectPluginDetails', function() {
         params={{orgId: org.slug, projectId: project.slug, pluginId: 'amazon-sqs'}}
         location={TestStubs.location()}
       />,
-      {
-        context: {
-          router: TestStubs.router(),
-        },
-
-        childContextTypes: {
-          router: PropTypes.object,
-        },
-      }
+      routerContext
     );
 
     let btn = wrapper.find('button').at(1);

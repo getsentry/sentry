@@ -5,15 +5,12 @@ import {Client} from 'app/api';
 import TeamMembers from 'app/views/settings/team/teamMembers';
 
 describe('TeamMembers', function() {
-  let org;
-  let team;
-  let members;
+  let routerContext = TestStubs.routerContext();
+  let org = routerContext.context.organization;
+  let team = TestStubs.Team();
+  let members = TestStubs.Members();
 
   beforeEach(function() {
-    org = TestStubs.Organization();
-    team = TestStubs.Team();
-    members = TestStubs.Members();
-
     Client.clearMockResponses();
     Client.addMockResponse({
       url: `/organizations/${org.slug}/members/`,
@@ -31,11 +28,7 @@ describe('TeamMembers', function() {
     it('renders', function() {
       let wrapper = shallow(
         <TeamMembers params={{orgId: org.slug, teamId: team.slug}} organization={org} />,
-        {
-          context: {
-            organization: org,
-          },
-        }
+        routerContext
       );
       expect(wrapper).toMatchSnapshot();
     });
@@ -53,11 +46,7 @@ describe('TeamMembers', function() {
 
       let wrapper = mount(
         <TeamMembers params={{orgId: org.slug, teamId: team.slug}} organization={org} />,
-        {
-          context: {
-            organization: org,
-          },
-        }
+        , routerContext
       );
 
       expect(mock).not.toHaveBeenCalled();

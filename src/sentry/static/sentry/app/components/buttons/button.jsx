@@ -3,21 +3,10 @@ import {Link} from 'react-router';
 import PropTypes from 'prop-types';
 import React from 'react';
 import classNames from 'classnames';
-import styled from 'react-emotion';
+import styled, {css} from 'react-emotion';
 
 import ExternalLink from 'app/components/externalLink';
 import InlineSvg from 'app/components/inlineSvg';
-
-import 'app/../less/components/button.less';
-
-const Icon = styled(Box)`
-  margin-right: ${p => (p.size === 'small' ? '6px' : '8px')};
-  margin-left: -2px;
-`;
-
-const StyledInlineSvg = styled(InlineSvg)`
-  display: block;
-`;
 
 class Button extends React.Component {
   static propTypes = {
@@ -62,26 +51,21 @@ class Button extends React.Component {
     onClick(...args);
   };
 
-  getUrl = () => {
-    let {disabled, to, href} = this.props;
+  getUrl = prop => {
+    let {disabled} = this.props;
     if (disabled) return null;
-    return to || href;
+    return prop;
   };
 
   render() {
     let {
-      priority,
+      className,
       size,
       to,
       href,
-      children,
-      className,
-      disabled,
-      busy,
       title,
-      borderless,
       icon,
-      external,
+      children,
 
       // destructure from `buttonProps`
       // not necessary, but just in case someone re-orders props
@@ -90,70 +74,170 @@ class Button extends React.Component {
       ...buttonProps
     } = this.props;
 
-    let isPrimary = priority === 'primary' && !disabled;
-    let isDanger = priority === 'danger' && !disabled;
-    let isSuccess = priority === 'success' && !disabled;
-    let isLink = priority === 'link';
-
-    let cx = classNames(className, 'button', {
+    let cxs = classNames(className, {
       tip: !!title,
-      'button-no-border': borderless,
-      'button-primary': isPrimary,
-      'button-danger': isDanger,
-      'button-success': isSuccess,
-      'button-link': isLink && !isPrimary && !isDanger,
-      'button-default': !isLink && !isPrimary && !isDanger,
-      'button-zero': size === 'zero',
-      'button-sm': size === 'small',
-      'button-xs': size === 'xsmall',
-      'button-lg': size === 'large',
-      'button-busy': busy,
-      'button-disabled': disabled,
     });
-
-    let childContainer = (
-      <Flex align="center" className="button-label">
-        {icon && (
-          <Icon size={size}>
-            <StyledInlineSvg src={icon} size={size === 'small' ? '12px' : '16px'} />
-          </Icon>
-        )}
-        {children}
-      </Flex>
-    );
 
     // Buttons come in 3 flavors: Link, anchor, and regular buttons. Let's
     // use props to determine which to serve up, so we don't have to think
     // about it. As a bonus, let's ensure all buttons appear as a button
     // control to screen readers. Note: you must still handle tabindex manually.
 
-    // Props common to all elements
-    let componentProps = {
-      disabled,
-      ...buttonProps,
-      onClick: this.handleClick,
-      className: cx,
-      role: 'button',
-      children: childContainer,
-    };
-
-    // Handle react-router Links
-    if (to) {
-      return <Link to={this.getUrl()} {...componentProps} />;
-    }
-
-    if (href && external) {
-      return <ExternalLink href={this.getUrl()} {...componentProps} />;
-    }
-
-    // Handle traditional links
-    if (href) {
-      return <a href={this.getUrl()} {...componentProps} />;
-    }
-
-    // Otherwise, fall back to basic button element
-    return <button {...componentProps} />;
+    return (
+      <StyledSmartButton
+        to={this.getUrl(to)}
+        href={this.getUrl(href)}
+        size={size}
+        {...buttonProps}
+        onClick={this.handleClick}
+        className={classNames(cxs)}
+        role="button"
+      >
+        <ButtonLabel size={size}>
+          {icon && (
+            <Icon size={size} hasChildren={!!children}>
+              <StyledInlineSvg src={icon} size={size === 'small' ? '12px' : '16px'} />
+            </Icon>
+          )}
+          {children}
+        </ButtonLabel>
+      </StyledSmartButton>
+    );
   }
 }
 
 export default Button;
+
+const getFontSize = ({size}) => {
+  switch (size) {
+    case 'xsmall':
+    case 'small':
+      return '12px';
+    case 'large':
+      return '16px';
+    default:
+      return '14px';
+  }
+};
+
+const getFontWeight = ({priority}) => `font-weight: ${priority === 'link' ? 400 : 600};`;
+
+const getBoxShadow = active => ({priority, borderless, disabled}) => {
+  if (disabled || borderless || priority === 'link') {
+    return 'box-shadow: none';
+  }
+
+  return `box-shadow: ${active ? 'inset' : ''} 0 2px rgba(0, 0, 0, 0.05)`;
+};
+
+const getColors = ({priority, disabled, theme}) => {
+  let themeName = disabled ? 'disabled' : priority || 'default';
+  let {
+    color,
+    colorActive,
+    background,
+    backgroundActive,
+    border,
+    borderActive,
+  } = theme.button[themeName];
+
+  return css`
+    color: ${color};
+    background: ${background};
+    border: ${border ? `1px solid ${border}` : 'none'};
+
+    &:hover,
+    &:focus,
+    &:active {
+      ${colorActive ? 'color: ${colorActive};' : ''};
+      background: ${backgroundActive};
+      border: ${borderActive ? `1px solid ${borderActive}` : 'none'};
+    }
+  `;
+};
+
+const StyledSmartButton = styled(props => {
+  // Get component to use based on existance of `to` or `href` properties
+  // Can be react-router `Link`, `a`, or `button`
+  if (props.to) {
+    return <Link {...props} />;
+  }
+
+  if (!props.href) {
+    return <button {...props} />;
+  }
+
+  let Component = props.external ? ExternalLink : 'a';
+  return <Component {...props} />;
+})`
+  display: inline-block;
+  line-height: 1;
+  border-radius: ${p => p.theme.borderRadius}3px;
+  padding: 0;
+  text-transform: none;
+
+  ${getFontWeight};
+  font-size: ${getFontSize};
+  ${getColors};
+  ${getBoxShadow(false)};
+  cursor: ${p => (p.disabled ? 'not-allowed' : 'pointer')};
+  opacity: ${p => (p.busy || p.disabled) && '0.65'};
+
+  &:active {
+    ${getBoxShadow(true)};
+  }
+  &:focus {
+    outline: none;
+  }
+
+  ${p => p.borderless && 'border: none'};
+`;
+
+/**
+ * Get label padding determined by size
+ */
+const getLabelPadding = ({size, priority}) => {
+  if (priority === 'link') {
+    return '0';
+  }
+
+  switch (size) {
+    case 'zero':
+      return '0';
+    case 'xsmall':
+      return '6px 10px';
+    case 'small':
+      return '8px 12px;';
+    case 'large':
+      return '14px 20px';
+
+    default:
+      return '12px 16px;';
+  }
+};
+
+const ButtonLabel = styled(props => <Flex align="center" {...props} />)`
+  padding: ${getLabelPadding};
+
+  .icon {
+    margin-right: 2px;
+  }
+`;
+
+const getIconMargin = ({size, hasChildren}) => {
+  // If button is only an icon, then it shouldn't have margin
+  if (!hasChildren) {
+    return '0';
+  }
+
+  return size === 'small' ? '6px' : '8px';
+};
+
+const Icon = styled(({hasChildren, ...props}) => <Box {...props} />)`
+  margin-right: ${getIconMargin};
+  margin-left: -2px;
+`;
+
+const StyledInlineSvg = styled(InlineSvg)`
+  display: block;
+`;

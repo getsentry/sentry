@@ -152,8 +152,8 @@ exports[`StreamActions Bulk Total results < bulk limit bulk resolves 1`] = `
               }
             }
           >
-            <button
-              className="button button-default"
+            <StyledSmartButton
+              className=""
               disabled={false}
               onClick={[Function]}
               role="button"
@@ -163,23 +163,53 @@ exports[`StreamActions Bulk Total results < bulk limit bulk resolves 1`] = `
                 }
               }
             >
-              <Flex
-                align="center"
-                className="button-label"
+              <Component
+                className="css-1rg98na-StyledSmartButton css-a44t1u0"
+                disabled={false}
+                onClick={[Function]}
+                role="button"
+                style={
+                  Object {
+                    "marginRight": 10,
+                  }
+                }
               >
-                <Base
-                  align="center"
-                  className="button-label css-5ipae5"
+                <button
+                  className="css-1rg98na-StyledSmartButton css-a44t1u0"
+                  disabled={false}
+                  onClick={[Function]}
+                  role="button"
+                  style={
+                    Object {
+                      "marginRight": 10,
+                    }
+                  }
                 >
-                  <div
-                    className="button-label css-5ipae5"
-                    is={null}
-                  >
-                    Cancel
-                  </div>
-                </Base>
-              </Flex>
-            </button>
+                  <ButtonLabel>
+                    <Component
+                      className="css-1lzmoq1-ButtonLabel css-a44t1u1"
+                    >
+                      <Flex
+                        align="center"
+                        className="css-1lzmoq1-ButtonLabel css-a44t1u1"
+                      >
+                        <Base
+                          align="center"
+                          className="css-a44t1u1 css-12e52in"
+                        >
+                          <div
+                            className="css-a44t1u1 css-12e52in"
+                            is={null}
+                          >
+                            Cancel
+                          </div>
+                        </Base>
+                      </Flex>
+                    </Component>
+                  </ButtonLabel>
+                </button>
+              </Component>
+            </StyledSmartButton>
           </Button>
           <Button
             autoFocus={true}
@@ -187,30 +217,55 @@ exports[`StreamActions Bulk Total results < bulk limit bulk resolves 1`] = `
             onClick={[Function]}
             priority="primary"
           >
-            <button
+            <StyledSmartButton
               autoFocus={true}
-              className="button button-primary"
+              className=""
               disabled={false}
               onClick={[Function]}
+              priority="primary"
               role="button"
             >
-              <Flex
-                align="center"
-                className="button-label"
+              <Component
+                autoFocus={true}
+                className="css-ds78q9-StyledSmartButton css-a44t1u0"
+                disabled={false}
+                onClick={[Function]}
+                priority="primary"
+                role="button"
               >
-                <Base
-                  align="center"
-                  className="button-label css-5ipae5"
+                <button
+                  autoFocus={true}
+                  className="css-ds78q9-StyledSmartButton css-a44t1u0"
+                  disabled={false}
+                  onClick={[Function]}
+                  priority="primary"
+                  role="button"
                 >
-                  <div
-                    className="button-label css-5ipae5"
-                    is={null}
-                  >
-                    Bulk resolve issues
-                  </div>
-                </Base>
-              </Flex>
-            </button>
+                  <ButtonLabel>
+                    <Component
+                      className="css-1lzmoq1-ButtonLabel css-a44t1u1"
+                    >
+                      <Flex
+                        align="center"
+                        className="css-1lzmoq1-ButtonLabel css-a44t1u1"
+                      >
+                        <Base
+                          align="center"
+                          className="css-a44t1u1 css-12e52in"
+                        >
+                          <div
+                            className="css-a44t1u1 css-12e52in"
+                            is={null}
+                          >
+                            Bulk resolve issues
+                          </div>
+                        </Base>
+                      </Flex>
+                    </Component>
+                  </ButtonLabel>
+                </button>
+              </Component>
+            </StyledSmartButton>
           </Button>
         </div>
       </div>
@@ -403,8 +458,8 @@ exports[`StreamActions Bulk Total results > bulk limit bulk resolves 1`] = `
               }
             }
           >
-            <button
-              className="button button-default"
+            <StyledSmartButton
+              className=""
               disabled={false}
               onClick={[Function]}
               role="button"
@@ -414,23 +469,53 @@ exports[`StreamActions Bulk Total results > bulk limit bulk resolves 1`] = `
                 }
               }
             >
-              <Flex
-                align="center"
-                className="button-label"
+              <Component
+                className="css-1rg98na-StyledSmartButton css-a44t1u0"
+                disabled={false}
+                onClick={[Function]}
+                role="button"
+                style={
+                  Object {
+                    "marginRight": 10,
+                  }
+                }
               >
-                <Base
-                  align="center"
-                  className="button-label css-5ipae5"
+                <button
+                  className="css-1rg98na-StyledSmartButton css-a44t1u0"
+                  disabled={false}
+                  onClick={[Function]}
+                  role="button"
+                  style={
+                    Object {
+                      "marginRight": 10,
+                    }
+                  }
                 >
-                  <div
-                    className="button-label css-5ipae5"
-                    is={null}
-                  >
-                    Cancel
-                  </div>
-                </Base>
-              </Flex>
-            </button>
+                  <ButtonLabel>
+                    <Component
+                      className="css-1lzmoq1-ButtonLabel css-a44t1u1"
+                    >
+                      <Flex
+                        align="center"
+                        className="css-1lzmoq1-ButtonLabel css-a44t1u1"
+                      >
+                        <Base
+                          align="center"
+                          className="css-a44t1u1 css-12e52in"
+                        >
+                          <div
+                            className="css-a44t1u1 css-12e52in"
+                            is={null}
+                          >
+                            Cancel
+                          </div>
+                        </Base>
+                      </Flex>
+                    </Component>
+                  </ButtonLabel>
+                </button>
+              </Component>
+            </StyledSmartButton>
           </Button>
           <Button
             autoFocus={true}
@@ -438,30 +523,55 @@ exports[`StreamActions Bulk Total results > bulk limit bulk resolves 1`] = `
             onClick={[Function]}
             priority="primary"
           >
-            <button
+            <StyledSmartButton
               autoFocus={true}
-              className="button button-primary"
+              className=""
               disabled={false}
               onClick={[Function]}
+              priority="primary"
               role="button"
             >
-              <Flex
-                align="center"
-                className="button-label"
+              <Component
+                autoFocus={true}
+                className="css-ds78q9-StyledSmartButton css-a44t1u0"
+                disabled={false}
+                onClick={[Function]}
+                priority="primary"
+                role="button"
               >
-                <Base
-                  align="center"
-                  className="button-label css-5ipae5"
+                <button
+                  autoFocus={true}
+                  className="css-ds78q9-StyledSmartButton css-a44t1u0"
+                  disabled={false}
+                  onClick={[Function]}
+                  priority="primary"
+                  role="button"
                 >
-                  <div
-                    className="button-label css-5ipae5"
-                    is={null}
-                  >
-                    Bulk resolve issues
-                  </div>
-                </Base>
-              </Flex>
-            </button>
+                  <ButtonLabel>
+                    <Component
+                      className="css-1lzmoq1-ButtonLabel css-a44t1u1"
+                    >
+                      <Flex
+                        align="center"
+                        className="css-1lzmoq1-ButtonLabel css-a44t1u1"
+                      >
+                        <Base
+                          align="center"
+                          className="css-a44t1u1 css-12e52in"
+                        >
+                          <div
+                            className="css-a44t1u1 css-12e52in"
+                            is={null}
+                          >
+                            Bulk resolve issues
+                          </div>
+                        </Base>
+                      </Flex>
+                    </Component>
+                  </ButtonLabel>
+                </button>
+              </Component>
+            </StyledSmartButton>
           </Button>
         </div>
       </div>

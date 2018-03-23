@@ -7,6 +7,8 @@ import OrganizationAuthProvider from 'app/views/settings/organization/auth/organ
 jest.mock('jquery');
 
 describe('OrganizationAuthProvider', function() {
+  let routerContext = TestStubs.routerContext();
+
   beforeEach(function() {
     Client.clearMockResponses();
     Client.addMockResponse({
@@ -27,7 +29,8 @@ describe('OrganizationAuthProvider', function() {
         orgId="org-slug"
         onSendReminders={() => {}}
         provider={null}
-      />
+      />,
+      routerContext()
     );
 
     expect(wrapper).toMatchSnapshot();
@@ -39,7 +42,8 @@ describe('OrganizationAuthProvider', function() {
         orgId="org-slug"
         onSendReminders={() => {}}
         provider={TestStubs.AuthProvider()}
-      />
+      />,
+      routerContext()
     );
 
     expect(wrapper).toMatchSnapshot();
@@ -54,7 +58,8 @@ describe('OrganizationAuthProvider', function() {
           ...TestStubs.AuthProvider(),
           pending_links_count: 4,
         }}
-      />
+      />,
+      routerContext()
     );
 
     expect(wrapper).toMatchSnapshot();
@@ -69,7 +74,8 @@ describe('OrganizationAuthProvider', function() {
           ...TestStubs.AuthProvider(),
           content: '<strong>Test</strong>',
         }}
-      />
+      />,
+      routerContext()
     );
 
     expect(wrapper.find('.box-content')).toMatchSnapshot();
@@ -85,7 +91,8 @@ describe('OrganizationAuthProvider', function() {
           require_link: true,
           default_role: 'admin',
         }}
-      />
+      />,
+      routerContext()
     );
 
     expect(
@@ -110,7 +117,8 @@ describe('OrganizationAuthProvider', function() {
         onSendReminders={() => {}}
         onDisableProvider={mock}
         provider={TestStubs.AuthProvider()}
-      />
+      />,
+      routerContext()
     );
 
     let disableButton = wrapper.find('.form-actions').find('Button');

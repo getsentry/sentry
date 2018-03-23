@@ -28,7 +28,8 @@ describe('OrganizationApiKeysList', function() {
         params={{orgId: 'org-slug'}}
         routes={routes}
         keys={[TestStubs.ApiKey()]}
-      />
+      />,
+      TestStubs.routerContext()
     );
     expect(wrapper).toMatchSnapshot();
   });
@@ -40,14 +41,7 @@ describe('OrganizationApiKeysList', function() {
         routes={routes}
         keys={[TestStubs.ApiKey()]}
       />,
-      {
-        context: {
-          router: TestStubs.router(),
-          organization: TestStubs.Organization(),
-          location: TestStubs.location(),
-        },
-        childContextTypes,
-      }
+      TestStubs.routerContext()
     );
 
     wrapper.update();
