@@ -10,6 +10,7 @@ import GuideStore from '../../stores/guideStore';
 import CueIcon from './cueIcon';
 import AssistantContainer from './assistantContainer';
 import CloseIcon from './closeIcon';
+import HookStore from '../../stores/hookStore';
 
 // AssistantHelper is responsible for rendering the cue message, guide drawer and support drawer.
 const AssistantHelper = createReactClass({
@@ -46,6 +47,16 @@ const AssistantHelper = createReactClass({
   },
 
   handleDrawerOpen() {
+    let {currentGuide} = this.state;
+
+    HookStore.get('analytics:event').forEach(cb =>
+      cb('assistant.guide', {
+        guide: currentGuide.id,
+        cue: currentGuide.cue,
+        action: 'drawer opened',
+      })
+    );
+
     this.setState({
       isDrawerOpen: true,
     });
@@ -60,6 +71,16 @@ const AssistantHelper = createReactClass({
 
   handleDismiss(e) {
     dismiss(this.state.currentGuide.id);
+
+    HookStore.get('analytics:event').forEach(cb =>
+      cb('assistant.guide', {
+        guide: currentGuide.id,
+        cue: currentGuide.cue,
+        action: 'guide dismissed',
+      })
+    );
+
+    dismiss(currentGuide.id);
     closeGuide();
   },
 
@@ -72,6 +93,16 @@ const AssistantHelper = createReactClass({
     let showDrawer = false;
     let {currentGuide, currentStep, isDrawerOpen} = this.state;
     let isGuideCued = currentGuide !== null;
+
+    if (isGuideCued) {
+      HookStore.get('analytics:event').forEach(cb =>
+        cb('assistant.guide', {
+          guide: currentGuide.id,
+          cue: currentGuide.cue,
+          action: 'guide cued',
+        })
+      );
+    }
 
     const cueText = isGuideCued ? currentGuide.cue : t('Need Help?');
     if (isDrawerOpen && (!isGuideCued || currentStep > 0)) {

@@ -1,5 +1,6 @@
 import Reflux from 'reflux';
 import GuideActions from '../actions/guideActions';
+import HookStore from './hookStore';
 
 const GuideStore = Reflux.createStore({
   init() {
@@ -30,12 +31,30 @@ const GuideStore = Reflux.createStore({
   },
 
   onCloseGuide() {
-    this.state.guidesSeen.add(this.state.currentGuide.id);
+    let {currentGuide, guidesSeen} = this.state;
+
+    HookStore.get('analytics:event').forEach(cb =>
+      cb('assistant.guide', {
+        guide: currentGuide.id,
+        cue: currentGuide.cue,
+        action: 'closed guide',
+      })
+    );
+    guidesSeen.add(currentGuide.id);
     this.updateCurrentGuide();
   },
 
   onNextStep() {
     this.state.currentStep += 1;
+
+    HookStore.get('analytics:event').forEach(cb =>
+      cb('assistant.guide', {
+        guide: this.state.currentGuide.id,
+        cue: this.state.currentGuide.cue,
+        action: 'clicked next step',
+        step: this.state.currentStep,
+      })
+    );
     this.trigger(this.state);
   },
 
