@@ -223,7 +223,7 @@ const StyledInput = styled(Input)`
 const AutoCompleteItem = styled('div')`
   background-color: ${p =>
     p.index == p.highlightedIndex ? p.theme.offWhite : 'transparent'};
-  padding: 10px;
+  padding: 4px 8px;
   cursor: pointer;
   border-bottom: 1px solid ${p => p.theme.borderLighter};
 
@@ -232,6 +232,7 @@ const AutoCompleteItem = styled('div')`
   }
 
   &:hover {
+    cursor: pointer;
     background-color: ${p => p.theme.offWhite};
   }
 `;

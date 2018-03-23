@@ -24,6 +24,8 @@ import InlineSvg from '../../../components/inlineSvg';
 import Link from '../../../components/link';
 import {Panel, PanelBody, PanelHeader, PanelItem} from '../../../components/panels';
 import SettingsPageHeader from '../components/settingsPageHeader';
+import classNames from 'classnames';
+import {verticalPaddingSmall, horizontalPaddingExtaSmall} from '../../../styles/padding';
 
 const TeamRow = createReactClass({
   displayName: 'TeamRow',
@@ -175,7 +177,11 @@ class ProjectTeams extends AsyncView {
       .map(team => ({
         value: team.id,
         searchKey: team.slug,
-        label: <TeamDropdownElement>#{team.slug}</TeamDropdownElement>,
+        label: (
+          <div className={classNames(verticalPaddingSmall, horizontalPaddingExtaSmall)}>
+            #{team.slug}
+          </div>
+        ),
       }));
 
     let menuHeader = (
@@ -214,6 +220,12 @@ class ProjectTeams extends AsyncView {
 
     return (
       <PanelBody>
+        <PanelHeader key={'header'} hasButtons={true}>
+          <PanelHeaderContent>
+            <div>{t('Team')}</div>
+            <div>{this.renderAddTeamButton()}</div>
+          </PanelHeaderContent>
+        </PanelHeader>
         {this.state.projectTeams.map(team => {
           return (
             <TeamRow
@@ -285,12 +297,11 @@ const RemoveIcon = styled(props => (
   margin-right: 0.5em;
 `;
 
-const TeamDropdownElement = styled('div')`
-  text-transform: none;
 
-  &:hover {
-    cursor: pointer;
-  }
+const PanelHeaderContent = styled('div')`
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
 `;
 
 const StyledPanelItem = styled(PanelItem)`

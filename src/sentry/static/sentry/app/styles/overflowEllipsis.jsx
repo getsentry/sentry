@@ -1,3 +1,5 @@
+import {css} from 'react-emotion';
+
 export default `
   display: block;
   white-space: nowrap;

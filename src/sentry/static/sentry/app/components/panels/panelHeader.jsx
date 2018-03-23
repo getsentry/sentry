@@ -1,11 +1,12 @@
 import {Flex} from 'grid-emotion';
 import PropTypes from 'prop-types';
 import React from 'react';
-import styled, {css} from 'react-emotion';
-
-const getPadding = ({disablePadding, hasButtons}) => css`
-  padding: ${hasButtons ? '8px' : '15px'} ${disablePadding ? '0' : '20px'};
-`;
+import styled from 'react-emotion';
+import {
+  verticalPadding,
+  verticalPaddingSmall,
+  horizontalPadding,
+} from '../../../styles/padding';
 
 const StyledPanelHeader = styled(({disablePadding, hasButtons, ...props}) => (
   <Flex align="center" justify="space-between" {...props} />
@@ -18,7 +19,9 @@ const StyledPanelHeader = styled(({disablePadding, hasButtons, ...props}) => (
   border-radius: ${p => p.theme.borderRadius} ${p => p.theme.borderRadius} 0 0;
   background: ${p => p.theme.offWhite};
   line-height: 1;
-  ${getPadding};
+
+  ${p => (p.hasButtons ? verticalPaddingSmall : verticalPadding)};
+  ${p => !p.disablePadding && horizontalPadding};
 `;
 
 class PanelHeader extends React.Component {
