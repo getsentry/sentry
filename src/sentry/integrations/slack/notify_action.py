@@ -74,6 +74,24 @@ class SlackNotifyServiceAction(EventAction):
     form_cls = SlackNotifyServiceForm
     label = u'Send a notification to the {workspace} Slack workspace to {channel} and include tags {tags}'
 
+    def __init__(self, *args, **kwargs):
+        super(SlackNotifyServiceAction, self).__init__(*args, **kwargs)
+        self.form_fields = {
+            'workspace': {
+                'type': 'choice',
+                'choices': [(integration[0], integration[3])
+                            for integration in self.get_integrations().values_list()]
+            },
+            'channel': {
+                'type': 'string',
+                'placeholder': 'i.e #critical'
+            },
+            'tags': {
+                'type': 'string',
+                'placeholder': 'i.e environment,user,my_tag'
+            }
+        }
+
     def is_enabled(self):
         return self.get_integrations().exists()
 
