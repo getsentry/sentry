@@ -259,7 +259,7 @@ const StyledMenu = styled(({isOpen, blendCorner, alignMenu, ...props}) => (
   max-height: 300px;
   overflow-y: auto;
   right: 0;
-  box-shadow ${p => p.theme.dropShadowLight};
+  box-shadow: ${p => p.theme.dropShadowLight};
 
   ${getMenuBorderRadius};
   ${({alignMenu}) => (alignMenu === 'left' ? 'left: 0;' : '')};
