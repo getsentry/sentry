@@ -276,6 +276,7 @@ const AssigneeSelector = createReactClass({
     let teams = this.renderTeamNodes();
     let members = this.renderMemberNodes();
     let hasTeamsAndMembers = teams.length && members.length;
+    let hasTeamsOrMembers = teams.length || members.length;
 
     return (
       <div>
@@ -333,7 +334,7 @@ const AssigneeSelector = createReactClass({
                     {teams}
                     {hasTeamsAndMembers ? <hr key="divider" style={{margin: 0}} /> : null}
                     {members}
-                    {!hasTeamsAndMembers && (
+                    {!hasTeamsOrMembers && (
                       <li className="not-found">
                         <span>{t('No matches found.')}</span>
                       </li>
