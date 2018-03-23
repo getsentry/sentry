@@ -1,6 +1,8 @@
 import React from 'react';
 import createReactClass from 'create-react-class';
 import {Link} from 'react-router';
+import {Box, Flex} from 'grid-emotion';
+
 import SentryTypes from '../proptypes';
 import ApiMixin from '../mixins/apiMixin';
 import Count from '../components/count';
@@ -8,8 +10,12 @@ import GroupState from '../mixins/groupState';
 import LoadingError from '../components/loadingError';
 import LoadingIndicator from '../components/loadingIndicator';
 import {percent, deviceNameMapper} from '../utils';
-import {t} from '../locale';
+import {t, tct} from '../locale';
 import withEnvironmentInQueryString from '../utils/withEnvironmentInQueryString';
+import Panel from '../views/settings/components/panel';
+import PanelBody from '../views/settings/components/panelBody';
+import PanelHeader from '../views/settings/components/panelHeader';
+import Alert from '../components/alert';
 
 const GroupTags = createReactClass({
   displayName: 'GroupTags',
@@ -111,38 +117,41 @@ const GroupTags = createReactClass({
         });
 
         return (
-          <div className="col-md-6" key={tagIdx}>
-            <div className="box">
-              <div className="box-header">
-                <span className="pull-right">
+          <Box key={tagIdx} px={1} width={0.5}>
+            <Panel>
+              <PanelHeader hasButtons style={{textTransform: 'none'}}>
+                <div style={{fontSize: 16}}>{tag.name}</div>
+                <Flex>
                   <Link
                     className="btn btn-default btn-sm"
                     to={`/${orgId}/${projectId}/issues/${groupId}/tags/${tag.key}/`}
                   >
                     {t('More Details')}
                   </Link>
-                </span>
-                <h5>{tag.name}</h5>
-              </div>
-              <div className="box-content with-padding">
-                <ul className="list-unstyled">{valueChildren}</ul>
-              </div>
-            </div>
-          </div>
+                </Flex>
+              </PanelHeader>
+              <PanelBody disablePadding={false}>
+                <ul style={{listStyleType: 'none', padding: 0, margin: 0}}>
+                  {valueChildren}
+                </ul>
+              </PanelBody>
+            </Panel>
+          </Box>
         );
       });
     }
 
     return (
-      <div className="row">
-        {children}
-
-        <div className="col-md-12">
-          <div className="alert alert-block alert-info">
-            Tags are automatically indexed for searching and breakdown charts. Learn how
-            to <a href={this.getTagsDocsUrl()}>add custom tags to issues</a>.
-          </div>
-        </div>
+      <div>
+        <Flex wrap="wrap">{children}</Flex>
+        <Alert type="info">
+          {tct(
+            'Tags are automatically indexed for searching and breakdown charts. Learn how to [link: add custom tags to issues]',
+            {
+              link: <a href={this.getTagsDocsUrl()} />,
+            }
+          )}
+        </Alert>
       </div>
     );
   },
