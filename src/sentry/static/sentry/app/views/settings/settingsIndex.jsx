@@ -33,7 +33,9 @@ const LINKS = {
 
 const HomePanelHeader = styled(PanelHeader)`
   background: #fff;
+  flex-direction: column;
   text-align: center;
+  justify-content: center;
   font-size: 18px;
   text-transform: unset;
   padding: 35px 30px;

@@ -87,7 +87,7 @@ describe('DropdownAutoCompleteMenu', function() {
       </DropdownAutoCompleteMenu>
     );
     wrapper
-      .find('[index]')
+      .find('AutoCompleteItem')
       .last()
       .simulate('click');
     expect(mock).toMatchSnapshot();

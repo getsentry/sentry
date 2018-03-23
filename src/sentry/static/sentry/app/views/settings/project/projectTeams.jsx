@@ -255,7 +255,6 @@ const RemoveIcon = styled(props => (
 `;
 
 const TeamDropdownElement = styled('div')`
-  padding: 0.5em 0.25em;
   text-transform: none;
 
   &:hover {
