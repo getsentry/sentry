@@ -249,12 +249,64 @@ const AssigneeSelector = createReactClass({
     return teamNodes;
   },
 
+  renderDropdownItems() {
+    let {loading, assignedTo} = this.state;
+    let org = this.context.organization;
+    let features = new Set(org.features);
+    let teams = this.renderTeamNodes();
+    let members = this.renderMemberNodes();
+    let hasTeamsAndMembers = teams.length && members.length;
+    let hasTeamsOrMembers = teams.length || members.length;
+
+    return (
+      <React.Fragment>
+        <MenuItem noAnchor>
+          <input
+            type="text"
+            className="form-control input-sm"
+            placeholder={
+              features.has('new-teams')
+                ? t('Filter teams and people')
+                : t('Filter members')
+            }
+            ref={ref => this.onFilterMount(ref)}
+            onClick={this.onFilterClick}
+            onKeyDown={this.onFilterKeyDown}
+            onKeyUp={this.onFilterKeyUp}
+          />
+        </MenuItem>
+
+        {assignedTo && (
+          <MenuItem
+            className="clear-assignee"
+            disabled={!loading}
+            onSelect={this.clearAssignTo}
+          >
+            <span className="icon-circle-cross" /> {t('Clear Assignee')}
+          </MenuItem>
+        )}
+
+        <li>
+          <ul>
+            {teams}
+            {hasTeamsAndMembers ? <hr key="divider" style={{margin: 0}} /> : null}
+            {members}
+            {!hasTeamsOrMembers && (
+              <li className="not-found">
+                <span>{t('No matches found.')}</span>
+              </li>
+            )}
+          </ul>
+        </li>
+      </React.Fragment>
+    );
+  },
+
   render() {
     let {loading, assignedTo} = this.state;
     let group = GroupStore.get(this.props.id);
 
     let org = this.context.organization;
-    let features = new Set(org.features);
     let access = new Set(org.access);
 
     let assigneeListLoading = this.state.memberList === null || !group;
@@ -272,11 +324,6 @@ const AssigneeSelector = createReactClass({
     let className = classNames('assignee-selector anchor-right', {
       unassigned: !assignedTo,
     });
-
-    let teams = this.renderTeamNodes();
-    let members = this.renderMemberNodes();
-    let hasTeamsAndMembers = teams.length && members.length;
-    let hasTeamsOrMembers = teams.length || members.length;
 
     return (
       <div>
@@ -302,46 +349,7 @@ const AssigneeSelector = createReactClass({
                 </FlowLayout>
               </li>
             ) : (
-              <React.Fragment>
-                <MenuItem noAnchor>
-                  <input
-                    type="text"
-                    className="form-control input-sm"
-                    placeholder={
-                      features.has('new-teams')
-                        ? t('Filter teams and people')
-                        : t('Filter members')
-                    }
-                    ref={ref => this.onFilterMount(ref)}
-                    onClick={this.onFilterClick}
-                    onKeyDown={this.onFilterKeyDown}
-                    onKeyUp={this.onFilterKeyUp}
-                  />
-                </MenuItem>
-
-                {assignedTo && (
-                  <MenuItem
-                    className="clear-assignee"
-                    disabled={!loading}
-                    onSelect={this.clearAssignTo}
-                  >
-                    <span className="icon-circle-cross" /> {t('Clear Assignee')}
-                  </MenuItem>
-                )}
-
-                <li>
-                  <ul>
-                    {teams}
-                    {hasTeamsAndMembers ? <hr key="divider" style={{margin: 0}} /> : null}
-                    {members}
-                    {!hasTeamsOrMembers && (
-                      <li className="not-found">
-                        <span>{t('No matches found.')}</span>
-                      </li>
-                    )}
-                  </ul>
-                </li>
-              </React.Fragment>
+              this.renderDropdownItems()
             )}
 
             {ConfigStore.get('invitesEnabled') &&
