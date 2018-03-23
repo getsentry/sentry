@@ -11,14 +11,20 @@ class TeamAvatar extends React.Component {
   };
 
   render() {
-    let {team} = this.props;
+    let {team, ...props} = this.props;
     if (!team) return null;
     let slug = (team && team.slug) || '';
     let title = explodeSlug(slug);
     let tooltip = `#${title}`;
 
     return (
-      <BaseAvatar type="letter_avatar" letterId={slug} tooltip={tooltip} title={title} />
+      <BaseAvatar
+        {...props}
+        type="letter_avatar"
+        letterId={slug}
+        tooltip={tooltip}
+        title={title}
+      />
     );
   }
 }
