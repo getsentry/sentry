@@ -59,10 +59,13 @@ const Owners = styled('div')`
 
 const BuilderDropdownButton = styled(DropdownButton)`
   margin-right: 5px;
-  padding-right: 5px !important;
+  padding-right: 8px !important;
+  padding-left: 3px !important;
+
   flex: 1;
   white-space: nowrap;
   height: 37px;
+  color: ${p => p.theme.gray3} !important;
 `;
 
 const RuleAddButton = styled(Button)`
@@ -172,7 +175,7 @@ class RuleBuilder extends React.Component {
 
     return (
       <BuilderBar>
-        <BuilderSelect value={type} onChange={this.handleTypeChange}>
+        <BuilderSelect value={type} showSearch={false} onChange={this.handleTypeChange}>
           <option value="path">Path</option>
           <option value="url">URL</option>
         </BuilderSelect>

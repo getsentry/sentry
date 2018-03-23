@@ -126,12 +126,14 @@ exports[`ProjectTeamsSettings render() renders 1`] = `
 
 .glamor-35 {
   margin-right: 5px;
-  padding-right: 5px !important;
+  padding-right: 8px !important;
+  padding-left: 3px !important;
   -webkit-flex: 1;
   -ms-flex: 1;
   flex: 1;
   white-space: nowrap;
   height: 37px;
+  color: !important;
 }
 
 .glamor-27 {
@@ -139,12 +141,14 @@ exports[`ProjectTeamsSettings render() renders 1`] = `
   z-index: 2;
   box-shadow: none;
   margin-right: 5px;
-  padding-right: 5px !important;
+  padding-right: 8px !important;
+  padding-left: 3px !important;
   -webkit-flex: 1;
   -ms-flex: 1;
   flex: 1;
   white-space: nowrap;
   height: 37px;
+  color: !important;
 }
 
 .glamor-24 {
@@ -310,6 +314,7 @@ exports[`ProjectTeamsSettings render() renders 1`] = `
       >
         <BuilderSelect
           onChange={[Function]}
+          showSearch={false}
           value="path"
         >
           <SelectInput
@@ -319,6 +324,7 @@ exports[`ProjectTeamsSettings render() renders 1`] = `
             onChange={[Function]}
             placeholder="Select an option..."
             required={false}
+            showSearch={false}
             value="path"
           >
             <select
