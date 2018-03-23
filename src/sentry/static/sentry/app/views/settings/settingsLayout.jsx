@@ -91,11 +91,12 @@ class SettingsLayout extends React.Component {
   static propTypes = {
     renderNavigation: PropTypes.func,
     route: PropTypes.object,
+    router: PropTypes.object,
     routes: PropTypes.array,
   };
 
   render() {
-    let {params, routes, route, renderNavigation, children} = this.props;
+    let {params, routes, route, router, renderNavigation, children} = this.props;
     // We want child's view's props
     let childProps = (children && children.props) || this.props;
     let childRoutes = childProps.routes || routes || [];
@@ -117,7 +118,7 @@ class SettingsLayout extends React.Component {
                   route={childRoute}
                 />
               </Box>
-              <SettingsSearch params={params} />
+              <SettingsSearch routes={routes} router={router} params={params} />
             </Flex>
           </Container>
         </SettingsHeader>
