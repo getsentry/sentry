@@ -34,7 +34,7 @@ const GroupParticipants = createReactClass({
           {participants.map((user, i) => {
             return (
               <li key={user.username} className="tip" title={userDisplayName(user)}>
-                <Avatar size={32} user={user} />
+                <Avatar size={28} user={user} />
               </li>
             );
           })}

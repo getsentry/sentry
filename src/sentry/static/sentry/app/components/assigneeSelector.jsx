@@ -214,11 +214,11 @@ const AssigneeSelector = createReactClass({
       return text;
     }
     return (
-      <span>
+      <React.Fragment>
         {text.substr(0, idx)}
         <strong className="highlight">{text.substr(idx, highlightText.length)}</strong>
         {text.substr(idx + highlightText.length)}
-      </span>
+      </React.Fragment>
     );
   },
 
@@ -302,7 +302,7 @@ const AssigneeSelector = createReactClass({
             disabled={!loading}
             onSelect={this.clearAssignTo}
           >
-            <MenuItemWrapper css={{paddingTop: 0, paddingBottom: 0}}>
+            <MenuItemWrapper py={0}>
               <IconContainer>
                 <ClearAssigneeIcon />
               </IconContainer>
@@ -314,7 +314,7 @@ const AssigneeSelector = createReactClass({
         <li>
           <ul>
             {teams}
-            {hasTeamsAndMembers ? <hr key="divider" style={{margin: 0}} /> : null}
+            {hasTeamsAndMembers ? <Divider key="divider" /> : null}
             {members}
             {!hasTeamsOrMembers && (
               <li className="not-found">
@@ -380,7 +380,7 @@ const AssigneeSelector = createReactClass({
             {ConfigStore.get('invitesEnabled') &&
               access.has('org:write') && (
                 <React.Fragment>
-                  <hr key="divider" style={{margin: 0}} />
+                  <Divider />
                   <MenuItem
                     className="invite-member"
                     disabled={!loading}
@@ -410,6 +410,10 @@ const getSvgStyle = () => `
   opacity: 0.3;
 `;
 
+const Divider = styled.hr`
+  margin: 0;
+`;
+
 const IconContainer = styled.div`
   display: flex;
   align-items: center;
@@ -419,10 +423,16 @@ const IconContainer = styled.div`
   flex-shrink: 0;
 `;
 
-const MenuItemWrapper = styled.div`
+const MenuItemWrapper = styled(({py, ...props}) => <div {...props} />)`
   display: flex;
   align-items: center;
   padding: 5px 8px;
+  ${p =>
+    typeof p.py !== 'undefined' &&
+    `
+      padding-top: ${p.py};
+      padding-bottom: ${p.py};
+    `};
 `;
 
 const Label = styled(TextOverflow)`
