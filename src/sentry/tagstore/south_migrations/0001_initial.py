@@ -24,7 +24,7 @@ class Migration(SchemaMigration):
             ('value', self.gf('sentry.db.models.fields.foreignkey.FlexibleForeignKey')(
                 to=orm['tagstore.TagValue'], db_column='value')),
             ('date_added', self.gf('django.db.models.fields.DateTimeField')(
-                default=datetime.datetime.now, db_index=True)),
+                db_index=True)),
         ))
         db.send_create_signal('tagstore', ['EventTag'])
 
@@ -70,9 +70,9 @@ class Migration(SchemaMigration):
             ('_value', self.gf('sentry.db.models.fields.foreignkey.FlexibleForeignKey')(
                 to=orm['tagstore.TagValue'], db_column='value')),
             ('last_seen', self.gf('django.db.models.fields.DateTimeField')(
-                default=datetime.datetime.now, null=True, db_index=True)),
+                null=True, db_index=True)),
             ('first_seen', self.gf('django.db.models.fields.DateTimeField')(
-                default=datetime.datetime.now, null=True, db_index=True)),
+                null=True, db_index=True)),
         ))
         db.send_create_signal('tagstore', ['GroupTagValue'])
 
@@ -110,9 +110,9 @@ class Migration(SchemaMigration):
             ('data', self.gf('sentry.db.models.fields.gzippeddict.GzippedDictField')(null=True, blank=True)),
             ('times_seen', self.gf('sentry.db.models.fields.bounded.BoundedPositiveIntegerField')(default=0)),
             ('last_seen', self.gf('django.db.models.fields.DateTimeField')(
-                default=datetime.datetime.now, null=True, db_index=True)),
+                null=True, db_index=True)),
             ('first_seen', self.gf('django.db.models.fields.DateTimeField')(
-                default=datetime.datetime.now, null=True, db_index=True)),
+                null=True, db_index=True)),
         ))
         db.send_create_signal('tagstore', ['TagValue'])
 

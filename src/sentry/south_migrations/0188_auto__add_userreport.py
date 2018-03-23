@@ -27,7 +27,7 @@ class Migration(SchemaMigration):
                 ('email', self.gf('django.db.models.fields.EmailField')(max_length=75)),
                 ('comments', self.gf('django.db.models.fields.TextField')()), (
                     'date_added',
-                    self.gf('django.db.models.fields.DateTimeField')(default=datetime.datetime.now)
+                    self.gf('django.db.models.fields.DateTimeField')()
                 ),
             )
         )

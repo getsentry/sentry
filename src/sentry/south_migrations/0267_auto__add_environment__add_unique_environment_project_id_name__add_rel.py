@@ -19,7 +19,7 @@ class Migration(SchemaMigration):
                     self.gf('sentry.db.models.fields.bounded.BoundedPositiveIntegerField')()
                 ), ('name', self.gf('django.db.models.fields.CharField')(max_length=64)), (
                     'date_added',
-                    self.gf('django.db.models.fields.DateTimeField')(default=datetime.datetime.now)
+                    self.gf('django.db.models.fields.DateTimeField')()
                 ),
             )
         )
@@ -52,23 +52,25 @@ class Migration(SchemaMigration):
                     )
                 ), (
                     'first_seen',
-                    self.gf('django.db.models.fields.DateTimeField')(default=datetime.datetime.now)
+                    self.gf('django.db.models.fields.DateTimeField')()
                 ), (
                     'last_seen', self.gf('django.db.models.fields.DateTimeField')(
-                        default=datetime.datetime.now, db_index=True
+                        db_index=True
                     )
                 ),
             )
         )
         db.send_create_signal('sentry', ['ReleaseEnvironment'])
 
-        # Adding unique constraint on 'ReleaseEnvironment', fields ['project_id', 'release_id', 'environment_id']
+        # Adding unique constraint on 'ReleaseEnvironment', fields ['project_id',
+        # 'release_id', 'environment_id']
         db.create_unique(
             'sentry_environmentrelease', ['project_id', 'release_id', 'environment_id']
         )
 
     def backwards(self, orm):
-        # Removing unique constraint on 'ReleaseEnvironment', fields ['project_id', 'release_id', 'environment_id']
+        # Removing unique constraint on 'ReleaseEnvironment', fields
+        # ['project_id', 'release_id', 'environment_id']
         db.delete_unique(
             'sentry_environmentrelease', ['project_id', 'release_id', 'environment_id']
         )
