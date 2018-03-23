@@ -330,6 +330,7 @@ EVENT_SCHEMA = {
             # 'maxLength': MAX_CULPRIT_LENGTH,
             'default': lambda: apierror('Invalid value for culprit'),
         },
+        'transaction': {'type': 'string'},
         'server_name': TAG_VALUE,
         'release': TAG_VALUE,
         'dist': {
