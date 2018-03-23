@@ -1051,25 +1051,16 @@
 }
 
 .stream-sort {
-  width: 165px;
-  position: absolute;
-  display: block;
-  left: 0;
-  top: 0;
   margin-right: 5px;
 
   .dropdown-toggle {
     .btn-default;
-
+    width: 168px;
     font-size: 14px;
     border: 1px solid lighten(@gray-lighter, 7);
     padding: 6px 12px;
     border-radius: 3px;
 
-    text-overflow: ellipsis;
-    white-space: nowrap;
-    overflow: hidden;
-    max-width: 100%;
     display: block;
     text-align: center;
 
@@ -1079,6 +1070,13 @@
       margin-right: -2px;
       min-width: 16px;
     }
+  }
+
+  .dropdown-actor-title {
+    display: block;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    overflow: hidden;
   }
 
   .dropdown-menu {
@@ -1113,9 +1111,7 @@
   .clearfix();
 
   .search-container {
-    padding-right: 55px;
-    padding-left: 170px;
-    position: relative;
+    display: flex;
   }
 
   .search {
@@ -1123,9 +1119,6 @@
   }
 
   .toggle-stream-sidebar {
-    position: absolute;
-    top: 0;
-    right: 0;
     width: 50px;
     margin-left: 5px;
     height: 38px;
