@@ -424,6 +424,7 @@ exports[`ProjectTeamsSettings render() renders 1`] = `
               >
                 <DropdownAutoCompleteMenu
                   alignMenu="right"
+                  blendCorner={true}
                   items={
                     Array [
                       Object {
