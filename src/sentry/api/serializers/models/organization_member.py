@@ -44,18 +44,20 @@ class OrganizationMemberWithTeamsSerializer(OrganizationMemberSerializer):
                       self).get_attrs(item_list, user)
 
         member_team_map = list(OrganizationMemberTeam.objects.filter(
+            team__status=TeamStatus.VISIBLE,
             organizationmember__in=item_list,
-            team__status=TeamStatus.VISIBLE).values(
-            'organizationmember_id', 'team_id'))
+        ).values_list(
+            'organizationmember_id', 'team_id'
+        ))
 
         teams = {team.id: team for team in Team.objects.filter(
-            id__in=[item['team_id'] for item in member_team_map])}
+            id__in=[team_id for _, team_id in member_team_map])}
         results = defaultdict(list)
 
         # results is a map of member id -> team_slug[]
-        for m in member_team_map:
-            results[m['organizationmember_id']].append(
-                teams[m['team_id']].slug)
+        for member_id, team_id in member_team_map:
+            results[member_id].append(
+                teams[team_id].slug)
 
         for item in item_list:
             teams = results.get(item.id, [])

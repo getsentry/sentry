@@ -46,14 +46,14 @@ class ReleaseActivityEmail(ActivityEmail):
                 ).select_related('commit', 'commit__author')
             ]
             repos = {
-                r['id']: {
-                    'name': r['name'],
+                r_id: {
+                    'name': r_name,
                     'commits': [],
                 }
-                for r in Repository.objects.filter(
+                for r_id, r_name in Repository.objects.filter(
                     organization_id=self.project.organization_id,
                     id__in={c.repository_id for c in self.commit_list}
-                ).values('id', 'name')
+                ).values_list('id', 'name')
             }
 
             self.email_list = set([c.author.email for c in self.commit_list if c.author])
@@ -82,18 +82,15 @@ class ReleaseActivityEmail(ActivityEmail):
                 id=self.deploy.environment_id
             ).name or 'Default Environment'
 
-            self.group_counts_by_project = {
-                row['project']: row['num_groups']
-                for row in Group.objects.filter(
-                    project__in=self.projects,
-                    id__in=GroupLink.objects.filter(
-                        linked_type=GroupLink.LinkedType.commit,
-                        linked_id__in=ReleaseCommit.objects.filter(
-                            release=self.release,
-                        ).values_list('commit_id', flat=True),
-                    ).values_list('group_id', flat=True),
-                ).values('project').annotate(num_groups=Count('id'))
-            }
+            self.group_counts_by_project = dict(Group.objects.filter(
+                project__in=self.projects,
+                id__in=GroupLink.objects.filter(
+                    linked_type=GroupLink.LinkedType.commit,
+                    linked_id__in=ReleaseCommit.objects.filter(
+                        release=self.release,
+                    ).values_list('commit_id', flat=True),
+                ).values_list('group_id', flat=True),
+            ).values_list('project').annotate(num_groups=Count('id')))
 
     def should_email(self):
         return bool(self.release and self.deploy)
@@ -152,9 +149,9 @@ class ReleaseActivityEmail(ActivityEmail):
             user_teams = defaultdict(list)
             queryset = User.objects.filter(
                 sentry_orgmember_set__organization_id=self.organization.id
-            ).values('id', 'sentry_orgmember_set__teams')
-            for user_team in queryset:
-                user_teams[user_team['id']].append(user_team['sentry_orgmember_set__teams'])
+            ).values_list('id', 'sentry_orgmember_set__teams')
+            for user_id, team_id in queryset:
+                user_teams[user_id].append(team_id)
             self.user_id_team_lookup = user_teams
         return self.user_id_team_lookup
 
