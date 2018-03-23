@@ -58,7 +58,7 @@ export default class OrganizationIntegrations extends AsyncComponent {
         <Box>
           <Button
             size="small"
-            to={`/settings/${orgId}/project/${projectId}/integrations/${provider.key}/`}
+            to={`/settings/${orgId}/${projectId}/integrations/${provider.key}/`}
           >
             {t('Configure')}
           </Button>
