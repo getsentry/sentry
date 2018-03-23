@@ -565,7 +565,7 @@ exports[`OrganizationMembersView No Require Link does not have 2fa warning if us
                                         <img
                                           onError={[Function]}
                                           onLoad={[Function]}
-                                          src="undefined/avatar/c68ca8af553301ae11c5607b8bb672b4?s=64&d=blank"
+                                          src="undefined/avatar/c68ca8af553301ae11c5607b8bb672b4?d=blank&s=64"
                                         />
                                       </span>
                                     </Tooltip>
@@ -840,7 +840,7 @@ exports[`OrganizationMembersView No Require Link does not have 2fa warning if us
                                         <img
                                           onError={[Function]}
                                           onLoad={[Function]}
-                                          src="undefined/avatar/4eca4e68b0a900e542fdf17e57d04dcd?s=64&d=blank"
+                                          src="undefined/avatar/4eca4e68b0a900e542fdf17e57d04dcd?d=blank&s=64"
                                         />
                                       </span>
                                     </Tooltip>
@@ -1110,7 +1110,7 @@ exports[`OrganizationMembersView No Require Link does not have 2fa warning if us
                                         <img
                                           onError={[Function]}
                                           onLoad={[Function]}
-                                          src="undefined/avatar/40d78e2a4587a53a171944ffe71ee3d4?s=64&d=blank"
+                                          src="undefined/avatar/40d78e2a4587a53a171944ffe71ee3d4?d=blank&s=64"
                                         />
                                       </span>
                                     </Tooltip>
@@ -1836,7 +1836,7 @@ exports[`OrganizationMembersView Require Link does not have 2fa warning if user 
                                         <img
                                           onError={[Function]}
                                           onLoad={[Function]}
-                                          src="undefined/avatar/c68ca8af553301ae11c5607b8bb672b4?s=64&d=blank"
+                                          src="undefined/avatar/c68ca8af553301ae11c5607b8bb672b4?d=blank&s=64"
                                         />
                                       </span>
                                     </Tooltip>
@@ -2145,7 +2145,7 @@ exports[`OrganizationMembersView Require Link does not have 2fa warning if user 
                                         <img
                                           onError={[Function]}
                                           onLoad={[Function]}
-                                          src="undefined/avatar/4eca4e68b0a900e542fdf17e57d04dcd?s=64&d=blank"
+                                          src="undefined/avatar/4eca4e68b0a900e542fdf17e57d04dcd?d=blank&s=64"
                                         />
                                       </span>
                                     </Tooltip>
@@ -2454,7 +2454,7 @@ exports[`OrganizationMembersView Require Link does not have 2fa warning if user 
                                         <img
                                           onError={[Function]}
                                           onLoad={[Function]}
-                                          src="undefined/avatar/40d78e2a4587a53a171944ffe71ee3d4?s=64&d=blank"
+                                          src="undefined/avatar/40d78e2a4587a53a171944ffe71ee3d4?d=blank&s=64"
                                         />
                                       </span>
                                     </Tooltip>

@@ -335,6 +335,7 @@ exports[`ProjectAlertRuleDetails Edit alert rule renders 1`] = `
                             onChange={[Function]}
                             placeholder="Select an option..."
                             required={false}
+                            showSearch={true}
                             style={
                               Object {
                                 "width": "100%",
@@ -470,6 +471,7 @@ exports[`ProjectAlertRuleDetails Edit alert rule renders 1`] = `
                             onChange={[Function]}
                             placeholder="Select an option..."
                             required={false}
+                            showSearch={true}
                             style={
                               Object {
                                 "width": "100%",
@@ -1019,6 +1021,7 @@ exports[`ProjectAlertRuleDetails New alert rule renders 1`] = `
                             onChange={[Function]}
                             placeholder="Select an option..."
                             required={false}
+                            showSearch={true}
                             style={
                               Object {
                                 "width": "100%",
@@ -1154,6 +1157,7 @@ exports[`ProjectAlertRuleDetails New alert rule renders 1`] = `
                             onChange={[Function]}
                             placeholder="Select an option..."
                             required={false}
+                            showSearch={true}
                             style={
                               Object {
                                 "width": "100%",

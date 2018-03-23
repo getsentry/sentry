@@ -111,9 +111,12 @@ class OwnerInput extends React.Component {
   }
 
   handleAddRule(rule) {
-    this.setState(({text}) => ({
-      text: text + '\n' + rule,
-    }));
+    this.setState(
+      ({text}) => ({
+        text: text + '\n' + rule,
+      }),
+      this.handleUpdateOwnership
+    );
   }
 
   render() {
