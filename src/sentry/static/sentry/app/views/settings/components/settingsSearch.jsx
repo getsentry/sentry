@@ -73,7 +73,7 @@ class SearchResult extends React.Component {
             #{model.slug}
           </div>
 
-          <ResultContext>Settings</ResultContext>
+          <SearchDetail>Settings</SearchDetail>
         </React.Fragment>
       );
     }
@@ -86,9 +86,9 @@ class SearchResult extends React.Component {
       return (
         <React.Fragment>
           {model.slug}{' '}
-          <ResultContext>
+          <SearchDetail>
             Organization {isSettings ? ' Settings' : ' Dashboard'}
-          </ResultContext>
+          </SearchDetail>
         </React.Fragment>
       );
     }
@@ -97,7 +97,7 @@ class SearchResult extends React.Component {
       return (
         <React.Fragment>
           {model.slug}{' '}
-          <ResultContext>Project {isSettings ? ' Settings' : ' Issues'}</ResultContext>
+          <SearchDetail>Project {isSettings ? ' Settings' : ' Issues'}</SearchDetail>
         </React.Fragment>
       );
     }
@@ -226,7 +226,7 @@ class SettingsSearch extends React.Component {
 
                               {!isLoading &&
                                 !hasAnyResults && (
-                                  <SearchItem>{t('No results found')}</SearchItem>
+                                  <EmptyItem>{t('No results found')}</EmptyItem>
                                 )}
                             </DropdownBox>
                           );
@@ -315,10 +315,17 @@ const SearchItem = styled(({highlighted, ...props}) => <Link {...props} />)`
   }
 `;
 
+const EmptyItem = styled(SearchItem)`
+  text-align: center;
+  padding: 16px;
+  opacity: 0.5;
+`;
+
 const SearchDetail = styled.div`
   font-size: 0.8em;
   line-height: 1.3;
   margin-top: 4px;
+  opacity: 0.9;
   color: ${p => p.theme.gray3};
 `;
 
@@ -327,10 +334,4 @@ const Content = styled(props => <Flex direction="column" {...props} />)``;
 const ResultTypeIcon = styled(InlineSvg)`
   color: ${p => p.theme.gray1};
   font-size: 1.2em;
-`;
-
-const ResultContext = styled.span`
-  opacity: 0.6;
-  font-size: 0.8em;
-  margin-top: 4px;
 `;

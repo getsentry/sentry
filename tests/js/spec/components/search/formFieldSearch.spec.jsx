@@ -4,10 +4,6 @@ import {mount} from 'enzyme';
 import FormFieldSearch from 'app/components/search/formFieldSearch';
 import {addSearchMap} from 'app/actionCreators/formSearch';
 
-// jest.useFakeTimers();
-
-// const CLOSE_DELAY = 0;
-
 describe('FormFieldSearch', function() {
   let wrapper;
   let searchMap = {
