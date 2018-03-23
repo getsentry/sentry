@@ -66,7 +66,7 @@ class DeleteActions extends React.Component {
     let features = new Set(this.props.project.features);
     let hasDiscard = features.has('discard-groups');
 
-    let btnGroup = (
+    return (
       <div className="btn-group">
         <LinkWithConfirmation
           className="group-remove btn btn-default btn-sm"
@@ -77,20 +77,11 @@ class DeleteActions extends React.Component {
           onConfirm={this.props.onDelete}
         >
           <span className="icon-trash" />
+          <GuideAnchor type="text" target="ignore_delete_discard" />
         </LinkWithConfirmation>
         {hasDiscard ? this.renderDiscard() : this.renderDisabledDiscard()}
       </div>
     );
-
-    if (hasDiscard) {
-      btnGroup = (
-        <GuideAnchor type="text" target="delete_discard">
-          {btnGroup}
-        </GuideAnchor>
-      );
-    }
-
-    return btnGroup;
   }
 }
 
