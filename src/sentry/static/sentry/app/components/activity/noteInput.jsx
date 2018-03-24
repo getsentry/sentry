@@ -5,7 +5,7 @@ import marked from 'marked';
 import classNames from 'classnames';
 
 import {MentionsInput, Mention} from 'react-mentions';
-import _ from 'lodash';
+import {isEqual, uniqBy} from 'lodash';
 
 import ApiMixin from '../../mixins/apiMixin';
 import OrganizationState from '../../mixins/organizationState';
@@ -73,7 +73,7 @@ const NoteInput = createReactClass({
   },
 
   componentWillUpdate(nextProps, nextState) {
-    if (!_.isEqual(nextProps.memberList, this.props.memberList)) {
+    if (!isEqual(nextProps.memberList, this.props.memberList)) {
       this.setState({
         mentionableUsers: this.mentionableUsers(),
         mentionableTeams: this.mentionableTeams(),
@@ -264,7 +264,7 @@ const NoteInput = createReactClass({
 
   mentionableUsers() {
     let {memberList, sessionUser} = this.props;
-    return _.uniqBy(memberList, ({id}) => id)
+    return uniqBy(memberList, ({id}) => id)
       .filter(member => sessionUser.id !== member.id)
       .map(member => ({
         id: buildUserId(member.id),

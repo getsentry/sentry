@@ -1,4 +1,4 @@
-import _ from 'lodash';
+import {isArray, isUndefined} from 'lodash';
 
 let defaults = {
   limit: null,
@@ -12,19 +12,19 @@ function Collection(collection, options) {
 
   Array.call(this);
 
-  if (_.isUndefined(options)) {
+  if (isUndefined(options)) {
     options = {};
   }
 
   for (i in defaults) {
-    if (_.isUndefined(options[i])) {
+    if (isUndefined(options[i])) {
       options[i] = defaults[i];
     }
   }
 
   this.options = options;
 
-  if (!_.isUndefined(collection)) {
+  if (!isUndefined(collection)) {
     this.push(collection);
   }
 
@@ -42,7 +42,7 @@ Collection.prototype._refresh = function _refresh() {
 };
 
 Collection.prototype.push = function push(items) {
-  if (!_.isArray(items)) {
+  if (!isArray(items)) {
     items = [items];
   }
 
@@ -61,7 +61,7 @@ Collection.prototype.push = function push(items) {
 };
 
 Collection.prototype.unshift = function unshift(items) {
-  if (!_.isArray(items)) {
+  if (!isArray(items)) {
     items = [items];
   }
   items.reverse().forEach(

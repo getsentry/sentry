@@ -3,7 +3,7 @@ import PropTypes from 'prop-types';
 
 import React from 'react';
 import createReactClass from 'create-react-class';
-import _ from 'lodash';
+import {isEqual} from 'lodash';
 
 import ApiMixin from '../mixins/apiMixin';
 import BarChart from '../components/barChart';
@@ -42,7 +42,7 @@ export default createReactClass({
   },
 
   componentWillReceiveProps(nextProps) {
-    if (!_.isEqual(nextProps, this.props)) {
+    if (!isEqual(nextProps, this.props)) {
       this.setState(
         {
           loading: true,

@@ -2,7 +2,7 @@
 import Jed from 'jed';
 import React from 'react';
 import {sprintf} from 'sprintf-js';
-import _ from 'lodash';
+import {isString, isObject, isArray} from 'lodash';
 import {getTranslations} from './translations';
 
 let LOCALE_DEBUG = false;
@@ -43,7 +43,7 @@ function formatForReact(formatString, args) {
 
   // always re-parse, do not cache, because we change the match
   sprintf.parse(formatString).forEach((match, idx) => {
-    if (_.isString(match)) {
+    if (isString(match)) {
       rv.push(match);
     } else {
       let arg = null;
@@ -77,7 +77,7 @@ function argsInvolveReact(args) {
   if (args.some(React.isValidElement)) {
     return true;
   }
-  if (args.length == 1 && _.isObject(args[0])) {
+  if (args.length == 1 && isObject(args[0])) {
     return Object.keys(args[0]).some(key => {
       return React.isValidElement(args[0][key]);
     });
@@ -143,7 +143,7 @@ export function renderComponentTemplate(template, components) {
     let children = [];
 
     (template[group] || []).forEach(item => {
-      if (_.isString(item)) {
+      if (isString(item)) {
         children.push(<span key={idx++}>{item}</span>);
       } else {
         children.push(renderGroup(item.group));
@@ -179,7 +179,7 @@ function mark(rv) {
     ref: null,
     props: {
       className: 'translation-wrapper',
-      children: _.isArray(rv) ? rv : [rv],
+      children: isArray(rv) ? rv : [rv],
     },
     _owner: null,
     _store: {},

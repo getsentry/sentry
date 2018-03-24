@@ -1,4 +1,4 @@
-import _ from 'lodash';
+import {isArray, isObject, isUndefined, isString} from 'lodash';
 
 // import/export sub-utils
 import parseLinkHeader from './utils/parseLinkHeader';
@@ -31,11 +31,11 @@ const arrayIsEqual = function(arr, other, deep) {
 export const valueIsEqual = function(value, other, deep) {
   if (value === other) {
     return true;
-  } else if (_.isArray(value) || _.isArray(other)) {
+  } else if (isArray(value) || isArray(other)) {
     if (arrayIsEqual(value, other, deep)) {
       return true;
     }
-  } else if (_.isObject(value) || _.isObject(other)) {
+  } else if (isObject(value) || isObject(other)) {
     if (objectMatchesSubset(value, other, deep)) {
       return true;
     }
@@ -126,7 +126,7 @@ export function explodeSlug(slug) {
 }
 
 export function defined(item) {
-  return !_.isUndefined(item) && item !== null;
+  return !isUndefined(item) && item !== null;
 }
 
 export function nl2br(str) {
@@ -136,7 +136,7 @@ export function nl2br(str) {
 export function isUrl(str) {
   return (
     !!str &&
-    _.isString(str) &&
+    isString(str) &&
     (str.indexOf('http://') === 0 || str.indexOf('https://') === 0)
   );
 }

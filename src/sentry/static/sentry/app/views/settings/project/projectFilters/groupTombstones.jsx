@@ -1,6 +1,6 @@
 import PropTypes from 'prop-types';
 import React from 'react';
-import _ from 'lodash';
+import {omit} from 'lodash';
 
 import {addErrorMessage, addSuccessMessage} from '../../../../actionCreators/indicator';
 import {t} from '../../../../locale';
@@ -28,7 +28,7 @@ class GroupTombstoneRow extends React.Component {
           <EventOrGroupHeader
             includeLink={false}
             hideIcons={true}
-            {..._.omit(this.props, 'undiscard')}
+            {...omit(this.props, 'undiscard')}
           />
         </div>
         <div className="col-md-1 event-actor">

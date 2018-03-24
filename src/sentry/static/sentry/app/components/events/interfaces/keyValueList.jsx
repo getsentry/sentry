@@ -1,6 +1,6 @@
 import PropTypes from 'prop-types';
 import React from 'react';
-import _ from 'lodash';
+import {sortBy} from 'lodash';
 
 import ContextData from '../../contextData';
 import {deviceNameMapper} from '../../../utils';
@@ -31,7 +31,7 @@ class KeyValueList extends React.Component {
       data = Object.keys(data).map(key => [key, data[key]]);
     }
 
-    data = this.props.isSorted ? _.sortBy(data, [([key]) => key]) : data;
+    data = this.props.isSorted ? sortBy(data, [([key]) => key]) : data;
     let raw = this.props.raw;
     const props = this.props.onClick ? {onClick: this.props.onClick} : {};
     return (

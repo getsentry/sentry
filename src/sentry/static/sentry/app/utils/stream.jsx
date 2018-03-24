@@ -1,4 +1,4 @@
-import _ from 'lodash';
+import {omit, map} from 'lodash';
 
 /**
  * Converts a stream query to an object representation, with
@@ -19,21 +19,17 @@ export function queryToObj(queryStr) {
   let text = [];
 
   let queryItems = queryStr.match(/\S+:"[^"]*"?|\S+/g);
-  let queryObj = _.reduce(
-    queryItems,
-    (obj, item) => {
-      let index = item.indexOf(':');
-      if (index === -1) {
-        text.push(item);
-      } else {
-        let tagKey = item.slice(0, index);
-        let value = item.slice(index + 1).replace(/^"|"$/g, '');
-        obj[tagKey] = value;
-      }
-      return obj;
-    },
-    {}
-  );
+  let queryObj = queryItems.reduce((obj, item) => {
+    let index = item.indexOf(':');
+    if (index === -1) {
+      text.push(item);
+    } else {
+      let tagKey = item.slice(0, index);
+      let value = item.slice(index + 1).replace(/^"|"$/g, '');
+      obj[tagKey] = value;
+    }
+    return obj;
+  }, {});
 
   if (text.length) queryObj.__text = text.join(' ');
 
@@ -45,9 +41,9 @@ export function queryToObj(queryStr) {
  * (consumable by the Sentry stream HTTP API).
  */
 export function objToQuery(queryObj) {
-  let tags = _.omit(queryObj, '__text');
+  let tags = omit(queryObj, '__text');
 
-  let parts = _.map(tags, (value, tagKey) => {
+  let parts = map(tags, (value, tagKey) => {
     if (value.indexOf(' ') > -1) value = `"${value}"`;
 
     return `${tagKey}:${value}`;

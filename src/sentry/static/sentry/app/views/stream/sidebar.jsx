@@ -1,7 +1,7 @@
 import PropTypes from 'prop-types';
 import React from 'react';
 import createReactClass from 'create-react-class';
-import _ from 'lodash';
+import {isEqual, debounce} from 'lodash';
 import StreamTagFilter from './tagFilter';
 import LoadingIndicator from '../../components/loadingIndicator';
 import {queryToObj, objToQuery} from '../../utils/stream';
@@ -44,7 +44,7 @@ const StreamSidebar = createReactClass({
     // clobber state of sidebar with new query.
     let query = objToQuery(this.state.queryObj);
 
-    if (!_.isEqual(nextProps.query, query)) {
+    if (!isEqual(nextProps.query, query)) {
       let queryObj = queryToObj(nextProps.query);
       this.setState({
         queryObj,
@@ -70,7 +70,7 @@ const StreamSidebar = createReactClass({
     this.setState({textFilter: evt.target.value});
   },
 
-  debouncedTextChange: _.debounce(function(text) {
+  debouncedTextChange: debounce(function(text) {
     this.setState(
       {
         queryObj: {...this.state.queryObj, __text: text},
@@ -134,7 +134,7 @@ const StreamSidebar = createReactClass({
               <hr />
             </div>
 
-            {_.map(this.props.tags, tag => {
+            {this.props.tags.map(tag => {
               return (
                 <StreamTagFilter
                   value={this.state.queryObj[tag.key]}

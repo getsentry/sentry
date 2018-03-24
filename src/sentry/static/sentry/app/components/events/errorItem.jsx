@@ -1,4 +1,4 @@
-import _ from 'lodash';
+import {mapKeys, startCase, isEmpty} from 'lodash';
 import PropTypes from 'prop-types';
 import React from 'react';
 import KeyValueList from './interfaces/keyValueList';
@@ -46,7 +46,7 @@ class EventErrorItem extends React.Component {
       data.image_path = path.length ? path.join(separator) + separator : '';
     }
 
-    return _.mapKeys(data, (value, key) => t(keyMapping[key] || _.startCase(key)));
+    return mapKeys(data, (value, key) => t(keyMapping[key] || _.startCase(key)));
   }
 
   render() {
@@ -56,7 +56,7 @@ class EventErrorItem extends React.Component {
     return (
       <li>
         {error.message}
-        {!_.isEmpty(data) && (
+        {!isEmpty(data) && (
           <small>
             {' '}
             <a style={{marginLeft: 10}} onClick={this.toggle}>

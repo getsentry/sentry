@@ -1,7 +1,7 @@
 import React from 'react';
 import createReactClass from 'create-react-class';
 import moment from 'moment';
-import _ from 'lodash';
+import {escape} from 'lodash';
 
 import ConfigStore from '../../stores/configStore';
 import Avatar from '../../components/avatar';
@@ -37,9 +37,9 @@ const GroupSeenBy = createReactClass({
       })
       .map((user, userIdx) => {
         let title =
-          _.escape(userDisplayName(user)) +
+          escape(userDisplayName(user)) +
           '<br/>' +
-          _.escape(moment(user.lastSeen).format('LL'));
+          escape(moment(user.lastSeen).format('LL'));
         return (
           <li key={userIdx}>
             <Tooltip title={title} tooltipOptions={{html: true}}>

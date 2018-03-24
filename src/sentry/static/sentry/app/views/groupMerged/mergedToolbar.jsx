@@ -2,7 +2,7 @@ import PropTypes from 'prop-types';
 import React from 'react';
 import createReactClass from 'create-react-class';
 import Reflux from 'reflux';
-import _ from 'lodash';
+import {pick} from 'lodash';
 
 import {t} from '../../locale';
 import GroupingStore from '../../stores/groupingStore';
@@ -47,7 +47,7 @@ const MergedToolbar = createReactClass({
       'enableFingerprintCompare',
     ];
 
-    this.setState(_.pick(updateObj, allowedKeys));
+    this.setState(pick(updateObj, allowedKeys));
   },
 
   handleShowDiff(e) {

@@ -1,7 +1,7 @@
 import {Box, Flex} from 'grid-emotion';
 import PropTypes from 'prop-types';
 import React from 'react';
-import _ from 'lodash';
+import {isEqual} from 'lodash';
 import createReactClass from 'create-react-class';
 
 import {t} from '../locale';
@@ -48,9 +48,7 @@ const PluginConfig = createReactClass({
   },
 
   shouldComponentUpdate(nextProps, nextState) {
-    return (
-      !_.isEqual(nextState, this.state) || !_.isEqual(nextProps.data, this.props.data)
-    );
+    return !isEqual(nextState, this.state) || !isEqual(nextProps.data, this.props.data);
   },
 
   loadPlugin(data) {

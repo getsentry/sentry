@@ -1,7 +1,6 @@
 import PropTypes from 'prop-types';
 import React from 'react';
 import ReactDOM from 'react-dom';
-import _ from 'lodash';
 
 class StreamTagFilter extends React.Component {
   static propTypes = {
@@ -58,7 +57,7 @@ class StreamTagFilter extends React.Component {
           results: (data, page) => {
             // parse the results into the format expected by Select2
             return {
-              results: _.map(data, val =>
+              results: data.map(val =>
                 StreamTagFilter.tagValueToSelect2Format(val.value)
               ),
             };

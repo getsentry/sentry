@@ -1,7 +1,7 @@
 import PropTypes from 'prop-types';
 import React from 'react';
 import moment from 'moment-timezone';
-import _ from 'lodash';
+import {isString, isNumber} from 'lodash';
 
 import ConfigStore from '../stores/configStore';
 import {t} from '../locale';
@@ -13,7 +13,7 @@ class TimeSince extends React.PureComponent {
   };
 
   static getDateObj(date) {
-    if (_.isString(date) || _.isNumber(date)) {
+    if (isString(date) || isNumber(date)) {
       date = new Date(date);
     }
     return date;

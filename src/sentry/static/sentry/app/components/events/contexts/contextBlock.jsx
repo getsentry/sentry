@@ -1,6 +1,6 @@
 import PropTypes from 'prop-types';
 import React from 'react';
-import _ from 'lodash';
+import {sortBy} from 'lodash';
 
 import {defined} from '../../../utils';
 import ErrorBoundary from '../../errorBoundary';
@@ -39,7 +39,7 @@ class ContextBlock extends React.Component {
     }
 
     if (extraData.length > 0) {
-      data = data.concat(_.sortBy(extraData, (key, value) => key));
+      data = data.concat(sortBy(extraData, (key, value) => key));
     }
 
     return (

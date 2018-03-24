@@ -1,5 +1,5 @@
 import React from 'react';
-import _ from 'lodash';
+import {isFunction} from 'lodash';
 
 import {Client} from '../../api';
 import {FormState, GenericField} from '../../components/forms';
@@ -7,7 +7,7 @@ import IndicatorStore from '../../stores/indicatorStore';
 import {t} from '../../locale';
 
 const callbackWithArgs = function(callback, ...args) {
-  if (_.isFunction(callback)) {
+  if (isFunction(callback)) {
     callback = callback.bind(this, ...args);
   } else {
     callback = null;

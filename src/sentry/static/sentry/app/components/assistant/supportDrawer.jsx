@@ -1,6 +1,6 @@
 import PropTypes from 'prop-types';
 import React from 'react';
-import _ from 'lodash';
+import {debounce} from 'lodash';
 import createReactClass from 'create-react-class';
 import $ from 'jquery';
 import styled from 'react-emotion';
@@ -33,7 +33,7 @@ const SupportDrawer = createReactClass({
     this.setState({inputVal: ''});
   },
 
-  search: _.debounce(function() {
+  search: debounce(function() {
     if (this.state.inputVal.length <= 2) {
       this.setState({
         docResults: [],

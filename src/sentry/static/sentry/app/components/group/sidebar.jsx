@@ -1,6 +1,6 @@
 import PropTypes from 'prop-types';
 import React from 'react';
-import _ from 'lodash';
+import {isObject} from 'lodash';
 
 import createReactClass from 'create-react-class';
 
@@ -134,7 +134,7 @@ const GroupSidebar = createReactClass({
             <dt>{`${plugin.shortName || plugin.name || plugin.title}: `}</dt>
             <dd>
               <a href={issue.url}>
-                {_.isObject(issue.label) ? issue.label.id : issue.label}
+                {isObject(issue.label) ? issue.label.id : issue.label}
               </a>
             </dd>
           </dl>

@@ -2,7 +2,7 @@ import React from 'react';
 import createReactClass from 'create-react-class';
 import PropTypes from 'prop-types';
 import moment from 'moment-timezone';
-import _ from 'lodash';
+import {isEqual} from 'lodash';
 
 import Tooltip from '../components/tooltip';
 import Count from './count';
@@ -130,7 +130,7 @@ const StackedBarChart = createReactClass({
   },
 
   shouldComponentUpdate(nextProps, nextState) {
-    return !_.isEqual(this.props, nextProps);
+    return !isEqual(this.props, nextProps);
   },
 
   use24Hours() {

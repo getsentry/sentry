@@ -1,5 +1,5 @@
 import React from 'react';
-import _ from 'lodash';
+import {keyBy} from 'lodash';
 import ConfigStore from './stores/configStore';
 import {t, tct} from './locale';
 import {EmailField, TextField, BooleanField, RadioBooleanField} from './components/forms';
@@ -154,7 +154,7 @@ const definitions = [
   },
 ];
 
-const definitionsMap = _.keyBy(definitions, def => def.key);
+const definitionsMap = keyBy(definitions, def => def.key);
 
 const disabledReasons = {
   diskPriority:

@@ -1,5 +1,5 @@
 import React from 'react';
-import _ from 'lodash';
+import {isUndefined} from 'lodash';
 
 import AsyncView from './asyncView';
 import {t} from '../locale';
@@ -36,7 +36,7 @@ export default class AdminSettings extends AsyncView {
     for (let key of optionsAvailable) {
       // TODO(dcramer): we should not be mutating options
       let option = data[key] || {field: {}};
-      if (_.isUndefined(option.value) || option.value === '') {
+      if (isUndefined(option.value) || option.value === '') {
         let defn = getOption(key);
         initialData[key] = defn.defaultValue ? defn.defaultValue() : '';
       } else {

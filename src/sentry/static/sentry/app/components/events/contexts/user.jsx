@@ -1,7 +1,6 @@
 /*eslint react/jsx-key:0*/
 import PropTypes from 'prop-types';
 import React from 'react';
-import _ from 'lodash';
 
 import Avatar from '../../../components/avatar';
 import ErrorBoundary from '../../errorBoundary';
@@ -34,7 +33,7 @@ class UserContextType extends React.Component {
     user.name && builtins.push(['Name', <pre>{user.name}</pre>]);
 
     // We also attach user supplied data as 'user.data'
-    _.each(user.data, function(value, key) {
+    user.data.forEach(function(value, key) {
       children.push([key, value]);
     });
 

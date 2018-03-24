@@ -1,7 +1,7 @@
 import {css} from 'emotion';
 import PropTypes from 'prop-types';
 import React from 'react';
-import _ from 'lodash';
+import {flatMap} from 'lodash';
 import styled from 'react-emotion';
 
 import AutoComplete from './autoComplete';
@@ -88,7 +88,7 @@ class DropdownAutoCompleteMenu extends React.Component {
 
     if (items[0] && items[0].items) {
       //if the first item has children, we assume it is a group
-      return _.flatMap(this.filterGroupedItems(items, inputValue), item => {
+      return flatMap(this.filterGroupedItems(items, inputValue), item => {
         return [
           {...item, groupLabel: true},
           ...item.items.map(groupedItem => ({...groupedItem, index: itemCount++})),

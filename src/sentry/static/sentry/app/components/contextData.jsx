@@ -1,7 +1,7 @@
 import PropTypes from 'prop-types';
 import React from 'react';
 import jQuery from 'jquery';
-import _ from 'lodash';
+import {isString, isNumber, isArray} from 'lodash';
 
 import {isUrl} from '../utils';
 
@@ -110,7 +110,7 @@ class ContextData extends React.Component {
         return <span className="val-null">{'None'}</span>;
       } else if (value === true || value === false) {
         return <span className="val-bool">{value ? 'True' : 'False'}</span>;
-      } else if (_.isString(value)) {
+      } else if (isString(value)) {
         let valueInfo = analyzeStringForRepr(value);
 
         let out = [
@@ -135,9 +135,9 @@ class ContextData extends React.Component {
         }
 
         return out;
-      } else if (_.isNumber(value)) {
+      } else if (isNumber(value)) {
         return <span className="val-number">{value}</span>;
-      } else if (_.isArray(value)) {
+      } else if (isArray(value)) {
         for (i = 0; i < value.length; i++) {
           children.push(
             <span className="val-array-item" key={i}>
@@ -196,7 +196,7 @@ class ContextData extends React.Component {
   };
 
   renderKeyPosValue = value => {
-    if (_.isString(value)) {
+    if (isString(value)) {
       return <span className="val-string">{value}</span>;
     }
     return this.renderValue(value);

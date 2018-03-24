@@ -1,5 +1,5 @@
 import {observable, computed, action} from 'mobx';
-import _ from 'lodash';
+import {isEqual} from 'lodash';
 
 import {Client} from '../../../../api';
 import {
@@ -86,7 +86,7 @@ class FormModel {
    */
   @computed
   get formChanged() {
-    return !_.isEqual(this.initialData, this.fields.toJSON());
+    return !isEqual(this.initialData, this.fields.toJSON());
   }
 
   @computed

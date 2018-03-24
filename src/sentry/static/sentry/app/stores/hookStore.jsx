@@ -1,5 +1,5 @@
 import Reflux from 'reflux';
-import _ from 'lodash';
+import {isUndefined} from 'lodash';
 
 let validHookNames = new Set([
   'assistant:support-button',
@@ -32,7 +32,7 @@ const HookStore = Reflux.createStore({
       // eslint-disable-next-line no-console
       console.error('Invalid hook name: ' + hookName);
     }
-    if (_.isUndefined(this.hooks[hookName])) {
+    if (isUndefined(this.hooks[hookName])) {
       this.hooks[hookName] = [];
     }
     this.hooks[hookName].push(callback);
@@ -40,7 +40,7 @@ const HookStore = Reflux.createStore({
   },
 
   remove(hookName, callback) {
-    if (_.isUndefined(this.hooks[hookName])) {
+    if (isUndefined(this.hooks[hookName])) {
       return;
     }
     this.hooks[hookName] = this.hooks[hookName].filter(cb => {

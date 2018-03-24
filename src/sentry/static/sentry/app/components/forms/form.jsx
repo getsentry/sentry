@@ -1,6 +1,6 @@
 import PropTypes from 'prop-types';
 import React from 'react';
-import _ from 'lodash';
+import {isEqual} from 'lodash';
 
 import FormState from './state';
 import {t} from '../../locale';
@@ -116,7 +116,7 @@ export default class Form extends React.Component {
     let {initialData, data} = this.state;
     let {errorMessage, hideErrors, requireChanges} = this.props;
     let hasChanges = requireChanges
-      ? Object.keys(data).length && !_.isEqual(data, initialData)
+      ? Object.keys(data).length && !isEqual(data, initialData)
       : true;
     let isError = this.state.state == FormState.ERROR;
     let nonFieldErrors = this.state.errors && this.state.errors.non_field_errors;

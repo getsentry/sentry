@@ -3,7 +3,7 @@ import React from 'react';
 import createReactClass from 'create-react-class';
 import ReactDOM from 'react-dom';
 import Reflux from 'reflux';
-import _ from 'lodash';
+import {debounce} from 'lodash';
 import classNames from 'classnames';
 
 import TagStore from '../../stores/tagStore';
@@ -208,7 +208,7 @@ const SearchBar = createReactClass({
    * Returns array of tag values that substring match `query`; invokes `callback`
    * with data when ready
    */
-  getTagValues: _.debounce(function(tag, query, callback) {
+  getTagValues: debounce(function(tag, query, callback) {
     // Strip double quotes if there are any
     query = query.replace('"', '').trim();
 

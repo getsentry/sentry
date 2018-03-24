@@ -1,7 +1,7 @@
 import {Flex} from 'grid-emotion';
 import PropTypes from 'prop-types';
 import React from 'react';
-import _ from 'lodash';
+import {isEqual} from 'lodash';
 
 import {Form, FormState} from '../../components/forms';
 import {parseRepo} from '../../utils';
@@ -112,7 +112,7 @@ class PluginSettings extends PluginComponentBase {
       return <LoadingIndicator />;
     }
     let isSaving = this.state.state === FormState.SAVING;
-    let hasChanges = !_.isEqual(this.state.initialData, this.state.formData);
+    let hasChanges = !isEqual(this.state.initialData, this.state.formData);
 
     let data = this.state.rawData;
     if (data.config_error) {

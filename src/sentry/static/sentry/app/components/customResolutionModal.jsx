@@ -1,9 +1,9 @@
+import {escape} from 'lodash';
 import PropTypes from 'prop-types';
 import React from 'react';
 import ReactDOMServer from 'react-dom/server';
 import jQuery from 'jquery';
 import Modal from 'react-bootstrap/lib/Modal';
-import underscore from 'lodash';
 
 import TimeSince from './timeSince';
 import Version from './version';
@@ -81,7 +81,7 @@ export default class CustomResolutionModal extends React.Component {
                     </div>
                   );
                 }}
-                formatSelection={item => underscore.escape(item.version)}
+                formatSelection={item => escape(item.version)}
                 escapeMarkup={false}
               />
             </div>

@@ -1,7 +1,7 @@
 import PropTypes from 'prop-types';
 import React from 'react';
 import createReactClass from 'create-react-class';
-import _ from 'lodash';
+import {after} from 'lodash';
 
 import Avatar from './avatar';
 
@@ -44,7 +44,7 @@ const VersionHoverCard = createReactClass({
 
   fetchData() {
     let {orgId, projectId, version} = this.props;
-    let done = _.after(3, () => {
+    let done = after(3, () => {
       this.setState({loading: false});
     });
 

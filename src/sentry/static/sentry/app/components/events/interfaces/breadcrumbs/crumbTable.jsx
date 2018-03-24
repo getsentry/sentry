@@ -1,6 +1,6 @@
+import {map} from 'lodash';
 import PropTypes from 'prop-types';
 import React from 'react';
-import _ from 'lodash';
 
 import Category from './category';
 
@@ -16,7 +16,7 @@ class CrumbTable extends React.Component {
     if (!this.props.kvData) {
       return null;
     }
-    return _.map(this.props.kvData, (val, key) => {
+    return map(this.props.kvData, (val, key) => {
       return (
         <tr key={key}>
           <td className="key">{key}</td>

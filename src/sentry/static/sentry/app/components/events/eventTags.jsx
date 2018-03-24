@@ -1,7 +1,7 @@
 import PropTypes from 'prop-types';
 import React from 'react';
 import {Link} from 'react-router';
-import _ from 'lodash';
+import {isEmpty} from 'lodash';
 
 import SentryTypes from '../../proptypes';
 
@@ -23,7 +23,7 @@ class EventTags extends React.Component {
 
   render() {
     let tags = this.props.event.tags;
-    if (_.isEmpty(tags)) return null;
+    if (isEmpty(tags)) return null;
 
     let {orgId, projectId} = this.props;
     return (
