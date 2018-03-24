@@ -64,9 +64,7 @@ const OrganizationSelector = createReactClass({
     let features = ConfigStore.get('features');
 
     let hasNewSettings = new Set(activeOrg.features).has('new-settings');
-    let settingsPrefix = `${hasNewSettings
-      ? '/settings/organization'
-      : '/organizations'}`;
+    let settingsPrefix = `${hasNewSettings ? '/settings' : '/organizations'}`;
 
     let classNames = 'org-selector divider-bottom';
     if (this.props.currentPanel == 'org-selector') {
