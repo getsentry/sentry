@@ -21,8 +21,10 @@ let NewSettingsWarning = ({location = {}}) => {
   // This is so that we can move from new settings back to old settings
   let projectRegex = /^\/settings\/([^\/]+)\/([^\/]+)\//;
   let accountRegex = /^\/settings\/account\/([^\/]+)\//;
-  let orgRegex = /^\/settings\/([^\/]+)\/((?:(?:settings|projects|teams|stats|members|auth|audit-log|rate-limits|repos|billing|payments|subscription|legal|support)\/)|)/;
+  let orgSettingsIndex = /^\/settings\/([^\/]+)\/$/;
+  let orgRegex = /^\/settings\/([^\/]+)\/(settings|projects|teams|stats|members|auth|audit-log|rate-limits|repos|billing|payments|subscription|legal|support)\//;
   let isProject = projectRegex.test(location.pathname);
+  let isOrgIndex = orgSettingsIndex.test(location.pathname);
   let isOrg = orgRegex.test(location.pathname);
   let isAccount = accountRegex.test(location.pathname);
   let oldLocation;
@@ -34,8 +36,13 @@ let NewSettingsWarning = ({location = {}}) => {
       .replace('settings/close-account/', 'remove/')
       .replace('account/settings/api/', 'api/')
       .replace('auth-tokens/', '');
+  } else if (isOrgIndex) {
+    oldLocation = location.pathname.replace(
+      orgSettingsIndex,
+      '/organizations/$1/settings/'
+    );
   } else if (isOrg) {
-    oldLocation = location.pathname.replace(orgRegex, '/organizations/$1/$2');
+    oldLocation = location.pathname.replace(orgRegex, '/organizations/$1/$2/');
   } else if (isProject) {
     oldLocation = location.pathname.replace(projectRegex, '/$1/$2/settings/');
   }
