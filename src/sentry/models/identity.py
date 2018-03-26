@@ -66,4 +66,4 @@ class Identity(Model):
     class Meta:
         app_label = 'sentry'
         db_table = 'sentry_identity'
-        unique_together = (('idp', 'external_id'),)
+        unique_together = (('idp', 'external_id'), ('idp', 'user'))
