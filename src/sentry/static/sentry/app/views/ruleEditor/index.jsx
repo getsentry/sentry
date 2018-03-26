@@ -4,7 +4,8 @@ import React from 'react';
 import createReactClass from 'create-react-class';
 import styled from 'react-emotion';
 
-import {Select2Field} from '../../components/forms';
+import {Select2Field, TextField} from '../../components/forms';
+import Button from '../../components/buttons/button';
 import {
   addErrorMessage,
   addSuccessMessage,
@@ -201,35 +202,30 @@ const RuleEditor = createReactClass({
               </div>
             )}
             <h6>{t('Rule name')}:</h6>
-            <div className="control-group">
-              <input
-                type="text"
-                className="form-control"
-                defaultValue={name}
-                required={true}
-                placeholder={t('My Rule Name')}
-                onChange={e => this.handleChange('name', e.target.value)}
-              />
-            </div>
+            <TextField
+              name="name"
+              defaultValue={name}
+              required={true}
+              placeholder={t('My Rule Name')}
+              onChange={val => this.handleChange('name', val)}
+            />
 
             <hr />
 
-            <div className="node-match-selector">
-              <AlertRuleRow>
-                {t(
-                  'Every time %s of these conditions are met:',
-                  <Select2Field
-                    className={this.hasError('actionMatch') ? ' error' : ''}
-                    style={{marginBottom: 0, marginLeft: 5, marginRight: 5}}
-                    name="actionMatch"
-                    value={actionMatch}
-                    required={true}
-                    choices={ACTION_MATCH_CHOICES}
-                    onChange={val => this.handleChange('actionMatch', val)}
-                  />
-                )}
-              </AlertRuleRow>
-            </div>
+            <AlertRuleRow>
+              {t(
+                'Every time %s of these conditions are met:',
+                <Select2Field
+                  className={this.hasError('actionMatch') ? ' error' : ''}
+                  style={{marginBottom: 0, marginLeft: 5, marginRight: 5, width: 100}}
+                  name="actionMatch"
+                  value={actionMatch}
+                  required={true}
+                  choices={ACTION_MATCH_CHOICES}
+                  onChange={val => this.handleChange('actionMatch', val)}
+                />
+              )}
+            </AlertRuleRow>
 
             {this.hasError('conditions') && (
               <p className="error">{this.state.error.conditions[0]}</p>
@@ -288,9 +284,9 @@ const RuleEditor = createReactClass({
             </div>
 
             <div className="actions">
-              <button className="btn btn-primary btn-lg" disabled={loading}>
+              <Button priority="primary" disabled={loading}>
                 {t('Save Rule')}
-              </button>
+              </Button>
             </div>
           </PanelBody>
         </Panel>
