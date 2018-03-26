@@ -8,6 +8,7 @@ const TeamStore = Reflux.createStore({
 
     this.listenTo(TeamActions.updateSuccess, this.onUpdateSuccess);
     this.listenTo(TeamActions.fetchDetailsSuccess, this.onUpdateSuccess);
+    this.listenTo(TeamActions.removeTeamSuccess, this.onRemoveSuccess);
   },
 
   reset() {
@@ -44,6 +45,10 @@ const TeamStore = Reflux.createStore({
     }
 
     this.trigger(new Set([itemId]));
+  },
+
+  onRemoveSuccess(slug) {
+    this.loadInitialData(this.items.filter(team => team.slug !== slug));
   },
 
   getById(id) {

@@ -10,6 +10,9 @@ let TeamActions = Reflux.createActions([
   'fetchDetails',
   'fetchDetailsSuccess',
   'fetchDetailsError',
+  'removeTeam',
+  'removeTeamSuccess',
+  'removeTeamError',
 ]);
 
 export default TeamActions;
