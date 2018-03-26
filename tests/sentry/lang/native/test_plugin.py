@@ -8,7 +8,7 @@ from six import BytesIO
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.core.urlresolvers import reverse
 
-from sentry.models import Event
+from sentry.models import Event, File, ProjectDSymFile
 from sentry.testutils import TestCase
 from sentry.lang.native.symbolizer import Symbolizer
 
@@ -1207,3 +1207,89 @@ class RealResolvingIntegrationTest(TestCase):
                 event.delete()
         finally:
             Object.make_symcache = original_make_symcache
+
+    def test_debug_id_resolving(self):
+        path = os.path.join(os.path.dirname(__file__), 'fixtures', 'windows.sym')
+        file = File.objects.create(
+            name='crash.pdb',
+            type='default',
+            size=os.stat(path).st_size,
+            headers={'Content-Type': 'text/x-breakpad'},
+        )
+
+        with open(path) as f:
+            file.putfile(f)
+
+        ProjectDSymFile.objects.create(
+            file=file,
+            object_name='crash.pdb',
+            cpu_name='x86',
+            project=self.project,
+            debug_id='3249d99d-0c40-4931-8610-f4e4fb0b6936-1',
+        )
+
+        self.login_as(user=self.user)
+
+        event_data = {
+            'contexts': {
+                'device': {
+                    'arch': 'x86'
+                },
+                'os': {
+                    'build': u'',
+                    'name': 'Windows',
+                    'type': 'os',
+                    'version': u'10.0.14393'
+                }
+            },
+            'debug_meta': {
+                'images': [
+                    {
+                        'id': u'3249d99d-0c40-4931-8610-f4e4fb0b6936-1',
+                        'image_addr': '0x2a0000',
+                        'image_size': '0x9000',
+                        'name': u'C:\\projects\\breakpad-tools\\windows\\Release\\crash.exe',
+                        'type': 'apple'
+                    }
+                ]
+            },
+            'exception': {
+                'stacktrace': {
+                    'frames': [
+                        {
+                            'function': '<unknown>',
+                            'instruction_addr': '0x2a2a3d',
+                            'package': u'C:\\projects\\breakpad-tools\\windows\\Release\\crash.exe'
+                        }
+                    ]
+                },
+                'thread_id': 1636,
+                'type': u'EXCEPTION_ACCESS_VIOLATION_WRITE',
+                'value': u'Fatal Error: EXCEPTION_ACCESS_VIOLATION_WRITE'
+            },
+            'level': 'fatal',
+            'message': u'Fatal Error: EXCEPTION_ACCESS_VIOLATION_WRITE',
+            'platform': 'native',
+            'release': 'test-1.0.0',
+            'threads': [
+                {
+                    'crashed': True,
+                    'id': 1636
+                }
+            ],
+            'timestamp': 1521713273.0
+        }
+
+        resp = self._postWithHeader(event_data)
+        assert resp.status_code == 200
+
+        event = Event.objects.get()
+
+        bt = event.interfaces['sentry.interfaces.Exception'].values[0].stacktrace
+        frames = bt.frames
+
+        assert frames[0].function == 'main'
+        # NOTE: Breakpad symbols only contain entire paths
+        assert frames[0].filename == 'c:\\projects\\breakpad-tools\\windows\\crash\\main.cpp'
+        assert frames[0].abs_path == 'c:\\projects\\breakpad-tools\\windows\\crash\\main.cpp'
+        assert frames[0].lineno == 35
