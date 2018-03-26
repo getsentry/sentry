@@ -33,3 +33,13 @@ export function openDiffModal(options) {
       })
     );
 }
+
+export function openCreateTeamModal(options = {}) {
+  import(/* webpackChunkName: "CreateTeamModal" */ '../components/modals/createTeamModal')
+    .then(mod => mod.default)
+    .then(Modal => {
+      openModal(deps => <Modal {...deps} {...options} />, {
+        modalClassName: 'create-team-modal',
+      });
+    });
+}
