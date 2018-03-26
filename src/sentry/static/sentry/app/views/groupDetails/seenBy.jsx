@@ -48,7 +48,7 @@ const GroupSeenBy = createReactClass({
           _.escape(moment(user.lastSeen).format('LL'));
         return (
           <li key={userIdx} className="tip" data-title={title}>
-            <Avatar size={52} user={user} />
+            <Avatar size={28} user={user} />
           </li>
         );
       });

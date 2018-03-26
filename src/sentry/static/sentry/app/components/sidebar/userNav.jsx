@@ -25,7 +25,7 @@ class UserNav extends React.Component {
       return null;
     }
 
-    let title = <Avatar user={user} className="avatar" />;
+    let title = <Avatar size={32} user={user} className="avatar" />;
 
     // "to" attribute => in-app router
     // "href" attribute => Django-powered views

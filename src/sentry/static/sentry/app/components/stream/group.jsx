@@ -127,7 +127,7 @@ const StreamGroup = createReactClass({
           />
         </div>
         <div className="event-assignee col-md-1 hidden-sm hidden-xs">
-          <AssigneeSelector id={data.id} />
+          <AssigneeSelector size={24} id={data.id} />
         </div>
         <div className="col-md-2 hidden-sm hidden-xs event-graph align-right">
           <GroupChart id={data.id} statsPeriod={this.props.statsPeriod} data={data} />

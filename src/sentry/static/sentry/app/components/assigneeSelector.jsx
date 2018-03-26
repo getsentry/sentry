@@ -1,31 +1,35 @@
 import PropTypes from 'prop-types';
 import React from 'react';
-import createReactClass from 'create-react-class';
 import Reflux from 'reflux';
 import classNames from 'classnames';
+import createReactClass from 'create-react-class';
+import styled from 'react-emotion';
 
+import {assignToUser, assignToActor, clearAssignment} from '../actionCreators/group';
 import {t} from '../locale';
 import {valueIsEqual, buildUserId, buildTeamId} from '../utils';
-import SentryTypes from '../proptypes';
-import Avatar from '../components/avatar';
-import TeamAvatar from '../components/teamAvatar';
 import ActorAvatar from '../components/actorAvatar';
+import Avatar from '../components/avatar';
+import ConfigStore from '../stores/configStore';
 import DropdownLink from './dropdownLink';
 import FlowLayout from './flowLayout';
-import MenuItem from './menuItem';
-import {assignToUser, assignToActor, clearAssignment} from '../actionCreators/group';
 import GroupStore from '../stores/groupStore';
-import ProjectsStore from '../stores/projectsStore';
+import InlineSvg from './inlineSvg';
 import LoadingIndicator from '../components/loadingIndicator';
 import MemberListStore from '../stores/memberListStore';
-import ConfigStore from '../stores/configStore';
+import MenuItem from './menuItem';
+import ProjectsStore from '../stores/projectsStore';
+import SentryTypes from '../proptypes';
+import TextOverflow from './textOverflow';
 
 const AssigneeSelector = createReactClass({
   displayName: 'AssigneeSelector',
 
   propTypes: {
     id: PropTypes.string.isRequired,
+    size: PropTypes.number,
   },
+
   contextTypes: {
     organization: SentryTypes.Organization,
   },
@@ -61,6 +65,12 @@ const AssigneeSelector = createReactClass({
         .concat(members.slice(0, sessionUserIndex))
         .concat(members.slice(sessionUserIndex + 1));
     },
+  },
+
+  getDefaultProps() {
+    return {
+      size: 20,
+    };
   },
 
   getInitialState() {
@@ -204,16 +214,17 @@ const AssigneeSelector = createReactClass({
       return text;
     }
     return (
-      <span>
+      <React.Fragment>
         {text.substr(0, idx)}
         <strong className="highlight">{text.substr(idx, highlightText.length)}</strong>
         {text.substr(idx + highlightText.length)}
-      </span>
+      </React.Fragment>
     );
   },
 
   renderMemberNodes() {
     let {filter, memberList} = this.state;
+    let {size} = this.props;
     let members = AssigneeSelector.filterAssignees(memberList, filter);
     members = AssigneeSelector.putSessionUserFirst(members);
 
@@ -223,8 +234,12 @@ const AssigneeSelector = createReactClass({
           key={buildUserId(item.id)}
           onSelect={this.assignToUser.bind(this, item)}
         >
-          <Avatar user={item} className="avatar" size={48} />
-          {this.highlight(item.name || item.email, filter)}
+          <MenuItemWrapper>
+            <IconContainer>
+              <Avatar user={item} size={size} />
+            </IconContainer>
+            <Label>{this.highlight(item.name || item.email, filter)}</Label>
+          </MenuItemWrapper>
         </MenuItem>
       );
     });
@@ -232,6 +247,7 @@ const AssigneeSelector = createReactClass({
 
   renderTeamNodes() {
     let {filter} = this.state;
+    let {size} = this.props;
     let teamNodes = [];
     let org = this.context.organization;
     let features = new Set(org.features);
@@ -240,8 +256,12 @@ const AssigneeSelector = createReactClass({
       teamNodes = this.assignableTeams().map(({id, display, team}) => {
         return (
           <MenuItem key={id} onSelect={this.assignToTeam.bind(this, team)}>
-            <TeamAvatar team={team} className="avatar" size={48} />
-            {this.highlight(display, filter)}
+            <MenuItemWrapper>
+              <IconContainer>
+                <Avatar team={team} size={size} />
+              </IconContainer>
+              <Label>{this.highlight(display, filter)}</Label>
+            </MenuItemWrapper>
           </MenuItem>
         );
       });
@@ -282,14 +302,19 @@ const AssigneeSelector = createReactClass({
             disabled={!loading}
             onSelect={this.clearAssignTo}
           >
-            <span className="icon-circle-cross" /> {t('Clear Assignee')}
+            <MenuItemWrapper py={0}>
+              <IconContainer>
+                <ClearAssigneeIcon />
+              </IconContainer>
+              <Label>{t('Clear Assignee')}</Label>
+            </MenuItemWrapper>
           </MenuItem>
         )}
 
         <li>
           <ul>
             {teams}
-            {hasTeamsAndMembers ? <hr key="divider" style={{margin: 0}} /> : null}
+            {hasTeamsAndMembers ? <Divider key="divider" /> : null}
             {members}
             {!hasTeamsOrMembers && (
               <li className="not-found">
@@ -336,7 +361,7 @@ const AssigneeSelector = createReactClass({
             alwaysRenderMenu={false}
             title={
               assignedTo ? (
-                <ActorAvatar actor={assignedTo} className="avatar" size={48} />
+                <ActorAvatar actor={assignedTo} className="avatar" size={24} />
               ) : (
                 <span className="icon-user" />
               )
@@ -355,14 +380,19 @@ const AssigneeSelector = createReactClass({
             {ConfigStore.get('invitesEnabled') &&
               access.has('org:write') && (
                 <React.Fragment>
-                  <hr key="divider" style={{margin: 0}} />
+                  <Divider />
                   <MenuItem
                     className="invite-member"
                     disabled={!loading}
                     to={`/settings/${this.context.organization.slug}/members/new/`}
                     query={{referrer: 'assignee_selector'}}
                   >
-                    <span className="icon-plus" /> {t('Invite Member')}
+                    <MenuItemWrapper>
+                      <IconContainer>
+                        <InviteMemberIcon />
+                      </IconContainer>
+                      <Label>{t('Invite Member')}</Label>
+                    </MenuItemWrapper>
                   </MenuItem>
                 </React.Fragment>
               )}
@@ -374,3 +404,47 @@ const AssigneeSelector = createReactClass({
 });
 
 export default AssigneeSelector;
+
+const getSvgStyle = () => `
+  font-size: 16px;
+  opacity: 0.3;
+`;
+
+const Divider = styled.hr`
+  margin: 0;
+`;
+
+const IconContainer = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  flex-shrink: 0;
+`;
+
+const MenuItemWrapper = styled(({py, ...props}) => <div {...props} />)`
+  display: flex;
+  align-items: center;
+  padding: 5px 8px;
+  ${p =>
+    typeof p.py !== 'undefined' &&
+    `
+      padding-top: ${p.py};
+      padding-bottom: ${p.py};
+    `};
+`;
+
+const Label = styled(TextOverflow)`
+  margin-left: 6px;
+`;
+
+const ClearAssigneeIcon = styled(props => (
+  <InlineSvg {...props} src="icon-circle-close" />
+))`
+  ${getSvgStyle};
+`;
+
+const InviteMemberIcon = styled(props => <InlineSvg {...props} src="icon-circle-add" />)`
+  ${getSvgStyle};
+`;

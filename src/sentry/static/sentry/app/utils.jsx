@@ -118,6 +118,13 @@ export function trim(str) {
   return str.replace(/^\s+|\s+$/g, '');
 }
 
+/**
+ * Replaces slug special chars with a space
+ */
+export function explodeSlug(slug) {
+  return trim(slug.replace(/[-_]+/g, ' '));
+}
+
 export function defined(item) {
   return !_.isUndefined(item) && item !== null;
 }
