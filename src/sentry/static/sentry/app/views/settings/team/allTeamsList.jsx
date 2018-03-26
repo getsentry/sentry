@@ -2,6 +2,7 @@ import {Link} from 'react-router';
 import PropTypes from 'prop-types';
 import React from 'react';
 
+import {openCreateTeamModal} from '../../../actionCreators/modal';
 import {tct} from '../../../locale';
 import AllTeamsRow from './allTeamsRow';
 import EmptyMessage from '../components/emptyMessage';
@@ -15,10 +16,24 @@ class AllTeamsList extends React.Component {
     organization: SentryTypes.Organization,
     teamList: PropTypes.arrayOf(SentryTypes.Team),
     openMembership: PropTypes.bool,
+    useCreateModal: PropTypes.bool,
+  };
+
+  handleCreateTeam = e => {
+    let {useCreateModal, organization} = this.props;
+
+    if (!useCreateModal) return;
+
+    e.preventDefault();
+
+    openCreateTeamModal({
+      organization,
+      onClose: () => {},
+    });
   };
 
   render() {
-    let {access, organization, urlPrefix, openMembership} = this.props;
+    let {access, organization, urlPrefix, openMembership, useCreateModal} = this.props;
     let teamNodes = this.props.teamList.map((team, teamIdx) => {
       return (
         <AllTeamsRow
@@ -36,13 +51,12 @@ class AllTeamsList extends React.Component {
       return teamNodes;
     }
 
-    // TODO(jess): update this link to use url prefix when create team
-    // has been moved to new settings
+    let to = useCreateModal ? '#' : `/organizations/${organization.slug}/teams/new/`;
     return (
       <EmptyMessage>
         {tct('No teams here. You can always [link:create one].', {
           root: <TextBlock noMargin />,
-          link: <Link to={`/organizations/${organization.slug}/teams/new/`} />,
+          link: <Link to={to} onClick={this.handleCreateTeam} />,
         })}
       </EmptyMessage>
     );
