@@ -160,7 +160,7 @@ def merge_minidump_event(data, minidump):
     elif isinstance(minidump, TemporaryUploadedFile):
         state = ProcessState.from_minidump(minidump.temporary_file_path())
     else:
-        state = ProcessState.from_minidump(minidump.name)
+        state = ProcessState.from_minidump(minidump)
 
     data['level'] = 'fatal' if state.crashed else 'info'
     data['message'] = 'Assertion Error: %s' % state.assertion if state.assertion \
@@ -213,7 +213,7 @@ def merge_minidump_event(data, minidump):
     # Extract referenced (not all loaded) images
     images = [{
         'type': 'apple',  # Required by interface
-        'uuid': id_from_breakpad(module.id),
+        'id': id_from_breakpad(module.id),
         'image_addr': '0x%x' % module.addr,
         'image_size': '0x%x' % module.size,
         'name': module.name,
