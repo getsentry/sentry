@@ -80,3 +80,42 @@ class SlackIntegrationLinkIdentityTest(TestCase):
         assert identity[0].idp == self.idp
         assert identity[0].status == IdentityStatus.VALID
         assert len(responses.calls) == 1
+
+    @responses.activate
+    @patch('sentry.integrations.slack.link_identity.unsign')
+    def test_overwrites_existing_external_id(self, unsign):
+        existing_identity = Identity.objects.create(
+            user=self.user,
+            idp=self.idp,
+            external_id='old-slack-id',
+            status=IdentityStatus.VALID,
+        )
+
+        unsign.return_value = {
+            'integration_id': self.integration.id,
+            'organization_id': self.org.id,
+            'slack_id': 'new-slack-id',
+            'notify_channel_id': 'my-channel',
+        }
+
+        linking_url = build_linking_url(
+            self.integration,
+            self.org,
+            'new-slack-id',
+            'my-channel'
+        )
+        responses.add(
+            method=responses.POST,
+            url='https://slack.com/api/chat.postEphemeral',
+            body='{"ok": true}',
+            status=200,
+            content_type='application/json',
+        )
+
+        self.client.post(linking_url)
+
+        assert Identity.objects.filter(
+            id=existing_identity.id,
+            external_id='new-slack-id',
+            user=self.user,
+        ).exists()
