@@ -63,3 +63,10 @@ class GroupTagsTest(APITestCase):
 
         assert data[2]['key'] == 'release'  # Formatted from sentry:release
         assert len(data[2]['topValues']) == 1
+
+    def test_invalid_env(self):
+        this_group = self.create_group()
+        self.login_as(user=self.user)
+        url = '/api/0/issues/{}/tags/'.format(this_group.id)
+        response = self.client.get(url, {'environment': 'notreal'}, format='json')
+        assert response.data == []
