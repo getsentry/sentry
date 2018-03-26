@@ -97,10 +97,9 @@ const Stream = createReactClass({
 
     this.fetchSavedSearches();
     this.fetchProcessingIssues();
-  },
-
-  componentDidMount() {
-    this.fetchData();
+    if (!this.state.loading) {
+      this.fetchData();
+    }
   },
 
   componentWillReceiveProps(nextProps) {
