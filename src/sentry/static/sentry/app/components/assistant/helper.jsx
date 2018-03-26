@@ -74,13 +74,13 @@ const AssistantHelper = createReactClass({
 
     HookStore.get('analytics:event').forEach(cb =>
       cb('assistant.guide', {
-        guide: currentGuide.id,
-        cue: currentGuide.cue,
+        guide: this.state.currentGuide.id,
+        cue: this.state.currentGuide.cue,
         action: 'guide dismissed',
       })
     );
 
-    dismiss(currentGuide.id);
+    dismiss(this.state.currentGuide.id);
     closeGuide();
   },
 
