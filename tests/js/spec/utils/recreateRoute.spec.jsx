@@ -21,6 +21,10 @@ const params = {
   projectId: 'project-slug',
 };
 
+const location = {
+  search: '?key1=foo&key2=bar',
+};
+
 describe('recreateRoute', function() {
   it('returns correct path to a route object', function() {
     expect(recreateRoute(routes[4], {routes, params})).toBe(
@@ -47,6 +51,12 @@ describe('recreateRoute', function() {
   it('switches to new org but keeps current route', function() {
     expect(recreateRoute(routes[4], {routes, params: {orgId: 'new-org'}})).toBe(
       '/settings/new-org/api-keys/'
+    );
+  });
+
+  it('maintains the query strting', function() {
+    expect(recreateRoute(routes[4], {routes, params, location})).toBe(
+      '/settings/org-slug/api-keys/?key1=foo&key2=bar'
     );
   });
 });
