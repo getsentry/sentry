@@ -103,7 +103,7 @@ class DebugMeta(Interface):
         if func is None:
             raise InterfaceValidationError('Unknown image type %r' % image)
         rv = func(image)
-        assert 'uuid' in rv, 'debug image normalizer did not produce a UUID'
+        assert 'uuid' in rv or 'id' in rv, 'debug image normalizer did not produce a UUID'
         rv['type'] = ty
         return rv
 
