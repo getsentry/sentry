@@ -7,79 +7,38 @@ import RuleNode from './ruleNode';
 
 class RuleNodeList extends React.Component {
   static propTypes = {
-    initialItems: PropTypes.array,
+    items: PropTypes.array,
     nodes: PropTypes.array.isRequired,
-  };
-
-  constructor(props) {
-    super(props);
-    let counter = 0;
-    let initialItems = (props.initialItems || []).map(item => {
-      return {...item, key_attr: counter++};
-    });
-
-    this.state = {
-      items: initialItems,
-      counter,
-    };
-  }
-
-  componentWillMount() {
-    this._nodesById = {};
-
-    this.props.nodes.forEach(node => {
-      this._nodesById[node.id] = node;
-    });
-  }
-
-  onAddRow = sel => {
-    let nodeId = sel.val();
-    if (!nodeId) return;
-
-    sel.val('');
-
-    this.state.items.push({
-      id: nodeId,
-      // Since RuleNode item state is stored outside of React (using innerHTML),
-      // need to make sure elements aren't accidentally re-rendered. So, give each
-      // row a consistent key using a counter that initializes at 0 when RuleNodeList
-      // is mounted.
-      key_attr: this.state.counter,
-    });
-    this.setState({
-      items: this.state.items,
-      counter: this.state.counter + 1,
-    });
-  };
-
-  onDeleteRow = (idx, e) => {
-    this.state.items.splice(idx, 1);
-    this.setState({
-      items: this.state.items,
-    });
+    handlePropertyChange: PropTypes.func.isRequired,
+    handleAddRow: PropTypes.func.isRequired,
+    handleDeleteRow: PropTypes.func.isRequired,
   };
 
   getNode = id => {
-    return this._nodesById[id];
+    return this.props.nodes.find(node => node.id === id);
   };
 
   render() {
     return (
       <div className={this.props.className}>
         <RuleNodes>
-          {this.state.items.map((item, idx) => {
+          {this.props.items.map((item, idx) => {
             return (
               <RuleNode
-                key={item.key_attr}
+                key={idx}
                 node={this.getNode(item.id)}
-                onDelete={this.onDeleteRow.bind(this, idx)}
+                handleDelete={() => this.props.handleDeleteRow(idx)}
                 data={item}
+                handlePropertyChange={this.props.handlePropertyChange(idx)}
               />
             );
           })}
         </RuleNodes>
-        <fieldset className="node-selector">
-          <SelectInput onChange={this.onAddRow} style={{width: '100%'}}>
+        <fieldset>
+          <SelectInput
+            onChange={sel2 => this.props.handleAddRow(sel2.val())}
+            style={{width: '100%'}}
+          >
             <option key="blank" />
             {this.props.nodes.filter(n => n.enabled).map(node => {
               return (
