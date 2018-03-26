@@ -108,6 +108,22 @@ class EventAttributeCondition(EventCondition):
     form_cls = EventAttributeForm
     label = u'An event\'s {attribute} value {match} {value}'
 
+    form_fields = {
+        'attribute': {
+            'type': 'choice',
+            'placeholder': 'i.e. exception.type',
+            'choices': [[a, a] for a in ATTR_CHOICES]
+        },
+        'match': {
+            'type': 'choice',
+            'choices': MATCH_CHOICES.items()
+        },
+        'value': {
+            'type': 'string',
+            'placeholder': 'value'
+        }
+    }
+
     def _get_attribute_values(self, event, attr):
         # TODO(dcramer): we should validate attributes (when we can) before
 

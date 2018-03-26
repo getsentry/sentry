@@ -33,6 +33,15 @@ class NotifyEventServiceAction(EventAction):
     form_cls = NotifyEventServiceForm
     label = 'Send a notification via {service}'
 
+    def __init__(self, *args, **kwargs):
+        super(NotifyEventServiceAction, self).__init__(*args, **kwargs)
+        self.form_fields = {
+            'service': {
+                'type': 'choice',
+                'choices': [[i.slug, i.title] for i in self.get_plugins()]
+            }
+        }
+
     def after(self, event, state):
         service = self.get_option('service')
 
