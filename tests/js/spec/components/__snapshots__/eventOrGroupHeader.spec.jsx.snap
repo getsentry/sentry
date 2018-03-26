@@ -4,13 +4,10 @@ exports[`EventOrGroupHeader Event hides level tag 1`] = `
 <div
   className="event-issue-header"
 >
-  <GuideAnchor
-    target="issues"
-    type="text"
-  />
   <h3
     className="truncate"
   >
+     
     <ProjectLink
       to={
         Object {
@@ -57,13 +54,10 @@ exports[`EventOrGroupHeader Event renders with \`type = csp\` 1`] = `
 <div
   className="event-issue-header"
 >
-  <GuideAnchor
-    target="issues"
-    type="text"
-  />
   <h3
     className="truncate"
   >
+     
     <ProjectLink
       to={
         Object {
@@ -118,13 +112,10 @@ exports[`EventOrGroupHeader Event renders with \`type = default\` 1`] = `
 <div
   className="event-issue-header"
 >
-  <GuideAnchor
-    target="issues"
-    type="text"
-  />
   <h3
     className="truncate"
   >
+     
     <ProjectLink
       to={
         Object {
@@ -170,13 +161,10 @@ exports[`EventOrGroupHeader Event renders with \`type = error\` 1`] = `
 <div
   className="event-issue-header"
 >
-  <GuideAnchor
-    target="issues"
-    type="text"
-  />
   <h3
     className="truncate"
   >
+     
     <ProjectLink
       to={
         Object {
@@ -231,13 +219,10 @@ exports[`EventOrGroupHeader Group renders with \`type = csp\` 1`] = `
 <div
   className="event-issue-header"
 >
-  <GuideAnchor
-    target="issues"
-    type="text"
-  />
   <h3
     className="truncate"
   >
+     
     <ProjectLink
       to={
         Object {
@@ -296,13 +281,10 @@ exports[`EventOrGroupHeader Group renders with \`type = default\` 1`] = `
 <div
   className="event-issue-header"
 >
-  <GuideAnchor
-    target="issues"
-    type="text"
-  />
   <h3
     className="truncate"
   >
+     
     <ProjectLink
       to={
         Object {
@@ -361,13 +343,10 @@ exports[`EventOrGroupHeader Group renders with \`type = error\` 1`] = `
 <div
   className="event-issue-header"
 >
-  <GuideAnchor
-    target="issues"
-    type="text"
-  />
   <h3
     className="truncate"
   >
+     
     <ProjectLink
       to={
         Object {
