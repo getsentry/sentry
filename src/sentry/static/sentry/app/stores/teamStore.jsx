@@ -68,6 +68,4 @@ const TeamStore = Reflux.createStore({
   },
 });
 
-window.TeamStore = TeamStore;
-
 export default TeamStore;
