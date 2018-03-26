@@ -4,7 +4,7 @@ import six
 from collections import defaultdict
 
 from sentry.api.serializers import Serializer, register, serialize
-from sentry.models import OrganizationMember, OrganizationMemberTeam, Team
+from sentry.models import (OrganizationMember, OrganizationMemberTeam, Team, TeamStatus)
 
 
 @register(OrganizationMember)
@@ -53,8 +53,9 @@ class OrganizationMemberWithTeamsSerializer(OrganizationMemberSerializer):
 
         # results is a map of member id -> team_slug[]
         for m in member_team_map:
-            results[m['organizationmember_id']].append(
-                teams[m['team_id']].slug)
+            if teams[m['team_id']].status is TeamStatus.VISIBLE:
+                results[m['organizationmember_id']].append(
+                    teams[m['team_id']].slug)
 
         for item in item_list:
             teams = results.get(item.id, [])
