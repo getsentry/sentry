@@ -1,6 +1,6 @@
 // Jest Snapshot v1, https://goo.gl/fbAQLP
 
-exports[`ProjectTeamsSettings render() renders 1`] = `
+exports[`ProjectTeams render() renders 1`] = `
 <SideEffect(DocumentTitle)
   title="Sentry"
 >

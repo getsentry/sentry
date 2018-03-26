@@ -4,7 +4,7 @@ import {shallow, mount} from 'enzyme';
 import {Client} from 'app/api';
 import ProjectTeams from 'app/views/settings/project/projectTeams';
 
-describe('ProjectTeamsSettings', function() {
+describe('ProjectTeams', function() {
   let org;
   let project;
   let team;
