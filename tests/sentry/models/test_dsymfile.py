@@ -8,8 +8,8 @@ from six import BytesIO, text_type
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.core.urlresolvers import reverse
 
-from sentry.testutils import APITestCase
-from sentry.models import ProjectDSymFile
+from sentry.testutils import APITestCase, TestCase
+from sentry.models import File, ProjectDSymFile, ProjectSymCacheFile
 
 # This is obviously a freely generated UUID and not the checksum UUID.
 # This is permissible if users want to send different UUIDs
@@ -81,3 +81,75 @@ class DSymFilesClearTest(APITestCase):
 
         # But it's gone now
         assert not os.path.isfile(dsyms[PROGUARD_UUID])
+
+
+class SymCacheTest(TestCase):
+    def test_create_symcache(self):
+        file = File.objects.create(
+            name='crash.dSYM',
+            type='default',
+            headers={'Content-Type': 'application/x-mach-binary'},
+        )
+
+        path = os.path.join(os.path.dirname(__file__), 'fixtures', 'crash.dsym')
+        with open(path) as f:
+            file.putfile(f)
+
+        debug_id = '67e9247c-814e-392b-a027-dbde6748fcbf'
+        ProjectDSymFile.objects.create(
+            file=file,
+            object_name='crash.dSYM',
+            cpu_name='x86',
+            project=self.project,
+            debug_id=debug_id,
+        )
+
+        symcaches = ProjectDSymFile.dsymcache.get_symcaches(self.project, [debug_id])
+        symcache = symcaches['67e9247c-814e-392b-a027-dbde6748fcbf']
+
+        assert symcache.id == debug_id
+        assert symcache.is_latest_file_format
+
+    def test_update_symcache(self):
+        file = File.objects.create(
+            name='crash.dSYM',
+            type='default',
+            headers={'Content-Type': 'application/x-mach-binary'},
+        )
+
+        path = os.path.join(os.path.dirname(__file__), 'fixtures', 'crash.dsym')
+        with open(path) as f:
+            file.putfile(f)
+
+        debug_id = '67e9247c-814e-392b-a027-dbde6748fcbf'
+        debug_file = ProjectDSymFile.objects.create(
+            file=file,
+            object_name='crash.dSYM',
+            cpu_name='x86',
+            project=self.project,
+            debug_id=debug_id,
+        )
+
+        file = File.objects.create(
+            name='v1.symc',
+            type='project.symcache',
+        )
+
+        path = os.path.join(os.path.dirname(__file__), 'fixtures', 'v1.symc')
+        with open(path) as f:
+            file.putfile(f)
+
+        # Create an outdated SymCache to replace
+        ProjectSymCacheFile.objects.create(
+            project=debug_file.project,
+            cache_file=file,
+            dsym_file=debug_file,
+            checksum=debug_file.file.checksum,
+            version=1,
+        )
+
+        symcaches = ProjectDSymFile.dsymcache.get_symcaches(self.project, [debug_id])
+        symcache = symcaches['67e9247c-814e-392b-a027-dbde6748fcbf']
+
+        assert symcache.id == debug_id
+        assert symcache.is_latest_file_format

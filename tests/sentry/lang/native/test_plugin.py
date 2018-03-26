@@ -1209,14 +1209,13 @@ class RealResolvingIntegrationTest(TestCase):
             Object.make_symcache = original_make_symcache
 
     def test_debug_id_resolving(self):
-        path = os.path.join(os.path.dirname(__file__), 'fixtures', 'windows.sym')
         file = File.objects.create(
             name='crash.pdb',
             type='default',
-            size=os.stat(path).st_size,
             headers={'Content-Type': 'text/x-breakpad'},
         )
 
+        path = os.path.join(os.path.dirname(__file__), 'fixtures', 'windows.sym')
         with open(path) as f:
             file.putfile(f)
 
